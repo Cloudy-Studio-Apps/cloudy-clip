@@ -1,0 +1,53 @@
+# Cloudy Clip
+
+An open-source video editor that stays simple, in the spirit of CapCut. It focuses on short-form video and also handles long edits. Agents are first-class: a built-in MCP server lets any agent edit the same live timeline you see, and its changes go into your undo history.
+
+Built with Tauri v2 (Rust) and React, TypeScript, and Tailwind CSS.
+
+## What v1 does
+
+- Import video and audio files (Import button, or drop files on the window)
+- Multi-track timeline: add, move, trim, split, delete, mute/hide tracks, snapping, zoom, undo/redo
+- Live preview with layered video tracks and 9:16, 16:9, and 1:1 formats
+- A built-in MCP server exposing every one of those actions to agents
+
+## Develop
+
+Requirements: Node 20+, pnpm, Rust (stable), and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS. On Linux, install the GStreamer libav plugin (`gst-libav`) for H.264 playback.
+
+```sh
+pnpm install
+pnpm tauri dev
+```
+
+Checks:
+
+```sh
+pnpm lint && pnpm test && pnpm build
+cd src-tauri && cargo clippy --all-targets -- -D warnings && cargo test
+```
+
+## Connect an agent
+
+With the app running:
+
+```sh
+claude mcp add --transport http cloudy-clip http://127.0.0.1:7420/mcp
+```
+
+Then ask, for example: "import ~/Videos/clip.mp4, put it on the timeline and split it at 3 seconds." Tools include `project_get_state`, `media_import`, `timeline_add_clip`, `timeline_split`, `preview_capture_frame`, and `history_undo`. The server only listens on `127.0.0.1`. Set `CLOUDY_CLIP_MCP_PORT` to change the port.
+
+## Architecture
+
+See [docs/architecture.md](docs/architecture.md). Each module documents its commands and tools in its own `README.md` under `src/modules/`.
+
+## Keyboard shortcuts
+
+| Key                   | Action                                                        |
+| --------------------- | ------------------------------------------------------------- |
+| Space                 | Play / pause                                                  |
+| S                     | Split at playhead (selected clips, or all under the playhead) |
+| Delete / Backspace    | Delete selected clips                                         |
+| Ctrl+Z / Ctrl+Shift+Z | Undo / redo                                                   |
+| Home                  | Go to start                                                   |
+| Ctrl + wheel          | Zoom the timeline                                             |

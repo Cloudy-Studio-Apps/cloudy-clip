@@ -1,0 +1,31 @@
+import { z } from "zod";
+import { commandTool, defineMcpTool, textResult } from "@/core";
+import { setFormat } from "./project.commands";
+import { orderedTracks, projectDuration, trackClips } from "./project.selectors";
+import { projectStore } from "./project.store";
+
+/** The whole project in an agent-friendly shape: tracks in order with their clips inline. */
+const getState = defineMcpTool({
+  name: "project_get_state",
+  description:
+    "Returns the whole project: format, duration, imported media, and tracks (top to bottom) with their clips in timeline order. Times are microseconds. Call this first.",
+  input: z.object({}),
+  handler() {
+    const state = projectStore.getState();
+    return textResult({
+      format: state.format,
+      duration: projectDuration(state),
+      media: state.mediaOrder.map((id) => state.media[id]),
+      tracks: orderedTracks(state).map((track) => ({
+        id: track.id,
+        kind: track.kind,
+        name: track.name,
+        muted: track.muted,
+        hidden: track.hidden,
+        clips: trackClips(state, track),
+      })),
+    });
+  },
+});
+
+export const projectMcpTools = [getState, commandTool(setFormat, { name: "project_set_format" })];

@@ -1,0 +1,113 @@
+import { createLogger, secondsToMicros } from "@/core";
+import type { MediaAsset } from "@/modules/project";
+import { mediaUrl } from "./media.service";
+import { setProbe } from "./media.store";
+
+const log = createLogger("media.probe");
+
+/** Files probed at the same time. Each probe holds a decoder, so keep this small. */
+const CONCURRENCY = 2;
+const LOAD_TIMEOUT_MS = 15_000;
+const POSTER_WIDTH = 192;
+
+const queue: MediaAsset[] = [];
+const queued = new Set<string>();
+let running = 0;
+
+/** Adds a file to the probe queue. Each media id is probed once per session. */
+export function enqueueProbe(asset: MediaAsset): void {
+  if (queued.has(asset.id)) return;
+  queued.add(asset.id);
+  setProbe(asset.id, { status: "pending" });
+  queue.push(asset);
+  pump();
+}
+
+function pump(): void {
+  while (running < CONCURRENCY && queue.length > 0) {
+    const asset = queue.shift()!;
+    running++;
+    void probe(asset)
+      .then((probe) => setProbe(asset.id, { ...probe, status: "ready" }))
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        log.warn(`Could not read "${asset.name}"`, message);
+        setProbe(asset.id, { status: "error", error: message });
+      })
+      .finally(() => {
+        running--;
+        pump();
+      });
+  }
+}
+
+async function probe(asset: MediaAsset) {
+  const element = document.createElement(asset.kind === "video" ? "video" : "audio");
+  element.preload = "metadata";
+  element.crossOrigin = "anonymous";
+  element.muted = true;
+  try {
+    element.src = mediaUrl(asset.id);
+    await waitFor(element, "loadedmetadata");
+
+    if (!Number.isFinite(element.duration) || element.duration <= 0) {
+      throw new Error("The file has no readable duration");
+    }
+    const duration = secondsToMicros(element.duration);
+    if (!(element instanceof HTMLVideoElement)) return { duration };
+
+    if (element.videoWidth === 0) throw new Error("The video track cannot be decoded");
+    const posterUrl = await capturePoster(element).catch(() => undefined);
+    return { duration, width: element.videoWidth, height: element.videoHeight, posterUrl };
+  } finally {
+    // Release the decoder and the stream right away.
+    element.removeAttribute("src");
+    element.load();
+  }
+}
+
+async function capturePoster(video: HTMLVideoElement): Promise<string> {
+  video.currentTime = Math.min(1, video.duration * 0.1);
+  await waitFor(video, "seeked");
+  const canvas = document.createElement("canvas");
+  canvas.width = POSTER_WIDTH;
+  canvas.height = Math.max(1, Math.round((POSTER_WIDTH * video.videoHeight) / video.videoWidth));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No 2D context");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", 0.8),
+  );
+  if (!blob) throw new Error("Could not encode poster");
+  return URL.createObjectURL(blob);
+}
+
+function waitFor(element: HTMLMediaElement, event: "loadedmetadata" | "seeked"): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => done(new Error("Timed out reading the file")), LOAD_TIMEOUT_MS);
+    const onEvent = () => done();
+    const onError = () => done(new Error(describeMediaError(element.error)));
+    function done(error?: Error) {
+      clearTimeout(timer);
+      element.removeEventListener(event, onEvent);
+      element.removeEventListener("error", onError);
+      if (error) reject(error);
+      else resolve();
+    }
+    element.addEventListener(event, onEvent, { once: true });
+    element.addEventListener("error", onError, { once: true });
+  });
+}
+
+function describeMediaError(error: MediaError | null): string {
+  switch (error?.code) {
+    case MediaError.MEDIA_ERR_DECODE:
+      return "The file is damaged or uses an unsupported codec";
+    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+      return "This format or codec is not supported on this system";
+    case MediaError.MEDIA_ERR_NETWORK:
+      return "The file could not be read";
+    default:
+      return error?.message || "Unknown media error";
+  }
+}
