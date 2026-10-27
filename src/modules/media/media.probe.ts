@@ -1,6 +1,6 @@
 import { createLogger, secondsToMicros } from "@/core";
 import type { MediaAsset } from "@/modules/project";
-import type { MediaState } from "./media.types";
+import type { MediaState, ProbeQueue } from "./media.types";
 
 const log = createLogger("media.probe");
 
@@ -8,17 +8,6 @@ const log = createLogger("media.probe");
 const CONCURRENCY = 2;
 const LOAD_TIMEOUT_MS = 15_000;
 const POSTER_WIDTH = 192;
-
-/** Reads file metadata in the background. */
-export interface ProbeQueue {
-  /**
-   * Adds a file to the queue. Each media id is probed once per kernel, after its proxy
-   * pipeline has settled (so pro formats are read from their proxy).
-   */
-  enqueue(asset: MediaAsset): void;
-  /** Drops queued files and ignores results still in flight. */
-  dispose(): void;
-}
 
 /** Creates the probe queue of one kernel, reading from `mediaUrl` and writing into `state`. */
 export function createProbeQueue(deps: {

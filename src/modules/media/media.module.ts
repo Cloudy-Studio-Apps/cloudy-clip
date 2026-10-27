@@ -1,4 +1,5 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { SquarePlay } from "lucide-react";
 import { defineModule, layoutPanels } from "@/core";
 import { projectRef } from "@/modules/project";
 import { importMedia, mediaCommands } from "./media.commands";
@@ -70,6 +71,7 @@ export const mediaModule = defineModule({
       id: "media.library",
       title: "Media",
       slot: "side",
+      icon: SquarePlay,
       component: MediaLibrary,
     });
 

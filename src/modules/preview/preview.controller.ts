@@ -1,5 +1,7 @@
 import { createLogger, type Micros } from "@/core";
+import type { ClipId, ClipTransform } from "@/modules/project";
 import type { PreviewController, PreviewControllerDeps, PreviewEngine } from "./preview.types";
+import { createViewport } from "./preview.viewport";
 
 const log = createLogger("preview");
 
@@ -16,12 +18,14 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   let detachCurrent: (() => void) | null = null;
   let redrawQueued = false;
   let settleRetries = 0;
+  /** Live transforms of a gesture in progress, drawn instead of the saved ones. */
+  const transforms = new Map<ClipId, ClipTransform>();
 
   function renderNow(): void {
     redrawQueued = false;
     if (!engine) return;
     try {
-      engine.render(deps.getProject(), clock.getTime(), clock.isPlaying());
+      engine.render(deps.getProject(), clock.getTime(), clock.isPlaying(), transforms);
     } catch (error) {
       log.error("Render failed", error);
     }
@@ -105,6 +109,12 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     attachCanvas,
     redraw: requestRedraw,
     captureFrame,
+    previewTransform(clipId, transform) {
+      if (transform) transforms.set(clipId, transform);
+      else transforms.delete(clipId);
+      requestRedraw();
+    },
+    viewport: createViewport(),
     dispose() {
       clock.pause();
       detachCurrent?.();

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { defineCommand } from "../command/define-command";
+import { defineCommand } from "../command/command.define";
 import { CommandFailure } from "../errors/result";
 import type { History } from "./history.types";
 

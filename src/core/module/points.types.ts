@@ -38,3 +38,9 @@ export interface PointRegistry extends PointReader {
   /** Adds items on behalf of a module. Returns a disposer that removes exactly these items. */
   add<T>(point: Point<T>, moduleId: string, items: readonly T[]): Disposer;
 }
+
+/** One contribution, remembered with the module that made it. */
+export interface PointEntry {
+  moduleId: string;
+  item: unknown;
+}

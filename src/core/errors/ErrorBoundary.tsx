@@ -31,15 +31,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (!this.state.error) return this.props.children;
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-sm text-neutral-400">
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-base text-muted-foreground">
         <p>
-          The <span className="font-medium text-neutral-200">{this.props.name}</span> panel ran into
+          The <span className="font-medium text-foreground">{this.props.name}</span> panel ran into
           a problem.
         </p>
-        <p className="max-w-md truncate text-xs text-neutral-500">{this.state.error.message}</p>
+        <p className="max-w-md truncate text-sm text-subtle-foreground">
+          {this.state.error.message}
+        </p>
         <button
           type="button"
-          className="rounded bg-neutral-800 px-3 py-1 text-neutral-200 hover:bg-neutral-700"
+          className="h-7 cursor-pointer rounded-sm border border-border bg-surface-sunken px-2.5 text-sm font-medium text-foreground hover:border-border-strong hover:bg-hover"
           onClick={() => this.setState({ error: null })}
         >
           Retry

@@ -1,3 +1,4 @@
+import type { ModuleRegistry } from "../module/module.types";
 import type { z } from "zod";
 import type { CommandBus } from "../command/command.types";
 import type { History } from "../history/history.types";
@@ -69,4 +70,21 @@ export interface McpTransport {
   registerTools(manifest: McpToolManifest[]): Promise<void>;
   onCall(handler: (call: McpCall) => void): Promise<() => void>;
   respond(id: string, result: McpToolResult): Promise<void>;
+}
+
+export interface McpBridgeOptions {
+  registry: McpRegistry;
+  transport: McpTransport;
+  bus: CommandBus;
+  history: History;
+  modules: Pick<ModuleRegistry, "require">;
+}
+
+/** Connects the tool registry to the native MCP server. */
+export interface McpBridge {
+  /** Publishes the tools and starts answering calls. Safe to call once. */
+  start(): Promise<void>;
+  stop(): void;
+  /** Handles one call. Exposed for tests. Never throws. */
+  handle(call: McpCall): Promise<McpToolResult>;
 }

@@ -1,21 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { MediaId } from "@/modules/project";
 import { listen } from "@tauri-apps/api/event";
-import type { MediaState, ProxyEvent, RegisterOutcome } from "./media.types";
+import type { MediaService, MediaState, ProxyEvent, RegisterOutcome } from "./media.types";
 
 /** Asks the native side to validate files and allow streaming them. */
 export function registerFiles(paths: string[]): Promise<RegisterOutcome[]> {
   return invoke<RegisterOutcome[]>("media_register", { paths });
-}
-
-/** The native media server connection of one kernel. */
-export interface MediaService {
-  /** Fetches where the native media server listens. Call once before `mediaUrl`. */
-  init(): Promise<void>;
-  /** Follows proxy progress from the native side. Resolves to an unlisten function. */
-  listenToProxies(): Promise<() => void>;
-  /** Streaming URL of a registered file; changes once its proxy is ready. */
-  mediaUrl(id: MediaId): string;
 }
 
 /** Creates the media server connection, writing proxy progress into `state`. */

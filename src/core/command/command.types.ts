@@ -1,7 +1,9 @@
+import type { History } from "../history/history.types";
+import type { StoreChange } from "../store/store.types";
 import type { Draft } from "immer";
 import type { z } from "zod";
 import type { AppError, Result } from "../errors/result.types";
-import type { Logger } from "../errors/logger";
+import type { Logger } from "../errors/logger.types";
 import type { ModuleRef } from "../module/module.types";
 import type { PatchableStore } from "../store/store.types";
 
@@ -81,4 +83,20 @@ export interface CommandBus {
   list(): CommandDefinition[];
   /** Subscribes to execution events. Returns an unsubscribe function. */
   onExecuted(listener: (event: CommandExecutedEvent) => void): () => void;
+}
+
+export interface CommandBusOptions {
+  history: History;
+  timeoutMs?: number;
+  logger?: Logger;
+  /** Resolves `ctx.require`. Without it, commands can't require modules (bus-only tests). */
+  resolveModule?: <A>(ref: ModuleRef<A>) => A;
+}
+
+/** Mutable state of one top-level execution, shared with nested commands. */
+export interface Transaction {
+  origin: CommandOrigin;
+  changes: StoreChange[];
+  /** Set when the execution timed out: late mutations are refused. */
+  closed: boolean;
 }

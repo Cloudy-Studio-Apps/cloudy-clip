@@ -6,8 +6,10 @@ Cloudy Clip is built so that **a user, an agent (over MCP), and a future plugin 
 
 ```
 ┌──────────────────────── Webview (React) ────────────────────────┐
-│  app/            shell: LayoutHost, keybinding host, toasts,    │
-│                  bootstrap (reads points; imports no module)    │
+│  app/            shell: layout (top bar, side rail), keybinding │
+│                  host, toasts, bootstrap (reads points;         │
+│                  imports no module)                             │
+│  ui/             UI kit: design tokens, stateless components    │
 │  modules/        project · media · timeline · preview           │
 │                  (each: index.ts, *.ref.ts, *.module.ts,        │
 │                   *.types.ts, *.commands.ts, *.mcp.ts, ui/)     │
@@ -34,7 +36,7 @@ Cloudy Clip is built so that **a user, an agent (over MCP), and a future plugin 
 ## How an agent call flows
 
 ```
-agent ──HTTP──▶ rmcp server (Rust) ──event "mcp://call"──▶ mcp-bridge (webview)
+agent ──HTTP──▶ rmcp server (Rust) ──event "mcp://call"──▶ mcp.bridge (webview)
                                                              │ validate, run tool
                                                              ▼
 agent ◀──HTTP── rmcp server ◀──invoke "mcp_respond"──── tool result
@@ -69,7 +71,7 @@ export const timelineModule = defineModule({
 `kernel.modules.loadAll(modules)` sorts by `requires`/`after` (cycles throw), registers each module's commands and tools, then runs `setup` once per kernel. A module whose `setup` throws is removed again (commands, tools, contributions) and marked `failed`; modules that need it are `skipped`; the rest keep working. Built-ins get no API a plugin will not have. A plugin loader only needs to produce module definitions and call `loadAll`.
 
 - **APIs:** what `setup` returns as `api` is reached with `ctx.require(ref)` (setup, commands, MCP tools) or `useModule(ref)` (React). There are no module-level store or service singletons.
-- **Points:** `definePoint<T>(id, { keyOf? })` is a typed place to contribute items; a keyed point rejects duplicate keys and names both modules. The shell reads `layoutPanels` (panels by slot) and `keybindings` (each maps a key to a command, so shortcuts go through the bus). `usePoint(point)` reads one from React.
+- **Points:** `definePoint<T>(id, { keyOf? })` is a typed place to contribute items; a keyed point rejects duplicate keys and names both modules. The shell reads `layoutPanels` (panels by slot; side panels become tabs of the rail, with their `icon`) and `keybindings` (each maps a key to a command, so shortcuts go through the bus). `usePoint(point)` reads one from React.
 - **Tiers:** `core` modules may be required by anyone (lazily; list them in `requires` to use them during `setup`) and load before features; `feature` modules are written only against the public API and must list what they require.
 - **`uses`:** must be loaded, loaded first when possible; mutual `uses` is allowed, so a `uses` module is only safe to `require` lazily.
 

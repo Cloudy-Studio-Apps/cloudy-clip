@@ -7,15 +7,24 @@ import {
   type Kernel,
   type AnyModuleDefinition,
 } from "@/core";
+import { inspectorModule } from "@/modules/inspector";
 import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
 import { timelineModule } from "@/modules/timeline";
+import { transformModule } from "@/modules/transform";
 
 const log = createLogger("app");
 
 /** Built-in modules, in any order: the kernel orders them by their dependencies. */
-const MODULES: AnyModuleDefinition[] = [projectModule, mediaModule, timelineModule, previewModule];
+const MODULES: AnyModuleDefinition[] = [
+  projectModule,
+  mediaModule,
+  timelineModule,
+  previewModule,
+  inspectorModule,
+  transformModule,
+];
 
 /**
  * Starts the editor: creates the kernel, loads modules, surfaces command results to the user,

@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { defineCommand } from "./command/define-command";
-import { commandTool, defineMcpTool, textResult } from "./mcp/define-mcp-tool";
-import { createMcpBridge } from "./mcp/mcp-bridge";
+import { defineCommand } from "./command/command.define";
+import { commandTool, defineMcpTool, textResult } from "./mcp/mcp.tool";
+import { createMcpBridge } from "./mcp/mcp.bridge";
 import type { McpTransport } from "./mcp/mcp.types";
-import { createKernel, type Kernel } from "./kernel";
-import { defineModule, defineModuleRef } from "./module/define-module";
-import { createPatchableStore } from "./store/patchable-store";
+import { createKernel } from "./kernel";
+import type { Kernel } from "./kernel.types";
+import { defineModule, defineModuleRef } from "./module/module.define";
+import { createPatchableStore } from "./store/store.patchable";
 import type { PatchableStore } from "./store/store.types";
 
 const noopTransport: McpTransport = {

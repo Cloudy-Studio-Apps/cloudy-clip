@@ -1,18 +1,13 @@
-import type { Point, PointOptions, PointRegistry } from "./points.types";
+import type { Point, PointEntry, PointOptions, PointRegistry } from "./points.types";
 
 /** Defines an extension point. Export it from the module that reads it. */
 export function definePoint<T>(id: string, options: PointOptions<T> = {}): Point<T> {
   return { id, ...options };
 }
 
-interface Entry {
-  moduleId: string;
-  item: unknown;
-}
-
 /** Creates the point registry of one kernel. */
 export function createPointRegistry(): PointRegistry {
-  const entries = new Map<string, Entry[]>();
+  const entries = new Map<string, PointEntry[]>();
   const snapshots = new Map<string, readonly unknown[]>();
   const listeners = new Set<() => void>();
 
@@ -21,7 +16,7 @@ export function createPointRegistry(): PointRegistry {
     for (const listener of listeners) listener();
   }
 
-  function entriesOf(pointId: string): Entry[] {
+  function entriesOf(pointId: string): PointEntry[] {
     let list = entries.get(pointId);
     if (!list) entries.set(pointId, (list = []));
     return list;
@@ -45,7 +40,7 @@ export function createPointRegistry(): PointRegistry {
           seen.add(key);
         }
       }
-      const added: Entry[] = items.map((item) => ({ moduleId, item }));
+      const added: PointEntry[] = items.map((item) => ({ moduleId, item }));
       list.push(...added);
       changed(point.id);
 

@@ -1,4 +1,4 @@
-import type { Patch } from "immer";
+import type { Draft, Patch } from "immer";
 import type { StoreApi } from "zustand/vanilla";
 
 /**
@@ -26,4 +26,17 @@ export interface StoreChange {
   store: PatchableStore<object>;
   patches: Patch[];
   inversePatches: Patch[];
+}
+
+/**
+ * Internal handle with the write operations. Only the command bus and history hold it; the
+ * public {@link PatchableStore} type is read-only so nothing can bypass commands.
+ */
+export interface PatchableStoreInternal<T extends object> extends PatchableStore<T> {
+  /** Applies `recipe` to a draft, commits the result and returns the recorded change. */
+  produce(recipe: (draft: Draft<T>) => void): StoreChange | null;
+  /** Applies previously recorded patches (used by undo/redo and rollback). */
+  apply(patches: Patch[]): void;
+  /** Replaces the whole state. Only for tests and future project loading. */
+  reset(state: T): void;
 }

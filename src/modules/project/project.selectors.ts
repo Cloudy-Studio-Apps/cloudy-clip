@@ -1,5 +1,5 @@
 import type { Micros } from "@/core";
-import type { Clip, ProjectState, Track } from "./project.types";
+import type { Clip, FormatPreset, ProjectFormat, ProjectState, Track } from "./project.types";
 
 /** End time of a clip on the timeline. */
 export function clipEnd(clip: Clip): Micros {
@@ -36,4 +36,10 @@ export function orderedTracks(state: ProjectState): Track[] {
 /** Whether any clip uses the media. */
 export function isMediaInUse(state: ProjectState, mediaId: string): boolean {
   return Object.values(state.clips).some((clip) => clip.mediaId === mediaId);
+}
+
+/** The named preset a format matches by aspect ratio: square, landscape or vertical. */
+export function formatPreset(format: ProjectFormat): FormatPreset {
+  if (format.width === format.height) return "1:1";
+  return format.width > format.height ? "16:9" : "9:16";
 }

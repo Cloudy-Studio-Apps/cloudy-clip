@@ -1,12 +1,25 @@
 # timeline
 
-Editing tracks and clips, and the timeline panel.
+Editing tracks and clips on the timeline, and the timeline panel: ruler, track headers, lanes,
+clips, playhead and the toolbar (split, delete, add track, zoom).
 
-- `logic/` holds pure, tested functions: overlap checks, trim clamping, snapping, geometry.
-- Rules: clips never overlap on a track (move/add fail with `timeline.overlap`); trims are clamped to the source media, neighbours, and a one-frame minimum; clips only move between tracks of the same kind.
-- UI: page-virtualized lanes, gestures in `ui/clip-gesture.ts` (DOM feedback while dragging, one command on release), imperative playhead.
-- View state (zoom, selection) is `TimelineApi.view` (per kernel, not in history); `TimelineApi.setZoom`, `selectClip`.
-- Tier: core. Requires: `project`, `media`, `preview`. Contributes: panel `timeline.panel` (bottom); keybindings `timeline.split` (S), `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace).
+- **Tier:** core
+- **Requires:** `project`, `media`, `preview`
+- **Contributes:** panel `timeline.panel` (bottom); keybindings `timeline.split` (S),
+  `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace)
+- **Points it owns:** —
+- **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history),
+  `setZoom`, `selectClip`. The selection is shared: the preview's canvas tools select through it.
+- **Files:**
+  - `timeline.track.commands.ts` (tracks), `timeline.clip.commands.ts` (clips), shared checks in
+    `timeline.guards.ts`; `timeline.commands.ts` lists them.
+  - `logic/`: pure, tested functions: overlap checks, trim clamping, snapping, geometry.
+  - `ui/`: page-virtualized lanes (`TimelinePanel`), `clip.gesture.ts` (DOM feedback while dragging,
+    one command on release), the playhead positioned by `playhead.hook.ts` without renders.
+- **Rules:** clips never overlap on a track (move/add fail with `timeline.overlap`); trims are
+  clamped to the source media, neighbours and a one-frame minimum; clips only move between tracks of
+  the same kind; a split keeps the clip's transform on both halves.
+- **Not yet:** markers, groups, compositions, ripple and other Pro tools, magnetic main track.
 
 | Command                   | MCP tool                    |
 | ------------------------- | --------------------------- |

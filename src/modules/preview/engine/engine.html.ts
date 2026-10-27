@@ -1,0 +1,147 @@
+import { microsToSeconds, type Micros } from "@/core";
+import {
+  clipPlacement,
+  clipTransform,
+  type Clip,
+  type ClipId,
+  type ClipTransform,
+  type ProjectState,
+  type Track,
+} from "@/modules/project";
+import type { PreviewEngine } from "../preview.types";
+import { MediaSlotPool } from "./engine.slots";
+import { syncSlot } from "./engine.sync";
+import type { EngineOptions } from "./engine.types";
+
+/** Clips starting within this window are prepared ahead so cuts don't stutter. */
+const PRELOAD_AHEAD: Micros = 1_500_000;
+
+/**
+ * Preview engine built on HTML media elements and a 2D canvas.
+ *
+ * - One pooled `<video>`/`<audio>` per active clip, plus one per clip about to start.
+ * - Elements are reused across clips of the same file (a split plays seamlessly).
+ * - While playing, elements play natively (hardware decoding, native audio) and are only
+ *   re-seeked when they drift from the clock.
+ * - Video layers are drawn bottom → top, letterboxed to the project format.
+ */
+export class HtmlMediaEngine implements PreviewEngine {
+  private readonly ctx: CanvasRenderingContext2D;
+  private readonly pool: MediaSlotPool;
+  private settled = true;
+
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    options: EngineOptions,
+  ) {
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) throw new Error("2D canvas is not available");
+    this.ctx = ctx;
+    this.pool = new MediaSlotPool(options);
+  }
+
+  render(
+    project: ProjectState,
+    time: Micros,
+    playing: boolean,
+    transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
+  ): void {
+    const active: Array<{ clip: Clip; track: Track }> = [];
+    const upcoming: Clip[] = [];
+    for (const trackId of project.trackOrder) {
+      const track = project.tracks[trackId];
+      if (!track) continue;
+      for (const clipId of track.clipIds) {
+        const clip = project.clips[clipId];
+        if (!clip) continue;
+        if (clip.start <= time && time < clip.start + clip.duration) active.push({ clip, track });
+        else if (clip.start > time && clip.start - time <= PRELOAD_AHEAD) upcoming.push(clip);
+        else if (clip.start > time + PRELOAD_AHEAD) break; // clips are sorted by start
+      }
+    }
+
+    const needed = new Set<string>();
+    for (const { clip } of active) needed.add(clip.id);
+    for (const clip of upcoming) needed.add(clip.id);
+    this.pool.release(needed);
+
+    this.settled = true;
+    for (const { clip, track } of active) {
+      const media = project.media[clip.mediaId];
+      if (!media) continue;
+      const desired = microsToSeconds(clip.sourceIn + time - clip.start);
+      const slot = this.pool.acquire(clip, media.kind, desired);
+      if (!slot) continue;
+      slot.element.muted = track.muted;
+      syncSlot(slot, desired, playing);
+      if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) this.settled = false;
+    }
+    for (const clip of upcoming) {
+      const media = project.media[clip.mediaId];
+      if (!media) continue;
+      const slot = this.pool.acquire(clip, media.kind, microsToSeconds(clip.sourceIn));
+      if (!slot) continue;
+      slot.element.muted = true;
+      syncSlot(slot, microsToSeconds(clip.sourceIn), false);
+    }
+
+    // Slots that lost their clip this frame must go quiet.
+    this.pool.pauseIdle();
+
+    // Only paint complete frames: a layer still decoding would flash black. Keep the previous
+    // picture instead; the controller retries until every layer has its frame.
+    if (this.settled) this.draw(project, active, transforms);
+  }
+
+  pauseAll(): void {
+    this.pool.pauseAll();
+  }
+
+  isSettled(): boolean {
+    return this.settled;
+  }
+
+  captureFrame(): string {
+    return this.canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+  }
+
+  dispose(): void {
+    this.pool.dispose();
+  }
+
+  private draw(
+    project: ProjectState,
+    active: Array<{ clip: Clip; track: Track }>,
+    transforms: ReadonlyMap<ClipId, ClipTransform>,
+  ): void {
+    const { ctx, canvas } = this;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Canvas pixels per output pixel (the canvas keeps the format's aspect ratio).
+    const kx = canvas.width / project.format.width;
+    const ky = canvas.height / project.format.height;
+
+    // trackOrder is top → bottom; draw bottom first so higher tracks end up on top.
+    for (let i = active.length - 1; i >= 0; i--) {
+      const { clip, track } = active[i]!;
+      if (track.kind !== "video" || track.hidden) continue;
+      if (project.media[clip.mediaId]?.kind !== "video") continue;
+      const element = this.pool.elementOf(clip.id);
+      if (!(element instanceof HTMLVideoElement)) continue;
+      if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0)
+        continue;
+
+      const place = clipPlacement(
+        project.format,
+        { width: element.videoWidth, height: element.videoHeight },
+        transforms.get(clip.id) ?? clipTransform(clip),
+      );
+      ctx.setTransform(kx, 0, 0, ky, 0, 0);
+      ctx.translate(place.cx, place.cy);
+      ctx.rotate((place.rotation * Math.PI) / 180);
+      ctx.drawImage(element, -place.width / 2, -place.height / 2, place.width, place.height);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+}

@@ -3,8 +3,19 @@
  * @module preview
  */
 export { pause, play, seek, togglePlay } from "./preview.commands";
-export { HtmlMediaEngine } from "./engine/html-media-engine";
-export type { PlaybackClock, PreviewApi, PreviewEngine, TimeListener } from "./preview.types";
+export { HtmlMediaEngine } from "./engine/engine.html";
+/** Layers drawn over the preview frame; contribute with `ctx.contribute(previewOverlays, …)`. */
+export { previewOverlays } from "./preview.points";
+export { MAX_ZOOM, MIN_ZOOM } from "./preview.viewport";
+export type {
+  PlaybackClock,
+  PreviewApi,
+  PreviewEngine,
+  PreviewOverlay,
+  TimeListener,
+  ViewportApi,
+  ViewportState,
+} from "./preview.types";
 
 /** Module definition, loaded by the app shell. */
 export { previewModule } from "./preview.module";

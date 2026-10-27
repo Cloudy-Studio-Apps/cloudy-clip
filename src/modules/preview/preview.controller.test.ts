@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createEmptyProject } from "@/modules/project";
-import { createPlaybackClock } from "./playback-clock";
+import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
 import type { PreviewEngine } from "./preview.types";
 

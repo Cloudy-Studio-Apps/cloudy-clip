@@ -4,10 +4,11 @@
  */
 
 // Kernel
-export { createKernel, type Kernel } from "./kernel";
+export { createKernel } from "./kernel";
+export type { Kernel } from "./kernel.types";
 
 // Commands
-export { defineCommand } from "./command/define-command";
+export { defineCommand } from "./command/command.define";
 export type {
   CommandBus,
   CommandContext,
@@ -22,11 +23,11 @@ export { historyRef } from "./history/history.module";
 export type { History, HistoryEntry, HistorySnapshot } from "./history/history.types";
 
 // Document stores
-export { createPatchableStore } from "./store/patchable-store";
+export { createPatchableStore } from "./store/store.patchable";
 export type { PatchableStore } from "./store/store.types";
 
 // Modules
-export { defineModule, defineModuleRef } from "./module/define-module";
+export { defineModule, defineModuleRef } from "./module/module.define";
 export type {
   AnyModuleDefinition,
   Disposer,
@@ -49,13 +50,15 @@ export type {
   KeyPress,
   LayoutPanel,
   LayoutSlot,
+  PanelIcon,
 } from "./shell/shell.types";
 
 // MCP
-export { commandTool, defineMcpTool, errorResult, textResult } from "./mcp/define-mcp-tool";
-export { createMcpBridge, type McpBridge } from "./mcp/mcp-bridge";
-export { createTauriMcpTransport } from "./mcp/tauri-transport";
+export { commandTool, defineMcpTool, errorResult, textResult } from "./mcp/mcp.tool";
+export { createMcpBridge } from "./mcp/mcp.bridge";
+export { createTauriMcpTransport } from "./mcp/mcp.transport.tauri";
 export type {
+  McpBridge,
   McpCall,
   McpContent,
   McpRegistry,
@@ -69,7 +72,8 @@ export type {
 // Errors
 export { CommandFailure, err, ok, toAppError } from "./errors/result";
 export type { AppError, Result } from "./errors/result.types";
-export { createLogger, type Logger } from "./errors/logger";
+export { createLogger } from "./errors/logger";
+export type { Logger } from "./errors/logger.types";
 export { ErrorBoundary } from "./errors/ErrorBoundary";
 
 // Ids
@@ -84,4 +88,4 @@ export { dismiss, notificationsStore, notify } from "./notifications/notificatio
 export type { Notification, NotificationLevel } from "./notifications/notifications.types";
 
 // React
-export { KernelProvider, useHistory, useKernel, useModule, usePoint } from "./react/kernel-context";
+export { KernelProvider, useHistory, useKernel, useModule, usePoint } from "./react/react.context";

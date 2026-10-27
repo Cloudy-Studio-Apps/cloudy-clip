@@ -122,7 +122,11 @@ export function TimelinePanel() {
   return (
     <section className="flex h-full flex-col">
       <TimelineToolbar />
-      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto bg-neutral-950">
+      <div
+        ref={scrollRef}
+        data-scroll="wide"
+        className="relative min-h-0 flex-1 overflow-auto bg-lane"
+      >
         <div className="relative" style={{ width: HEADER_WIDTH + contentWidth, minHeight: "100%" }}>
           <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
           {lanes.map(({ track, clips }) => (
@@ -140,7 +144,7 @@ export function TimelinePanel() {
           ))}
           {duration === 0 && (
             <p
-              className="pointer-events-none absolute text-xs text-neutral-600"
+              className="pointer-events-none absolute text-sm text-subtle-foreground"
               style={{ left: HEADER_WIDTH + 16, top: 120 }}
             >
               Drag media from the library onto a track to start editing.

@@ -1,5 +1,6 @@
 import type { Micros } from "@/core";
 import type { Clip, ClipId, ProjectState, TrackId } from "@/modules/project";
+import type { TrimLimits } from "../timeline.types";
 
 /** Smallest clip length allowed: one frame at the project frame rate. */
 export function minClipDuration(state: ProjectState): Micros {
@@ -58,15 +59,6 @@ export function neighbourBounds(
       nextStart = Math.min(nextStart, other.start);
   }
   return { prevEnd, nextStart };
-}
-
-/** Limits that apply when trimming a clip. */
-export interface TrimLimits {
-  /** Length of the source media; `Infinity` if unknown. */
-  mediaDuration: Micros;
-  minDuration: Micros;
-  prevEnd: Micros;
-  nextStart: Micros;
 }
 
 /**

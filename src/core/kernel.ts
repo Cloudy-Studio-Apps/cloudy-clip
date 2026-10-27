@@ -1,24 +1,10 @@
-import { createCommandBus } from "./command/command-bus";
-import type { CommandBus } from "./command/command.types";
+import { createCommandBus } from "./command/command.bus";
 import { createHistory } from "./history/history";
 import { createHistoryModule } from "./history/history.module";
-import type { History } from "./history/history.types";
-import { createMcpRegistry } from "./mcp/mcp-registry";
-import type { McpRegistry } from "./mcp/mcp.types";
-import { createModuleRegistry } from "./module/module-registry";
-import type { ModuleRegistry } from "./module/module.types";
+import { createMcpRegistry } from "./mcp/mcp.registry";
+import { createModuleRegistry } from "./module/module.registry";
 import { createPointRegistry } from "./module/points";
-import type { PointReader } from "./module/points.types";
-
-/** The application kernel: everything modules and plugins plug into. */
-export interface Kernel {
-  readonly bus: CommandBus;
-  readonly history: History;
-  readonly mcp: McpRegistry;
-  readonly modules: ModuleRegistry;
-  /** Every contribution made by loaded modules (panels, keybindings, ...). */
-  readonly points: PointReader;
-}
+import type { Kernel } from "./kernel.types";
 
 /**
  * Creates a kernel and loads the built-in `history` module (undo/redo commands and tools).

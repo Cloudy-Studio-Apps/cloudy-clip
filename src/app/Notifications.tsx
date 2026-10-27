@@ -1,13 +1,15 @@
 import { useStore } from "zustand";
 import { dismiss, notificationsStore } from "@/core";
+import { cn } from "@/ui";
 
+/** The colored edge that tells toasts apart at a glance. */
 const LEVEL_STYLE = {
-  info: "border-sky-700 bg-sky-950/95 text-sky-100",
-  success: "border-emerald-700 bg-emerald-950/95 text-emerald-100",
-  error: "border-red-700 bg-red-950/95 text-red-100",
+  info: "border-l-primary",
+  success: "border-l-ice-300",
+  error: "border-l-destructive",
 } as const;
 
-/** Transient toasts in the bottom-right corner. */
+/** Transient toasts in the bottom-right corner. Click one to dismiss it. */
 export function Notifications() {
   const items = useStore(notificationsStore, (s) => s.items);
   return (
@@ -17,7 +19,10 @@ export function Notifications() {
           key={n.id}
           type="button"
           role="status"
-          className={`pointer-events-auto rounded-md border px-3 py-2 text-left text-xs shadow-lg ${LEVEL_STYLE[n.level]}`}
+          className={cn(
+            "pointer-events-auto cursor-pointer rounded-sm border border-l-[3px] border-border bg-popover px-3 py-2 text-left text-sm text-foreground shadow-popover",
+            LEVEL_STYLE[n.level],
+          )}
           onClick={() => dismiss(n.id)}
         >
           {n.message}

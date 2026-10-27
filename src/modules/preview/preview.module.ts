@@ -1,8 +1,8 @@
 import { defineModule, keybindings, layoutPanels, type Micros } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { projectDuration, projectRef } from "@/modules/project";
-import { HtmlMediaEngine } from "./engine/html-media-engine";
-import { createPlaybackClock } from "./playback-clock";
+import { HtmlMediaEngine } from "./engine/engine.html";
+import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
 import { previewCommands, seek, togglePlay } from "./preview.commands";
 import { previewMcpTools } from "./preview.mcp";

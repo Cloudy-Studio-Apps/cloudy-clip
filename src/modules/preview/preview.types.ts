@@ -1,5 +1,7 @@
 import type { Micros } from "@/core";
-import type { ProjectState } from "@/modules/project";
+import type { ComponentType } from "react";
+import type { StoreApi } from "zustand/vanilla";
+import type { ClipId, ClipTransform, ProjectState } from "@/modules/project";
 
 /** Called on every frame while playing, and once per seek while paused. */
 export type TimeListener = (time: Micros) => void;
@@ -28,8 +30,16 @@ export interface PlaybackClock {
  * (`HtmlMediaEngine`); a native or WebCodecs engine can implement the same contract later.
  */
 export interface PreviewEngine {
-  /** Draws (and, while playing, keeps media in sync with) the project at `time`. */
-  render(project: ProjectState, time: Micros, playing: boolean): void;
+  /**
+   * Draws (and, while playing, keeps media in sync with) the project at `time`. `transforms`
+   * replaces clips' saved transforms while a gesture is in progress.
+   */
+  render(
+    project: ProjectState,
+    time: Micros,
+    playing: boolean,
+    transforms?: ReadonlyMap<ClipId, ClipTransform>,
+  ): void;
   /** Stops all media without forgetting state (e.g. on pause). */
   pauseAll(): void;
   /** Whether every visible layer has its frame for the last rendered time. */
@@ -67,10 +77,52 @@ export interface PreviewApi {
    * every visible layer has decoded its frame.
    */
   captureFrame(time?: Micros): Promise<string>;
+  /**
+   * Draws a clip with `transform` instead of its saved one, without changing the project (live
+   * feedback while dragging on the canvas). Pass null to go back to the saved transform. The
+   * gesture commits with `transform.setClipTransform` on release.
+   */
+  previewTransform(clipId: ClipId, transform: ClipTransform | null): void;
+  /** Zoom and pan of the viewer. View state only: not in the project, not undoable. */
+  readonly viewport: ViewportApi;
+}
+
+/** Zoom and pan of the preview viewer. */
+export interface ViewportState {
+  /** Size relative to "fit in the panel": 1 fits, 2 is twice as big. */
+  zoom: number;
+  /** Offset of the frame from the panel's center, in screen pixels. */
+  panX: number;
+  panY: number;
+}
+
+/** The viewer's zoom and pan, and the ways to change them. */
+export interface ViewportApi {
+  /** Read with `useStore(viewport.store, selector)` or subscribe imperatively. */
+  readonly store: StoreApi<ViewportState>;
+  /**
+   * Multiplies the zoom by `factor` keeping the point at `anchor` (screen pixels from the
+   * panel's center) still. Clamped to `MIN_ZOOM`..`MAX_ZOOM`.
+   */
+  zoomBy(factor: number, anchor?: { x: number; y: number }): void;
+  /** Moves the frame by screen pixels. */
+  panBy(dx: number, dy: number): void;
+  /** Back to "fit in the panel", centered. */
+  fit(): void;
 }
 
 /** The preview controller: its API plus cleanup, owned by the preview module. */
 export interface PreviewController extends PreviewApi {
   /** Detaches the canvas, pauses the clock and drops every subscription. */
   dispose(): void;
+}
+
+/**
+ * A layer drawn over the preview frame, such as the canvas tools' selection box. It fills the
+ * frame exactly and moves and zooms with it, so it can position things in % of the frame.
+ */
+export interface PreviewOverlay {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  component: ComponentType;
 }

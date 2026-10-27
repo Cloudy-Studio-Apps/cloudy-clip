@@ -4,9 +4,11 @@ import { useKernel, useModule } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { type Clip, type TrackKind, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
+import { cn } from "@/ui";
 import { timelineRef } from "../timeline.ref";
 import { timeToPx } from "../logic/geometry";
-import { gestureMode, startClipGesture } from "./clip-gesture";
+import { ClipBody } from "./ClipBody";
+import { gestureMode, startClipGesture } from "./clip.gesture";
 
 interface TimelineClipProps {
   clip: Clip;
@@ -37,9 +39,11 @@ export const TimelineClip = memo(function TimelineClip({
     <div
       ref={ref}
       data-clip-id={clip.id}
-      className={`group absolute bottom-1 top-1 overflow-hidden rounded-md border text-[11px] text-white select-none data-[invalid=true]:!border-red-500 data-[invalid=true]:!bg-red-900/80 ${
-        kind === "video" ? "border-sky-700 bg-sky-900/80" : "border-emerald-700 bg-emerald-900/80"
-      } ${selected ? "ring-2 ring-amber-400" : ""}`}
+      className={cn(
+        "group absolute bottom-[3px] top-[3px] overflow-hidden rounded-xs border text-white select-none data-[invalid=true]:!border-destructive data-[invalid=true]:!bg-destructive",
+        kind === "video" ? "bg-clip-video" : "bg-clip-audio",
+        selected ? "border-white shadow-[inset_0_0_0_1px_white]" : "border-black/30",
+      )}
       style={{
         left: timeToPx(clip.start, pxPerSecond),
         width: timeToPx(clip.duration, pxPerSecond),
@@ -66,17 +70,13 @@ export const TimelineClip = memo(function TimelineClip({
         });
       }}
     >
-      {poster && kind === "video" && (
-        <div
-          className="pointer-events-none absolute inset-0 bg-repeat-x opacity-40"
-          style={{ backgroundImage: `url(${poster})`, backgroundSize: "auto 100%" }}
-        />
-      )}
-      <span className="pointer-events-none relative block truncate px-2 py-1 drop-shadow">
-        {name}
-      </span>
-      <div className="absolute inset-y-0 left-0 w-1 bg-white/0 group-hover:bg-white/40" />
-      <div className="absolute inset-y-0 right-0 w-1 bg-white/0 group-hover:bg-white/40" />
+      <div className="pointer-events-none flex h-[17px] items-center bg-black/25 px-1.5 text-xs font-medium">
+        <span className="min-w-0 flex-1 truncate">{name}</span>
+      </div>
+      <ClipBody kind={kind} poster={poster} />
+      {/* Trim handles: brackets on hover. */}
+      <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-white" />
+      <div className="pointer-events-none absolute inset-y-0 -right-px w-[7px] group-hover:border-r-[3px] group-hover:border-white" />
     </div>
   );
 });

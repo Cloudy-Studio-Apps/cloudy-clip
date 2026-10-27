@@ -32,7 +32,7 @@ export function startMediaDrag(mediaId: MediaId, label: string, down: PointerEve
       ghost = document.createElement("div");
       ghost.textContent = label;
       ghost.className =
-        "pointer-events-none fixed left-0 top-0 z-50 max-w-48 truncate rounded bg-sky-600/90 px-2 py-1 text-xs text-white shadow-lg";
+        "pointer-events-none fixed left-0 top-0 z-50 max-w-48 truncate rounded-sm bg-primary px-2 py-1 text-sm font-medium text-primary-foreground shadow-popover";
       document.body.appendChild(ghost);
       document.body.style.cursor = "grabbing";
     }

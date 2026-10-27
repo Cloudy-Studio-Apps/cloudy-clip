@@ -1,4 +1,4 @@
-import { asInternal } from "../store/patchable-store";
+import { asInternal } from "../store/store.patchable";
 import type { History, HistoryEntry, HistorySnapshot } from "./history.types";
 
 /** Default number of steps kept. Older steps are dropped to bound memory. */

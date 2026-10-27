@@ -1,17 +1,25 @@
 import type { ComponentType } from "react";
 
-/** Where a panel sits in the editor layout. */
-export type LayoutSlot = "side" | "main" | "bottom";
+/**
+ * Where a panel sits in the editor layout. `side` panels become tabs of the left rail, `main`
+ * is the center, `inspector` the right column, `bottom` the row below.
+ */
+export type LayoutSlot = "side" | "main" | "inspector" | "bottom";
+
+/** An icon component, sized and colored by the shell through `className`. */
+export type PanelIcon = ComponentType<{ className?: string }>;
 
 /** A panel a module adds to the editor. */
 export interface LayoutPanel {
   /** Unique id, `<module>.<name>`. */
   id: string;
-  /** Shown in error messages and, later, in tabs. */
+  /** Shown in error messages and as the label of its tab. */
   title: string;
   slot: LayoutSlot;
   /** Lower comes first within a slot. Defaults to 0. */
   order?: number;
+  /** Icon of the panel's tab in the side rail. Side panels without one show only the title. */
+  icon?: PanelIcon;
   component: ComponentType;
 }
 

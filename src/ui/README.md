@@ -1,0 +1,35 @@
+# UI kit
+
+The design system of Cloudy Clip: tokens and small, stateless React components that the shell
+and every module use, so the editor looks like one product and like the rest of the Cloudy
+Studio family (Cloudy Canvas). Not a module: it holds no state and registers nothing.
+
+Import it only through `@/ui` (enforced by ESLint).
+
+## Tokens
+
+- `styles/tokens.css`: the palette (ice, seal, blush, sand) and the semantic tokens of Cloudy
+  Dark (default) and Cloudy Light (`data-theme="light"` on `<html>`).
+- `styles/base.css`: page defaults, focus ring, thin square scrollbars (`data-scroll="wide"` for
+  the timeline).
+- `src/index.css` maps them to Tailwind. Tailwind's default colors and radii are reset, so only
+  design-system values exist: `bg-surface`, `text-muted-foreground`, `border-border`,
+  `rounded-xs` … `rounded-lg` (2–8px), `text-2xs` … `text-base` (10–13px), `shadow-frame`.
+
+Shape is sharp by design: nothing above 8px. Fonts are Inter and JetBrains Mono (bundled with
+Fontsource, so they work offline). Icons come from `lucide-react`.
+
+## Components
+
+| Export                              | Use                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| `Button`                            | Text button, `primary` (one per area) or `secondary`, `sm`/`md`                    |
+| `IconButton`                        | Icon-only, `label` is tooltip + aria label, `active` for toggles, `solid` for play |
+| `SegmentedControl`                  | Mutually exclusive choices (aspect ratio)                                          |
+| `ToolbarButton`, `ToolbarSeparator` | Compact icon + label actions (timeline toolbar)                                    |
+| `ProgressBar`                       | Thin determinate bar (proxy encoding)                                              |
+| `EmptyState`                        | The seal's "nothing here yet" panel                                                |
+| `Waveform`                          | Decorative audio waveform (`tileWidth` repeats it), colored with `text-*`          |
+| `Kbd`                               | A keyboard key in running text                                                     |
+| `SealMark`                          | The seal logo; use it in light touches, never as clutter                           |
+| `cn`                                | Joins class names                                                                  |

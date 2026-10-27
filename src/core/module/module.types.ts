@@ -1,5 +1,5 @@
 import type { CommandBus, CommandDefinition } from "../command/command.types";
-import type { Logger } from "../errors/logger";
+import type { Logger } from "../errors/logger.types";
 import type { History } from "../history/history.types";
 import type { McpRegistry, McpToolDefinition } from "../mcp/mcp.types";
 import type { Point, PointReader } from "./points.types";
@@ -107,4 +107,11 @@ export interface ModuleRegistry {
   status(id: string): ModuleStatus | undefined;
   /** Disposes every module, newest first. */
   unloadAll(): void;
+}
+
+export interface LoadedModule {
+  definition: AnyModuleDefinition;
+  status: ModuleStatus;
+  api: unknown;
+  disposers: Disposer[];
 }

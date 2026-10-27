@@ -100,3 +100,24 @@ export interface MediaState extends Omit<MediaApi, "mediaUrl"> {
   /** Updates the proxy state of one media item, keeping an earlier explanation. */
   setProxy(id: MediaId, proxy: ProxyInfo): void;
 }
+
+/** The native media server connection of one kernel. */
+export interface MediaService {
+  /** Fetches where the native media server listens. Call once before `mediaUrl`. */
+  init(): Promise<void>;
+  /** Follows proxy progress from the native side. Resolves to an unlisten function. */
+  listenToProxies(): Promise<() => void>;
+  /** Streaming URL of a registered file; changes once its proxy is ready. */
+  mediaUrl(id: MediaId): string;
+}
+
+/** Reads file metadata in the background. */
+export interface ProbeQueue {
+  /**
+   * Adds a file to the queue. Each media id is probed once per kernel, after its proxy
+   * pipeline has settled (so pro formats are read from their proxy).
+   */
+  enqueue(asset: MediaAsset): void;
+  /** Drops queued files and ignores results still in flight. */
+  dispose(): void;
+}

@@ -1,3 +1,4 @@
+import type { Micros } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
 import type { ClipId } from "@/modules/project";
 
@@ -20,4 +21,16 @@ export interface TimelineApi {
   setZoom(pxPerSecond: number): void;
   /** Replaces the selection, toggles one clip in it when `additive` is set, or clears it (null). */
   selectClip(id: ClipId | null, additive?: boolean): void;
+}
+
+/** What a drag on a clip does: move it, or trim one of its edges. */
+export type ClipGestureMode = "move" | "trim-start" | "trim-end";
+
+/** Limits that apply when trimming a clip. */
+export interface TrimLimits {
+  /** Length of the source media; `Infinity` if unknown. */
+  mediaDuration: Micros;
+  minDuration: Micros;
+  prevEnd: Micros;
+  nextStart: Micros;
 }

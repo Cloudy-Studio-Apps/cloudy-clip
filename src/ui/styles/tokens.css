@@ -1,0 +1,97 @@
+/*
+ * Cloudy Clip design tokens. Palette and semantic tokens follow Cloudy Canvas
+ * (src/shared/ui/styles/tokens.css, the Cloudy Light / Cloudy Dark themes).
+ * Shape: sharp by design, nothing above 8px. Mapped to Tailwind in src/index.css.
+ */
+
+/* ── Palette (from Cloudy Canvas) ───────────────────────────────────── */
+:root {
+  --ice-200: oklch(0.905 0.045 245);
+  --ice-300: oklch(0.85 0.07 245);
+  --ice-400: oklch(0.76 0.1 245);
+  --ice-500: oklch(0.66 0.125 245);
+  --ice-600: oklch(0.56 0.13 247);
+  --ice-700: oklch(0.48 0.12 248);
+
+  --seal-50: oklch(0.985 0.003 250);
+  --seal-100: oklch(0.963 0.005 250);
+  --seal-200: oklch(0.925 0.008 250);
+  --seal-300: oklch(0.87 0.011 250);
+  --seal-400: oklch(0.74 0.015 250);
+  --seal-500: oklch(0.6 0.018 252);
+  --seal-900: oklch(0.27 0.02 256);
+
+  --blush-200: oklch(0.91 0.055 35);
+  --blush-300: oklch(0.85 0.085 35);
+  --blush-400: oklch(0.78 0.115 35);
+  --blush-500: oklch(0.7 0.14 35);
+
+  --sand-200: oklch(0.92 0.07 87);
+  --sand-300: oklch(0.88 0.1 86);
+  --sand-400: oklch(0.83 0.12 84);
+
+  /* Clip fills on the timeline, the same in both themes. */
+  --clip-video: oklch(0.5 0.1 245);
+  --clip-audio: oklch(0.45 0.08 160);
+}
+
+/* ── Cloudy Dark (default for the editor) ───────────────────────────── */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.18 0.014 256);
+  --foreground: oklch(0.93 0.006 250);
+  --surface: oklch(0.215 0.016 256);
+  --surface-sunken: oklch(0.165 0.013 256);
+  --muted: oklch(0.255 0.017 256);
+  --muted-foreground: oklch(0.7 0.014 252);
+  --subtle-foreground: oklch(0.56 0.016 252);
+  --hover: oklch(0.27 0.018 256);
+  --border: oklch(0.3 0.018 256);
+  --border-strong: oklch(0.37 0.02 256);
+  --ring: var(--ice-400);
+  --primary: var(--ice-500);
+  --primary-hover: var(--ice-400);
+  --primary-foreground: oklch(1 0 0);
+  --primary-soft: oklch(0.3 0.06 250);
+  --primary-soft-foreground: var(--ice-200);
+  --accent-soft: oklch(0.3 0.05 32);
+  --accent-soft-foreground: var(--blush-200);
+  --destructive: oklch(0.66 0.19 25);
+  --destructive-soft: oklch(0.3 0.08 25);
+  --destructive-soft-foreground: oklch(0.88 0.06 25);
+  --stage: oklch(0.145 0.012 256);
+  --popover: oklch(0.24 0.017 256);
+  --lane: oklch(0.19 0.014 256);
+  --shadow-color: 256 40% 3%;
+}
+
+/* ── Cloudy Light ───────────────────────────────────────────────────── */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: oklch(0.975 0.004 250);
+  --foreground: var(--seal-900);
+  --surface: oklch(1 0 0);
+  --surface-sunken: oklch(0.955 0.006 250);
+  --muted: oklch(0.94 0.007 250);
+  --muted-foreground: oklch(0.48 0.018 254);
+  --subtle-foreground: oklch(0.6 0.016 252);
+  --hover: oklch(0.94 0.008 250);
+  --border: oklch(0.9 0.009 250);
+  --border-strong: oklch(0.83 0.012 250);
+  --ring: var(--ice-500);
+  --primary: var(--ice-600);
+  --primary-hover: var(--ice-700);
+  --primary-foreground: oklch(1 0 0);
+  --primary-soft: oklch(0.95 0.025 245);
+  --primary-soft-foreground: var(--ice-700);
+  --accent-soft: var(--blush-200);
+  --accent-soft-foreground: oklch(0.5 0.13 31);
+  --destructive: oklch(0.58 0.2 25);
+  --destructive-soft: oklch(0.94 0.04 25);
+  --destructive-soft-foreground: oklch(0.45 0.16 25);
+  --stage: oklch(0.93 0.008 250);
+  --popover: oklch(1 0 0);
+  --lane: oklch(0.965 0.005 250);
+  --shadow-color: 254 30% 20%;
+}

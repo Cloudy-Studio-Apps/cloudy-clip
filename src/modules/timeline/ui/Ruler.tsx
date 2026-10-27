@@ -3,10 +3,14 @@ import { formatTimecode, MICROS_PER_SECOND, type Micros, useModule } from "@/cor
 import { previewRef } from "@/modules/preview";
 import { pxToTime, rulerStep, timeToPx } from "../logic/geometry";
 import { HEADER_WIDTH, RULER_HEIGHT } from "../timeline.layout";
+import { PlayheadHead } from "./Playhead";
+
+/** Minor ticks drawn between two labelled ones. */
+const MINOR_PER_STEP = 5;
 
 interface RulerProps {
   pxPerSecond: number;
-  /** Rendered window (labels outside it are skipped). */
+  /** Rendered window (ticks outside it are skipped). */
   from: Micros;
   to: Micros;
   width: number;
@@ -15,10 +19,12 @@ interface RulerProps {
 /** Time ruler. Press and drag on it to scrub. Sticks to the top while scrolling. */
 export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: RulerProps) {
   const { playback } = useModule(previewRef);
-  const step = rulerStep(pxPerSecond);
-  const stepMicros = step * MICROS_PER_SECOND;
+  const stepMicros = rulerStep(pxPerSecond) * MICROS_PER_SECOND;
+  const minorMicros = stepMicros / MINOR_PER_STEP;
   const ticks: Micros[] = [];
-  for (let t = Math.floor(from / stepMicros) * stepMicros; t <= to; t += stepMicros) ticks.push(t);
+  for (let t = Math.floor(from / stepMicros) * stepMicros; t <= to; t += minorMicros) {
+    ticks.push(Math.round(t));
+  }
 
   const scrubTo = (target: HTMLElement, clientX: number) => {
     const left = target.getBoundingClientRect().left;
@@ -28,11 +34,11 @@ export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: Ruler
   return (
     <div className="sticky top-0 z-30 flex" style={{ height: RULER_HEIGHT }}>
       <div
-        className="sticky left-0 z-40 shrink-0 border-b border-r border-neutral-800 bg-neutral-900"
+        className="sticky left-0 z-40 shrink-0 border-b border-r border-border bg-surface"
         style={{ width: HEADER_WIDTH }}
       />
       <div
-        className="relative cursor-pointer border-b border-neutral-800 bg-neutral-900"
+        className="relative cursor-col-resize border-b border-border bg-surface"
         style={{ width }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
@@ -50,17 +56,25 @@ export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: Ruler
           target.addEventListener("pointercancel", up);
         }}
       >
-        {ticks.map((t) => (
-          <div
-            key={t}
-            className="pointer-events-none absolute bottom-0 h-2 border-l border-neutral-600"
-            style={{ left: timeToPx(t, pxPerSecond) }}
-          >
-            <span className="absolute -top-3.5 left-1 whitespace-nowrap text-[10px] tabular-nums text-neutral-500">
-              {formatTimecode(t)}
-            </span>
-          </div>
-        ))}
+        {ticks.map((t, i) => {
+          const major = i % MINOR_PER_STEP === 0;
+          return (
+            <div
+              key={t}
+              className={`pointer-events-none absolute bottom-0 w-px ${
+                major ? "h-2.5 bg-subtle-foreground" : "h-1 bg-border-strong"
+              }`}
+              style={{ left: timeToPx(t, pxPerSecond) }}
+            >
+              {major && (
+                <span className="absolute bottom-[9px] left-1 whitespace-nowrap font-mono text-2xs text-subtle-foreground">
+                  {formatTimecode(t)}
+                </span>
+              )}
+            </div>
+          );
+        })}
+        <PlayheadHead />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { commandTool, defineMcpTool, textResult } from "../mcp/define-mcp-tool";
-import { defineModule, defineModuleRef } from "../module/define-module";
+import { commandTool, defineMcpTool, textResult } from "../mcp/mcp.tool";
+import { defineModule, defineModuleRef } from "../module/module.define";
 import type { ModuleDefinition } from "../module/module.types";
 import { keybindings } from "../shell/shell.points";
 import { createHistoryCommands } from "./history.commands";

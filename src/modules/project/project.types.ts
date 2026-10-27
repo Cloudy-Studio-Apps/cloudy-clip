@@ -44,6 +44,41 @@ export interface Clip {
   sourceIn: Micros;
   /** Length on the timeline (and in the source; no speed changes in v1). */
   duration: Micros;
+  /** Where the picture sits in the frame (video clips). Missing means `IDENTITY_TRANSFORM`. */
+  transform?: ClipTransform;
+}
+
+/**
+ * Placement of a clip's picture in the output frame. The picture is first fitted (contained) in
+ * the frame and centered; then scaled, rotated about its center, and moved.
+ */
+export interface ClipTransform {
+  /** Horizontal offset of the picture's center from the frame's center, in output pixels. */
+  x: number;
+  /** Vertical offset (down is positive), in output pixels. */
+  y: number;
+  /** Size relative to "fit": 1 fits the frame, 2 is twice as big. */
+  scale: number;
+  /** Clockwise rotation, in degrees (-180, 180]. */
+  rotation: number;
+}
+
+/** Where a clip's picture lands in the output frame, in output pixels. */
+export interface ClipPlacement {
+  /** Center of the picture. */
+  cx: number;
+  cy: number;
+  /** Size before rotation. */
+  width: number;
+  height: number;
+  /** Clockwise, in degrees. */
+  rotation: number;
+}
+
+/** Pixel size of a picture. */
+export interface PictureSize {
+  width: number;
+  height: number;
 }
 
 /** Output canvas of the project. */

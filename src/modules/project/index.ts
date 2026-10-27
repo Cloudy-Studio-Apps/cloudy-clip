@@ -7,14 +7,24 @@ export { setFormat } from "./project.commands";
 export { FORMAT_PRESETS, createEmptyProject } from "./project.store";
 export {
   clipEnd,
+  formatPreset,
   isMediaInUse,
   orderedTracks,
   projectDuration,
   trackClips,
 } from "./project.selectors";
+export {
+  IDENTITY_TRANSFORM,
+  clipPlacement,
+  clipTransform,
+  normalizeRotation,
+} from "./project.geometry";
 export type {
   Clip,
   ClipId,
+  ClipPlacement,
+  ClipTransform,
+  PictureSize,
   FormatPreset,
   MediaAsset,
   MediaId,
