@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
-import { MICROS_PER_SECOND, useKernel, type Micros } from "@/core";
+import { MICROS_PER_SECOND, useKernel, useModule, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { projectDuration, projectStore, type Clip } from "@/modules/project";
+import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { addClip } from "../timeline.commands";
 import { HEADER_WIDTH, TAIL_SECONDS } from "../timeline.layout";
-import { setZoom, timelineViewStore } from "../timeline.store";
 import { Playhead } from "./Playhead";
 import { Ruler } from "./Ruler";
 import { TimelineToolbar } from "./TimelineToolbar";
@@ -21,9 +21,10 @@ import { TrackLane } from "./TrackLane";
  * so long timelines with many clips stay smooth.
  */
 export function TimelinePanel() {
+  const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const pxPerSecond = useStore(timelineViewStore, (s) => s.pxPerSecond);
+  const pxPerSecond = useStore(timeline.view, (s) => s.pxPerSecond);
   const trackOrder = useStore(projectStore.api, (s) => s.trackOrder);
   const tracksById = useStore(projectStore.api, (s) => s.tracks);
   const clipsById = useStore(projectStore.api, (s) => s.clips);
@@ -67,16 +68,16 @@ export function TimelinePanel() {
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
-      const before = timelineViewStore.getState().pxPerSecond;
+      const before = timeline.view.getState().pxPerSecond;
       const pointerX = e.clientX - scroller.getBoundingClientRect().left - HEADER_WIDTH;
       const anchor = pxToTime(scroller.scrollLeft + pointerX, before);
-      setZoom(before * Math.exp(-e.deltaY * 0.002));
-      const after = timelineViewStore.getState().pxPerSecond;
+      timeline.setZoom(before * Math.exp(-e.deltaY * 0.002));
+      const after = timeline.view.getState().pxPerSecond;
       scroller.scrollLeft = Math.max(0, timeToPx(anchor, after) - pointerX);
     };
     scroller.addEventListener("wheel", onWheel, { passive: false });
     return () => scroller.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [timeline]);
 
   // Media dropped below the tracks goes to the default track of its kind.
   useEffect(() => {
@@ -86,12 +87,12 @@ export function TimelinePanel() {
       const { mediaId, clientX } = (event as CustomEvent<MediaDragDetail>).detail;
       const x =
         clientX - scroller.getBoundingClientRect().left - HEADER_WIDTH + scroller.scrollLeft;
-      const pps = timelineViewStore.getState().pxPerSecond;
+      const pps = timeline.view.getState().pxPerSecond;
       void bus.run(addClip, { mediaId, start: Math.max(0, pxToTime(x, pps)) });
     };
     scroller.addEventListener(MEDIA_DROP, onDrop);
     return () => scroller.removeEventListener(MEDIA_DROP, onDrop);
-  }, [bus]);
+  }, [bus, timeline.view]);
 
   const from: Micros = Math.max(0, pxToTime((view.page - 1) * view.pageWidth, pxPerSecond));
   const to: Micros = pxToTime((view.page + 2) * view.pageWidth, pxPerSecond);

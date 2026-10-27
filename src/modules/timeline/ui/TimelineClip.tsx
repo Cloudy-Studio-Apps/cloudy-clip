@@ -1,10 +1,10 @@
 import { memo, useRef } from "react";
 import { useStore } from "zustand";
-import { useKernel } from "@/core";
+import { useKernel, useModule } from "@/core";
 import { mediaProbeStore } from "@/modules/media";
 import { projectStore, type Clip, type TrackKind } from "@/modules/project";
+import { timelineRef } from "../timeline.ref";
 import { timeToPx } from "../logic/geometry";
-import { selectClip, timelineViewStore } from "../timeline.store";
 import { gestureMode, startClipGesture } from "./clip-gesture";
 
 interface TimelineClipProps {
@@ -22,9 +22,10 @@ export const TimelineClip = memo(function TimelineClip({
   pxPerSecond,
   rootRef,
 }: TimelineClipProps) {
+  const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
-  const selected = useStore(timelineViewStore, (s) => s.selection.includes(clip.id));
+  const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
   const name = useStore(projectStore.api, (s) => s.media[clip.mediaId]?.name ?? "Missing media");
   const poster = useStore(mediaProbeStore, (s) => s.probes[clip.mediaId]?.posterUrl);
 
@@ -47,13 +48,14 @@ export const TimelineClip = memo(function TimelineClip({
       onPointerDown={(e) => {
         if (e.button !== 0 || !ref.current || !rootRef.current) return;
         e.stopPropagation();
-        selectClip(clip.id, e.shiftKey || e.metaKey || e.ctrlKey);
+        timeline.selectClip(clip.id, e.shiftKey || e.metaKey || e.ctrlKey);
         startClipGesture({
           bus,
           clip,
           element: ref.current,
           root: rootRef.current,
           down: e.nativeEvent,
+          view: timeline.view,
         });
       }}
     >

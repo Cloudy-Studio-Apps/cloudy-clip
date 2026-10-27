@@ -1,13 +1,13 @@
 import { memo, useEffect, useRef } from "react";
-import { useKernel, type Micros } from "@/core";
+import { useKernel, useModule, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { projectStore, type Clip, type Track } from "@/modules/project";
 import { playback } from "@/modules/preview";
+import { timelineRef } from "../timeline.ref";
 import { pxToTime } from "../logic/geometry";
 import { snapCandidates, snapTime } from "../logic/placement";
 import { addClip } from "../timeline.commands";
 import { SNAP_PX, trackHeight } from "../timeline.layout";
-import { selectClip } from "../timeline.store";
 import { TimelineClip } from "./TimelineClip";
 
 interface TrackLaneProps {
@@ -30,6 +30,7 @@ export const TrackLane = memo(function TrackLane({
   pxPerSecond,
   rootRef,
 }: TrackLaneProps) {
+  const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -66,7 +67,7 @@ export const TrackLane = memo(function TrackLane({
       style={{ height: trackHeight(track.kind) }}
       onPointerDown={(e) => {
         if (e.button !== 0 || e.target !== e.currentTarget) return;
-        selectClip(null);
+        timeline.selectClip(null);
         playback.seek(timeAt(e.currentTarget, e.clientX, pxPerSecond));
       }}
     >

@@ -13,8 +13,7 @@ export {
   splitAt,
   trimClip,
 } from "./timeline.commands";
-export { selectClip, setZoom, timelineViewStore } from "./timeline.store";
-export type { TimelineViewState, TrimEdge } from "./timeline.types";
+export type { TimelineApi, TimelineViewState, TrimEdge } from "./timeline.types";
 
 /** Module definition, loaded by the app shell. */
 export { timelineModule } from "./timeline.module";

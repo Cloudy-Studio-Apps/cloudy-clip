@@ -4,7 +4,7 @@ import { playback } from "@/modules/preview";
 import { deleteClips, splitAt, timelineCommands } from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
 import { timelineRef } from "./timeline.ref";
-import { timelineViewStore } from "./timeline.store";
+import { createTimelineView } from "./timeline.store";
 import { TimelinePanel } from "./ui";
 
 /** Tracks and clips editing: commands, tools and the timeline panel. */
@@ -16,6 +16,8 @@ export const timelineModule = defineModule({
   commands: timelineCommands,
   mcpTools: timelineMcpTools,
   setup(ctx) {
+    const timeline = createTimelineView();
+    const { view } = timeline;
     ctx.contribute(layoutPanels, {
       id: "timeline.panel",
       title: "Timeline",
@@ -24,7 +26,7 @@ export const timelineModule = defineModule({
     });
 
     const deleteSelection = () => {
-      const clipIds = timelineViewStore.getState().selection;
+      const clipIds = view.getState().selection;
       return clipIds.length > 0 ? { command: deleteClips.id, input: { clipIds } } : null;
     };
     ctx.contribute(
@@ -33,7 +35,7 @@ export const timelineModule = defineModule({
         id: "timeline.split",
         key: "s",
         resolve: () => {
-          const selection = timelineViewStore.getState().selection;
+          const selection = view.getState().selection;
           return {
             command: splitAt.id,
             input: {
@@ -50,10 +52,10 @@ export const timelineModule = defineModule({
     // Drop selected clips that no longer exist (deleted, undone, removed by an agent).
     const offProject = projectStore.subscribe((state, previous) => {
       if (state.clips === previous.clips) return;
-      const { selection } = timelineViewStore.getState();
+      const { selection } = view.getState();
       const kept = selection.filter((id) => state.clips[id]);
-      if (kept.length !== selection.length) timelineViewStore.setState({ selection: kept });
+      if (kept.length !== selection.length) view.setState({ selection: kept });
     });
-    return { dispose: offProject };
+    return { api: timeline, dispose: offProject };
   },
 });

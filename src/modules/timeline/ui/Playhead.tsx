@@ -1,21 +1,23 @@
+import { useModule } from "@/core";
+import { timelineRef } from "../timeline.ref";
 import { useEffect, useRef } from "react";
 import { playback } from "@/modules/preview";
 import { timeToPx } from "../logic/geometry";
 import { HEADER_WIDTH } from "../timeline.layout";
-import { timelineViewStore } from "../timeline.store";
 
 /**
  * The playhead line. Positioned imperatively from the playback clock (no React renders per
  * frame). While playing, the view follows it page by page.
  */
 export function Playhead({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElement | null> }) {
+  const timeline = useModule(timelineRef);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const update = () => {
       const line = ref.current;
       if (!line) return;
-      const x = timeToPx(playback.getTime(), timelineViewStore.getState().pxPerSecond);
+      const x = timeToPx(playback.getTime(), timeline.view.getState().pxPerSecond);
       line.style.transform = `translateX(${HEADER_WIDTH + x}px)`;
 
       const scroller = scrollRef.current;
@@ -27,12 +29,12 @@ export function Playhead({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElem
       }
     };
     const offTime = playback.onTime(update);
-    const offZoom = timelineViewStore.subscribe(update);
+    const offZoom = timeline.view.subscribe(update);
     return () => {
       offTime();
       offZoom();
     };
-  }, [scrollRef]);
+  }, [scrollRef, timeline.view]);
 
   return (
     <div

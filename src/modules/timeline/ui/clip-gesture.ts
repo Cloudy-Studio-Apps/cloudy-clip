@@ -1,4 +1,5 @@
 import type { CommandBus, Micros } from "@/core";
+import type { StoreApi } from "zustand/vanilla";
 import { projectStore, type Clip } from "@/modules/project";
 import { getProbe } from "@/modules/media";
 import { playback } from "@/modules/preview";
@@ -14,7 +15,7 @@ import {
 } from "../logic/placement";
 import { moveClip, trimClip } from "../timeline.commands";
 import { SNAP_PX, TRIM_HANDLE_PX } from "../timeline.layout";
-import { timelineViewStore } from "../timeline.store";
+import type { TimelineViewState } from "../timeline.types";
 
 type Mode = "move" | "trim-start" | "trim-end";
 
@@ -45,9 +46,11 @@ export function startClipGesture(options: {
   element: HTMLElement;
   root: HTMLElement;
   down: PointerEvent;
+  /** The timeline's view state (zoom). */
+  view: StoreApi<TimelineViewState>;
 }): void {
-  const { bus, clip, element, root, down } = options;
-  const pxPerSecond = timelineViewStore.getState().pxPerSecond;
+  const { bus, clip, element, root, down, view } = options;
+  const pxPerSecond = view.getState().pxPerSecond;
   const mode = gestureMode(down.offsetX, element.offsetWidth);
   const state = projectStore.getState();
   const threshold = pxToTime(SNAP_PX, pxPerSecond);

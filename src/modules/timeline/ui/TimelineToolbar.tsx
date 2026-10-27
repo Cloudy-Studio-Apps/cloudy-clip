@@ -1,13 +1,9 @@
 import { useStore } from "zustand";
-import { useHistory, useKernel } from "@/core";
+import { useHistory, useKernel, useModule } from "@/core";
 import { playback } from "@/modules/preview";
+import { timelineRef } from "../timeline.ref";
 import { addTrack, deleteClips, splitAt } from "../timeline.commands";
-import {
-  MAX_PX_PER_SECOND,
-  MIN_PX_PER_SECOND,
-  setZoom,
-  timelineViewStore,
-} from "../timeline.store";
+import { MAX_PX_PER_SECOND, MIN_PX_PER_SECOND } from "../timeline.store";
 
 function ToolButton(props: {
   label: string;
@@ -31,10 +27,11 @@ function ToolButton(props: {
 
 /** Edit actions and zoom. Every button runs a command, exactly like shortcuts and agents. */
 export function TimelineToolbar() {
+  const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const history = useHistory();
-  const selection = useStore(timelineViewStore, (s) => s.selection);
-  const pxPerSecond = useStore(timelineViewStore, (s) => s.pxPerSecond);
+  const selection = useStore(timeline.view, (s) => s.selection);
+  const pxPerSecond = useStore(timeline.view, (s) => s.pxPerSecond);
 
   // Log scale so the slider feels even from "whole hour" to "single frames".
   const toSlider = (pps: number) =>
@@ -94,7 +91,7 @@ export function TimelineToolbar() {
           max={1}
           step={0.001}
           value={toSlider(pxPerSecond)}
-          onChange={(e) => setZoom(fromSlider(Number(e.currentTarget.value)))}
+          onChange={(e) => timeline.setZoom(fromSlider(Number(e.currentTarget.value)))}
           className="w-32 accent-sky-500"
         />
       </label>
