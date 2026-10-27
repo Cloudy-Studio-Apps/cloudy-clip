@@ -1,10 +1,10 @@
 import { memo } from "react";
 import { useStore } from "zustand";
-import { formatTimecode, useKernel } from "@/core";
+import { formatTimecode, useKernel, useModule } from "@/core";
 import type { MediaAsset } from "@/modules/project";
 import { removeMedia } from "../media.commands";
 import { startMediaDrag } from "../media.drag";
-import { mediaProbeStore } from "../media.store";
+import { mediaRef } from "../media.ref";
 import type { MediaProbe } from "../media.types";
 
 /** Short status shown on the thumbnail while there is no poster. */
@@ -25,7 +25,7 @@ function placeholder(asset: MediaAsset, probe: MediaProbe | undefined): string {
 /** One item of the library. Drag it onto the timeline to add a clip. */
 export const MediaTile = memo(function MediaTile({ asset }: { asset: MediaAsset }) {
   const { bus } = useKernel();
-  const probe = useStore(mediaProbeStore, (s) => s.probes[asset.id]);
+  const probe = useStore(useModule(mediaRef).probes, (s) => s.probes[asset.id]);
   const ready = probe?.status === "ready";
   const proxy = probe?.proxy;
   const encoding = proxy?.state === "encoding" || proxy?.state === "queued";

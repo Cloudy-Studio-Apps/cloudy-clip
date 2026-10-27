@@ -3,10 +3,10 @@ import { defineModule, layoutPanels } from "@/core";
 import { projectStore } from "@/modules/project";
 import { importMedia, mediaCommands } from "./media.commands";
 import { mediaMcpTools } from "./media.mcp";
-import { enqueueProbe } from "./media.probe";
+import { createProbeQueue } from "./media.probe";
 import { mediaRef } from "./media.ref";
-import { initMediaServer, listenToProxies } from "./media.service";
-import { fileDropStore, getProbe, isProxySettled, mediaProbeStore, setProbe } from "./media.store";
+import { createMediaService } from "./media.service";
+import { createMediaState, isProxySettled } from "./media.store";
 import { MediaLibrary } from "./ui";
 
 /** Importing files, reading their metadata, proxies, and the media library panel. */
@@ -18,8 +18,12 @@ export const mediaModule = defineModule({
   commands: mediaCommands,
   mcpTools: mediaMcpTools,
   async setup({ bus, log, contribute }) {
-    await initMediaServer();
-    const unlistenProxies = await listenToProxies();
+    const state = createMediaState();
+    const { fileDrop, getProbe, setProbe } = state;
+    const service = createMediaService(state);
+    await service.init();
+    const unlistenProxies = await service.listenToProxies();
+    const probes = createProbeQueue({ state, mediaUrl: service.mediaUrl });
 
     // Read metadata of every media item in the project (import, redo, future loading) once
     // its proxy pipeline has settled.
@@ -30,14 +34,14 @@ export const mediaModule = defineModule({
         if (!asset) continue;
         const probe = getProbe(id);
         if (!probe) setProbe(id, { status: "pending" });
-        else if (isProxySettled(probe.proxy)) enqueueProbe(asset);
+        else if (isProxySettled(probe.proxy)) probes.enqueue(asset);
       }
     };
     probeAll();
-    const offProject = projectStore.subscribe((state, previous) => {
-      if (state.mediaOrder !== previous.mediaOrder) probeAll();
+    const offProject = projectStore.subscribe((project, previous) => {
+      if (project.mediaOrder !== previous.mediaOrder) probeAll();
     });
-    const offProbes = mediaProbeStore.subscribe(probeAll);
+    const offProbes = state.probes.subscribe(probeAll);
 
     // Files dropped onto the window from the OS.
     let unlisten: (() => void) | undefined;
@@ -45,9 +49,9 @@ export const mediaModule = defineModule({
       unlisten = await getCurrentWebview().onDragDropEvent((event) => {
         const payload = event.payload;
         if (payload.type === "enter" || payload.type === "over") {
-          if (!fileDropStore.getState().active) fileDropStore.setState({ active: true });
+          if (!fileDrop.getState().active) fileDrop.setState({ active: true });
         } else {
-          fileDropStore.setState({ active: false });
+          fileDrop.setState({ active: false });
           if (payload.type === "drop" && payload.paths.length > 0) {
             void bus.run(importMedia, { paths: payload.paths });
           }
@@ -65,6 +69,13 @@ export const mediaModule = defineModule({
     });
 
     return {
+      api: {
+        probes: state.probes,
+        fileDrop,
+        getProbe,
+        waitForProbe: state.waitForProbe,
+        mediaUrl: service.mediaUrl,
+      },
       dispose() {
         offProject();
         offProbes();

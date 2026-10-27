@@ -1,7 +1,6 @@
 import { createLogger, secondsToMicros } from "@/core";
 import type { MediaAsset } from "@/modules/project";
-import { mediaUrl } from "./media.service";
-import { getProbe, setProbe } from "./media.store";
+import type { MediaState } from "./media.types";
 
 const log = createLogger("media.probe");
 
@@ -10,50 +9,64 @@ const CONCURRENCY = 2;
 const LOAD_TIMEOUT_MS = 15_000;
 const POSTER_WIDTH = 192;
 
-const queue: MediaAsset[] = [];
-const queued = new Set<string>();
-let running = 0;
-
-/**
- * Adds a file to the probe queue. Each media id is probed once per session, after its proxy
- * pipeline has settled (so pro formats are read from their proxy).
- */
-export function enqueueProbe(asset: MediaAsset): void {
-  if (queued.has(asset.id)) return;
-  queued.add(asset.id);
-  setProbe(asset.id, { status: "pending" });
-  queue.push(asset);
-  pump();
+/** Reads file metadata in the background. */
+export interface ProbeQueue {
+  /**
+   * Adds a file to the queue. Each media id is probed once per kernel, after its proxy
+   * pipeline has settled (so pro formats are read from their proxy).
+   */
+  enqueue(asset: MediaAsset): void;
 }
 
-function pump(): void {
-  while (running < CONCURRENCY && queue.length > 0) {
-    const asset = queue.shift()!;
-    running++;
-    void probe(asset)
-      .then((probe) => setProbe(asset.id, { ...probe, status: "ready" }))
-      .catch((error: unknown) => {
-        let message = error instanceof Error ? error.message : String(error);
-        // Explain why there is no proxy to fall back on (e.g. FFmpeg is missing).
-        const proxy = getProbe(asset.id)?.proxy;
-        if (proxy?.state !== "ready" && proxy?.message) message = `${message}. ${proxy.message}`;
-        log.warn(`Could not read "${asset.name}"`, message);
-        setProbe(asset.id, { status: "error", error: message });
-      })
-      .finally(() => {
-        running--;
-        pump();
-      });
+/** Creates the probe queue of one kernel, reading from `mediaUrl` and writing into `state`. */
+export function createProbeQueue(deps: {
+  state: MediaState;
+  mediaUrl(id: string): string;
+}): ProbeQueue {
+  const { state } = deps;
+  const queue: MediaAsset[] = [];
+  const queued = new Set<string>();
+  let running = 0;
+
+  function pump(): void {
+    while (running < CONCURRENCY && queue.length > 0) {
+      const asset = queue.shift()!;
+      running++;
+      void probe(asset, deps.mediaUrl(asset.id))
+        .then((probe) => state.setProbe(asset.id, { ...probe, status: "ready" }))
+        .catch((error: unknown) => {
+          let message = error instanceof Error ? error.message : String(error);
+          // Explain why there is no proxy to fall back on (e.g. FFmpeg is missing).
+          const proxy = state.getProbe(asset.id)?.proxy;
+          if (proxy?.state !== "ready" && proxy?.message) message = `${message}. ${proxy.message}`;
+          log.warn(`Could not read "${asset.name}"`, message);
+          state.setProbe(asset.id, { status: "error", error: message });
+        })
+        .finally(() => {
+          running--;
+          pump();
+        });
+    }
   }
+
+  return {
+    enqueue(asset) {
+      if (queued.has(asset.id)) return;
+      queued.add(asset.id);
+      state.setProbe(asset.id, { status: "pending" });
+      queue.push(asset);
+      pump();
+    },
+  };
 }
 
-async function probe(asset: MediaAsset) {
+async function probe(asset: MediaAsset, url: string) {
   const element = document.createElement(asset.kind === "video" ? "video" : "audio");
   element.preload = "metadata";
   element.crossOrigin = "anonymous";
   element.muted = true;
   try {
-    element.src = mediaUrl(asset.id);
+    element.src = url;
     await waitFor(element, "loadedmetadata");
 
     if (!Number.isFinite(element.duration) || element.duration <= 0) {

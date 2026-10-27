@@ -4,10 +4,10 @@
  */
 export { importMedia, removeMedia } from "./media.commands";
 export { MEDIA_DRAG_END, MEDIA_DRAG_MOVE, MEDIA_DROP } from "./media.drag";
-export { mediaUrl } from "./media.service";
-export { getProbe, mediaProbeStore, waitForProbe } from "./media.store";
+export { createFakeMediaModule } from "./media.testing";
 export type {
   ImportResult,
+  MediaApi,
   MediaDragDetail,
   MediaProbe,
   ProbeStatus,

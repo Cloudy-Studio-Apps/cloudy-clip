@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, formatTimecode, type Micros } from "@/core";
-import { getProbe } from "@/modules/media";
+import { mediaRef, type MediaApi } from "@/modules/media";
 import {
   projectStore,
   type Clip,
@@ -31,8 +31,8 @@ function requireTrack(state: ProjectState, trackId: string): Track {
   return track;
 }
 
-function mediaDuration(mediaId: string): Micros {
-  const probe = getProbe(mediaId);
+function mediaDuration(media: MediaApi, mediaId: string): Micros {
+  const probe = media.getProbe(mediaId);
   if (probe?.status === "error") {
     throw new CommandFailure("media.unsupported", probe.error ?? "This media cannot be played");
   }
@@ -129,7 +129,7 @@ export const addClip = defineCommand({
     let state = projectStore.getState();
     const media = state.media[input.mediaId];
     if (!media) throw new CommandFailure("media.not_found", `No media with id "${input.mediaId}"`);
-    const total = mediaDuration(media.id);
+    const total = mediaDuration(ctx.require(mediaRef), media.id);
 
     let trackId = input.trackId;
     if (trackId) {
@@ -231,7 +231,8 @@ export const trimClip = defineCommand({
     const state = projectStore.getState();
     const clip = requireClip(state, clipId);
     const next = clampTrim(clip, edge, to, {
-      mediaDuration: getProbe(clip.mediaId)?.duration ?? Number.POSITIVE_INFINITY,
+      mediaDuration:
+        ctx.require(mediaRef).getProbe(clip.mediaId)?.duration ?? Number.POSITIVE_INFINITY,
       minDuration: minClipDuration(state),
       ...neighbourBounds(state, clip),
     });

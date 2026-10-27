@@ -1,7 +1,7 @@
 import type { CommandBus, Micros } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
 import { projectStore, type Clip } from "@/modules/project";
-import { getProbe } from "@/modules/media";
+import type { MediaApi } from "@/modules/media";
 import type { PlaybackClock } from "@/modules/preview";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import {
@@ -50,8 +50,10 @@ export function startClipGesture(options: {
   view: StoreApi<TimelineViewState>;
   /** The playhead, a snap target. */
   playback: PlaybackClock;
+  /** Media metadata, to clamp trims to the source length. */
+  media: MediaApi;
 }): void {
-  const { bus, clip, element, root, down, view, playback } = options;
+  const { bus, clip, element, root, down, view, playback, media } = options;
   const pxPerSecond = view.getState().pxPerSecond;
   const mode = gestureMode(down.offsetX, element.offsetWidth);
   const state = projectStore.getState();
@@ -101,7 +103,7 @@ export function startClipGesture(options: {
     const edgeTime = edge === "start" ? clip.start : clip.start + clip.duration;
     const to = Math.max(0, snapTime(edgeTime + delta, candidates, threshold));
     const next = clampTrim(clip, edge, to, {
-      mediaDuration: getProbe(clip.mediaId)?.duration ?? Number.POSITIVE_INFINITY,
+      mediaDuration: media.getProbe(clip.mediaId)?.duration ?? Number.POSITIVE_INFINITY,
       minDuration: minClipDuration(state),
       ...neighbourBounds(state, clip),
     });

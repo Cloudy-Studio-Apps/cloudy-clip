@@ -1,8 +1,16 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, type Kernel } from "@/core";
-import { mediaProbeStore } from "@/modules/media";
-import { createEmptyProject, projectStore, resetProject, trackClips } from "@/modules/project";
+import { createFakeMediaModule, mediaRef } from "@/modules/media";
+import { previewModule } from "@/modules/preview";
+import {
+  createEmptyProject,
+  projectModule,
+  projectStore,
+  resetProject,
+  trackClips,
+} from "@/modules/project";
 import { addClip, addTrack, deleteClips, moveClip, splitAt, trimClip } from "./timeline.commands";
+import { timelineModule } from "./timeline.module";
 
 const S = 1_000_000;
 let kernel: Kernel;
@@ -22,12 +30,15 @@ beforeEach(async () => {
   project.media.ma = { id: "ma", name: "a.mp3", path: "/a.mp3", kind: "audio", size: 1 };
   project.mediaOrder = ["mv", "ma"];
   resetProject(project);
-  mediaProbeStore.setState({
-    probes: {
+  await kernel.modules.loadAll([
+    projectModule,
+    createFakeMediaModule({
       mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 },
       ma: { status: "ready", duration: 60 * S },
-    },
-  });
+    }),
+    previewModule,
+    timelineModule,
+  ]);
 });
 
 describe("timeline commands", () => {
@@ -50,7 +61,7 @@ describe("timeline commands", () => {
   });
 
   it("refuses media that is not ready", async () => {
-    mediaProbeStore.setState({ probes: { mv: { status: "pending" } } });
+    kernel.modules.require(mediaRef).probes.setState({ probes: { mv: { status: "pending" } } });
     const result = await kernel.bus.run(addClip, { mediaId: "mv" });
     expect(!result.ok && result.error.code).toBe("media.not_ready");
   });

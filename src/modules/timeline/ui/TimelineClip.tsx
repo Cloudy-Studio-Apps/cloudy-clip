@@ -1,7 +1,7 @@
 import { memo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
-import { mediaProbeStore } from "@/modules/media";
+import { mediaRef } from "@/modules/media";
 import { projectStore, type Clip, type TrackKind } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { timelineRef } from "../timeline.ref";
@@ -25,11 +25,12 @@ export const TimelineClip = memo(function TimelineClip({
 }: TimelineClipProps) {
   const timeline = useModule(timelineRef);
   const { playback } = useModule(previewRef);
+  const media = useModule(mediaRef);
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
   const name = useStore(projectStore.api, (s) => s.media[clip.mediaId]?.name ?? "Missing media");
-  const poster = useStore(mediaProbeStore, (s) => s.probes[clip.mediaId]?.posterUrl);
+  const poster = useStore(media.probes, (s) => s.probes[clip.mediaId]?.posterUrl);
 
   return (
     <div
@@ -59,6 +60,7 @@ export const TimelineClip = memo(function TimelineClip({
           down: e.nativeEvent,
           view: timeline.view,
           playback,
+          media,
         });
       }}
     >

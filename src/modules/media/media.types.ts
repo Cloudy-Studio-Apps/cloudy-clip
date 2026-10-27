@@ -1,3 +1,4 @@
+import type { StoreApi } from "zustand/vanilla";
 import type { Micros } from "@/core";
 import type { MediaAsset, MediaId, MediaKind } from "@/modules/project";
 
@@ -70,4 +71,32 @@ export interface MediaDragDetail {
   mediaId: MediaId;
   clientX: number;
   clientY: number;
+}
+
+/** The media module's API for one kernel: file metadata and streaming URLs. */
+export interface MediaApi {
+  /** Metadata of imported files. Read with `useStore(api.probes, selector)`. */
+  readonly probes: StoreApi<MediaProbeState>;
+  /** Whether files from the OS are being dragged over the window. */
+  readonly fileDrop: StoreApi<{ active: boolean }>;
+  /** Current probe of a media item, if any. */
+  getProbe(id: MediaId): MediaProbe | undefined;
+  /**
+   * Resolves when the media has been probed (ready or error), or after `timeoutMs`
+   * (default 15 s). Used by agents' tools so they get usable metadata in one call.
+   */
+  waitForProbe(id: MediaId, timeoutMs?: number): Promise<MediaProbe | undefined>;
+  /**
+   * URL that streams a registered file from the native loopback media server (with Range
+   * support). Changes once a proxy is ready, so media elements reload.
+   */
+  mediaUrl(id: MediaId): string;
+}
+
+/** Probe state plus the setters only the media module uses. */
+export interface MediaState extends Omit<MediaApi, "mediaUrl"> {
+  /** Sets (or merges into) the probe of one media item. */
+  setProbe(id: MediaId, probe: Partial<MediaProbe>): void;
+  /** Updates the proxy state of one media item, keeping an earlier explanation. */
+  setProxy(id: MediaId, proxy: ProxyInfo): void;
 }
