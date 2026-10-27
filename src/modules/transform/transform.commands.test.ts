@@ -39,7 +39,7 @@ beforeEach(async () => {
 
 describe("transform.setClipTransform", () => {
   it("changes only the given fields and undoes in one step", async () => {
-    const clip = await run(kernel.bus.run(addClip, { mediaId: "mv" }));
+    const clip = (await run(kernel.bus.run(addClip, { mediaId: "mv" }))).clips[0]!;
     await run(kernel.bus.run(setClipTransform, { clipId: clip.id, x: 120, scale: 1.5 }));
     await run(kernel.bus.run(setClipTransform, { clipId: clip.id, rotation: 270 }));
     expect(doc().clips[clip.id]!.transform).toEqual({ x: 120, y: 0, scale: 1.5, rotation: -90 });
@@ -49,23 +49,27 @@ describe("transform.setClipTransform", () => {
   });
 
   it("resets to fitted and centered", async () => {
-    const clip = await run(kernel.bus.run(addClip, { mediaId: "mv" }));
+    const clip = (await run(kernel.bus.run(addClip, { mediaId: "mv" }))).clips[0]!;
     await run(kernel.bus.run(setClipTransform, { clipId: clip.id, y: 40 }));
     await run(kernel.bus.run(setClipTransform, { clipId: clip.id, reset: true }));
     expect(doc().clips[clip.id]!.transform).toBeUndefined();
   });
 
   it("refuses audio clips", async () => {
-    const clip = await run(kernel.bus.run(addClip, { mediaId: "ma" }));
+    const clip = (await run(kernel.bus.run(addClip, { mediaId: "ma" }))).clips[0]!;
     const result = await kernel.bus.run(setClipTransform, { clipId: clip.id, x: 1 });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("transform.not_visual");
   });
 
   it("keeps the transform on both halves of a split", async () => {
-    const clip = await run(kernel.bus.run(addClip, { mediaId: "mv" }));
+    const clip = (await run(kernel.bus.run(addClip, { mediaId: "mv" }))).clips[0]!;
     await run(kernel.bus.run(setClipTransform, { clipId: clip.id, scale: 2 }));
     await run(kernel.bus.run(splitAt, { at: 5 * S }));
-    for (const c of Object.values(doc().clips)) expect(c.transform?.scale).toBe(2);
+    const pictures = Object.values(doc().clips).filter(
+      (c) => doc().tracks[c.trackId]?.kind === "video",
+    );
+    expect(pictures).toHaveLength(2);
+    for (const c of pictures) expect(c.transform?.scale).toBe(2);
   });
 });

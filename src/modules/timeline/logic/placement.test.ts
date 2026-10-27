@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyProject, type ProjectState } from "@/modules/project";
-import { clampTrim, findOverlap, neighbourBounds, snapSpan, snapTime, trackEnd } from "./placement";
+import {
+  clampTrim,
+  findOverlap,
+  freeTrack,
+  neighbourBounds,
+  snapSpan,
+  snapTime,
+  trackEnd,
+} from "./placement";
 
 const S = 1_000_000;
 
@@ -17,6 +25,19 @@ function projectWithClips(spans: Array<[number, number]>): {
   });
   return { state, trackId };
 }
+
+describe("freeTrack", () => {
+  it("returns the first track of the kind with room, or undefined", () => {
+    const { state, trackId } = projectWithClips([[0, 2 * S]]);
+    const second = "v2";
+    state.tracks[second] = { ...state.tracks[trackId]!, id: second, clipIds: [] };
+    state.trackOrder.splice(1, 0, second);
+    expect(freeTrack(state, "video", 3 * S, S)).toBe(trackId);
+    expect(freeTrack(state, "video", S, S)).toBe(second);
+    state.tracks[second]!.clipIds = ["c0"];
+    expect(freeTrack(state, "video", S, S)).toBeUndefined();
+  });
+});
 
 describe("findOverlap", () => {
   const { state, trackId } = projectWithClips([

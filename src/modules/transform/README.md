@@ -19,7 +19,8 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     picture always agree.
   - `ui/`: `TransformOverlay`, `SelectionBox`, `transform.gesture.ts` (while dragging, the preview
     draws the live value through `PreviewApi.previewTransform` and the box follows through direct
-    DOM updates; release commits one command, so one undo step), `layers.hook.ts`.
+    DOM updates; release commits one command, so one undo step), `layers.hook.ts`. The box shows
+    when the selection is one clip or one linked picture + sound (`selectionSubject`).
 - **Not yet:** keyframes, crop, flip, opacity, numeric fields.
 
 | Command                      | MCP tool                       |

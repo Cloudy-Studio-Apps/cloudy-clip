@@ -24,6 +24,18 @@ describe("timeline view", () => {
     expect(selection()).toEqual([]);
   });
 
+  it("selectClip selects and toggles linked partners", () => {
+    const partners = (id: string) => ({ v: ["a"], a: ["v"] })[id] ?? [];
+    const timeline = createTimelineView(partners);
+    const selection = () => timeline.view.getState().selection;
+    timeline.selectClip("v");
+    expect(selection()).toEqual(["v", "a"]);
+    timeline.selectClip("x", true);
+    expect(selection()).toEqual(["v", "a", "x"]);
+    timeline.selectClip("a", true);
+    expect(selection()).toEqual(["x"]);
+  });
+
   it("two views are independent", () => {
     const first = createTimelineView();
     const second = createTimelineView();

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createId, defineCommand } from "@/core";
+import { CommandFailure, createId, defineCommand } from "@/core";
 import { type ProjectState, type TrackKind, projectRef } from "@/modules/project";
 import { requireTrack } from "./timeline.guards";
 
@@ -52,15 +52,22 @@ export const removeTrack = defineCommand({
   },
 });
 
-/** Mutes or unmutes a track. */
+/** Mutes or unmutes an audio track. */
 export const setTrackMuted = defineCommand({
   id: "timeline.setTrackMuted",
   label: "Mute track",
-  description: "Mutes or unmutes every clip on a track.",
+  description:
+    "Mutes or unmutes every clip on an audio track. Video tracks have no sound (a video's sound is on an audio track), so muting one fails.",
   undoable: true,
   input: z.object({ trackId: z.string(), muted: z.boolean() }),
   run(ctx, { trackId, muted }) {
-    requireTrack(ctx.require(projectRef).store.getState(), trackId);
+    const track = requireTrack(ctx.require(projectRef).store.getState(), trackId);
+    if (track.kind !== "audio") {
+      throw new CommandFailure(
+        "timeline.kind_mismatch",
+        "Video tracks have no sound; mute the audio track.",
+      );
+    }
     ctx.mutate(ctx.require(projectRef).store, (draft) => {
       draft.tracks[trackId]!.muted = muted;
     });

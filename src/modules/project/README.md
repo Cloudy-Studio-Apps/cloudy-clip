@@ -23,6 +23,9 @@ lives here, so every change is undoable and readable by agents.
   `Track.clipIds` is sorted by `start` and clips on a track never overlap; times are microseconds;
   `Clip.transform` is optional (missing = fitted and centered): `x`/`y` offset of the picture's center
   from the frame's center in output pixels, `scale` relative to fit, `rotation` clockwise degrees.
+  Video tracks hold pictures only; audio tracks hold sound (a video file's sound sits there as a
+  clip of the same media). Clips sharing a `Clip.linkId` are linked (picture and sound of one
+  video) and are edited together by the timeline until unlinked.
 - **Not yet:** a project name, saving and loading.
 
 | Command             | MCP tool             | Notes                                    |

@@ -47,7 +47,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
   ): void {
     const active: Array<{ clip: Clip; track: Track }> = [];
-    const upcoming: Clip[] = [];
+    const upcoming: Array<{ clip: Clip; track: Track }> = [];
     for (const trackId of project.trackOrder) {
       const track = project.tracks[trackId];
       if (!track) continue;
@@ -55,14 +55,15 @@ export class HtmlMediaEngine implements PreviewEngine {
         const clip = project.clips[clipId];
         if (!clip) continue;
         if (clip.start <= time && time < clip.start + clip.duration) active.push({ clip, track });
-        else if (clip.start > time && clip.start - time <= PRELOAD_AHEAD) upcoming.push(clip);
+        else if (clip.start > time && clip.start - time <= PRELOAD_AHEAD)
+          upcoming.push({ clip, track });
         else if (clip.start > time + PRELOAD_AHEAD) break; // clips are sorted by start
       }
     }
 
     const needed = new Set<string>();
     for (const { clip } of active) needed.add(clip.id);
-    for (const clip of upcoming) needed.add(clip.id);
+    for (const { clip } of upcoming) needed.add(clip.id);
     this.pool.release(needed);
 
     this.settled = true;
@@ -70,16 +71,20 @@ export class HtmlMediaEngine implements PreviewEngine {
       const media = project.media[clip.mediaId];
       if (!media) continue;
       const desired = microsToSeconds(clip.sourceIn + time - clip.start);
-      const slot = this.pool.acquire(clip, media.kind, desired);
+      // The track decides the element: pictures come from video tracks (always silent), sound
+      // from audio tracks (a video file's sound plays through an <audio> on the same URL).
+      const slot = this.pool.acquire(clip, track.kind, desired);
       if (!slot) continue;
-      slot.element.muted = track.muted;
+      // Silence pictures with volume, not `muted`: WebKitGTK stops handing a muted <video>'s
+      // frames to the canvas (the preview stays black).
+      slot.element.muted = track.kind === "audio" && track.muted;
+      slot.element.volume = track.kind === "video" ? 0 : 1;
       syncSlot(slot, desired, playing);
       if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) this.settled = false;
     }
-    for (const clip of upcoming) {
-      const media = project.media[clip.mediaId];
-      if (!media) continue;
-      const slot = this.pool.acquire(clip, media.kind, microsToSeconds(clip.sourceIn));
+    for (const { clip, track } of upcoming) {
+      if (!project.media[clip.mediaId]) continue;
+      const slot = this.pool.acquire(clip, track.kind, microsToSeconds(clip.sourceIn));
       if (!slot) continue;
       slot.element.muted = true;
       syncSlot(slot, microsToSeconds(clip.sourceIn), false);

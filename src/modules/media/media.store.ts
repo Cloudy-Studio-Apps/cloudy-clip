@@ -28,8 +28,14 @@ export function createMediaState(): MediaState {
     setProbe,
     setProxy(id, proxy) {
       const previous = getProbe(id)?.proxy;
-      // Keep the explanation from earlier events when progress events omit it.
-      setProbe(id, { proxy: { ...proxy, message: proxy.message ?? previous?.message } });
+      // Keep the explanation and the sound check from earlier events when later ones omit them.
+      setProbe(id, {
+        proxy: {
+          ...proxy,
+          message: proxy.message ?? previous?.message,
+          hasAudio: proxy.hasAudio ?? previous?.hasAudio,
+        },
+      });
     },
     waitForProbe(id, timeoutMs = 15_000) {
       const settled = (p: MediaProbe | undefined) => p && p.status !== "pending";

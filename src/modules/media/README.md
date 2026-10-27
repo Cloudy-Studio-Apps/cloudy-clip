@@ -8,17 +8,20 @@ tab), from which media is dragged onto the timeline.
 - **Contributes:** panel `media.library` (side, icon `SquarePlay`)
 - **Points it owns:** —
 - **API** (`useModule(mediaRef)` / `ctx.require(mediaRef)`): `probes`, `fileDrop`, `getProbe`,
-  `waitForProbe`, `mediaUrl`. `createFakeMediaModule(probes)` (`media.testing.ts`) stands in for it
+  `waitForProbe`, `mediaUrl`. `mediaHasAudio(probe)` (exported helper) says whether a file has
+  sound (true unless ffprobe found none). `createFakeMediaModule(probes)` (`media.testing.ts`) stands in for it
   in tests.
 - **Files:**
   - Native side (`src-tauri/src/media`): `media_register` validates paths into an id → path
     allowlist; a loopback HTTP server streams them with Range support (`media_server_url`).
   - Proxies: pro/camera formats (ProRes, APV, 10-bit HEVC, high bitrates, 24-bit PCM, …) get a light
     H.264 copy made with the system FFmpeg. Progress arrives as `media://proxy` events and is stored
-    in `probe.proxy`. Without FFmpeg, files are played directly.
+    in `probe.proxy`, with `hasAudio` once ffprobe has read the streams. Without FFmpeg, files are
+    played directly.
   - `media.service.ts`: the native calls and the proxy listener.
   - `media.probe.ts`: once the proxy state settles, a bounded queue loads each file in a hidden
-    media element to read duration, size and a poster. Results live in `probes` (per kernel, not
+    media element to read duration, size and a poster (the element is silenced with `volume = 0`,
+    not `muted`: WebKitGTK draws a muted video's frames to a canvas as black). Results live in `probes` (per kernel, not
     undoable). A file that can't be decoded gets `status: "error"` with a reason; it never throws.
   - `media.drag.ts`: pointer-based drag to the timeline; drop targets listen for `MEDIA_DROP`.
   - OS file drop is handled in `setup` (Tauri's drag-drop event drives `fileDrop` and the overlay).

@@ -18,6 +18,8 @@ export interface ProxyInfo {
   progress?: number;
   /** Why a proxy is made, or what went wrong. */
   message?: string;
+  /** Whether the file has a sound stream, from ffprobe; missing when unknown. */
+  hasAudio?: boolean;
 }
 
 /** Payload of the `media://proxy` event. */

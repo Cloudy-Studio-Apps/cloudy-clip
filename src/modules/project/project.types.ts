@@ -17,7 +17,10 @@ export interface MediaAsset {
   size: number;
 }
 
-/** Kind of track. Video tracks hold video clips (with their audio); audio tracks hold audio. */
+/**
+ * Kind of track. Video tracks hold pictures only; audio tracks hold sound (from audio files or
+ * the sound of video files).
+ */
 export type TrackKind = "video" | "audio";
 
 /** A horizontal lane on the timeline. Clips on one track never overlap. */
@@ -46,6 +49,11 @@ export interface Clip {
   duration: Micros;
   /** Where the picture sits in the frame (video clips). Missing means `IDENTITY_TRANSFORM`. */
   transform?: ClipTransform;
+  /**
+   * Clips sharing a `linkId` are linked (a video's picture and its sound): they are selected,
+   * moved, trimmed, split and deleted together until unlinked. Missing means unlinked.
+   */
+  linkId?: string;
 }
 
 /**

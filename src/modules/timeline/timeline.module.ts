@@ -4,6 +4,7 @@ import { previewRef } from "@/modules/preview";
 import { deleteClips, splitAt, timelineCommands } from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
 import { timelineRef } from "./timeline.ref";
+import { partnersOf } from "./logic/links";
 import { createTimelineView } from "./timeline.store";
 import { TimelinePanel } from "./ui";
 
@@ -17,7 +18,9 @@ export const timelineModule = defineModule({
   mcpTools: timelineMcpTools,
   setup(ctx) {
     const project = ctx.require(projectRef).store;
-    const timeline = createTimelineView();
+    const timeline = createTimelineView((id) =>
+      partnersOf(project.getState(), id).map((c) => c.id),
+    );
     const { view } = timeline;
     ctx.contribute(layoutPanels, {
       id: "timeline.panel",

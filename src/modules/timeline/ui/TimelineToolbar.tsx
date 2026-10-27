@@ -1,10 +1,12 @@
-import { Film, Music, Scissors, Trash } from "lucide-react";
+import { Film, Music, Scissors, Trash, Unlink } from "lucide-react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
+import { projectRef } from "@/modules/project";
 import { ToolbarButton, ToolbarSeparator } from "@/ui";
 import { timelineRef } from "../timeline.ref";
-import { addTrack, deleteClips, splitAt } from "../timeline.commands";
+import { partnersOf } from "../logic/links";
+import { addTrack, deleteClips, splitAt, unlinkClips } from "../timeline.commands";
 import { ZoomSlider } from "./ZoomSlider";
 
 /** Edit actions and zoom. Every button runs a command, exactly like shortcuts and agents. */
@@ -13,6 +15,9 @@ export function TimelineToolbar() {
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const selection = useStore(timeline.view, (s) => s.selection);
+  const canUnlink = useStore(useModule(projectRef).store.api, (s) =>
+    selection.some((id) => partnersOf(s, id).length > 0),
+  );
 
   return (
     <div className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-2 [scrollbar-width:none]">
@@ -36,6 +41,14 @@ export function TimelineToolbar() {
           onClick={() => void bus.run(deleteClips, { clipIds: selection })}
         >
           Delete
+        </ToolbarButton>
+        <ToolbarButton
+          icon={<Unlink />}
+          title="Unlink picture and sound"
+          disabled={!canUnlink}
+          onClick={() => void bus.run(unlinkClips, { clipIds: selection })}
+        >
+          Unlink
         </ToolbarButton>
         <ToolbarSeparator />
         <ToolbarButton

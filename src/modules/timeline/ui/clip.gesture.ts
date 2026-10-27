@@ -4,15 +4,9 @@ import type { Clip, ProjectState } from "@/modules/project";
 import type { MediaApi } from "@/modules/media";
 import type { PlaybackClock } from "@/modules/preview";
 import { pxToTime, timeToPx } from "../logic/geometry";
-import {
-  clampTrim,
-  findOverlap,
-  minClipDuration,
-  neighbourBounds,
-  snapCandidates,
-  snapSpan,
-  snapTime,
-} from "../logic/placement";
+import { partnersOf } from "../logic/links";
+import { clampTrim, findOverlap, snapCandidates, snapSpan, snapTime } from "../logic/placement";
+import { linkedTrimEdge, trimLimits } from "../logic/trim";
 import { moveClip, trimClip } from "../timeline.commands";
 import { SNAP_PX, TRIM_HANDLE_PX } from "../timeline.layout";
 import type { ClipGestureMode, TimelineViewState } from "../timeline.types";
@@ -58,7 +52,15 @@ export function startClipGesture(options: {
   const mode = gestureMode(down.offsetX, element.offsetWidth);
   const state = project.getState();
   const threshold = pxToTime(SNAP_PX, pxPerSecond);
-  const candidates = snapCandidates(state, playback.getTime(), new Set([clip.id]));
+  // Linked clips (a video's picture and sound) follow the dragged one.
+  const partners = partnersOf(state, clip.id).map((partner) => ({
+    clip: partner,
+    element: root.querySelector<HTMLElement>(`[data-clip-id="${partner.id}"]`),
+  }));
+  const group = [clip, ...partners.map((p) => p.clip)];
+  const groupIds = new Set(group.map((c) => c.id));
+  const durationOf = (id: string) => media.getProbe(id)?.duration;
+  const candidates = snapCandidates(state, playback.getTime(), groupIds);
   const homeLane = element.parentElement;
   const homeTop = homeLane?.getBoundingClientRect().top ?? 0;
   const homeKind = state.tracks[clip.trackId]?.kind;
@@ -82,12 +84,24 @@ export function startClipGesture(options: {
       const targetTrackId =
         laneTrackId && state.tracks[laneTrackId]?.kind === homeKind ? laneTrackId : clip.trackId;
       const targetLane = targetTrackId === laneTrackId ? lane : homeLane;
-      const valid = !findOverlap(state, targetTrackId, start, clip.duration, new Set([clip.id]));
+      const shift = start - clip.start;
+      const valid =
+        !findOverlap(state, targetTrackId, start, clip.duration, groupIds) &&
+        partners.every(
+          ({ clip: p }) =>
+            p.start + shift >= 0 &&
+            !findOverlap(state, p.trackId, p.start + shift, p.duration, groupIds),
+        );
 
-      const offsetX = timeToPx(start - clip.start, pxPerSecond);
+      const offsetX = timeToPx(shift, pxPerSecond);
       const offsetY = (targetLane?.getBoundingClientRect().top ?? homeTop) - homeTop;
       element.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
       element.dataset.invalid = valid ? "false" : "true";
+      for (const { element: partner } of partners) {
+        if (!partner) continue;
+        partner.style.transform = `translate(${offsetX}px, 0)`;
+        partner.dataset.invalid = element.dataset.invalid;
+      }
       pending = valid
         ? () =>
             void bus.run(moveClip, {
@@ -102,13 +116,15 @@ export function startClipGesture(options: {
     const edge = mode === "trim-start" ? "start" : "end";
     const edgeTime = edge === "start" ? clip.start : clip.start + clip.duration;
     const to = Math.max(0, snapTime(edgeTime + delta, candidates, threshold));
-    const next = clampTrim(clip, edge, to, {
-      mediaDuration: media.getProbe(clip.mediaId)?.duration ?? Number.POSITIVE_INFINITY,
-      minDuration: minClipDuration(state),
-      ...neighbourBounds(state, clip),
-    });
-    element.style.left = `${timeToPx(next.start, pxPerSecond)}px`;
-    element.style.width = `${timeToPx(next.duration, pxPerSecond)}px`;
+    const shared = linkedTrimEdge(state, group, edge, to, durationOf);
+    const show = (c: Clip, el: HTMLElement | null) => {
+      if (!el) return;
+      const next = clampTrim(c, edge, shared, trimLimits(state, c, durationOf));
+      el.style.left = `${timeToPx(next.start, pxPerSecond)}px`;
+      el.style.width = `${timeToPx(next.duration, pxPerSecond)}px`;
+    };
+    show(clip, element);
+    for (const partner of partners) show(partner.clip, partner.element);
     pending = () => void bus.run(trimClip, { clipId: clip.id, edge, time: to });
   }
 
@@ -118,11 +134,17 @@ export function startClipGesture(options: {
     element.removeEventListener("pointercancel", onEnd);
     if (element.hasPointerCapture(e.pointerId)) element.releasePointerCapture(e.pointerId);
     // Restore the committed geometry; the command (if any) re-renders the clip.
-    element.style.transform = "";
     element.style.zIndex = "";
-    element.style.left = `${timeToPx(clip.start, pxPerSecond)}px`;
-    element.style.width = `${timeToPx(clip.duration, pxPerSecond)}px`;
-    delete element.dataset.invalid;
+    for (const [c, el] of [
+      [clip, element] as const,
+      ...partners.map((p) => [p.clip, p.element] as const),
+    ]) {
+      if (!el) continue;
+      el.style.transform = "";
+      el.style.left = `${timeToPx(c.start, pxPerSecond)}px`;
+      el.style.width = `${timeToPx(c.duration, pxPerSecond)}px`;
+      delete el.dataset.invalid;
+    }
     if (moved && e.type === "pointerup") pending?.();
   }
 

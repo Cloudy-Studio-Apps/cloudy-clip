@@ -1,11 +1,15 @@
 import { createStore } from "zustand/vanilla";
+import type { ClipId } from "@/modules/project";
 import type { TimelineApi, TimelineViewState } from "./timeline.types";
 
 export const MIN_PX_PER_SECOND = 2;
 export const MAX_PX_PER_SECOND = 400;
 
-/** Creates the timeline view state (zoom and selection) of one kernel. */
-export function createTimelineView(): TimelineApi {
+/**
+ * Creates the timeline view state (zoom and selection) of one kernel. `partners` gives a clip's
+ * linked clips, which are selected with it.
+ */
+export function createTimelineView(partners: (id: ClipId) => ClipId[] = () => []): TimelineApi {
   const view = createStore<TimelineViewState>()(() => ({ pxPerSecond: 60, selection: [] }));
   return {
     view,
@@ -16,11 +20,12 @@ export function createTimelineView(): TimelineApi {
     selectClip(id, additive = false) {
       view.setState((s) => {
         if (id === null) return { selection: [] };
-        if (!additive) return { selection: [id] };
+        const group = [id, ...partners(id)];
+        if (!additive) return { selection: group };
         return {
           selection: s.selection.includes(id)
-            ? s.selection.filter((c) => c !== id)
-            : [...s.selection, id],
+            ? s.selection.filter((c) => !group.includes(c))
+            : [...s.selection, ...group.filter((c) => !s.selection.includes(c))],
         };
       });
     },

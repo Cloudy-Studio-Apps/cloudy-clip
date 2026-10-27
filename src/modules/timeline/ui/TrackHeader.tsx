@@ -19,13 +19,16 @@ export const TrackHeader = memo(function TrackHeader({ track }: { track: Track }
       <KindIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{track.name}</span>
       <div className="flex gap-0.5">
-        <TrackButton
-          label={track.muted ? "Unmute track" : "Mute track"}
-          off={track.muted}
-          onClick={() => void bus.run(setTrackMuted, { trackId: track.id, muted: !track.muted })}
-        >
-          {track.muted ? <VolumeX /> : <Volume2 />}
-        </TrackButton>
+        {/* Video tracks are pictures only; sound is muted on its audio track. */}
+        {track.kind === "audio" && (
+          <TrackButton
+            label={track.muted ? "Unmute track" : "Mute track"}
+            off={track.muted}
+            onClick={() => void bus.run(setTrackMuted, { trackId: track.id, muted: !track.muted })}
+          >
+            {track.muted ? <VolumeX /> : <Volume2 />}
+          </TrackButton>
+        )}
         {track.kind === "video" && (
           <TrackButton
             label={track.hidden ? "Show track" : "Hide track"}

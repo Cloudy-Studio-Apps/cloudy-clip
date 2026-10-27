@@ -3,7 +3,7 @@ import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { clipPlacement, clipTransform, projectRef } from "@/modules/project";
-import { timelineRef } from "@/modules/timeline";
+import { selectionSubject, timelineRef } from "@/modules/timeline";
 import { topmostAt } from "../logic/picking";
 import type { TransformGestureMode } from "../transform.types";
 import { toFramePoint } from "../logic/frame";
@@ -40,8 +40,11 @@ export function TransformOverlay() {
       }),
     [layers, clips, format],
   );
-  const selected =
-    selection.length === 1 ? placed.find((layer) => layer.clipId === selection[0]) : undefined;
+  // One clip, or one linked picture + sound: the box goes on the selected picture.
+  const hasSubject = useStore(project.api, (s) => selectionSubject(s, selection) !== undefined);
+  const selected = hasSubject
+    ? placed.find((layer) => selection.includes(layer.clipId))
+    : undefined;
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const frame = frameRef.current;

@@ -18,8 +18,10 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   - `engine/`: the v1 `PreviewEngine`. `engine.html.ts` renders and draws video layers bottom → top,
     each placed with `clipPlacement` (`project`); `engine.slots.ts` pools media elements (reused
     across clips of the same file, so splits play seamlessly; clips starting within 1.5 s are
-    preloaded); `engine.sync.ts` keeps elements on the clock and re-seeks only on drift. Swap engines
-    by implementing `PreviewEngine` (`preview.types.ts`).
+    preloaded); `engine.sync.ts` keeps elements on the clock and re-seeks only on drift.
+    Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
+    `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
+    clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only). Swap engines by implementing `PreviewEngine` (`preview.types.ts`).
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it is tested in
     node). Renders every frame while playing, on demand while paused.
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).

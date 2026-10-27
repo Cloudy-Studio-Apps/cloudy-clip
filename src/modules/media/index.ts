@@ -2,6 +2,7 @@
  * Media module: importing files, reading their metadata, and the media library panel.
  * @module media
  */
+export { mediaHasAudio } from "./media.audio";
 export { importMedia, removeMedia } from "./media.commands";
 export { MEDIA_DRAG_END, MEDIA_DRAG_MOVE, MEDIA_DROP } from "./media.drag";
 export { createFakeMediaModule } from "./media.testing";

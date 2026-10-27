@@ -1,3 +1,4 @@
+import { Link } from "lucide-react";
 import { memo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
@@ -7,6 +8,7 @@ import { previewRef } from "@/modules/preview";
 import { cn } from "@/ui";
 import { timelineRef } from "../timeline.ref";
 import { timeToPx } from "../logic/geometry";
+import { partnersOf } from "../logic/links";
 import { ClipBody } from "./ClipBody";
 import { gestureMode, startClipGesture } from "./clip.gesture";
 
@@ -34,6 +36,7 @@ export const TimelineClip = memo(function TimelineClip({
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
   const name = useStore(project.api, (s) => s.media[clip.mediaId]?.name ?? "Missing media");
   const poster = useStore(media.probes, (s) => s.probes[clip.mediaId]?.posterUrl);
+  const linked = useStore(project.api, (s) => partnersOf(s, clip.id).length > 0);
 
   return (
     <div
@@ -70,7 +73,8 @@ export const TimelineClip = memo(function TimelineClip({
         });
       }}
     >
-      <div className="pointer-events-none flex h-[17px] items-center bg-black/25 px-1.5 text-xs font-medium">
+      <div className="pointer-events-none flex h-[17px] items-center gap-1 bg-black/25 px-1.5 text-xs font-medium">
+        {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
         <span className="min-w-0 flex-1 truncate">{name}</span>
       </div>
       <ClipBody kind={kind} poster={poster} />

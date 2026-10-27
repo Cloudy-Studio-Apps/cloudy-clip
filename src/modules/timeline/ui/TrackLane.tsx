@@ -51,10 +51,12 @@ export const TrackLane = memo(function TrackLane({
         snapCandidates(state, playback.getTime()),
         threshold,
       );
+      // An audio file needs an audio lane; a video takes any lane (on an audio lane, its sound
+      // lands there and its picture on a video track).
       void bus.run(addClip, {
         mediaId,
         start,
-        trackId: media.kind === track.kind ? track.id : undefined,
+        trackId: media.kind === "audio" && track.kind !== "audio" ? undefined : track.id,
       });
     };
     lane.addEventListener(MEDIA_DROP, onDrop);

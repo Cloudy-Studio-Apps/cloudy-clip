@@ -67,6 +67,9 @@ pub struct ProxyEvent {
     /// Why a proxy is (or is not) made, or what went wrong. Shown to users and agents.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// Whether the file has a sound stream, once `ffprobe` has read it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub has_audio: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -101,7 +104,7 @@ impl ProxyJobs {
         let cache_dir = self.cache_dir.clone();
         let encoder = self.encoder.clone();
         tauri::async_runtime::spawn(async move {
-            let report = |state, progress, message: Option<String>| {
+            let emit = |state, progress, message: Option<String>, has_audio: Option<bool>| {
                 let _ = app.emit(
                     PROXY_EVENT,
                     ProxyEvent {
@@ -109,9 +112,11 @@ impl ProxyJobs {
                         state,
                         progress,
                         message,
+                        has_audio,
                     },
                 );
             };
+            let report = |state, progress, message| emit(state, progress, message, None);
             report(ProxyState::Analyzing, None, None);
 
             let Some(tools) = find_tools() else {
@@ -130,6 +135,9 @@ impl ProxyJobs {
                     return;
                 }
             };
+            // From here on every event says whether the file has sound.
+            let has_audio = Some(probe.audio_codec.is_some());
+            let report = |state, progress, message| emit(state, progress, message, has_audio);
             let Some(reason) = proxy_reason(&probe, kind) else {
                 report(ProxyState::Skipped, None, None);
                 return;
@@ -461,6 +469,25 @@ mod tests {
 
     fn probe(json: Value) -> Probe {
         parse_probe(&json)
+    }
+
+    #[test]
+    fn proxy_event_serializes_has_audio() {
+        let event = |has_audio| ProxyEvent {
+            media_id: "m".into(),
+            state: ProxyState::Skipped,
+            progress: None,
+            message: None,
+            has_audio,
+        };
+        assert_eq!(
+            serde_json::to_value(event(Some(false))).ok(),
+            Some(json!({"mediaId": "m", "state": "skipped", "hasAudio": false}))
+        );
+        assert_eq!(
+            serde_json::to_value(event(None)).ok(),
+            Some(json!({"mediaId": "m", "state": "skipped"}))
+        );
     }
 
     #[test]

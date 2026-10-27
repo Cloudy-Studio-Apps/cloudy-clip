@@ -1,5 +1,5 @@
 import type { Micros } from "@/core";
-import type { Clip, ClipId, ProjectState, TrackId } from "@/modules/project";
+import type { Clip, ClipId, ProjectState, TrackId, TrackKind } from "@/modules/project";
 import type { TrimLimits } from "../timeline.types";
 
 /** Smallest clip length allowed: one frame at the project frame rate. */
@@ -24,6 +24,18 @@ export function findOverlap(
     if (clip && clip.start < end && start < clip.start + clip.duration) return clip;
   }
   return undefined;
+}
+
+/** The first track of `kind` (in display order) where `[start, start + duration)` is free. */
+export function freeTrack(
+  state: ProjectState,
+  kind: TrackKind,
+  start: Micros,
+  duration: Micros,
+): TrackId | undefined {
+  return state.trackOrder.find(
+    (id) => state.tracks[id]?.kind === kind && !findOverlap(state, id, start, duration),
+  );
 }
 
 /** End of the last clip on a track (where a new clip goes by default). */

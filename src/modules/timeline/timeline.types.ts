@@ -19,7 +19,10 @@ export interface TimelineApi {
   readonly view: StoreApi<TimelineViewState>;
   /** Sets the zoom, clamped to 2..400 px per second. */
   setZoom(pxPerSecond: number): void;
-  /** Replaces the selection, toggles one clip in it when `additive` is set, or clears it (null). */
+  /**
+   * Replaces the selection, toggles one clip in it when `additive` is set, or clears it (null).
+   * Selecting a clip selects its linked partners; additive toggles the group.
+   */
   selectClip(id: ClipId | null, additive?: boolean): void;
 }
 

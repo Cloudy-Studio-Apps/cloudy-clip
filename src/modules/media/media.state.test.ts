@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mediaHasAudio } from "./media.audio";
 import { createMediaState } from "./media.store";
 
 afterEach(() => vi.useRealTimers());
@@ -13,6 +14,21 @@ describe("media state", () => {
       progress: 0.5,
       message: "ProRes is not playable",
     });
+  });
+
+  it("setProxy keeps hasAudio when later events omit it", () => {
+    const media = createMediaState();
+    media.setProxy("m", { state: "queued", hasAudio: false });
+    media.setProxy("m", { state: "ready" });
+    expect(media.getProbe("m")?.proxy?.hasAudio).toBe(false);
+  });
+
+  it("mediaHasAudio assumes sound unless ffprobe found none", () => {
+    expect(mediaHasAudio(undefined)).toBe(true);
+    expect(mediaHasAudio({ status: "ready" })).toBe(true);
+    expect(mediaHasAudio({ status: "ready", proxy: { state: "skipped", hasAudio: false } })).toBe(
+      false,
+    );
   });
 
   it("waitForProbe resolves on ready and on timeout", async () => {
