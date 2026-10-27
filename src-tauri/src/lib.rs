@@ -3,6 +3,7 @@
 mod error;
 mod mcp;
 mod media;
+mod webview;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -12,6 +13,7 @@ pub fn run() {
         .setup(|app| {
             media::setup(app);
             mcp::setup(app);
+            webview::setup(app);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

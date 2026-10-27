@@ -30,6 +30,10 @@ rmcp = { version = "3.7", default-features = false, features = ["server", "trans
 getrandom = "0.3"
 tokio-util = { version = "0.7.20", features = ["io"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# Same version Tauri uses; for WebKitGTK workarounds (src/webview).
+webkit2gtk = "2.0"
+
 [lints.clippy]
 unwrap_used = "deny"
 expect_used = "deny"

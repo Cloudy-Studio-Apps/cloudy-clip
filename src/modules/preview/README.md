@@ -27,6 +27,13 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     Ctrl/Cmd + wheel zooms at the pointer, wheel and middle-drag pan via
     `stage.navigation.hook.ts`), `Transport` (`Timecode`, `PlayButton`, `ViewerZoom`,
     `FormatPicker`).
+  - Native (`src-tauri/src/webview`, Linux): WebKitGTK 2.54 repainted only part of the canvas
+    layer on screen (a strip at the right of the video stayed black or showed an old frame, and
+    sometimes the whole picture stayed black while audio played) although the canvas pixels were
+    right. The webview turns WebKit's damage tracking off (`PropagateDamagingInformation`,
+    `UseDamagingInformationForCompositing`); `CLOUDY_CLIP_WEBKIT_DAMAGE=1` keeps it, to check
+    whether a WebKit update fixed it. A CPU canvas (`willReadFrequently`) is not an option: it
+    draws video frames black.
 - **Not yet:** safe zones, fullscreen, previous/next frame buttons, export.
 
 | Command                                                 | MCP tool                        | Notes                                    |
