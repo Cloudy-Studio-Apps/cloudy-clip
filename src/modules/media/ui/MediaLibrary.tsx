@@ -1,7 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
-import { projectStore } from "@/modules/project";
+import { projectRef } from "@/modules/project";
 import { importMedia } from "../media.commands";
 import { ACCEPTED_EXTENSIONS } from "../media.service";
 import { mediaRef } from "../media.ref";
@@ -9,9 +9,10 @@ import { MediaTile } from "./MediaTile";
 
 /** The media library panel: import files and drag them onto the timeline. */
 export function MediaLibrary() {
+  const project = useModule(projectRef).store;
   const { bus } = useKernel();
-  const mediaOrder = useStore(projectStore.api, (s) => s.mediaOrder);
-  const media = useStore(projectStore.api, (s) => s.media);
+  const mediaOrder = useStore(project.api, (s) => s.mediaOrder);
+  const media = useStore(project.api, (s) => s.media);
   const dropActive = useStore(useModule(mediaRef).fileDrop, (s) => s.active);
 
   async function pickFiles() {

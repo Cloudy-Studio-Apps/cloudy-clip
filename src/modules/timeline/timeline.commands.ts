@@ -2,11 +2,11 @@ import { z } from "zod";
 import { CommandFailure, createId, defineCommand, formatTimecode, type Micros } from "@/core";
 import { mediaRef, type MediaApi } from "@/modules/media";
 import {
-  projectStore,
   type Clip,
   type ProjectState,
   type Track,
   type TrackKind,
+  projectRef,
 } from "@/modules/project";
 import {
   clampTrim,
@@ -75,7 +75,7 @@ export const addTrack = defineCommand({
   input: z.object({ kind: z.enum(["video", "audio"]), name: z.string().min(1).max(60).optional() }),
   run(ctx, { kind, name }) {
     const id = createId("track");
-    ctx.mutate(projectStore, (draft) => {
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       draft.tracks[id] = {
         id,
         kind,
@@ -99,8 +99,8 @@ export const removeTrack = defineCommand({
   undoable: true,
   input: z.object({ trackId: z.string() }),
   run(ctx, { trackId }) {
-    const track = requireTrack(projectStore.getState(), trackId);
-    ctx.mutate(projectStore, (draft) => {
+    const track = requireTrack(ctx.require(projectRef).store.getState(), trackId);
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       for (const id of track.clipIds) delete draft.clips[id];
       delete draft.tracks[trackId];
       draft.trackOrder = draft.trackOrder.filter((id) => id !== trackId);
@@ -126,7 +126,7 @@ export const addClip = defineCommand({
     duration: z.number().int().positive().optional().describe("Microseconds"),
   }),
   async run(ctx, input) {
-    let state = projectStore.getState();
+    let state = ctx.require(projectRef).store.getState();
     const media = state.media[input.mediaId];
     if (!media) throw new CommandFailure("media.not_found", `No media with id "${input.mediaId}"`);
     const total = mediaDuration(ctx.require(mediaRef), media.id);
@@ -144,7 +144,7 @@ export const addClip = defineCommand({
       trackId = state.trackOrder.find((id) => state.tracks[id]?.kind === media.kind);
       if (!trackId) {
         trackId = (await ctx.execute(addTrack, { kind: media.kind })).trackId;
-        state = projectStore.getState();
+        state = ctx.require(projectRef).store.getState();
       }
     }
 
@@ -168,7 +168,7 @@ export const addClip = defineCommand({
       sourceIn,
       duration,
     };
-    ctx.mutate(projectStore, (draft) => {
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       draft.clips[clip.id] = clip;
       const track = draft.tracks[clip.trackId]!;
       track.clipIds = sortClipIds([...track.clipIds, clip.id], draft.clips);
@@ -186,7 +186,7 @@ export const moveClip = defineCommand({
   undoable: true,
   input: z.object({ clipId: z.string(), start: time, trackId: z.string().optional() }),
   run(ctx, { clipId, start, trackId }) {
-    const state = projectStore.getState();
+    const state = ctx.require(projectRef).store.getState();
     const clip = requireClip(state, clipId);
     const targetId = trackId ?? clip.trackId;
     const target = requireTrack(state, targetId);
@@ -200,7 +200,7 @@ export const moveClip = defineCommand({
     const overlap = findOverlap(state, targetId, start, clip.duration, new Set([clipId]));
     if (overlap) throw overlapError(state, overlap);
 
-    ctx.mutate(projectStore, (draft) => {
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       const moved = draft.clips[clipId]!;
       moved.start = start;
       if (targetId !== moved.trackId) {
@@ -212,7 +212,7 @@ export const moveClip = defineCommand({
       const to = draft.tracks[targetId]!;
       to.clipIds = sortClipIds(to.clipIds, draft.clips);
     });
-    return projectStore.getState().clips[clipId];
+    return ctx.require(projectRef).store.getState().clips[clipId];
   },
 });
 
@@ -228,7 +228,7 @@ export const trimClip = defineCommand({
   undoable: true,
   input: z.object({ clipId: z.string(), edge: z.enum(["start", "end"]), time }),
   run(ctx, { clipId, edge, time: to }) {
-    const state = projectStore.getState();
+    const state = ctx.require(projectRef).store.getState();
     const clip = requireClip(state, clipId);
     const next = clampTrim(clip, edge, to, {
       mediaDuration:
@@ -236,10 +236,10 @@ export const trimClip = defineCommand({
       minDuration: minClipDuration(state),
       ...neighbourBounds(state, clip),
     });
-    ctx.mutate(projectStore, (draft) => {
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       Object.assign(draft.clips[clipId]!, next);
     });
-    return projectStore.getState().clips[clipId];
+    return ctx.require(projectRef).store.getState().clips[clipId];
   },
 });
 
@@ -252,7 +252,7 @@ export const splitAt = defineCommand({
   undoable: true,
   input: z.object({ at: time, clipIds: z.array(z.string()).optional() }),
   run(ctx, { at, clipIds }) {
-    const state = projectStore.getState();
+    const state = ctx.require(projectRef).store.getState();
     const min = minClipDuration(state);
     const candidates = clipIds
       ? clipIds.map((id) => requireClip(state, id))
@@ -268,7 +268,7 @@ export const splitAt = defineCommand({
     }
 
     const created: string[] = [];
-    ctx.mutate(projectStore, (draft) => {
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       for (const target of targets) {
         const left = draft.clips[target.id]!;
         const offset = at - left.start;
@@ -299,10 +299,10 @@ export const deleteClips = defineCommand({
   undoable: true,
   input: z.object({ clipIds: z.array(z.string()).min(1) }),
   run(ctx, { clipIds }) {
-    const state = projectStore.getState();
+    const state = ctx.require(projectRef).store.getState();
     clipIds.forEach((id) => requireClip(state, id));
     const doomed = new Set(clipIds);
-    ctx.mutate(projectStore, (draft) => {
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       for (const id of clipIds) {
         const clip = draft.clips[id];
         if (!clip) continue;
@@ -323,8 +323,8 @@ export const setTrackMuted = defineCommand({
   undoable: true,
   input: z.object({ trackId: z.string(), muted: z.boolean() }),
   run(ctx, { trackId, muted }) {
-    requireTrack(projectStore.getState(), trackId);
-    ctx.mutate(projectStore, (draft) => {
+    requireTrack(ctx.require(projectRef).store.getState(), trackId);
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       draft.tracks[trackId]!.muted = muted;
     });
   },
@@ -338,8 +338,8 @@ export const setTrackHidden = defineCommand({
   undoable: true,
   input: z.object({ trackId: z.string(), hidden: z.boolean() }),
   run(ctx, { trackId, hidden }) {
-    requireTrack(projectStore.getState(), trackId);
-    ctx.mutate(projectStore, (draft) => {
+    requireTrack(ctx.require(projectRef).store.getState(), trackId);
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       draft.tracks[trackId]!.hidden = hidden;
     });
   },

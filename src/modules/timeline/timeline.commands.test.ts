@@ -2,18 +2,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, type Kernel } from "@/core";
 import { createFakeMediaModule, mediaRef } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
-import {
-  createEmptyProject,
-  projectModule,
-  projectStore,
-  resetProject,
-  trackClips,
-} from "@/modules/project";
+import { createEmptyProject, createProjectModule, projectRef, trackClips } from "@/modules/project";
 import { addClip, addTrack, deleteClips, moveClip, splitAt, trimClip } from "./timeline.commands";
 import { timelineModule } from "./timeline.module";
 
 const S = 1_000_000;
 let kernel: Kernel;
+const doc = () => kernel.modules.require(projectRef).store.getState();
 
 async function run<T>(
   promise: Promise<{ ok: true; value: T } | { ok: false; error: { code: string } }>,
@@ -29,9 +24,8 @@ beforeEach(async () => {
   project.media.mv = { id: "mv", name: "a.mp4", path: "/a.mp4", kind: "video", size: 1 };
   project.media.ma = { id: "ma", name: "a.mp3", path: "/a.mp3", kind: "audio", size: 1 };
   project.mediaOrder = ["mv", "ma"];
-  resetProject(project);
   await kernel.modules.loadAll([
-    projectModule,
+    createProjectModule(project),
     createFakeMediaModule({
       mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 },
       ma: { status: "ready", duration: 60 * S },
@@ -46,7 +40,7 @@ describe("timeline commands", () => {
     const a = await run(kernel.bus.run(addClip, { mediaId: "mv" }));
     const b = await run(kernel.bus.run(addClip, { mediaId: "mv" }));
     const audio = await run(kernel.bus.run(addClip, { mediaId: "ma" }));
-    const state = projectStore.getState();
+    const state = doc();
     expect(a.start).toBe(0);
     expect(b.start).toBe(10 * S);
     expect(state.tracks[a.trackId]!.kind).toBe("video");
@@ -71,11 +65,12 @@ describe("timeline commands", () => {
     const { trackId } = await run(kernel.bus.run(addTrack, { kind: "video" }));
     const moved = await run(kernel.bus.run(moveClip, { clipId: clip.id, start: 2 * S, trackId }));
     expect(moved).toMatchObject({ trackId, start: 2 * S });
-    expect(projectStore.getState().tracks[clip.trackId]!.clipIds).toEqual([]);
+    expect(doc().tracks[clip.trackId]!.clipIds).toEqual([]);
 
-    const audioTrack = projectStore
-      .getState()
-      .trackOrder.find((id) => projectStore.getState().tracks[id]!.kind === "audio")!;
+    const audioTrack = kernel.modules
+      .require(projectRef)
+      .store.getState()
+      .trackOrder.find((id) => doc().tracks[id]!.kind === "audio")!;
     const wrong = await kernel.bus.run(moveClip, {
       clipId: clip.id,
       start: 0,
@@ -87,7 +82,7 @@ describe("timeline commands", () => {
   it("splits a clip and keeps source offsets continuous", async () => {
     const clip = await run(kernel.bus.run(addClip, { mediaId: "mv", sourceIn: S }));
     const { created } = await run(kernel.bus.run(splitAt, { at: 4 * S }));
-    const state = projectStore.getState();
+    const state = doc();
     const right = state.clips[created[0]!]!;
     expect(state.clips[clip.id]).toMatchObject({ start: 0, sourceIn: S, duration: 4 * S });
     expect(right).toMatchObject({ start: 4 * S, sourceIn: 5 * S, duration: 5 * S });
@@ -107,13 +102,13 @@ describe("timeline commands", () => {
 
   it("undoes a split and a delete as single steps", async () => {
     const clip = await run(kernel.bus.run(addClip, { mediaId: "mv" }));
-    const before = projectStore.getState();
+    const before = doc();
     const { created } = await run(kernel.bus.run(splitAt, { at: 5 * S }));
     await run(kernel.bus.run(deleteClips, { clipIds: [clip.id, ...created] }));
-    expect(Object.keys(projectStore.getState().clips)).toHaveLength(0);
+    expect(Object.keys(doc().clips)).toHaveLength(0);
 
     kernel.history.undo();
     kernel.history.undo();
-    expect(projectStore.getState()).toEqual(before);
+    expect(doc()).toEqual(before);
   });
 });

@@ -1,6 +1,6 @@
 import { defineModule, keybindings, layoutPanels, type Micros } from "@/core";
 import { mediaRef } from "@/modules/media";
-import { projectDuration, projectStore } from "@/modules/project";
+import { projectDuration, projectRef } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/html-media-engine";
 import { createPlaybackClock } from "./playback-clock";
 import { createPreviewController } from "./preview.controller";
@@ -18,17 +18,18 @@ export const previewModule = defineModule({
   commands: previewCommands,
   mcpTools: previewMcpTools,
   setup(ctx) {
+    const project = ctx.require(projectRef).store;
     const media = ctx.require(mediaRef);
-    let duration: Micros = projectDuration(projectStore.getState());
-    const offDuration = projectStore.subscribe((state, previous) => {
+    let duration: Micros = projectDuration(project.getState());
+    const offDuration = project.subscribe((state, previous) => {
       if (state.clips !== previous.clips) duration = projectDuration(state);
     });
     const clock = createPlaybackClock(() => duration);
     const controller = createPreviewController({
       clock,
-      getProject: () => projectStore.getState(),
+      getProject: () => project.getState(),
       getDuration: () => duration,
-      subscribeProject: (listener) => projectStore.subscribe(listener),
+      subscribeProject: (listener) => project.subscribe(listener),
       subscribeMedia: (listener) => media.probes.subscribe(listener),
       createEngine: (canvas, onFrameReady) =>
         new HtmlMediaEngine(canvas, { mediaUrl: media.mediaUrl, onFrameReady }),

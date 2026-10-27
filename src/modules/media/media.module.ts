@@ -1,6 +1,6 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { defineModule, layoutPanels } from "@/core";
-import { projectStore } from "@/modules/project";
+import { projectRef } from "@/modules/project";
 import { importMedia, mediaCommands } from "./media.commands";
 import { mediaMcpTools } from "./media.mcp";
 import { createProbeQueue } from "./media.probe";
@@ -17,7 +17,8 @@ export const mediaModule = defineModule({
   requires: ["project"],
   commands: mediaCommands,
   mcpTools: mediaMcpTools,
-  async setup({ bus, log, contribute }) {
+  async setup({ bus, log, contribute, require }) {
+    const project = require(projectRef).store;
     const state = createMediaState();
     const { fileDrop, getProbe, setProbe } = state;
     const service = createMediaService(state);
@@ -28,7 +29,7 @@ export const mediaModule = defineModule({
     // Read metadata of every media item in the project (import, redo, future loading) once
     // its proxy pipeline has settled.
     const probeAll = () => {
-      const { media, mediaOrder } = projectStore.getState();
+      const { media, mediaOrder } = project.getState();
       for (const id of mediaOrder) {
         const asset = media[id];
         if (!asset) continue;
@@ -38,8 +39,8 @@ export const mediaModule = defineModule({
       }
     };
     probeAll();
-    const offProject = projectStore.subscribe((project, previous) => {
-      if (project.mediaOrder !== previous.mediaOrder) probeAll();
+    const offProject = project.subscribe((next, previous) => {
+      if (next.mediaOrder !== previous.mediaOrder) probeAll();
     });
     const offProbes = state.probes.subscribe(probeAll);
 

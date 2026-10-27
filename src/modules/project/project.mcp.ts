@@ -2,7 +2,7 @@ import { z } from "zod";
 import { commandTool, defineMcpTool, textResult } from "@/core";
 import { setFormat } from "./project.commands";
 import { orderedTracks, projectDuration, trackClips } from "./project.selectors";
-import { projectStore } from "./project.store";
+import { projectRef } from "./project.ref";
 
 /** The whole project in an agent-friendly shape: tracks in order with their clips inline. */
 const getState = defineMcpTool({
@@ -10,8 +10,8 @@ const getState = defineMcpTool({
   description:
     "Returns the whole project: format, duration, imported media, and tracks (top to bottom) with their clips in timeline order. Times are microseconds. Call this first.",
   input: z.object({}),
-  handler() {
-    const state = projectStore.getState();
+  handler(_input, ctx) {
+    const state = ctx.require(projectRef).store.getState();
     return textResult({
       format: state.format,
       duration: projectDuration(state),

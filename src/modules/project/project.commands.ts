@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { defineCommand } from "@/core";
-import { FORMAT_PRESETS, projectStore } from "./project.store";
+import { projectRef } from "./project.ref";
+import { FORMAT_PRESETS } from "./project.store";
 
 /** Changes the output format (canvas size) of the project. */
 export const setFormat = defineCommand({
@@ -11,7 +12,7 @@ export const setFormat = defineCommand({
   undoable: true,
   input: z.object({ preset: z.enum(["9:16", "16:9", "1:1"]) }),
   run(ctx, { preset }) {
-    ctx.mutate(projectStore, (draft) => {
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       draft.format = { ...FORMAT_PRESETS[preset] };
     });
     return FORMAT_PRESETS[preset];

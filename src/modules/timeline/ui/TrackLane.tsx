@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef } from "react";
 import { useKernel, useModule, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
-import { projectStore, type Clip, type Track } from "@/modules/project";
+import { type Clip, type Track, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime } from "../logic/geometry";
@@ -30,6 +30,7 @@ export const TrackLane = memo(function TrackLane({
   pxPerSecond,
   rootRef,
 }: TrackLaneProps) {
+  const project = useModule(projectRef).store;
   const { playback } = useModule(previewRef);
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
@@ -41,7 +42,7 @@ export const TrackLane = memo(function TrackLane({
     const onDrop = (event: Event) => {
       event.stopPropagation();
       const { mediaId, clientX } = (event as CustomEvent<MediaDragDetail>).detail;
-      const state = projectStore.getState();
+      const state = project.getState();
       const media = state.media[mediaId];
       if (!media) return;
       const threshold = pxToTime(SNAP_PX, pxPerSecond);
@@ -58,7 +59,7 @@ export const TrackLane = memo(function TrackLane({
     };
     lane.addEventListener(MEDIA_DROP, onDrop);
     return () => lane.removeEventListener(MEDIA_DROP, onDrop);
-  }, [bus, playback, pxPerSecond, track.id, track.kind]);
+  }, [bus, playback, project, pxPerSecond, track.id, track.kind]);
 
   return (
     <div

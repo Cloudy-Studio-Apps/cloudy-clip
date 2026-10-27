@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
-import { isMediaInUse, projectStore, type MediaAsset } from "@/modules/project";
+import { isMediaInUse, type MediaAsset, projectRef } from "@/modules/project";
 import { registerFiles } from "./media.service";
 import type { ImportResult } from "./media.types";
 
@@ -24,7 +24,7 @@ export const importMedia = defineCommand({
       else failed.push({ path: outcome.path, reason: outcome.error.message });
     }
     if (imported.length > 0) {
-      ctx.mutate(projectStore, (draft) => {
+      ctx.mutate(ctx.require(projectRef).store, (draft) => {
         for (const asset of imported) {
           draft.media[asset.id] = asset;
           draft.mediaOrder.push(asset.id);
@@ -50,7 +50,7 @@ export const removeMedia = defineCommand({
   undoable: true,
   input: z.object({ mediaId: z.string() }),
   run(ctx, { mediaId }) {
-    const state = projectStore.getState();
+    const state = ctx.require(projectRef).store.getState();
     if (!state.media[mediaId]) {
       throw new CommandFailure("media.not_found", `No media with id "${mediaId}"`);
     }
@@ -60,7 +60,7 @@ export const removeMedia = defineCommand({
         "This media is used by clips on the timeline. Delete those clips first.",
       );
     }
-    ctx.mutate(projectStore, (draft) => {
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
       delete draft.media[mediaId];
       draft.mediaOrder = draft.mediaOrder.filter((id) => id !== mediaId);
     });

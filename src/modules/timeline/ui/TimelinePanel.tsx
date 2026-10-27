@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { MICROS_PER_SECOND, useKernel, useModule, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
-import { projectDuration, projectStore, type Clip } from "@/modules/project";
+import { projectDuration, type Clip, projectRef } from "@/modules/project";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { addClip } from "../timeline.commands";
@@ -21,14 +21,15 @@ import { TrackLane } from "./TrackLane";
  * so long timelines with many clips stay smooth.
  */
 export function TimelinePanel() {
+  const project = useModule(projectRef).store;
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const scrollRef = useRef<HTMLDivElement>(null);
   const pxPerSecond = useStore(timeline.view, (s) => s.pxPerSecond);
-  const trackOrder = useStore(projectStore.api, (s) => s.trackOrder);
-  const tracksById = useStore(projectStore.api, (s) => s.tracks);
-  const clipsById = useStore(projectStore.api, (s) => s.clips);
-  const duration = useStore(projectStore.api, projectDuration);
+  const trackOrder = useStore(project.api, (s) => s.trackOrder);
+  const tracksById = useStore(project.api, (s) => s.tracks);
+  const clipsById = useStore(project.api, (s) => s.clips);
+  const duration = useStore(project.api, projectDuration);
   const [view, setView] = useState({ page: 0, pageWidth: 1200 });
 
   // Track which page is visible; only page changes cause a render.

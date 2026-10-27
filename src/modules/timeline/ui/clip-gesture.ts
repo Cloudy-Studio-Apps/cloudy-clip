@@ -1,6 +1,6 @@
-import type { CommandBus, Micros } from "@/core";
+import type { CommandBus, Micros, PatchableStore } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
-import { projectStore, type Clip } from "@/modules/project";
+import type { Clip, ProjectState } from "@/modules/project";
 import type { MediaApi } from "@/modules/media";
 import type { PlaybackClock } from "@/modules/preview";
 import { pxToTime, timeToPx } from "../logic/geometry";
@@ -52,11 +52,13 @@ export function startClipGesture(options: {
   playback: PlaybackClock;
   /** Media metadata, to clamp trims to the source length. */
   media: MediaApi;
+  /** The project document, read for snapping and track kinds. */
+  project: PatchableStore<ProjectState>;
 }): void {
-  const { bus, clip, element, root, down, view, playback, media } = options;
+  const { bus, clip, element, root, down, view, playback, media, project } = options;
   const pxPerSecond = view.getState().pxPerSecond;
   const mode = gestureMode(down.offsetX, element.offsetWidth);
-  const state = projectStore.getState();
+  const state = project.getState();
   const threshold = pxToTime(SNAP_PX, pxPerSecond);
   const candidates = snapCandidates(state, playback.getTime(), new Set([clip.id]));
   const homeLane = element.parentElement;

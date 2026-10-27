@@ -39,10 +39,7 @@ export function createEmptyProject(): ProjectState {
   };
 }
 
-/** The project document. Read freely; change only through commands (`ctx.mutate`). */
-export const projectStore = createPatchableStore<ProjectState>("project", createEmptyProject());
-
-/** Replaces the project with an empty one. For tests. */
-export function resetProject(state: ProjectState = createEmptyProject()): void {
-  projectStore.reset(state);
+/** Creates the project document of one kernel. */
+export function createProjectStore(initial: ProjectState = createEmptyProject()) {
+  return createPatchableStore<ProjectState>("project", initial);
 }

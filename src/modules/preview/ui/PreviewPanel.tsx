@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
-import { projectStore } from "@/modules/project";
+import { projectRef } from "@/modules/project";
 import { useModule } from "@/core";
 import { previewRef } from "../preview.ref";
 import { Transport } from "./Transport";
@@ -11,10 +11,11 @@ import { Transport } from "./Transport";
  * without wasting fill rate.
  */
 export function PreviewPanel() {
+  const project = useModule(projectRef).store;
   const preview = useModule(previewRef);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const format = useStore(projectStore.api, (s) => s.format);
+  const format = useStore(project.api, (s) => s.format);
 
   useEffect(() => {
     const canvas = canvasRef.current;

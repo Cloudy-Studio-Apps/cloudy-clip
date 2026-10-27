@@ -4,7 +4,7 @@
  * @module project
  */
 export { setFormat } from "./project.commands";
-export { FORMAT_PRESETS, createEmptyProject, projectStore, resetProject } from "./project.store";
+export { FORMAT_PRESETS, createEmptyProject } from "./project.store";
 export {
   clipEnd,
   isMediaInUse,
@@ -19,6 +19,7 @@ export type {
   MediaAsset,
   MediaId,
   MediaKind,
+  ProjectApi,
   ProjectFormat,
   ProjectState,
   Track,
@@ -27,6 +28,6 @@ export type {
 } from "./project.types";
 
 /** Module definition, loaded by the app shell. */
-export { projectModule } from "./project.module";
+export { createProjectModule, projectModule } from "./project.module";
 /** Handle for `require(projectRef)` / `useModule(projectRef)`. */
 export { projectRef } from "./project.ref";

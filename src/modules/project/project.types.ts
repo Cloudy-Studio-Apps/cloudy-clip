@@ -1,4 +1,4 @@
-import type { Micros } from "@/core";
+import type { Micros, PatchableStore } from "@/core";
 
 export type MediaId = string;
 export type TrackId = string;
@@ -72,4 +72,13 @@ export interface ProjectState {
    */
   trackOrder: TrackId[];
   clips: Record<ClipId, Clip>;
+}
+
+/** The project module's API for one kernel. */
+export interface ProjectApi {
+  /**
+   * The project document. Read freely (`getState`, `useStore(store.api, selector)`); change it
+   * only through commands (`ctx.mutate`), so every change is undoable.
+   */
+  readonly store: PatchableStore<ProjectState>;
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { commandTool, defineMcpTool, errorResult, textResult } from "@/core";
-import { projectStore, type MediaAsset } from "@/modules/project";
+import { projectRef, type MediaAsset } from "@/modules/project";
 import { importMedia, removeMedia } from "./media.commands";
 import { mediaRef } from "./media.ref";
 import type { ImportResult, MediaApi } from "./media.types";
@@ -44,7 +44,7 @@ const listTool = defineMcpTool({
   input: z.object({}),
   handler(_input, { require }) {
     const media = require(mediaRef);
-    const state = projectStore.getState();
+    const state = require(projectRef).store.getState();
     return textResult(
       state.mediaOrder.flatMap((id) => {
         const asset = state.media[id];

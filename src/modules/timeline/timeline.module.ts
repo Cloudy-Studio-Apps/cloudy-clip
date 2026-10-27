@@ -1,5 +1,5 @@
 import { defineModule, keybindings, layoutPanels } from "@/core";
-import { projectStore } from "@/modules/project";
+import { projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { deleteClips, splitAt, timelineCommands } from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
@@ -16,6 +16,7 @@ export const timelineModule = defineModule({
   commands: timelineCommands,
   mcpTools: timelineMcpTools,
   setup(ctx) {
+    const project = ctx.require(projectRef).store;
     const timeline = createTimelineView();
     const { view } = timeline;
     ctx.contribute(layoutPanels, {
@@ -50,7 +51,7 @@ export const timelineModule = defineModule({
     );
 
     // Drop selected clips that no longer exist (deleted, undone, removed by an agent).
-    const offProject = projectStore.subscribe((state, previous) => {
+    const offProject = project.subscribe((state, previous) => {
       if (state.clips === previous.clips) return;
       const { selection } = view.getState();
       const kept = selection.filter((id) => state.clips[id]);
