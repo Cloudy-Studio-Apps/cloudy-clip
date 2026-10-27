@@ -93,7 +93,7 @@ async fn handle(
     if method != Method::GET && method != Method::HEAD {
         return error(StatusCode::METHOD_NOT_ALLOWED, "Method not allowed");
     }
-    let Some(path) = state.registry.path_of(&id) else {
+    let Some(path) = state.registry.playback_path_of(&id) else {
         return error(StatusCode::NOT_FOUND, "Unknown media id");
     };
 

@@ -1,6 +1,6 @@
 import { createStore } from "zustand/vanilla";
 import type { MediaId } from "@/modules/project";
-import type { MediaProbe, MediaProbeState } from "./media.types";
+import type { MediaProbe, MediaProbeState, ProxyInfo } from "./media.types";
 
 /** Metadata of imported files. Ephemeral: not part of the undo history. */
 export const mediaProbeStore = createStore<MediaProbeState>()(() => ({ probes: {} }));
@@ -16,6 +16,18 @@ export function setProbe(id: MediaId, probe: Partial<MediaProbe>): void {
       [id]: { ...(state.probes[id] ?? { status: "pending" }), ...probe },
     },
   }));
+}
+
+/** Updates the proxy state of one media item. */
+export function setProxy(id: MediaId, proxy: ProxyInfo): void {
+  const previous = getProbe(id)?.proxy;
+  // Keep the explanation from earlier events when progress events omit it.
+  setProbe(id, { proxy: { ...proxy, message: proxy.message ?? previous?.message } });
+}
+
+/** Whether the proxy pipeline is done with a file (so its metadata can be read). */
+export function isProxySettled(proxy: ProxyInfo | undefined): boolean {
+  return proxy?.state === "ready" || proxy?.state === "skipped" || proxy?.state === "error";
 }
 
 /** Current probe of a media item, if any. */

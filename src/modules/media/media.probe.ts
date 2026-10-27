@@ -1,7 +1,7 @@
 import { createLogger, secondsToMicros } from "@/core";
 import type { MediaAsset } from "@/modules/project";
 import { mediaUrl } from "./media.service";
-import { setProbe } from "./media.store";
+import { getProbe, setProbe } from "./media.store";
 
 const log = createLogger("media.probe");
 
@@ -14,7 +14,10 @@ const queue: MediaAsset[] = [];
 const queued = new Set<string>();
 let running = 0;
 
-/** Adds a file to the probe queue. Each media id is probed once per session. */
+/**
+ * Adds a file to the probe queue. Each media id is probed once per session, after its proxy
+ * pipeline has settled (so pro formats are read from their proxy).
+ */
 export function enqueueProbe(asset: MediaAsset): void {
   if (queued.has(asset.id)) return;
   queued.add(asset.id);
@@ -30,7 +33,10 @@ function pump(): void {
     void probe(asset)
       .then((probe) => setProbe(asset.id, { ...probe, status: "ready" }))
       .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error);
+        let message = error instanceof Error ? error.message : String(error);
+        // Explain why there is no proxy to fall back on (e.g. FFmpeg is missing).
+        const proxy = getProbe(asset.id)?.proxy;
+        if (proxy?.state !== "ready" && proxy?.message) message = `${message}. ${proxy.message}`;
         log.warn(`Could not read "${asset.name}"`, message);
         setProbe(asset.id, { status: "error", error: message });
       })
@@ -69,6 +75,7 @@ async function probe(asset: MediaAsset) {
 async function capturePoster(video: HTMLVideoElement): Promise<string> {
   video.currentTime = Math.min(1, video.duration * 0.1);
   await waitFor(video, "seeked");
+  await waitForDecodedFrame(video);
   const canvas = document.createElement("canvas");
   canvas.width = POSTER_WIDTH;
   canvas.height = Math.max(1, Math.round((POSTER_WIDTH * video.videoHeight) / video.videoWidth));
@@ -80,6 +87,22 @@ async function capturePoster(video: HTMLVideoElement): Promise<string> {
   );
   if (!blob) throw new Error("Could not encode poster");
   return URL.createObjectURL(blob);
+}
+
+/**
+ * WebKit fires `seeked` before the new frame is decoded, so drawing right away can capture a
+ * black image. Waits for the frame to be presented (or a short fallback delay).
+ */
+function waitForDecodedFrame(video: HTMLVideoElement): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, 500);
+    if ("requestVideoFrameCallback" in video) {
+      video.requestVideoFrameCallback(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    }
+  });
 }
 
 function waitFor(element: HTMLMediaElement, event: "loadedmetadata" | "seeked"): Promise<void> {

@@ -16,7 +16,7 @@ Cloudy Clip is built so that **a user, an agent (over MCP), and a future plugin 
                 │ invoke / events              │ HTTP (Range)
 ┌───────────────┴──────── Rust (Tauri) ────────┴──────────────────┐
 │  mcp/    MCP server (rmcp, 127.0.0.1:7420/mcp) + bridge         │
-│  media/  file allowlist + loopback media server                 │
+│  media/  file allowlist, FFmpeg proxies, loopback media server  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -81,6 +81,7 @@ All times are integer microseconds.
 
 - **Hot paths skip React.** The playhead, timecode, and drag/trim feedback write to the DOM directly. A gesture sends one command on release.
 - **The timeline is virtualized** by viewport-wide pages, so scrolling re-renders only when crossing a page.
+- **Pro footage is proxied.** Files the webview can't decode well get an H.264 proxy from FFmpeg in the background, one encode at a time, cached across sessions.
 - **Media is streamed.** The loopback server answers Range requests with bodies streamed from disk in 256 KB reads, so memory stays flat with long files.
 - **Media elements are pooled.** At most a few stay warm; idle ones release their decoders.
 - **The preview renders on demand.** It redraws every frame only while playing.

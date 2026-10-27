@@ -80,8 +80,10 @@ Every action that changes the project, such as importing a file, adding a clip, 
 
 - Files are registered natively (`media_register`, an id → path allowlist) and streamed by a **loopback HTTP server** (`src-tauri/src/media/server.rs`, random port + per-session token, Range support, streamed bodies). Do not switch back to a custom URI scheme: WebKitGTK's GStreamer pipeline cannot read media from custom schemes.
 - Media elements use `crossOrigin = "anonymous"` so canvas frames can be read (poster capture, `preview_capture_frame`); the server sends `Access-Control-Allow-Origin: *`.
-- Metadata (duration, size, poster) is probed in the webview (`media.probe.ts`, concurrency 2).
-- Preview: `PlaybackClock` (rAF, owns the playhead) drives a `PreviewEngine`; v1 is `HtmlMediaEngine` (pooled media elements + 2D canvas). Export and its engine choice (FFmpeg vs. WebCodecs, licensing) are deferred; confirm with the user before choosing.
+- **Proxies** (`src-tauri/src/media/proxy.rs`): on register, `ffprobe` decides if a file is webview-friendly (H.264/VP8/VP9, 8-bit 4:2:0, ≤ 60 Mbps, ≤ 4K, web audio). Otherwise the system `ffmpeg` makes an H.264/AAC proxy (long side 1280, GOP 15, one encode at a time) in the app cache dir, keyed by `PROXY_RECIPE` + path + size + mtime; the server then streams the proxy and the original is kept for export. Progress goes to the webview as `media://proxy` events. Proxies must contain only one video and one audio stream with no timecode/data tracks (`-dn -write_tmcd 0 -map_metadata -1`), or WebKitGTK shows no frames. Bump `PROXY_RECIPE` whenever the recipe changes.
+- Metadata (duration, size, poster) is probed in the webview (`media.probe.ts`, concurrency 2) once the proxy pipeline has settled. `mediaUrl()` changes when a proxy is ready, which makes media elements reload.
+- WebKit fires `seeked` before the frame is decoded. Never draw a video frame on `seeked`; wait for `requestVideoFrameCallback` (with a timeout fallback). The engine only paints when every visible layer has its frame and keeps the previous picture otherwise.
+- Preview: `PlaybackClock` (rAF, owns the playhead) drives a `PreviewEngine`; v1 is `HtmlMediaEngine` (pooled media elements + 2D canvas). Export is deferred. FFmpeg is used as an external system binary (user decision, 2026-10-24); bundling it is a later decision with licensing implications.
 
 ### 5. Performance rules
 

@@ -13,13 +13,14 @@ export function App({ kernel }: { kernel: Kernel }) {
   return (
     <KernelProvider kernel={kernel}>
       <div className="grid h-screen grid-rows-[minmax(0,3fr)_minmax(0,2fr)] bg-neutral-950 text-neutral-100">
-        <div className="grid min-h-0 grid-cols-[minmax(260px,1fr)_minmax(0,2fr)] border-b border-neutral-800">
-          <div className="min-h-0 border-r border-neutral-800">
+        {/* Explicit sizes (not content-based) so no panel's content can squeeze another. */}
+        <div className="flex min-h-0 border-b border-neutral-800">
+          <div className="min-h-0 w-[clamp(260px,30%,520px)] shrink-0 overflow-hidden border-r border-neutral-800">
             <ErrorBoundary name="Media">
               <MediaLibrary />
             </ErrorBoundary>
           </div>
-          <div className="min-h-0">
+          <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
             <ErrorBoundary name="Preview">
               <PreviewPanel />
             </ErrorBoundary>

@@ -10,6 +10,8 @@ const PRELOAD_AHEAD: Micros = 1_500_000;
 const MAX_DRIFT_SECONDS = 0.08;
 /** After a seek while playing, give the element this long to catch up before seeking again. */
 const SEEK_GRACE_MS = 500;
+/** Without `requestVideoFrameCallback`, a seeked frame is assumed decoded after this long. */
+const PRESENT_FALLBACK_MS = 250;
 /** Media elements kept warm after use; beyond this, idle ones release their decoder. */
 const MAX_IDLE_SLOTS = 4;
 
@@ -17,11 +19,18 @@ interface Slot {
   element: HTMLMediaElement;
   kind: "video" | "audio";
   mediaId: MediaId | null;
+  /** URL currently loaded. Changes when a file gets its proxy, which forces a reload. */
+  url: string | null;
   clipId: string | null;
   /** Target of the seek in flight, to avoid re-issuing it every frame. */
   seekTarget: number | null;
   /** `performance.now()` of the last seek. */
   lastSeekAt: number;
+  /**
+   * Whether the frame for the current position has actually been decoded. WebKit fires
+   * `seeked` before that, so drawing at `seeked` can paint black.
+   */
+  presented: boolean;
 }
 
 interface EngineOptions {
@@ -84,9 +93,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       if (!slot) continue;
       slot.element.muted = track.muted;
       this.sync(slot, desired, playing);
-      if (slot.kind === "video" && slot.element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-        this.settled = false;
-      }
+      if (slot.kind === "video" && !track.hidden && !this.hasFrame(slot)) this.settled = false;
     }
     for (const clip of upcoming) {
       const media = project.media[clip.mediaId];
@@ -102,7 +109,9 @@ export class HtmlMediaEngine implements PreviewEngine {
       if (slot.clipId === null && !slot.element.paused) slot.element.pause();
     }
 
-    this.draw(project, active);
+    // Only paint complete frames: a layer still decoding would flash black. Keep the previous
+    // picture instead; the controller retries until every layer has its frame.
+    if (this.settled) this.draw(project, active);
   }
 
   pauseAll(): void {
@@ -138,14 +147,18 @@ export class HtmlMediaEngine implements PreviewEngine {
    * free slot of the same kind, then a new element.
    */
   private acquire(clip: Clip, kind: "video" | "audio", desired: number): Slot | null {
+    const url = this.options.mediaUrl(clip.mediaId);
     const existing = this.assigned.get(clip.id);
-    if (existing) return existing;
+    if (existing) {
+      if (existing.url !== url) this.load(existing, clip.mediaId, url);
+      return existing;
+    }
 
     let best: Slot | undefined;
     let bestScore = Number.POSITIVE_INFINITY;
     for (const slot of this.slots) {
       if (slot.clipId !== null || slot.kind !== kind) continue;
-      const sameFile = slot.mediaId === clip.mediaId;
+      const sameFile = slot.url === url;
       const distance = sameFile ? Math.abs(slot.element.currentTime - desired) : Infinity;
       const score = sameFile ? distance : 1e9;
       if (score < bestScore) {
@@ -155,15 +168,46 @@ export class HtmlMediaEngine implements PreviewEngine {
     }
 
     const slot = best ?? this.createSlot(kind);
-    if (slot.mediaId !== clip.mediaId) {
-      slot.mediaId = clip.mediaId;
-      slot.seekTarget = null;
-      slot.element.src = this.options.mediaUrl(clip.mediaId);
-    }
+    if (slot.url !== url) this.load(slot, clip.mediaId, url);
     slot.clipId = clip.id;
     this.assigned.set(clip.id, slot);
     this.trimIdle();
     return slot;
+  }
+
+  private load(slot: Slot, mediaId: MediaId, url: string): void {
+    slot.mediaId = mediaId;
+    slot.url = url;
+    slot.seekTarget = null;
+    slot.presented = false;
+    slot.element.src = url;
+  }
+
+  /** Whether a slot can be drawn right now. Broken media never blocks the other layers. */
+  private hasFrame(slot: Slot): boolean {
+    const element = slot.element;
+    if (element.error) return true;
+    return (
+      slot.presented && !element.seeking && element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+    );
+  }
+
+  /** Marks the slot presented once its new frame is really decoded, then asks for a redraw. */
+  private watchForFrame(slot: Slot): void {
+    const element = slot.element;
+    const done = () => {
+      if (slot.presented) return;
+      slot.presented = true;
+      this.options.onFrameReady();
+    };
+    if (element instanceof HTMLVideoElement && "requestVideoFrameCallback" in element) {
+      element.requestVideoFrameCallback(done);
+    }
+    // Fallback (and safety net if the callback never fires for an off-screen element).
+    setTimeout(() => {
+      if (!element.seeking && element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) done();
+      else this.options.onFrameReady();
+    }, PRESENT_FALLBACK_MS);
   }
 
   private createSlot(kind: "video" | "audio"): Slot {
@@ -175,15 +219,17 @@ export class HtmlMediaEngine implements PreviewEngine {
       element,
       kind,
       mediaId: null,
+      url: null,
       clipId: null,
       seekTarget: null,
       lastSeekAt: 0,
+      presented: false,
     };
     element.addEventListener("seeked", () => {
       slot.seekTarget = null;
-      this.options.onFrameReady();
+      this.watchForFrame(slot);
     });
-    element.addEventListener("loadeddata", () => this.options.onFrameReady());
+    element.addEventListener("loadeddata", () => this.watchForFrame(slot));
     element.addEventListener("error", () => {
       log.warn(`Media "${slot.mediaId}" failed to load`, element.error?.message);
     });
@@ -223,6 +269,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private seek(slot: Slot, to: number): void {
     slot.seekTarget = to;
     slot.lastSeekAt = performance.now();
+    slot.presented = false;
     slot.element.currentTime = to;
   }
 
@@ -239,6 +286,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     slot.element.removeAttribute("src");
     slot.element.load();
     slot.mediaId = null;
+    slot.url = null;
     slot.seekTarget = null;
   }
 

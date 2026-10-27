@@ -27,6 +27,7 @@ export function PreviewPanel() {
 
     const fit = () => {
       const { clientWidth, clientHeight } = container;
+      if (clientWidth === 0 || clientHeight === 0) return;
       const scale = Math.min(clientWidth / format.width, clientHeight / format.height);
       const cssWidth = Math.max(1, Math.floor(format.width * scale));
       const cssHeight = Math.max(1, Math.floor(format.height * scale));
@@ -45,8 +46,15 @@ export function PreviewPanel() {
 
   return (
     <section className="flex h-full flex-col">
-      <div ref={containerRef} className="flex min-h-0 flex-1 items-center justify-center p-3">
-        <canvas ref={canvasRef} className="bg-black shadow-lg" />
+      {/* The measured box is absolutely positioned, so the canvas can never resize its own
+          container (which would feed back into the ResizeObserver). */}
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={containerRef}
+          className="absolute inset-3 flex items-center justify-center overflow-hidden"
+        >
+          <canvas ref={canvasRef} className="block shrink-0 bg-black shadow-lg" />
+        </div>
       </div>
       <Transport />
     </section>

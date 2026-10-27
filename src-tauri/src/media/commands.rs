@@ -4,9 +4,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use super::MediaServerUrl;
+use super::proxy::ProxyJobs;
 use super::registry::{MediaRegistry, RegisteredMedia};
 use crate::error::AppError;
 
@@ -19,17 +20,29 @@ pub enum RegisterOutcome {
 }
 
 /// Validates local files and allows the webview to stream them from the media server.
+/// Each accepted file also enters the proxy pipeline (progress arrives as `media://proxy`).
 #[tauri::command]
 pub async fn media_register(
+    app: AppHandle,
     paths: Vec<String>,
     registry: State<'_, Arc<MediaRegistry>>,
+    proxies: State<'_, ProxyJobs>,
 ) -> Result<Vec<RegisterOutcome>, AppError> {
     let mut outcomes = Vec::with_capacity(paths.len());
     for raw in paths {
         let path = PathBuf::from(&raw);
         let outcome = match tokio::fs::metadata(&path).await {
             Ok(meta) if meta.is_file() => match registry.register(&path, meta.len()) {
-                Ok(media) => RegisterOutcome::Ok { media },
+                Ok(media) => {
+                    proxies.start(
+                        app.clone(),
+                        registry.inner().clone(),
+                        media.id.clone(),
+                        path.clone(),
+                        media.kind,
+                    );
+                    RegisterOutcome::Ok { media }
+                }
                 Err(error) => RegisterOutcome::Error { path: raw, error },
             },
             Ok(_) => RegisterOutcome::Error {

@@ -37,7 +37,15 @@ function mediaDuration(mediaId: string): Micros {
     throw new CommandFailure("media.unsupported", probe.error ?? "This media cannot be played");
   }
   if (probe?.status !== "ready" || probe.duration === undefined) {
-    throw new CommandFailure("media.not_ready", "This media is still loading. Try again shortly.");
+    const proxy = probe?.proxy;
+    const preparing =
+      proxy && (proxy.state === "queued" || proxy.state === "encoding")
+        ? ` It is being optimized for editing (${Math.round((proxy.progress ?? 0) * 100)}%).`
+        : "";
+    throw new CommandFailure(
+      "media.not_ready",
+      `This media is still loading.${preparing} Try again shortly.`,
+    );
   }
   return probe.duration;
 }

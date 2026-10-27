@@ -4,6 +4,26 @@ import type { MediaAsset, MediaId, MediaKind } from "@/modules/project";
 /** Progress of reading a file's metadata. */
 export type ProbeStatus = "pending" | "ready" | "error";
 
+/** Where a file is in the native proxy pipeline (mirrors `ProxyState` in Rust). */
+export type ProxyState = "analyzing" | "queued" | "encoding" | "ready" | "skipped" | "error";
+
+/**
+ * Editing proxy of a file. Pro formats (ProRes, APV, 10-bit HEVC, ...) get a light H.264 copy
+ * made by FFmpeg; the preview plays that copy, the original is kept for export.
+ */
+export interface ProxyInfo {
+  state: ProxyState;
+  /** 0..1 while encoding. */
+  progress?: number;
+  /** Why a proxy is made, or what went wrong. */
+  message?: string;
+}
+
+/** Payload of the `media://proxy` event. */
+export interface ProxyEvent extends ProxyInfo {
+  mediaId: MediaId;
+}
+
 /**
  * Metadata read from a file by the webview. Kept outside the project document (not undoable,
  * re-derivable from the file), keyed by media id.
@@ -18,6 +38,8 @@ export interface MediaProbe {
   posterUrl?: string;
   /** Why probing failed (unsupported codec, unreadable file, ...). */
   error?: string;
+  /** Proxy pipeline state. Metadata is read only once this is settled. */
+  proxy?: ProxyInfo;
 }
 
 /** State of the probe store. */

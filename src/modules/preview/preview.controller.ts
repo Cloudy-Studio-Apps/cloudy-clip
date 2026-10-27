@@ -1,5 +1,5 @@
 import { createLogger, type Micros } from "@/core";
-import { mediaUrl } from "@/modules/media";
+import { mediaProbeStore, mediaUrl } from "@/modules/media";
 import { projectDuration, projectStore } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/html-media-engine";
 import { createPlaybackClock } from "./playback-clock";
@@ -17,6 +17,9 @@ export const playback = createPlaybackClock(() => duration);
 
 let engine: PreviewEngine | null = null;
 let redrawQueued = false;
+/** While paused, frames still decoding are retried for at most this many animation frames. */
+const MAX_SETTLE_RETRIES = 180;
+let settleRetries = 0;
 
 function renderNow(): void {
   redrawQueued = false;
@@ -26,13 +29,23 @@ function renderNow(): void {
   } catch (error) {
     log.error("Render failed", error);
   }
+  // A layer is still decoding: try again next frame (bounded, so a stuck file can't spin).
+  if (!playback.isPlaying() && !engine.isSettled() && settleRetries < MAX_SETTLE_RETRIES) {
+    settleRetries++;
+    scheduleRedraw();
+  }
+}
+
+function scheduleRedraw(): void {
+  if (redrawQueued || playback.isPlaying()) return;
+  redrawQueued = true;
+  requestAnimationFrame(renderNow);
 }
 
 /** Schedules one redraw on the next frame (coalesces bursts of events). */
 function requestRedraw(): void {
-  if (redrawQueued || playback.isPlaying()) return;
-  redrawQueued = true;
-  requestAnimationFrame(renderNow);
+  settleRetries = 0;
+  scheduleRedraw();
 }
 
 /**
@@ -58,10 +71,14 @@ export function attachPreviewCanvas(canvas: HTMLCanvasElement): () => void {
     requestRedraw();
   });
 
+  // A proxy becoming ready changes a file's URL; redraw so the engine reloads it.
+  const offMedia = mediaProbeStore.subscribe(requestRedraw);
+
   return () => {
     offTime();
     offPlaying();
     offProject();
+    offMedia();
     if (engine === current) engine = null;
     current.dispose();
   };

@@ -15,13 +15,14 @@ function describe(asset: MediaAsset) {
     width: probe?.width,
     height: probe?.height,
     error: probe?.error,
+    proxy: probe?.proxy,
   };
 }
 
 const importTool = defineMcpTool({
   name: "media_import",
   description:
-    "Imports local video/audio files by absolute path and waits until their metadata (duration in microseconds, size) is read. Returns each imported item with its id, plus files that failed.",
+    'Imports local video/audio files by absolute path and waits (up to 15 s) until their metadata (duration in microseconds, size) is read. Pro formats (ProRes, APV, 10-bit HEVC...) first get an editing proxy, which can take longer: if status is still "pending", poll media_list until it is "ready". Returns each imported item with its id, plus files that failed.',
   input: importMedia.input,
   async handler(input, { bus }) {
     const result = await bus.run(importMedia, input, { origin: "agent" });
@@ -35,7 +36,7 @@ const importTool = defineMcpTool({
 const listTool = defineMcpTool({
   name: "media_list",
   description:
-    "Lists imported media with metadata: kind, duration (microseconds), width/height, and status (pending, ready, error).",
+    "Lists imported media with metadata: kind, duration (microseconds), width/height, status (pending, ready, error), and proxy (state, progress 0..1, message) for files being optimized for editing.",
   input: z.object({}),
   handler() {
     const state = projectStore.getState();

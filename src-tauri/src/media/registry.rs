@@ -1,7 +1,11 @@
 //! Allowlist of files the webview may stream.
 //!
 //! The media server only serves files registered here, by id. The webview never sends
-//! raw paths to the protocol, so it cannot be used to read arbitrary files.
+//! raw paths to the server, so it cannot be used to read arbitrary files.
+//!
+//! Each entry may also have a *proxy*: a light H.264 copy made for files the webview cannot
+//! decode well. Once a proxy exists, it is what the server streams; the original is kept for
+//! export.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -31,9 +35,14 @@ pub struct RegisteredMedia {
     pub size: u64,
 }
 
+struct Entry {
+    original: PathBuf,
+    proxy: Option<PathBuf>,
+}
+
 #[derive(Default)]
 pub struct MediaRegistry {
-    entries: RwLock<HashMap<String, PathBuf>>,
+    entries: RwLock<HashMap<String, Entry>>,
     next_id: AtomicU64,
 }
 
@@ -53,7 +62,13 @@ impl MediaRegistry {
         self.entries
             .write()
             .map_err(|_| AppError::Unavailable("Media registry is poisoned".into()))?
-            .insert(id.clone(), path.to_path_buf());
+            .insert(
+                id.clone(),
+                Entry {
+                    original: path.to_path_buf(),
+                    proxy: None,
+                },
+            );
 
         Ok(RegisteredMedia {
             id,
@@ -64,9 +79,25 @@ impl MediaRegistry {
         })
     }
 
-    /// Looks up the path of a registered id.
-    pub fn path_of(&self, id: &str) -> Option<PathBuf> {
-        self.entries.read().ok()?.get(id).cloned()
+    /// The file to stream for an id: its proxy if one is ready, otherwise the original.
+    pub fn playback_path_of(&self, id: &str) -> Option<PathBuf> {
+        let entries = self.entries.read().ok()?;
+        let entry = entries.get(id)?;
+        Some(
+            entry
+                .proxy
+                .clone()
+                .unwrap_or_else(|| entry.original.clone()),
+        )
+    }
+
+    /// Attaches a finished proxy to an id.
+    pub fn set_proxy(&self, id: &str, proxy: PathBuf) {
+        if let Ok(mut entries) = self.entries.write()
+            && let Some(entry) = entries.get_mut(id)
+        {
+            entry.proxy = Some(proxy);
+        }
     }
 }
 
@@ -118,9 +149,14 @@ mod tests {
         assert_eq!(media.kind, MediaKind::Video);
         assert_eq!(media.name, "Clip.MP4");
         assert_eq!(
-            registry.path_of(&media.id),
+            registry.playback_path_of(&media.id),
             Some(PathBuf::from("/tmp/Clip.MP4"))
         );
-        assert_eq!(registry.path_of("nope"), None);
+        assert_eq!(registry.playback_path_of("nope"), None);
+        registry.set_proxy(&media.id, PathBuf::from("/cache/p.mp4"));
+        assert_eq!(
+            registry.playback_path_of(&media.id),
+            Some(PathBuf::from("/cache/p.mp4"))
+        );
     }
 }

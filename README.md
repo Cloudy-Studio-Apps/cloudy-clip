@@ -6,14 +6,14 @@ Built with Tauri v2 (Rust) and React, TypeScript, and Tailwind CSS.
 
 ## What v1 does
 
-- Import video and audio files (Import button, or drop files on the window)
+- Import video and audio files (Import button, or drop files on the window); pro formats get automatic editing proxies
 - Multi-track timeline: add, move, trim, split, delete, mute/hide tracks, snapping, zoom, undo/redo
 - Live preview with layered video tracks and 9:16, 16:9, and 1:1 formats
 - A built-in MCP server exposing every one of those actions to agents
 
 ## Develop
 
-Requirements: Node 20+, pnpm, Rust (stable), and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS. On Linux, install the GStreamer libav plugin (`gst-libav`) for H.264 playback.
+Requirements: Node 20+, pnpm, Rust (stable), and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS. On Linux, install the GStreamer libav plugin (`gst-libav`) for H.264 playback. Install **FFmpeg** (`ffmpeg` and `ffprobe` on `PATH`, or set `CLOUDY_CLIP_FFMPEG_DIR`) to edit pro formats such as ProRes, APV, or 10-bit HEVC; Cloudy Clip makes lightweight editing proxies of them automatically.
 
 ```sh
 pnpm install
