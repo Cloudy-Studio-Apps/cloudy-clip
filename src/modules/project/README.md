@@ -11,13 +11,18 @@ lives here, so every change is undoable and readable by agents.
   `ProjectState`. Read it freely; change it only through commands (`ctx.mutate`). Other modules edit
   it with their own commands.
 - **Files:**
-  - `project.types.ts`: `ProjectState`, `Track`, `Clip`, `ClipTransform`, `ClipPlacement`.
+  - `project.types.ts`: `ProjectState`, `Track`, `Clip` (`MediaClip | TextClip`), `ClipTransform`,
+    `ClipPlacement`.
+  - `project.text.ts`: the default text (`DEFAULT_TEXT`, `TEXT_STYLE`, `textFont`, `isTextClip`)
+    and `textBox(format, text, measure)`, the natural size of a text that the engine draws and the
+    canvas tools hit-test.
   - `project.store.ts`: `FORMAT_PRESETS`, `createEmptyProject()`.
   - `project.selectors.ts`: `projectDuration`, `orderedTracks`, `trackClips`, `clipEnd`,
     `isMediaInUse`, `formatPreset`.
   - `project.geometry.ts`: `clipPlacement(format, sourceSize, transform)`, the one place a clip's
     transform becomes a rectangle in the frame (the preview engine and the canvas tools both use it);
-    `clipTransform`, `IDENTITY_TRANSFORM`, `normalizeRotation`.
+    `clipTransform`, `IDENTITY_TRANSFORM`, `normalizeRotation`, `clipFit(clip)` (media pictures are
+    fitted in the frame, text keeps its natural size: `clipPlacement(…, "none")`).
   - `createProjectModule(initial)` seeds the document in tests.
 - **Invariants:** track order is top → bottom (higher video tracks are drawn on top);
   `Track.clipIds` is sorted by `start` and clips on a track never overlap; times are microseconds;

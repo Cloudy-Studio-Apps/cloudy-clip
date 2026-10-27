@@ -85,13 +85,17 @@ export function clampTrim(
 ): Pick<Clip, "start" | "sourceIn" | "duration"> {
   const end = clip.start + clip.duration;
   if (edge === "start") {
-    const earliest = Math.max(limits.prevEnd, clip.start - clip.sourceIn, 0);
+    const sourceStart = limits.sourceless ? 0 : clip.start - clip.sourceIn;
+    const earliest = Math.max(limits.prevEnd, sourceStart, 0);
     const latest = end - limits.minDuration;
     const start = Math.min(Math.max(time, earliest), latest);
     const delta = start - clip.start;
-    return { start, sourceIn: clip.sourceIn + delta, duration: clip.duration - delta };
+    const sourceIn = limits.sourceless ? clip.sourceIn : clip.sourceIn + delta;
+    return { start, sourceIn, duration: clip.duration - delta };
   }
-  const sourceEnd = clip.start - clip.sourceIn + limits.mediaDuration;
+  const sourceEnd = limits.sourceless
+    ? Number.POSITIVE_INFINITY
+    : clip.start - clip.sourceIn + limits.mediaDuration;
   const latest = Math.min(limits.nextStart, sourceEnd);
   const earliest = clip.start + limits.minDuration;
   const newEnd = Math.min(Math.max(time, earliest), latest);

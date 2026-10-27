@@ -204,6 +204,39 @@ describe("timeline commands", () => {
   });
 });
 
+describe("text clips", () => {
+  /** Puts a text clip on the first video track (adding text is the text module's command). */
+  function addText(start: number, duration: number) {
+    const store = kernel.modules.require(projectRef).store;
+    const trackId = trackOfKind("video");
+    store.api.setState((s) => ({
+      clips: {
+        ...s.clips,
+        t: { id: "t", kind: "text", text: "Text", trackId, start, sourceIn: 0, duration },
+      },
+      tracks: { ...s.tracks, [trackId]: { ...s.tracks[trackId]!, clipIds: ["t"] } },
+    }));
+  }
+
+  it("splits a text clip into two text clips", async () => {
+    addText(0, 4 * S);
+    const { created } = await run(kernel.bus.run(splitAt, { at: S }));
+    expect(doc().clips[created[0]!]).toMatchObject({
+      kind: "text",
+      text: "Text",
+      start: S,
+      sourceIn: 0,
+      duration: 3 * S,
+    });
+  });
+
+  it("trims a text clip longer than any file", async () => {
+    addText(0, 4 * S);
+    await run(kernel.bus.run(trimClip, { clipId: "t", edge: "end", time: 99 * S }));
+    expect(doc().clips.t!.duration).toBe(99 * S);
+  });
+});
+
 describe("linked clips", () => {
   it("moves linked clips together", async () => {
     const { video, audio } = await pair();

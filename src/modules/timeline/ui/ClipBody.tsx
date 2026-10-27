@@ -2,13 +2,15 @@ import type { TrackKind } from "@/modules/project";
 import { Waveform } from "@/ui";
 
 interface ClipBodyProps {
-  kind: TrackKind;
+  /** A track kind for media clips, or "text". */
+  kind: TrackKind | "text";
   /** Poster frame of the clip's media, repeated as a filmstrip. */
   poster: string | undefined;
 }
 
-/** The picture under a clip's name: a filmstrip for video, a waveform for audio. */
+/** The picture under a clip's name: a filmstrip for video, a waveform for audio, none for text. */
 export function ClipBody({ kind, poster }: ClipBodyProps) {
+  if (kind === "text") return null;
   if (kind === "audio") {
     return (
       <Waveform tileWidth={120} className="absolute inset-x-0 bottom-1 top-[21px] text-white/60" />

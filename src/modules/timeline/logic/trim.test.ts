@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyProject, type Clip, type ProjectState } from "@/modules/project";
+import { clampTrim } from "./placement";
 import { linkedTrimEdge, trimLimits } from "./trim";
 
 const S = 1_000_000;
@@ -34,5 +35,25 @@ describe("trim", () => {
     expect(linkedTrimEdge(state, group, "end", 9 * S, duration)).toBe(8 * S);
     expect(linkedTrimEdge(state, group, "end", 7 * S, duration)).toBe(7 * S);
     expect(linkedTrimEdge(state, group, "start", -S, duration)).toBe(0);
+  });
+
+  it("lets a text clip grow both ways (it has no source file)", () => {
+    const state = createEmptyProject();
+    const trackId = state.trackOrder[0]!;
+    const text: Clip = {
+      id: "t",
+      kind: "text",
+      text: "Text",
+      trackId,
+      start: 2 * S,
+      sourceIn: 0,
+      duration: S,
+    };
+    state.clips.t = text;
+    state.tracks[trackId]!.clipIds.push("t");
+    const limits = trimLimits(state, text, duration);
+    expect(limits.sourceless).toBe(true);
+    expect(clampTrim(text, "start", 0, limits)).toEqual({ start: 0, sourceIn: 0, duration: 3 * S });
+    expect(clampTrim(text, "end", 50 * S, limits).duration).toBe(48 * S);
   });
 });

@@ -1,6 +1,6 @@
 import type { CommandBus } from "@/core";
 import type { PreviewApi } from "@/modules/preview";
-import type { ClipId, ClipTransform, PictureSize, ProjectFormat } from "@/modules/project";
+import type { ClipFit, ClipId, ClipTransform, PictureSize, ProjectFormat } from "@/modules/project";
 
 /** The transform module's API. Empty: its command and preview overlay are its whole surface. */
 export type TransformApi = Record<string, never>;
@@ -17,8 +17,10 @@ export type ScreenRect = Pick<DOMRect, "left" | "top" | "width" | "height">;
 /** A video clip whose picture is on screen at the playhead. */
 export interface VisibleLayer {
   clipId: ClipId;
-  /** Pixel size of its source picture. */
+  /** Pixel size of its source picture (for text, its measured box in output pixels). */
   source: PictureSize;
+  /** Fitted in the frame (media) or kept at natural size (text). */
+  fit: ClipFit;
 }
 
 /** What a canvas drag does: move the picture, scale it from a corner, or rotate it. */
@@ -30,6 +32,7 @@ export interface TransformGestureOptions {
   clipId: ClipId;
   start: ClipTransform;
   source: PictureSize;
+  fit: ClipFit;
   format: ProjectFormat;
   /** The overlay, which covers the frame exactly. */
   frame: HTMLElement;

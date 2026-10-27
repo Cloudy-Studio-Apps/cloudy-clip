@@ -1,21 +1,28 @@
 import { createStore } from "zustand/vanilla";
 import type { ClipId } from "@/modules/project";
-import type { TimelineApi, TimelineViewState } from "./timeline.types";
+import { laneDropTarget } from "./logic/drop";
+import type { LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
 
 export const MIN_PX_PER_SECOND = 2;
 export const MAX_PX_PER_SECOND = 400;
 
 /**
  * Creates the timeline view state (zoom and selection) of one kernel. `partners` gives a clip's
- * linked clips, which are selected with it.
+ * linked clips, which are selected with it; `lanes` gives the lanes on screen, for drops.
  */
-export function createTimelineView(partners: (id: ClipId) => ClipId[] = () => []): TimelineApi {
+export function createTimelineView(
+  partners: (id: ClipId) => ClipId[] = () => [],
+  lanes: () => LaneBox[] = () => [],
+): TimelineApi {
   const view = createStore<TimelineViewState>()(() => ({ pxPerSecond: 60, selection: [] }));
   return {
     view,
     setZoom(pxPerSecond) {
       const clamped = Math.min(MAX_PX_PER_SECOND, Math.max(MIN_PX_PER_SECOND, pxPerSecond));
       view.setState({ pxPerSecond: clamped });
+    },
+    dropTarget(clientX, clientY) {
+      return laneDropTarget(lanes(), clientX, clientY, view.getState().pxPerSecond);
     },
     selectClip(id, additive = false) {
       view.setState((s) => {

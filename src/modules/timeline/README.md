@@ -10,7 +10,10 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
 - **Points it owns:** —
 - **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history),
   `setZoom`, `selectClip` (selecting a clip selects its linked partners). The selection is shared:
-  the preview's canvas tools select through it.
+  the preview's canvas tools select through it. `dropTarget(clientX, clientY)` gives the track and
+  time under a screen point, for drops from other panels (the Text tab). Exported helpers for
+  modules that place their own clips: `findOverlap`, `freeTrack`, `overlapError`,
+  `selectionSubject`.
 - **Files:**
   - `timeline.track.commands.ts` (tracks), `timeline.clip.commands.ts` (clips), shared checks in
     `timeline.guards.ts`; `timeline.commands.ts` lists them.
@@ -18,7 +21,9 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     (`links.ts`: `partnersOf`, `withPartners`) and linked trims (`trim.ts`).
   - `ui/`: page-virtualized lanes (`TimelinePanel`), `clip.gesture.ts` (DOM feedback while dragging,
     one command on release), the playhead positioned by `playhead.hook.ts` without renders.
-- **Rules:** video tracks hold pictures only, audio tracks hold sound. Adding a video file creates
+- **Rules:** video tracks hold pictures (and text clips) only, audio tracks hold sound. Every
+  command works on any clip kind; a text clip has no source file, so it trims to any length
+  (`TrimLimits.sourceless`) and keeps `sourceIn` at 0 when split. Adding a video file creates
   its picture and, if ffprobe found sound (`mediaHasAudio`), a linked sound clip (`Clip.linkId`) on
   the first audio track with room (a new one if none). Linked clips are moved (same offset, each on
   its own track), trimmed (same edge, tightest limit), split (halves linked left/right) and deleted

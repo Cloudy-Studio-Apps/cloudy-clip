@@ -36,6 +36,15 @@ describe("timeline view", () => {
     expect(selection()).toEqual(["x"]);
   });
 
+  it("dropTarget reads the lanes at the current zoom", () => {
+    const timeline = createTimelineView(undefined, () => [
+      { trackId: "v1", left: 0, top: 0, bottom: 50 },
+    ]);
+    timeline.setZoom(100);
+    expect(timeline.dropTarget(200, 10)).toEqual({ trackId: "v1", time: 2_000_000 });
+    expect(timeline.dropTarget(200, 90)).toBeNull();
+  });
+
   it("two views are independent", () => {
     const first = createTimelineView();
     const second = createTimelineView();

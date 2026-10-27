@@ -34,8 +34,13 @@ export const TimelineClip = memo(function TimelineClip({
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
-  const name = useStore(project.api, (s) => s.media[clip.mediaId]?.name ?? "Missing media");
-  const poster = useStore(media.probes, (s) => s.probes[clip.mediaId]?.posterUrl);
+  const mediaId = clip.kind === "text" ? undefined : clip.mediaId;
+  const name = useStore(project.api, (s) =>
+    clip.kind === "text" ? clip.text : ((mediaId && s.media[mediaId]?.name) ?? "Missing media"),
+  );
+  const poster = useStore(media.probes, (s) =>
+    mediaId ? s.probes[mediaId]?.posterUrl : undefined,
+  );
   const linked = useStore(project.api, (s) => partnersOf(s, clip.id).length > 0);
 
   return (
@@ -44,7 +49,11 @@ export const TimelineClip = memo(function TimelineClip({
       data-clip-id={clip.id}
       className={cn(
         "group absolute bottom-[3px] top-[3px] overflow-hidden rounded-xs border text-white select-none data-[invalid=true]:!border-destructive data-[invalid=true]:!bg-destructive",
-        kind === "video" ? "bg-clip-video" : "bg-clip-audio",
+        clip.kind === "text"
+          ? "bg-clip-type"
+          : kind === "video"
+            ? "bg-clip-video"
+            : "bg-clip-audio",
         selected ? "border-white shadow-[inset_0_0_0_1px_white]" : "border-black/30",
       )}
       style={{
@@ -77,7 +86,7 @@ export const TimelineClip = memo(function TimelineClip({
         {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
         <span className="min-w-0 flex-1 truncate">{name}</span>
       </div>
-      <ClipBody kind={kind} poster={poster} />
+      <ClipBody kind={clip.kind === "text" ? "text" : kind} poster={poster} />
       {/* Trim handles: brackets on hover. */}
       <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-white" />
       <div className="pointer-events-none absolute inset-y-0 -right-px w-[7px] group-hover:border-r-[3px] group-hover:border-white" />

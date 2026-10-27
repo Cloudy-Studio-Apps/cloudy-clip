@@ -14,10 +14,11 @@ const SNAP_SCREEN_PX = 8;
  * `transform.setClipTransform`, so the gesture is a single undo step.
  */
 export function startTransformGesture(options: TransformGestureOptions): void {
-  const { mode, clipId, start, source, format, frame, box, guides, down, preview, bus } = options;
+  const { mode, clipId, start, source, fit, format, frame, box, guides, down, preview, bus } =
+    options;
   const at = (e: PointerEvent) => toFramePoint(frame, format, e.clientX, e.clientY);
   const from = at(down);
-  const startPlacement = clipPlacement(format, source, start);
+  const startPlacement = clipPlacement(format, source, start, fit);
   const center = { x: startPlacement.cx, y: startPlacement.cy };
   const snap = (SNAP_SCREEN_PX * format.width) / frame.getBoundingClientRect().width;
   let current = start;
@@ -39,7 +40,7 @@ export function startTransformGesture(options: TransformGestureOptions): void {
       current = rotateTransform(start, center, from, to, e.shiftKey ? ROTATION_STEP : 0);
     }
     preview.previewTransform(clipId, current);
-    if (box) applyBox(box, clipPlacement(format, source, current), format);
+    if (box) applyBox(box, clipPlacement(format, source, current, fit), format);
   };
 
   const finish = async () => {

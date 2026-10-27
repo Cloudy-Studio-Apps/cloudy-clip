@@ -1,5 +1,6 @@
 import type {
   Clip,
+  ClipFit,
   ClipPlacement,
   ClipTransform,
   PictureSize,
@@ -25,6 +26,11 @@ export function normalizeRotation(degrees: number): number {
   return turned === -180 ? 180 : turned;
 }
 
+/** The fit of a clip's picture. */
+export function clipFit(clip: Clip): ClipFit {
+  return clip.kind === "text" ? "none" : "contain";
+}
+
 /**
  * Where a picture of `source` size lands in the `format` frame with `transform` applied. Used by
  * the preview engine to draw and by the canvas tools to hit-test, so both always agree.
@@ -33,13 +39,15 @@ export function clipPlacement(
   format: ProjectFormat,
   source: PictureSize,
   transform: ClipTransform,
+  fit: ClipFit = "contain",
 ): ClipPlacement {
-  const fit = Math.min(format.width / source.width, format.height / source.height);
+  const scale =
+    fit === "contain" ? Math.min(format.width / source.width, format.height / source.height) : 1;
   return {
     cx: format.width / 2 + transform.x,
     cy: format.height / 2 + transform.y,
-    width: source.width * fit * transform.scale,
-    height: source.height * fit * transform.scale,
+    width: source.width * scale * transform.scale,
+    height: source.height * scale * transform.scale,
     rotation: transform.rotation,
   };
 }

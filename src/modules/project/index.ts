@@ -15,23 +15,37 @@ export {
 } from "./project.selectors";
 export {
   IDENTITY_TRANSFORM,
+  clipFit,
   clipPlacement,
   clipTransform,
   normalizeRotation,
 } from "./project.geometry";
+export {
+  DEFAULT_TEXT,
+  TEXT_STYLE,
+  isTextClip,
+  textBox,
+  textFont,
+  textFontSize,
+} from "./project.text";
 export type {
   Clip,
+  ClipBase,
+  ClipFit,
   ClipId,
   ClipPlacement,
   ClipTransform,
   PictureSize,
   FormatPreset,
   MediaAsset,
+  MediaClip,
   MediaId,
   MediaKind,
   ProjectApi,
   ProjectFormat,
   ProjectState,
+  TextClip,
+  TextMeasure,
   Track,
   TrackId,
   TrackKind,

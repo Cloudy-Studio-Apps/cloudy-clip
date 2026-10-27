@@ -2,7 +2,8 @@
 
 The right column of the editor. With nothing selected it shows the project (resolution, frame rate,
 clip count), how to connect an agent over MCP, and a tip from the seal; with one clip, its
-transform, timing, track and file (a linked picture + sound counts as one clip: the one clicked,
+transform, timing, track and file (text clips show their words and no file; a linked picture +
+sound counts as one clip: the one clicked,
 via the timeline's `selectionSubject`); with several, which ones.
 
 - **Tier:** feature

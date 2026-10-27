@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clipPlacement, IDENTITY_TRANSFORM, normalizeRotation } from "./project.geometry";
+import { textBox, textFontSize } from "./project.text";
 
 const vertical = { width: 1080, height: 1920, fps: 30 };
 
@@ -16,6 +17,34 @@ describe("clipPlacement", () => {
       { x: 100, y: -50, scale: 0.5, rotation: 30 },
     );
     expect(placement).toEqual({ cx: 640, cy: 910, width: 540, height: 960, rotation: 30 });
+  });
+});
+
+describe("clipPlacement without fitting", () => {
+  it("keeps the natural size (text)", () => {
+    const placement = clipPlacement(
+      vertical,
+      { width: 200, height: 100 },
+      { x: 0, y: 0, scale: 2, rotation: 0 },
+      "none",
+    );
+    expect(placement).toEqual({ cx: 540, cy: 960, width: 400, height: 200, rotation: 0 });
+  });
+});
+
+describe("text", () => {
+  it("sizes the font from the frame's short side", () => {
+    expect(textFontSize(vertical)).toBe(97);
+    expect(textFontSize({ width: 1920, height: 1080, fps: 30 })).toBe(97);
+  });
+
+  it("boxes measured text with padding", () => {
+    const box = textBox(vertical, "Text", (text, font) => {
+      expect(font).toContain("97px");
+      return text.length * 50;
+    });
+    expect(box.width).toBeGreaterThan(200);
+    expect(box.height).toBeGreaterThan(97);
   });
 });
 

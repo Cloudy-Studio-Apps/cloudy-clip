@@ -1,6 +1,7 @@
 # transform
 
-Placing pictures in the frame, like CapCut: click a picture in the preview to select its clip, drag
+Placing pictures (video and text) in the frame, like CapCut: click a picture in the preview to
+select its clip, drag
 it to move (snapping to the frame's center lines), drag a corner to scale, drag the handle on top to
 rotate (Shift snaps to 15°). Click empty space to deselect.
 

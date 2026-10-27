@@ -251,16 +251,19 @@ export const splitAt = defineCommand({
           linkId = rightLinks.get(left.linkId) ?? createId("link");
           rightLinks.set(left.linkId, linkId);
         }
-        const right: Clip = {
+        const base = {
           id: createId("clip"),
           trackId: left.trackId,
-          mediaId: left.mediaId,
           start: at,
-          sourceIn: left.sourceIn + offset,
           duration: left.duration - offset,
           ...(left.transform && { transform: { ...left.transform } }),
           ...(linkId && { linkId }),
         };
+        // Text has no source file, so its `sourceIn` stays 0.
+        const right: Clip =
+          left.kind === "text"
+            ? { ...base, kind: "text", text: left.text, sourceIn: 0 }
+            : { ...base, mediaId: left.mediaId, sourceIn: left.sourceIn + offset };
         left.duration = offset;
         draft.clips[right.id] = right;
         const track = draft.tracks[left.trackId]!;

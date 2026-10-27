@@ -12,10 +12,12 @@ export function trimLimits(
   clip: Clip,
   durationOf: MediaDurationOf,
 ): TrimLimits {
+  const sourceless = clip.kind === "text";
   return {
-    mediaDuration: durationOf(clip.mediaId) ?? Number.POSITIVE_INFINITY,
+    mediaDuration: (sourceless ? undefined : durationOf(clip.mediaId)) ?? Number.POSITIVE_INFINITY,
     minDuration: minClipDuration(state),
     ...neighbourBounds(state, clip),
+    ...(sourceless && { sourceless }),
   };
 }
 

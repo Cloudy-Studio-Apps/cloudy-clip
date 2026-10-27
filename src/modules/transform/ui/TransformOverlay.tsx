@@ -36,7 +36,13 @@ export function TransformOverlay() {
         const clip = clips[layer.clipId];
         if (!clip) return [];
         const transform = clipTransform(clip);
-        return [{ ...layer, transform, placement: clipPlacement(format, layer.source, transform) }];
+        return [
+          {
+            ...layer,
+            transform,
+            placement: clipPlacement(format, layer.source, transform, layer.fit),
+          },
+        ];
       }),
     [layers, clips, format],
   );
@@ -76,6 +82,7 @@ export function TransformOverlay() {
       clipId: target.clipId,
       start: target.transform,
       source: target.source,
+      fit: target.fit,
       format,
       frame,
       box: target === selected ? boxRef.current : null,

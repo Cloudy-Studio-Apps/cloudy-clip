@@ -81,8 +81,32 @@ describe("visibleLayers", () => {
     state.tracks[top!]!.clipIds = ["a"];
     state.tracks[lower]!.clipIds = ["b"];
     const size = () => ({ width: 1920, height: 1080 });
-    expect(visibleLayers(state, size, 7).map((l) => l.clipId)).toEqual(["a", "b"]);
-    expect(visibleLayers(state, size, 12).map((l) => l.clipId)).toEqual(["b"]);
-    expect(visibleLayers(state, () => undefined, 7)).toEqual([]);
+    const measure = (text: string) => text.length * 50;
+    expect(visibleLayers(state, size, 7, measure).map((l) => l.clipId)).toEqual(["a", "b"]);
+    expect(visibleLayers(state, size, 12, measure).map((l) => l.clipId)).toEqual(["b"]);
+    expect(visibleLayers(state, () => undefined, 7, measure)).toEqual([]);
+  });
+
+  it("lists text clips with their measured box, kept at natural size", () => {
+    const state = createEmptyProject();
+    const top = state.trackOrder[0]!;
+    state.clips.t = {
+      id: "t",
+      kind: "text",
+      text: "Text",
+      trackId: top,
+      start: 0,
+      sourceIn: 0,
+      duration: 10,
+    };
+    state.tracks[top]!.clipIds = ["t"];
+    const [layer] = visibleLayers(
+      state,
+      () => undefined,
+      5,
+      (text) => text.length * 50,
+    );
+    expect(layer).toMatchObject({ clipId: "t", fit: "none" });
+    expect(layer!.source.width).toBeGreaterThan(200);
   });
 });

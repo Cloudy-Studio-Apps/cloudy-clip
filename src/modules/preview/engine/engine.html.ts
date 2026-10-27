@@ -11,6 +11,7 @@ import {
 import type { PreviewEngine } from "../preview.types";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
+import { drawText } from "./engine.text";
 import type { EngineOptions } from "./engine.types";
 
 /** Clips starting within this window are prepared ahead so cuts don't stutter. */
@@ -68,6 +69,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
     this.settled = true;
     for (const { clip, track } of active) {
+      if (clip.kind === "text") continue; // drawn from the document, no media element
       const media = project.media[clip.mediaId];
       if (!media) continue;
       const desired = microsToSeconds(clip.sourceIn + time - clip.start);
@@ -83,7 +85,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) this.settled = false;
     }
     for (const { clip, track } of upcoming) {
-      if (!project.media[clip.mediaId]) continue;
+      if (clip.kind === "text" || !project.media[clip.mediaId]) continue;
       const slot = this.pool.acquire(clip, track.kind, microsToSeconds(clip.sourceIn));
       if (!slot) continue;
       slot.element.muted = true;
@@ -131,6 +133,11 @@ export class HtmlMediaEngine implements PreviewEngine {
     for (let i = active.length - 1; i >= 0; i--) {
       const { clip, track } = active[i]!;
       if (track.kind !== "video" || track.hidden) continue;
+      const transform = transforms.get(clip.id) ?? clipTransform(clip);
+      if (clip.kind === "text") {
+        drawText(ctx, project.format, clip, transform, kx, ky);
+        continue;
+      }
       if (project.media[clip.mediaId]?.kind !== "video") continue;
       const element = this.pool.elementOf(clip.id);
       if (!(element instanceof HTMLVideoElement)) continue;
@@ -140,7 +147,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       const place = clipPlacement(
         project.format,
         { width: element.videoWidth, height: element.videoHeight },
-        transforms.get(clip.id) ?? clipTransform(clip),
+        transform,
       );
       ctx.setTransform(kx, 0, 0, ky, 0, 0);
       ctx.translate(place.cx, place.cy);

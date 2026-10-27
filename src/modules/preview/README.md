@@ -21,7 +21,10 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     preloaded); `engine.sync.ts` keeps elements on the clock and re-seeks only on drift.
     Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
     `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
-    clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only). Swap engines by implementing `PreviewEngine` (`preview.types.ts`).
+    clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only).
+    Text clips need no element: `engine.text.ts` draws them from the document (default style,
+    `textBox` + `clipPlacement(…, "none")`, the same box the canvas tools use). Swap engines by
+    implementing `PreviewEngine` (`preview.types.ts`).
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it is tested in
     node). Renders every frame while playing, on demand while paused.
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).

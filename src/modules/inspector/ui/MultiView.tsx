@@ -20,7 +20,11 @@ export function MultiView({ clipIds }: { clipIds: readonly ClipId[] }) {
       <ul className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-2">
         {clipIds.map((id) => {
           const clip = clips[id];
-          const name = clip ? (media[clip.mediaId]?.name ?? "Missing media") : "Missing clip";
+          const name = !clip
+            ? "Missing clip"
+            : clip.kind === "text"
+              ? clip.text
+              : (media[clip.mediaId]?.name ?? "Missing media");
           return (
             <li key={id} className="truncate px-1.5 py-1 text-sm text-muted-foreground">
               {name}

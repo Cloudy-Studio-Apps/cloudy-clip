@@ -36,11 +36,10 @@ export interface Track {
   hidden: boolean;
 }
 
-/** A piece of a media file placed on the timeline. */
-export interface Clip {
+/** What every clip on the timeline has, whatever its kind. */
+export interface ClipBase {
   id: ClipId;
   trackId: TrackId;
-  mediaId: MediaId;
   /** Position on the timeline. */
   start: Micros;
   /** Where in the source file the clip begins. */
@@ -56,6 +55,28 @@ export interface Clip {
   linkId?: string;
 }
 
+/** A piece of a media file placed on the timeline. `kind` is missing on older clips. */
+export interface MediaClip extends ClipBase {
+  kind?: "media";
+  mediaId: MediaId;
+}
+
+/**
+ * Text drawn over the video, on a video track. It has no source file, so it can be any length
+ * (`sourceIn` stays 0). Drawn in the default style (`project.text.ts`) for now.
+ */
+export interface TextClip extends ClipBase {
+  kind: "text";
+  /** The words shown. */
+  text: string;
+}
+
+/** A clip on the timeline: a piece of media or a text. */
+export type Clip = MediaClip | TextClip;
+
+/** Width of `text` drawn in the CSS `font`, in pixels (canvas `measureText`, faked in tests). */
+export type TextMeasure = (text: string, font: string) => number;
+
 /**
  * Placement of a clip's picture in the output frame. The picture is first fitted (contained) in
  * the frame and centered; then scaled, rotated about its center, and moved.
@@ -70,6 +91,12 @@ export interface ClipTransform {
   /** Clockwise rotation, in degrees (-180, 180]. */
   rotation: number;
 }
+
+/**
+ * How a clip's picture is sized before its transform: media pictures are fitted (contained) in
+ * the frame; text keeps its natural size in output pixels.
+ */
+export type ClipFit = "contain" | "none";
 
 /** Where a clip's picture lands in the output frame, in output pixels. */
 export interface ClipPlacement {
