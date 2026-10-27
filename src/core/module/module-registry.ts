@@ -4,9 +4,10 @@ import type { History } from "../history/history.types";
 import type { McpRegistry } from "../mcp/mcp.types";
 import { orderModules } from "./module-order";
 import type {
+  AnyModuleDefinition,
   Disposer,
   ModuleContext,
-  ModuleDefinition,
+  ModuleSetup,
   ModuleRef,
   ModuleRegistry,
   ModuleStatus,
@@ -15,10 +16,8 @@ import type { PointRegistry } from "./points.types";
 
 const log = createLogger("modules");
 
-type AnyModule = ModuleDefinition<unknown>;
-
 interface LoadedModule {
-  definition: AnyModule;
+  definition: AnyModuleDefinition;
   status: ModuleStatus;
   api: unknown;
   disposers: Disposer[];
@@ -49,7 +48,7 @@ export function createModuleRegistry(deps: {
     return entry.api as A;
   }
 
-  function contextFor(module: AnyModule, entry: LoadedModule): ModuleContext {
+  function contextFor(module: AnyModuleDefinition, entry: LoadedModule): ModuleContext {
     const id = module.ref.id;
     const declared = new Set([id, ...(module.requires ?? []), ...(module.uses ?? [])]);
     return {
@@ -76,7 +75,7 @@ export function createModuleRegistry(deps: {
     };
   }
 
-  async function loadOne(module: AnyModule): Promise<ModuleStatus> {
+  async function loadOne(module: AnyModuleDefinition): Promise<ModuleStatus> {
     const id = module.ref.id;
     if (loaded.has(id)) throw new Error(`Module "${id}" is already loaded`);
     const entry: LoadedModule = {
@@ -100,7 +99,8 @@ export function createModuleRegistry(deps: {
         }
         entry.disposers.push(deps.mcp.register(tool));
       }
-      const result = await module.setup?.(contextFor(module, entry));
+      const result = (await module.setup?.(contextFor(module, entry))) as
+        ModuleSetup<unknown> | undefined;
       entry.api = result?.api;
       if (result?.dispose) entry.disposers.push(result.dispose);
       entry.status = "active";
@@ -112,7 +112,9 @@ export function createModuleRegistry(deps: {
     return entry.status;
   }
 
-  async function loadAll(modules: readonly AnyModule[]): Promise<Record<string, ModuleStatus>> {
+  async function loadAll(
+    modules: readonly AnyModuleDefinition[],
+  ): Promise<Record<string, ModuleStatus>> {
     const active = new Set([...loaded].filter(([, e]) => e.status === "active").map(([id]) => id));
     const { order, skipped } = orderModules(modules, active);
     const statuses: Record<string, ModuleStatus> = {};

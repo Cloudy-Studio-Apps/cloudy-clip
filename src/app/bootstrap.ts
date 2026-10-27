@@ -5,7 +5,7 @@ import {
   createTauriMcpTransport,
   notify,
   type Kernel,
-  type ModuleDefinition,
+  type AnyModuleDefinition,
 } from "@/core";
 import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
@@ -14,8 +14,8 @@ import { timelineModule } from "@/modules/timeline";
 
 const log = createLogger("app");
 
-/** Built-in modules, in load order. Plugins will be appended here by the future loader. */
-const MODULES: ModuleDefinition[] = [projectModule, mediaModule, timelineModule, previewModule];
+/** Built-in modules, in any order: the kernel orders them by their dependencies. */
+const MODULES: AnyModuleDefinition[] = [projectModule, mediaModule, timelineModule, previewModule];
 
 /**
  * Starts the editor: creates the kernel, loads modules, surfaces command results to the user,
@@ -24,9 +24,13 @@ const MODULES: ModuleDefinition[] = [projectModule, mediaModule, timelineModule,
 export async function bootstrap(): Promise<Kernel> {
   const kernel = await createKernel();
 
+  const statuses = await kernel.modules.loadAll(MODULES);
   for (const module of MODULES) {
-    const status = await kernel.modules.load(module);
+    const status = statuses[module.ref.id];
     if (status === "failed") notify("error", `${module.name} failed to load; see the logs.`);
+    if (status === "skipped") {
+      notify("error", `${module.name} was skipped: a module it needs did not load.`);
+    }
   }
 
   kernel.bus.onExecuted(({ origin, result, commandId }) => {
@@ -44,6 +48,7 @@ export async function bootstrap(): Promise<Kernel> {
     transport: createTauriMcpTransport(),
     bus: kernel.bus,
     history: kernel.history,
+    modules: kernel.modules,
   });
   bridge.start().catch((error: unknown) => log.error("MCP bridge failed to start", error));
 

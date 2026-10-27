@@ -74,6 +74,15 @@ export interface ModuleDefinition<Api = void> {
   setup?(ctx: ModuleContext): ModuleSetup<Api> | Promise<ModuleSetup<Api>>;
 }
 
+/**
+ * Any module definition, with its API type erased. What the registry accepts, so modules with
+ * different API types can be listed together.
+ */
+export interface AnyModuleDefinition extends Omit<ModuleDefinition<unknown>, "ref" | "setup"> {
+  readonly ref: { readonly id: string };
+  setup?(ctx: ModuleContext): unknown;
+}
+
 /** Loads modules and keeps track of them. One per kernel. */
 export interface ModuleRegistry {
   /**
@@ -81,9 +90,9 @@ export interface ModuleRegistry {
    * removed again (commands, tools, contributions) and marked `failed`; modules that need it are
    * `skipped`. Throws only on a dependency cycle.
    */
-  loadAll(modules: readonly ModuleDefinition<unknown>[]): Promise<Record<string, ModuleStatus>>;
+  loadAll(modules: readonly AnyModuleDefinition[]): Promise<Record<string, ModuleStatus>>;
   /** Loads one module. Its dependencies must already be loaded. */
-  load(module: ModuleDefinition<unknown>): Promise<ModuleStatus>;
+  load(module: AnyModuleDefinition): Promise<ModuleStatus>;
   /** Returns an active module's API. Throws if it isn't active. */
   require<A>(ref: ModuleRef<A>): A;
   status(id: string): ModuleStatus | undefined;

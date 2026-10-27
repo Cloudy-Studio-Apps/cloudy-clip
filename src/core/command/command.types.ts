@@ -2,6 +2,7 @@ import type { Draft } from "immer";
 import type { z } from "zod";
 import type { AppError, Result } from "../errors/result.types";
 import type { Logger } from "../errors/logger";
+import type { ModuleRef } from "../module/module.types";
 import type { PatchableStore } from "../store/store.types";
 
 /** Who triggered a command. Recorded in history so the UI can show what an agent changed. */
@@ -18,6 +19,11 @@ export interface CommandContext {
    * so a failing command never leaves state half-modified.
    */
   mutate<T extends object>(store: PatchableStore<T>, recipe: (draft: Draft<T>) => void): void;
+  /**
+   * Returns a loaded module's API (its stores and services for this kernel). Throws
+   * `CommandFailure("module.not_loaded")` if the module isn't active.
+   */
+  require<A>(ref: ModuleRef<A>): A;
   /** Runs another command inside this one. Its changes join this command's history entry. */
   execute<I extends z.ZodType, O>(command: CommandDefinition<I, O>, input: z.input<I>): Promise<O>;
 }

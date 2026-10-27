@@ -18,6 +18,7 @@ export type {
 } from "./command/command.types";
 
 // History
+export { historyRef } from "./history/history.module";
 export type { History, HistoryEntry, HistorySnapshot } from "./history/history.types";
 
 // Document stores
@@ -25,15 +26,30 @@ export { createPatchableStore } from "./store/patchable-store";
 export type { PatchableStore } from "./store/store.types";
 
 // Modules
+export { defineModule, defineModuleRef } from "./module/define-module";
 export type {
+  AnyModuleDefinition,
   Disposer,
   ModuleContext,
   ModuleDefinition,
+  ModuleRef,
   ModuleRegistry,
+  ModuleSetup,
   ModuleStatus,
+  ModuleTier,
 } from "./module/module.types";
 export { createPointRegistry, definePoint } from "./module/points";
 export type { Point, PointOptions, PointReader, PointRegistry } from "./module/points.types";
+
+// Shell points (panels, keybindings)
+export { keybindings, layoutPanels, matchKeybinding } from "./shell/shell.points";
+export type {
+  Keybinding,
+  KeybindingAction,
+  KeyPress,
+  LayoutPanel,
+  LayoutSlot,
+} from "./shell/shell.types";
 
 // MCP
 export { commandTool, defineMcpTool, errorResult, textResult } from "./mcp/define-mcp-tool";
@@ -68,4 +84,4 @@ export { dismiss, notificationsStore, notify } from "./notifications/notificatio
 export type { Notification, NotificationLevel } from "./notifications/notifications.types";
 
 // React
-export { KernelProvider, useHistory, useKernel } from "./react/kernel-context";
+export { KernelProvider, useHistory, useKernel, useModule, usePoint } from "./react/kernel-context";

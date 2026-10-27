@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { defineModule, defineModuleRef } from "./define-module";
 import { orderModules } from "./module-order";
-import type { ModuleDefinition } from "./module.types";
+import type { AnyModuleDefinition } from "./module.types";
 
 function mod(
   id: string,
   deps: { requires?: string[]; uses?: string[]; after?: string[] } = {},
-): ModuleDefinition<unknown> {
+): AnyModuleDefinition {
   return defineModule({ ref: defineModuleRef(id), name: id, ...deps });
 }
 
-const ids = (modules: readonly ModuleDefinition<unknown>[]) => modules.map((m) => m.ref.id);
+const ids = (modules: readonly AnyModuleDefinition[]) => modules.map((m) => m.ref.id);
 
 describe("orderModules", () => {
   it("orders by requires regardless of input order", () => {

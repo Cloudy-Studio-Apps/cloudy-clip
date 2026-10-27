@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { defineCommand } from "./command/define-command";
-import { commandTool } from "./mcp/define-mcp-tool";
+import { commandTool, defineMcpTool, textResult } from "./mcp/define-mcp-tool";
 import { createMcpBridge } from "./mcp/mcp-bridge";
 import type { McpTransport } from "./mcp/mcp.types";
-import { createKernel } from "./kernel";
+import { createKernel, type Kernel } from "./kernel";
+import { defineModule, defineModuleRef } from "./module/define-module";
 import { createPatchableStore } from "./store/patchable-store";
+import type { PatchableStore } from "./store/store.types";
 
 const noopTransport: McpTransport = {
   registerTools: async () => {},
@@ -13,27 +15,48 @@ const noopTransport: McpTransport = {
   respond: async () => {},
 };
 
-describe("kernel", () => {
-  it("lets an agent edit through MCP and the user undo it", async () => {
-    const kernel = await createKernel();
-    const store = createPatchableStore("doc", { title: "a" });
-    const rename = defineCommand({
-      id: "doc.rename",
-      label: "Rename",
-      description: "Renames the doc.",
-      undoable: true,
-      input: z.object({ title: z.string() }),
-      run: (ctx, { title }) => ctx.mutate(store, (d) => void (d.title = title)),
-    });
-    await kernel.modules.load({
-      id: "doc",
-      name: "Doc",
-      commands: [rename],
-      mcpTools: [commandTool(rename, { name: "doc_rename" })],
-    });
+function bridgeOf(kernel: Kernel) {
+  return createMcpBridge({ ...kernel, registry: kernel.mcp, transport: noopTransport });
+}
 
-    const bridge = createMcpBridge({ ...kernel, registry: kernel.mcp, transport: noopTransport });
-    const result = await bridge.handle({ id: "1", name: "doc_rename", arguments: { title: "b" } });
+const docRef = defineModuleRef<{ store: PatchableStore<{ title: string }> }>("doc");
+
+const rename = defineCommand({
+  id: "doc.rename",
+  label: "Rename",
+  description: "Renames the doc.",
+  undoable: true,
+  input: z.object({ title: z.string() }),
+  run: (ctx, { title }) => ctx.mutate(ctx.require(docRef).store, (d) => void (d.title = title)),
+});
+
+const docModule = defineModule({
+  ref: docRef,
+  name: "Doc",
+  commands: [rename],
+  mcpTools: [
+    commandTool(rename, { name: "doc_rename" }),
+    defineMcpTool({
+      name: "doc_title",
+      description: "Returns the title.",
+      input: z.object({}),
+      handler: (_input, ctx) => textResult(ctx.require(docRef).store.getState().title),
+    }),
+  ],
+  setup: () => ({ api: { store: createPatchableStore("doc", { title: "a" }) } }),
+});
+
+describe("kernel", () => {
+  it("commands reach module state through ctx.require, and agents' edits undo", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    const store = kernel.modules.require(docRef).store;
+
+    const result = await bridgeOf(kernel).handle({
+      id: "1",
+      name: "doc_rename",
+      arguments: { title: "b" },
+    });
     expect(result.isError).toBeUndefined();
     expect(store.getState().title).toBe("b");
     expect(kernel.history.getSnapshot().past.at(-1)?.origin).toBe("agent");
@@ -42,34 +65,43 @@ describe("kernel", () => {
     expect(store.getState().title).toBe("a");
   });
 
+  it("MCP tools can require modules", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    const result = await bridgeOf(kernel).handle({ id: "1", name: "doc_title", arguments: {} });
+    expect(result.content[0]).toMatchObject({ type: "text", text: expect.stringContaining("a") });
+  });
+
   it("returns MCP errors instead of throwing", async () => {
     const kernel = await createKernel();
-    const bridge = createMcpBridge({ ...kernel, registry: kernel.mcp, transport: noopTransport });
+    const bridge = bridgeOf(kernel);
     const unknown = await bridge.handle({ id: "1", name: "nope", arguments: {} });
     expect(unknown.isError).toBe(true);
     const empty = await bridge.handle({ id: "2", name: "history_undo", arguments: {} });
     expect(empty.isError).toBe(true);
   });
 
-  it("isolates a module that fails to activate", async () => {
+  it("isolates a module that fails to set up", async () => {
     const kernel = await createKernel();
-    const status = await kernel.modules.load({
-      id: "broken",
-      name: "Broken",
-      commands: [
-        defineCommand({
-          id: "broken.do",
-          label: "Do",
-          description: "",
-          undoable: false,
-          input: z.object({}),
-          run: () => {},
-        }),
-      ],
-      activate() {
-        throw new Error("fail");
-      },
-    });
+    const status = await kernel.modules.load(
+      defineModule({
+        ref: defineModuleRef("broken"),
+        name: "Broken",
+        commands: [
+          defineCommand({
+            id: "broken.do",
+            label: "Do",
+            description: "",
+            undoable: false,
+            input: z.object({}),
+            run: () => {},
+          }),
+        ],
+        setup() {
+          throw new Error("fail");
+        },
+      }),
+    );
     expect(status).toBe("failed");
     expect(kernel.bus.get("broken.do")).toBeUndefined();
   });

@@ -2,6 +2,7 @@ import type { CommandBus } from "../command/command.types";
 import { createLogger } from "../errors/logger";
 import { toAppError } from "../errors/result";
 import type { History } from "../history/history.types";
+import type { ModuleRegistry } from "../module/module.types";
 import { errorResult } from "./define-mcp-tool";
 import type { McpCall, McpRegistry, McpToolResult, McpTransport } from "./mcp.types";
 
@@ -12,6 +13,7 @@ interface McpBridgeOptions {
   transport: McpTransport;
   bus: CommandBus;
   history: History;
+  modules: Pick<ModuleRegistry, "require">;
 }
 
 /** Connects the tool registry to the native MCP server. */
@@ -29,6 +31,7 @@ export function createMcpBridge({
   transport,
   bus,
   history,
+  modules,
 }: McpBridgeOptions): McpBridge {
   const disposers: Array<() => void> = [];
   let publishTimer: ReturnType<typeof setTimeout> | undefined;
@@ -46,7 +49,7 @@ export function createMcpBridge({
       return errorResult({ code: "invalid_input", message });
     }
     try {
-      return await tool.handler(parsed.data, { bus, history });
+      return await tool.handler(parsed.data, { bus, history, require: modules.require });
     } catch (error) {
       log.error(`Tool "${call.name}" crashed`, error);
       return errorResult(toAppError(error));

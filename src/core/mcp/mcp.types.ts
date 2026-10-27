@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type { CommandBus } from "../command/command.types";
 import type { History } from "../history/history.types";
+import type { ModuleRef } from "../module/module.types";
 
 /** One piece of content returned to the agent. */
 export type McpContent =
@@ -16,6 +17,8 @@ export interface McpToolResult {
 export interface McpToolContext {
   readonly bus: CommandBus;
   readonly history: History;
+  /** Returns a loaded module's API, e.g. to read its state. Throws if it isn't active. */
+  require<A>(ref: ModuleRef<A>): A;
 }
 
 /**

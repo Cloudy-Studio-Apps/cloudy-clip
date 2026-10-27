@@ -3,6 +3,7 @@ import { createLogger, type Logger } from "../errors/logger";
 import { CommandFailure, err, ok, toAppError } from "../errors/result";
 import type { AppError, Result } from "../errors/result.types";
 import type { History } from "../history/history.types";
+import type { ModuleRef } from "../module/module.types";
 import { asInternal } from "../store/patchable-store";
 import type { StoreChange } from "../store/store.types";
 import type {
@@ -21,6 +22,8 @@ interface CommandBusOptions {
   history: History;
   timeoutMs?: number;
   logger?: Logger;
+  /** Resolves `ctx.require`. Without it, commands can't require modules (bus-only tests). */
+  resolveModule?: <A>(ref: ModuleRef<A>) => A;
 }
 
 /** Mutable state of one top-level execution, shared with nested commands. */
@@ -45,6 +48,7 @@ export function createCommandBus({
   history,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   logger = createLogger("command"),
+  resolveModule,
 }: CommandBusOptions): CommandBus {
   const commands = new Map<string, CommandDefinition>();
   const listeners = new Set<(event: CommandExecutedEvent) => void>();
@@ -74,6 +78,17 @@ export function createCommandBus({
         }
         const change = asInternal(store).produce(recipe);
         if (change) tx.changes.push(change);
+      },
+      require(ref) {
+        try {
+          if (!resolveModule) throw new Error("This bus has no modules");
+          return resolveModule(ref);
+        } catch (error) {
+          throw new CommandFailure(
+            "module.not_loaded",
+            `"${command.id}" needs module "${ref.id}": ${String(error)}`,
+          );
+        }
       },
       async execute(nested, input) {
         const nestedCommand = nested as CommandDefinition;

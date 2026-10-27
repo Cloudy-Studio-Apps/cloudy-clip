@@ -1,6 +1,4 @@
-import type { ModuleDefinition } from "./module.types";
-
-type AnyModule = ModuleDefinition<unknown>;
+import type { AnyModuleDefinition } from "./module.types";
 
 /**
  * Orders modules so every module comes after its `requires` and `after` (Kahn's algorithm,
@@ -8,9 +6,9 @@ type AnyModule = ModuleDefinition<unknown>;
  * nor loadable are skipped, with a reason. Throws on a cycle.
  */
 export function orderModules(
-  modules: readonly AnyModule[],
+  modules: readonly AnyModuleDefinition[],
   loadedIds: ReadonlySet<string>,
-): { order: AnyModule[]; skipped: Record<string, string> } {
+): { order: AnyModuleDefinition[]; skipped: Record<string, string> } {
   const byId = new Map(modules.map((m) => [m.ref.id, m]));
   const skipped: Record<string, string> = {};
 
@@ -30,9 +28,9 @@ export function orderModules(
   }
 
   const pending = [...byId.values()];
-  const order: AnyModule[] = [];
+  const order: AnyModuleDefinition[] = [];
   const placed = new Set<string>();
-  const ready = (module: AnyModule) =>
+  const ready = (module: AnyModuleDefinition) =>
     [...(module.requires ?? []), ...(module.after ?? [])].every(
       (id) => placed.has(id) || !byId.has(id),
     );
