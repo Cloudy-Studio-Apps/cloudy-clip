@@ -1,3 +1,6 @@
 dist
 src-tauri
 pnpm-lock.yaml
+.superpowers
+.mcp.json
+.claude

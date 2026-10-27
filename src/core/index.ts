@@ -32,6 +32,8 @@ export type {
   ModuleRegistry,
   ModuleStatus,
 } from "./module/module.types";
+export { createPointRegistry, definePoint } from "./module/points";
+export type { Point, PointOptions, PointReader, PointRegistry } from "./module/points.types";
 
 // MCP
 export { commandTool, defineMcpTool, errorResult, textResult } from "./mcp/define-mcp-tool";

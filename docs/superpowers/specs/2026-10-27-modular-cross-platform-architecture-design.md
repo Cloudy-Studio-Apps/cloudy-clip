@@ -76,15 +76,15 @@ features. v1 behavior stays the same at the end, except where noted.
 
 ## Decisions made with the user
 
-| Decision | Choice |
-| --- | --- |
-| Conversion | Inside Cloudy Clip (proxies), not a bridge to the separate mediaconverter app. |
-| Mobile UI | Same editor, responsive layout; tools move to the bottom on narrow widths. |
-| MCP on mobile | Disabled. |
-| Non-path media | An "open" interface; internals fetch content per platform. |
-| Preview v1 | HTML media decoding (option 1) behind `FrameSource`, so a WebCodecs/native source can replace it without touching other code. |
+| Decision               | Choice                                                                                                                                                                     |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Conversion             | Inside Cloudy Clip (proxies), not a bridge to the separate mediaconverter app.                                                                                             |
+| Mobile UI              | Same editor, responsive layout; tools move to the bottom on narrow widths.                                                                                                 |
+| MCP on mobile          | Disabled.                                                                                                                                                                  |
+| Non-path media         | An "open" interface; internals fetch content per platform.                                                                                                                 |
+| Preview v1             | HTML media decoding (option 1) behind `FrameSource`, so a WebCodecs/native source can replace it without touching other code.                                              |
 | Platforms verified now | **Linux and Windows.** The user and friends test on both; the user has a Windows machine. macOS must not be blocked by the design but is not built or tested in this work. |
-| Baseline | The proxy and media-server work is committed (`49a55ab`); stages start from it. |
+| Baseline               | The proxy and media-server work is committed (`49a55ab`); stages start from it.                                                                                            |
 
 ## Target structure
 
@@ -132,16 +132,16 @@ the same API a plugin would use (commands, MCP tools, point contributions, expor
 infrastructure when it must exist before any module loads, when every module depends on it
 unconditionally, or when it contributes nothing.
 
-| Not a module | Why | Where |
-| --- | --- | --- |
-| Kernel: command bus, history, patchable store, module host, points, MCP registry and bridge | Modules are loaded *by* it | `core/` |
-| Platform implementations | Chosen before modules load and handed to them through `ctx.platform`; a module must not be able to swap the OS out from under the others | `src/platform/` |
-| App shell: bootstrap, layout host, shortcuts host, providers, error boundary | Reads points; owns nothing a user edits | `src/app/` |
-| Pure helpers: time/timecode, ids, geometry, `Result` | Stateless functions; a module would only add ceremony | `core/` (or a module's private files) |
-| Design system / UI kit (later) | Shared building blocks with no behavior of their own | `src/shared/ui/` |
-| A module's internals: gestures, ruler, playhead, placement logic | Parts of one feature, not separate capabilities | inside that module |
-| Decoders (`FrameSource`s) and compositors | Interchangeable implementations of one contract, picked by `capabilities`. A `frameSources` point owned by `preview` lets a plugin add one, but each is not a module | `preview/decode/`, `preview/render/` |
-| Rust code | Tauri commands are registered per native folder, which mirrors the modules but is not the TS module system | `src-tauri/src/<module>/` |
+| Not a module                                                                                | Why                                                                                                                                                                  | Where                                 |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Kernel: command bus, history, patchable store, module host, points, MCP registry and bridge | Modules are loaded _by_ it                                                                                                                                           | `core/`                               |
+| Platform implementations                                                                    | Chosen before modules load and handed to them through `ctx.platform`; a module must not be able to swap the OS out from under the others                             | `src/platform/`                       |
+| App shell: bootstrap, layout host, shortcuts host, providers, error boundary                | Reads points; owns nothing a user edits                                                                                                                              | `src/app/`                            |
+| Pure helpers: time/timecode, ids, geometry, `Result`                                        | Stateless functions; a module would only add ceremony                                                                                                                | `core/` (or a module's private files) |
+| Design system / UI kit (later)                                                              | Shared building blocks with no behavior of their own                                                                                                                 | `src/shared/ui/`                      |
+| A module's internals: gestures, ruler, playhead, placement logic                            | Parts of one feature, not separate capabilities                                                                                                                      | inside that module                    |
+| Decoders (`FrameSource`s) and compositors                                                   | Interchangeable implementations of one contract, picked by `capabilities`. A `frameSources` point owned by `preview` lets a plugin add one, but each is not a module | `preview/decode/`, `preview/render/`  |
+| Rust code                                                                                   | Tauri commands are registered per native folder, which mirrors the modules but is not the TS module system                                                           | `src-tauri/src/<module>/`             |
 
 **Is a module:** `project`, `media`, `timeline`, `preview` (core), and every clip kind (`video`,
 `audio`, later `text`, `image`), effect, transition, template pack and panel (features). Don't
@@ -178,14 +178,14 @@ defineModule({
 
 ### 2. Points the app shell reads
 
-| Point | Owner | Holds |
-| --- | --- | --- |
-| `layoutPanels` | app (core/ui) | panel id, slot (`side` / `main` / `bottom` / `tools`), order, component, narrow-layout behavior |
-| `keybindings` | core | command id → key combo; the shortcuts host reads it (replaces hard-coded `app/shortcuts.ts`) |
-| `toolbarItems` | timeline | buttons in the timeline toolbar |
-| `contextMenu` | timeline / media | entries by target (clip, track, media item) |
-| `clipKinds` | project | `ClipKind` implementations, keyed by kind id |
-| `importers` | media | which files a media kind accepts (replaces `ACCEPTED_EXTENSIONS` + Rust `kind_of` duplication) |
+| Point          | Owner            | Holds                                                                                           |
+| -------------- | ---------------- | ----------------------------------------------------------------------------------------------- |
+| `layoutPanels` | app (core/ui)    | panel id, slot (`side` / `main` / `bottom` / `tools`), order, component, narrow-layout behavior |
+| `keybindings`  | core             | command id → key combo; the shortcuts host reads it (replaces hard-coded `app/shortcuts.ts`)    |
+| `toolbarItems` | timeline         | buttons in the timeline toolbar                                                                 |
+| `contextMenu`  | timeline / media | entries by target (clip, track, media item)                                                     |
+| `clipKinds`    | project          | `ClipKind` implementations, keyed by kind id                                                    |
+| `importers`    | media            | which files a media kind accepts (replaces `ACCEPTED_EXTENSIONS` + Rust `kind_of` duplication)  |
 
 `App.tsx` renders the slots from `layoutPanels`; it imports no module.
 
@@ -212,14 +212,14 @@ Commands (`timeline.addClip`, split, trim, move) stay kind-agnostic: they work o
 Interfaces in `core/platform`, implementations in `src/platform/tauri`, chosen once in
 `bootstrap.ts` and handed to modules through `ModuleContext.platform`.
 
-| Interface | Does | Desktop (now) | Android (later) |
-| --- | --- | --- | --- |
-| `Platform.capabilities` | what this device supports | `{ mcp: true, transcoder: "ffmpeg-system", decoders: [...] , os }` | `{ mcp: false, ... }` |
-| `MediaSourceProvider` | `pick()`, `open(ref)` → playable URL + metadata, `release(ref)` | file path → loopback server URL | `content://` → stream with persisted permission |
-| `Transcoder` | proxy decision + proxy jobs + progress | Rust FFmpeg pipeline (today's `proxy.rs`) | MediaCodec or bundled library |
-| `FileDrop` | OS file drops | Tauri webview drag-drop | Android share/intent |
-| `NativeEvents` / `NativeCommands` | thin invoke/listen wrapper | `@tauri-apps/api` | same (Tauri mobile) |
-| `McpTransport` | as today | Tauri transport (moved here from core) | not started |
+| Interface                         | Does                                                            | Desktop (now)                                                      | Android (later)                                 |
+| --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------- |
+| `Platform.capabilities`           | what this device supports                                       | `{ mcp: true, transcoder: "ffmpeg-system", decoders: [...] , os }` | `{ mcp: false, ... }`                           |
+| `MediaSourceProvider`             | `pick()`, `open(ref)` → playable URL + metadata, `release(ref)` | file path → loopback server URL                                    | `content://` → stream with persisted permission |
+| `Transcoder`                      | proxy decision + proxy jobs + progress                          | Rust FFmpeg pipeline (today's `proxy.rs`)                          | MediaCodec or bundled library                   |
+| `FileDrop`                        | OS file drops                                                   | Tauri webview drag-drop                                            | Android share/intent                            |
+| `NativeEvents` / `NativeCommands` | thin invoke/listen wrapper                                      | `@tauri-apps/api`                                                  | same (Tauri mobile)                             |
+| `McpTransport`                    | as today                                                        | Tauri transport (moved here from core)                             | not started                                     |
 
 `decoders` in the capabilities report is what decides the proxy rule per platform, instead of the
 Linux-shaped hard-coded list in `proxy.rs`: Rust reports which codecs the current webview plays
@@ -272,7 +272,7 @@ imports `@tauri-apps/*`; only `preview/decode/` references `HTMLMediaElement`.
 1. **Module API and points.** `defineModule`, `definePoint`, host with sorting, `exports`,
    `require`. Existing modules migrate to it with no behavior change. Layout and keybindings
    become points; `App.tsx` stops importing modules.
-1b. **Per-kernel state.** Stores and services created per kernel; `exports(ctx)` factories;
+   1b. **Per-kernel state.** Stores and services created per kernel; `exports(ctx)` factories;
    `useModule(id)`; module singletons removed.
 2. **Platform layer.** Interfaces, `src/platform/tauri`, capabilities report (Rust + TS), MCP
    started only when `capabilities.mcp`. All `@tauri-apps` imports move.

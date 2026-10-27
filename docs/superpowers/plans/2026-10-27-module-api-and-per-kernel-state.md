@@ -57,26 +57,26 @@ arrays), so the bus can list them before any `setup` runs.
 
 ## File map
 
-| File | Responsibility |
-| --- | --- |
-| `src/core/module/points.ts` (create) | `definePoint`, `createPointRegistry` |
-| `src/core/module/points.types.ts` (create) | `Point<T>`, `PointOptions<T>`, `PointRegistry`, `PointReader` |
-| `src/core/module/define-module.ts` (create) | `defineModuleRef`, `defineModule` |
-| `src/core/module/module.types.ts` (modify) | `ModuleRef`, `ModuleDefinition`, `ModuleContext`, `ModuleSetup`, `ModuleTier`, `ModuleStatus`, `ModuleRegistry` |
-| `src/core/module/module-order.ts` (create) | `orderModules`: topological sort + cycle detection |
-| `src/core/module/module-registry.ts` (rewrite) | loading, skipping dependents, `require`, contributions, disposal |
-| `src/core/command/command.types.ts`, `command-bus.ts` (modify) | `CommandContext.require` |
-| `src/core/mcp/mcp.types.ts`, `mcp-bridge.ts` (modify) | `McpToolContext.require` |
-| `src/core/history/history.module.ts` (create) | history as a `defineModule` (moves out of `kernel.ts`) |
-| `src/core/kernel.ts` (modify) | owns the point registry; wires `require` into the bus and the MCP bridge |
-| `src/core/react/kernel-context.tsx` (modify) | `useModule(ref)`, `usePoint(point)` |
-| `src/core/shell/shell.points.ts` (create) | `layoutPanels`, `keybindings` points; `matchKeybinding` |
-| `src/core/shell/shell.types.ts` (create) | `LayoutPanel`, `LayoutSlot`, `Keybinding`, `KeybindingAction`, `KeyPress` |
-| `src/app/LayoutHost.tsx` (create) | renders panels by slot (today's grid) |
-| `src/app/keybinding-host.ts` (create) | `installKeybindings(kernel)`; replaces `src/app/shortcuts.ts` (deleted) |
-| `src/modules/<m>/<m>.ref.ts` (create, ×4) | `projectRef`, `mediaRef`, `timelineRef`, `previewRef` |
-| `src/modules/<m>/<m>.module.ts` (create, ×4) | `defineModule` wiring only |
-| `src/modules/<m>/components/` → `src/modules/<m>/ui/` (move, ×3) | React only, with `ui/index.ts` |
+| File                                                             | Responsibility                                                                                                  |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `src/core/module/points.ts` (create)                             | `definePoint`, `createPointRegistry`                                                                            |
+| `src/core/module/points.types.ts` (create)                       | `Point<T>`, `PointOptions<T>`, `PointRegistry`, `PointReader`                                                   |
+| `src/core/module/define-module.ts` (create)                      | `defineModuleRef`, `defineModule`                                                                               |
+| `src/core/module/module.types.ts` (modify)                       | `ModuleRef`, `ModuleDefinition`, `ModuleContext`, `ModuleSetup`, `ModuleTier`, `ModuleStatus`, `ModuleRegistry` |
+| `src/core/module/module-order.ts` (create)                       | `orderModules`: topological sort + cycle detection                                                              |
+| `src/core/module/module-registry.ts` (rewrite)                   | loading, skipping dependents, `require`, contributions, disposal                                                |
+| `src/core/command/command.types.ts`, `command-bus.ts` (modify)   | `CommandContext.require`                                                                                        |
+| `src/core/mcp/mcp.types.ts`, `mcp-bridge.ts` (modify)            | `McpToolContext.require`                                                                                        |
+| `src/core/history/history.module.ts` (create)                    | history as a `defineModule` (moves out of `kernel.ts`)                                                          |
+| `src/core/kernel.ts` (modify)                                    | owns the point registry; wires `require` into the bus and the MCP bridge                                        |
+| `src/core/react/kernel-context.tsx` (modify)                     | `useModule(ref)`, `usePoint(point)`                                                                             |
+| `src/core/shell/shell.points.ts` (create)                        | `layoutPanels`, `keybindings` points; `matchKeybinding`                                                         |
+| `src/core/shell/shell.types.ts` (create)                         | `LayoutPanel`, `LayoutSlot`, `Keybinding`, `KeybindingAction`, `KeyPress`                                       |
+| `src/app/LayoutHost.tsx` (create)                                | renders panels by slot (today's grid)                                                                           |
+| `src/app/keybinding-host.ts` (create)                            | `installKeybindings(kernel)`; replaces `src/app/shortcuts.ts` (deleted)                                         |
+| `src/modules/<m>/<m>.ref.ts` (create, ×4)                        | `projectRef`, `mediaRef`, `timelineRef`, `previewRef`                                                           |
+| `src/modules/<m>/<m>.module.ts` (create, ×4)                     | `defineModule` wiring only                                                                                      |
+| `src/modules/<m>/components/` → `src/modules/<m>/ui/` (move, ×3) | React only, with `ui/index.ts`                                                                                  |
 
 ---
 
@@ -85,11 +85,13 @@ arrays), so the bus can list them before any `setup` runs.
 ### Task 1: Extension points
 
 **Files:**
+
 - Create: `src/core/module/points.ts`, `src/core/module/points.types.ts`
 - Test: `src/core/module/points.test.ts`
 - Modify: `src/core/index.ts` (export `definePoint`, the types)
 
 **Interfaces:**
+
 - Produces:
   - `definePoint<T>(id: string, options?: PointOptions<T>): Point<T>`, where `PointOptions<T> = { keyOf?: (item: T) => string }` and `Point<T>` is `{ readonly id: string; readonly keyOf?: (item: T) => string }` plus a phantom `T`.
   - `createPointRegistry(): PointRegistry`.
@@ -115,23 +117,32 @@ arrays), so the bus can list them before any `setup` runs.
 ### Task 2: Module refs, definition and host
 
 **Files:**
+
 - Create: `src/core/module/define-module.ts`, `src/core/module/module-order.ts`
 - Modify: `src/core/module/module.types.ts`
 - Rewrite: `src/core/module/module-registry.ts`
 - Test: `src/core/module/module-order.test.ts`, `src/core/module/module-registry.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1's `PointRegistry`.
 - Produces (in `module.types.ts` unless noted):
+
   ```ts
   type ModuleTier = "core" | "feature";
   type ModuleStatus = "active" | "failed" | "skipped";
-  interface ModuleRef<Api> { readonly id: string; readonly __api?: Api } // phantom
-  interface ModuleSetup<Api> { api: Api; dispose?: Disposer }
+  interface ModuleRef<Api> {
+    readonly id: string;
+    readonly __api?: Api;
+  } // phantom
+  interface ModuleSetup<Api> {
+    api: Api;
+    dispose?: Disposer;
+  }
   interface ModuleDefinition<Api = void> {
     readonly ref: ModuleRef<Api>;
     readonly name: string;
-    readonly tier?: ModuleTier;          // built-ins set it; plugins leave it unset
+    readonly tier?: ModuleTier; // built-ins set it; plugins leave it unset
     readonly requires?: readonly string[];
     readonly uses?: readonly string[];
     readonly after?: readonly string[];
@@ -140,15 +151,18 @@ arrays), so the bus can list them before any `setup` runs.
     setup?(ctx: ModuleContext): ModuleSetup<Api> | Promise<ModuleSetup<Api>>;
   }
   interface ModuleContext {
-    readonly bus: CommandBus; readonly history: History; readonly mcp: McpRegistry;
-    readonly log: Logger; readonly points: PointReader;
+    readonly bus: CommandBus;
+    readonly history: History;
+    readonly mcp: McpRegistry;
+    readonly log: Logger;
+    readonly points: PointReader;
     require<A>(ref: ModuleRef<A>): A;
     contribute<T>(point: Point<T>, ...items: T[]): void;
   }
   interface ModuleRegistry {
     loadAll(modules: readonly ModuleDefinition<unknown>[]): Promise<Record<string, ModuleStatus>>;
     load(module: ModuleDefinition<unknown>): Promise<ModuleStatus>; // = loadAll([module])
-    require<A>(ref: ModuleRef<A>): A;   // unrestricted; throws if not active
+    require<A>(ref: ModuleRef<A>): A; // unrestricted; throws if not active
     status(id: string): ModuleStatus | undefined;
     unloadAll(): void;
   }
@@ -169,7 +183,7 @@ arrays), so the bus can list them before any `setup` runs.
   - `"setup api is returned by require"`: `require(ref).value === 42`.
   - `"ctx.require allows core modules, requires and uses, and itself"`: a feature module may require a `tier: "core"` module without listing it.
   - `"ctx.require rejects an undeclared feature and names both modules"`: the throw is caught, so the module status is `"failed"`.
-  - `"a failing setup removes its commands, tools and contributions"`: setup calls `ctx.contribute(panelPoint, x)`, then throws. Afterwards `points.get(panelPoint)` is `[]`, `bus.get(id)` is `undefined` and the status is `"failed"`. *(Review Focus 2)*
+  - `"a failing setup removes its commands, tools and contributions"`: setup calls `ctx.contribute(panelPoint, x)`, then throws. Afterwards `points.get(panelPoint)` is `[]`, `bus.get(id)` is `undefined` and the status is `"failed"`. _(Review Focus 2)_
   - `"modules requiring a failed module are skipped"`: status `"skipped"`, and its setup is never called.
   - `"commands must be namespaced by the module id"`: keeps the current rule and message.
   - `"unloadAll disposes newest first and removes contributions"`: records the dispose order.
@@ -181,7 +195,7 @@ arrays), so the bus can list them before any `setup` runs.
   1. register commands and tools (keep today's namespacing checks),
   2. run `setup` with a context whose `contribute` calls `points.add(point, id, items)`,
   3. collect every disposer (commands, tools, contributions, `dispose`) and dispose them in reverse on failure or unload.
-  
+
   `ctx.require` allows the target when it is the module itself, `tier === "core"`, or in `requires`/`uses`. Otherwise it throws `Module "<self>" may not require "<target>": add it to requires or uses`.
 
 - [ ] **Step 5: Run** both files. Expected: PASS. Run `pnpm vitest run src/core` too. `kernel.test.ts` will fail until Task 3. That is expected; note it.
@@ -191,11 +205,13 @@ arrays), so the bus can list them before any `setup` runs.
 ### Task 3: Kernel, command/tool context and React hooks
 
 **Files:**
+
 - Create: `src/core/history/history.module.ts`
 - Modify: `src/core/kernel.ts`, `src/core/command/command.types.ts`, `src/core/command/command-bus.ts`, `src/core/mcp/mcp.types.ts`, `src/core/mcp/mcp-bridge.ts`, `src/core/react/kernel-context.tsx`, `src/core/index.ts`, `src/core/kernel.test.ts`, `src/core/README.md`
 - Test: `src/core/kernel.test.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 1–2.
 - Produces:
   - `Kernel` gains `readonly points: PointReader`.
@@ -219,28 +235,48 @@ arrays), so the bus can list them before any `setup` runs.
 ### Task 4: Shell points and hosts
 
 **Files:**
+
 - Create: `src/core/shell/shell.points.ts`, `src/core/shell/shell.types.ts`, `src/app/LayoutHost.tsx`, `src/app/keybinding-host.ts`
 - Delete: `src/app/shortcuts.ts`
 - Modify: `src/app/App.tsx`, `src/core/index.ts`, `src/core/history/history.module.ts`
 - Test: `src/core/shell/shell.points.test.ts`
 
 **Interfaces:**
+
 - Produces:
+
   ```ts
   type LayoutSlot = "side" | "main" | "bottom";
-  interface LayoutPanel { id: string; title: string; slot: LayoutSlot; order?: number; component: ComponentType }
-  interface KeyPress { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }
-  interface KeybindingAction { command: string; input: unknown }
+  interface LayoutPanel {
+    id: string;
+    title: string;
+    slot: LayoutSlot;
+    order?: number;
+    component: ComponentType;
+  }
+  interface KeyPress {
+    key: string;
+    ctrlKey: boolean;
+    metaKey: boolean;
+    shiftKey: boolean;
+  }
+  interface KeybindingAction {
+    command: string;
+    input: unknown;
+  }
   interface Keybinding {
-    id: string;              // "<module>.<name>", the key of the point
-    key: string;             // KeyboardEvent.key, lowercased
-    mod?: boolean;           // Ctrl on Linux/Windows, Cmd on macOS
+    id: string; // "<module>.<name>", the key of the point
+    key: string; // KeyboardEvent.key, lowercased
+    mod?: boolean; // Ctrl on Linux/Windows, Cmd on macOS
     shift?: boolean;
     resolve(): KeybindingAction | null; // built at press time; null ignores the press
   }
-  const layoutPanels: Point<LayoutPanel>;  // keyOf: id
-  const keybindings: Point<Keybinding>;    // keyOf: id
-  function matchKeybinding(bindings: readonly Keybinding[], press: KeyPress): Keybinding | undefined;
+  const layoutPanels: Point<LayoutPanel>; // keyOf: id
+  const keybindings: Point<Keybinding>; // keyOf: id
+  function matchKeybinding(
+    bindings: readonly Keybinding[],
+    press: KeyPress,
+  ): Keybinding | undefined;
   ```
   - `installKeybindings(kernel: Kernel): () => void` behaves like today's `installShortcuts`: it ignores repeats and typing in inputs, calls `preventDefault` only when an action resolves, and runs `kernel.bus.execute(action.command, action.input)`.
   - `LayoutHost` renders today's grid exactly, filling `side`, `main` and `bottom` with `usePoint(layoutPanels)` sorted by `order`. Each panel sits inside `<ErrorBoundary name={panel.title}>`.
@@ -260,12 +296,14 @@ arrays), so the bus can list them before any `setup` runs.
 ### Task 5: Move the four modules onto the new API
 
 **Files:**
+
 - Create per module `<m>` in {project, media, timeline, preview}: `<m>.ref.ts`, `<m>.module.ts`
 - Move: `src/modules/{media,timeline,preview}/components/` → `ui/`, each with a `ui/index.ts` exporting its panels and public components
 - Modify: each module's `index.ts`, `README.md`; `src/app/bootstrap.ts`; ESLint (`eslint.config.js`) to also forbid `@/modules/<m>/ui/...` deep imports (the existing regex already does; confirm)
 - Test: existing tests keep passing
 
 **Interfaces:**
+
 - Consumes: Tasks 1–4.
 - Produces:
   - `projectRef: ModuleRef<void>`, `mediaRef: ModuleRef<void>`, `timelineRef: ModuleRef<void>`, `previewRef: ModuleRef<void>`. The `void` APIs become real types in Tasks 6–9.
@@ -290,6 +328,7 @@ arrays), so the bus can list them before any `setup` runs.
 ## Stage 1b: per-kernel state (leaves first, `project` last)
 
 Each task below follows the same steps:
+
 1. Create the stores and services inside `setup` and return them as the module's `api`.
 2. Make commands and tools use `ctx.require(<ref>)`.
 3. Make UI components use `useModule(<ref>)` with `useStore(api.someStore, selector)`.
@@ -303,14 +342,17 @@ Each task below follows the same steps:
 **Test:** `src/modules/timeline/timeline.view.test.ts`
 
 **Interfaces:**
+
 - Produces: `TimelineApi`, defined in `timeline.types.ts`:
+
   ```ts
   interface TimelineApi {
     readonly view: StoreApi<TimelineViewState>;
-    setZoom(pxPerSecond: number): void;           // clamped to [MIN_PX_PER_SECOND, MAX_PX_PER_SECOND] = [2, 400]
+    setZoom(pxPerSecond: number): void; // clamped to [MIN_PX_PER_SECOND, MAX_PX_PER_SECOND] = [2, 400]
     selectClip(id: ClipId | null, additive?: boolean): void;
   }
   ```
+
   `timelineRef: ModuleRef<TimelineApi>`. `startClipGesture` options gain `view: StoreApi<TimelineViewState>`. Today's selection-pruning subscription moves into `setup`. The timeline keybindings read `api.view` through the closure.
 
 - [ ] **Step 1: Write the failing tests** in `timeline.view.test.ts`, covering `createTimelineView()`:
@@ -325,8 +367,10 @@ Each task below follows the same steps:
 **Test:** `src/modules/preview/preview.controller.test.ts`
 
 **Interfaces:**
+
 - Consumes: `projectStore` and media's `mediaUrl`/`mediaProbeStore` (still singletons; Tasks 8–9 replace them through `deps`).
 - Produces:
+
   ```ts
   interface PreviewControllerDeps {
     clock: PlaybackClock;
@@ -334,7 +378,7 @@ Each task below follows the same steps:
     subscribeProject(listener: () => void): () => void;
     subscribeMedia(listener: () => void): () => void;
     createEngine(canvas: HTMLCanvasElement, onFrameReady: () => void): PreviewEngine;
-    requestFrame(cb: () => void): void;   // requestAnimationFrame in the app, a manual queue in tests
+    requestFrame(cb: () => void): void; // requestAnimationFrame in the app, a manual queue in tests
   }
   interface PreviewApi {
     readonly playback: PlaybackClock;
@@ -344,12 +388,13 @@ Each task below follows the same steps:
   }
   function createPreviewController(deps: PreviewControllerDeps): PreviewApi & { dispose(): void };
   ```
+
   `previewRef: ModuleRef<PreviewApi>`. Preview commands and tools use `ctx.require(previewRef).playback`. The timeline reads `useModule(previewRef).playback`, and `startClipGesture` takes `playback` as an option.
 
 - [ ] **Step 1: Write the failing tests**, using a fake engine (it counts `render` and `dispose` calls and has a settable `isSettled`) and a fake clock (`createPlaybackClock` with a manual `requestFrame`):
-  - `"attach, detach, attach leaves one live engine"`: the first engine's `dispose` is called, the second isn't, and one project change triggers renders only on the second. *(Review Focus 1)*
+  - `"attach, detach, attach leaves one live engine"`: the first engine's `dispose` is called, the second isn't, and one project change triggers renders only on the second. _(Review Focus 1)_
   - `"retries while unsettled when paused, at most 180 times"`.
-  - `"dispose pauses the clock and drops every subscription"`: after `dispose()`, `clock.isPlaying()` is false, and project and media notifications cause no render. *(Review Focus 5)*
+  - `"dispose pauses the clock and drops every subscription"`: after `dispose()`, `clock.isPlaying()` is false, and project and media notifications cause no render. _(Review Focus 5)_
   - `"captureFrame rejects when no canvas is attached"` with `"The preview is not visible"`.
 - [ ] **Step 2: Run** it. Expected: FAIL. **Step 3: Implement**, wiring the controller in `preview.module.ts`'s `setup` and calling `dispose` from the module's `dispose`. **Step 4: Run** it plus the full suite. Expected: PASS. **Step 5: Check by hand** (play, scrub, capture a frame over MCP, and toggle StrictMode reloads with HMR), then commit: `refactor(preview): clock and controller per kernel`.
 
@@ -359,6 +404,7 @@ Each task below follows the same steps:
 **Test:** `src/modules/media/media.state.test.ts`
 
 **Interfaces:**
+
 - Produces:
   ```ts
   interface MediaApi {
@@ -385,11 +431,12 @@ Each task below follows the same steps:
 **Test:** `src/modules/project/project.kernel.test.ts`
 
 **Interfaces:**
+
 - Produces: `interface ProjectApi { readonly store: PatchableStore<ProjectState> }` and `projectRef: ModuleRef<ProjectApi>`. Commands use `ctx.mutate(ctx.require(projectRef).store, …)`. Preview's deps `getProject`/`subscribeProject` read it. Tests seed state without a command: `project.module.ts` exports `createProjectModule(initial?: ProjectState): ModuleDefinition<ProjectApi>`, with `projectModule = createProjectModule()` for the app, and tests pass a prepared `ProjectState`. (`reset` is on the concrete store only, not on `PatchableStore`, so seeding happens at creation.)
 
 - [ ] **Step 1: Write the failing tests** in `project.kernel.test.ts`:
-  - `"two kernels have independent projects"`: `project.setFormat` with `16:9` on kernel A leaves kernel B at 9:16 (1080×1920). *(Review Focus 4)*
-  - `"undo restores an agent's edit on the kernel's own project"`: run `project.setFormat` with origin `"agent"`, then `history.undo`, and the format is back to 1080×1920. *(Review Focus 3)*
+  - `"two kernels have independent projects"`: `project.setFormat` with `16:9` on kernel A leaves kernel B at 9:16 (1080×1920). _(Review Focus 4)_
+  - `"undo restores an agent's edit on the kernel's own project"`: run `project.setFormat` with origin `"agent"`, then `history.undo`, and the format is back to 1080×1920. _(Review Focus 3)_
 - [ ] **Step 2: Run** it. Expected: FAIL. **Step 3: Implement**, then migrate every remaining user. **Step 4: Run** `pnpm typecheck && pnpm lint && pnpm test`. Expected: PASS. Also run `grep -rnE "^export const \w+(Store|playback)\b" src/modules`, which must return nothing.
 - [ ] **Step 5: Check the whole app by hand** (Task 5 Step 3's list plus MCP `timeline_add_clip`, `history_undo` and `preview_capture_frame`), then commit: `refactor(project): document store per kernel`.
 
