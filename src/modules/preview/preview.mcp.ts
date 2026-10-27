@@ -1,20 +1,21 @@
 import { z } from "zod";
 import { commandTool, defineMcpTool, errorResult, toAppError } from "@/core";
 import { pause, play, seek } from "./preview.commands";
-import { capturePreviewFrame, playback } from "./preview.controller";
+import { previewRef } from "./preview.ref";
 
 const captureFrame = defineMcpTool({
   name: "preview_capture_frame",
   description:
     "Returns a PNG of the preview, so you can see the result. Pass `time` (microseconds) to look at a specific moment (playback pauses); otherwise the current playhead is used.",
   input: z.object({ time: z.number().int().min(0).optional().describe("Microseconds") }),
-  async handler({ time }) {
+  async handler({ time }, ctx) {
+    const preview = ctx.require(previewRef);
     try {
-      const data = await capturePreviewFrame(time);
+      const data = await preview.captureFrame(time);
       return {
         content: [
           { type: "image", data, mimeType: "image/png" },
-          { type: "text", text: JSON.stringify({ time: playback.getTime() }) },
+          { type: "text", text: JSON.stringify({ time: preview.playback.getTime() }) },
         ],
       };
     } catch (error) {

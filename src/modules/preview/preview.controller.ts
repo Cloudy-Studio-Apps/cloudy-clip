@@ -1,113 +1,113 @@
 import { createLogger, type Micros } from "@/core";
-import { mediaProbeStore, mediaUrl } from "@/modules/media";
-import { projectDuration, projectStore } from "@/modules/project";
-import { HtmlMediaEngine } from "./engine/html-media-engine";
-import { createPlaybackClock } from "./playback-clock";
-import type { PreviewEngine } from "./preview.types";
+import type { PreviewController, PreviewControllerDeps, PreviewEngine } from "./preview.types";
 
 const log = createLogger("preview");
 
-let duration: Micros = projectDuration(projectStore.getState());
-projectStore.subscribe((state, previous) => {
-  if (state.clips !== previous.clips) duration = projectDuration(state);
-});
-
-/** The app-wide playback clock. The timeline playhead and the preview both follow it. */
-export const playback = createPlaybackClock(() => duration);
-
-let engine: PreviewEngine | null = null;
-let redrawQueued = false;
 /** While paused, frames still decoding are retried for at most this many animation frames. */
 const MAX_SETTLE_RETRIES = 180;
-let settleRetries = 0;
 
-function renderNow(): void {
-  redrawQueued = false;
-  if (!engine) return;
-  try {
-    engine.render(projectStore.getState(), playback.getTime(), playback.isPlaying());
-  } catch (error) {
-    log.error("Render failed", error);
+/**
+ * Creates the preview controller of one kernel. Rendering follows the clock while playing and
+ * redraws on demand while paused (no idle CPU use).
+ */
+export function createPreviewController(deps: PreviewControllerDeps): PreviewController {
+  const { clock } = deps;
+  let engine: PreviewEngine | null = null;
+  let detachCurrent: (() => void) | null = null;
+  let redrawQueued = false;
+  let settleRetries = 0;
+
+  function renderNow(): void {
+    redrawQueued = false;
+    if (!engine) return;
+    try {
+      engine.render(deps.getProject(), clock.getTime(), clock.isPlaying());
+    } catch (error) {
+      log.error("Render failed", error);
+    }
+    // A layer is still decoding: try again next frame (bounded, so a stuck file can't spin).
+    if (!clock.isPlaying() && !engine.isSettled() && settleRetries < MAX_SETTLE_RETRIES) {
+      settleRetries++;
+      scheduleRedraw();
+    }
   }
-  // A layer is still decoding: try again next frame (bounded, so a stuck file can't spin).
-  if (!playback.isPlaying() && !engine.isSettled() && settleRetries < MAX_SETTLE_RETRIES) {
-    settleRetries++;
+
+  function scheduleRedraw(): void {
+    if (redrawQueued || clock.isPlaying()) return;
+    redrawQueued = true;
+    deps.requestFrame(renderNow);
+  }
+
+  /** Schedules one redraw on the next frame (coalesces bursts of events). */
+  function requestRedraw(): void {
+    settleRetries = 0;
     scheduleRedraw();
   }
-}
 
-function scheduleRedraw(): void {
-  if (redrawQueued || playback.isPlaying()) return;
-  redrawQueued = true;
-  requestAnimationFrame(renderNow);
-}
+  function attachCanvas(canvas: HTMLCanvasElement): () => void {
+    detachCurrent?.();
+    const current = deps.createEngine(canvas, requestRedraw);
+    engine = current;
 
-/** Schedules one redraw on the next frame (coalesces bursts of events). */
-function requestRedraw(): void {
-  settleRetries = 0;
-  scheduleRedraw();
-}
+    const offTime = clock.onTime(() => {
+      if (clock.isPlaying()) renderNow();
+      else requestRedraw();
+    });
+    const offPlaying = clock.onPlayingChange(() => {
+      if (!clock.isPlaying()) engine?.pauseAll();
+      requestRedraw();
+    });
+    // Keep the playhead inside the timeline when clips are removed or trimmed.
+    const offProject = deps.subscribeProject(() => {
+      const duration = deps.getDuration();
+      if (clock.getTime() > duration) clock.seek(duration);
+      requestRedraw();
+    });
+    // A proxy becoming ready changes a file's URL; redraw so the engine reloads it.
+    const offMedia = deps.subscribeMedia(requestRedraw);
 
-/**
- * Attaches the preview canvas. Rendering follows the clock while playing and redraws on demand
- * while paused (no idle CPU use). Returns a detach function.
- */
-export function attachPreviewCanvas(canvas: HTMLCanvasElement): () => void {
-  engine?.dispose();
-  const current = new HtmlMediaEngine(canvas, { mediaUrl, onFrameReady: requestRedraw });
-  engine = current;
-
-  const offTime = playback.onTime(() => {
-    if (playback.isPlaying()) renderNow();
-    else requestRedraw();
-  });
-  const offPlaying = playback.onPlayingChange(() => {
-    if (!playback.isPlaying()) engine?.pauseAll();
-    requestRedraw();
-  });
-  // Keep the playhead inside the timeline when clips are removed or trimmed.
-  const offProject = projectStore.subscribe(() => {
-    if (playback.getTime() > duration) playback.seek(duration);
-    requestRedraw();
-  });
-
-  // A proxy becoming ready changes a file's URL; redraw so the engine reloads it.
-  const offMedia = mediaProbeStore.subscribe(requestRedraw);
-
-  return () => {
-    offTime();
-    offPlaying();
-    offProject();
-    offMedia();
-    if (engine === current) engine = null;
-    current.dispose();
-  };
-}
-
-/** Redraws after the canvas was resized. */
-export function redrawPreview(): void {
-  requestRedraw();
-}
-
-/**
- * Captures the preview as a base64 PNG, optionally at a given time. Waits (up to 3 s) until
- * every visible layer has decoded its frame, so the image matches the timeline.
- */
-export async function capturePreviewFrame(time?: Micros): Promise<string> {
-  if (!engine) throw new Error("The preview is not visible");
-  if (time !== undefined) {
-    playback.pause();
-    playback.seek(time);
+    const detach = () => {
+      if (detachCurrent !== detach) return;
+      detachCurrent = null;
+      offTime();
+      offPlaying();
+      offProject();
+      offMedia();
+      if (engine === current) engine = null;
+      current.dispose();
+    };
+    detachCurrent = detach;
+    return detach;
   }
-  const deadline = performance.now() + 3000;
-  for (;;) {
+
+  async function captureFrame(time?: Micros): Promise<string> {
+    if (!engine) throw new Error("The preview is not visible");
+    if (time !== undefined) {
+      clock.pause();
+      clock.seek(time);
+    }
+    const deadline = performance.now() + 3000;
+    for (;;) {
+      renderNow();
+      if (!engine) throw new Error("The preview was closed");
+      if (engine.isSettled() || performance.now() > deadline) break;
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    // Let pending seeks land, then draw the final frame.
+    await new Promise<void>((resolve) => deps.requestFrame(resolve));
     renderNow();
     if (!engine) throw new Error("The preview was closed");
-    if (engine.isSettled() || performance.now() > deadline) break;
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    return engine.captureFrame();
   }
-  // Let pending seeks land, then draw the final frame.
-  await new Promise((resolve) => requestAnimationFrame(resolve));
-  renderNow();
-  return engine.captureFrame();
+
+  return {
+    playback: clock,
+    attachCanvas,
+    redraw: requestRedraw,
+    captureFrame,
+    dispose() {
+      clock.pause();
+      detachCurrent?.();
+    },
+  };
 }

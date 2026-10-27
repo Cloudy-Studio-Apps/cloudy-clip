@@ -2,7 +2,7 @@ import { memo, useEffect, useRef } from "react";
 import { useKernel, useModule, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { projectStore, type Clip, type Track } from "@/modules/project";
-import { playback } from "@/modules/preview";
+import { previewRef } from "@/modules/preview";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime } from "../logic/geometry";
 import { snapCandidates, snapTime } from "../logic/placement";
@@ -30,6 +30,7 @@ export const TrackLane = memo(function TrackLane({
   pxPerSecond,
   rootRef,
 }: TrackLaneProps) {
+  const { playback } = useModule(previewRef);
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
@@ -57,7 +58,7 @@ export const TrackLane = memo(function TrackLane({
     };
     lane.addEventListener(MEDIA_DROP, onDrop);
     return () => lane.removeEventListener(MEDIA_DROP, onDrop);
-  }, [bus, pxPerSecond, track.id, track.kind]);
+  }, [bus, playback, pxPerSecond, track.id, track.kind]);
 
   return (
     <div

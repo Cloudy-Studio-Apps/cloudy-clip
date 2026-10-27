@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { formatTimecode, MICROS_PER_SECOND, type Micros } from "@/core";
-import { playback } from "@/modules/preview";
+import { formatTimecode, MICROS_PER_SECOND, type Micros, useModule } from "@/core";
+import { previewRef } from "@/modules/preview";
 import { pxToTime, rulerStep, timeToPx } from "../logic/geometry";
 import { HEADER_WIDTH, RULER_HEIGHT } from "../timeline.layout";
 
@@ -14,6 +14,7 @@ interface RulerProps {
 
 /** Time ruler. Press and drag on it to scrub. Sticks to the top while scrolling. */
 export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: RulerProps) {
+  const { playback } = useModule(previewRef);
   const step = rulerStep(pxPerSecond);
   const stepMicros = step * MICROS_PER_SECOND;
   const ticks: Micros[] = [];

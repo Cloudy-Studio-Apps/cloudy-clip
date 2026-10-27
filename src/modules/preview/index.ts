@@ -3,9 +3,8 @@
  * @module preview
  */
 export { pause, play, seek, togglePlay } from "./preview.commands";
-export { capturePreviewFrame, playback } from "./preview.controller";
 export { HtmlMediaEngine } from "./engine/html-media-engine";
-export type { PlaybackClock, PreviewEngine, TimeListener } from "./preview.types";
+export type { PlaybackClock, PreviewApi, PreviewEngine, TimeListener } from "./preview.types";
 
 /** Module definition, loaded by the app shell. */
 export { previewModule } from "./preview.module";

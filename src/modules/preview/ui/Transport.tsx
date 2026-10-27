@@ -1,9 +1,9 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
-import { formatTimecode, useKernel } from "@/core";
+import { formatTimecode, useKernel, useModule } from "@/core";
 import { projectDuration, projectStore, setFormat, type FormatPreset } from "@/modules/project";
 import { togglePlay } from "../preview.commands";
-import { playback } from "../preview.controller";
+import { previewRef } from "../preview.ref";
 
 const PRESETS: FormatPreset[] = ["9:16", "16:9", "1:1"];
 
@@ -14,6 +14,7 @@ function presetOf(width: number, height: number): FormatPreset {
 
 /** Play/pause, timecode, and format picker. The timecode updates without React renders. */
 export function Transport() {
+  const { playback } = useModule(previewRef);
   const { bus } = useKernel();
   const playing = useSyncExternalStore(playback.onPlayingChange, playback.isPlaying);
   const duration = useStore(projectStore.api, projectDuration);
@@ -25,7 +26,7 @@ export function Transport() {
       playback.onTime((time) => {
         if (timeRef.current) timeRef.current.textContent = formatTimecode(time);
       }),
-    [],
+    [playback],
   );
 
   return (

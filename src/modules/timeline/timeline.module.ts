@@ -1,6 +1,6 @@
 import { defineModule, keybindings, layoutPanels } from "@/core";
 import { projectStore } from "@/modules/project";
-import { playback } from "@/modules/preview";
+import { previewRef } from "@/modules/preview";
 import { deleteClips, splitAt, timelineCommands } from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
 import { timelineRef } from "./timeline.ref";
@@ -39,7 +39,7 @@ export const timelineModule = defineModule({
           return {
             command: splitAt.id,
             input: {
-              at: playback.getTime(),
+              at: ctx.require(previewRef).playback.getTime(),
               clipIds: selection.length > 0 ? selection : undefined,
             },
           };

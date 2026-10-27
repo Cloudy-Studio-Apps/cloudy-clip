@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { projectStore } from "@/modules/project";
-import { attachPreviewCanvas, redrawPreview } from "../preview.controller";
+import { useModule } from "@/core";
+import { previewRef } from "../preview.ref";
 import { Transport } from "./Transport";
 
 /**
@@ -10,6 +11,7 @@ import { Transport } from "./Transport";
  * without wasting fill rate.
  */
 export function PreviewPanel() {
+  const preview = useModule(previewRef);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const format = useStore(projectStore.api, (s) => s.format);
@@ -17,8 +19,8 @@ export function PreviewPanel() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    return attachPreviewCanvas(canvas);
-  }, []);
+    return preview.attachCanvas(canvas);
+  }, [preview]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -36,13 +38,13 @@ export function PreviewPanel() {
       const ratio = Math.min(window.devicePixelRatio || 1, format.width / cssWidth);
       canvas.width = Math.round(cssWidth * Math.max(ratio, 1));
       canvas.height = Math.round(cssHeight * Math.max(ratio, 1));
-      redrawPreview();
+      preview.redraw();
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [format]);
+  }, [format, preview]);
 
   return (
     <section className="flex h-full flex-col">

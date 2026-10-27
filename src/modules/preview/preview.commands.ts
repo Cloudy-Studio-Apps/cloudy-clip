@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import { projectDuration, projectStore } from "@/modules/project";
-import { playback } from "./preview.controller";
+import { previewRef } from "./preview.ref";
 
 /** Starts playback from the playhead. */
 export const play = defineCommand({
@@ -10,7 +10,8 @@ export const play = defineCommand({
   description: "Starts playback from the playhead.",
   undoable: false,
   input: z.object({}),
-  run() {
+  run(ctx) {
+    const { playback } = ctx.require(previewRef);
     if (projectDuration(projectStore.getState()) === 0) {
       throw new CommandFailure("preview.empty", "The timeline is empty");
     }
@@ -26,7 +27,8 @@ export const pause = defineCommand({
   description: "Pauses playback. Returns the playhead time (microseconds).",
   undoable: false,
   input: z.object({}),
-  run() {
+  run(ctx) {
+    const { playback } = ctx.require(previewRef);
     playback.pause();
     return { time: playback.getTime() };
   },
@@ -39,7 +41,8 @@ export const togglePlay = defineCommand({
   description: "Plays if paused, pauses if playing.",
   undoable: false,
   input: z.object({}),
-  run() {
+  run(ctx) {
+    const { playback } = ctx.require(previewRef);
     if (playback.isPlaying()) playback.pause();
     else playback.play();
     return { playing: playback.isPlaying(), time: playback.getTime() };
@@ -53,7 +56,8 @@ export const seek = defineCommand({
   description: "Moves the playhead to a timeline time (microseconds), clamped to the timeline.",
   undoable: false,
   input: z.object({ time: z.number().int().min(0).describe("Microseconds") }),
-  run(_ctx, { time }) {
+  run(ctx, { time }) {
+    const { playback } = ctx.require(previewRef);
     playback.seek(time);
     return { time: playback.getTime() };
   },

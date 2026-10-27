@@ -38,3 +38,39 @@ export interface PreviewEngine {
   captureFrame(): string;
   dispose(): void;
 }
+
+/** What the preview controller needs from the rest of the app. Injected so it can be tested. */
+export interface PreviewControllerDeps {
+  clock: PlaybackClock;
+  getProject(): ProjectState;
+  /** Length of the timeline (cached by the caller; read on every project change). */
+  getDuration(): Micros;
+  /** Called on every project change. Returns an unsubscribe function. */
+  subscribeProject(listener: () => void): () => void;
+  /** Called on every media metadata change (e.g. a proxy became ready). */
+  subscribeMedia(listener: () => void): () => void;
+  createEngine(canvas: HTMLCanvasElement, onFrameReady: () => void): PreviewEngine;
+  /** `requestAnimationFrame` in the app; a manual queue in tests. */
+  requestFrame(callback: () => void): void;
+}
+
+/** The preview module's API for one kernel. */
+export interface PreviewApi {
+  /** The playhead. The timeline and the preview both follow it. */
+  readonly playback: PlaybackClock;
+  /** Attaches the preview canvas. Returns a detach function. */
+  attachCanvas(canvas: HTMLCanvasElement): () => void;
+  /** Redraws on the next frame (e.g. after the canvas was resized). */
+  redraw(): void;
+  /**
+   * Captures the preview as a base64 PNG, optionally at a given time. Waits (up to 3 s) until
+   * every visible layer has decoded its frame.
+   */
+  captureFrame(time?: Micros): Promise<string>;
+}
+
+/** The preview controller: its API plus cleanup, owned by the preview module. */
+export interface PreviewController extends PreviewApi {
+  /** Detaches the canvas, pauses the clock and drops every subscription. */
+  dispose(): void;
+}

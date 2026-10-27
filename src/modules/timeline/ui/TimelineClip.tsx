@@ -3,6 +3,7 @@ import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { mediaProbeStore } from "@/modules/media";
 import { projectStore, type Clip, type TrackKind } from "@/modules/project";
+import { previewRef } from "@/modules/preview";
 import { timelineRef } from "../timeline.ref";
 import { timeToPx } from "../logic/geometry";
 import { gestureMode, startClipGesture } from "./clip-gesture";
@@ -23,6 +24,7 @@ export const TimelineClip = memo(function TimelineClip({
   rootRef,
 }: TimelineClipProps) {
   const timeline = useModule(timelineRef);
+  const { playback } = useModule(previewRef);
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
@@ -56,6 +58,7 @@ export const TimelineClip = memo(function TimelineClip({
           root: rootRef.current,
           down: e.nativeEvent,
           view: timeline.view,
+          playback,
         });
       }}
     >

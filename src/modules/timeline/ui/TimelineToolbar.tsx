@@ -1,6 +1,6 @@
 import { useStore } from "zustand";
 import { useHistory, useKernel, useModule } from "@/core";
-import { playback } from "@/modules/preview";
+import { previewRef } from "@/modules/preview";
 import { timelineRef } from "../timeline.ref";
 import { addTrack, deleteClips, splitAt } from "../timeline.commands";
 import { MAX_PX_PER_SECOND, MIN_PX_PER_SECOND } from "../timeline.store";
@@ -27,6 +27,7 @@ function ToolButton(props: {
 
 /** Edit actions and zoom. Every button runs a command, exactly like shortcuts and agents. */
 export function TimelineToolbar() {
+  const { playback } = useModule(previewRef);
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const history = useHistory();

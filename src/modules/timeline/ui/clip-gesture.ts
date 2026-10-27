@@ -2,7 +2,7 @@ import type { CommandBus, Micros } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
 import { projectStore, type Clip } from "@/modules/project";
 import { getProbe } from "@/modules/media";
-import { playback } from "@/modules/preview";
+import type { PlaybackClock } from "@/modules/preview";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import {
   clampTrim,
@@ -48,8 +48,10 @@ export function startClipGesture(options: {
   down: PointerEvent;
   /** The timeline's view state (zoom). */
   view: StoreApi<TimelineViewState>;
+  /** The playhead, a snap target. */
+  playback: PlaybackClock;
 }): void {
-  const { bus, clip, element, root, down, view } = options;
+  const { bus, clip, element, root, down, view, playback } = options;
   const pxPerSecond = view.getState().pxPerSecond;
   const mode = gestureMode(down.offsetX, element.offsetWidth);
   const state = projectStore.getState();
