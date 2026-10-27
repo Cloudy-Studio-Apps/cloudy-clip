@@ -1,6 +1,8 @@
 # project
 
-Owns the **project document**: format, media, tracks, clips (`ProjectState` in `project.types.ts`). It is a patchable store (`projectStore`), so every change is undoable and readable by agents. Other modules read it through selectors and change it through their own commands.
+Owns the **project document**: format, media, tracks, clips (`ProjectState` in `project.types.ts`). It is a patchable store created per kernel and exposed as `ProjectApi.store` (`ctx.require(projectRef).store`, `useModule(projectRef).store`), so every change is undoable and readable by agents. Other modules read it through selectors and change it through their own commands. `createProjectModule(initial)` seeds it (tests).
+
+Tier: core. Requires: nothing. Contributes: nothing.
 
 - Track order is top → bottom; higher video tracks are drawn on top.
 - `Track.clipIds` is always sorted by `start`, and clips on a track never overlap.

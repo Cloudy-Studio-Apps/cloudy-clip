@@ -42,21 +42,29 @@ Connect an agent to a running app: `claude mcp add --transport http cloudy-clip 
 
 ```
 src/
-  core/                    # kernel: command bus, history, module/plugin registry, MCP bridge
+  core/                    # kernel: command bus, history, module host, points, MCP bridge
+  app/                     # shell: bootstrap, LayoutHost + keybinding host (read points only)
   modules/
     <module>/
       index.ts             # public API, the ONLY file other modules may import
-      <module>.types.ts    # all types for the module
+      <module>.ref.ts      # defineModuleRef<Api>("<id>"): typed handle for require/useModule
+      <module>.module.ts   # defineModule: wiring only (tier, requires, commands, tools, setup)
+      <module>.types.ts    # all types for the module, including its Api
       <module>.commands.ts # commands this module registers
       <module>.mcp.ts      # MCP tools this module registers
-      <module>.store.ts    # module state
-      components/          # React UI for the module
-      README.md            # what the module owns, its commands, its MCP tools
+      <module>.store.ts    # factories for the module's state (never a module-level instance)
+      ui/                  # React UI for the module; ui/index.ts is its public UI
+      README.md            # what the module owns, its API, commands, MCP tools, contributions
 ```
 
 - **Every type file ends in `.types.ts`.** Do not put types inline in other files. Exception: a component's own props type.
 - A module **must not** reach into another module's internals. Import only from `@/modules/<other>` and `@/core` (enforced by ESLint `no-restricted-imports`). Inside a module use relative imports.
-- Each module registers itself with `core` through a `ModuleDefinition` (`src/core/module/module.types.ts`): an id, commands, MCP tools, and `activate()`. Built-ins are loaded in `src/app/bootstrap.ts`. Plugins will use that same definition shape later, so do not give internal modules shortcuts that a plugin could not use.
+- Each module is a `defineModule({ ref, name, tier, requires?, uses?, after?, commands, mcpTools, setup })` (`src/core/module/`). The kernel orders modules by `requires`/`after`, skips a module whose dependency is missing or failed, and isolates a module whose `setup` throws. Built-ins are listed (in any order) in `src/app/bootstrap.ts`. Plugins will use that same shape later, so do not give internal modules shortcuts that a plugin could not use.
+- **`setup(ctx)` runs once per kernel** and returns `{ api, dispose }`. It creates the module's stores and services, contributes to points (`ctx.contribute(layoutPanels, …)`, `keybindings`, …), and returns its public API. **No module-level singletons** for state or services: everything belongs to a kernel, so tests (and a future second window) get their own.
+- Reach another module's state through its ref: `ctx.require(projectRef)` in `setup`, commands and MCP tools; `useModule(projectRef)` in React. `ctx.require` in `setup` is allowed for core modules, `requires`/`uses`, and the module itself.
+- **Tiers:** `core` (the app can't exist without it; any module may require it) or `feature` (written only against the public API, as a plugin would be). v1's `project`, `media`, `timeline`, `preview` are core.
+- **Extension points** (`definePoint<T>(id, { keyOf? })`) live in the module that reads them. The shell reads `layoutPanels` and `keybindings` (`src/core/shell`); `App.tsx` imports no module.
+- **Not modules:** the kernel, platform implementations, the app shell, pure helpers, a module's internal parts, and interchangeable implementations of one contract (decoders, compositors). See `docs/superpowers/specs/2026-10-27-modular-cross-platform-architecture-design.md`.
 - The Rust side mirrors this layout: `src-tauri/src/<module>/` per module, with Tauri commands registered from each module, not one big `lib.rs`.
 
 ### 2. All mutations go through the command bus
@@ -66,8 +74,8 @@ Every action that changes the project, such as importing a file, adding a clip, 
 - UI handlers run commands. They never mutate stores directly.
 - `<module>.mcp.ts` tools are thin wrappers that validate input and run commands. They never hold their own logic.
 - Every command execution records its **origin** (`user` | `agent` | `plugin`). Undoable commands go into **one shared undo history**, so Ctrl+Z can undo an agent's change.
-- Commands are defined with `defineCommand` (Zod input schema), change state only via `ctx.mutate(store, draft => …)` on a `PatchableStore`, and throw `CommandFailure(code, message)` for expected errors. The bus validates, serializes executions, rolls back on throw, times out after 30 s, and never throws (returns `Result`).
-- Document state (the project: media, tracks, clips) lives in `projectStore` (patchable, undoable). Ephemeral state (selection, zoom, probe metadata, playhead) lives in plain Zustand stores and is never in history. Non-undoable commands must not mutate patchable stores.
+- Commands are defined with `defineCommand` (Zod input schema), reach stores with `ctx.require(<ref>)`, change state only via `ctx.mutate(store, draft => …)` on a `PatchableStore`, and throw `CommandFailure(code, message)` for expected errors. The bus validates, serializes executions, rolls back on throw, times out after 30 s, and never throws (returns `Result`).
+- Document state (the project: media, tracks, clips) lives in the project module's `store` (patchable, undoable; `ctx.require(projectRef).store`). Ephemeral state (selection, zoom, probe metadata, playhead) lives in plain Zustand stores and is never in history. Non-undoable commands must not mutate patchable stores.
 - All times are integer **microseconds** (`Micros`).
 - Project state must be readable as structured data (tracks, clips, times), so an agent can inspect it, not only the UI.
 
@@ -99,4 +107,4 @@ Every action that changes the project, such as importing a file, adding a clip, 
 
 ## Current state
 
-v1 is implemented: `core` (kernel), modules `project`, `media`, `timeline`, `preview`, the app shell in `src/app`, and native `media` + `mcp` modules. Architecture walkthrough: `docs/architecture.md`. Each module has a `README.md`. The Tauri identifier is `com.darkredgm.cloudy-clip`.
+v1 is implemented: `core` (kernel, module host, points), modules `project`, `media`, `timeline`, `preview`, the app shell in `src/app` (built from the `layoutPanels` and `keybindings` points), and native `media` + `mcp` modules. Stage 1/1b of the modular cross-platform restructure is done (module API, points, per-kernel state); the next stages (platform layer, `MediaRef`, clip kinds, preview `FrameSource`/compositor split, responsive layout, Windows, module checks) are in `docs/superpowers/specs/2026-10-27-modular-cross-platform-architecture-design.md`. Architecture walkthrough: `docs/architecture.md`. Each module has a `README.md`. The Tauri identifier is `com.darkredgm.cloudy-clip`.

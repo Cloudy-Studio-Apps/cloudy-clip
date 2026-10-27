@@ -6,12 +6,13 @@ Cloudy Clip is built so that **a user, an agent (over MCP), and a future plugin 
 
 ```
 ┌──────────────────────── Webview (React) ────────────────────────┐
-│  app/            shell: layout, shortcuts, toasts, bootstrap    │
+│  app/            shell: LayoutHost, keybinding host, toasts,    │
+│                  bootstrap (reads points; imports no module)    │
 │  modules/        project · media · timeline · preview           │
-│                  (each: index.ts, *.types.ts, *.commands.ts,    │
-│                   *.mcp.ts, components/, README.md)             │
-│  core/           command bus · history · stores · module        │
-│                  registry · MCP registry + bridge               │
+│                  (each: index.ts, *.ref.ts, *.module.ts,        │
+│                   *.types.ts, *.commands.ts, *.mcp.ts, ui/)     │
+│  core/           command bus · history · stores · module host · │
+│                  points · shell points · MCP registry + bridge  │
 └───────────────▲──────────────────────────────▲──────────────────┘
                 │ invoke / events              │ HTTP (Range)
 ┌───────────────┴──────── Rust (Tauri) ────────┴──────────────────┐
@@ -25,7 +26,7 @@ Cloudy Clip is built so that **a user, an agent (over MCP), and a future plugin 
 1. Something asks for a change: a button, a shortcut, or an MCP tool call.
 2. It runs a **command** through the bus: `bus.run(splitAt, { at })` (typed) or `bus.execute("timeline.splitAt", input, { origin: "agent" })` (by id).
 3. The bus validates the input with the command's Zod schema and queues the execution, so commands never interleave.
-4. The command changes state only with `ctx.mutate(projectStore, draft => …)`. Immer records patches.
+4. The command reaches the document with `ctx.require(projectRef).store` and changes it only with `ctx.mutate(store, draft => …)`. Immer records patches.
 5. If it throws, every patch is rolled back. A `CommandFailure` becomes a typed error (`timeline.overlap`, …) and anything else becomes `internal`.
 6. On success, undoable commands push one history entry `{ label, origin, patches }`. Ctrl+Z (or the agent's `history_undo`) applies the inverse patches, whoever made the change.
 7. Zustand subscribers re-render only what changed. The preview redraws.
@@ -45,35 +46,46 @@ agent ◀──HTTP── rmcp server ◀──invoke "mcp_respond"──── 
 
 ## Modules and the future plugin API
 
-A module is a `ModuleDefinition`:
+A module is a `defineModule`:
 
 ```ts
-export const timelineModule: ModuleDefinition = {
-  id: "timeline", // namespace: commands "timeline.*", tools "timeline_*"
+export const timelineModule = defineModule({
+  ref: timelineRef, // defineModuleRef<TimelineApi>("timeline"): commands "timeline.*", tools "timeline_*"
   name: "Timeline",
+  tier: "core", // or "feature"; plugins leave it unset
+  requires: ["project", "media", "preview"],
   commands: timelineCommands,
   mcpTools: timelineMcpTools,
-  activate(ctx) {
-    /* listeners; return a disposer */
+  setup(ctx) {
+    const timeline = createTimelineView(); // state for this kernel
+    ctx.contribute(layoutPanels, { id: "timeline.panel", slot: "bottom", ... });
+    ctx.contribute(keybindings, { id: "timeline.split", key: "s", resolve: () => ... });
+    return { api: timeline, dispose };
   },
-};
+});
 ```
 
-The registry registers the declarative parts, calls `activate`, and isolates failures: a module that throws is unloaded and the rest keep working. Built-ins get no API a plugin will not have. A plugin loader only needs to produce `ModuleDefinition`s and call `kernel.modules.load`.
+`kernel.modules.loadAll(modules)` sorts by `requires`/`after` (cycles throw), registers each module's commands and tools, then runs `setup` once per kernel. A module whose `setup` throws is removed again (commands, tools, contributions) and marked `failed`; modules that need it are `skipped`; the rest keep working. Built-ins get no API a plugin will not have. A plugin loader only needs to produce module definitions and call `loadAll`.
+
+- **APIs:** what `setup` returns as `api` is reached with `ctx.require(ref)` (setup, commands, MCP tools) or `useModule(ref)` (React). There are no module-level store or service singletons.
+- **Points:** `definePoint<T>(id, { keyOf? })` is a typed place to contribute items; a keyed point rejects duplicate keys and names both modules. The shell reads `layoutPanels` (panels by slot) and `keybindings` (each maps a key to a command, so shortcuts go through the bus). `usePoint(point)` reads one from React.
+- **Tiers:** `core` modules may be required by anyone; `feature` modules are written only against the public API and must list what they require.
 
 Cross-module rules:
 
 - Import other modules only through `@/modules/<name>` (their `index.ts`), and the kernel only through `@/core`. ESLint enforces this.
-- Dependencies point one way: `project ← media ← timeline`, and `project ← media ← preview ← timeline (playhead)`.
+- Dependencies point one way: `project ← media ← preview ← timeline`.
 
 ## State
 
-| Kind             | Example                      | Store                      | Undoable          |
-| ---------------- | ---------------------------- | -------------------------- | ----------------- |
-| Document         | media, tracks, clips, format | `projectStore` (patchable) | yes               |
-| Derived metadata | duration, size, poster       | `mediaProbeStore`          | no (re-derivable) |
-| View             | zoom, selection              | `timelineViewStore`        | no                |
-| Playback         | playhead, playing            | `PlaybackClock`            | no                |
+| Kind             | Example                      | Store                          | Undoable          |
+| ---------------- | ---------------------------- | ------------------------------ | ----------------- |
+| Document         | media, tracks, clips, format | `ProjectApi.store` (patchable) | yes               |
+| Derived metadata | duration, size, poster       | `MediaApi.probes`              | no (re-derivable) |
+| View             | zoom, selection              | `TimelineApi.view`             | no                |
+| Playback         | playhead, playing            | `PreviewApi.playback`          | no                |
+
+Every store and service is created by its module's `setup`, once per kernel.
 
 All times are integer microseconds.
 
