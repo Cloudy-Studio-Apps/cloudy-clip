@@ -63,7 +63,9 @@ async function probe(asset: MediaAsset, url: string) {
   const element = document.createElement(asset.kind === "video" ? "video" : "audio");
   element.preload = "metadata";
   element.crossOrigin = "anonymous";
-  element.muted = true;
+  // Silent with volume, not `muted`: WebKitGTK hands a muted <video>'s frames to a canvas as
+  // black, so the poster would come out black.
+  element.volume = 0;
   try {
     element.src = url;
     await waitFor(element, "loadedmetadata");
