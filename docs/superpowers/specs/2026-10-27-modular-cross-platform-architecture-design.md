@@ -6,7 +6,7 @@ _2026-10-27. Status: draft for approval._
 
 Cloudy Clip must grow like the rest of the Cloudy series (reference: `cloudy-canvas`): every
 feature a self-contained module, a public API that built-ins and plugins share, and code a reader
-can find their way around. It must run on **Linux, Windows and macOS now, and Android later**, and
+can find their way around. It must run on **Linux and Windows now, macOS next and Android later**, and
 adding Android must mean writing platform implementations, not changing the editor.
 
 The editor will later gain templates, automatic transitions, effects and text (CapCut-style). The
@@ -83,6 +83,8 @@ features. v1 behavior stays the same at the end, except where noted.
 | MCP on mobile | Disabled. |
 | Non-path media | An "open" interface; internals fetch content per platform. |
 | Preview v1 | HTML media decoding (option 1) behind `FrameSource`, so a WebCodecs/native source can replace it without touching other code. |
+| Platforms verified now | **Linux and Windows.** The user and friends test on both; the user has a Windows machine. macOS must not be blocked by the design but is not built or tested in this work. |
+| Baseline | The proxy and media-server work is committed (`49a55ab`); stages start from it. |
 
 ## Target structure
 
@@ -281,10 +283,11 @@ imports `@tauri-apps/*`; only `preview/decode/` references `HTMLMediaElement`.
 5. **Preview split.** `FrameSource`/`AudioSource`, `HtmlMedia*` sources, WebGL2 compositor;
    services owned by the kernel instead of module singletons.
 6. **Responsive layout.**
-7. **Checks and docs.** `check-modules.mjs`, CLAUDE.md rules, `docs/architecture.md`, module
+7. **Windows.** Make it build and run on Windows and verify there: `ffmpeg.exe`/`ffprobe.exe` lookup (app `bin`, beside the exe, `PATH`; no console window), Windows paths in `MediaRef`, the loopback media server and MCP in WebView2, WebView2's codec list in the capabilities report, the WebGL2 compositor. A GitHub Actions workflow builds Linux and Windows on every push; the user tests the Windows build by hand. (Windows-specific fixes found earlier can land in their own stage.)
+8. **Checks and docs.** `check-modules.mjs`, CLAUDE.md rules, `docs/architecture.md`, module
    READMEs.
 
-(7's rules can land incrementally with each stage; listed last for clarity.)
+(8's rules can land incrementally with each stage; listed last for clarity.)
 
 ## Calls made by the designer (not decided with the user; open to review)
 
