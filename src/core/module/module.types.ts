@@ -43,11 +43,17 @@ export interface ModuleContext {
   readonly points: PointReader;
   /**
    * Returns another module's API. Allowed for core modules, modules listed in `requires` or
-   * `uses`, and the module itself.
+   * `uses`, and the module itself. Throws if the module isn't loaded (yet): core modules load
+   * before features, but list a module in `requires` to rely on it during `setup`.
    */
   require<A>(ref: ModuleRef<A>): A;
   /** Adds items to a point on behalf of this module. Removed when the module unloads. */
   contribute<T>(point: Point<T>, ...items: T[]): void;
+  /**
+   * Registers a cleanup (unlisten, unsubscribe, ...) right after acquiring the resource. It runs
+   * when the module unloads, and also if `setup` throws later, so nothing leaks.
+   */
+  onDispose(cleanup: Disposer): void;
 }
 
 /**
@@ -64,7 +70,10 @@ export interface ModuleDefinition<Api = void> {
   readonly tier?: ModuleTier;
   /** Modules that must be loaded first. If one is missing or fails, this one is skipped. */
   readonly requires?: readonly string[];
-  /** Modules that must be loaded, in any order. */
+  /**
+   * Modules that must be loaded, loaded first when possible (mutual `uses` is allowed). A `uses`
+   * module may not be set up yet during `setup`: `require` it lazily (in handlers).
+   */
   readonly uses?: readonly string[];
   /** Modules to load before this one when present. Orders only. */
   readonly after?: readonly string[];

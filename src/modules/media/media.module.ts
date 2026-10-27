@@ -17,14 +17,16 @@ export const mediaModule = defineModule({
   requires: ["project"],
   commands: mediaCommands,
   mcpTools: mediaMcpTools,
-  async setup({ bus, log, contribute, require }) {
+  async setup({ bus, log, contribute, require, onDispose }) {
     const project = require(projectRef).store;
     const state = createMediaState();
     const { fileDrop, getProbe, setProbe } = state;
     const service = createMediaService(state);
     await service.init();
-    const unlistenProxies = await service.listenToProxies();
+    // Each cleanup is registered as soon as its resource exists, so a later failure leaks nothing.
+    onDispose(await service.listenToProxies());
     const probes = createProbeQueue({ state, mediaUrl: service.mediaUrl });
+    onDispose(() => probes.dispose());
 
     // Read metadata of every media item in the project (import, redo, future loading) once
     // its proxy pipeline has settled.
@@ -39,15 +41,16 @@ export const mediaModule = defineModule({
       }
     };
     probeAll();
-    const offProject = project.subscribe((next, previous) => {
-      if (next.mediaOrder !== previous.mediaOrder) probeAll();
-    });
-    const offProbes = state.probes.subscribe(probeAll);
+    onDispose(
+      project.subscribe((next, previous) => {
+        if (next.mediaOrder !== previous.mediaOrder) probeAll();
+      }),
+    );
+    onDispose(state.probes.subscribe(probeAll));
 
     // Files dropped onto the window from the OS.
-    let unlisten: (() => void) | undefined;
     try {
-      unlisten = await getCurrentWebview().onDragDropEvent((event) => {
+      const unlistenDrop = await getCurrentWebview().onDragDropEvent((event) => {
         const payload = event.payload;
         if (payload.type === "enter" || payload.type === "over") {
           if (!fileDrop.getState().active) fileDrop.setState({ active: true });
@@ -58,6 +61,7 @@ export const mediaModule = defineModule({
           }
         }
       });
+      onDispose(unlistenDrop);
     } catch (error) {
       log.warn("File drop is unavailable", error);
     }
@@ -76,12 +80,6 @@ export const mediaModule = defineModule({
         getProbe,
         waitForProbe: state.waitForProbe,
         mediaUrl: service.mediaUrl,
-      },
-      dispose() {
-        offProject();
-        offProbes();
-        unlistenProxies();
-        unlisten?.();
       },
     };
   },

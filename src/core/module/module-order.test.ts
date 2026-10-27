@@ -55,4 +55,23 @@ describe("orderModules", () => {
     const { order } = orderModules([mod("media", { requires: ["project"] })], new Set(["project"]));
     expect(ids(order)).toEqual(["media"]);
   });
+
+  it("orders uses before the module when possible", () => {
+    const { order } = orderModules([mod("a", { uses: ["b"] }), mod("b")], new Set());
+    expect(ids(order)).toEqual(["b", "a"]);
+  });
+
+  it("mutual uses is not a cycle", () => {
+    const { order } = orderModules(
+      [mod("a", { uses: ["b"] }), mod("b", { uses: ["a"] })],
+      new Set(),
+    );
+    expect(ids(order).sort()).toEqual(["a", "b"]);
+  });
+
+  it("loads feature modules after the core modules of the batch", () => {
+    const feature = defineModule({ ref: defineModuleRef("f"), name: "f", tier: "feature" });
+    const core = defineModule({ ref: defineModuleRef("c"), name: "c", tier: "core" });
+    expect(ids(orderModules([feature, core], new Set()).order)).toEqual(["c", "f"]);
+  });
 });

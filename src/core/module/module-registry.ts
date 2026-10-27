@@ -64,13 +64,19 @@ export function createModuleRegistry(deps: {
           if (entry.status !== "active") throw new Error(`Module "${id}" is still setting up`);
           return entry.api as never;
         }
-        if (!declared.has(ref.id) && target?.definition.tier !== "core") {
+        if (target?.status !== "active") {
+          throw new Error(`Module "${id}" requires "${ref.id}", but "${ref.id}" is not loaded`);
+        }
+        if (!declared.has(ref.id) && target.definition.tier !== "core") {
           throw new Error(`Module "${id}" may not require "${ref.id}": add it to requires or uses`);
         }
         return apiOf(ref);
       },
       contribute(point, ...items) {
         entry.disposers.push(deps.points.add(point, id, items));
+      },
+      onDispose(cleanup) {
+        entry.disposers.push(cleanup);
       },
     };
   }
@@ -123,8 +129,13 @@ export function createModuleRegistry(deps: {
       statuses[id] = "skipped";
     }
     for (const module of order) {
-      const needed = [...(module.requires ?? []), ...(module.uses ?? [])];
-      const broken = needed.find((dep) => loaded.get(dep)?.status !== "active");
+      // `requires` must be active; `uses` only must not have failed (it may load after this one).
+      const broken =
+        (module.requires ?? []).find((dep) => loaded.get(dep)?.status !== "active") ??
+        (module.uses ?? []).find((dep) => {
+          const status = loaded.get(dep)?.status;
+          return status === "failed" || status === "skipped";
+        });
       if (broken !== undefined) {
         log.warn(`Module "${module.ref.id}" skipped: "${broken}" did not load`);
         loaded.set(module.ref.id, {

@@ -180,4 +180,67 @@ describe("module registry", () => {
     ]);
     expect(statuses).toEqual({ a: "active", b: "failed", c: "skipped" });
   });
+
+  it("a uses dependency listed later still loads both", async () => {
+    const { modules } = setup();
+    const statuses = await modules.loadAll([
+      defineModule({ ref: defineModuleRef("a"), name: "A", uses: ["b"] }),
+      defineModule({ ref: defineModuleRef("b"), name: "B" }),
+    ]);
+    expect(statuses).toEqual({ a: "active", b: "active" });
+  });
+
+  it("onDispose cleanups run when setup throws later", async () => {
+    const { modules } = setup();
+    const cleaned: string[] = [];
+    const status = await modules.load(
+      defineModule({
+        ref: defineModuleRef("leaky"),
+        name: "Leaky",
+        setup(ctx) {
+          ctx.onDispose(() => cleaned.push("listener"));
+          throw new Error("boom");
+        },
+      }),
+    );
+    expect(status).toBe("failed");
+    expect(cleaned).toEqual(["listener"]);
+  });
+
+  it("onDispose cleanups run on unload", async () => {
+    const { modules } = setup();
+    const cleaned: string[] = [];
+    await modules.load(
+      defineModule({
+        ref: defineModuleRef("tidy"),
+        name: "Tidy",
+        setup(ctx) {
+          ctx.onDispose(() => cleaned.push("listener"));
+          return {};
+        },
+      }),
+    );
+    modules.unloadAll();
+    expect(cleaned).toEqual(["listener"]);
+  });
+
+  it("requiring a module that isn't loaded says so", async () => {
+    const { modules } = setup();
+    let message = "";
+    await modules.load(
+      defineModule({
+        ref: defineModuleRef("early"),
+        name: "Early",
+        setup(ctx) {
+          try {
+            ctx.require(defineModuleRef("later"));
+          } catch (error) {
+            message = String(error);
+          }
+          return {};
+        },
+      }),
+    );
+    expect(message).toMatch(/"later" is not loaded/);
+  });
 });

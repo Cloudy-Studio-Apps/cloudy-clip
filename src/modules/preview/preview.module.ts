@@ -21,9 +21,11 @@ export const previewModule = defineModule({
     const project = ctx.require(projectRef).store;
     const media = ctx.require(mediaRef);
     let duration: Micros = projectDuration(project.getState());
-    const offDuration = project.subscribe((state, previous) => {
-      if (state.clips !== previous.clips) duration = projectDuration(state);
-    });
+    ctx.onDispose(
+      project.subscribe((state, previous) => {
+        if (state.clips !== previous.clips) duration = projectDuration(state);
+      }),
+    );
     const clock = createPlaybackClock(() => duration);
     const controller = createPreviewController({
       clock,
@@ -34,6 +36,10 @@ export const previewModule = defineModule({
       createEngine: (canvas, onFrameReady) =>
         new HtmlMediaEngine(canvas, { mediaUrl: media.mediaUrl, onFrameReady }),
       requestFrame: (callback) => void requestAnimationFrame(callback),
+    });
+    ctx.onDispose(() => {
+      controller.dispose();
+      clock.dispose();
     });
 
     ctx.contribute(layoutPanels, {
@@ -55,13 +61,6 @@ export const previewModule = defineModule({
         resolve: () => ({ command: seek.id, input: { time: 0 } }),
       },
     );
-    return {
-      api: controller,
-      dispose() {
-        controller.dispose();
-        clock.dispose();
-        offDuration();
-      },
-    };
+    return { api: controller };
   },
 });

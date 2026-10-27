@@ -16,6 +16,8 @@ export interface ProbeQueue {
    * pipeline has settled (so pro formats are read from their proxy).
    */
   enqueue(asset: MediaAsset): void;
+  /** Drops queued files and ignores results still in flight. */
+  dispose(): void;
 }
 
 /** Creates the probe queue of one kernel, reading from `mediaUrl` and writing into `state`. */
@@ -27,14 +29,18 @@ export function createProbeQueue(deps: {
   const queue: MediaAsset[] = [];
   const queued = new Set<string>();
   let running = 0;
+  let disposed = false;
 
   function pump(): void {
-    while (running < CONCURRENCY && queue.length > 0) {
+    while (!disposed && running < CONCURRENCY && queue.length > 0) {
       const asset = queue.shift()!;
       running++;
       void probe(asset, deps.mediaUrl(asset.id))
-        .then((probe) => state.setProbe(asset.id, { ...probe, status: "ready" }))
+        .then((probe) => {
+          if (!disposed) state.setProbe(asset.id, { ...probe, status: "ready" });
+        })
         .catch((error: unknown) => {
+          if (disposed) return;
           let message = error instanceof Error ? error.message : String(error);
           // Explain why there is no proxy to fall back on (e.g. FFmpeg is missing).
           const proxy = state.getProbe(asset.id)?.proxy;
@@ -51,11 +57,15 @@ export function createProbeQueue(deps: {
 
   return {
     enqueue(asset) {
-      if (queued.has(asset.id)) return;
+      if (disposed || queued.has(asset.id)) return;
       queued.add(asset.id);
       state.setProbe(asset.id, { status: "pending" });
       queue.push(asset);
       pump();
+    },
+    dispose() {
+      disposed = true;
+      queue.length = 0;
     },
   };
 }

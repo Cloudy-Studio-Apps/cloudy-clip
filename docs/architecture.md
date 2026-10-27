@@ -60,7 +60,8 @@ export const timelineModule = defineModule({
     const timeline = createTimelineView(); // state for this kernel
     ctx.contribute(layoutPanels, { id: "timeline.panel", slot: "bottom", ... });
     ctx.contribute(keybindings, { id: "timeline.split", key: "s", resolve: () => ... });
-    return { api: timeline, dispose };
+    ctx.onDispose(project.subscribe(...)); // cleanup registered as soon as acquired
+    return { api: timeline };
   },
 });
 ```
@@ -69,7 +70,8 @@ export const timelineModule = defineModule({
 
 - **APIs:** what `setup` returns as `api` is reached with `ctx.require(ref)` (setup, commands, MCP tools) or `useModule(ref)` (React). There are no module-level store or service singletons.
 - **Points:** `definePoint<T>(id, { keyOf? })` is a typed place to contribute items; a keyed point rejects duplicate keys and names both modules. The shell reads `layoutPanels` (panels by slot) and `keybindings` (each maps a key to a command, so shortcuts go through the bus). `usePoint(point)` reads one from React.
-- **Tiers:** `core` modules may be required by anyone; `feature` modules are written only against the public API and must list what they require.
+- **Tiers:** `core` modules may be required by anyone (lazily; list them in `requires` to use them during `setup`) and load before features; `feature` modules are written only against the public API and must list what they require.
+- **`uses`:** must be loaded, loaded first when possible; mutual `uses` is allowed, so a `uses` module is only safe to `require` lazily.
 
 Cross-module rules:
 

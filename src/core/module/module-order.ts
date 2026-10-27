@@ -2,8 +2,10 @@ import type { AnyModuleDefinition } from "./module.types";
 
 /**
  * Orders modules so every module comes after its `requires` and `after` (Kahn's algorithm,
- * keeping input order among ready modules). Modules whose `requires`/`uses` are neither loaded
- * nor loadable are skipped, with a reason. Throws on a cycle.
+ * keeping input order among ready modules). When possible it also places `uses` first and core
+ * modules before features (features may require core modules unlisted); those two preferences
+ * give way rather than form a cycle. Modules whose `requires`/`uses` are neither loaded nor
+ * loadable are skipped, with a reason. Throws on a `requires`/`after` cycle.
  */
 export function orderModules(
   modules: readonly AnyModuleDefinition[],
@@ -30,13 +32,16 @@ export function orderModules(
   const pending = [...byId.values()];
   const order: AnyModuleDefinition[] = [];
   const placed = new Set<string>();
+  const done = (id: string) => placed.has(id) || !byId.has(id);
   const ready = (module: AnyModuleDefinition) =>
-    [...(module.requires ?? []), ...(module.after ?? [])].every(
-      (id) => placed.has(id) || !byId.has(id),
-    );
+    [...(module.requires ?? []), ...(module.after ?? [])].every(done);
+  const corePending = () => pending.some((m) => m.tier === "core");
+  const preferred = (module: AnyModuleDefinition) =>
+    ready(module) && (module.uses ?? []).every(done) && (module.tier === "core" || !corePending());
 
   while (pending.length > 0) {
-    const index = pending.findIndex(ready);
+    let index = pending.findIndex(preferred);
+    if (index === -1) index = pending.findIndex(ready);
     if (index === -1) {
       const ids = pending.map((m) => `"${m.ref.id}"`).join(", ");
       throw new Error(`Module dependency cycle between ${ids}`);
