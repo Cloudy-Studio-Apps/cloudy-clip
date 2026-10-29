@@ -17,7 +17,8 @@ export function livePatchChanged(
 
 /**
  * Live editing of one clip's values: inputs only redraw the preview; a commit sends one command
- * with everything input so far (none when nothing changes) and then clears the preview.
+ * with everything input so far (none when nothing changes) and then clears the preview. Input made
+ * while that command runs is kept: it stays in the preview and goes with the next commit.
  * `dispose` clears it without committing (the clip was deleted or deselected mid-drag).
  */
 export function createPropsLive(deps: PropsLiveDeps): PropsLive & { dispose(): void } {
@@ -35,7 +36,10 @@ export function createPropsLive(deps: PropsLiveDeps): PropsLive & { dispose(): v
       const all = mergeProps(pending, patch);
       const now = deps.read();
       if (!now || !livePatchChanged(now, all)) return clear();
-      void deps.commit(all).then(clear);
+      pending = {};
+      void deps.commit(all).then(() => {
+        deps.preview(Object.keys(pending).length > 0 ? pending : null);
+      });
     },
     dispose: clear,
   };

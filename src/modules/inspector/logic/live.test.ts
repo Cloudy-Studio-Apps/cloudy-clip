@@ -60,3 +60,28 @@ describe("createPropsLive", () => {
     expect(commits).toEqual([]);
   });
 });
+
+describe("createPropsLive during a pending commit", () => {
+  it("keeps input made while the last commit is still running", async () => {
+    const previews: Array<Record<string, unknown> | null> = [];
+    const commits: Array<Record<string, unknown>> = [];
+    let settle = () => {};
+    const live = createPropsLive({
+      preview: (patch) => void previews.push(patch),
+      read: () => ({ size: 10 }),
+      commit: (patch) => {
+        commits.push(patch);
+        return new Promise<void>((resolve) => (settle = resolve));
+      },
+    });
+    live.input({ size: 12 });
+    live.commit({});
+    live.input({ size: 14 });
+    settle();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(previews.at(-1)).toEqual({ size: 14 });
+    live.commit({});
+    expect(commits).toEqual([{ size: 12 }, { size: 14 }]);
+  });
+});

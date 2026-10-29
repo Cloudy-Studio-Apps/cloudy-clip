@@ -1,7 +1,7 @@
 # text
 
-Text over the video. The **Text** tab in the side rail adds a text at the playhead ("Add text", or
-a click on the tile) or where the tile is dropped on the timeline. A text clip shows the words
+Text over the video. The **Text** tab in the side rail adds a text at the playhead (a click on a
+tile) or where the tile is dropped on the timeline. A text clip shows the words
 "Text" in one default style (bold, white, soft shadow); it sits on a video track above the
 pictures, is moved, trimmed, split and deleted like any clip, and is moved, scaled and rotated in
 the preview with the transform tools. Selecting a text clip shows its panel, generated from the
@@ -36,7 +36,7 @@ textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs 
   - `text.schema.ts`: `textPresetId`, the preset names for `text.applyPreset`'s input.
   - Creating: the element's `create` entries for panel `text`: **Text** (default look),
     **Title** (the title preset), **Lower third** (the preset plus its transform). The Text tab
-    shows them with the timeline's `CreateTiles`; "Add text" and the tiles run
+    shows them with the timeline's `CreateTiles`; the tiles run
     `timeline.addElement` (kind `text`), which puts the clip on the top video track with room or a
     new one, at the playhead or the drop point.
   - `logic/layout.ts`: `DEFAULT_TEXT`, `clipText`, `textStyleOf`, `defaultTextStyle`,
@@ -57,7 +57,8 @@ textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs 
     preset). `FontList` shows only the rows in view (fixed 28 px rows) with search; `FontRow` shows
     the source and a "Missing" note; the family button shows "Missing — showing Inter" while
     `fonts.status(...)` is `missing` (re-rendered by `fonts.onLoaded`).
-  - `ui/TextPanel.tsx`: the tab: "Add text" and `CreateTiles panel="text"`.
+  - `ui/TextPanel.tsx`: the tab: a heading and `CreateTiles panel="text"` (the **Text** tile is
+    the plain add).
   - `ui/TextEditOverlay.tsx` / `ui/TextEditor.tsx`: **editing on the canvas.** Double-clicking the
     selected text in the frame (its first click selected it) opens a transparent `textarea` over it
     with the clip's font, size, color, alignment and spacing, scaled by clip scale x viewer zoom and

@@ -1,9 +1,9 @@
 import { Link } from "lucide-react";
-import { memo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { mediaRef } from "@/modules/media";
-import { elementRef } from "@/modules/element";
+import { elementRef, type ElementDisplay } from "@/modules/element";
 import { type Clip, type ProjectState, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { cn } from "@/ui";
@@ -35,14 +35,20 @@ export const TimelineClip = memo(function TimelineClip({
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
   const elements = useModule(elementRef);
   const mediaId = clip.mediaId;
-  // Strings only, so each selector's result is stable (the display reads media names and tracks).
-  const look = (s: ProjectState) =>
-    elements
+  // One string, so the selector's result is stable (the display reads media names and tracks);
+  // color and body never hold a line break, the label may.
+  const look = useStore(project.api, (s: ProjectState) => {
+    const shown = elements
       .get(clip.kind)
       ?.definition.display(clip, { project: s, track: s.tracks[clip.trackId] });
-  const label = useStore(project.api, (s) => look(s)?.label ?? clip.kind);
-  const color = useStore(project.api, (s) => look(s)?.color ?? "clip-video");
-  const body = useStore(project.api, (s) => look(s)?.body ?? "none");
+    return `${shown?.color ?? "clip-video"}\n${shown?.body ?? "none"}\n${shown?.label ?? clip.kind}`;
+  });
+  const [color, bodyName, label] = useMemo(() => {
+    const first = look.indexOf("\n");
+    const second = look.indexOf("\n", first + 1);
+    return [look.slice(0, first), look.slice(first + 1, second), look.slice(second + 1)];
+  }, [look]);
+  const body = bodyName as ElementDisplay["body"];
   const poster = useStore(media.probes, (s) =>
     mediaId ? s.probes[mediaId]?.posterUrl : undefined,
   );

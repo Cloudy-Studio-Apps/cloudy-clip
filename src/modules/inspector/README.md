@@ -53,7 +53,8 @@ linked picture + sound counts as one clip: the one clicked, via the timeline's
   - `logic/live.ts`: `createPropsLive({ preview, read, commit })`: `input(patch)` merges into the
     pending patch and only redraws (`PreviewApi.previewProps`); `commit(patch)` sends one
     `element.setProps` with everything input so far, skipped when `livePatchChanged` says nothing
-    differs from the resolved values (or the clip is gone), then clears the preview; `dispose`
+    differs from the resolved values (or the clip is gone), then clears the preview (input made
+    while that command runs stays in the preview and goes with the next commit); `dispose`
     clears without committing (clip deleted or deselected mid-drag). `ui/props.live.hook.ts`:
     `usePropsLive(clip)` wraps it per clip and disposes on unmount.
 - **Not yet:** a real dial; tabs; editing several selected clips at once.

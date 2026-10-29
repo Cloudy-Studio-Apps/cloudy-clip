@@ -36,7 +36,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   command works on any clip kind; a clip without a file (`mediaId`; text) trims to any length
   (`TrimLimits.sourceless`) and keeps `sourceIn` at 0 when split. Splitting copies `props` to
   each half. A clip shows its element's `display`: label, color (`var(--<token>)`) and body
-  (filmstrip, waveform or none). Adding a video file creates
+  (filmstrip, waveform or none), worked out once per project change (one selector). Adding a video file creates
   its picture and, if ffprobe found sound (`mediaHasAudio`), a linked sound clip (`Clip.linkId`) on
   the first audio track with room (a new one if none). Linked clips are moved (same offset, each on
   its own track), trimmed (same edge, tightest limit), split (halves linked left/right) and deleted
