@@ -1,4 +1,5 @@
 import type {
+  LayoutControlOf,
   LayoutIssue,
   LayoutItem,
   LayoutSection,
@@ -12,8 +13,6 @@ import { labelOf } from "./labels";
 /** Order of the section that collects properties a layout forgot. */
 const OTHER_ORDER = 10_000;
 
-type ControlOf = (path: string, spec: PropSpec) => string;
-
 /**
  * An element's panel: its layout (or a generated one) with every path checked and every control
  * and label picked, then each supported shared group's section. Mistakes become `issues`; the
@@ -21,12 +20,14 @@ type ControlOf = (path: string, spec: PropSpec) => string;
  */
 export function resolveLayout(
   element: ResolvedElement,
-  controlOf: ControlOf,
+  controlOf: LayoutControlOf,
 ): { sections: ResolvedSection[]; issues: LayoutIssue[] } {
   const { definition, fields, groups } = element;
   const kind = definition.kind;
   const issues: LayoutIssue[] = [];
   const placed = new Set<string>();
+  /** Paths placed so far only inside rows: they may be placed once more outside. */
+  const inRows = new Set<string>();
   let where = "";
 
   const issue = (message: string) =>
@@ -42,8 +43,19 @@ export function resolveLayout(
     const spec = fields.get(path);
     if (!spec) return void issue(`path "${path}" does not exist`);
     if (spec.hidden) return undefined;
-    if (placed.has(path) && !inRow) return void issue(`path "${path}" is placed twice`);
+    if (placed.has(path) && !inRow && !inRows.has(path)) {
+      return void issue(`path "${path}" is placed twice`);
+    }
+    if (inRow) {
+      if (!placed.has(path)) inRows.add(path);
+    } else inRows.delete(path);
     placed.add(path);
+    // A color's opacity is edited by the color's own field.
+    const sibling = siblingOf(path, spec);
+    if (sibling !== undefined && !inRow) {
+      if (placed.has(sibling)) issue(`path "${sibling}" is placed twice`);
+      placed.add(sibling);
+    }
     const item: ResolvedItem = {
       type: "field",
       path,
@@ -58,22 +70,33 @@ export function resolveLayout(
     const header = spec.toggle ? `${path}.${spec.toggle}` : undefined;
     if (header) placed.add(header);
     placed.add(path);
-    const names = only ?? Object.keys(spec.fields ?? {}).filter((n) => n !== spec.toggle);
+    const siblings = new Set(
+      Object.values(spec.fields ?? {}).flatMap((f) => (f.kind === "color" && f.opacity) || []),
+    );
+    const names =
+      only ?? Object.keys(spec.fields ?? {}).filter((n) => n !== spec.toggle && !siblings.has(n));
     const items = names.flatMap((name) => field(`${path}.${name}`) ?? []);
     return { title: spec.label ?? labelOf(path), header, items };
   };
 
-  const item = (entry: LayoutItem, prefix: string, depth: number): ResolvedItem[] => {
+  const item = (
+    entry: LayoutItem,
+    prefix: string,
+    depth: number,
+    inRow = false,
+  ): ResolvedItem[] => {
     if (typeof entry === "string") {
       const path = prefix + entry;
       const spec = groupSpec(path);
-      if (!spec) return [field(path)].flatMap((i) => i ?? []);
+      if (!spec) return [field(path, {}, inRow)].flatMap((i) => i ?? []);
       const sub = expand(path, spec);
       return depth > 0 ? issueFlat(sub.title, sub.items) : [{ type: "sub", ...sub }];
     }
-    if ("path" in entry) return [field(prefix + entry.path, entry)].flatMap((i) => i ?? []);
+    if ("path" in entry) {
+      return [field(prefix + entry.path, entry, inRow)].flatMap((i) => i ?? []);
+    }
     if ("row" in entry) {
-      return [{ type: "row", items: entry.row.flatMap((e) => item(e, prefix, depth + 1)) }];
+      return [{ type: "row", items: entry.row.flatMap((e) => item(e, prefix, depth + 1, true)) }];
     }
     if ("command" in entry) return [{ type: "command", id: entry.command, ...pick(entry) }];
     if ("group" in entry) {
@@ -140,6 +163,13 @@ export function resolveLayout(
     sections.push({ key: "other", title: "Other", order: OTHER_ORDER, layout: "section", items });
   }
   return { sections: sections.sort((a, b) => a.order - b.order), issues };
+}
+
+/** The opacity path a color field edits along with itself, if it names one. */
+function siblingOf(path: string, spec: PropSpec): string | undefined {
+  if (spec.kind !== "color" || !spec.opacity) return undefined;
+  const dot = path.lastIndexOf(".");
+  return (dot < 0 ? "" : path.slice(0, dot + 1)) + spec.opacity;
 }
 
 function pick(entry: { control?: string; label?: string; icon?: string }) {

@@ -67,6 +67,16 @@ describe("text panel layout", () => {
     });
     expect(sections[1]!.items.some((i) => i.type === "sub" && i.title === "Spacing")).toBe(true);
   });
+  it("shows each opacity once, with its color", () => {
+    const { sections } = resolveLayout(resolved(), (_p, spec) => defaultControl(spec));
+    const paths = (title: string) =>
+      sections
+        .find((s) => s.title === title)!
+        .items.map((i) => (i.type === "field" ? i.path : i.type));
+    expect(paths("Fill")).toEqual(["fill.color"]);
+    expect(paths("Background").some((p) => p.endsWith(".opacity"))).toBe(false);
+    expect(paths("Shadow").some((p) => p.endsWith(".opacity"))).toBe(false);
+  });
   it("is the element's own display", () => {
     expect(textElement.display({ ...clip, props: { text: "Hi" } }, env).label).toBe("Hi");
     expect(textElement.display(clip, env).icon).toBe(Type);

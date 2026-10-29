@@ -45,6 +45,7 @@ export type {
   ElementDisplay,
   LayoutIssue,
   LayoutItem,
+  LayoutControlOf,
   LayoutSection,
   NormalizeEnv,
   PanelCommandCheck,

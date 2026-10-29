@@ -242,6 +242,9 @@ export type DefinedElement<P> = ElementDefinition<P> & {
   resolve(clip: { props?: Record<string, unknown> }, format: ProjectFormat): P;
 };
 
+/** The control id `resolveLayout` picks for a field that names none. */
+export type LayoutControlOf = (path: string, spec: PropSpec) => string;
+
 /** What `patchSchema` needs besides the element's own properties. */
 export interface SchemaEnv {
   /** A registered custom prop type by name. */

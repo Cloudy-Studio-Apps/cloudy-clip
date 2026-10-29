@@ -42,7 +42,10 @@ declaration, and one command changes any element's values.
     group whole. A group alone in a section takes it over; next to other items it is a sub-section;
     `{ group, items }` shows only those fields; `{ title, items }` is an explicit sub-section; a
     sub-section inside one is shown flat (issue). Unknown paths are skipped and paths placed twice
-    (outside a `row`) ignored (issues); forgotten properties go to "Other" (order 10000, issue).
+    (outside a `row`) ignored (issues); a path in a `row` may be placed once more outside. A color
+    that names an `opacity` sibling places it too (the color's field edits both), so groups don't
+    list the sibling and listing it again is "placed twice". Forgotten properties go to "Other"
+    (order 10000, issue). `controlOf` is a `LayoutControlOf` (`element.types.ts`).
     Hidden fields never show. Labels default to `labelOf(path)`.
   - `logic/commands.ts`: `checkPanelCommand(id, command)`: placeable when it exists and takes
     `clipIds` (an array) plus at most one field; else `missing`, `no_clip_ids` or

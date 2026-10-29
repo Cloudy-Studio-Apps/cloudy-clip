@@ -23,9 +23,13 @@ const transform: SharedGroup = {
   defaults: () => ({ x: 0, y: 0 }),
 };
 
-function element(layout?: LayoutSection[], groups: SharedGroup[] = [transform]): ResolvedElement {
+function element(
+  layout?: LayoutSection[],
+  groups: SharedGroup[] = [transform],
+  props: Record<string, PropSpec> = properties,
+): ResolvedElement {
   const fields = new Map<string, PropSpec>();
-  for (const [name, spec] of Object.entries(properties)) {
+  for (const [name, spec] of Object.entries(props)) {
     fields.set(name, spec);
     for (const [inner, s] of Object.entries(spec.fields ?? {})) fields.set(`${name}.${inner}`, s);
   }
@@ -37,7 +41,7 @@ function element(layout?: LayoutSection[], groups: SharedGroup[] = [transform]):
       name: "Note",
       source: "none",
       tracks: ["video"],
-      properties,
+      properties: props,
       ...(layout && { layout }),
       defaults: () => ({}),
       display: () => ({ icon: Type, color: "clip-type", label: "", body: "none" }),
@@ -181,5 +185,27 @@ describe("resolveLayout with a layout", () => {
       "transform.x",
       "transform.y",
     ]);
+  });
+});
+
+describe("resolveLayout fixes", () => {
+  it("places a color's opacity sibling with the color", () => {
+    const tint = prop.group(
+      { label: "Tint" },
+      { color: prop.color({ opacity: "opacity" }), opacity: prop.number() },
+    );
+    const { sections, issues } = resolveLayout(element(undefined, [], { tint }), controlOf);
+    expect(sections[0]!.items.map((i) => (i.type === "field" ? i.path : i.type))).toEqual([
+      "tint.color",
+    ]);
+    expect(issues).toEqual([]);
+  });
+
+  it("lets a row repeat a path placed elsewhere", () => {
+    const { issues } = resolveLayout(
+      element([{ title: "A", items: [{ row: ["size"] }, "size", "text", "letterSpacing", "box"] }]),
+      controlOf,
+    );
+    expect(issues).toEqual([]);
   });
 });
