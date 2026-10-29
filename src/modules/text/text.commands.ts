@@ -1,7 +1,7 @@
 import { addText } from "./text.add.command";
-import { applyTextPreset, setText, setTextStyle } from "./text.style.commands";
+import { applyTextPreset } from "./text.preset.command";
 
-export { addText, applyTextPreset, setText, setTextStyle };
+export { addText, applyTextPreset };
 
-/** Every command the text module registers. */
-export const textCommands = [addText, setText, setTextStyle, applyTextPreset];
+/** Every command the text module registers. Words and style change with `element.setProps`. */
+export const textCommands = [addText, applyTextPreset];

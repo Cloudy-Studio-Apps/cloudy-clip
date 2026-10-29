@@ -5,6 +5,7 @@ import { checkExplicitFace } from "./logic/faces";
 import { DEFAULT_TEXT, defaultTextStyle, textLayout } from "./logic/layout";
 import { snapStyleToFamily } from "./logic/snap";
 import { drawText } from "./text.draw";
+import { textPanelLayout } from "./text.panel";
 import type { TextProps } from "./text.types";
 
 const opacity = (o: { label?: string } = {}) =>
@@ -28,8 +29,10 @@ export const textProperties = {
     control: "slider",
     ui: { min: 8, max: 400, step: 1 },
   }),
-  weight: prop.enum(["100", "200", "300", "400", "500", "600", "700", "800", "900"]),
-  italic: prop.boolean({ control: "icon-toggle", icon: "Italic" }),
+  weight: prop.enum(["100", "200", "300", "400", "500", "600", "700", "800", "900"], {
+    control: "font-weight",
+  }),
+  italic: prop.boolean({ control: "font-italic" }),
   letterSpacing: prop.number({
     min: -200,
     max: 1000,
@@ -130,6 +133,7 @@ export const textElement = defineElement<typeof textProperties, TextProps>({
   tracks: ["video"],
   supports: { transform: true },
   properties: textProperties,
+  layout: textPanelLayout,
   defaults: (format) => ({ text: DEFAULT_TEXT, ...defaultTextStyle(format) }),
   normalize(next, env) {
     // Only a list that is already loaded is checked; commands never wait for the network.
