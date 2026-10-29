@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { clipPlacement, IDENTITY_TRANSFORM, normalizeRotation } from "./project.geometry";
+import type { Clip } from "./project.types";
+import {
+  clipPlacement,
+  clipTransform,
+  IDENTITY_TRANSFORM,
+  normalizeRotation,
+} from "./project.geometry";
 
 const vertical = { width: 1080, height: 1920, fps: 30 };
 
@@ -38,5 +44,16 @@ describe("normalizeRotation", () => {
     expect(normalizeRotation(-180)).toBe(180);
     expect(normalizeRotation(540)).toBe(180);
     expect(normalizeRotation(-725)).toBe(-5);
+  });
+});
+
+describe("clipTransform", () => {
+  const clip = { id: "c", kind: "media", props: {} } as unknown as Clip;
+  it("merges a live patch over the saved transform", () => {
+    const saved = { ...clip, transform: { x: 5, y: 0, scale: 2, rotation: 0 } };
+    expect(clipTransform(saved, { scale: 3 })).toEqual({ x: 5, y: 0, scale: 3, rotation: 0 });
+  });
+  it("merges a live patch over the identity", () => {
+    expect(clipTransform(clip, { x: 4 })).toEqual({ x: 4, y: 0, scale: 1, rotation: 0 });
   });
 });

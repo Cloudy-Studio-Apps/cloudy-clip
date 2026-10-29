@@ -15,7 +15,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   `captureFrame`, `previewTransform(clipId, transform | null)` (draws a live transform during a
   canvas gesture without changing the project), `previewProps(clipId, patch | null)`
   (a live patch of any element's values drawn over the saved ones until cleared; groups may be
-  partial), `onPropsOverride(listener)` (fires on set/clear) and `propsOverride(clipId)` (so the
+  partial; a `transform` patch moves any picture, media included), `onPropsOverride(listener)` (fires on set/clear) and `propsOverride(clipId)` (so the
   canvas tools measure the picture being drawn), `viewport` (`store`, `zoomBy`, `panBy`, `fit`)
 - **Files:**
   - `preview.clock.ts`: the playhead, driven by `requestAnimationFrame`; listeners are called per
@@ -30,7 +30,8 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     Each clip is drawn as its element's `picture` says: `source: "media"` through a media element
     as above; any other element (text, a plugin's) with its own `draw(ctx, props, env)`, at
     `clipPlacement(format, size(props), transform, fit)`, the same box the canvas tools use. Props
-    are the clip's resolved values with the live override merged over them. `env.ensureFont` is
+    are the clip's resolved values with the live override merged over them. The transform is the
+    gesture's (`previewTransform`) if any, else `clipTransform(clip, override.transform)`. `env.ensureFont` is
     `fonts.ensure`; the module redraws on `fonts.onLoaded`; `env.measure` is `canvasTextMeasure`
     (`element`) over the engine's canvas. An element without `picture` is not drawn. Swap engines by
     implementing `PreviewEngine` (`preview.types.ts`).

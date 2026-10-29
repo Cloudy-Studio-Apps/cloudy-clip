@@ -21,6 +21,8 @@ export interface VisibleLayer {
   source: PictureSize;
   /** Fitted in the frame (media) or kept at natural size (text). */
   fit: ClipFit;
+  /** The transform drawn now: the live `transform` patch, if any, over the saved one. */
+  transform: ClipTransform;
 }
 
 /** What a canvas drag does: move the picture, scale it from a corner, or rotate it. */

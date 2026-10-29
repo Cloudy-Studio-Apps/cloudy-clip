@@ -145,7 +145,9 @@ export class HtmlMediaEngine implements PreviewEngine {
     for (let i = active.length - 1; i >= 0; i--) {
       const { clip, track } = active[i]!;
       if (track.kind !== "video" || track.hidden) continue;
-      const transform = transforms.get(clip.id) ?? clipTransform(clip);
+      // The canvas gesture wins; else a panel's live transform patch over the saved one.
+      const live = propsOverrides.get(clip.id)?.transform as Partial<ClipTransform> | undefined;
+      const transform = transforms.get(clip.id) ?? clipTransform(clip, live);
       const picture = this.elements.get(clip.kind)?.definition.picture;
       if (!picture) continue;
       if (picture.source !== "media") {

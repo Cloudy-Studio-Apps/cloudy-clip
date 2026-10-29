@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { clipPlacement, clipTransform, projectRef } from "@/modules/project";
+import { clipPlacement, projectRef } from "@/modules/project";
 import { selectionSubject, timelineRef } from "@/modules/timeline";
 import { topmostAt } from "../logic/picking";
 import type { TransformGestureMode } from "../transform.types";
@@ -32,18 +32,16 @@ export function TransformOverlay() {
 
   const placed = useMemo(
     () =>
-      layers.flatMap((layer) => {
-        const clip = clips[layer.clipId];
-        if (!clip) return [];
-        const transform = clipTransform(clip);
-        return [
-          {
-            ...layer,
-            transform,
-            placement: clipPlacement(format, layer.source, transform, layer.fit),
-          },
-        ];
-      }),
+      layers.flatMap((layer) =>
+        clips[layer.clipId]
+          ? [
+              {
+                ...layer,
+                placement: clipPlacement(format, layer.source, layer.transform, layer.fit),
+              },
+            ]
+          : [],
+      ),
     [layers, clips, format],
   );
   // One clip, or one linked picture + sound: the box goes on the selected picture.

@@ -20,7 +20,8 @@ lives here, so every change is undoable and readable by agents.
     `isMediaInUse`, `formatPreset`.
   - `project.geometry.ts`: `clipPlacement(format, sourceSize, transform)`, the one place a clip's
     transform becomes a rectangle in the frame (the preview engine and the canvas tools both use it);
-    `clipTransform`, `IDENTITY_TRANSFORM`, `normalizeRotation`. The fit (`contain` for media,
+    `clipTransform(clip, live?)` (the saved transform or the identity, with a live patch merged
+    over it), `IDENTITY_TRANSFORM`, `normalizeRotation`. The fit (`contain` for media,
     `none` for text at its natural size) comes from the clip's element.
   - `createProjectModule(initial)` seeds the document in tests.
 - **Invariants:** track order is top → bottom (higher video tracks are drawn on top);

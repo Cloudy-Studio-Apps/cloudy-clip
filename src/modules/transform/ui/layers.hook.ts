@@ -9,12 +9,17 @@ import { visibleLayers } from "../logic/layers";
 import type { VisibleLayer } from "../transform.types";
 
 const keyOf = (layers: readonly VisibleLayer[]) =>
-  layers.map((l) => `${l.clipId}:${l.source.width}x${l.source.height}`).join("|");
+  layers
+    .map((l) => {
+      const t = l.transform;
+      return `${l.clipId}:${l.source.width}x${l.source.height}@${t.x},${t.y},${t.scale},${t.rotation}`;
+    })
+    .join("|");
 
 /**
  * Pictures (video and text) on screen at the playhead, top-most first. Recomputed on every playhead move,
- * project change, probe change and font load, but React re-renders only when the list itself changes
- * (at cuts), never per frame.
+ * project change, probe change, live props change and font load, but React re-renders only when the
+ * list itself changes (at cuts, or a panel's live transform), never per frame of playback.
  */
 export function useVisibleLayers(): VisibleLayer[] {
   const project = useModule(projectRef).store;

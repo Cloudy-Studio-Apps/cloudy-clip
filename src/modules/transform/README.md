@@ -20,7 +20,8 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     `element.invalid_props`). Its section: X/Y row, scale, rotation, Reset (`transform.reset`).
   - `transform.commands.ts`: `transform.reset` (`clipIds`): drops `Clip.transform`, one undo step.
   - `logic/`: pure, tested parts: `picking.ts` (hit test of rotated pictures), `gestures.ts`
-    (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override), `frame.ts`
+    (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override; each layer's `transform` is
+    the live `transform` patch over the saved one, so a panel slider moves the box too), `frame.ts`
     (screen → frame coordinates). Placement is `project`'s `clipPlacement`, so the box and the
     picture always agree.
   - `ui/`: `TransformOverlay` (its root takes the pointer: `pointer-events-auto`, since the overlay wrappers ignore it), `SelectionBox`, `transform.gesture.ts` (while dragging, the preview

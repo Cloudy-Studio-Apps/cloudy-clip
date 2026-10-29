@@ -133,6 +133,10 @@ describe("visibleLayers", () => {
     ]);
     expect(visibleLayers(state, elements, size, 12, measure).map((l) => l.clipId)).toEqual(["b"]);
     expect(visibleLayers(state, elements, () => undefined, 7, measure)).toEqual([]);
+    const live = visibleLayers(state, elements, size, 7, measure, () => ({
+      transform: { scale: 2 },
+    }));
+    expect(live[0]!.transform.scale).toBe(2);
   });
 
   it("lists text clips with their measured box, kept at natural size", () => {
