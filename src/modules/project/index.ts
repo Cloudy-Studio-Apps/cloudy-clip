@@ -22,6 +22,8 @@ export {
 } from "./project.geometry";
 export {
   DEFAULT_TEXT,
+  bundledCssFamily,
+  canvasTextMeasure,
   cssFontFamily,
   defaultTextStyle,
   displayText,
@@ -59,6 +61,7 @@ export type {
   TextLayout,
   TextLine,
   TextMeasure,
+  TextMeasureContext,
   TextOutline,
   TextShadow,
   TextStyle,

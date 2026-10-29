@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, type Kernel } from "@/core";
 import { createFakeMediaModule } from "@/modules/media";
+import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule, previewRef } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
@@ -28,6 +29,7 @@ beforeEach(async () => {
   await kernel.modules.loadAll([
     createProjectModule(project),
     createFakeMediaModule({ mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 } }),
+    createFakeFontsModule(),
     previewModule,
     timelineModule,
     textModule,

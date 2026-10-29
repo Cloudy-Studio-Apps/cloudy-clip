@@ -2,13 +2,15 @@ import { microsToSeconds, type Micros } from "@/core";
 import {
   clipPlacement,
   clipTransform,
+  mergeTextStyle,
+  textStyleOf,
   type Clip,
   type ClipId,
   type ClipTransform,
   type ProjectState,
   type Track,
 } from "@/modules/project";
-import type { PreviewEngine } from "../preview.types";
+import type { PreviewEngine, TextOverride } from "../preview.types";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
 import { drawText } from "./engine.text";
@@ -30,6 +32,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly pool: MediaSlotPool;
   private settled = true;
+  private readonly ensureFont: EngineOptions["ensureFont"];
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -39,6 +42,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (!ctx) throw new Error("2D canvas is not available");
     this.ctx = ctx;
     this.pool = new MediaSlotPool(options);
+    this.ensureFont = options.ensureFont;
   }
 
   render(
@@ -46,6 +50,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     time: Micros,
     playing: boolean,
     transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
+    textOverrides: ReadonlyMap<ClipId, TextOverride> = new Map(),
   ): void {
     const active: Array<{ clip: Clip; track: Track }> = [];
     const upcoming: Array<{ clip: Clip; track: Track }> = [];
@@ -97,7 +102,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
     // Only paint complete frames: a layer still decoding would flash black. Keep the previous
     // picture instead; the controller retries until every layer has its frame.
-    if (this.settled) this.draw(project, active, transforms);
+    if (this.settled) this.draw(project, active, transforms, textOverrides);
   }
 
   pauseAll(): void {
@@ -120,6 +125,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     project: ProjectState,
     active: Array<{ clip: Clip; track: Track }>,
     transforms: ReadonlyMap<ClipId, ClipTransform>,
+    textOverrides: ReadonlyMap<ClipId, TextOverride>,
   ): void {
     const { ctx, canvas } = this;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -135,7 +141,11 @@ export class HtmlMediaEngine implements PreviewEngine {
       if (track.kind !== "video" || track.hidden) continue;
       const transform = transforms.get(clip.id) ?? clipTransform(clip);
       if (clip.kind === "text") {
-        drawText(ctx, project.format, clip, transform, kx, ky);
+        const override = textOverrides.get(clip.id);
+        const saved = textStyleOf(clip, project.format);
+        const style = override?.style ? mergeTextStyle(saved, override.style) : saved;
+        const text = override?.text ?? clip.text;
+        drawText(ctx, project.format, style, text, transform, kx, ky, this.ensureFont);
         continue;
       }
       if (project.media[clip.mediaId]?.kind !== "video") continue;

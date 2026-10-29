@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  bundledCssFamily,
+  canvasTextMeasure,
   cssFontFamily,
   defaultTextStyle,
   mergeTextStyle,
@@ -119,5 +121,30 @@ describe("mergeTextStyle", () => {
     expect(next.fill).toEqual({ color: "#ffffff", opacity: 0.5 });
     expect(next.size).toBe(50);
     expect(base.fill.opacity).toBe(1);
+  });
+});
+
+describe("canvasTextMeasure", () => {
+  it("takes off the trailing spacing the canvas adds", () => {
+    const ctx = {
+      font: "",
+      letterSpacing: "0px",
+      measureText: (t: string) => ({
+        width: t.length * 10 + t.length * parseFloat(ctx.letterSpacing),
+      }),
+    };
+    expect(canvasTextMeasure(ctx)("abc", "16px x", 4)).toBe(30 + 8);
+    expect(canvasTextMeasure(ctx)("abc", "16px x", 0)).toBe(30);
+  });
+
+  it("measures letter by letter without ctx.letterSpacing", () => {
+    const ctx = { font: "", measureText: (t: string) => ({ width: t.length * 10 }) };
+    expect(canvasTextMeasure(ctx)("abc", "16px x", 4)).toBe(38);
+    expect(canvasTextMeasure(null)("abc", "16px x", 4)).toBe(0);
+  });
+
+  it("maps bundled family names", () => {
+    expect(bundledCssFamily("Inter")).toBe("Inter Variable");
+    expect(bundledCssFamily("Other")).toBe("Other");
   });
 });

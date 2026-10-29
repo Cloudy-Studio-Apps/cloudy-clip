@@ -1,3 +1,4 @@
+import { bundledCssFamily } from "@/modules/project";
 import type { StoreApi } from "zustand/vanilla";
 import { createFontsState, type FontStatusState } from "./fonts.store";
 import { BUNDLED_FAMILIES } from "./logic/catalog";
@@ -39,8 +40,8 @@ export function createFontsLibrary(
   const run = async (request: FontRequest): Promise<boolean> => {
     try {
       if (request.source === "google") return await service.loadGoogleFace(request);
-      // Bundled Fontsource families are registered as "<name> Variable".
-      const family = request.source === "bundled" ? `${request.family} Variable` : request.family;
+      const family =
+        request.source === "bundled" ? bundledCssFamily(request.family) : request.family;
       return await service.loadByName({ ...request, family });
     } catch {
       return false;

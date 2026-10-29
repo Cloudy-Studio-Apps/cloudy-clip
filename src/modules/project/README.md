@@ -20,7 +20,10 @@ lives here, so every change is undoable and readable by agents.
     deep), `cssFontFamily`/`textFont` (quoted, escaped CSS), `displayText` (uppercase),
     `textPadding`, `textLayout(text, style, measure)` (lines, box, line positions from the box
     center; blank lines keep their height) and `textBox(format, clip, measure)`, the natural size
-    that the engine draws and the canvas tools hit-test. `TextMeasure` takes the letter spacing.
+    that the engine draws and the canvas tools hit-test. `TextMeasure` takes the letter spacing
+    (`(n-1)·spacing` between letters). `canvasTextMeasure(ctx)` builds one over a 2D canvas (removing
+    the trailing spacing the canvas adds); `bundledCssFamily(family)` is the CSS name of a bundled
+    family (`"Inter"` is `"Inter Variable"`).
   - `project.store.ts`: `FORMAT_PRESETS`, `createEmptyProject()`.
   - `project.selectors.ts`: `projectDuration`, `orderedTracks`, `trackClips`, `clipEnd`,
     `isMediaInUse`, `formatPreset`.

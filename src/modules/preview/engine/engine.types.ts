@@ -1,4 +1,4 @@
-import type { MediaId } from "@/modules/project";
+import type { FontSource, FontWeight, MediaId } from "@/modules/project";
 
 /** One pooled media element and what it is currently showing. */
 export interface Slot {
@@ -23,6 +23,16 @@ export interface Slot {
 export interface EngineOptions {
   /** URL that streams a media item. */
   mediaUrl(id: MediaId): string;
+  /**
+   * Whether a font face can be drawn now; when not, it starts loading and the engine draws text
+   * in Inter (the caller redraws when it arrives).
+   */
+  ensureFont(request: {
+    family: string;
+    source: FontSource;
+    weight: FontWeight;
+    style: "normal" | "italic";
+  }): boolean;
   /** Called when a frame becomes available while paused (e.g. a seek finished). */
   onFrameReady(): void;
 }

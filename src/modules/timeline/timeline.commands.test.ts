@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { z } from "zod";
 import { createKernel, type Kernel } from "@/core";
 import { createFakeMediaModule, mediaRef } from "@/modules/media";
+import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef, trackClips } from "@/modules/project";
 import {
@@ -55,6 +56,7 @@ beforeEach(async () => {
       mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 },
       ma: { status: "ready", duration: 60 * S },
     }),
+    createFakeFontsModule(),
     previewModule,
     timelineModule,
   ]);

@@ -4,14 +4,16 @@ Playback and the preview: the playhead, the engine that draws the timeline at th
 viewer (zoom and pan around the frame) and the preview panel with its transport bar.
 
 - **Tier:** core
-- **Requires:** `project`, `media`
+- **Requires:** `project`, `media`, `fonts`
 - **Contributes:** panel `preview.panel` (main); keybindings `preview.toggle-play` (Space),
   `preview.seek-start` (Home)
 - **Points it owns:** `previewOverlays` (`preview.points.ts`): layers drawn over the frame, sized
   and moved with it, positioned in % of the frame (`transform` contributes its selection box)
 - **API** (`PreviewApi`, per kernel): `playback` (the clock), `attachCanvas`, `redraw`,
   `captureFrame`, `previewTransform(clipId, transform | null)` (draws a live transform during a
-  canvas gesture without changing the project), `viewport` (`store`, `zoomBy`, `panBy`, `fit`)
+  canvas gesture without changing the project), `previewTextClip(clipId, { text?, style? } | null)`
+  (a live text edit drawn instead of the saved words/style until cleared; `style` may be partial)
+  and `textClipOverride(clipId)` (so the canvas tools measure the box being drawn), `viewport` (`store`, `zoomBy`, `panBy`, `fit`)
 - **Files:**
   - `preview.clock.ts`: the playhead, driven by `requestAnimationFrame`; listeners are called per
     frame without React.
@@ -22,8 +24,12 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
     `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
     clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only).
-    Text clips need no element: `engine.text.ts` draws them from the document (default style,
-    `textLayout` + `clipPlacement(…, "none")`, the same box the canvas tools use). Swap engines by
+    Text clips need no element: `engine.text.ts` draws them from the document (`textLayout` +
+    `clipPlacement(…, "none")`, the same box the canvas tools use): background box, then per line
+    the shadow (first painted pass only), outline stroke and fill. A font that is not loaded yet
+    (`fonts.ensure` is false) is drawn in Inter, and the module redraws on `fonts.onLoaded`.
+    Letter spacing uses `ctx.letterSpacing`, or letter by letter when the webview lacks it
+    (`canvasTextMeasure` in `project` measures the same way). Swap engines by
     implementing `PreviewEngine` (`preview.types.ts`).
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it is tested in
     node). Renders every frame while playing, on demand while paused.

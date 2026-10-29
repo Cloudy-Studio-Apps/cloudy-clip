@@ -1,4 +1,5 @@
 import { defineModule, keybindings, layoutPanels, type Micros } from "@/core";
+import { fontsRef } from "@/modules/fonts";
 import { mediaRef } from "@/modules/media";
 import { projectDuration, projectRef } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/engine.html";
@@ -14,12 +15,13 @@ export const previewModule = defineModule({
   ref: previewRef,
   name: "Preview",
   tier: "core",
-  requires: ["project", "media"],
+  requires: ["project", "media", "fonts"],
   commands: previewCommands,
   mcpTools: previewMcpTools,
   setup(ctx) {
     const project = ctx.require(projectRef).store;
     const media = ctx.require(mediaRef);
+    const fonts = ctx.require(fontsRef);
     let duration: Micros = projectDuration(project.getState());
     ctx.onDispose(
       project.subscribe((state, previous) => {
@@ -34,9 +36,15 @@ export const previewModule = defineModule({
       subscribeProject: (listener) => project.subscribe(listener),
       subscribeMedia: (listener) => media.probes.subscribe(listener),
       createEngine: (canvas, onFrameReady) =>
-        new HtmlMediaEngine(canvas, { mediaUrl: media.mediaUrl, onFrameReady }),
+        new HtmlMediaEngine(canvas, {
+          mediaUrl: media.mediaUrl,
+          ensureFont: (request) => fonts.ensure(request),
+          onFrameReady,
+        }),
       requestFrame: (callback) => void requestAnimationFrame(callback),
     });
+    // A font arriving (or failing) changes how text is drawn and measured.
+    ctx.onDispose(fonts.onLoaded(() => controller.redraw()));
     ctx.onDispose(() => {
       controller.dispose();
       clock.dispose();

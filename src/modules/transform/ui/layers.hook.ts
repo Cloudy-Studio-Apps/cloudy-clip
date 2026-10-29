@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useModule } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
-import { projectRef, type MediaId, type PictureSize, type TextMeasure } from "@/modules/project";
+import { canvasTextMeasure, projectRef, type MediaId, type PictureSize } from "@/modules/project";
 import { visibleLayers } from "../logic/layers";
 import type { VisibleLayer } from "../transform.types";
 
@@ -17,7 +17,7 @@ const keyOf = (layers: readonly VisibleLayer[]) =>
 export function useVisibleLayers(): VisibleLayer[] {
   const project = useModule(projectRef).store;
   const media = useModule(mediaRef);
-  const { playback } = useModule(previewRef);
+  const { playback, textClipOverride } = useModule(previewRef);
   const [layers, setLayers] = useState<VisibleLayer[]>([]);
 
   useEffect(() => {
@@ -28,16 +28,16 @@ export function useVisibleLayers(): VisibleLayer[] {
         : undefined;
     };
     // Text is measured like the engine draws it (a 2D canvas with the same font).
-    const ctx = document.createElement("canvas").getContext("2d");
-    const measure: TextMeasure = (text, font, letterSpacing) => {
-      if (!ctx) return 0;
-      ctx.font = font;
-      if ("letterSpacing" in ctx) ctx.letterSpacing = `${letterSpacing}px`;
-      return ctx.measureText(text).width;
-    };
+    const measure = canvasTextMeasure(document.createElement("canvas").getContext("2d"));
     let lastKey: string | null = null;
     const update = () => {
-      const next = visibleLayers(project.getState(), sizeOf, playback.getTime(), measure);
+      const next = visibleLayers(
+        project.getState(),
+        sizeOf,
+        playback.getTime(),
+        measure,
+        textClipOverride,
+      );
       const key = keyOf(next);
       if (key === lastKey) return;
       lastKey = key;
@@ -51,7 +51,7 @@ export function useVisibleLayers(): VisibleLayer[] {
       offProject();
       offProbes();
     };
-  }, [media, playback, project]);
+  }, [media, playback, project, textClipOverride]);
 
   return layers;
 }

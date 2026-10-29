@@ -1,12 +1,21 @@
 import type { Micros } from "@/core";
 import {
+  mergeTextStyle,
   textBox,
+  textStyleOf,
+  type TextStylePatch,
   type MediaId,
   type PictureSize,
   type ProjectState,
   type TextMeasure,
 } from "@/modules/project";
 import type { VisibleLayer } from "../transform.types";
+
+/** Live words and/or style of a text clip, measured instead of the saved ones. */
+export interface LiveText {
+  text?: string;
+  style?: TextStylePatch;
+}
 
 /**
  * Pictures on screen at `time` (video clips and text), top-most first (the order to hit-test
@@ -17,6 +26,7 @@ export function visibleLayers(
   sizeOf: (mediaId: MediaId) => PictureSize | undefined,
   time: Micros,
   measure: TextMeasure,
+  liveText: (clipId: string) => LiveText | undefined = () => undefined,
 ): VisibleLayer[] {
   const layers: VisibleLayer[] = [];
   for (const trackId of state.trackOrder) {
@@ -28,7 +38,17 @@ export function visibleLayers(
       if (clip.start > time) break; // sorted by start
       if (time >= clip.start + clip.duration) continue;
       if (clip.kind === "text") {
-        layers.push({ clipId, source: textBox(state.format, clip, measure), fit: "none" });
+        const live = liveText(clipId);
+        const shown = live
+          ? {
+              ...clip,
+              text: live.text ?? clip.text,
+              style: live.style
+                ? mergeTextStyle(textStyleOf(clip, state.format), live.style)
+                : clip.style,
+            }
+          : clip;
+        layers.push({ clipId, source: textBox(state.format, shown, measure), fit: "none" });
         continue;
       }
       if (state.media[clip.mediaId]?.kind !== "video") continue;

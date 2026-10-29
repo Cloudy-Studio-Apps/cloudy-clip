@@ -1,7 +1,13 @@
 import type { Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ClipId, ClipTransform, ProjectState } from "@/modules/project";
+import type { ClipId, ClipTransform, ProjectState, TextStylePatch } from "@/modules/project";
+
+/** Live words and/or style of a text clip while it is being edited; the style may be partial. */
+export interface TextOverride {
+  text?: string;
+  style?: TextStylePatch;
+}
 
 /** Called on every frame while playing, and once per seek while paused. */
 export type TimeListener = (time: Micros) => void;
@@ -39,6 +45,7 @@ export interface PreviewEngine {
     time: Micros,
     playing: boolean,
     transforms?: ReadonlyMap<ClipId, ClipTransform>,
+    textOverrides?: ReadonlyMap<ClipId, TextOverride>,
   ): void;
   /** Stops all media without forgetting state (e.g. on pause). */
   pauseAll(): void;
@@ -83,6 +90,14 @@ export interface PreviewApi {
    * gesture commits with `transform.setClipTransform` on release.
    */
   previewTransform(clipId: ClipId, transform: ClipTransform | null): void;
+  /**
+   * Draws a text clip with this live `text` and/or `style` (partial) instead of the saved ones,
+   * without changing the project (live feedback while editing). Pass null to go back to the saved
+   * values. The edit commits with `text.setText` / `text.setStyle`.
+   */
+  previewTextClip(clipId: ClipId, override: TextOverride | null): void;
+  /** The live override of a text clip, so the canvas tools measure the box being drawn. */
+  textClipOverride(clipId: ClipId): TextOverride | undefined;
   /** Zoom and pan of the viewer. View state only: not in the project, not undoable. */
   readonly viewport: ViewportApi;
 }

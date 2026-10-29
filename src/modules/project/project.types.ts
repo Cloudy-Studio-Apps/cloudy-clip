@@ -166,6 +166,13 @@ export interface TextLayout {
 /** Width of `text` drawn in the CSS `font` with `letterSpacing` pixels between letters (canvas `measureText`, faked in tests). */
 export type TextMeasure = (text: string, font: string, letterSpacing: number) => number;
 
+/** The part of a 2D canvas context `canvasTextMeasure` uses; `letterSpacing` is missing in some webviews. */
+export interface TextMeasureContext {
+  font: string;
+  letterSpacing?: string;
+  measureText(text: string): { width: number };
+}
+
 /**
  * Placement of a clip's picture in the output frame. The picture is first fitted (contained) in
  * the frame and centered; then scaled, rotated about its center, and moved.

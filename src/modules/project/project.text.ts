@@ -7,6 +7,7 @@ import type {
   TextLayout,
   TextLine,
   TextMeasure,
+  TextMeasureContext,
   TextStyle,
   TextStylePatch,
 } from "./project.types";
@@ -19,6 +20,32 @@ const BUNDLED_FAMILIES: Record<string, string> = {
   Inter: "Inter Variable",
   "JetBrains Mono": "JetBrains Mono Variable",
 };
+
+/** The CSS family name a font is registered under ("Inter" is "Inter Variable"; other sources keep their name). */
+export function bundledCssFamily(family: string): string {
+  return BUNDLED_FAMILIES[family] ?? family;
+}
+
+/**
+ * A `TextMeasure` over a 2D canvas context, so the engine and the canvas tools measure alike.
+ * Widths follow the contract `(n-1)·letterSpacing` between letters: the canvas also adds spacing
+ * after the last letter, which is taken off. Without `ctx.letterSpacing` the letters are measured
+ * one by one.
+ */
+export function canvasTextMeasure(ctx: TextMeasureContext | null): TextMeasure {
+  return (text, font, letterSpacing) => {
+    if (!ctx || text === "") return 0;
+    ctx.font = font;
+    if ("letterSpacing" in ctx) {
+      ctx.letterSpacing = `${letterSpacing}px`;
+      const width = ctx.measureText(text).width;
+      return letterSpacing !== 0 ? width - letterSpacing : width;
+    }
+    const letters = [...text];
+    const sum = letters.reduce((total, letter) => total + ctx.measureText(letter).width, 0);
+    return sum + letterSpacing * (letters.length - 1);
+  };
+}
 
 /** Whether a clip is a text clip. */
 export function isTextClip(clip: Clip): clip is TextClip {
@@ -78,8 +105,7 @@ export function mergeTextStyle(style: TextStyle, patch: TextStylePatch): TextSty
 
 /** CSS `font-family` list for a font: its quoted, escaped name, then Inter and a generic fallback. */
 export function cssFontFamily(font: TextFontRef): string {
-  const name =
-    font.source === "bundled" ? (BUNDLED_FAMILIES[font.family] ?? font.family) : font.family;
+  const name = font.source === "bundled" ? bundledCssFamily(font.family) : font.family;
   const quoted = `"${name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
   return name === "Inter Variable"
     ? `${quoted}, sans-serif`

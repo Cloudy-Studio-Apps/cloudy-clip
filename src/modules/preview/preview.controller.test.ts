@@ -114,4 +114,17 @@ describe("preview controller", () => {
     const { controller } = setup();
     await expect(controller.captureFrame()).rejects.toThrow("The preview is not visible");
   });
+
+  it("keeps a live text override until cleared and redraws", () => {
+    const { controller, engines, flush } = setup();
+    controller.attachCanvas(canvas);
+    flush();
+    const before = engines[0]?.renders ?? 0;
+    controller.previewTextClip("c1", { text: "Hi" });
+    expect(controller.textClipOverride("c1")).toEqual({ text: "Hi" });
+    flush();
+    expect(engines[0]?.renders).toBe(before + 1);
+    controller.previewTextClip("c1", null);
+    expect(controller.textClipOverride("c1")).toBeUndefined();
+  });
 });

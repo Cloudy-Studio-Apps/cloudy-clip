@@ -1,6 +1,11 @@
 import { createLogger, type Micros } from "@/core";
 import type { ClipId, ClipTransform } from "@/modules/project";
-import type { PreviewController, PreviewControllerDeps, PreviewEngine } from "./preview.types";
+import type {
+  PreviewController,
+  PreviewControllerDeps,
+  PreviewEngine,
+  TextOverride,
+} from "./preview.types";
 import { createViewport } from "./preview.viewport";
 
 const log = createLogger("preview");
@@ -21,11 +26,20 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   /** Live transforms of a gesture in progress, drawn instead of the saved ones. */
   const transforms = new Map<ClipId, ClipTransform>();
 
+  /** Live text edits, drawn instead of the saved words and style. */
+  const textOverrides = new Map<ClipId, TextOverride>();
+
   function renderNow(): void {
     redrawQueued = false;
     if (!engine) return;
     try {
-      engine.render(deps.getProject(), clock.getTime(), clock.isPlaying(), transforms);
+      engine.render(
+        deps.getProject(),
+        clock.getTime(),
+        clock.isPlaying(),
+        transforms,
+        textOverrides,
+      );
     } catch (error) {
       log.error("Render failed", error);
     }
@@ -114,6 +128,12 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
       else transforms.delete(clipId);
       requestRedraw();
     },
+    previewTextClip(clipId, override) {
+      if (override) textOverrides.set(clipId, override);
+      else textOverrides.delete(clipId);
+      requestRedraw();
+    },
+    textClipOverride: (clipId) => textOverrides.get(clipId),
     viewport: createViewport(),
     dispose() {
       clock.pause();

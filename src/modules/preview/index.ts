@@ -12,6 +12,7 @@ export type {
   PreviewApi,
   PreviewEngine,
   PreviewOverlay,
+  TextOverride,
   TimeListener,
   ViewportApi,
   ViewportState,
