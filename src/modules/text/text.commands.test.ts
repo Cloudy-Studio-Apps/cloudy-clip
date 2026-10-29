@@ -5,7 +5,9 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule, previewRef } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
-import { addText } from "./text.commands";
+import { transformModule } from "@/modules/transform";
+import { isTextClip, type TextClip } from "@/modules/project";
+import { addText, applyTextPreset, setText, setTextStyle } from "./text.commands";
 import { textModule } from "./text.module";
 
 const S = 1_000_000;
@@ -29,7 +31,12 @@ beforeEach(async () => {
   await kernel.modules.loadAll([
     createProjectModule(project),
     createFakeMediaModule({ mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 } }),
-    createFakeFontsModule(),
+    createFakeFontsModule({
+      families: [
+        { family: "Roboto", source: "google", variants: [{ weight: "400", style: "normal" }] },
+      ],
+    }),
+    transformModule,
     previewModule,
     timelineModule,
     textModule,
@@ -70,5 +77,94 @@ describe("text.add", () => {
     await run(kernel.bus.run(addText, { start: S }));
     kernel.history.undo();
     expect(doc()).toEqual(before);
+  });
+});
+
+const textClip = async () => run(kernel.bus.run(addText, { start: 0 }));
+const styleOf = (id: string) => (doc().clips[id] as TextClip).style;
+
+describe("text.setText", () => {
+  it("changes the words", async () => {
+    const clip = await textClip();
+    await run(kernel.bus.run(setText, { clipId: clip.id, text: "Hello" }));
+    expect((doc().clips[clip.id] as TextClip).text).toBe("Hello");
+  });
+
+  it("refuses empty words, missing clips and media clips", async () => {
+    const clip = await textClip();
+    const empty = await kernel.bus.run(setText, { clipId: clip.id, text: "  " });
+    expect(!empty.ok && empty.error.code).toBe("text.empty");
+    const missing = await kernel.bus.run(setText, { clipId: "nope", text: "x" });
+    expect(!missing.ok && missing.error.code).toBe("text.clip_not_found");
+    const media = (await run(kernel.bus.run(addClip, { mediaId: "mv" }))).clips[0]!;
+    const result = await kernel.bus.run(setText, { clipId: media.id, text: "x" });
+    expect(!result.ok && result.error.code).toBe("text.not_text");
+    expect(isTextClip(doc().clips[clip.id]!)).toBe(true);
+  });
+});
+
+describe("text.setStyle", () => {
+  it("merges a nested patch and keeps the rest", async () => {
+    const clip = await textClip();
+    await run(
+      kernel.bus.run(setTextStyle, { clipIds: [clip.id], style: { fill: { opacity: 0.5 } } }),
+    );
+    expect(styleOf(clip.id)?.fill).toEqual({ color: "#ffffff", opacity: 0.5 });
+  });
+
+  it("checks the weight against a known family only", async () => {
+    const clip = await textClip();
+    const font = { family: "Roboto", source: "google" as const };
+    const bad = await kernel.bus.run(setTextStyle, {
+      clipIds: [clip.id],
+      style: { font, weight: "700" },
+    });
+    expect(!bad.ok && bad.error.code).toBe("text.weight_unavailable");
+    const unknown = await kernel.bus.run(setTextStyle, {
+      clipIds: [clip.id],
+      style: { font: { family: "Nonexistent Font", source: "google" }, weight: "700" },
+    });
+    expect(unknown.ok).toBe(true);
+  });
+
+  it("lowercases colors and rejects out of range values", async () => {
+    const clip = await textClip();
+    await run(
+      kernel.bus.run(setTextStyle, { clipIds: [clip.id], style: { fill: { color: "#FFAA00" } } }),
+    );
+    expect(styleOf(clip.id)?.fill.color).toBe("#ffaa00");
+    const bad = await kernel.bus.run(setTextStyle, { clipIds: [clip.id], style: { size: 0 } });
+    expect(bad.ok).toBe(false);
+  });
+
+  it("changes nothing when one of the clips is bad", async () => {
+    const clip = await textClip();
+    const before = doc();
+    const result = await kernel.bus.run(setTextStyle, {
+      clipIds: [clip.id, "nope"],
+      style: { size: 50 },
+    });
+    expect(!result.ok && result.error.code).toBe("text.clip_not_found");
+    expect(doc()).toEqual(before);
+  });
+});
+
+describe("text.applyPreset", () => {
+  it("sets the style and the transform in one undo step", async () => {
+    const clip = await textClip();
+    const before = doc();
+    await run(kernel.bus.run(applyTextPreset, { clipId: clip.id, preset: "lower-third" }));
+    expect(styleOf(clip.id)?.align).toBe("left");
+    expect(doc().clips[clip.id]?.transform).toMatchObject({ x: -216, y: 614.4 });
+    kernel.history.undo();
+    expect(doc()).toEqual(before);
+  });
+});
+
+describe("text.add with a look", () => {
+  it("stores the preset and the words", async () => {
+    const clip = await run(kernel.bus.run(addText, { preset: "outline", text: "Hi" }));
+    expect(clip.text).toBe("Hi");
+    expect(styleOf(clip.id)?.outline.enabled).toBe(true);
   });
 });

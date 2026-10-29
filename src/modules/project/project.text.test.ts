@@ -122,6 +122,11 @@ describe("mergeTextStyle", () => {
     expect(next.size).toBe(50);
     expect(base.fill.opacity).toBe(1);
   });
+
+  it("skips undefined keys inside a nested group", () => {
+    const next = mergeTextStyle(base, { fill: { color: undefined, opacity: 0.5 } });
+    expect(next.fill).toEqual({ color: "#ffffff", opacity: 0.5 });
+  });
 });
 
 describe("canvasTextMeasure", () => {

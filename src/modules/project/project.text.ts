@@ -89,6 +89,10 @@ export function textStyleOf(clip: TextClip, format: ProjectFormat): TextStyle {
   return clip.style ?? defaultTextStyle(format);
 }
 
+function definedOnly(group: object): object {
+  return Object.fromEntries(Object.entries(group).filter(([, v]) => v !== undefined));
+}
+
 /** `style` with `patch` applied; nested groups (fill, outline, …) merge one level deep. */
 export function mergeTextStyle(style: TextStyle, patch: TextStylePatch): TextStyle {
   const next: Record<string, unknown> = { ...style };
@@ -97,7 +101,7 @@ export function mergeTextStyle(style: TextStyle, patch: TextStylePatch): TextSty
     const current = (style as unknown as Record<string, unknown>)[key];
     next[key] =
       typeof value === "object" && value !== null && typeof current === "object"
-        ? { ...(current as object), ...value }
+        ? { ...(current as object), ...definedOnly(value as object) }
         : value;
   }
   return next as unknown as TextStyle;
