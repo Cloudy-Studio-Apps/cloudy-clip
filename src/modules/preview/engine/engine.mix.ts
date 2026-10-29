@@ -1,3 +1,4 @@
+import { createLogger } from "@/core";
 import { activeJunctions } from "../logic/junctions";
 import { seededRandom } from "../logic/random";
 import type { ClipDrawer, EngineOptions, TrackFrame } from "./engine.types";
@@ -7,7 +8,11 @@ import type { ClipDrawer, EngineOptions, TrackFrame } from "./engine.types";
  * pictures are drawn into before its `mix` combines them. Default (accelerated) 2D canvases:
  * never `willReadFrequently`, which draws video frames black on WebKitGTK.
  */
+const log = createLogger("preview.mix");
+
 export class MixCanvases {
+  /** Whether a failing mix was already reported, so a broken plugin logs once, not every frame. */
+  reported = false;
   private readonly contexts: Array<CanvasRenderingContext2D | undefined> = [];
 
   constructor(private readonly main: HTMLCanvasElement) {}
@@ -87,8 +92,25 @@ export function drawTrack(
     // A fresh generator each frame, seeded by the junction: the same noise on every frame.
     const env = { format: project.format, kx, ky, random: seededRandom(junction.id), elapsed };
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    mix(ctx, a.canvas, b.canvas, progress, props, env);
-    ctx.restore();
+    try {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      mix(ctx, a.canvas, b.canvas, progress, props, env);
+    } catch (error) {
+      if (!canvases.reported) {
+        canvases.reported = true;
+        log.error(
+          `The "${junction.kind}" junction failed to mix; drawing the right clip over the left`,
+          error,
+        );
+      }
+      // Whatever the mix drew is undone by the restore below; show both pictures plainly.
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(a.canvas, 0, 0);
+      ctx.drawImage(b.canvas, 0, 0);
+    } finally {
+      ctx.restore();
+    }
   }
 }

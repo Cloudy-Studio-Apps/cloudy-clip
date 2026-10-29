@@ -40,7 +40,8 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     clips. `engine.mix.ts` (`drawTrack`) draws each with the normal placement path into one of
     two pooled full-frame offscreen canvases (`MixCanvases`: default accelerated 2D canvases,
     never `willReadFrequently`), then calls the kind's `mix(ctx, a, b, progress, props, env)` on
-    the main canvas in that track's place in the bottom → top order. `env` has the format,
+    the main canvas in that track's place in the bottom → top order, inside `save`/`restore` in a `try/finally`: a mix that throws is logged
+    once per engine and that frame shows the right picture over the left. `env` has the format,
     `kx`/`ky`, `elapsed` (seconds since the overlap started) and `random()`, a generator seeded by
     the junction id and re-created each frame (`logic/random.ts`), so noise is the same on every
     frame. A kind without `mix` (or a kind that isn't registered) draws nothing extra: the clips
