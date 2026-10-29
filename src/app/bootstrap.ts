@@ -17,6 +17,7 @@ import { projectModule } from "@/modules/project";
 import { textModule } from "@/modules/text";
 import { timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
+import { transitionModule } from "@/modules/transition";
 
 const log = createLogger("app");
 
@@ -32,6 +33,7 @@ const MODULES: AnyModuleDefinition[] = [
   inspectorModule,
   transformModule,
   textModule,
+  transitionModule,
 ];
 
 /**
