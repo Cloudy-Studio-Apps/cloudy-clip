@@ -8,7 +8,7 @@ import { clampTrim, findOverlap, snapCandidates, snapSpan, snapTime } from "../l
 import { linkedTrimEdge, trimLimits } from "../logic/trim";
 import { moveClip, trimClip } from "../timeline.commands";
 import { SNAP_PX, TRIM_HANDLE_PX } from "../timeline.layout";
-import type { ClipGestureMode, TimelineViewState } from "../timeline.types";
+import type { ClipGestureMode, JunctionKindOf, TimelineViewState } from "../timeline.types";
 
 /** Picks the gesture from where the clip was grabbed. */
 export function gestureMode(offsetX: number, width: number): ClipGestureMode {
@@ -45,8 +45,10 @@ export function startClipGesture(options: {
   media: MediaApi;
   /** The project document, read for snapping and track kinds. */
   project: PatchableStore<ProjectState>;
+  /** The junction kinds, so a move that resizes a joined overlap within limits stays valid. */
+  kindOf: JunctionKindOf;
 }): void {
-  const { bus, clip, element, root, down, view, playback, media, project } = options;
+  const { bus, clip, element, root, down, view, playback, media, project, kindOf } = options;
   const pxPerSecond = view.getState().pxPerSecond;
   const mode = gestureMode(down.offsetX, element.offsetWidth);
   const state = project.getState();
@@ -85,11 +87,11 @@ export function startClipGesture(options: {
       const targetLane = targetTrackId === laneTrackId ? lane : homeLane;
       const shift = start - clip.start;
       const valid =
-        !findOverlap(state, targetTrackId, start, clip.duration, groupIds, clip) &&
+        !findOverlap(state, targetTrackId, start, clip.duration, groupIds, clip, kindOf) &&
         partners.every(
           ({ clip: p }) =>
             p.start + shift >= 0 &&
-            !findOverlap(state, p.trackId, p.start + shift, p.duration, groupIds, p),
+            !findOverlap(state, p.trackId, p.start + shift, p.duration, groupIds, p, kindOf),
         );
 
       const offsetX = timeToPx(shift, pxPerSecond);

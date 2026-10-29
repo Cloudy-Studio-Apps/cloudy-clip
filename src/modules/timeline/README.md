@@ -71,6 +71,9 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     becomes its duration if the kind's limits allow it (else `junction.invalid_duration`, nothing
     changes); touching, apart or on different tracks removes an overlapping junction, no shift
     back. The result is the clip plus `removedJunctions`.
+  - **Drag validity:** a dragged clip may overlap its joined neighbour by any length the junction's
+    kind accepts (`overlapAccepted` in `logic/joined.ts`: within `durationLimits`, any positive
+    overlap for an unregistered kind), the same rule `timeline.moveClip` applies.
   - **Trim:** trimming a joined edge (A's end, B's start), shorter or longer, keeps the overlap:
     B's start stays where the junction needs it, and B's end, everything after it on the track and
     their partners move by the change (`rippleTrim`). The joined neighbour doesn't limit that edge

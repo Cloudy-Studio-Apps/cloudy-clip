@@ -9,7 +9,8 @@ import {
   type TrackId,
   type TrackKind,
 } from "@/modules/project";
-import type { TrimEdge, TrimLimits } from "../timeline.types";
+import type { JunctionKindOf, TrimEdge, TrimLimits } from "../timeline.types";
+import { overlapAccepted } from "./joined";
 
 /** Smallest clip length allowed: one frame at the project frame rate. */
 export function minClipDuration(state: ProjectState): Micros {
@@ -19,7 +20,8 @@ export function minClipDuration(state: ProjectState): Micros {
 /**
  * Returns the first clip on the track overlapping `[start, start + duration)`, ignoring some.
  * When the span is `self` placed there, a neighbour it overlaps at one edge by exactly the
- * allowed overlap (a junction joining them, spec rule 12) is not in the way.
+ * allowed overlap (a junction joining them, spec rule 12) is not in the way; with `kindOf`, any
+ * overlap the junction's kind accepts (the move command resizes the junction) is not in the way.
  */
 export function findOverlap(
   state: ProjectState,
@@ -28,6 +30,7 @@ export function findOverlap(
   duration: Micros,
   ignore: ReadonlySet<ClipId> = new Set(),
   self?: Clip,
+  kindOf?: JunctionKindOf,
 ): Clip | undefined {
   const end = start + duration;
   const track = state.tracks[trackId];
@@ -36,7 +39,7 @@ export function findOverlap(
     if (ignore.has(id)) continue;
     const clip = state.clips[id];
     if (!clip || !(clip.start < end && start < clip.start + clip.duration)) continue;
-    if (self && joinedOverlap(state, self, start, end, clip)) continue;
+    if (self && joinedOverlap(state, self, start, end, clip, kindOf)) continue;
     return clip;
   }
   return undefined;
@@ -49,14 +52,15 @@ function joinedOverlap(
   start: Micros,
   end: Micros,
   other: Clip,
+  kindOf?: JunctionKindOf,
 ): boolean {
   const otherEnd = other.start + other.duration;
-  if (start < other.start && end < otherEnd) {
-    return end - other.start === allowedOverlap(state, self, other);
-  }
-  if (other.start < start && otherEnd < end) {
-    return otherEnd - start === allowedOverlap(state, other, self);
-  }
+  const accepted = (left: Clip, right: Clip, overlap: Micros) =>
+    kindOf
+      ? overlapAccepted(state, left, right, overlap, kindOf)
+      : overlap === allowedOverlap(state, left, right);
+  if (start < other.start && end < otherEnd) return accepted(self, other, end - other.start);
+  if (other.start < start && otherEnd < end) return accepted(other, self, otherEnd - start);
   return false;
 }
 

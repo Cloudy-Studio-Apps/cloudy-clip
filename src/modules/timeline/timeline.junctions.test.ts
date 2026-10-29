@@ -15,7 +15,14 @@ import {
   type Junction,
   type ProjectState,
 } from "@/modules/project";
-import { deleteClips, moveClip, removeTrack, splitAt, trimClip, unlinkClips } from "./timeline.commands";
+import {
+  deleteClips,
+  moveClip,
+  removeTrack,
+  splitAt,
+  trimClip,
+  unlinkClips,
+} from "./timeline.commands";
 import { timelineModule } from "./timeline.module";
 
 const S = 1_000_000;

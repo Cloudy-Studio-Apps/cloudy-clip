@@ -183,3 +183,39 @@ describe("snapping", () => {
     expect(snapSpan(500_000, S, [490_000, 1_520_000], 50_000)).toBe(490_000);
   });
 });
+
+describe("junction-aware placement with kind limits", () => {
+  const kindOf = (kind: string) =>
+    kind === "test"
+      ? ({
+          kind: "test",
+          name: "Test",
+          overlap: { default: 0.5 * S, min: () => 0.1 * S, max: () => 2 * S },
+        } as never)
+      : undefined;
+
+  it("accepts a joined overlap of another length within the kind's limits", () => {
+    const { state, trackId } = joinedClips();
+    const c1 = state.clips.c1!;
+    const ignore = new Set(["c1"]);
+    expect(findOverlap(state, trackId, 3.4 * S, c1.duration, ignore, c1, kindOf)).toBeUndefined();
+    // Beyond the maximum or not overlapping by a positive amount is still in the way.
+    expect(findOverlap(state, trackId, 1.5 * S, c1.duration, ignore, c1, kindOf)?.id).toBe("c0");
+    expect(findOverlap(state, trackId, 1.9 * S, c1.duration, ignore, c1, kindOf)?.id).toBe("c0");
+  });
+
+  it("accepts any positive overlap for an unregistered kind", () => {
+    const { state, trackId } = joinedClips();
+    state.junctions.j!.kind = "gone";
+    const c1 = state.clips.c1!;
+    expect(
+      findOverlap(state, trackId, 1 * S, c1.duration, new Set(["c1"]), c1, kindOf),
+    ).toBeUndefined();
+  });
+
+  it("does not accept an overlap with a clip that is not joined", () => {
+    const { state, trackId } = joinedClips();
+    const c2 = state.clips.c2!;
+    expect(findOverlap(state, trackId, 7 * S, 2.5 * S, new Set(["c2"]), c2, kindOf)?.id).toBe("c1");
+  });
+});

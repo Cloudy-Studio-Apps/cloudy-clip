@@ -2,6 +2,7 @@ import { Link } from "lucide-react";
 import { memo, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
+import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
 import { elementRef, type ElementDisplay } from "@/modules/element";
 import { type Clip, type ProjectState, partnersOf, projectRef } from "@/modules/project";
@@ -27,6 +28,7 @@ export const TimelineClip = memo(function TimelineClip({
 }: TimelineClipProps) {
   const project = useModule(projectRef).store;
   const timeline = useModule(timelineRef);
+  const junctions = useModule(junctionRef);
   const { playback } = useModule(previewRef);
   const media = useModule(mediaRef);
   const { bus } = useKernel();
@@ -85,6 +87,7 @@ export const TimelineClip = memo(function TimelineClip({
           playback,
           media,
           project,
+          kindOf: (kind) => junctions.get(kind)?.definition,
         });
       }}
     >
