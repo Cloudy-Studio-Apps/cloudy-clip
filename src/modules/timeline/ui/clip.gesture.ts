@@ -85,11 +85,11 @@ export function startClipGesture(options: {
       const targetLane = targetTrackId === laneTrackId ? lane : homeLane;
       const shift = start - clip.start;
       const valid =
-        !findOverlap(state, targetTrackId, start, clip.duration, groupIds) &&
+        !findOverlap(state, targetTrackId, start, clip.duration, groupIds, clip) &&
         partners.every(
           ({ clip: p }) =>
             p.start + shift >= 0 &&
-            !findOverlap(state, p.trackId, p.start + shift, p.duration, groupIds),
+            !findOverlap(state, p.trackId, p.start + shift, p.duration, groupIds, p),
         );
 
       const offsetX = timeToPx(shift, pxPerSecond);

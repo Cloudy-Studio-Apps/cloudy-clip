@@ -7,10 +7,14 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
 - **Requires:** `project`, `element` (clip labels, colors, bodies), `junction` (kind limits when
   clip edits change joined clips), `media`, `preview`
 - **Contributes:** panel `timeline.panel` (bottom); keybindings `timeline.split` (S),
-  `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace)
+  `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace); with a junction selected
+  they run `junction.remove` instead of deleting clips
 - **Points it owns:** —
 - **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history),
-  `setZoom`, `selectClip` (selecting a clip selects its linked partners). The selection is shared:
+  `setZoom`, `selectClip` (selecting a clip selects its linked partners and clears the junction
+  selection), `selectJunction(id | null)` (selecting a junction clears the clip selection;
+  `view.junctionSelection`), `cutTarget(clientX, clientY)` (the cut under a point within 8 px, for
+  drops from other panels). The selection is shared:
   the preview's canvas tools select through it. `dropTarget(clientX, clientY)` gives the track and
   time under a screen point, for drops from other panels (the Text tab). Exported helpers for
   modules that place their own clips: `findOverlap`, `freeTrack`, `overlapError`,
@@ -38,6 +42,12 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     click-or-drag on a tile (DOM ghost, no renders), a click adds at the playhead, a drop goes
     through `dropTarget` (the lane under the pointer when the element may sit there, else only the
     time).
+  - `junction.display.ts`: `useTrackChips(trackId)`, the chips of a track (label, icon, cut time),
+    one selector per project change; `ui/JunctionChip.tsx`: the glass chip (tokens only), width
+    `max(duration, 28 px)`, centered on the cut; its edges drag the duration (`ui/junction.gesture.ts`:
+    DOM feedback clamped by `clampDuration(durationLimits(…))`, one `junction.set` on release).
+    A chip of an unregistered kind shows muted. `TrackLane` draws only the chips in the rendered
+    pages. `logic/cut.ts`: `cutAtX`.
 - **Rules:** video tracks hold pictures (and text clips) only, audio tracks hold sound. Every
   command works on any clip kind; a clip without a file (`mediaId`; text) trims to any length
   (`TrimLimits.sourceless`) and keeps `sourceIn` at 0 when split. Splitting copies `props` to

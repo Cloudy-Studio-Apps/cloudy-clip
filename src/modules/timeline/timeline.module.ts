@@ -1,4 +1,5 @@
 import { defineModule, keybindings, layoutPanels } from "@/core";
+import { removeJunction } from "@/modules/junction";
 import { partnersOf, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { deleteClips, splitAt, timelineCommands } from "./timeline.commands";
@@ -21,6 +22,7 @@ export const timelineModule = defineModule({
     const timeline = createTimelineView(
       (id) => partnersOf(project.getState(), id).map((c) => c.id),
       laneBoxes,
+      () => project.getState(),
     );
     const { view } = timeline;
     ctx.contribute(layoutPanels, {
@@ -31,7 +33,8 @@ export const timelineModule = defineModule({
     });
 
     const deleteSelection = () => {
-      const clipIds = view.getState().selection;
+      const { selection: clipIds, junctionSelection: junctionIds } = view.getState();
+      if (junctionIds.length > 0) return { command: removeJunction.id, input: { junctionIds } };
       return clipIds.length > 0 ? { command: deleteClips.id, input: { clipIds } } : null;
     };
     ctx.contribute(
@@ -54,12 +57,17 @@ export const timelineModule = defineModule({
       { id: "timeline.delete-backspace", key: "backspace", resolve: deleteSelection },
     );
 
-    // Drop selected clips that no longer exist (deleted, undone, removed by an agent).
+    // Drop selected clips and junctions that no longer exist (deleted, undone, removed by an agent).
     const offProject = project.subscribe((state, previous) => {
-      if (state.clips === previous.clips) return;
-      const { selection } = view.getState();
-      const kept = selection.filter((id) => state.clips[id]);
-      if (kept.length !== selection.length) view.setState({ selection: kept });
+      const { selection, junctionSelection } = view.getState();
+      if (state.clips !== previous.clips) {
+        const kept = selection.filter((id) => state.clips[id]);
+        if (kept.length !== selection.length) view.setState({ selection: kept });
+      }
+      if (state.junctions !== previous.junctions) {
+        const kept = junctionSelection.filter((id) => state.junctions[id]);
+        if (kept.length !== junctionSelection.length) view.setState({ junctionSelection: kept });
+      }
     });
     return { api: timeline, dispose: offProject };
   },

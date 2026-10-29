@@ -1,7 +1,15 @@
 import type { Micros } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
-import type { JunctionKindDefinition } from "@/modules/junction";
-import type { ClipId, ClipMove, JunctionId, ProjectState, TrackId } from "@/modules/project";
+import type { Cut, JunctionKindDefinition } from "@/modules/junction";
+import type { LucideIcon } from "lucide-react";
+import type {
+  ClipId,
+  ClipMove,
+  Junction,
+  JunctionId,
+  ProjectState,
+  TrackId,
+} from "@/modules/project";
 
 /** Ephemeral view state of the timeline. Not part of the undo history. */
 export interface TimelineViewState {
@@ -9,6 +17,8 @@ export interface TimelineViewState {
   pxPerSecond: number;
   /** Selected clips. */
   selection: ClipId[];
+  /** Selected junctions (a clip selection and a junction selection never coexist). */
+  junctionSelection: JunctionId[];
 }
 
 /** Which edge of a clip a trim moves. */
@@ -45,6 +55,23 @@ export interface TimelineApi {
    * from the Text tab), or null when the point isn't over a lane.
    */
   dropTarget(clientX: number, clientY: number): DropTarget | null;
+  /** Selects a junction (clearing the clip selection), or clears the junction selection (null). */
+  selectJunction(id: JunctionId | null): void;
+  /** The cut under a screen point (within 8 px), for drops from other panels. */
+  cutTarget(clientX: number, clientY: number): Cut | null;
+}
+
+/** A junction chip as the lane draws it. */
+export interface JunctionChipInfo {
+  junction: Junction;
+  /** Cut time the chip is centered on (microseconds). */
+  center: Micros;
+  /** End of the left clip, where the overlap ends. */
+  leftEnd: Micros;
+  label: string;
+  icon: LucideIcon;
+  /** The junction's kind isn't registered. */
+  missing: boolean;
 }
 
 /** What a drag on a clip does: move it, or trim one of its edges. */

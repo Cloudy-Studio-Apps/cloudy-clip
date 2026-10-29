@@ -137,6 +137,8 @@ export function TimelinePanel() {
                   track={track}
                   clips={clips}
                   pxPerSecond={pxPerSecond}
+                  from={from}
+                  to={to}
                   rootRef={scrollRef}
                 />
               </div>

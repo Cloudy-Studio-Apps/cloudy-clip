@@ -36,6 +36,21 @@ describe("timeline view", () => {
     expect(selection()).toEqual(["x"]);
   });
 
+  it("selecting a junction clears the clip selection", () => {
+    const timeline = createTimelineView();
+    const { view } = timeline;
+    timeline.selectClip("a");
+    timeline.selectJunction("j");
+    expect(view.getState().selection).toEqual([]);
+    expect(view.getState().junctionSelection).toEqual(["j"]);
+    timeline.selectClip("b");
+    expect(view.getState().junctionSelection).toEqual([]);
+    expect(view.getState().selection).toEqual(["b"]);
+    timeline.selectJunction("j");
+    timeline.selectJunction(null);
+    expect(view.getState().junctionSelection).toEqual([]);
+  });
+
   it("dropTarget reads the lanes at the current zoom", () => {
     const timeline = createTimelineView(undefined, () => [
       { trackId: "v1", left: 0, top: 0, bottom: 50 },
@@ -50,6 +65,10 @@ describe("timeline view", () => {
     const second = createTimelineView();
     first.selectClip("a");
     first.setZoom(100);
-    expect(second.view.getState()).toEqual({ pxPerSecond: 60, selection: [] });
+    expect(second.view.getState()).toEqual({
+      pxPerSecond: 60,
+      selection: [],
+      junctionSelection: [],
+    });
   });
 });

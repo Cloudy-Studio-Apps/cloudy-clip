@@ -15,3 +15,6 @@ export const TAIL_SECONDS = 30;
 export function trackHeight(kind: TrackKind): number {
   return kind === "video" ? 64 : 44;
 }
+
+/** Narrowest a junction chip is drawn, in px, so a very short one stays clickable. */
+export const JUNCTION_MIN_WIDTH_PX = 28;

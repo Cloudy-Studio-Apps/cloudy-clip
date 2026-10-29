@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { useKernel, useModule, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { type Clip, type Track, projectRef } from "@/modules/project";
@@ -8,6 +8,8 @@ import { pxToTime } from "../logic/geometry";
 import { snapCandidates, snapTime } from "../logic/placement";
 import { addClip } from "../timeline.commands";
 import { SNAP_PX, trackHeight } from "../timeline.layout";
+import { useTrackChips } from "../junction.display";
+import { JunctionChip } from "./JunctionChip";
 import { TimelineClip } from "./TimelineClip";
 
 interface TrackLaneProps {
@@ -15,6 +17,9 @@ interface TrackLaneProps {
   /** Clips of this track inside the rendered window. */
   clips: Clip[];
   pxPerSecond: number;
+  /** The rendered window, in microseconds; chips outside it are not drawn. */
+  from: Micros;
+  to: Micros;
   rootRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -28,6 +33,8 @@ export const TrackLane = memo(function TrackLane({
   track,
   clips,
   pxPerSecond,
+  from,
+  to,
   rootRef,
 }: TrackLaneProps) {
   const project = useModule(projectRef).store;
@@ -35,6 +42,11 @@ export const TrackLane = memo(function TrackLane({
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
+  const allChips = useTrackChips(track.id);
+  const chips = useMemo(
+    () => allChips.filter((c) => c.center >= from && c.center <= to),
+    [allChips, from, to],
+  );
 
   useEffect(() => {
     const lane = ref.current;
@@ -77,6 +89,9 @@ export const TrackLane = memo(function TrackLane({
     >
       {clips.map((clip) => (
         <TimelineClip key={clip.id} clip={clip} pxPerSecond={pxPerSecond} rootRef={rootRef} />
+      ))}
+      {chips.map((chip) => (
+        <JunctionChip key={chip.junction.id} chip={chip} pxPerSecond={pxPerSecond} />
       ))}
     </div>
   );

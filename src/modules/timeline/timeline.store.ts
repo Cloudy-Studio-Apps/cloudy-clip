@@ -1,5 +1,6 @@
 import { createStore } from "zustand/vanilla";
-import type { ClipId } from "@/modules/project";
+import type { ClipId, ProjectState } from "@/modules/project";
+import { cutAtX } from "./logic/cut";
 import { laneDropTarget } from "./logic/drop";
 import type { LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
 
@@ -13,8 +14,13 @@ export const MAX_PX_PER_SECOND = 400;
 export function createTimelineView(
   partners: (id: ClipId) => ClipId[] = () => [],
   lanes: () => LaneBox[] = () => [],
+  project?: () => ProjectState,
 ): TimelineApi {
-  const view = createStore<TimelineViewState>()(() => ({ pxPerSecond: 60, selection: [] }));
+  const view = createStore<TimelineViewState>()(() => ({
+    pxPerSecond: 60,
+    selection: [],
+    junctionSelection: [],
+  }));
   return {
     view,
     setZoom(pxPerSecond) {
@@ -24,12 +30,24 @@ export function createTimelineView(
     dropTarget(clientX, clientY) {
       return laneDropTarget(lanes(), clientX, clientY, view.getState().pxPerSecond);
     },
+    cutTarget(clientX, clientY) {
+      const lane = lanes().find((l) => clientY >= l.top && clientY < l.bottom);
+      if (!lane || !project) return null;
+      const x = clientX - lane.left;
+      return cutAtX(project(), lane.trackId, x, view.getState().pxPerSecond, 8) ?? null;
+    },
+    selectJunction(id) {
+      view.setState(
+        id === null ? { junctionSelection: [] } : { junctionSelection: [id], selection: [] },
+      );
+    },
     selectClip(id, additive = false) {
       view.setState((s) => {
-        if (id === null) return { selection: [] };
+        if (id === null) return { selection: [], junctionSelection: [] };
         const group = [id, ...partners(id)];
-        if (!additive) return { selection: group };
+        if (!additive) return { selection: group, junctionSelection: [] };
         return {
+          junctionSelection: [],
           selection: s.selection.includes(id)
             ? s.selection.filter((c) => !group.includes(c))
             : [...s.selection, ...group.filter((c) => !s.selection.includes(c))],
