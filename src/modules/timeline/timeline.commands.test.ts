@@ -256,6 +256,12 @@ describe("text clips", () => {
     await run(kernel.bus.run(trimClip, { clipId: "t", edge: "end", time: 99 * S }));
     expect(doc().clips.t!.duration).toBe(99 * S);
   });
+
+  it("trims a text clip's start without moving a source", async () => {
+    addText(2 * S, 4 * S);
+    await run(kernel.bus.run(trimClip, { clipId: "t", edge: "start", time: 3 * S }));
+    expect(doc().clips.t).toMatchObject({ start: 3 * S, duration: 3 * S, sourceIn: 0 });
+  });
 });
 
 describe("linked clips", () => {

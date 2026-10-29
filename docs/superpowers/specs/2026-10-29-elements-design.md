@@ -52,10 +52,11 @@ opacity: true }`. A shared group (`transform`) is defined once by the module tha
 7. **Old commands are removed**: `text.setStyle`, `text.setText`, `text.add` and their MCP tools,
    and `transform.setClipTransform` (the canvas gesture commits through `element.setProps`).
    `text.applyPreset` stays (a recipe that also moves the clip); `transform.reset` is new (a
-   button). New: `element.setProps`, `element.resetProps`, `element_describe`, `timeline.addClip`.
+   button). New: `element.setProps`, `element.resetProps`, `element_describe`, `timeline.addElement`
+   (`timeline.addClip` already places media files, so the generic add got its own name).
 8. **Creation is declared**: `create: [{ panel: "text", id: "title", label: "Title", props: {...} }]`.
    A shared `CreateTiles` component (timeline) shows the entries of one panel id; click adds at the
-   playhead, drag drops on the timeline. Both run `timeline.addClip({ kind, props?, start?,
+   playhead, drag drops on the timeline. Both run `timeline.addElement({ kind, props?, start?,
 trackId? })`, which has today's `text.add` track rules for any element without a source file.
 9. **Drawing goes through the element**: `picture: { fit, size(props, env), draw(ctx, props, env) }`.
    Media keeps its decoder path (`picture: { fit: "contain", source: "media" }`, see the preview
@@ -64,17 +65,17 @@ trackId? })`, which has today's `text.add` track rules for any element without a
 
 ## Names
 
-| Thing                         | Name                                                                                                       |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| New core module               | `element` (`src/modules/element/`), requires `project`                                                     |
-| Declare an element            | `defineElement({...})`                                                                                     |
-| Property builders             | `prop.string / number / boolean / color / enum / group / custom`                                           |
-| Points (owned by `element`)   | `elements` (keyed by kind), `sharedGroups` (by id), `propTypes` (by name)                                  |
-| Points (owned by `inspector`) | `propertyControls` (by id), `sectionLayouts` (by id)                                                       |
-| Generic commands              | `element.setProps`, `element.resetProps` (MCP `element_set_props`, `element_reset_props`)                  |
-| Describe tool                 | `element_describe` (every element: properties, ranges, units, defaults for the format, placeable commands) |
-| Create a clip                 | `timeline.addClip` (MCP `timeline_add_clip`)                                                               |
-| Live preview                  | `PreviewApi.previewProps(clipId, patch \| null)`, `propsOverride(id)`, `onPropsOverride(fn)`               |
+| Thing                         | Name                                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| New core module               | `element` (`src/modules/element/`), requires `project`                                                   |
+| Declare an element            | `defineElement({...})`                                                                                   |
+| Property builders             | `prop.string / number / boolean / color / enum / group / custom`                                         |
+| Points (owned by `element`)   | `elements` (keyed by kind), `sharedGroups` (by id), `propTypes` (by name)                                |
+| Points (owned by `inspector`) | `propertyControls` (by id), `sectionLayouts` (by id)                                                     |
+| Generic commands              | `element.setProps`, `element.resetProps` (MCP `element_set_props`, `element_reset_props`)                |
+| Describe tool                 | `element_describe` (every element: properties, ranges, units, defaults for the format, panel `commands`) |
+| Create a clip                 | `timeline.addElement` (MCP `timeline_add_element`)                                                       |
+| Live preview                  | `PreviewApi.previewProps(clipId, patch \| null)`, `propsOverride(id)`, `onPropsOverride(fn)`             |
 
 MCP tool names start with the module id (CLAUDE.md rule 17), so the generic tools are
 `element_*`, not `clip_*` as said in conversation.
