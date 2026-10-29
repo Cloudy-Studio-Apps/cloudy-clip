@@ -46,6 +46,8 @@ export interface ClipBase {
   sourceIn: Micros;
   /** Length on the timeline (and in the source; no speed changes in v1). */
   duration: Micros;
+  /** The element's own values (only those that differ from its defaults). */
+  props?: Record<string, unknown>;
   /** Where the picture sits in the frame (video clips). Missing means `IDENTITY_TRANSFORM`. */
   transform?: ClipTransform;
   /**

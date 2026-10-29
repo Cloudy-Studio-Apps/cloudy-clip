@@ -250,3 +250,40 @@ export interface SchemaEnv {
   /** Supported shared groups: their key on the clip and their (narrowed) fields. */
   groups: readonly { key: string; tree: PropertyTree }[];
 }
+
+/** An element with what the registry works out from it, for one kernel. */
+export interface ResolvedElement {
+  definition: AnyElement;
+  /** Supported shared groups, without their `except` fields and with the element's overrides. */
+  groups: readonly SharedGroup[];
+  /** Every field by path: `size`, `outline`, `outline.width`, `transform.x`. */
+  fields: ReadonlyMap<string, PropSpec>;
+  /** Schema of a patch of the element's values and its groups' values. */
+  schema: z.ZodObject;
+}
+
+/** The element module's API: the registered elements of this kernel. */
+export interface ElementApi {
+  /** The element of this kind, or undefined when no module registered it. */
+  get(kind: string): ResolvedElement | undefined;
+  /** Every registered element, in registration order. */
+  list(): readonly ResolvedElement[];
+  /**
+   * A clip's values: its props over its element's defaults, plus each supported group's values
+   * under its key (`transform`). Empty for an unknown kind.
+   */
+  resolve(clip: Clip, format: ProjectFormat): Record<string, unknown>;
+  /** Logs a warning about a declaration once per kernel, however often it is met. */
+  warn(message: string): void;
+}
+
+/** New values of shared groups by key; undefined means back to the defaults (removed). */
+export type GroupWrites = Array<
+  [keyof SharedGroupValues, SharedGroupValues[keyof SharedGroupValues] | undefined]
+>;
+
+declare module "@/core" {
+  interface CommandInputs {
+    "element.resetProps": { clipIds: string[]; paths?: string[] };
+  }
+}
