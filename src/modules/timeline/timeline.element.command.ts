@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, type Micros } from "@/core";
-import { elementRef, setProps } from "@/modules/element";
+import { checkGroupsApply, elementRef, parsePatch, setProps } from "@/modules/element";
 import { previewRef } from "@/modules/preview";
-import { projectRef, type Clip } from "@/modules/project";
+import { projectRef, type Clip, type Track } from "@/modules/project";
 import { findOverlap, freeTrack } from "./logic/placement";
 import { overlapError } from "./timeline.guards";
 import { addTrack } from "./timeline.track.commands";
@@ -42,8 +42,32 @@ export const addElement = defineCommand({
     }
     const start = input.start ?? ctx.require(previewRef).playback.getTime();
     const duration = input.duration ?? ELEMENT_DURATION;
+    const props = input.props ?? {};
+    const patch = parsePatch(element, props);
 
     let trackId = input.trackId;
+    const named = trackId ? store.getState().tracks[trackId] : undefined;
+    // Validate everything before writing: the props, and their groups on the track they will sit on.
+    const kind = named?.kind ?? definition.tracks[0] ?? "video";
+    const probe = {
+      id: "",
+      kind: definition.kind,
+      trackId: "",
+      start,
+      duration,
+      sourceIn: 0,
+      props,
+    };
+    const track: Track = named ?? {
+      id: "",
+      kind,
+      name: "",
+      clipIds: [],
+      muted: false,
+      hidden: false,
+    };
+    checkGroupsApply(element, [{ clip: probe, track }], patch);
+
     if (trackId) {
       const state = store.getState();
       const track = state.tracks[trackId];
@@ -59,7 +83,6 @@ export const addElement = defineCommand({
       const overlap = findOverlap(state, trackId, start, duration);
       if (overlap) throw overlapError(state, overlap);
     } else {
-      const kind = definition.tracks[0] ?? "video";
       trackId =
         freeTrack(store.getState(), kind, start, duration) ??
         (await ctx.execute(addTrack, { kind })).trackId;
@@ -81,8 +104,8 @@ export const addElement = defineCommand({
         (a, b) => (draft.clips[a]?.start ?? 0) - (draft.clips[b]?.start ?? 0),
       );
     });
-    if (input.props && Object.keys(input.props).length > 0) {
-      await ctx.execute(setProps, { clipIds: [clip.id], patch: input.props });
+    if (Object.keys(props).length > 0) {
+      await ctx.execute(setProps, { clipIds: [clip.id], patch: props });
     }
     return store.getState().clips[clip.id] ?? clip;
   },

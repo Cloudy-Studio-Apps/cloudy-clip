@@ -31,7 +31,14 @@ declaration, and one command changes any element's values.
   - `logic/apply.ts`: what `element.setProps` / `element.resetProps` write. Props are merged over
     the resolved values, run through the element's `normalize`, then minimized. A group's values
     are merged over its defaults, run through its `normalize`, and removed when equal to the
-    defaults (an untouched transform stays unset).
+    defaults (an untouched transform stays unset). A patch of shared groups only leaves the props
+    alone (the element's `normalize` doesn't run). A reset's props also go through `normalize`
+    (with an empty patch) and are minimized; several paths of one group add up.
+  - `element.guards.ts` (exported): `parsePatch` (schema + `read_only`), `checkGroupsApply`
+    (a group on a track it doesn't apply to), `checkResetPaths` (unknown path →
+    `invalid_props`, read-only → `read_only`).
+  - Both commands write only the clips whose values really change; when none does they don't
+    mutate, so no undo step is added.
 - **Values:** `clip.props` holds only what differs from `defaults(format)`, so a value the clip
   doesn't store follows the project's format. Shared group values live under their own key
   (`clip.transform`).
@@ -58,8 +65,8 @@ declaration, and one command changes any element's values.
   the timeline's `CreateTiles` and added with `timeline.addElement`.
 - **Not yet:** saving projects (`version` migrations), lists of groups, keyframes.
 
-| Command              | MCP tool              | Notes                                                                                                                |
-| -------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `element.setProps`   | `element_set_props`   | `clipIds` (one kind), `patch`. `element.clip_not_found`, `mixed_kinds`, `unknown_kind`, `invalid_props`, `read_only` |
-| `element.resetProps` | `element_reset_props` | `clipIds`, optional `paths` (fields, groups, or shared group keys); without paths every prop                         |
-| —                    | `element_describe`    | every element: name, tracks, source, supports, JSON schema of the patch, defaults for the format                     |
+| Command              | MCP tool              | Notes                                                                                                                      |
+| -------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `element.setProps`   | `element_set_props`   | `clipIds` (one kind), `patch`. `element.clip_not_found`, `mixed_kinds`, `unknown_kind`, `invalid_props`, `read_only`       |
+| `element.resetProps` | `element_reset_props` | `clipIds`, optional `paths` (fields, groups, or shared group keys); without paths every prop. `invalid_props`, `read_only` |
+| —                    | `element_describe`    | every element: name, tracks, source, supports, JSON schema of the patch, defaults for the format                           |

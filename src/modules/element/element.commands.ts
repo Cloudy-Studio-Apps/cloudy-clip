@@ -2,9 +2,10 @@ import { z } from "zod";
 import { CommandFailure, defineCommand, type CommandContext } from "@/core";
 import { projectRef, type Clip, type ProjectState } from "@/modules/project";
 import { elementRef } from "./element.ref";
-import type { ResolvedElement } from "./element.types";
-import { applyGroupPatch, applyPropsPatch, resetPaths } from "./logic/apply";
-import { leafPaths } from "./logic/paths";
+import { checkGroupsApply, checkResetPaths, parsePatch } from "./element.guards";
+import type { GroupWrites } from "./element.types";
+import { applyGroupPatch, applyPropsPatch, finishProps, resetPaths } from "./logic/apply";
+import { deepEqual } from "./logic/values";
 
 const clipIds = z.array(z.string()).min(1);
 
@@ -30,45 +31,37 @@ function target(ctx: CommandContext, state: ProjectState, ids: readonly string[]
   return { clips, element };
 }
 
-/** The patch parsed by the element's schema, refusing read-only fields. */
-function parsePatch(element: ResolvedElement, patch: Record<string, unknown>) {
-  const parsed = element.schema.safeParse(patch);
-  if (!parsed.success) {
-    const issue = parsed.error.issues[0]!;
-    const where = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
-    throw new CommandFailure(
-      "element.invalid_props",
-      `${element.definition.name}: ${where}${issue.message}`,
-    );
-  }
-  const values = parsed.data as Record<string, unknown>;
-  for (const path of leafPaths(values)) {
-    if (element.fields.get(path)?.readOnly) {
-      throw new CommandFailure("element.read_only", `"${path}" can't be changed`);
-    }
-  }
-  return values;
+/** A clip's new props and group values. */
+interface ClipWrite {
+  id: string;
+  props: Record<string, unknown>;
+  groups: GroupWrites;
 }
 
-/** Fails when the patch names a shared group that doesn't apply to one of the clips. */
-function checkGroupsApply(
-  element: ResolvedElement,
-  clips: readonly Clip[],
-  state: ProjectState,
-  patch: Record<string, unknown>,
-) {
-  for (const group of element.groups) {
-    if (patch[group.key] === undefined || !group.appliesTo) continue;
-    for (const clip of clips) {
-      const track = state.tracks[clip.trackId];
-      if (track && !group.appliesTo(clip, track)) {
-        throw new CommandFailure(
-          "element.invalid_props",
-          `Clip "${clip.id}" has no ${group.label.toLowerCase()} on a ${track.kind} track`,
-        );
+/**
+ * Writes the clips whose values really change, in one `ctx.mutate`. Nothing changes: no mutate,
+ * so no undo step.
+ */
+function write(ctx: CommandContext, state: ProjectState, writes: readonly ClipWrite[]) {
+  const changed = writes.filter(({ id, props, groups }) => {
+    const clip = state.clips[id]!;
+    return (
+      !deepEqual(props, clip.props ?? {}) ||
+      groups.some(([key, value]) => !deepEqual(value, clip[key]))
+    );
+  });
+  if (changed.length === 0) return;
+  const store = ctx.require(projectRef).store;
+  ctx.mutate(store, (draft) => {
+    for (const { id, props, groups } of changed) {
+      const clip = draft.clips[id]!;
+      clip.props = props;
+      for (const [key, value] of groups) {
+        if (value === undefined) delete clip[key];
+        else clip[key] = value;
       }
     }
-  }
+  });
 }
 
 /**
@@ -87,22 +80,17 @@ export const setProps = defineCommand({
     const state = store.getState();
     const { clips, element } = target(ctx, state, input.clipIds);
     const patch = parsePatch(element, input.patch);
-    checkGroupsApply(element, clips, state, patch);
+    checkGroupsApply(
+      element,
+      clips.map((clip) => ({ clip, track: state.tracks[clip.trackId] })),
+      patch,
+    );
     const next = clips.map((clip) => ({
       id: clip.id,
       props: applyPropsPatch(ctx, element, clip, patch, state.format),
       groups: applyGroupPatch(element, clip, patch, state.format),
     }));
-    ctx.mutate(store, (draft) => {
-      for (const { id, props, groups } of next) {
-        const clip = draft.clips[id]!;
-        clip.props = props;
-        for (const [key, value] of groups) {
-          if (value === undefined) delete clip[key];
-          else clip[key] = value;
-        }
-      }
-    });
+    write(ctx, state, next);
     const after = store.getState();
     return input.clipIds.map((id) => after.clips[id]);
   },
@@ -120,20 +108,16 @@ export const resetProps = defineCommand({
     const store = ctx.require(projectRef).store;
     const state = store.getState();
     const { clips, element } = target(ctx, state, input.clipIds);
-    const next = clips.map((clip) => ({
-      id: clip.id,
-      ...resetPaths(element, clip, input.paths, state.format),
-    }));
-    ctx.mutate(store, (draft) => {
-      for (const { id, props, groups } of next) {
-        const clip = draft.clips[id]!;
-        clip.props = props;
-        for (const [key, value] of groups) {
-          if (value === undefined) delete clip[key];
-          else clip[key] = value;
-        }
-      }
+    if (input.paths) checkResetPaths(element, input.paths);
+    const next = clips.map((clip) => {
+      const reset = resetPaths(element, clip, input.paths, state.format);
+      return {
+        id: clip.id,
+        ...reset,
+        props: finishProps(ctx, element, reset.props, {}, state.format),
+      };
     });
+    write(ctx, state, next);
     const after = store.getState();
     return input.clipIds.map((id) => after.clips[id]);
   },

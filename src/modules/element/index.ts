@@ -7,6 +7,8 @@
 export { setProps } from "./element.commands";
 /** Puts values of clips back to their defaults. */
 export { resetProps } from "./element.commands";
+/** Checks a patch of an element's values (schema, read-only) and that its shared groups apply. */
+export { checkGroupsApply, parsePatch } from "./element.guards";
 /** Points: kinds of clip, shared property groups, custom value types. */
 export { elements, propTypes, sharedGroups } from "./element.points";
 /** Declares an element, a shared group or a custom prop type. */

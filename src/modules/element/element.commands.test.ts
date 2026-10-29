@@ -10,10 +10,10 @@ import {
 import { Type } from "lucide-react";
 import { resetProps, setProps } from "./element.commands";
 import { elementModule } from "./element.module";
-import { elements } from "./element.points";
+import { elements, sharedGroups } from "./element.points";
 import { elementRef } from "./element.ref";
 import { createElementApi } from "./element.registry";
-import { defineElement } from "./logic/define";
+import { defineElement, defineSharedGroup } from "./logic/define";
 import { prop } from "./logic/props";
 
 const note = defineElement({
@@ -43,6 +43,27 @@ const other = defineElement({
   display: () => ({ icon: Type, color: "clip-type", label: "Other", body: "none" }),
 });
 
+const normalize = vi.fn((next: Record<string, unknown>) => next);
+const spy = defineElement({
+  kind: "spy",
+  name: "Spy",
+  source: "none",
+  tracks: ["video"],
+  supports: { transform: true },
+  properties: { size: prop.number() },
+  defaults: () => ({ size: 1 }),
+  normalize,
+  display: () => ({ icon: Type, color: "clip-type", label: "Spy", body: "none" }),
+});
+const transform = defineSharedGroup({
+  id: "transform",
+  key: "transform",
+  label: "Transform",
+  order: 900,
+  properties: { x: prop.number(), y: prop.number(), scale: prop.number(), rotation: prop.number() },
+  defaults: () => ({ x: 0, y: 0, scale: 1, rotation: 0 }),
+});
+
 const testModule = defineModule({
   ref: defineModuleRef<Record<string, never>>("test"),
   name: "Test",
@@ -51,7 +72,8 @@ const testModule = defineModule({
   commands: [],
   mcpTools: [],
   setup({ contribute }) {
-    contribute(elements, note, other);
+    contribute(elements, note, other, spy);
+    contribute(sharedGroups, transform);
     return { api: {} };
   },
 });
@@ -84,6 +106,7 @@ beforeEach(async () => {
     n2: clip("n2", "note"),
     o1: clip("o1", "other"),
     g1: clip("g1", "ghost"),
+    s1: clip("s1", "spy"),
   };
   await kernel.modules.loadAll([createProjectModule(project), elementModule, testModule]);
 });
@@ -122,7 +145,45 @@ describe("element.setProps", () => {
   });
 });
 
+describe("element.setProps writes only real changes", () => {
+  const steps = () => kernel.history.getSnapshot().past.length;
+
+  it("adds no undo step for an empty patch or unchanged values", async () => {
+    await kernel.bus.run(setProps, { clipIds: ["n1"], patch: { size: 20 } });
+    const before = steps();
+    await kernel.bus.run(setProps, { clipIds: ["n1"], patch: {} });
+    await kernel.bus.run(setProps, { clipIds: ["n1"], patch: { size: 20 } });
+    expect(steps()).toBe(before);
+  });
+
+  it("undo restores the props before the last change exactly", async () => {
+    await kernel.bus.run(setProps, { clipIds: ["n1"], patch: { size: 20, box: { pad: 9 } } });
+    await kernel.bus.run(setProps, { clipIds: ["n1"], patch: { size: 30 } });
+    kernel.history.undo();
+    expect(props()).toEqual({ size: 20, box: { pad: 9 } });
+  });
+
+  it("doesn't run the element's normalize for a shared-group-only patch", async () => {
+    normalize.mockClear();
+    await kernel.bus.run(setProps, { clipIds: ["s1"], patch: { transform: { x: 5 } } });
+    expect(normalize).not.toHaveBeenCalled();
+    await kernel.bus.run(setProps, { clipIds: ["s1"], patch: { size: 2 } });
+    expect(normalize).toHaveBeenCalled();
+  });
+});
+
 describe("element.resetProps", () => {
+  it("refuses unknown and read-only paths", async () => {
+    const reset = (paths: string[]) =>
+      failCode(kernel.bus.run(resetProps, { clipIds: ["n1"], paths }));
+    expect(await reset(["nope"])).toBe("element.invalid_props");
+    expect(await reset(["locked"])).toBe("element.read_only");
+  });
+  it("adds no undo step when nothing differs from the defaults", async () => {
+    const before = kernel.history.getSnapshot().past.length;
+    await kernel.bus.run(resetProps, { clipIds: ["n1"] });
+    expect(kernel.history.getSnapshot().past.length).toBe(before);
+  });
   it("drops the given paths", async () => {
     await kernel.bus.run(setProps, { clipIds: ["n1"], patch: { size: 20, box: { pad: 9 } } });
     await kernel.bus.run(resetProps, { clipIds: ["n1"], paths: ["box.pad"] });

@@ -21,8 +21,9 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     (default the playhead), `duration` (3 s), `trackId`): a clip of an element without a file. No
     track: the top track of the element's first track kind with room, or a new top one (same undo
     step). Fails `element.unknown_kind`, `timeline.needs_source` (media: use `addClip`),
-    `timeline.track_not_found`, `timeline.kind_mismatch`, `timeline.overlap`; `props` go through a
-    nested `element.setProps` (so they are checked and minimized; a refused patch adds nothing).
+    `timeline.track_not_found`, `timeline.kind_mismatch`, `timeline.overlap`; `props` are checked first (`parsePatch`, and their groups against the
+    target track's kind: `element.invalid_props` / `element.read_only`) before any track or clip
+    is written, then stored through a nested `element.setProps` (minimized).
   - `logic/`: pure, tested functions: overlap checks, trim clamping, snapping, geometry, links
     (`links.ts`: `partnersOf`, `withPartners`) and linked trims (`trim.ts`).
   - `ui/`: page-virtualized lanes (`TimelinePanel`), `clip.gesture.ts` (DOM feedback while dragging,

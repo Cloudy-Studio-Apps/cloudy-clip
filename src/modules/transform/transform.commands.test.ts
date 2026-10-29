@@ -102,6 +102,12 @@ describe("transform.reset", () => {
     expect(doc().clips[a.id]!.transform?.x).toBe(5);
     expect(doc().clips[b.id]!.transform?.y).toBe(5);
   });
+  it("adds no undo step for a clip that isn't transformed", async () => {
+    const clip = (await run(kernel.bus.run(addClip, { mediaId: "mv" }))).clips[0]!;
+    const before = kernel.history.getSnapshot().past.length;
+    await run(kernel.bus.run(resetTransform, { clipIds: [clip.id] }));
+    expect(kernel.history.getSnapshot().past.length).toBe(before);
+  });
   it("fails for a missing clip", async () => {
     const result = await kernel.bus.run(resetTransform, { clipIds: ["nope"] });
     expect(!result.ok && result.error.code).toBe("transform.clip_not_found");

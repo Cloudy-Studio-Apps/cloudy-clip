@@ -4,7 +4,10 @@ import type { GroupWrites, ResolvedElement } from "../element.types";
 import { groupValue } from "./clip";
 import { deepEqual, isPlainObject, mergeProps, minimizeProps, resolveProps } from "./values";
 
-/** The clip's stored props after `patch` (normalized, minimized). Shared group keys are skipped. */
+/**
+ * The clip's stored props after `patch` (normalized, minimized). Shared group keys are skipped; a
+ * patch of shared groups only leaves the props as they are (the element's `normalize` doesn't run).
+ */
 export function applyPropsPatch(
   ctx: CommandContext,
   element: ResolvedElement,
@@ -12,12 +15,25 @@ export function applyPropsPatch(
   patch: Record<string, unknown>,
   format: ProjectFormat,
 ): Record<string, unknown> {
-  const { definition, groups } = element;
   const own = Object.fromEntries(
-    Object.entries(patch).filter(([key]) => !groups.some((g) => g.key === key)),
+    Object.entries(patch).filter(([key]) => !element.groups.some((g) => g.key === key)),
   );
+  if (Object.keys(own).length === 0) return clip.props ?? {};
+  const merged = mergeProps(clip.props ?? {}, own);
+  return finishProps(ctx, element, merged, patch, format);
+}
+
+/** Stored props as they are kept: over the defaults, through `normalize`, minus the defaults. */
+export function finishProps(
+  ctx: CommandContext,
+  element: ResolvedElement,
+  props: Record<string, unknown>,
+  patch: Record<string, unknown>,
+  format: ProjectFormat,
+): Record<string, unknown> {
+  const { definition } = element;
   const defaults = definition.defaults(format);
-  const merged = mergeProps(resolveProps(clip.props ?? {}, defaults), own);
+  const merged = resolveProps(props, defaults);
   const next = definition.normalize
     ? definition.normalize(merged, { patch, format, require: ctx.require })
     : merged;
@@ -55,24 +71,21 @@ export function resetPaths(
 ): { props: Record<string, unknown>; groups: GroupWrites } {
   if (!paths) return { props: {}, groups: [] };
   const props = structuredClone(clip.props ?? {});
-  const groups: GroupWrites = [];
+  /** Each group's values so far, so several paths of one group add up. */
+  const working = new Map<string, Record<string, unknown> | undefined>();
   for (const path of paths) {
     const [head, field] = path.split(".") as [string, string | undefined];
     const group = element.groups.find((g) => g.key === head);
     if (group) {
+      const defaults = group.defaults(format);
       if (field === undefined) {
-        groups.push([group.key, undefined]);
+        working.set(group.key, undefined);
         continue;
       }
-      const defaults = group.defaults(format);
-      const value = {
-        ...mergeProps(defaults, groupValue(clip, group.key)),
-        [field]: defaults[field],
-      };
-      groups.push([
-        group.key,
-        deepEqual(value, defaults) ? undefined : (value as unknown as ClipTransform),
-      ]);
+      const before = working.has(group.key)
+        ? (working.get(group.key) ?? defaults)
+        : mergeProps(defaults, groupValue(clip, group.key));
+      working.set(group.key, { ...before, [field]: defaults[field] });
       continue;
     }
     if (field === undefined) {
@@ -84,5 +97,10 @@ export function resetPaths(
     delete inner[field];
     if (Object.keys(inner).length === 0) delete props[head];
   }
+  const groups: GroupWrites = [...working].map(([key, value]) => {
+    const group = element.groups.find((g) => g.key === key)!;
+    const reset = value === undefined || deepEqual(value, group.defaults(format));
+    return [group.key, reset ? undefined : (value as unknown as ClipTransform)];
+  });
   return { props, groups };
 }
