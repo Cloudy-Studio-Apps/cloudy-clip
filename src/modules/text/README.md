@@ -4,73 +4,69 @@ Text over the video. The **Text** tab in the side rail adds a text at the playhe
 a click on the tile) or where the tile is dropped on the timeline. A text clip shows the words
 "Text" in one default style (bold, white, soft shadow); it sits on a video track above the
 pictures, is moved, trimmed, split and deleted like any clip, and is moved, scaled and rotated in
-the preview with the transform tools. Selecting a text clip shows six sections in the inspector to
-edit its words and look.
+the preview with the transform tools. Selecting a text clip shows its panel, generated from the
+text element: Content, Font, Fill, Outline, Background, Shadow, then Transform.
 
 - **Tier:** feature
-- **Requires:** `project`, `element` (the text element, minimized props), `preview` (the playhead), `timeline` (tracks, placement checks, drop
-  targets), `transform` (presets that place the text), `fonts` (face checks against `knownFamilies()`, family list), `inspector`
-  (the sections point)
-- **Contributes:** element `text`; panel `text.panel` (side, icon `Type`); inspector sections, all for `kind === "text"`:
-  `text.content` (10: words + preset row), `text.font` (20: family picker, size, weight, italic,
-  letter and line spacing, align, uppercase), `text.fill` (30), `text.outline` (40),
-  `text.background` (50), `text.shadow` (60); preview overlay `text.editor` (in-place editing)
+- **Requires:** `project`, `element` (the text element, `element.setProps`), `preview` (the
+  playhead, live props), `timeline` (tracks, placement checks, drop targets), `transform` (the
+  shared group presets place), `fonts` (face checks against `knownFamilies()`, family list),
+  `inspector` (`propertyControls`, `usePropsLive`)
+- **Contributes:** element `text`; controls `font-picker`, `font-weight`, `font-italic` (fields)
+  and `preset-row` (command); panel `text.panel` (side, icon `Type`); preview overlay
+  `text.editor` (in-place editing)
 - **Points it owns:** —
-- **API:** `TextApi.recents`: the recent colors (`store` of `{ colors }`, `push(color)`), per kernel,
-  saved in `localStorage` key `cloudy-clip.colors.recent` (max 12)
+- **API:** none (`TextApi` is empty). Exports `textElement`, `applyTextPreset`, `presetStyle`,
+  `presetTransform`, `textLayout`.
 - **Files:**
+  - `text.element.ts`: `textElement` (`textProperties`: words, `font` (custom prop), size, weight,
+    italic, letter and line spacing, align, uppercase, fill, outline, background, shadow, with the
+    stored ranges and the sliders' ranges as `ui`); defaults `{ text: DEFAULT_TEXT,
+...defaultTextStyle(format) }`; `normalize` = `checkExplicitFace` (`logic/faces.ts`: fails
+    `text.weight_unavailable` / `text.italic_unavailable` when the patch itself names a face the
+    family lacks) then `snapStyleToFamily`; supports `transform`; `picture: { fit: "none", size:
+textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs from the
+    defaults. Only families in `fonts.knownFamilies()` are checked (never waits for the network).
+  - `text.panel.ts`: `textPanelLayout`: Content (`text` + the `text.applyPreset` command as
+    `preset-row`), Font (`font`, a row of weight / italic / uppercase, size, align, sub-section
+    Spacing), then the fill, outline, background and shadow groups (their switch in the header).
+  - `text.preset.command.ts`: `text.applyPreset` (`clipIds`, `preset`): per clip one nested
+    `element.setProps` with the preset style, its face snapped to the family first, and, for the
+    lower third, the `transform`. All clips in one undo step.
   - `text.add.command.ts`: `text.add`. Without a track it uses the top video track with room at that
     time, or opens a new top video track (in the same undo step). Optional `text`, `preset`, `style`
-    (applied as default, preset, style).
-  - `text.style.commands.ts`: `text.setText`, `text.setStyle`, `text.applyPreset`. All clips are
-    validated before the one mutation; `applyPreset` sends one nested `element.setProps` with the
-    style (face snapped first) and, for the lower third, the `transform`: one undo step. `text.commands.ts` lists them.
-  - `text.schema.ts`: Zod for the style patch (ranges, `#rrggbb` lowercased).
-  - `logic/snap.ts`: `snapStyleToFamily` moves a style's weight/italic to the closest face its family
-    has (`closestVariant`). `text.add` and `text.applyPreset` always snap; `text.setStyle` snaps too,
-    but fails (`text.weight_unavailable`, `text.italic_unavailable`) when the patch itself names a
-    weight/italic the family lacks. Only families in `fonts.knownFamilies()` are checked (never waits
-    for the network; no check while the list is not loaded).
-  - `logic/presets.ts`: `presetStyle` / `presetTransform` (sizes are fractions of the short side).
-    The lower third deviates from "bottom-left safe area": commands can't measure text, so it sets
-    `align: "left"` and a transform of `x = -0.2*width`, `y = 0.32*height`.
+    (applied as default, preset, style). `text.schema.ts`: its style patch and preset ids.
+  - `logic/layout.ts`: `DEFAULT_TEXT`, `clipText`, `textStyleOf`, `defaultTextStyle`,
+    `mergeTextStyle`, `textFont`, `displayText`, `textPadding`, `textLayout` (lines, box, positions
+    from the box center; blank lines keep their height), `textBox`. Types (`TextStyle`,
+    `TextProps`, …) are type aliases in `text.types.ts`.
+  - `text.draw.ts`: `drawText(ctx, props, env)`: background box, then per line the shadow (first
+    painted pass only), outline stroke and fill, at `env.placement`. A font not loaded yet is drawn
+    in Inter at the clip's scale.
+  - `logic/snap.ts`: `snapStyleToFamily` moves a style's weight/italic to the closest face its
+    family has (`closestVariant`). `logic/presets.ts`: `presetStyle` / `presetTransform` (sizes are
+    fractions of the short side). `logic/fontpick.ts`: `pickVariant` (keep the weight/italic if the
+    family has it, else `closestVariant`), `availableWeights`, `hasItalic`, `visibleWindow` (the rows
+    the font list renders).
+  - `ui/controls/`: `FontPickerControl` (the `FontPicker` popover; picking a family keeps the
+    closest face and loads it), `FontWeightControl` (only the weights the family has),
+    `FontItalicControl` (disabled when the family has no italic), `PresetRowControl` (one button per
+    preset). `FontList` shows only the rows in view (fixed 28 px rows) with search; `FontRow` shows
+    the source and a "Missing" note; the family button shows "Missing — showing Inter" while
+    `fonts.status(...)` is `missing` (re-rendered by `fonts.onLoaded`).
   - `ui/TextPanel.tsx`: the tab; `ui/text.gesture.ts`: click-or-drag on the tile (DOM ghost, no
     renders), dropping through `TimelineApi.dropTarget`.
-  - `text.element.ts`: `textElement` (`textProperties`: words, `font` (custom prop), size, weight,
-    italic, spacing, align, uppercase, fill, outline, background, shadow, with the schema ranges and
-    the old sliders' ranges as `ui`); defaults `{ text: DEFAULT_TEXT, ...defaultTextStyle(format) }`;
-    `normalize` = `checkExplicitFace` (`logic/faces.ts`) then `snapStyleToFamily`; supports
-    `transform`; `picture: { fit: "none", size: textLayout(…).box, draw: drawText }`. A clip's
-    `props` hold only what differs from the defaults.
-  - `logic/layout.ts` (moved from `project`): `DEFAULT_TEXT`, `clipText`, `textStyleOf`,
-    `defaultTextStyle`, `mergeTextStyle`, `textFont`, `displayText`, `textPadding`, `textLayout`
-    (lines, box, positions from the box center; blank lines keep their height), `textBox`. Types
-    (`TextStyle`, `TextProps`, …) are type aliases in `text.types.ts`.
-  - `text.draw.ts` (moved from the preview engine): `drawText(ctx, props, env)`: background box,
-    then per line the shadow (first painted pass only), outline stroke and fill, at
-    `env.placement`. A font not loaded yet is drawn in Inter at the clip's scale.
-  - `text.recents.store.ts` / `logic/recents.ts` (`pushRecent`): the recent colors.
-  - `logic/fontpick.ts`: `pickVariant` (keep the weight/italic if the family has it, else
-    `closestVariant`), `availableWeights`, `hasItalic`, `visibleWindow` (the rows the font list
-    renders). `logic/patch.ts`: `mergePatch`.
-  - `ui/text.live.hook.ts`: `useTextLive(clip)`, a thin wrapper over the inspector's
-    `usePropsLive` (live preview, one `element.setProps` on release). The words work alike
-    (`inputText`, `commitText` on blur or Ctrl/Cmd+Enter; empty or unchanged words revert).
-  - `ui/Text*Section.tsx`: the six sections (the inspector supplies each one's collapsible
-    frame); `StyleSlider` / `StyleColor` wrap the kit fields with the live hook. `FontPicker` is a
-    popover; `FontList` shows only the rows in view (fixed 28 px rows) over the families, with search,
-    and `FontRow` shows the source and a "Missing" note. The family button shows
-    "Missing — showing Inter" while `fonts.status(...)` is `missing` (re-rendered by `fonts.onLoaded`).
   - `ui/TextEditOverlay.tsx` / `ui/TextEditor.tsx`: **editing on the canvas.** Double-clicking the
     selected text in the frame (its first click selected it) opens a transparent `textarea` over it
     with the clip's font, size, color, alignment and spacing, scaled by clip scale x viewer zoom and
     rotated with the clip (placed from `textLayout` + `clipPlacement`, straight on the DOM, no
-    renders while typing or zooming). While open, the canvas text is hidden with a live style
-    (`EDIT_HIDDEN_STYLE`: no fill, shadow, outline or background; same size, so the box does not
-    move) and the typed words are previewed; a layer covers the frame so the transform tools see no
-    pointer (the overlay is contributed after transform's, so it sits on top). Enter adds a line.
-    Escape, blur or a click outside end the edit through `logic/editing.ts` `editCommitAction`:
-    unchanged does nothing, blank reverts to the old words, else one `text.setText` (one undo step).
+    renders while typing or zooming). While open, the canvas text is hidden with a live patch
+    (`PreviewApi.previewProps` with `EDIT_HIDDEN_STYLE`: no fill, shadow, outline or background;
+    same size, so the box does not move) and the typed words are previewed; a layer covers the
+    frame so the transform tools see no pointer (the overlay is contributed after transform's, so
+    it sits on top). Enter adds a line. Escape, blur or a click outside end the edit through
+    `logic/editing.ts` `editCommitAction`: unchanged does nothing, blank reverts to the old words,
+    else one `element.setProps` with `{ text }` (one undo step).
 - **Presets:** `title`, `highlight`, `outline`, `pop`, `lower-third` (sizes are fractions of the
   frame's short side, stored as output px). **Lower third deviation:** the spec asks for a
   bottom-left safe area, but commands can't measure text (no DOM in the command layer or node
@@ -80,9 +76,8 @@ edit its words and look.
   text; keyframes; auto captions; vertical alignment and wrapping boxes; exporting fonts with a
   project; an exact left-anchored Lower third.
 
-| Command            | MCP tool            | Notes                                                                                                |
-| ------------------ | ------------------- | ---------------------------------------------------------------------------------------------------- |
-| `text.add`         | `text_add`          | `start` (default playhead), `duration` (3 s), `trackId`, `text`, `preset`, `style`                   |
-| `text.setText`     | `text_set_text`     | `text.clip_not_found`, `text.not_text`, `text.empty`                                                 |
-| `text.setStyle`    | `text_set_style`    | `clipIds`, partial `style`; `text.weight_unavailable` / `text.italic_unavailable` for known families |
-| `text.applyPreset` | `text_apply_preset` | `title`, `highlight`, `outline`, `pop`, `lower-third` (also moves)                                   |
+| Command            | MCP tool            | Notes                                                                              |
+| ------------------ | ------------------- | ---------------------------------------------------------------------------------- |
+| `text.add`         | `text_add`          | `start` (default playhead), `duration` (3 s), `trackId`, `text`, `preset`, `style` |
+| `text.applyPreset` | `text_apply_preset` | `clipIds`, `preset`: `title`, `highlight`, `outline`, `pop`, `lower-third` (moves) |
+| `element.setProps` | `element_set_props` | (owned by `element`) words and style: `{ text }`, `{ size, outline: { … } }`, …    |
