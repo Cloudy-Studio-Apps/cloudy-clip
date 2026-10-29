@@ -1,5 +1,7 @@
 import { defineModule } from "@/core";
 import { junctionRef } from "./junction.ref";
+import { junctionCommands } from "./junction.commands";
+import { junctionMcpTools } from "./junction.mcp";
 import { createJunctionApi } from "./junction.registry";
 
 /**
@@ -11,8 +13,8 @@ export const junctionModule = defineModule({
   name: "Junctions",
   tier: "core",
   requires: ["project", "element"],
-  commands: [],
-  mcpTools: [],
+  commands: junctionCommands,
+  mcpTools: junctionMcpTools,
   setup({ points, log, onDispose }) {
     const api = createJunctionApi(points, log);
     onDispose(api.dispose);

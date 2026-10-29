@@ -11,6 +11,8 @@ export { defineJunctionKind } from "./logic/define";
 export { clampDuration, durationLimits } from "./logic/limits";
 /** The cut between two adjacent clips of a track, near a time or after a clip. */
 export { cutAfter, cutNear } from "./logic/cut";
+/** Junction commands. */
+export { addJunction, removeJunction, setJunction } from "./junction.commands";
 export type {
   Cut,
   DurationLimits,

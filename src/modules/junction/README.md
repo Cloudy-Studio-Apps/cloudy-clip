@@ -8,7 +8,7 @@ the preview mix are built on it by other modules.
 
 - **Tier:** core
 - **Requires:** `project`, `element`
-- **Contributes:** —
+- **Contributes:** commands and MCP tools below (no UI yet)
 - **Points it owns** (`junction.points.ts`): `junctionKinds` (id `junction.kinds`, keyed by
   `kind`). Read by the registry.
 - **API:** `JunctionApi` (`junction.registry.ts`): `get(kind)` → `ResolvedJunctionKind`
@@ -30,6 +30,22 @@ the preview mix are built on it by other modules.
     with `resolveProps`.
 - **Values:** a junction's `props` hold what differs from `defaults(format)` (`minimizeProps` from
   `element`), like a clip's.
-- **Not yet:** commands, MCP tools, timeline chips, preview mixing, kinds (the transition feature).
+- **Not yet:** timeline chips, preview mixing, kinds (the transition feature).
 
-No commands or MCP tools yet.
+## Commands and tools
+
+All undoable (one undo step each). Adding an overlapping junction pulls the right clip, every
+later clip on the track and their linked partners earlier by the duration; `set` with a new
+duration shifts by the difference; `remove` shifts back. The layout is checked before anything is
+written (`junction.overlap` names the clip in the way).
+
+| Command           | Tool                | Input                                                                              | Errors                                                                                           |
+| ----------------- | ------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `junction.add`    | `junction_add`      | `kind`, cut as `leftClipId`+`rightClipId` or `trackId`+`at`, `props?`, `duration?` | `unknown_kind`, `no_cut`, `track_kind`, `exists`, `invalid_duration`, `invalid_props`, `overlap` |
+| `junction.set`    | `junction_set`      | `junctionIds[]`, `patch?`, `duration?`                                             | `not_found`, `unknown_kind`, `invalid_duration`, `invalid_props`, `overlap`                      |
+| `junction.remove` | `junction_remove`   | `junctionIds[]` → `{ removed }`                                                    | `not_found`, `overlap`                                                                           |
+| (read)            | `junction_describe` | none: every kind with tracks, overlap (default, min), patch JSON schema, defaults  |                                                                                                  |
+
+Files: `junction.commands.ts`, `junction.guards.ts` (`requireJunction`, `requireCut`, props
+parsing, duration check, `junction.overlap` message), `junction.mcp.ts`. Kinds that don't overlap
+ignore `duration` (always 0, nothing moves).
