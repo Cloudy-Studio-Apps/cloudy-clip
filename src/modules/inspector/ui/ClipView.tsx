@@ -1,12 +1,12 @@
 import { AudioLines, Film, Type } from "lucide-react";
 import { useStore } from "zustand";
-import { formatTimecode, microsToSeconds, useModule } from "@/core";
+import { formatTimecode, microsToSeconds, useModule, usePoint } from "@/core";
+import { useMemo } from "react";
 import { projectRef, type ClipId } from "@/modules/project";
-import { cn } from "@/ui";
-import { InfoList } from "./InfoList";
+import { cn, InfoList } from "@/ui";
+import { inspectorSections } from "../inspector.points";
 import { InspectorHeader } from "./InspectorHeader";
 import { InspectorSection } from "./InspectorSection";
-import { TransformSection } from "./TransformSection";
 
 /** Details of one selected clip. */
 export function ClipView({ clipId }: { clipId: ClipId }) {
@@ -15,6 +15,14 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
   const track = useStore(project.api, (s) => (clip ? s.tracks[clip.trackId] : undefined));
   const media = useStore(project.api, (s) =>
     clip && clip.kind !== "text" ? s.media[clip.mediaId] : undefined,
+  );
+  const contributed = usePoint(inspectorSections);
+  const sections = useMemo(
+    () =>
+      track && clip
+        ? contributed.filter((s) => s.appliesTo(clip, track)).sort((a, b) => a.order - b.order)
+        : [],
+    [contributed, clip, track],
   );
   if (!clip || !track) return null;
 
@@ -35,7 +43,11 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
         subtitle={`${kindName} · ${microsToSeconds(clip.duration).toFixed(1)}s`}
       />
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        {video && <TransformSection clip={clip} />}
+        {sections.map(({ id, title, component: Body }) => (
+          <InspectorSection key={id} title={title}>
+            <Body clip={clip} />
+          </InspectorSection>
+        ))}
         <InspectorSection title="Timing">
           <InfoList
             rows={[

@@ -1,4 +1,4 @@
-import type { InfoRow } from "../inspector.types";
+import type { InfoRow } from "./kit.types";
 
 /** Label/value pairs in two columns; values in mono so numbers line up. */
 export function InfoList({ rows }: { rows: readonly InfoRow[] }) {

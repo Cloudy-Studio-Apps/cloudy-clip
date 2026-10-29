@@ -6,8 +6,9 @@ it to move (snapping to the frame's center lines), drag a corner to scale, drag 
 rotate (Shift snaps to 15°). Click empty space to deselect.
 
 - **Tier:** feature
-- **Requires:** `project`, `media` (picture sizes), `preview`, `timeline` (the selection)
-- **Contributes:** preview overlay `transform.overlay`
+- **Requires:** `project`, `media` (picture sizes), `inspector` (its section), `preview`, `timeline` (the selection)
+- **Contributes:** preview overlay `transform.overlay`; inspector section `transform.section`
+  (order 100, video-track clips)
 - **Points it owns:** —
 - **API:** none beyond its exported command (`TransformApi` is empty)
 - **Files:**
@@ -22,6 +23,8 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     draws the live value through `PreviewApi.previewTransform` and the box follows through direct
     DOM updates; release commits one command, so one undo step), `layers.hook.ts`. The box shows
     when the selection is one clip or one linked picture + sound (`selectionSubject`).
+  - `ui/TransformSection.tsx`: the inspector section body: position, scale, rotation, a hint and
+    Reset (`transform.setClipTransform` with `reset`).
 - **Not yet:** keyframes, crop, flip, opacity, numeric fields.
 
 | Command                      | MCP tool                       |

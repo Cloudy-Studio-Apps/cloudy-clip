@@ -41,7 +41,9 @@ export { NumberField } from "./kit/NumberField";
 export { ToggleRow } from "./kit/ToggleRow";
 /** A native select styled as the other fields. */
 export { SelectField } from "./kit/SelectField";
+/** Label/value pairs in two columns; values in mono. */
+export { InfoList } from "./kit/InfoList";
 /** Normalizes `#abc`/`abc`/`#aabbcc` to lowercase `#aabbcc`, or null. */
 export { normalizeHex, hexToHsv, hsvToHex } from "./lib/color";
 
-export type { SegmentedOption, ColorChangeInfo, Hsv } from "./kit/kit.types";
+export type { SegmentedOption, ColorChangeInfo, Hsv, InfoRow } from "./kit/kit.types";

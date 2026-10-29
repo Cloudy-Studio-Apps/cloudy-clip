@@ -1,9 +1,8 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { projectRef } from "@/modules/project";
-import { SealMark } from "@/ui";
+import { InfoList, SealMark } from "@/ui";
 import { AgentsSection } from "./AgentsSection";
-import { InfoList } from "./InfoList";
 import { InspectorHeader } from "./InspectorHeader";
 import { InspectorSection } from "./InspectorSection";
 import { InspectorTip } from "./InspectorTip";

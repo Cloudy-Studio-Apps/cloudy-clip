@@ -23,3 +23,9 @@ export interface DragPosition {
   x: number;
   y: number;
 }
+
+/** One label/value row of an info list. */
+export interface InfoRow {
+  label: string;
+  value: string;
+}

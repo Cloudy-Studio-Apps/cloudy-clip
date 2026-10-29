@@ -7,7 +7,7 @@ export const inspectorModule = defineModule({
   ref: inspectorRef,
   name: "Inspector",
   tier: "feature",
-  requires: ["project", "timeline", "transform"],
+  requires: ["project", "timeline"],
   commands: [],
   mcpTools: [],
   setup({ contribute }) {

@@ -1,10 +1,8 @@
 import { RotateCcw } from "lucide-react";
 import { useKernel } from "@/core";
 import { clipTransform, type Clip } from "@/modules/project";
-import { setClipTransform } from "@/modules/transform";
-import { Button } from "@/ui";
-import { InfoList } from "./InfoList";
-import { InspectorSection } from "./InspectorSection";
+import { Button, InfoList } from "@/ui";
+import { setClipTransform } from "../transform.commands";
 
 /** Where the clip's picture sits in the frame (changed on the canvas), and a way back to fit. */
 export function TransformSection({ clip }: { clip: Clip }) {
@@ -12,7 +10,7 @@ export function TransformSection({ clip }: { clip: Clip }) {
   const t = clipTransform(clip);
 
   return (
-    <InspectorSection title="Transform">
+    <>
       <InfoList
         rows={[
           { label: "Position", value: `${Math.round(t.x)}, ${Math.round(t.y)} px` },
@@ -32,6 +30,6 @@ export function TransformSection({ clip }: { clip: Clip }) {
         <RotateCcw />
         Reset
       </Button>
-    </InspectorSection>
+    </>
   );
 }
