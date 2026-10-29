@@ -31,6 +31,7 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | ----------- | ------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | `project`   | core    | —                                                                              | the document (format, media, tracks, clips), placement                 |
 | `element`   | core    | `project`                                                                      | element declarations, shared groups, prop types, `element.setProps`    |
+| `junction`  | core    | `project`, `element`                                                           | junction kinds (what sits on a cut between two clips), registry        |
 | `fonts`     | core    | `element`                                                                      | font families (bundled, installed, Google), face loading               |
 | `media`     | core    | `project`, `element`                                                           | import, probes, proxies, library panel, the `media` element            |
 | `preview`   | core    | `project`, `element`, `media`, `fonts`                                         | playback clock, engine, viewer, preview panel, overlays                |

@@ -10,6 +10,7 @@ import {
 import { elementModule } from "@/modules/element";
 import { fontsModule } from "@/modules/fonts";
 import { inspectorModule } from "@/modules/inspector";
+import { junctionModule } from "@/modules/junction";
 import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
@@ -23,6 +24,7 @@ const log = createLogger("app");
 const MODULES: AnyModuleDefinition[] = [
   projectModule,
   elementModule,
+  junctionModule,
   fontsModule,
   mediaModule,
   timelineModule,
