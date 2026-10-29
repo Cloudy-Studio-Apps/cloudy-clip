@@ -24,7 +24,7 @@ installed on the computer, and Google Fonts (downloaded once and cached).
     (`capabilities/default.json`).
   - `fonts.store.ts`: per-kernel face statuses (ephemeral).
   - `logic/`: catalog parsing, variants, merging, search.
-- **Not yet:** a picker UI, font data for export.
+- **Not yet:** font data for export (the picker lives in `text`).
 
 | Command | MCP tool     | Notes                                               |
 | ------- | ------------ | --------------------------------------------------- |

@@ -16,6 +16,6 @@ via the timeline's `selectionSubject`); with several, which ones.
 - **Files:** `ui/InspectorPanel.tsx` picks the view (`ProjectView`, `ClipView`, `MultiView`);
   `InspectorHeader` and `InspectorSection` (collapsible) are shared by them; `InfoList` comes from
   `@/ui`.
-- **Not yet:** editable fields (position, scale, volume, speed) as commands; tabs per clip kind.
+- **Not yet:** editable fields (position, scale, volume, speed) as commands; tabs.
 
 No commands or MCP tools of its own: agents read the same data with `project_get_state`.

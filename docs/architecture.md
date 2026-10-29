@@ -10,7 +10,8 @@ Cloudy Clip is built so that **a user, an agent (over MCP), and a future plugin 
 │                  host, toasts, bootstrap (reads points;         │
 │                  imports no module)                             │
 │  ui/             UI kit: design tokens, stateless components    │
-│  modules/        project · media · timeline · preview           │
+│  modules/        project · fonts · media · timeline · preview   │
+│                  inspector · transform · text                   │
 │                  (each: index.ts, *.ref.ts, *.module.ts,        │
 │                   *.types.ts, *.commands.ts, *.mcp.ts, ui/)     │
 │  core/           command bus · history · stores · module host · │
@@ -110,4 +111,4 @@ All times are integer microseconds.
 
 ## Deferred
 
-Project save/load and autosave, export (engine and licensing), filmstrip thumbnails and waveforms, text/effects/transitions, mobile builds, the external plugin loader.
+Project save/load and autosave, export (engine and licensing), filmstrip thumbnails and waveforms, effects/transitions, text animations, mobile builds, the external plugin loader.

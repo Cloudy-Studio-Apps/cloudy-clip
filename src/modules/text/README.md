@@ -58,7 +58,14 @@ edit its words and look.
     pointer (the overlay is contributed after transform's, so it sits on top). Enter adds a line.
     Escape, blur or a click outside end the edit through `logic/editing.ts` `editCommitAction`:
     unchanged does nothing, blank reverts to the old words, else one `text.setText` (one undo step).
-- **Not yet:** animations, auto captions.
+- **Presets:** `title`, `highlight`, `outline`, `pop`, `lower-third` (sizes are fractions of the
+  frame's short side, stored as output px). **Lower third deviation:** the spec asks for a
+  bottom-left safe area, but commands can't measure text (no DOM in the command layer or node
+  tests), so the preset sets `align: "left"` and a transform of `x = -0.2*width`,
+  `y = +0.32*height`. The text is therefore not exactly left-anchored.
+- **Not yet:** in/out/loop animations; styling single words (rich text); gradient fills; curved
+  text; keyframes; auto captions; vertical alignment and wrapping boxes; exporting fonts with a
+  project; an exact left-anchored Lower third.
 
 | Command            | MCP tool            | Notes                                                                              |
 | ------------------ | ------------------- | ---------------------------------------------------------------------------------- |

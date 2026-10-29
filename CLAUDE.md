@@ -9,7 +9,7 @@ Two product ideas drive the architecture:
 1. **Agents are first-class editors.** An MCP server is built in and on by default. An agent can do anything a user can do, on the same live project, and the user can undo it. Neither side has powers the other lacks.
 2. **Plugins come later, but the API is designed now.** Built-in modules register through the same surface third-party plugins will use.
 
-**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips and plain text clips). No export, effects, text styling, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
+**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips and text clips with full styling and fonts). No export, effects, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
 
 ## Commands
 
@@ -113,7 +113,8 @@ src/
     timeline/   track and clip commands, the timeline panel
     inspector/  the right column (feature)
     transform/  move/scale/rotate pictures on the canvas (feature)
-src-tauri/      the Rust side: native media server + proxies (media/), MCP server (mcp/)
+    text/       text clips: the Text tab, styling, in-place editing (feature)
+src-tauri/      the Rust side: native media server + proxies (media/), installed fonts (fonts/), MCP server (mcp/)
 ```
 
 | Topic                                                  | README                                                                            |
