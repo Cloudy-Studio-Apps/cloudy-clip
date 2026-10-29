@@ -2,7 +2,14 @@ import type { LucideIcon } from "lucide-react";
 import type { z } from "zod";
 import type { Micros } from "@/core";
 import type { PropertyTree } from "@/modules/element";
-import type { Clip, Junction, ProjectFormat, ProjectState, TrackKind } from "@/modules/project";
+import type {
+  Clip,
+  Junction,
+  ProjectFormat,
+  ProjectState,
+  TrackId,
+  TrackKind,
+} from "@/modules/project";
 
 /** How much two clips of a junction overlap; `false` when the kind doesn't overlap them. */
 export type OverlapRule =
@@ -76,4 +83,19 @@ export interface JunctionApi {
   display(junction: Junction, format: ProjectFormat): JunctionDisplay & { missing: boolean };
   /** Logs once per kernel. */
   warn(message: string): void;
+}
+
+/** How long a junction between two clips may last, in microseconds. */
+export interface DurationLimits {
+  min: Micros;
+  max: Micros;
+  /** Within `min`..`max`. */
+  default: Micros;
+}
+
+/** The cut between two adjacent clips of one track (touching, or overlapping by their junction). */
+export interface Cut {
+  trackId: TrackId;
+  left: Clip;
+  right: Clip;
 }

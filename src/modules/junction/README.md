@@ -20,6 +20,11 @@ the preview mix are built on it by other modules.
   - `junction.types.ts`: `JunctionKindDefinition`, `OverlapRule`, `MixFn`/`MixEnv`,
     `NormalizeEnv` (`format`, `previous` resolved props, `{}` on add), `JunctionDisplay`, `JunctionApi`.
   - `logic/define.ts`: `defineJunctionKind`.
+  - `logic/limits.ts`: `durationLimits(kind, state, left, right)` → `DurationLimits`
+    (`{0,0,0}` when the kind doesn't overlap; default clamped into min..max), `clampDuration`.
+  - `logic/cut.ts`: `cutNear(state, trackId, time, tolerance)` and `cutAfter(state, clipId)` →
+    `Cut` (clips that touch, or overlap by their junction; an overlapping cut sits at the middle
+    of the overlap). Types: `DurationLimits`, `Cut`.
   - `junction.registry.ts`: the registry. Schemas come from `patchSchema` of `element` (same
     rules as elements, custom prop types from `propTypes`, no shared groups); values are merged
     with `resolveProps`.
