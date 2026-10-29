@@ -12,7 +12,10 @@ export const fontsModule = defineModule({
   tier: "core",
   requires: [],
   mcpTools: fontsMcpTools,
-  setup() {
-    return { api: createFontsLibrary(createFontService(), createFontsState()) };
+  setup({ log }) {
+    const api = createFontsLibrary(createFontService(), createFontsState(), log);
+    // Fill `knownFamilies()` in the background; commands never wait for it.
+    api.families().catch((error: unknown) => log.warn("Could not list fonts", error));
+    return { api };
   },
 });

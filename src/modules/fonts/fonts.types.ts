@@ -32,6 +32,11 @@ export interface FontFaceSource {
 /** Whether a face is ready to draw. */
 export type FontStatus = "loaded" | "loading" | "missing";
 
+/** Face statuses by `fontKey`. */
+export interface FontStatusState {
+  statuses: Record<string, FontStatus>;
+}
+
 /** An installed face as the native side reports it. */
 export interface InstalledFace {
   family: string;
@@ -56,7 +61,12 @@ export interface FontService {
 export interface FontsApi {
   /** Bundled, installed, then Google families. Read once per kernel; offline still resolves. */
   families(): Promise<FontFamily[]>;
-  /** Loads a face once per kernel. Resolves true when it can be drawn; never rejects. */
+  /**
+   * The families once `families()` has resolved, else `undefined`. Synchronous, so commands can
+   * check a family without waiting on the network; they skip the check while it is `undefined`.
+   */
+  knownFamilies(): FontFamily[] | undefined;
+  /** Loads a face once per kernel. Resolves true when it can be drawn; never rejects. A failed face is tried again by the next `load`. */
   load(request: FontRequest): Promise<boolean>;
   /** The state of a face; `undefined` when it was never requested. */
   status(request: FontRequest): FontStatus | undefined;

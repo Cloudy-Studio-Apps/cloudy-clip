@@ -1,9 +1,17 @@
+import { createLogger, type Logger } from "@/core";
 import { bundledCssFamily } from "@/modules/project";
 import type { StoreApi } from "zustand/vanilla";
-import { createFontsState, type FontStatusState } from "./fonts.store";
+import { createFontsState } from "./fonts.store";
 import { BUNDLED_FAMILIES } from "./logic/catalog";
 import { fontKey, mergeFamilies, nearestWeight, sortVariants } from "./logic/variants";
-import type { FontFamily, FontRequest, FontService, FontsApi, InstalledFace } from "./fonts.types";
+import type {
+  FontFamily,
+  FontRequest,
+  FontService,
+  FontStatusState,
+  FontsApi,
+  InstalledFace,
+} from "./fonts.types";
 
 /** Groups installed faces into families with CSS weights. */
 function groupInstalled(faces: readonly InstalledFace[]): FontFamily[] {
@@ -29,8 +37,10 @@ function groupInstalled(faces: readonly InstalledFace[]): FontFamily[] {
 export function createFontsLibrary(
   service: FontService,
   state: StoreApi<FontStatusState> = createFontsState(),
+  log: Logger = createLogger("fonts"),
 ): FontsApi {
   let families: Promise<FontFamily[]> | null = null;
+  let known: FontFamily[] | undefined;
   const loads = new Map<string, Promise<boolean>>();
   const listeners = new Set<(request: FontRequest) => void>();
 
@@ -43,7 +53,11 @@ export function createFontsLibrary(
       const family =
         request.source === "bundled" ? bundledCssFamily(request.family) : request.family;
       return await service.loadByName({ ...request, family });
-    } catch {
+    } catch (error) {
+      log.warn(
+        `Font "${request.family}" (${request.weight}) failed to load`,
+        error instanceof Error ? error.message : String(error),
+      );
       return false;
     }
   };
@@ -53,8 +67,14 @@ export function createFontsLibrary(
       families ??= Promise.all([
         service.installed().then(groupInstalled, () => []),
         service.googleCatalog().catch(() => []),
-      ]).then(([installed, google]) => mergeFamilies(BUNDLED_FAMILIES, installed, google));
+      ]).then(([installed, google]) => {
+        known = mergeFamilies(BUNDLED_FAMILIES, installed, google);
+        return known;
+      });
       return families;
+    },
+    knownFamilies() {
+      return known;
     },
     load(request) {
       const key = fontKey(request);
@@ -63,6 +83,8 @@ export function createFontsLibrary(
         setStatus(request, "loading");
         load = run(request).then((ok) => {
           setStatus(request, ok ? "loaded" : "missing");
+          // A failure is not cached: a later `load` tries again.
+          if (!ok) loads.delete(key);
           for (const listener of [...listeners]) listener(request);
           return ok;
         });

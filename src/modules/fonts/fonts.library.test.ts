@@ -107,6 +107,43 @@ describe("fonts library", () => {
     }
   });
 
+  it("knownFamilies is undefined until the list resolved, then the same list", async () => {
+    const lib = createFontsLibrary(fakeService());
+    expect(lib.knownFamilies()).toBeUndefined();
+    const all = await lib.families();
+    expect(lib.knownFamilies()).toBe(all);
+  });
+
+  it("retries a face that failed once", async () => {
+    let ok = false;
+    const service = fakeService({ loadGoogleFace: vi.fn(async () => ok) });
+    const lib = createFontsLibrary(service);
+    const r = req("Roboto", "google");
+    expect(await lib.load(r)).toBe(false);
+    expect(lib.status(r)).toBe("missing");
+    ok = true;
+    expect(await lib.load(r)).toBe(true);
+    expect(lib.status(r)).toBe("loaded");
+    expect(service.loadGoogleFace).toHaveBeenCalledTimes(2);
+    expect(await lib.load(r)).toBe(true);
+    expect(service.loadGoogleFace).toHaveBeenCalledTimes(2);
+  });
+
+  it("logs why a face failed to load", async () => {
+    const log = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const lib = createFontsLibrary(
+      fakeService({
+        loadGoogleFace: async () => {
+          throw new Error("net down");
+        },
+      }),
+      undefined,
+      log,
+    );
+    await lib.load(req("Roboto", "google"));
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("Roboto"), "net down");
+  });
+
   it("survives an offline catalog", async () => {
     const lib = createFontsLibrary(
       fakeService({

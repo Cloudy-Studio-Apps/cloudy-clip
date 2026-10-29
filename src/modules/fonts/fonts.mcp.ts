@@ -27,4 +27,5 @@ const listFonts = defineMcpTool({
   },
 });
 
+/** The MCP tools of the fonts module: `fonts_list`. */
 export const fontsMcpTools = [listFonts];

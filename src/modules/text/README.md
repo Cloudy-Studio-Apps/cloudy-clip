@@ -9,7 +9,7 @@ edit its words and look.
 
 - **Tier:** feature
 - **Requires:** `project`, `preview` (the playhead), `timeline` (tracks, placement checks, drop
-  targets), `transform` (presets that place the text), `fonts` (weight checks, family list), `inspector`
+  targets), `transform` (presets that place the text), `fonts` (face checks against `knownFamilies()`, family list), `inspector`
   (the sections point)
 - **Contributes:** panel `text.panel` (side, icon `Type`); inspector sections, all for `kind === "text"`:
   `text.content` (10: words + preset row), `text.font` (20: family picker, size, weight, italic,
@@ -26,6 +26,11 @@ edit its words and look.
     validated before the one mutation; `applyPreset` runs `transform.setClipTransform` nested, so
     it is one undo step. `text.commands.ts` lists them.
   - `text.schema.ts`: Zod for the style patch (ranges, `#rrggbb` lowercased).
+  - `logic/snap.ts`: `snapStyleToFamily` moves a style's weight/italic to the closest face its family
+    has (`closestVariant`). `text.add` and `text.applyPreset` always snap; `text.setStyle` snaps too,
+    but fails (`text.weight_unavailable`, `text.italic_unavailable`) when the patch itself names a
+    weight/italic the family lacks. Only families in `fonts.knownFamilies()` are checked (never waits
+    for the network; no check while the list is not loaded).
   - `logic/presets.ts`: `presetStyle` / `presetTransform` (sizes are fractions of the short side).
     The lower third deviates from "bottom-left safe area": commands can't measure text, so it sets
     `align: "left"` and a transform of `x = -0.2*width`, `y = 0.32*height`.
@@ -67,9 +72,9 @@ edit its words and look.
   text; keyframes; auto captions; vertical alignment and wrapping boxes; exporting fonts with a
   project; an exact left-anchored Lower third.
 
-| Command            | MCP tool            | Notes                                                                              |
-| ------------------ | ------------------- | ---------------------------------------------------------------------------------- |
-| `text.add`         | `text_add`          | `start` (default playhead), `duration` (3 s), `trackId`, `text`, `preset`, `style` |
-| `text.setText`     | `text_set_text`     | `text.clip_not_found`, `text.not_text`, `text.empty`                               |
-| `text.setStyle`    | `text_set_style`    | `clipIds`, partial `style`; `text.weight_unavailable` for known families           |
-| `text.applyPreset` | `text_apply_preset` | `title`, `highlight`, `outline`, `pop`, `lower-third` (also moves)                 |
+| Command            | MCP tool            | Notes                                                                                                |
+| ------------------ | ------------------- | ---------------------------------------------------------------------------------------------------- |
+| `text.add`         | `text_add`          | `start` (default playhead), `duration` (3 s), `trackId`, `text`, `preset`, `style`                   |
+| `text.setText`     | `text_set_text`     | `text.clip_not_found`, `text.not_text`, `text.empty`                                                 |
+| `text.setStyle`    | `text_set_style`    | `clipIds`, partial `style`; `text.weight_unavailable` / `text.italic_unavailable` for known families |
+| `text.applyPreset` | `text_apply_preset` | `title`, `highlight`, `outline`, `pop`, `lower-third` (also moves)                                   |

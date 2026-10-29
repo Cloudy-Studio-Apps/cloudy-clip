@@ -8,10 +8,14 @@ installed on the computer, and Google Fonts (downloaded once and cached).
 - **Contributes:** —
 - **Points it owns:** —
 - **API** (`useModule(fontsRef)` / `ctx.require(fontsRef)`): `families()` (bundled, installed, Google,
-  read once per kernel; offline still resolves), `load(request)` (once per face, never rejects),
+  read once per kernel; offline still resolves), `knownFamilies()` (the same list, synchronously;
+  `undefined` until it resolved; `setup` starts loading it in the background, commands check against it
+  and never wait), `load(request)` (once per face, never rejects; a failed face is retried by the next
+  `load`, `ensure` does not retry; failures are logged with `log.warn`, no toast),
   `status(request)` (`loaded` / `loading` / `missing`, `undefined` if never requested),
   `ensure(request)` (true when loaded, else starts loading), `onLoaded(listener)` (also fires on
-  `missing`). `createFakeFontsModule({ families?, fail? })` (`fonts.testing.ts`) stands in for it in tests.
+  `missing`). `createFakeFontsModule({ families?, fail? })` (`fonts.testing.ts`) stands in for it in tests and has
+  `knownFamilies()` resolved after setup.
 - **Files:**
   - `fonts.library.ts`: the logic over a `FontService` (tested with a fake). Bundled faces load by
     their Fontsource name (`Inter Variable`); installed ones by name; Google ones through
@@ -22,7 +26,7 @@ installed on the computer, and Google Fonts (downloaded once and cached).
     `<appData>/fonts/google/<slug>/<weight>[i]/` and registered with `FontFace`.
     HTTP is scoped to `fonts.google.com`, `fonts.googleapis.com`, `fonts.gstatic.com`, files to `$APPDATA/fonts/**`
     (`capabilities/default.json`).
-  - `fonts.store.ts`: per-kernel face statuses (ephemeral).
+  - `fonts.store.ts`: per-kernel face statuses (ephemeral; type in `fonts.types.ts`).
   - `logic/`: catalog parsing, variants, merging, search.
 - **Not yet:** font data for export (the picker lives in `text`).
 

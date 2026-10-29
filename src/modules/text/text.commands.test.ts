@@ -177,6 +177,61 @@ describe("text.applyPreset", () => {
   });
 });
 
+describe("text.applyPreset rollback", () => {
+  it("leaves the style alone when the nested transform fails", async () => {
+    const clip = await textClip();
+    // A frame this wide puts the lower third beyond what setClipTransform accepts.
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      format: { ...s.format, width: 1_000_000 },
+    }));
+    const before = doc();
+    const result = await kernel.bus.run(applyTextPreset, {
+      clipId: clip.id,
+      preset: "lower-third",
+    });
+    expect(result.ok).toBe(false);
+    expect(doc().clips[clip.id]).toEqual(before.clips[clip.id]);
+  });
+});
+
+describe("faces the family lacks (Roboto: 400 only, no italic)", () => {
+  const roboto = { family: "Roboto", source: "google" as const };
+
+  it("text.applyPreset snaps the weight", async () => {
+    const clip = await textClip();
+    await run(kernel.bus.run(setTextStyle, { clipIds: [clip.id], style: { font: roboto } }));
+    await run(kernel.bus.run(applyTextPreset, { clipId: clip.id, preset: "lower-third" }));
+    expect(styleOf(clip.id)).toMatchObject({ weight: "400", italic: false });
+  });
+
+  it("text.applyPreset pop drops the italic", async () => {
+    const clip = await textClip();
+    await run(kernel.bus.run(setTextStyle, { clipIds: [clip.id], style: { font: roboto } }));
+    await run(kernel.bus.run(applyTextPreset, { clipId: clip.id, preset: "pop" }));
+    expect(styleOf(clip.id)).toMatchObject({ weight: "400", italic: false });
+  });
+
+  it("text.add with a preset and a font snaps to the family", async () => {
+    const clip = await run(kernel.bus.run(addText, { preset: "pop", style: { font: roboto } }));
+    expect(styleOf(clip.id)).toMatchObject({ weight: "400", italic: false });
+  });
+
+  it("text.setStyle with only a font snaps a bold clip", async () => {
+    const clip = await textClip();
+    await run(kernel.bus.run(setTextStyle, { clipIds: [clip.id], style: { font: roboto } }));
+    expect(styleOf(clip.id)).toMatchObject({ weight: "400", italic: false });
+  });
+
+  it("text.setStyle fails on an explicit italic the family lacks", async () => {
+    const clip = await textClip();
+    const result = await kernel.bus.run(setTextStyle, {
+      clipIds: [clip.id],
+      style: { font: roboto, italic: true },
+    });
+    expect(!result.ok && result.error.code).toBe("text.italic_unavailable");
+  });
+});
+
 describe("text.add with a look", () => {
   it("stores the preset and the words", async () => {
     const clip = await run(kernel.bus.run(addText, { preset: "outline", text: "Hi" }));

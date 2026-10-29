@@ -14,16 +14,17 @@ export function createFakeFontsModule(options: { families?: FontFamily[]; fail?:
     name: "Fonts (fake)",
     tier: "core",
     requires: [],
-    setup() {
+    async setup() {
       const loadable = async (family: string) => !fail.includes(family);
-      return {
-        api: createFontsLibrary({
-          installed: async () => [],
-          googleCatalog: async () => families,
-          loadGoogleFace: (r) => loadable(r.family),
-          loadByName: (r) => loadable(r.family),
-        }),
-      };
+      const api = createFontsLibrary({
+        installed: async () => [],
+        googleCatalog: async () => families,
+        loadGoogleFace: (r) => loadable(r.family),
+        loadByName: (r) => loadable(r.family),
+      });
+      // Resolve the list during setup so `knownFamilies()` answers right away in tests.
+      await api.families();
+      return { api };
     },
   });
 }
