@@ -1,63 +1,69 @@
 import { describe, expect, it } from "vitest";
 import { createKernel, defineModule, defineModuleRef } from "@/core";
 import { elementModule } from "@/modules/element";
-import { createEmptyProject, createProjectModule, type Clip, type Track } from "@/modules/project";
+import { createEmptyProject, createProjectModule } from "@/modules/project";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { createFakeMediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import { timelineModule } from "@/modules/timeline";
 import { inspectorModule } from "./inspector.module";
-import { inspectorSections } from "./inspector.points";
+import { propertyControls, sectionLayouts } from "./inspector.points";
 
-const testRef = defineModuleRef<Record<string, never>>("inspector-test");
-const Body = () => null;
+const Control = () => null;
 
-const testModule = defineModule({
-  ref: testRef,
-  name: "Test",
-  tier: "feature",
-  requires: ["inspector"],
-  commands: [],
-  mcpTools: [],
-  setup({ contribute }) {
-    contribute(inspectorSections, {
-      id: "test.video",
-      title: "Video only",
-      order: 100,
-      appliesTo: (_clip: Clip, track: Track) => track.kind === "video",
-      component: Body,
-    });
-    contribute(inspectorSections, {
-      id: "test.any",
-      title: "Any",
-      order: 10,
-      appliesTo: () => true,
-      component: Body,
-    });
-    return { api: {} };
-  },
-});
+const testModule = (id: string) =>
+  defineModule({
+    ref: defineModuleRef<Record<string, never>>(id),
+    name: id,
+    tier: "feature",
+    requires: ["inspector"],
+    commands: [],
+    mcpTools: [],
+    setup({ contribute }) {
+      contribute(propertyControls, { id: "test.dial", for: "field", component: Control });
+      return { api: {} };
+    },
+  });
 
-describe("inspector.sections", () => {
-  it("returns contributed sections and appliesTo filters by track kind", async () => {
-    const kernel = await createKernel();
-    await kernel.modules.loadAll([
-      createProjectModule(createEmptyProject()),
-      elementModule,
-      createFakeMediaModule({}),
-      createFakeFontsModule(),
-      previewModule,
-      timelineModule,
-      inspectorModule,
-      testModule,
-    ]);
-    const sections = kernel.points.get(inspectorSections);
-    expect(sections.map((s) => s.id).sort()).toEqual(["test.any", "test.video"]);
-    const clip = {} as Clip;
-    const forKind = (kind: Track["kind"]) =>
-      sections.filter((s) => s.appliesTo(clip, { kind } as Track)).map((s) => s.id);
-    expect(forKind("video")).toContain("test.video");
-    expect(forKind("audio")).not.toContain("test.video");
-    expect(forKind("audio")).toEqual(["test.any"]);
+async function load(...extra: ReturnType<typeof testModule>[]) {
+  const kernel = await createKernel();
+  const statuses = await kernel.modules.loadAll([
+    createProjectModule(createEmptyProject()),
+    elementModule,
+    createFakeMediaModule({}),
+    createFakeFontsModule(),
+    previewModule,
+    timelineModule,
+    inspectorModule,
+    ...extra,
+  ]);
+  return { kernel, statuses };
+}
+
+describe("inspector points", () => {
+  it("has the built-in controls and the section layout", async () => {
+    const { kernel } = await load();
+    const ids = kernel.points.get(propertyControls).map((c) => c.id);
+    for (const id of [
+      "text",
+      "textarea",
+      "number",
+      "slider",
+      "dial",
+      "toggle",
+      "icon-toggle",
+      "color",
+      "segmented",
+      "select",
+      "button",
+    ]) {
+      expect(ids).toContain(id);
+    }
+    expect(kernel.points.find(sectionLayouts, "section")).toBeDefined();
+  });
+  it("rejects a second control with the same id", async () => {
+    const { statuses } = await load(testModule("first"), testModule("second"));
+    expect(statuses.first).toBe("active");
+    expect(statuses.second).toBe("failed");
   });
 });

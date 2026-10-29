@@ -1,23 +1,12 @@
 import { Type } from "lucide-react";
 import { defineModule, layoutPanels } from "@/core";
 import { elements } from "@/modules/element";
-import { inspectorSections } from "@/modules/inspector";
 import { previewOverlays } from "@/modules/preview";
 import { textCommands } from "./text.commands";
 import { textElement } from "./text.element";
 import { textMcpTools } from "./text.mcp";
 import { textRef } from "./text.ref";
-import { createRecentColors } from "./text.recents.store";
-import {
-  TextBackgroundSection,
-  TextContentSection,
-  TextEditOverlay,
-  TextFillSection,
-  TextFontSection,
-  TextOutlineSection,
-  TextPanel,
-  TextShadowSection,
-} from "./ui";
+import { TextEditOverlay, TextPanel } from "./ui";
 
 /**
  * Text over the video: the Text tab (add or drag a text onto the timeline), the `text.*`
@@ -41,21 +30,6 @@ export const textModule = defineModule({
     });
     // After transform's overlay (text requires it), so the editor's layer sits on top.
     contribute(previewOverlays, { id: "text.editor", component: TextEditOverlay });
-    const sections = [
-      { id: "content", title: "Content", order: 10, component: TextContentSection },
-      { id: "font", title: "Font", order: 20, component: TextFontSection },
-      { id: "fill", title: "Fill", order: 30, component: TextFillSection },
-      { id: "outline", title: "Outline", order: 40, component: TextOutlineSection },
-      { id: "background", title: "Background", order: 50, component: TextBackgroundSection },
-      { id: "shadow", title: "Shadow", order: 60, component: TextShadowSection },
-    ];
-    for (const section of sections) {
-      contribute(inspectorSections, {
-        ...section,
-        id: `text.${section.id}`,
-        appliesTo: (clip) => clip.kind === "text",
-      });
-    }
-    return { api: { recents: createRecentColors() } };
+    return { api: {} };
   },
 });

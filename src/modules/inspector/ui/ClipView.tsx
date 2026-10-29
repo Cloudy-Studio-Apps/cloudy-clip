@@ -1,10 +1,9 @@
 import { useStore } from "zustand";
-import { formatTimecode, microsToSeconds, useModule, usePoint } from "@/core";
-import { useMemo } from "react";
+import { formatTimecode, microsToSeconds, useModule } from "@/core";
 import { elementRef } from "@/modules/element";
 import { projectRef, type ClipId } from "@/modules/project";
 import { InfoList } from "@/ui";
-import { inspectorSections } from "../inspector.points";
+import { ElementPanel } from "./ElementPanel";
 import { InspectorHeader } from "./InspectorHeader";
 import { InspectorSection } from "./InspectorSection";
 
@@ -15,14 +14,6 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
   const track = useStore(project.api, (s) => (clip ? s.tracks[clip.trackId] : undefined));
   const media = useStore(project.api, (s) => (clip?.mediaId ? s.media[clip.mediaId] : undefined));
   const elements = useModule(elementRef);
-  const contributed = usePoint(inspectorSections);
-  const sections = useMemo(
-    () =>
-      track && clip
-        ? contributed.filter((s) => s.appliesTo(clip, track)).sort((a, b) => a.order - b.order)
-        : [],
-    [contributed, clip, track],
-  );
   if (!clip || !track) return null;
 
   const element = elements.get(clip.kind)?.definition;
@@ -47,11 +38,7 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
         subtitle={`${kindName} · ${microsToSeconds(clip.duration).toFixed(1)}s`}
       />
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        {sections.map(({ id, title, component: Body }) => (
-          <InspectorSection key={id} title={title}>
-            <Body clip={clip} />
-          </InspectorSection>
-        ))}
+        <ElementPanel clip={clip} track={track} />
         <InspectorSection title="Timing">
           <InfoList
             rows={[

@@ -1,6 +1,6 @@
 import { createStore } from "zustand/vanilla";
 import { pushRecent } from "./logic/recents";
-import type { RecentColors } from "./text.types";
+import type { RecentColors } from "./inspector.types";
 
 /** Where the list is saved between sessions. */
 export const RECENT_COLORS_KEY = "cloudy-clip.colors.recent";

@@ -3,7 +3,7 @@ import { useModule } from "@/core";
 import type { Clip } from "@/modules/project";
 import type { TextStylePatch } from "../text.types";
 import { ColorField } from "@/ui";
-import { textRef } from "../text.ref";
+import { inspectorRef } from "@/modules/inspector";
 import { useTextLive } from "./text.live.hook";
 
 /** The quick colors of the prototype's text tab. */
@@ -22,7 +22,7 @@ interface StyleColorProps {
 /** A color field on the style: drags show live, a release, typed hex or swatch commits once and is remembered. */
 export function StyleColor({ clip, label, color, opacity, toPatch }: StyleColorProps) {
   const live = useTextLive(clip);
-  const recents = useModule(textRef).recents;
+  const recents = useModule(inspectorRef).recents;
   const colors = useStore(recents.store, (s) => s.colors);
   return (
     <ColorField

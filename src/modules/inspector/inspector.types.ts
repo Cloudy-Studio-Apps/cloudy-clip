@@ -1,25 +1,68 @@
-import type { ComponentType } from "react";
-import type { Clip, Track } from "@/modules/project";
+import type { ComponentType, ReactNode } from "react";
+import type { z } from "zod";
+import type { PropSpec, ResolvedItem, ResolvedSection } from "@/modules/element";
+import type { StoreApi } from "zustand/vanilla";
+import type { Clip } from "@/modules/project";
 
-/** The inspector module's API. Empty for now: it only contributes its panel. */
-export type InspectorApi = Record<string, never>;
+/** The colors picked lately, shared by every color field of the inspector. Not in history. */
+export interface RecentColors {
+  /** Newest first, at most 12. Read with `useStore(recents.store, selector)`. */
+  readonly store: StoreApi<{ colors: string[] }>;
+  /** Remembers a color (and saves the list). */
+  push(color: string): void;
+}
 
-/**
- * A group of fields in the inspector's clip view, contributed by a module with
- * `ctx.contribute(inspectorSections, …)`. The inspector wraps it in a collapsible section titled
- * `title`; the component renders only the body.
- */
-export interface InspectorClipSection {
-  /** Unique id, `<module>.<name>`. */
+/** The inspector module's API: the recent colors every color field shares. */
+export interface InspectorApi {
+  readonly recents: RecentColors;
+}
+
+/** What a field control gets: the value at its path and a way to change it. */
+export interface FieldControlProps {
+  clip: Clip;
+  /** Dotted path of the value (`outline.width`). */
+  path: string;
+  spec: PropSpec;
+  value: unknown;
+  /** Every resolved value of the clip, for siblings (a color's opacity). */
+  values: Record<string, unknown>;
+  label: string;
+  disabled: boolean;
+  /** Patches are whole-clip patches: build them with the path (`{ outline: { width } }`). */
+  live: PropsLive;
+}
+
+/** What a command control gets: the command to run on the clip and the one field it may draw. */
+export interface CommandControlProps {
+  clipIds: string[];
+  commandId: string;
+  /** The command's one input besides `clipIds`, when it has one. */
+  field?: { name: string; schema: z.ZodType };
+  label: string;
+  icon?: string;
+  /** Runs the command with `clipIds` plus this input. */
+  run(input: Record<string, unknown>): void;
+}
+
+/** A control the inspector can draw, by id: for a value (`for: "field"`) or for a command. */
+export type PropertyControl =
+  | { id: string; for: "field"; component: ComponentType<FieldControlProps> }
+  | { id: string; for: "command"; component: ComponentType<CommandControlProps> };
+
+/** What a section layout gets: the resolved section and a way to draw its items. */
+export interface SectionLayoutProps {
+  section: ResolvedSection;
+  clip: Clip;
+  values: Record<string, unknown>;
+  live: PropsLive;
+  /** Draws one item (field, row, sub-section, command) with its control. */
+  renderItem(item: ResolvedItem, index: number): ReactNode;
+}
+
+/** How a whole section is drawn (`"section"`: collapsible, its group's toggle in the header). */
+export interface SectionLayout {
   id: string;
-  /** The section's heading. */
-  title: string;
-  /** Sort position, ascending. Text sections use 10-60, transform 100. */
-  order: number;
-  /** Whether the section shows for this clip (on this track). */
-  appliesTo(clip: Clip, track: Track): boolean;
-  /** The section's body. */
-  component: ComponentType<{ clip: Clip }>;
+  component: ComponentType<SectionLayoutProps>;
 }
 
 /** How a field edits a clip's values: live while dragging, one command on release. */

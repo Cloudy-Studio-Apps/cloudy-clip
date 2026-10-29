@@ -37,6 +37,8 @@ export { ColorField } from "./kit/ColorField";
 export { SliderField } from "./kit/SliderField";
 /** A compact number box that commits on Enter or blur. */
 export { NumberField } from "./kit/NumberField";
+/** A small on/off switch. */
+export { Switch } from "./kit/Switch";
 /** A labelled switch that shows its sub-fields while on. */
 export { ToggleRow } from "./kit/ToggleRow";
 /** A native select styled as the other fields. */

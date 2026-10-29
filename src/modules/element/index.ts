@@ -48,6 +48,7 @@ export type {
   LayoutSection,
   NormalizeEnv,
   PanelCommandCheck,
+  PropCondition,
   PictureDefinition,
   PropertyTree,
   PropsOf,

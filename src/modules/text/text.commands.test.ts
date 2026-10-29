@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, type Kernel } from "@/core";
-import { inspectorModule, inspectorSections } from "@/modules/inspector";
+import { inspectorModule } from "@/modules/inspector";
 import { createFakeMediaModule } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
-import { elementModule } from "@/modules/element";
+import { elementModule, elements } from "@/modules/element";
 import { previewModule, previewRef } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
-import { textRef } from "./text.ref";
 import { transformModule } from "@/modules/transform";
 import { clipText, isTextClip, textStyleOf } from "./logic/layout";
 import { addText, applyTextPreset, setText, setTextStyle } from "./text.commands";
@@ -50,14 +49,10 @@ beforeEach(async () => {
 });
 
 describe("text module wiring", () => {
-  it("loads, contributes its six inspector sections and has recent colors", () => {
+  it("loads and registers the text element", () => {
     expect(statuses.text).toBe("active");
     expect(statuses.transform).toBe("active");
-    const ids = kernel.points.get(inspectorSections).map((s) => s.id);
-    for (const name of ["content", "font", "fill", "outline", "background", "shadow"]) {
-      expect(ids).toContain(`text.${name}`);
-    }
-    expect(kernel.modules.require(textRef).recents.store.getState().colors).toBeInstanceOf(Array);
+    expect(kernel.points.find(elements, "text")).toBeDefined();
   });
 });
 

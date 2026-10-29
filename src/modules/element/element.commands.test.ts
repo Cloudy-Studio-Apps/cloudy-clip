@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
 import {
   createEmptyProject,
@@ -12,6 +12,7 @@ import { resetProps, setProps } from "./element.commands";
 import { elementModule } from "./element.module";
 import { elements } from "./element.points";
 import { elementRef } from "./element.ref";
+import { createElementApi } from "./element.registry";
 import { defineElement } from "./logic/define";
 import { prop } from "./logic/props";
 
@@ -168,5 +169,17 @@ describe("element_describe", () => {
       locked: 1,
       box: { on: false, pad: 4 },
     });
+  });
+});
+
+describe("ElementApi.warn", () => {
+  it("logs the same message once", () => {
+    const log = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const api = createElementApi(kernel.points, log);
+    api.warn('element "x": something');
+    api.warn('element "x": something');
+    api.warn('element "x": other');
+    expect(log.warn).toHaveBeenCalledTimes(2);
+    api.dispose();
   });
 });
