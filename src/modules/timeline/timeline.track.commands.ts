@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
-import { type ProjectState, type TrackKind, projectRef } from "@/modules/project";
+import { produce } from "immer";
+import {
+  type ProjectState,
+  type TrackKind,
+  findLayoutConflict,
+  projectRef,
+} from "@/modules/project";
 import { requireTrack } from "./timeline.guards";
 
 function nextTrackName(state: ProjectState, kind: TrackKind): string {
@@ -35,20 +41,37 @@ export const addTrack = defineCommand({
   },
 });
 
-/** Removes a track and every clip on it. */
+/** Removes a track and every clip on it, and the junctions of those clips. */
 export const removeTrack = defineCommand({
   id: "timeline.removeTrack",
   label: "Remove track",
-  description: "Removes a track and all clips on it.",
+  description:
+    "Removes a track and all clips on it, and the junctions (transitions) of those clips. Fails with timeline.remove_joined when the clips' linked clips on other tracks would be left overlapping under a junction: remove the transitions on that track first. Returns { removedJunctions }.",
   undoable: true,
   input: z.object({ trackId: z.string() }),
   run(ctx, { trackId }) {
-    const track = requireTrack(ctx.require(projectRef).store.getState(), trackId);
-    ctx.mutate(ctx.require(projectRef).store, (draft) => {
-      for (const id of track.clipIds) delete draft.clips[id];
+    const state = ctx.require(projectRef).store.getState();
+    const track = requireTrack(state, trackId);
+    const doomed = new Set(track.clipIds);
+    const removedJunctions = Object.values(state.junctions)
+      .filter((j) => doomed.has(j.leftClipId) || doomed.has(j.rightClipId))
+      .map((j) => j.id);
+    const apply = (draft: ProjectState) => {
+      for (const id of doomed) delete draft.clips[id];
+      for (const id of removedJunctions) delete draft.junctions[id];
       delete draft.tracks[trackId];
       draft.trackOrder = draft.trackOrder.filter((id) => id !== trackId);
-    });
+    };
+    const conflict = findLayoutConflict(produce(state, apply));
+    if (conflict) {
+      throw new CommandFailure(
+        "timeline.remove_joined",
+        `Removing track "${track.name}" would leave clips "${conflict.clip.id}" and "${conflict.other.id}" overlapping under a transition that is removed with it. Remove the transitions on that track first.`,
+        { clipId: conflict.other.id },
+      );
+    }
+    ctx.mutate(ctx.require(projectRef).store, apply);
+    return { removedJunctions };
   },
 });
 

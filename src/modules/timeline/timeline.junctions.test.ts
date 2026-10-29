@@ -15,7 +15,7 @@ import {
   type Junction,
   type ProjectState,
 } from "@/modules/project";
-import { deleteClips, moveClip, splitAt, trimClip, unlinkClips } from "./timeline.commands";
+import { deleteClips, moveClip, removeTrack, splitAt, trimClip, unlinkClips } from "./timeline.commands";
 import { timelineModule } from "./timeline.module";
 
 const S = 1_000_000;
@@ -337,6 +337,39 @@ describe("splitting and deleting joined clips", () => {
     expect(result.removedJunctions).toEqual([j.id]);
     expect(doc().junctions).toEqual({});
     expect(starts()).toEqual({ B: 3.5, C: 7.5, sB: 3.5, sC: 7.5 });
+    expect(staleJunctions(doc())).toEqual([]);
+  });
+});
+
+describe("removing tracks with joined clips", () => {
+  it("refuses to remove the picture track while linked sounds still overlap", async () => {
+    await joined();
+    const before = doc();
+    const result = await kernel.bus.run(removeTrack, { trackId: trackV });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("timeline.remove_joined");
+    expect(doc()).toBe(before);
+  });
+
+  it("removes a track whose joined clips have no linked sounds, with its junction", async () => {
+    const j = await joined((s) => {
+      for (const c of Object.values(s.clips)) delete c.linkId;
+      for (const id of ["sA", "sB", "sC"]) delete s.clips[id];
+      s.tracks[s.trackOrder[1]!]!.clipIds = [];
+    });
+    const result = await run(kernel.bus.run(removeTrack, { trackId: trackV }));
+    expect(result.removedJunctions).toEqual([j.id]);
+    expect(doc().tracks[trackV]).toBeUndefined();
+    expect(doc().junctions).toEqual({});
+    expect(staleJunctions(doc())).toEqual([]);
+  });
+
+  it("removes the audio track and keeps the junction of the pictures", async () => {
+    const j = await joined();
+    const audio = doc().trackOrder[1]!;
+    const result = await run(kernel.bus.run(removeTrack, { trackId: audio }));
+    expect(result.removedJunctions).toEqual([]);
+    expect(Object.keys(doc().junctions)).toEqual([j.id]);
     expect(staleJunctions(doc())).toEqual([]);
   });
 });

@@ -83,6 +83,10 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     without them, those clips and their partners stay whole and the rest are split.
   - **Delete:** the junctions of deleted clips go too; nothing shifts. The result adds
     `removedJunctions`.
+  - **Remove track:** `timeline.removeTrack` also removes the junctions of the track's clips and
+    returns `removedJunctions`; if that would leave linked clips on other tracks overlapping
+    (their pictures' junction is gone), it fails with `timeline.remove_joined` and changes
+    nothing: remove the transitions on that track first.
   - **Unlink:** refused with `timeline.unlink_joined` while the clips' sounds overlap only
     because their pictures are joined (remove the junction first); nothing changes.
   - A junction whose kind isn't registered is kept where the rules allow and its limits are not
