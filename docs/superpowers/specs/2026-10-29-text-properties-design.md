@@ -100,17 +100,24 @@ current look: Inter 700, white, soft shadow, size 9% of the frame's short side. 
 ```ts
 interface TextStyle {
   font: { family: string; source: "installed" | "google" | "bundled" }; // Inter is bundled
-  size: number;          // output px
-  weight: FontWeight;    // "100" … "900"
+  size: number; // output px
+  weight: FontWeight; // "100" … "900"
   italic: boolean;
   letterSpacing: number; // output px
-  lineHeight: number;    // multiple of size
+  lineHeight: number; // multiple of size
   align: "left" | "center" | "right";
   uppercase: boolean;
-  fill: { color: string; opacity: number };                                   // #rrggbb, 0–1
-  outline: { enabled: boolean; color: string; width: number };                // width output px
+  fill: { color: string; opacity: number }; // #rrggbb, 0–1
+  outline: { enabled: boolean; color: string; width: number }; // width output px
   background: { enabled: boolean; color: string; opacity: number; padding: number; radius: number };
-  shadow: { enabled: boolean; color: string; opacity: number; blur: number; distance: number; angle: number }; // degrees, 90 = down
+  shadow: {
+    enabled: boolean;
+    color: string;
+    opacity: number;
+    blur: number;
+    distance: number;
+    angle: number;
+  }; // degrees, 90 = down
 }
 ```
 
@@ -118,6 +125,7 @@ Exact field names, ranges and defaults are the builder's call, as long as they a
 Zod in the commands and documented in TSDoc.
 
 The geometry stays in `project`:
+
 - `textBox(format, clip, measure)` measures the lines (split on `\n`) with letter spacing, the
   outline and the background padding.
 - `textFont(style)` builds the CSS font.
@@ -129,6 +137,7 @@ shadow does not grow the box.
 
 The preview (core) must wait for fonts, and core can't require a feature, so the font library is
 its own **core** module `fonts`:
+
 - **API:** `families()`, `load(request) → Promise<boolean>`, `status(request)`
   (`loaded | loading | missing`), and a subscription for "a font finished loading".
 - **Native side:** `src-tauri/src/fonts/` registers `fonts_system_list` (fontdb).
@@ -145,12 +154,12 @@ its own **core** module `fonts`:
 
 ### Commands and tools (all in `text`)
 
-| Command               | MCP tool                | Notes |
-| --------------------- | ----------------------- | ----- |
-| `text.setText`        | `text_set_text`         | `clipId`, `text` (non-empty) |
-| `text.setStyle`       | `text_set_style`        | `clipId` (or `clipIds`), a deep-partial `TextStyle` patch, merged and validated |
-| `text.applyPreset`    | `text_apply_preset`     | `clipId`, `preset` (`title`, `highlight`, `outline`, `pop`, `lower-third`) |
-| `text.add` (existing) | `text_add`              | gains optional `text`, `style` and `preset` |
+| Command               | MCP tool            | Notes                                                                           |
+| --------------------- | ------------------- | ------------------------------------------------------------------------------- |
+| `text.setText`        | `text_set_text`     | `clipId`, `text` (non-empty)                                                    |
+| `text.setStyle`       | `text_set_style`    | `clipId` (or `clipIds`), a deep-partial `TextStyle` patch, merged and validated |
+| `text.applyPreset`    | `text_apply_preset` | `clipId`, `preset` (`title`, `highlight`, `outline`, `pop`, `lower-third`)      |
+| `text.add` (existing) | `text_add`          | gains optional `text`, `style` and `preset`                                     |
 
 `setStyle` accepts any family name (see "Settled calls" 2) and does not depend on the network.
 When the family is in the list already loaded, a weight it lacks fails with
