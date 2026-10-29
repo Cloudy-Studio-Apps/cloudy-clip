@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import {
+  clipText,
   isTextClip,
   mergeTextStyle,
   projectRef,
@@ -72,7 +73,7 @@ export function useTextLive(clip: Clip): TextLive {
           words.current = undefined;
           show();
         };
-        if (!now || text.trim() === "" || text === now.clip.text) {
+        if (!now || text.trim() === "" || text === clipText(now.clip)) {
           finish();
           return false;
         }

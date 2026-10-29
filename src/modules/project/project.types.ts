@@ -36,47 +36,32 @@ export interface Track {
   hidden: boolean;
 }
 
-/** What every clip on the timeline has, whatever its kind. */
-export interface ClipBase {
+/**
+ * A clip on the timeline. Its `kind` names its element (`"media"`, `"text"`, a plugin's), which
+ * declares its values; the clip stores only those that differ from the element's defaults, in
+ * `props`. Shared group values (`transform`) live under their own key.
+ */
+export interface Clip extends Partial<SharedGroupValues> {
   id: ClipId;
   trackId: TrackId;
+  /** The element: `"media"`, `"text"`, or a plugin's kind. */
+  kind: string;
   /** Position on the timeline. */
   start: Micros;
-  /** Where in the source file the clip begins. */
+  /** Where in the source file the clip begins (0 for elements without a source file). */
   sourceIn: Micros;
   /** Length on the timeline (and in the source; no speed changes in v1). */
   duration: Micros;
   /** The element's own values (only those that differ from its defaults). */
-  props?: Record<string, unknown>;
-  /** Where the picture sits in the frame (video clips). Missing means `IDENTITY_TRANSFORM`. */
-  transform?: ClipTransform;
+  props: Record<string, unknown>;
+  /** The file it plays (media clips). */
+  mediaId?: MediaId;
   /**
    * Clips sharing a `linkId` are linked (a video's picture and its sound): they are selected,
    * moved, trimmed, split and deleted together until unlinked. Missing means unlinked.
    */
   linkId?: string;
 }
-
-/** A piece of a media file placed on the timeline. `kind` is missing on older clips. */
-export interface MediaClip extends ClipBase {
-  kind?: "media";
-  mediaId: MediaId;
-}
-
-/**
- * Text drawn over the video, on a video track. It has no source file, so it can be any length
- * (`sourceIn` stays 0). Without `style` it is drawn in the default style (`defaultTextStyle`).
- */
-export interface TextClip extends ClipBase {
-  kind: "text";
-  /** The words shown. */
-  text: string;
-  /** How the words look; missing means `defaultTextStyle(format)`. */
-  style?: TextStyle;
-}
-
-/** A clip on the timeline: a piece of media or a text. */
-export type Clip = MediaClip | TextClip;
 
 /** Weight of a font, as CSS numbers. */
 export type FontWeight = "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900";

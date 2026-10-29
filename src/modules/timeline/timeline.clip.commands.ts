@@ -107,6 +107,8 @@ export const addClip = defineCommand({
     const clips: Clip[] = trackIds.map((trackId) => ({
       id: createId("clip"),
       trackId,
+      kind: "media",
+      props: {},
       mediaId: media.id,
       start,
       sourceIn,
@@ -260,10 +262,13 @@ export const splitAt = defineCommand({
           ...(linkId && { linkId }),
         };
         // Text has no source file, so its `sourceIn` stays 0.
-        const right: Clip =
-          left.kind === "text"
-            ? { ...base, kind: "text", text: left.text, sourceIn: 0 }
-            : { ...base, mediaId: left.mediaId, sourceIn: left.sourceIn + offset };
+        const right: Clip = {
+          ...base,
+          kind: left.kind,
+          props: structuredClone(target.props),
+          ...(left.mediaId !== undefined && { mediaId: left.mediaId }),
+          sourceIn: left.kind === "text" ? 0 : left.sourceIn + offset,
+        };
         left.duration = offset;
         draft.clips[right.id] = right;
         const track = draft.tracks[left.trackId]!;

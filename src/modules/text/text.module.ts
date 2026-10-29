@@ -25,7 +25,7 @@ export const textModule = defineModule({
   ref: textRef,
   name: "Text",
   tier: "feature",
-  requires: ["project", "preview", "timeline", "transform", "fonts", "inspector"],
+  requires: ["project", "element", "preview", "timeline", "transform", "fonts", "inspector"],
   commands: textCommands,
   mcpTools: textMcpTools,
   setup({ contribute }) {

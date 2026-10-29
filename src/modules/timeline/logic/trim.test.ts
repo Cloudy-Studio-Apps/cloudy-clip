@@ -11,7 +11,16 @@ function project(): { state: ProjectState; group: Clip[] } {
   const state = createEmptyProject();
   const [video, audio] = state.trackOrder as [string, string];
   const add = (id: string, trackId: string, start: number, length: number) => {
-    state.clips[id] = { id, trackId, mediaId: "m", start, sourceIn: 0, duration: length };
+    state.clips[id] = {
+      id,
+      trackId,
+      kind: "media",
+      props: {},
+      mediaId: "m",
+      start,
+      sourceIn: 0,
+      duration: length,
+    };
     state.tracks[trackId]!.clipIds.push(id);
   };
   add("v", video, 0, 6 * S);
@@ -43,7 +52,7 @@ describe("trim", () => {
     const text: Clip = {
       id: "t",
       kind: "text",
-      text: "Text",
+      props: { text: "Text" },
       trackId,
       start: 2 * S,
       sourceIn: 0,

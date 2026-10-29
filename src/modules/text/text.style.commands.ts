@@ -1,12 +1,17 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand, type CommandContext } from "@/core";
 import { fontsRef, type FontFamily } from "@/modules/fonts";
+import { minimizeProps } from "@/modules/element";
 import {
+  DEFAULT_TEXT,
+  clipText,
+  defaultTextStyle,
   isTextClip,
   mergeTextStyle,
   projectRef,
   textStyleOf,
-  type TextClip,
+  type Clip,
+  type ProjectFormat,
   type TextStyle,
   type TextStylePatch,
 } from "@/modules/project";
@@ -16,7 +21,7 @@ import { snapStyleToFamily } from "./logic/snap";
 import { textPresetId, textStylePatch } from "./text.schema";
 
 /** The text clip with this id, or the failure that tells why it is not one. */
-function textClipOf(ctx: CommandContext, clipId: string): TextClip {
+function textClipOf(ctx: CommandContext, clipId: string): Clip {
   const clip = ctx.require(projectRef).store.getState().clips[clipId];
   if (!clip) throw new CommandFailure("text.clip_not_found", `No clip with id "${clipId}"`);
   if (!isTextClip(clip)) {
@@ -37,18 +42,33 @@ export const setText = defineCommand({
     textClipOf(ctx, clipId);
     if (text.trim() === "") throw new CommandFailure("text.empty", "The text can't be empty");
     const store = ctx.require(projectRef).store;
+    const clip = store.getState().clips[clipId]!;
+    const props = storedProps(
+      text,
+      textStyleOf(clip, store.getState().format),
+      store.getState().format,
+    );
     ctx.mutate(store, (draft) => {
-      (draft.clips[clipId] as TextClip).text = text;
+      draft.clips[clipId]!.props = props;
     });
     return store.getState().clips[clipId];
   },
 });
 
+/** What a text clip stores: its words and style, minus what equals the defaults. */
+function storedProps(text: string, style: TextStyle, format: ProjectFormat) {
+  return minimizeProps({ text, ...style }, { text: DEFAULT_TEXT, ...defaultTextStyle(format) });
+}
+
 /** Writes the finished styles (by clip id); the clips are validated by the caller. */
 function writeStyles(ctx: CommandContext, styles: ReadonlyMap<string, TextStyle>) {
   const store = ctx.require(projectRef).store;
+  const { clips, format } = store.getState();
+  const props = [...styles].map(
+    ([id, style]) => [id, storedProps(clipText(clips[id]!), style, format)] as const,
+  );
   ctx.mutate(store, (draft) => {
-    for (const [id, style] of styles) (draft.clips[id] as TextClip).style = style;
+    for (const [id, value] of props) draft.clips[id]!.props = value;
   });
 }
 

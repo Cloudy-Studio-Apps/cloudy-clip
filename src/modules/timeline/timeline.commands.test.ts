@@ -214,7 +214,15 @@ describe("text clips", () => {
     store.api.setState((s) => ({
       clips: {
         ...s.clips,
-        t: { id: "t", kind: "text", text: "Text", trackId, start, sourceIn: 0, duration },
+        t: {
+          id: "t",
+          kind: "text",
+          props: { text: "Text" },
+          trackId,
+          start,
+          sourceIn: 0,
+          duration,
+        },
       },
       tracks: { ...s.tracks, [trackId]: { ...s.tracks[trackId]!, clipIds: ["t"] } },
     }));
@@ -225,7 +233,7 @@ describe("text clips", () => {
     const { created } = await run(kernel.bus.run(splitAt, { at: S }));
     expect(doc().clips[created[0]!]).toMatchObject({
       kind: "text",
-      text: "Text",
+      props: { text: "Text" },
       start: S,
       sourceIn: 0,
       duration: 3 * S,

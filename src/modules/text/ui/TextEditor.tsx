@@ -12,13 +12,14 @@ import {
   textPadding,
   textStyleOf,
   type PictureSize,
-  type TextClip,
+  clipText,
+  type Clip,
 } from "@/modules/project";
 import { EDIT_HIDDEN_STYLE, editCommitAction } from "../logic/editing";
 import { setText } from "../text.commands";
 
 interface TextEditorProps {
-  clip: TextClip;
+  clip: Clip;
   /** Called once the edit has ended (committed, reverted or unchanged). */
   onDone: () => void;
 }
@@ -93,7 +94,7 @@ export function TextEditor({ clip, onDone }: TextEditorProps) {
     ended.current = true;
     const words = field.value;
     // "revert" and "none" keep the saved words; only a real change is one `text.setText`.
-    if (editCommitAction(clip.text, words) === "commit") {
+    if (editCommitAction(clipText(clip), words) === "commit") {
       await bus.run(setText, { clipId: clip.id, text: words });
     }
     onDone();
@@ -115,7 +116,7 @@ export function TextEditor({ clip, onDone }: TextEditorProps) {
           aria-label="Edit words"
           wrap="off"
           spellCheck={false}
-          defaultValue={clip.text}
+          defaultValue={clipText(clip)}
           onChange={(event) => {
             place(event.target.value);
             show(event.target.value);

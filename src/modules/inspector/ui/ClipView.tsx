@@ -2,7 +2,7 @@ import { AudioLines, Film, Type } from "lucide-react";
 import { useStore } from "zustand";
 import { formatTimecode, microsToSeconds, useModule, usePoint } from "@/core";
 import { useMemo } from "react";
-import { projectRef, type ClipId } from "@/modules/project";
+import { clipText, projectRef, type ClipId } from "@/modules/project";
 import { cn, InfoList } from "@/ui";
 import { inspectorSections } from "../inspector.points";
 import { InspectorHeader } from "./InspectorHeader";
@@ -13,9 +13,7 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
   const project = useModule(projectRef).store;
   const clip = useStore(project.api, (s) => s.clips[clipId]);
   const track = useStore(project.api, (s) => (clip ? s.tracks[clip.trackId] : undefined));
-  const media = useStore(project.api, (s) =>
-    clip && clip.kind !== "text" ? s.media[clip.mediaId] : undefined,
-  );
+  const media = useStore(project.api, (s) => (clip?.mediaId ? s.media[clip.mediaId] : undefined));
   const contributed = usePoint(inspectorSections);
   const sections = useMemo(
     () =>
@@ -39,7 +37,7 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
           "text-white",
           text ? "bg-clip-type" : video ? "bg-clip-video" : "bg-clip-audio",
         )}
-        title={text ? clip.text : (media?.name ?? "Missing media")}
+        title={text ? clipText(clip) : (media?.name ?? "Missing media")}
         subtitle={`${kindName} · ${microsToSeconds(clip.duration).toFixed(1)}s`}
       />
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">

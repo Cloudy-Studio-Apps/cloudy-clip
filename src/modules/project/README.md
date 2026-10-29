@@ -11,12 +11,15 @@ lives here, so every change is undoable and readable by agents.
   `ProjectState`. Read it freely; change it only through commands (`ctx.mutate`). Other modules edit
   it with their own commands.
 - **Files:**
-  - `project.types.ts`: `ProjectState`, `Track`, `Clip` (`MediaClip | TextClip`), `ClipTransform`,
-    `ClipPlacement`.
+  - `project.types.ts`: `ProjectState`, `Track`, `Clip`, `ClipTransform`, `ClipPlacement`,
+    `SharedGroupValues`. A `Clip` names its element in `kind` (`"media"`, `"text"`, a plugin's)
+    and stores only the values that differ from the element's defaults in `props`; `mediaId` is
+    set for clips that play a file; shared group values (`transform`) live under their own key.
   - `project.text.ts`: `DEFAULT_TEXT`, `isTextClip`, and the text model's functions.
-    `TextClip.style?: TextStyle` (font ref, size, weight, italic, letter spacing, line height, align,
-    uppercase, fill, outline, background, shadow; sizes in output px, colors `#rrggbb`); a clip without
-    `style` uses `defaultTextStyle(format)` (the old look). `textStyleOf`, `mergeTextStyle` (one level
+    A text clip's `props` hold `text` and `TextStyle` fields (font ref, size, weight, italic, letter
+    spacing, line height, align, uppercase, fill, outline, background, shadow; sizes in output px,
+    colors `#rrggbb`), only those that differ from `DEFAULT_TEXT` / `defaultTextStyle(format)`.
+    `clipText(clip)`, `textStyleOf(clip, format)` (props over the default style), `mergeTextStyle` (one level
     deep), `cssFontFamily`/`textFont` (quoted, escaped CSS), `displayText` (uppercase),
     `textPadding`, `textLayout(text, style, measure)` (lines, box, line positions from the box
     center; blank lines keep their height) and `textBox(format, clip, measure)`, the natural size

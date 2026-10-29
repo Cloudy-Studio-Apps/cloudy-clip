@@ -3,7 +3,7 @@ import { memo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { mediaRef } from "@/modules/media";
-import { type Clip, type TrackKind, projectRef } from "@/modules/project";
+import { clipText, type Clip, type TrackKind, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { cn } from "@/ui";
 import { timelineRef } from "../timeline.ref";
@@ -34,9 +34,11 @@ export const TimelineClip = memo(function TimelineClip({
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
-  const mediaId = clip.kind === "text" ? undefined : clip.mediaId;
+  const mediaId = clip.mediaId;
   const name = useStore(project.api, (s) =>
-    clip.kind === "text" ? clip.text : ((mediaId && s.media[mediaId]?.name) ?? "Missing media"),
+    clip.kind === "text"
+      ? clipText(clip)
+      : ((mediaId && s.media[mediaId]?.name) ?? "Missing media"),
   );
   const poster = useStore(media.probes, (s) =>
     mediaId ? s.probes[mediaId]?.posterUrl : undefined,

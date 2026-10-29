@@ -1,5 +1,5 @@
 import { createLogger } from "@/core";
-import type { MediaClip, MediaId } from "@/modules/project";
+import type { Clip, MediaId } from "@/modules/project";
 import type { EngineOptions, Slot } from "./engine.types";
 
 const log = createLogger("preview.engine");
@@ -56,7 +56,11 @@ export class MediaSlotPool {
    * the same file near the wanted time (no seek), then any free slot on the same file, then any
    * free slot of the same kind, then a new element.
    */
-  acquire(clip: MediaClip, kind: "video" | "audio", desired: number): Slot | null {
+  acquire(
+    clip: Clip & { mediaId: MediaId },
+    kind: "video" | "audio",
+    desired: number,
+  ): Slot | null {
     const url = this.options.mediaUrl(clip.mediaId);
     const existing = this.assigned.get(clip.id);
     if (existing) {

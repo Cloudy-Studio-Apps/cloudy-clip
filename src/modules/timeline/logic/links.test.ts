@@ -9,7 +9,17 @@ function linkedProject(): ProjectState {
   const state = createEmptyProject();
   const [video, audio] = state.trackOrder as [string, string];
   const clip = (id: string, trackId: string, start: number, linkId?: string) => {
-    state.clips[id] = { id, trackId, mediaId: "m", start, sourceIn: 0, duration: S, linkId };
+    state.clips[id] = {
+      id,
+      trackId,
+      kind: "media",
+      props: {},
+      mediaId: "m",
+      start,
+      sourceIn: 0,
+      duration: S,
+      linkId,
+    };
     state.tracks[trackId]!.clipIds.push(id);
   };
   clip("v", video, 0, "l1");

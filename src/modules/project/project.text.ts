@@ -2,7 +2,6 @@ import type {
   Clip,
   PictureSize,
   ProjectFormat,
-  TextClip,
   TextFontRef,
   TextLayout,
   TextLine,
@@ -48,8 +47,14 @@ export function canvasTextMeasure(ctx: TextMeasureContext | null): TextMeasure {
 }
 
 /** Whether a clip is a text clip. */
-export function isTextClip(clip: Clip): clip is TextClip {
+export function isTextClip(clip: Clip): boolean {
   return clip.kind === "text";
+}
+
+/** The words of a text clip (`props.text`, or the default words). */
+export function clipText(clip: Clip): string {
+  const text = clip.props.text;
+  return typeof text === "string" ? text : DEFAULT_TEXT;
 }
 
 /** The look of a text with no style of its own: bold white Inter with a soft shadow, 9% of the short side. */
@@ -84,9 +89,11 @@ export function defaultTextStyle(format: ProjectFormat): TextStyle {
   };
 }
 
-/** The style a clip is drawn with: its own, or the default. */
-export function textStyleOf(clip: TextClip, format: ProjectFormat): TextStyle {
-  return clip.style ?? defaultTextStyle(format);
+/** The style a text clip is drawn with: its stored values over the default style. */
+export function textStyleOf(clip: Clip, format: ProjectFormat): TextStyle {
+  const style: Record<string, unknown> = { ...clip.props };
+  delete style.text;
+  return mergeTextStyle(defaultTextStyle(format), style as TextStylePatch);
 }
 
 function definedOnly(group: object): object {
@@ -163,6 +170,6 @@ export function textLayout(text: string, style: TextStyle, measure: TextMeasure)
  * Natural size of a text's box in output pixels (words plus padding). The engine draws it and
  * the canvas tools hit-test it with the same box, through `clipPlacement(…, "none")`.
  */
-export function textBox(format: ProjectFormat, clip: TextClip, measure: TextMeasure): PictureSize {
-  return textLayout(clip.text, textStyleOf(clip, format), measure).box;
+export function textBox(format: ProjectFormat, clip: Clip, measure: TextMeasure): PictureSize {
+  return textLayout(clipText(clip), textStyleOf(clip, format), measure).box;
 }

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useKernel } from "@/core";
-import { isTextClip, type Clip } from "@/modules/project";
+import { clipText, isTextClip, type Clip } from "@/modules/project";
 import { Button } from "@/ui";
 import { applyTextPreset } from "../text.commands";
 import type { TextPresetId } from "../text.types";
@@ -25,18 +25,18 @@ export function TextContentSection({ clip }: { clip: Clip }) {
     const box = field.current;
     if (!box) return;
     // An empty or refused text goes back to the saved words.
-    if (!(await live.commitText(box.value))) box.value = clip.text;
+    if (!(await live.commitText(box.value))) box.value = clipText(clip);
   };
 
   return (
     <>
       <textarea
         // A new key puts in the words after an undo or an agent's edit.
-        key={`${clip.id}:${clip.text}`}
+        key={`${clip.id}:${clipText(clip)}`}
         ref={field}
         aria-label="Words"
         rows={3}
-        defaultValue={clip.text}
+        defaultValue={clipText(clip)}
         onChange={(event) => live.inputText(event.target.value)}
         onBlur={() => void commit()}
         onKeyDown={(event) => {

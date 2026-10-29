@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, type Micros } from "@/core";
+import { minimizeProps } from "@/modules/element";
 import { fontsRef } from "@/modules/fonts";
 import { previewRef } from "@/modules/preview";
 import {
@@ -7,7 +8,7 @@ import {
   defaultTextStyle,
   mergeTextStyle,
   projectRef,
-  type TextClip,
+  type Clip,
 } from "@/modules/project";
 import { addTrack, findOverlap, freeTrack, overlapError } from "@/modules/timeline";
 import { presetStyle } from "./logic/presets";
@@ -62,18 +63,11 @@ export const addText = defineCommand({
         (await ctx.execute(addTrack, { kind: "video" })).trackId;
     }
 
-    const clip: TextClip = {
-      id: createId("clip"),
-      kind: "text",
-      text: input.text ?? DEFAULT_TEXT,
-      trackId,
-      start,
-      sourceIn: 0,
-      duration,
-    };
+    const format = store.getState().format;
+    const text = input.text ?? DEFAULT_TEXT;
+    let style = defaultTextStyle(format);
     if (input.preset || input.style) {
-      const format = store.getState().format;
-      clip.style = snapStyleToFamily(
+      style = snapStyleToFamily(
         mergeTextStyle(
           mergeTextStyle(
             defaultTextStyle(format),
@@ -84,6 +78,15 @@ export const addText = defineCommand({
         ctx.require(fontsRef).knownFamilies(),
       );
     }
+    const clip: Clip = {
+      id: createId("clip"),
+      kind: "text",
+      trackId,
+      start,
+      sourceIn: 0,
+      duration,
+      props: minimizeProps({ text, ...style }, { text: DEFAULT_TEXT, ...defaultTextStyle(format) }),
+    };
     ctx.mutate(store, (draft) => {
       draft.clips[clip.id] = clip;
       const track = draft.tracks[clip.trackId]!;

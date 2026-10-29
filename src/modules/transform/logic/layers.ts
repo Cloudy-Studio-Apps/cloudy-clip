@@ -1,5 +1,6 @@
 import type { Micros } from "@/core";
 import {
+  clipText,
   mergeTextStyle,
   textBox,
   textStyleOf,
@@ -36,16 +37,16 @@ export function visibleLayers(
         const shown = live
           ? {
               ...clip,
-              text: live.text ?? clip.text,
-              style: live.style
-                ? mergeTextStyle(textStyleOf(clip, state.format), live.style)
-                : clip.style,
+              props: {
+                ...mergeTextStyle(textStyleOf(clip, state.format), live.style ?? {}),
+                text: live.text ?? clipText(clip),
+              },
             }
           : clip;
         layers.push({ clipId, source: textBox(state.format, shown, measure), fit: "none" });
         continue;
       }
-      if (state.media[clip.mediaId]?.kind !== "video") continue;
+      if (!clip.mediaId || state.media[clip.mediaId]?.kind !== "video") continue;
       const source = sizeOf(clip.mediaId);
       if (source) layers.push({ clipId, source, fit: "contain" });
     }

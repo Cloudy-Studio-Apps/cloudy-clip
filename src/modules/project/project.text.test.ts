@@ -7,21 +7,21 @@ import {
   mergeTextStyle,
   textBox,
   textFont,
+  clipText,
   textLayout,
 } from "./project.text";
-import type { TextClip, TextMeasure, TextStyle } from "./project.types";
+import type { Clip, TextMeasure, TextStyle } from "./project.types";
 
 const format = { width: 1080, height: 1920, fps: 30 };
 const measure: TextMeasure = (t, _f, ls) => t.length * 10 + Math.max(0, t.length - 1) * ls;
-const clip = (text: string, style?: TextStyle): TextClip => ({
+const clip = (text: string, style?: TextStyle): Clip => ({
   id: "t",
   trackId: "v",
   kind: "text",
-  text,
+  props: { text, ...style },
   start: 0,
   sourceIn: 0,
   duration: 1,
-  ...(style ? { style } : {}),
 });
 const base = defaultTextStyle(format);
 const PAD = 24.25;
@@ -41,6 +41,13 @@ describe("defaultTextStyle", () => {
 describe("textBox", () => {
   it("keeps the old size for a style-less clip", () => {
     expect(textBox(format, clip("Text"), measure)).toEqual({
+      width: 40 + 2 * PAD,
+      height: 97 * 1.25 + 2 * PAD,
+    });
+  });
+  it("measures a clip with empty props like the old style-less clip", () => {
+    const empty: Clip = { ...clip("x"), props: {} };
+    expect(textBox(format, empty, measure)).toEqual({
       width: 40 + 2 * PAD,
       height: 97 * 1.25 + 2 * PAD,
     });
@@ -77,9 +84,9 @@ describe("textLayout", () => {
 
   it("uppercases only what is drawn", () => {
     const c = clip("abc");
-    const l = textLayout(c.text, { ...base, uppercase: true }, measure);
+    const l = textLayout(clipText(c), { ...base, uppercase: true }, measure);
     expect(l.lines[0]?.text).toBe("ABC");
-    expect(c.text).toBe("abc");
+    expect(clipText(c)).toBe("abc");
   });
 
   it("grows the box for a wide outline", () => {

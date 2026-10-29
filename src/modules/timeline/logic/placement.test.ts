@@ -20,7 +20,16 @@ function projectWithClips(spans: Array<[number, number]>): {
   const trackId = state.trackOrder[0]!;
   spans.forEach(([start, duration], i) => {
     const id = `c${i}`;
-    state.clips[id] = { id, trackId, mediaId: "m", start, sourceIn: 0, duration };
+    state.clips[id] = {
+      id,
+      trackId,
+      kind: "media",
+      props: {},
+      mediaId: "m",
+      start,
+      sourceIn: 0,
+      duration,
+    };
     state.tracks[trackId]!.clipIds.push(id);
   });
   return { state, trackId };

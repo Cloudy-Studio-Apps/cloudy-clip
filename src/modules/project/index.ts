@@ -24,6 +24,7 @@ export {
   DEFAULT_TEXT,
   bundledCssFamily,
   canvasTextMeasure,
+  clipText,
   cssFontFamily,
   defaultTextStyle,
   displayText,
@@ -37,7 +38,6 @@ export {
 } from "./project.text";
 export type {
   Clip,
-  ClipBase,
   ClipFit,
   ClipId,
   ClipPlacement,
@@ -45,7 +45,6 @@ export type {
   PictureSize,
   FormatPreset,
   MediaAsset,
-  MediaClip,
   MediaId,
   MediaKind,
   ProjectApi,
@@ -56,7 +55,6 @@ export type {
   FontWeight,
   TextAlign,
   TextBackground,
-  TextClip,
   TextFill,
   TextFontRef,
   TextLayout,

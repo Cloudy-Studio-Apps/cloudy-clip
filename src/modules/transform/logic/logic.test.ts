@@ -76,8 +76,26 @@ describe("visibleLayers", () => {
     };
     state.trackOrder = [top!, lower, audio!];
     state.media.m = { id: "m", name: "m.mp4", path: "/m.mp4", kind: "video", size: 1 };
-    state.clips.a = { id: "a", trackId: top!, mediaId: "m", start: 0, sourceIn: 0, duration: 10 };
-    state.clips.b = { id: "b", trackId: lower, mediaId: "m", start: 5, sourceIn: 0, duration: 10 };
+    state.clips.a = {
+      id: "a",
+      trackId: top!,
+      kind: "media",
+      props: {},
+      mediaId: "m",
+      start: 0,
+      sourceIn: 0,
+      duration: 10,
+    };
+    state.clips.b = {
+      id: "b",
+      trackId: lower,
+      kind: "media",
+      props: {},
+      mediaId: "m",
+      start: 5,
+      sourceIn: 0,
+      duration: 10,
+    };
     state.tracks[top!]!.clipIds = ["a"];
     state.tracks[lower]!.clipIds = ["b"];
     const size = () => ({ width: 1920, height: 1080 });
@@ -93,7 +111,7 @@ describe("visibleLayers", () => {
     state.clips.t = {
       id: "t",
       kind: "text",
-      text: "Text",
+      props: { text: "Text" },
       trackId: top,
       start: 0,
       sourceIn: 0,

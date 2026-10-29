@@ -3,12 +3,13 @@ import { createKernel, type Kernel } from "@/core";
 import { inspectorModule, inspectorSections } from "@/modules/inspector";
 import { createFakeMediaModule } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
+import { elementModule } from "@/modules/element";
 import { previewModule, previewRef } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
 import { textRef } from "./text.ref";
 import { transformModule } from "@/modules/transform";
-import { isTextClip, type TextClip } from "@/modules/project";
+import { clipText, isTextClip, textStyleOf } from "@/modules/project";
 import { addText, applyTextPreset, setText, setTextStyle } from "./text.commands";
 import { textModule } from "./text.module";
 
@@ -33,6 +34,7 @@ beforeEach(async () => {
   project.mediaOrder = ["mv"];
   statuses = await kernel.modules.loadAll([
     createProjectModule(project),
+    elementModule,
     createFakeMediaModule({ mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 } }),
     createFakeFontsModule({
       families: [
@@ -64,7 +66,7 @@ describe("text.add", () => {
     await run(kernel.bus.run(addClip, { mediaId: "mv" })); // the playhead stays within content
     kernel.modules.require(previewRef).playback.seek(2 * S);
     const clip = await run(kernel.bus.run(addText, {}));
-    expect(clip).toMatchObject({ kind: "text", text: "Text", start: 2 * S, duration: 3 * S });
+    expect(clip).toMatchObject({ kind: "text", props: {}, start: 2 * S, duration: 3 * S });
     expect(clip.trackId).toBe(videoTracks()[0]);
   });
 
@@ -97,13 +99,13 @@ describe("text.add", () => {
 });
 
 const textClip = async () => run(kernel.bus.run(addText, { start: 0 }));
-const styleOf = (id: string) => (doc().clips[id] as TextClip).style;
+const styleOf = (id: string) => textStyleOf(doc().clips[id]!, doc().format);
 
 describe("text.setText", () => {
   it("changes the words", async () => {
     const clip = await textClip();
     await run(kernel.bus.run(setText, { clipId: clip.id, text: "Hello" }));
-    expect((doc().clips[clip.id] as TextClip).text).toBe("Hello");
+    expect(clipText(doc().clips[clip.id]!)).toBe("Hello");
   });
 
   it("refuses empty words, missing clips and media clips", async () => {
@@ -235,7 +237,7 @@ describe("faces the family lacks (Roboto: 400 only, no italic)", () => {
 describe("text.add with a look", () => {
   it("stores the preset and the words", async () => {
     const clip = await run(kernel.bus.run(addText, { preset: "outline", text: "Hi" }));
-    expect(clip.text).toBe("Hi");
+    expect(clipText(clip)).toBe("Hi");
     expect(styleOf(clip.id)?.outline.enabled).toBe(true);
   });
 });

@@ -1,12 +1,14 @@
 import { microsToSeconds, type Micros } from "@/core";
 import {
   clipPlacement,
+  clipText,
   clipTransform,
   mergeTextStyle,
   textStyleOf,
   type Clip,
   type ClipId,
   type ClipTransform,
+  type MediaId,
   type ProjectState,
   type Track,
 } from "@/modules/project";
@@ -15,6 +17,11 @@ import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
 import { drawText } from "./engine.text";
 import type { EngineOptions } from "./engine.types";
+
+/** Whether a clip plays a file (media clips). */
+function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
+  return clip.mediaId !== undefined;
+}
 
 /** Clips starting within this window are prepared ahead so cuts don't stutter. */
 const PRELOAD_AHEAD: Micros = 1_500_000;
@@ -74,7 +81,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
     this.settled = true;
     for (const { clip, track } of active) {
-      if (clip.kind === "text") continue; // drawn from the document, no media element
+      if (!hasMedia(clip)) continue; // drawn from the document, no media element
       const media = project.media[clip.mediaId];
       if (!media) continue;
       const desired = microsToSeconds(clip.sourceIn + time - clip.start);
@@ -90,7 +97,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) this.settled = false;
     }
     for (const { clip, track } of upcoming) {
-      if (clip.kind === "text" || !project.media[clip.mediaId]) continue;
+      if (!hasMedia(clip) || !project.media[clip.mediaId]) continue;
       const slot = this.pool.acquire(clip, track.kind, microsToSeconds(clip.sourceIn));
       if (!slot) continue;
       slot.element.muted = true;
@@ -144,11 +151,11 @@ export class HtmlMediaEngine implements PreviewEngine {
         const override = textOverrides.get(clip.id);
         const saved = textStyleOf(clip, project.format);
         const style = override?.style ? mergeTextStyle(saved, override.style) : saved;
-        const text = override?.text ?? clip.text;
+        const text = override?.text ?? clipText(clip);
         drawText(ctx, project.format, style, text, transform, kx, ky, this.ensureFont);
         continue;
       }
-      if (project.media[clip.mediaId]?.kind !== "video") continue;
+      if (!hasMedia(clip) || project.media[clip.mediaId]?.kind !== "video") continue;
       const element = this.pool.elementOf(clip.id);
       if (!(element instanceof HTMLVideoElement)) continue;
       if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0)

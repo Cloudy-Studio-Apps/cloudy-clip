@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { clipPlacement, IDENTITY_TRANSFORM, normalizeRotation } from "./project.geometry";
 import { defaultTextStyle, textBox } from "./project.text";
-import type { TextClip } from "./project.types";
+import type { Clip } from "./project.types";
 
 const vertical = { width: 1080, height: 1920, fps: 30 };
-const textClip = (text: string): TextClip => ({
+const textClip = (text: string): Clip => ({
   id: "t",
   trackId: "v",
   kind: "text",
-  text,
+  props: { text },
   start: 0,
   sourceIn: 0,
   duration: 1,
