@@ -1,4 +1,5 @@
-import type { Clip, TextStylePatch } from "@/modules/project";
+import type { Clip } from "@/modules/project";
+import type { TextStylePatch } from "../text.types";
 import { SliderField } from "@/ui";
 import { useTextLive } from "./text.live.hook";
 

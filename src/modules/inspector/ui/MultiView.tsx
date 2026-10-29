@@ -1,14 +1,18 @@
 import { Layers } from "lucide-react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
-import { clipText, projectRef, type ClipId } from "@/modules/project";
+import { elementRef } from "@/modules/element";
+import { projectRef, type ClipId } from "@/modules/project";
 import { InspectorHeader } from "./InspectorHeader";
 
 /** Several clips selected: which ones. */
 export function MultiView({ clipIds }: { clipIds: readonly ClipId[] }) {
   const project = useModule(projectRef).store;
   const clips = useStore(project.api, (s) => s.clips);
-  const media = useStore(project.api, (s) => s.media);
+  const tracks = useStore(project.api, (s) => s.tracks);
+  // Media names come from the project's media.
+  useStore(project.api, (s) => s.media);
+  const elements = useModule(elementRef);
 
   return (
     <>
@@ -22,9 +26,10 @@ export function MultiView({ clipIds }: { clipIds: readonly ClipId[] }) {
           const clip = clips[id];
           const name = !clip
             ? "Missing clip"
-            : clip.kind === "text"
-              ? clipText(clip)
-              : ((clip.mediaId && media[clip.mediaId]?.name) ?? "Missing media");
+            : (elements.get(clip.kind)?.definition.display(clip, {
+                project: project.getState(),
+                track: tracks[clip.trackId],
+              }).label ?? clip.kind);
           return (
             <li key={id} className="truncate px-1.5 py-1 text-sm text-muted-foreground">
               {name}

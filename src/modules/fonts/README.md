@@ -4,8 +4,8 @@ The font families text can use and the loading of their faces: the two bundled f
 installed on the computer, and Google Fonts (downloaded once and cached).
 
 - **Tier:** core
-- **Requires:** —
-- **Contributes:** —
+- **Requires:** `element` (the `font` prop type)
+- **Contributes:** prop type `font` (`propTypes`)
 - **Points it owns:** —
 - **API** (`useModule(fontsRef)` / `ctx.require(fontsRef)`): `families()` (bundled, installed, Google,
   read once per kernel; offline still resolves), `knownFamilies()` (the same list, synchronously;
@@ -27,7 +27,12 @@ installed on the computer, and Google Fonts (downloaded once and cached).
     HTTP is scoped to `fonts.google.com`, `fonts.googleapis.com`, `fonts.gstatic.com`, files to `$APPDATA/fonts/**`
     (`capabilities/default.json`).
   - `fonts.store.ts`: per-kernel face statuses (ephemeral; type in `fonts.types.ts`).
-  - `logic/`: catalog parsing, variants, merging, search.
+  - `logic/`: catalog parsing, variants, merging, search; `css.ts`: `bundledCssFamily` (`"Inter"`
+    is `"Inter Variable"`) and `cssFontFamily` (quoted, escaped `font-family` list with Inter and
+    sans-serif fallbacks).
+  - `fonts.proptype.ts`: the `font` prop type (`prop.custom("font", { sources })`, value
+    `{ family, source }`, control `font-picker`); `fonts.types.ts` adds it to `CustomProps` /
+    `CustomValues`. Also owns `FontWeight`, `FontSource`, `FontRef`.
 - **Not yet:** font data for export (the picker lives in `text`).
 
 | Command | MCP tool     | Notes                                               |

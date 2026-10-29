@@ -76,13 +76,7 @@ export const TrackLane = memo(function TrackLane({
       }}
     >
       {clips.map((clip) => (
-        <TimelineClip
-          key={clip.id}
-          clip={clip}
-          kind={track.kind}
-          pxPerSecond={pxPerSecond}
-          rootRef={rootRef}
-        />
+        <TimelineClip key={clip.id} clip={clip} pxPerSecond={pxPerSecond} rootRef={rootRef} />
       ))}
     </div>
   );

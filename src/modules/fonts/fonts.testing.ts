@@ -1,5 +1,7 @@
 import { defineModule } from "@/core";
+import { propTypes } from "@/modules/element";
 import { createFontsLibrary } from "./fonts.library";
+import { fontPropType } from "./fonts.proptype";
 import { fontsRef } from "./fonts.ref";
 import type { FontFamily } from "./fonts.types";
 
@@ -13,8 +15,10 @@ export function createFakeFontsModule(options: { families?: FontFamily[]; fail?:
     ref: fontsRef,
     name: "Fonts (fake)",
     tier: "core",
-    requires: [],
-    async setup() {
+    // The element module is optional here so tests without it still load fonts.
+    after: ["element"],
+    async setup({ contribute }) {
+      contribute(propTypes, fontPropType);
       const loadable = async (family: string) => !fail.includes(family);
       const api = createFontsLibrary({
         installed: async () => [],

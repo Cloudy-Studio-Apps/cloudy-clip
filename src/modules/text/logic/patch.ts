@@ -1,4 +1,4 @@
-import type { TextStylePatch } from "@/modules/project";
+import type { TextStylePatch } from "../text.types";
 
 /** Two patches in one: later fields win; nested groups (fill, outline, …) merge one level deep. */
 export function mergePatch(a: TextStylePatch, b: TextStylePatch): TextStylePatch {

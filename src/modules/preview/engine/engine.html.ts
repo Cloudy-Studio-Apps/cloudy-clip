@@ -1,10 +1,8 @@
 import { microsToSeconds, type Micros } from "@/core";
+import { canvasTextMeasure, mergeProps, type PictureDefinition } from "@/modules/element";
 import {
   clipPlacement,
-  clipText,
   clipTransform,
-  mergeTextStyle,
-  textStyleOf,
   type Clip,
   type ClipId,
   type ClipTransform,
@@ -15,7 +13,6 @@ import {
 import type { PreviewEngine, TextOverride } from "../preview.types";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
-import { drawText } from "./engine.text";
 import type { EngineOptions } from "./engine.types";
 
 /** Whether a clip plays a file (media clips). */
@@ -40,6 +37,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly pool: MediaSlotPool;
   private settled = true;
   private readonly ensureFont: EngineOptions["ensureFont"];
+  private readonly elements: EngineOptions["elements"];
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -50,6 +48,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.ctx = ctx;
     this.pool = new MediaSlotPool(options);
     this.ensureFont = options.ensureFont;
+    this.elements = options.elements;
   }
 
   render(
@@ -147,12 +146,10 @@ export class HtmlMediaEngine implements PreviewEngine {
       const { clip, track } = active[i]!;
       if (track.kind !== "video" || track.hidden) continue;
       const transform = transforms.get(clip.id) ?? clipTransform(clip);
-      if (clip.kind === "text") {
-        const override = textOverrides.get(clip.id);
-        const saved = textStyleOf(clip, project.format);
-        const style = override?.style ? mergeTextStyle(saved, override.style) : saved;
-        const text = override?.text ?? clipText(clip);
-        drawText(ctx, project.format, style, text, transform, kx, ky, this.ensureFont);
+      const picture = this.elements.get(clip.kind)?.definition.picture;
+      if (!picture) continue;
+      if (picture.source !== "media") {
+        this.drawPicture(picture, project, clip, transform, textOverrides.get(clip.id), kx, ky);
         continue;
       }
       if (!hasMedia(clip) || project.media[clip.mediaId]?.kind !== "video") continue;
@@ -172,5 +169,30 @@ export class HtmlMediaEngine implements PreviewEngine {
       ctx.drawImage(element, -place.width / 2, -place.height / 2, place.width, place.height);
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  /** Draws an element that paints itself (text, a plugin's), at its placement. */
+  private drawPicture(
+    picture: PictureDefinition<Record<string, unknown>>,
+    project: ProjectState,
+    clip: Clip,
+    transform: ClipTransform,
+    override: TextOverride | undefined,
+    kx: number,
+    ky: number,
+  ): void {
+    if (!picture.size || !picture.draw) return;
+    const saved = this.elements.resolve(clip, project.format);
+    const props = override
+      ? mergeProps(saved, {
+          ...override.style,
+          ...(override.text !== undefined && { text: override.text }),
+        })
+      : saved;
+    const measure = canvasTextMeasure(this.ctx);
+    const size = picture.size(props, { format: project.format, measure });
+    const placement = clipPlacement(project.format, size, transform, picture.fit);
+    const env = { format: project.format, placement, kx, ky, measure, ensureFont: this.ensureFont };
+    picture.draw(this.ctx, props, env);
   }
 }

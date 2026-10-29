@@ -1,18 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { clipPlacement, IDENTITY_TRANSFORM, normalizeRotation } from "./project.geometry";
-import { defaultTextStyle, textBox } from "./project.text";
-import type { Clip } from "./project.types";
 
 const vertical = { width: 1080, height: 1920, fps: 30 };
-const textClip = (text: string): Clip => ({
-  id: "t",
-  trackId: "v",
-  kind: "text",
-  props: { text },
-  start: 0,
-  sourceIn: 0,
-  duration: 1,
-});
 
 describe("clipPlacement", () => {
   it("fits and centers an untransformed picture", () => {
@@ -39,22 +28,6 @@ describe("clipPlacement without fitting", () => {
       "none",
     );
     expect(placement).toEqual({ cx: 540, cy: 960, width: 400, height: 200, rotation: 0 });
-  });
-});
-
-describe("text", () => {
-  it("sizes the font from the frame's short side", () => {
-    expect(defaultTextStyle(vertical).size).toBe(97);
-    expect(defaultTextStyle({ width: 1920, height: 1080, fps: 30 }).size).toBe(97);
-  });
-
-  it("boxes measured text with padding", () => {
-    const box = textBox(vertical, textClip("Text"), (text, font) => {
-      expect(font).toContain("97px");
-      return text.length * 50;
-    });
-    expect(box.width).toBeGreaterThan(200);
-    expect(box.height).toBeGreaterThan(97);
   });
 });
 

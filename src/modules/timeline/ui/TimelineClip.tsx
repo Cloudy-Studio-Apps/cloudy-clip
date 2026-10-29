@@ -3,7 +3,8 @@ import { memo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { mediaRef } from "@/modules/media";
-import { clipText, type Clip, type TrackKind, projectRef } from "@/modules/project";
+import { elementRef } from "@/modules/element";
+import { type Clip, type ProjectState, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { cn } from "@/ui";
 import { timelineRef } from "../timeline.ref";
@@ -14,7 +15,6 @@ import { gestureMode, startClipGesture } from "./clip.gesture";
 
 interface TimelineClipProps {
   clip: Clip;
-  kind: TrackKind;
   pxPerSecond: number;
   /** The scroll root, used to find lanes during a drag. */
   rootRef: React.RefObject<HTMLDivElement | null>;
@@ -23,7 +23,6 @@ interface TimelineClipProps {
 /** One clip on a lane. Drag the body to move it, the edges to trim it. */
 export const TimelineClip = memo(function TimelineClip({
   clip,
-  kind,
   pxPerSecond,
   rootRef,
 }: TimelineClipProps) {
@@ -34,12 +33,16 @@ export const TimelineClip = memo(function TimelineClip({
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
+  const elements = useModule(elementRef);
   const mediaId = clip.mediaId;
-  const name = useStore(project.api, (s) =>
-    clip.kind === "text"
-      ? clipText(clip)
-      : ((mediaId && s.media[mediaId]?.name) ?? "Missing media"),
-  );
+  // Strings only, so each selector's result is stable (the display reads media names and tracks).
+  const look = (s: ProjectState) =>
+    elements
+      .get(clip.kind)
+      ?.definition.display(clip, { project: s, track: s.tracks[clip.trackId] });
+  const label = useStore(project.api, (s) => look(s)?.label ?? clip.kind);
+  const color = useStore(project.api, (s) => look(s)?.color ?? "clip-video");
+  const body = useStore(project.api, (s) => look(s)?.body ?? "none");
   const poster = useStore(media.probes, (s) =>
     mediaId ? s.probes[mediaId]?.posterUrl : undefined,
   );
@@ -51,14 +54,10 @@ export const TimelineClip = memo(function TimelineClip({
       data-clip-id={clip.id}
       className={cn(
         "group absolute bottom-[3px] top-[3px] overflow-hidden rounded-xs border text-white select-none data-[invalid=true]:!border-destructive data-[invalid=true]:!bg-destructive",
-        clip.kind === "text"
-          ? "bg-clip-type"
-          : kind === "video"
-            ? "bg-clip-video"
-            : "bg-clip-audio",
         selected ? "border-white shadow-[inset_0_0_0_1px_white]" : "border-black/30",
       )}
       style={{
+        backgroundColor: `var(--${color})`,
         left: timeToPx(clip.start, pxPerSecond),
         width: timeToPx(clip.duration, pxPerSecond),
       }}
@@ -86,9 +85,9 @@ export const TimelineClip = memo(function TimelineClip({
     >
       <div className="pointer-events-none flex h-[17px] items-center gap-1 bg-black/25 px-1.5 text-xs font-medium">
         {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
-        <span className="min-w-0 flex-1 truncate">{name}</span>
+        <span className="min-w-0 flex-1 truncate">{label}</span>
       </div>
-      <ClipBody kind={clip.kind === "text" ? "text" : kind} poster={poster} />
+      <ClipBody body={body} poster={poster} />
       {/* Trim handles: brackets on hover. */}
       <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-white" />
       <div className="pointer-events-none absolute inset-y-0 -right-px w-[7px] group-hover:border-r-[3px] group-hover:border-white" />

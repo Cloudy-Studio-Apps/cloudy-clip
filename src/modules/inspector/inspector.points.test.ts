@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createKernel, defineModule, defineModuleRef } from "@/core";
+import { elementModule } from "@/modules/element";
 import { createEmptyProject, createProjectModule, type Clip, type Track } from "@/modules/project";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { createFakeMediaModule } from "@/modules/media";
@@ -42,6 +43,7 @@ describe("inspector.sections", () => {
     const kernel = await createKernel();
     await kernel.modules.loadAll([
       createProjectModule(createEmptyProject()),
+      elementModule,
       createFakeMediaModule({}),
       createFakeFontsModule(),
       previewModule,

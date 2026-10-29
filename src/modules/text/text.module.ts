@@ -1,8 +1,10 @@
 import { Type } from "lucide-react";
 import { defineModule, layoutPanels } from "@/core";
+import { elements } from "@/modules/element";
 import { inspectorSections } from "@/modules/inspector";
 import { previewOverlays } from "@/modules/preview";
 import { textCommands } from "./text.commands";
+import { textElement } from "./text.element";
 import { textMcpTools } from "./text.mcp";
 import { textRef } from "./text.ref";
 import { createRecentColors } from "./text.recents.store";
@@ -29,6 +31,7 @@ export const textModule = defineModule({
   commands: textCommands,
   mcpTools: textMcpTools,
   setup({ contribute }) {
+    contribute(elements, textElement);
     contribute(layoutPanels, {
       id: "text.panel",
       title: "Text",

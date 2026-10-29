@@ -1,22 +1,20 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand, type CommandContext } from "@/core";
-import { fontsRef, type FontFamily } from "@/modules/fonts";
+import { fontsRef } from "@/modules/fonts";
 import { minimizeProps } from "@/modules/element";
+import { projectRef, type Clip, type ProjectFormat } from "@/modules/project";
 import {
   DEFAULT_TEXT,
   clipText,
   defaultTextStyle,
   isTextClip,
   mergeTextStyle,
-  projectRef,
   textStyleOf,
-  type Clip,
-  type ProjectFormat,
-  type TextStyle,
-  type TextStylePatch,
-} from "@/modules/project";
+} from "./logic/layout";
+import type { TextStyle } from "./text.types";
 import { setClipTransform } from "@/modules/transform";
 import { presetStyle, presetTransform } from "./logic/presets";
+import { checkExplicitFace } from "./logic/faces";
 import { snapStyleToFamily } from "./logic/snap";
 import { textPresetId, textStylePatch } from "./text.schema";
 
@@ -70,26 +68,6 @@ function writeStyles(ctx: CommandContext, styles: ReadonlyMap<string, TextStyle>
   ctx.mutate(store, (draft) => {
     for (const [id, value] of props) draft.clips[id]!.props = value;
   });
-}
-
-/** Fails when the patch itself asks for a weight or italic that the style's family doesn't have. */
-function checkExplicitFace(
-  merged: TextStyle,
-  patch: TextStylePatch,
-  families: readonly FontFamily[] | undefined,
-) {
-  const family = families?.find((f) => f.family === merged.font.family);
-  if (!family) return;
-  if (patch.weight !== undefined && !family.variants.some((v) => v.weight === merged.weight)) {
-    const weights = [...new Set(family.variants.map((v) => v.weight))].join(", ");
-    throw new CommandFailure(
-      "text.weight_unavailable",
-      `"${family.family}" has no weight ${merged.weight}; available: ${weights}`,
-    );
-  }
-  if (patch.italic === true && !family.variants.some((v) => v.style === "italic")) {
-    throw new CommandFailure("text.italic_unavailable", `"${family.family}" has no italic`);
-  }
 }
 
 /** Changes the look of one or more text clips; only the given fields change. */

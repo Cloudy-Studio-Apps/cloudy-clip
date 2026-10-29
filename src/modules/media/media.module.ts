@@ -1,8 +1,10 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { SquarePlay } from "lucide-react";
 import { defineModule, layoutPanels } from "@/core";
+import { elements } from "@/modules/element";
 import { projectRef } from "@/modules/project";
 import { importMedia, mediaCommands } from "./media.commands";
+import { mediaElement } from "./media.element";
 import { mediaMcpTools } from "./media.mcp";
 import { createProbeQueue } from "./media.probe";
 import { mediaRef } from "./media.ref";
@@ -15,10 +17,11 @@ export const mediaModule = defineModule({
   ref: mediaRef,
   name: "Media",
   tier: "core",
-  requires: ["project"],
+  requires: ["project", "element"],
   commands: mediaCommands,
   mcpTools: mediaMcpTools,
   async setup({ bus, log, contribute, require, onDispose }) {
+    contribute(elements, mediaElement);
     const project = require(projectRef).store;
     const state = createMediaState();
     const { fileDrop, getProbe, setProbe } = state;

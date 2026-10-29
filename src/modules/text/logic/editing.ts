@@ -1,4 +1,4 @@
-import type { TextStylePatch } from "@/modules/project";
+import type { TextStylePatch } from "../text.types";
 
 /**
  * What ending an in-place edit does: nothing when the words did not change, a revert when they

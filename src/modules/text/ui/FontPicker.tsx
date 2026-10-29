@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { FontFamily } from "@/modules/fonts";
-import type { TextStyle } from "@/modules/project";
+import type { TextStyle } from "../text.types";
 import { Popover } from "@/ui";
 import { FontList } from "./FontList";
 import { useFontStatus } from "./text.fonts.hook";

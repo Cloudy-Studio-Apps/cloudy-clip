@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
-import { isTextClip, projectRef, textStyleOf, type Clip, type TextStyle } from "@/modules/project";
+import { projectRef, type Clip } from "@/modules/project";
+import { isTextClip, textStyleOf } from "../logic/layout";
+import type { TextStyle } from "../text.types";
 
 /** The style a text clip is drawn with (its own or the default), or null for another kind of clip. */
 export function useTextStyle(clip: Clip): TextStyle | null {

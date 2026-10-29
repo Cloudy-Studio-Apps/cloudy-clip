@@ -1,4 +1,14 @@
-import type { FontSource, FontWeight } from "@/modules/project";
+/** Weight of a font, as CSS numbers. */
+export type FontWeight = "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
+
+/** Where a font comes from: shipped with the app, installed on the system, or Google Fonts. */
+export type FontSource = "bundled" | "installed" | "google";
+
+/** A font family and where to get it. */
+export interface FontRef {
+  family: string;
+  source: FontSource;
+}
 
 /** One face of a family: its weight and style. */
 export interface FontVariant {
@@ -74,4 +84,14 @@ export interface FontsApi {
   ensure(request: FontRequest): boolean;
   /** Called when a face finishes loading (or turns out missing). Returns the unsubscribe. */
   onLoaded(listener: (request: FontRequest) => void): () => void;
+}
+
+declare module "@/modules/element" {
+  interface CustomProps {
+    /** `prop.custom("font", { sources })`: a family from these sources. */
+    font: { sources: readonly FontSource[] };
+  }
+  interface CustomValues {
+    font: FontRef;
+  }
 }

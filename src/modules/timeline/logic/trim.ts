@@ -12,7 +12,8 @@ export function trimLimits(
   clip: Clip,
   durationOf: MediaDurationOf,
 ): TrimLimits {
-  const sourceless = clip.kind === "text";
+  // Elements without a source file (text) have no media.
+  const sourceless = clip.mediaId === undefined;
   return {
     mediaDuration:
       (sourceless || !clip.mediaId ? undefined : durationOf(clip.mediaId)) ??

@@ -4,8 +4,10 @@ Importing files, reading their metadata, editing proxies, and the library panel 
 tab), from which media is dragged onto the timeline.
 
 - **Tier:** core
-- **Requires:** `project`
-- **Contributes:** panel `media.library` (side, icon `SquarePlay`)
+- **Requires:** `project`, `element`
+- **Contributes:** panel `media.library` (side, icon `SquarePlay`); element `media`
+  (`media.element.ts`: no own properties, supports `transform`, `picture: { fit: "contain",
+source: "media" }`, labelled with the file name, a filmstrip on video tracks and a waveform on audio)
 - **Points it owns:** —
 - **API** (`useModule(mediaRef)` / `ctx.require(mediaRef)`): `probes`, `fileDrop`, `getProbe`,
   `waitForProbe`, `mediaUrl`. `mediaHasAudio(probe)` (exported helper) says whether a file has

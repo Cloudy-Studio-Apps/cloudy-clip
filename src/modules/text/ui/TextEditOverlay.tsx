@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { isTextClip, projectRef, type ClipId } from "@/modules/project";
+import { projectRef, type ClipId } from "@/modules/project";
+import { isTextClip } from "../logic/layout";
 import { timelineRef } from "@/modules/timeline";
 import { TextEditor } from "./TextEditor";
 

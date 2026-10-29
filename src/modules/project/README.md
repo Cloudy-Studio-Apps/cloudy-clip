@@ -15,25 +15,13 @@ lives here, so every change is undoable and readable by agents.
     `SharedGroupValues`. A `Clip` names its element in `kind` (`"media"`, `"text"`, a plugin's)
     and stores only the values that differ from the element's defaults in `props`; `mediaId` is
     set for clips that play a file; shared group values (`transform`) live under their own key.
-  - `project.text.ts`: `DEFAULT_TEXT`, `isTextClip`, and the text model's functions.
-    A text clip's `props` hold `text` and `TextStyle` fields (font ref, size, weight, italic, letter
-    spacing, line height, align, uppercase, fill, outline, background, shadow; sizes in output px,
-    colors `#rrggbb`), only those that differ from `DEFAULT_TEXT` / `defaultTextStyle(format)`.
-    `clipText(clip)`, `textStyleOf(clip, format)` (props over the default style), `mergeTextStyle` (one level
-    deep), `cssFontFamily`/`textFont` (quoted, escaped CSS), `displayText` (uppercase),
-    `textPadding`, `textLayout(text, style, measure)` (lines, box, line positions from the box
-    center; blank lines keep their height) and `textBox(format, clip, measure)`, the natural size
-    that the engine draws and the canvas tools hit-test. `TextMeasure` takes the letter spacing
-    (`(n-1)·spacing` between letters). `canvasTextMeasure(ctx)` builds one over a 2D canvas (removing
-    the trailing spacing the canvas adds); `bundledCssFamily(family)` is the CSS name of a bundled
-    family (`"Inter"` is `"Inter Variable"`).
   - `project.store.ts`: `FORMAT_PRESETS`, `createEmptyProject()`.
   - `project.selectors.ts`: `projectDuration`, `orderedTracks`, `trackClips`, `clipEnd`,
     `isMediaInUse`, `formatPreset`.
   - `project.geometry.ts`: `clipPlacement(format, sourceSize, transform)`, the one place a clip's
     transform becomes a rectangle in the frame (the preview engine and the canvas tools both use it);
-    `clipTransform`, `IDENTITY_TRANSFORM`, `normalizeRotation`, `clipFit(clip)` (media pictures are
-    fitted in the frame, text keeps its natural size: `clipPlacement(…, "none")`).
+    `clipTransform`, `IDENTITY_TRANSFORM`, `normalizeRotation`. The fit (`contain` for media,
+    `none` for text at its natural size) comes from the clip's element.
   - `createProjectModule(initial)` seeds the document in tests.
 - **Invariants:** track order is top → bottom (higher video tracks are drawn on top);
   `Track.clipIds` is sorted by `start` and clips on a track never overlap; times are microseconds;

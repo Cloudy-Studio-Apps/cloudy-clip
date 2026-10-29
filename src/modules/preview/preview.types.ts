@@ -1,12 +1,12 @@
 import type { Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ClipId, ClipTransform, ProjectState, TextStylePatch } from "@/modules/project";
+import type { ClipId, ClipTransform, ProjectState } from "@/modules/project";
 
 /** Live words and/or style of a text clip while it is being edited; the style may be partial. */
 export interface TextOverride {
   text?: string;
-  style?: TextStylePatch;
+  style?: Record<string, unknown>;
 }
 
 /** Called on every frame while playing, and once per seek while paused. */

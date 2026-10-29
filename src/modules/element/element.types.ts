@@ -9,7 +9,6 @@ import type {
   ProjectFormat,
   ProjectState,
   SharedGroupValues,
-  TextMeasure,
   Track,
   TrackKind,
 } from "@/modules/project";
@@ -316,3 +315,13 @@ export interface LayoutIssue {
 export type PanelCommandCheck =
   | { ok: true; field?: { name: string; schema: z.ZodType } }
   | { ok: false; reason: "missing" | "no_clip_ids" | "too_many_fields"; message: string };
+
+/** Width of `text` drawn in the CSS `font` with `letterSpacing` pixels between letters (canvas `measureText`, faked in tests). */
+export type TextMeasure = (text: string, font: string, letterSpacing: number) => number;
+
+/** The part of a 2D canvas context `canvasTextMeasure` uses; `letterSpacing` is missing in some webviews. */
+export interface TextMeasureContext {
+  font: string;
+  letterSpacing?: string;
+  measureText(text: string): { width: number };
+}

@@ -1,5 +1,5 @@
 import { closestVariant, type FontFamily, type FontVariant } from "@/modules/fonts";
-import type { FontWeight } from "@/modules/project";
+import type { FontWeight } from "@/modules/fonts";
 
 const ALL_WEIGHTS: FontWeight[] = ["100", "200", "300", "400", "500", "600", "700", "800", "900"];
 

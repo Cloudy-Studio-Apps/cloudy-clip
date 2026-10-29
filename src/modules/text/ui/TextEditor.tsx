@@ -3,18 +3,14 @@ import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import {
-  canvasTextMeasure,
   clipPlacement,
   clipTransform,
   projectRef,
-  textFont,
-  textLayout,
-  textPadding,
-  textStyleOf,
   type PictureSize,
-  clipText,
   type Clip,
 } from "@/modules/project";
+import { textFont, textLayout, textPadding, textStyleOf, clipText } from "../logic/layout";
+import { canvasTextMeasure } from "@/modules/element";
 import { EDIT_HIDDEN_STYLE, editCommitAction } from "../logic/editing";
 import { setText } from "../text.commands";
 

@@ -6,7 +6,7 @@ sound counts as one clip: the one clicked,
 via the timeline's `selectionSubject`); with several, which ones.
 
 - **Tier:** feature
-- **Requires:** `project`, `timeline` (the selection)
+- **Requires:** `project`, `element` (the header: each clip's `display`), `timeline` (the selection)
 - **Contributes:** panel `inspector.panel` (inspector slot)
 - **Points it owns:** `inspector.sections` (`inspectorSections`, in `inspector.points.ts`): an
   `InspectorClipSection` is `{ id, title, order, appliesTo(clip, track), component }`. `ClipView`

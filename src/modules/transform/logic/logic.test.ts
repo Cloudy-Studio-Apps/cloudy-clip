@@ -1,9 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyProject, IDENTITY_TRANSFORM, type ClipPlacement } from "@/modules/project";
+import type { ElementApi, TextMeasure } from "@/modules/element";
+import {
+  createEmptyProject,
+  IDENTITY_TRANSFORM,
+  type Clip,
+  type ClipPlacement,
+} from "@/modules/project";
 import { moveTransform, rotateTransform, scaleTransform } from "./gestures";
 import { screenToFrame } from "./frame";
 import { containsPoint, topmostAt } from "./picking";
 import { visibleLayers } from "./layers";
+
+/** Media drawn by the decoder; text measured from its words (40 px padding each side). */
+const elements = {
+  get: (kind: string) =>
+    kind === "media"
+      ? { definition: { picture: { fit: "contain", source: "media" } } }
+      : kind === "text"
+        ? {
+            definition: {
+              picture: {
+                fit: "none",
+                size: (props: { text: string }, env: { measure: TextMeasure }) => ({
+                  width: env.measure(props.text, "", 0) + 80,
+                  height: 100,
+                }),
+              },
+            },
+          }
+        : undefined,
+  resolve: (clip: Clip) => clip.props,
+} as unknown as Pick<ElementApi, "get" | "resolve">;
 
 const box: ClipPlacement = { cx: 100, cy: 100, width: 100, height: 20, rotation: 0 };
 
@@ -100,9 +127,12 @@ describe("visibleLayers", () => {
     state.tracks[lower]!.clipIds = ["b"];
     const size = () => ({ width: 1920, height: 1080 });
     const measure = (text: string) => text.length * 50;
-    expect(visibleLayers(state, size, 7, measure).map((l) => l.clipId)).toEqual(["a", "b"]);
-    expect(visibleLayers(state, size, 12, measure).map((l) => l.clipId)).toEqual(["b"]);
-    expect(visibleLayers(state, () => undefined, 7, measure)).toEqual([]);
+    expect(visibleLayers(state, elements, size, 7, measure).map((l) => l.clipId)).toEqual([
+      "a",
+      "b",
+    ]);
+    expect(visibleLayers(state, elements, size, 12, measure).map((l) => l.clipId)).toEqual(["b"]);
+    expect(visibleLayers(state, elements, () => undefined, 7, measure)).toEqual([]);
   });
 
   it("lists text clips with their measured box, kept at natural size", () => {
@@ -120,6 +150,7 @@ describe("visibleLayers", () => {
     state.tracks[top]!.clipIds = ["t"];
     const [layer] = visibleLayers(
       state,
+      elements,
       () => undefined,
       5,
       (text) => text.length * 50,

@@ -1,6 +1,7 @@
 import { useModule } from "@/core";
 import { fontsRef, type FontFamily } from "@/modules/fonts";
-import type { Clip, FontWeight } from "@/modules/project";
+import type { Clip } from "@/modules/project";
+import type { FontWeight } from "@/modules/fonts";
 import { SegmentedControl, SelectField, ToggleRow } from "@/ui";
 import { availableWeights, hasItalic, pickVariant } from "../logic/fontpick";
 import { FontPicker } from "./FontPicker";

@@ -3,7 +3,8 @@ import { useModule } from "@/core";
 import { fontsRef } from "@/modules/fonts";
 import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
-import { canvasTextMeasure, projectRef, type MediaId, type PictureSize } from "@/modules/project";
+import { canvasTextMeasure, elementRef } from "@/modules/element";
+import { projectRef, type MediaId, type PictureSize } from "@/modules/project";
 import { visibleLayers } from "../logic/layers";
 import type { VisibleLayer } from "../transform.types";
 
@@ -19,6 +20,7 @@ export function useVisibleLayers(): VisibleLayer[] {
   const project = useModule(projectRef).store;
   const media = useModule(mediaRef);
   const fonts = useModule(fontsRef);
+  const elements = useModule(elementRef);
   const { playback, textClipOverride, onTextOverride } = useModule(previewRef);
   const [layers, setLayers] = useState<VisibleLayer[]>([]);
 
@@ -35,6 +37,7 @@ export function useVisibleLayers(): VisibleLayer[] {
     const update = () => {
       const next = visibleLayers(
         project.getState(),
+        elements,
         sizeOf,
         playback.getTime(),
         measure,
@@ -58,7 +61,7 @@ export function useVisibleLayers(): VisibleLayer[] {
       offOverride();
       offFonts();
     };
-  }, [fonts, media, playback, project, textClipOverride, onTextOverride]);
+  }, [elements, fonts, media, playback, project, textClipOverride, onTextOverride]);
 
   return layers;
 }

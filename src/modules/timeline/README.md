@@ -4,7 +4,7 @@ Editing tracks and clips on the timeline, and the timeline panel: ruler, track h
 clips, playhead and the toolbar (split, delete, add track, zoom).
 
 - **Tier:** core
-- **Requires:** `project`, `media`, `preview`
+- **Requires:** `project`, `element` (clip labels, colors, bodies), `media`, `preview`
 - **Contributes:** panel `timeline.panel` (bottom); keybindings `timeline.split` (S),
   `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace)
 - **Points it owns:** —
@@ -22,8 +22,10 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   - `ui/`: page-virtualized lanes (`TimelinePanel`), `clip.gesture.ts` (DOM feedback while dragging,
     one command on release), the playhead positioned by `playhead.hook.ts` without renders.
 - **Rules:** video tracks hold pictures (and text clips) only, audio tracks hold sound. Every
-  command works on any clip kind; a text clip has no source file, so it trims to any length
-  (`TrimLimits.sourceless`) and keeps `sourceIn` at 0 when split. Adding a video file creates
+  command works on any clip kind; a clip without a file (`mediaId`; text) trims to any length
+  (`TrimLimits.sourceless`) and keeps `sourceIn` at 0 when split. Splitting copies `props` to
+  each half. A clip shows its element's `display`: label, color (`var(--<token>)`) and body
+  (filmstrip, waveform or none). Adding a video file creates
   its picture and, if ffprobe found sound (`mediaHasAudio`), a linked sound clip (`Clip.linkId`) on
   the first audio track with room (a new one if none). Linked clips are moved (same offset, each on
   its own track), trimmed (same edge, tightest limit), split (halves linked left/right) and deleted

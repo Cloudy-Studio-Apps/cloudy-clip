@@ -26,11 +26,6 @@ export function normalizeRotation(degrees: number): number {
   return turned === -180 ? 180 : turned;
 }
 
-/** The fit of a clip's picture. */
-export function clipFit(clip: Clip): ClipFit {
-  return clip.kind === "text" ? "none" : "contain";
-}
-
 /**
  * Where a picture of `source` size lands in the `format` frame with `transform` applied. Used by
  * the preview engine to draw and by the canvas tools to hit-test, so both always agree.

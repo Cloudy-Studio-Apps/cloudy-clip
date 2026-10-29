@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useKernel } from "@/core";
-import { clipText, isTextClip, type Clip } from "@/modules/project";
+import { type Clip } from "@/modules/project";
+import { clipText, isTextClip } from "../logic/layout";
 import { Button } from "@/ui";
 import { applyTextPreset } from "../text.commands";
 import type { TextPresetId } from "../text.types";

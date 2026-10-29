@@ -8,10 +8,10 @@ the preview with the transform tools. Selecting a text clip shows six sections i
 edit its words and look.
 
 - **Tier:** feature
-- **Requires:** `project`, `preview` (the playhead), `timeline` (tracks, placement checks, drop
+- **Requires:** `project`, `element` (the text element, minimized props), `preview` (the playhead), `timeline` (tracks, placement checks, drop
   targets), `transform` (presets that place the text), `fonts` (face checks against `knownFamilies()`, family list), `inspector`
   (the sections point)
-- **Contributes:** panel `text.panel` (side, icon `Type`); inspector sections, all for `kind === "text"`:
+- **Contributes:** element `text`; panel `text.panel` (side, icon `Type`); inspector sections, all for `kind === "text"`:
   `text.content` (10: words + preset row), `text.font` (20: family picker, size, weight, italic,
   letter and line spacing, align, uppercase), `text.fill` (30), `text.outline` (40),
   `text.background` (50), `text.shadow` (60); preview overlay `text.editor` (in-place editing)
@@ -36,8 +36,19 @@ edit its words and look.
     `align: "left"` and a transform of `x = -0.2*width`, `y = 0.32*height`.
   - `ui/TextPanel.tsx`: the tab; `ui/text.gesture.ts`: click-or-drag on the tile (DOM ghost, no
     renders), dropping through `TimelineApi.dropTarget`.
-  - The clip itself (`TextClip`), its style (`TextStyle`) and its box (`textBox`) live in `project`, so the
-    preview draws it and the canvas tools hit-test it from the same numbers.
+  - `text.element.ts`: `textElement` (`textProperties`: words, `font` (custom prop), size, weight,
+    italic, spacing, align, uppercase, fill, outline, background, shadow, with the schema ranges and
+    the old sliders' ranges as `ui`); defaults `{ text: DEFAULT_TEXT, ...defaultTextStyle(format) }`;
+    `normalize` = `checkExplicitFace` (`logic/faces.ts`) then `snapStyleToFamily`; supports
+    `transform`; `picture: { fit: "none", size: textLayout(…).box, draw: drawText }`. A clip's
+    `props` hold only what differs from the defaults.
+  - `logic/layout.ts` (moved from `project`): `DEFAULT_TEXT`, `clipText`, `textStyleOf`,
+    `defaultTextStyle`, `mergeTextStyle`, `textFont`, `displayText`, `textPadding`, `textLayout`
+    (lines, box, positions from the box center; blank lines keep their height), `textBox`. Types
+    (`TextStyle`, `TextProps`, …) are type aliases in `text.types.ts`.
+  - `text.draw.ts` (moved from the preview engine): `drawText(ctx, props, env)`: background box,
+    then per line the shadow (first painted pass only), outline stroke and fill, at
+    `env.placement`. A font not loaded yet is drawn in Inter at the clip's scale.
   - `text.recents.store.ts` / `logic/recents.ts` (`pushRecent`): the recent colors.
   - `logic/fontpick.ts`: `pickVariant` (keep the weight/italic if the family has it, else
     `closestVariant`), `availableWeights`, `hasItalic`, `visibleWindow` (the rows the font list

@@ -1,5 +1,5 @@
 import { createLogger, type Logger } from "@/core";
-import { bundledCssFamily } from "@/modules/project";
+import { bundledCssFamily } from "./logic/css";
 import type { StoreApi } from "zustand/vanilla";
 import { createFontsState } from "./fonts.store";
 import { BUNDLED_FAMILIES } from "./logic/catalog";

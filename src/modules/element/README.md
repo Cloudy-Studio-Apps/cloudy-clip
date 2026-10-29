@@ -47,7 +47,11 @@ declaration, and one command changes any element's values.
   - `logic/commands.ts`: `checkPanelCommand(id, command)`: placeable when it exists and takes
     `clipIds` (an array) plus at most one field; else `missing`, `no_clip_ids` or
     `too_many_fields`, each with a message for the log and the panel's warning row.
-- **Not yet:** drawing through elements, creation.
+  - `logic/measure.ts`: `canvasTextMeasure(ctx)`, a `TextMeasure` over a 2D canvas (removes the
+    trailing letter spacing the canvas adds; letter by letter without `ctx.letterSpacing`). The
+    engine draws and the canvas tools hit-test with it.
+- **Elements so far:** `media` (media module), `text` (text module).
+- **Not yet:** creation.
 
 | Command              | MCP tool              | Notes                                                                                                                |
 | -------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |

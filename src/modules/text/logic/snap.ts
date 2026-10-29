@@ -1,5 +1,5 @@
 import { closestVariant, type FontFamily } from "@/modules/fonts";
-import type { TextStyle } from "@/modules/project";
+import type { TextStyle } from "../text.types";
 
 /**
  * The style with its weight and italic moved to the closest face its font family has. Unchanged

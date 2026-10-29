@@ -1,4 +1,4 @@
-import { cssFontFamily, type FontSource } from "@/modules/project";
+import { cssFontFamily, type FontSource } from "@/modules/fonts";
 import { cn } from "@/ui";
 import type { FontFamily } from "@/modules/fonts";
 import { useFontStatus } from "./text.fonts.hook";

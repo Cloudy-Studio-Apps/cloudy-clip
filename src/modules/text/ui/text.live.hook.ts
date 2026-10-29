@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import {
-  clipText,
-  isTextClip,
-  mergeTextStyle,
-  projectRef,
-  textStyleOf,
-  type Clip,
-  type TextStylePatch,
-} from "@/modules/project";
+import { projectRef, type Clip } from "@/modules/project";
+import { clipText, isTextClip, mergeTextStyle, textStyleOf } from "../logic/layout";
+import type { TextStylePatch } from "../text.types";
 import type { z } from "zod";
 import { mergePatch } from "../logic/patch";
 import type { textStylePatch } from "../text.schema";

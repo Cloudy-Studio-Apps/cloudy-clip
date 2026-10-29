@@ -1,50 +1,10 @@
-import type {
-  Clip,
-  PictureSize,
-  ProjectFormat,
-  TextFontRef,
-  TextLayout,
-  TextLine,
-  TextMeasure,
-  TextMeasureContext,
-  TextStyle,
-  TextStylePatch,
-} from "./project.types";
+import { cssFontFamily } from "@/modules/fonts";
+import type { Clip, PictureSize, ProjectFormat } from "@/modules/project";
+import type { TextMeasure } from "@/modules/element";
+import type { TextLayout, TextLine, TextStyle, TextStylePatch } from "../text.types";
 
 /** Words of a new text clip. */
 export const DEFAULT_TEXT = "Text";
-
-/** Fontsource family names of the fonts shipped with the app. */
-const BUNDLED_FAMILIES: Record<string, string> = {
-  Inter: "Inter Variable",
-  "JetBrains Mono": "JetBrains Mono Variable",
-};
-
-/** The CSS family name a font is registered under ("Inter" is "Inter Variable"; other sources keep their name). */
-export function bundledCssFamily(family: string): string {
-  return BUNDLED_FAMILIES[family] ?? family;
-}
-
-/**
- * A `TextMeasure` over a 2D canvas context, so the engine and the canvas tools measure alike.
- * Widths follow the contract `(n-1)·letterSpacing` between letters: the canvas also adds spacing
- * after the last letter, which is taken off. Without `ctx.letterSpacing` the letters are measured
- * one by one.
- */
-export function canvasTextMeasure(ctx: TextMeasureContext | null): TextMeasure {
-  return (text, font, letterSpacing) => {
-    if (!ctx || text === "") return 0;
-    ctx.font = font;
-    if ("letterSpacing" in ctx) {
-      ctx.letterSpacing = `${letterSpacing}px`;
-      const width = ctx.measureText(text).width;
-      return letterSpacing !== 0 ? width - letterSpacing : width;
-    }
-    const letters = [...text];
-    const sum = letters.reduce((total, letter) => total + ctx.measureText(letter).width, 0);
-    return sum + letterSpacing * (letters.length - 1);
-  };
-}
 
 /** Whether a clip is a text clip. */
 export function isTextClip(clip: Clip): boolean {
@@ -112,15 +72,6 @@ export function mergeTextStyle(style: TextStyle, patch: TextStylePatch): TextSty
         : value;
   }
   return next as unknown as TextStyle;
-}
-
-/** CSS `font-family` list for a font: its quoted, escaped name, then Inter and a generic fallback. */
-export function cssFontFamily(font: TextFontRef): string {
-  const name = font.source === "bundled" ? bundledCssFamily(font.family) : font.family;
-  const quoted = `"${name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-  return name === "Inter Variable"
-    ? `${quoted}, sans-serif`
-    : `${quoted}, "Inter Variable", sans-serif`;
 }
 
 /** CSS font of a style, in output pixels. */

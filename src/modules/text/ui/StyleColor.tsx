@@ -1,6 +1,7 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
-import type { Clip, TextStylePatch } from "@/modules/project";
+import type { Clip } from "@/modules/project";
+import type { TextStylePatch } from "../text.types";
 import { ColorField } from "@/ui";
 import { textRef } from "../text.ref";
 import { useTextLive } from "./text.live.hook";

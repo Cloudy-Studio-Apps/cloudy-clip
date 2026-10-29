@@ -3,13 +3,8 @@ import { CommandFailure, createId, defineCommand, type Micros } from "@/core";
 import { minimizeProps } from "@/modules/element";
 import { fontsRef } from "@/modules/fonts";
 import { previewRef } from "@/modules/preview";
-import {
-  DEFAULT_TEXT,
-  defaultTextStyle,
-  mergeTextStyle,
-  projectRef,
-  type Clip,
-} from "@/modules/project";
+import { projectRef, type Clip } from "@/modules/project";
+import { DEFAULT_TEXT, defaultTextStyle, mergeTextStyle } from "./logic/layout";
 import { addTrack, findOverlap, freeTrack, overlapError } from "@/modules/timeline";
 import { presetStyle } from "./logic/presets";
 import { snapStyleToFamily } from "./logic/snap";

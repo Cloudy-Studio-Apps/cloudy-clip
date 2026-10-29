@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { FontFamily } from "@/modules/fonts";
-import { defaultTextStyle, createEmptyProject } from "@/modules/project";
+import { createEmptyProject } from "@/modules/project";
+import { defaultTextStyle } from "./layout";
 import { snapStyleToFamily } from "./snap";
 
 const lobster: FontFamily = {

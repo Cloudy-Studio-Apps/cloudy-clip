@@ -1,12 +1,6 @@
-import {
-  canvasTextMeasure,
-  clipPlacement,
-  textLayout,
-  type ClipTransform,
-  type ProjectFormat,
-  type TextStyle,
-} from "@/modules/project";
-import type { EngineOptions } from "./engine.types";
+import type { DrawEnv } from "@/modules/element";
+import { textLayout } from "./logic/layout";
+import type { TextProps, TextStyle } from "./text.types";
 
 /** `#rrggbb` and an opacity as a CSS `rgba()` color. */
 function rgba(hex: string, opacity: number): string {
@@ -15,7 +9,7 @@ function rgba(hex: string, opacity: number): string {
 }
 
 /** The style to draw with: the font is swapped for Inter until its face is ready. */
-function drawnStyle(style: TextStyle, ensureFont: EngineOptions["ensureFont"]): TextStyle {
+function drawnStyle(style: TextStyle, ensureFont: DrawEnv["ensureFont"]): TextStyle {
   const ready = ensureFont({
     family: style.font.family,
     source: style.font.source,
@@ -50,24 +44,16 @@ function paintLine(
 
 /**
  * Draws a text clip from its layout: background, then each line with shadow, outline and fill.
- * `kx`/`ky` are canvas pixels per output pixel. The box comes from `textLayout` and
- * `clipPlacement(…, "none")`, the same as the canvas tools hit-test. `style` and `text` are the
- * saved ones or a live override. A font that is not loaded yet is drawn as Inter.
+ * The box sits where `env.placement` says (from `textLayout` and `clipPlacement(…, "none")`, the
+ * same as the canvas tools hit-test). A font that is not loaded yet is drawn as Inter, at the
+ * clip's scale.
  */
-export function drawText(
-  ctx: CanvasRenderingContext2D,
-  format: ProjectFormat,
-  style: TextStyle,
-  text: string,
-  transform: ClipTransform,
-  kx: number,
-  ky: number,
-  ensureFont: EngineOptions["ensureFont"],
-): void {
-  const used = drawnStyle(style, ensureFont);
-  const layout = textLayout(text, used, canvasTextMeasure(ctx));
-  const place = clipPlacement(format, layout.box, transform, "none");
-  const scale = place.width / layout.box.width;
+export function drawText(ctx: CanvasRenderingContext2D, props: TextProps, env: DrawEnv): void {
+  const { placement: place, kx, ky } = env;
+  const used = drawnStyle(props, env.ensureFont);
+  const layout = textLayout(props.text, used, env.measure);
+  // The clip's own scale: the placed size over the natural size of the requested font.
+  const scale = place.width / textLayout(props.text, props, env.measure).box.width;
 
   ctx.save();
   ctx.setTransform(kx, 0, 0, ky, 0, 0);

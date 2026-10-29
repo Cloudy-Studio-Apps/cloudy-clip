@@ -19,6 +19,8 @@ export { resolveLayout } from "./logic/layout";
 export { checkPanelCommand } from "./logic/commands";
 /** The label of a field path ("letterSpacing" → "Letter spacing"). */
 export { labelOf } from "./logic/labels";
+/** Measures text over a 2D canvas context (the engine and canvas tools measure alike). */
+export { canvasTextMeasure } from "./logic/measure";
 /** The Zod schema of a patch of values. */
 export { patchSchema } from "./logic/schema";
 /** Merging, resolving and minimizing values; reading a dotted path. */
@@ -50,6 +52,8 @@ export type {
   ResolvedItem,
   ResolvedSection,
   SharedGroup,
+  TextMeasure,
+  TextMeasureContext,
 } from "./element.types";
 
 /** Module definition, loaded by the app shell. */

@@ -1,4 +1,5 @@
-import type { ClipTransform, ProjectFormat, TextStylePatch } from "@/modules/project";
+import type { ClipTransform, ProjectFormat } from "@/modules/project";
+import type { TextStylePatch } from "../text.types";
 import type { TextPresetId } from "../text.types";
 
 /** The style fields a preset sets, in output pixels for `format` (fractions of its short side). */

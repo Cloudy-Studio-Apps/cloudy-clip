@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { z } from "zod";
 import { createKernel, type Kernel } from "@/core";
+import { elementModule } from "@/modules/element";
 import { createFakeMediaModule, mediaRef } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule } from "@/modules/preview";
@@ -52,6 +53,7 @@ beforeEach(async () => {
   project.mediaOrder = ["mv", "ma"];
   await kernel.modules.loadAll([
     createProjectModule(project),
+    elementModule,
     createFakeMediaModule({
       mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 },
       ma: { status: "ready", duration: 60 * S },
@@ -238,6 +240,15 @@ describe("text clips", () => {
       sourceIn: 0,
       duration: 3 * S,
     });
+  });
+
+  it("gives each half of a split text its own copy of the props", async () => {
+    addText(0, 4 * S);
+    const { created } = await run(kernel.bus.run(splitAt, { at: S }));
+    const left = doc().clips.t!;
+    const right = doc().clips[created[0]!]!;
+    expect(right.props).toEqual(left.props);
+    expect(right.props).not.toBe(left.props);
   });
 
   it("trims a text clip longer than any file", async () => {

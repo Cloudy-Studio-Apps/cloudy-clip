@@ -6,12 +6,20 @@ interface InspectorHeaderProps {
   badge: ReactNode;
   /** Badge fill, e.g. the clip's track color. */
   badgeClassName?: string;
+  /** Badge fill as a CSS color (an element's color token). */
+  badgeColor?: string;
   title: string;
   subtitle: string;
 }
 
 /** What the inspector is showing: a badge, a name and a short description. */
-export function InspectorHeader({ badge, badgeClassName, title, subtitle }: InspectorHeaderProps) {
+export function InspectorHeader({
+  badge,
+  badgeClassName,
+  badgeColor,
+  title,
+  subtitle,
+}: InspectorHeaderProps) {
   return (
     <header className="flex shrink-0 items-center gap-2.5 border-b border-border px-3 py-2.5">
       <span
@@ -19,6 +27,7 @@ export function InspectorHeader({ badge, badgeClassName, title, subtitle }: Insp
           "grid size-[30px] shrink-0 place-items-center bg-muted text-muted-foreground [&_svg]:size-[15px]",
           badgeClassName,
         )}
+        style={badgeColor ? { backgroundColor: badgeColor } : undefined}
       >
         {badge}
       </span>

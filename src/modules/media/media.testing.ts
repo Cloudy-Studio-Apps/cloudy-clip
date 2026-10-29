@@ -1,4 +1,6 @@
 import { defineModule } from "@/core";
+import { elements } from "@/modules/element";
+import { mediaElement } from "./media.element";
 import { mediaRef } from "./media.ref";
 import { createMediaState } from "./media.store";
 import type { MediaProbe } from "./media.types";
@@ -13,7 +15,10 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
     name: "Media (fake)",
     tier: "core",
     requires: ["project"],
-    setup() {
+    // The element module is optional here so tests without it still load media.
+    after: ["element"],
+    setup({ contribute }) {
+      contribute(elements, mediaElement);
       const state = createMediaState();
       state.probes.setState({ probes });
       return { api: { ...state, mediaUrl: (id: string) => `fake://${id}` } };

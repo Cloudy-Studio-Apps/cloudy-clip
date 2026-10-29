@@ -4,7 +4,18 @@
  */
 export { closestVariant, fontKey, nearestWeight, searchFamilies } from "./logic/variants";
 export { createFakeFontsModule } from "./fonts.testing";
-export type { FontFamily, FontRequest, FontStatus, FontsApi, FontVariant } from "./fonts.types";
+/** CSS names of font families: the Fontsource name of a bundled family, a quoted `font-family` list. */
+export { bundledCssFamily, cssFontFamily } from "./logic/css";
+export type {
+  FontFamily,
+  FontRef,
+  FontRequest,
+  FontSource,
+  FontStatus,
+  FontsApi,
+  FontVariant,
+  FontWeight,
+} from "./fonts.types";
 
 /** Module definition, loaded by the app shell. */
 export { fontsModule } from "./fonts.module";

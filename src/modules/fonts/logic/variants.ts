@@ -1,4 +1,4 @@
-import type { FontWeight } from "@/modules/project";
+import type { FontWeight } from "../fonts.types";
 import type { FontFamily, FontRequest, FontVariant } from "../fonts.types";
 
 /** The nearest CSS weight to any number (fonts report 350, 450, ...). */

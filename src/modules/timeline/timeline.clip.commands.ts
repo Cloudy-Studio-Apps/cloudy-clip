@@ -267,7 +267,7 @@ export const splitAt = defineCommand({
           kind: left.kind,
           props: structuredClone(target.props),
           ...(left.mediaId !== undefined && { mediaId: left.mediaId }),
-          sourceIn: left.kind === "text" ? 0 : left.sourceIn + offset,
+          sourceIn: left.mediaId === undefined ? 0 : left.sourceIn + offset,
         };
         left.duration = offset;
         draft.clips[right.id] = right;

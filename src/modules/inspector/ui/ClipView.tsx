@@ -1,9 +1,9 @@
-import { AudioLines, Film, Type } from "lucide-react";
 import { useStore } from "zustand";
 import { formatTimecode, microsToSeconds, useModule, usePoint } from "@/core";
 import { useMemo } from "react";
-import { clipText, projectRef, type ClipId } from "@/modules/project";
-import { cn, InfoList } from "@/ui";
+import { elementRef } from "@/modules/element";
+import { projectRef, type ClipId } from "@/modules/project";
+import { InfoList } from "@/ui";
 import { inspectorSections } from "../inspector.points";
 import { InspectorHeader } from "./InspectorHeader";
 import { InspectorSection } from "./InspectorSection";
@@ -14,6 +14,7 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
   const clip = useStore(project.api, (s) => s.clips[clipId]);
   const track = useStore(project.api, (s) => (clip ? s.tracks[clip.trackId] : undefined));
   const media = useStore(project.api, (s) => (clip?.mediaId ? s.media[clip.mediaId] : undefined));
+  const elements = useModule(elementRef);
   const contributed = usePoint(inspectorSections);
   const sections = useMemo(
     () =>
@@ -24,20 +25,25 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
   );
   if (!clip || !track) return null;
 
-  const video = track.kind === "video";
-  const text = clip.kind === "text";
-  const KindIcon = text ? Type : video ? Film : AudioLines;
-  const kindName = text ? "Text" : video ? "Video" : "Audio";
+  const element = elements.get(clip.kind)?.definition;
+  const display = element?.display(clip, { project: project.getState(), track });
+  // Elements without a source file (text) have no source offset and no file.
+  const sourceless = clip.mediaId === undefined;
+  const kindName =
+    element?.source === "media"
+      ? track.kind === "video"
+        ? "Video"
+        : "Audio"
+      : (element?.name ?? clip.kind);
+  const KindIcon = display?.icon;
 
   return (
     <>
       <InspectorHeader
-        badge={<KindIcon />}
-        badgeClassName={cn(
-          "text-white",
-          text ? "bg-clip-type" : video ? "bg-clip-video" : "bg-clip-audio",
-        )}
-        title={text ? clipText(clip) : (media?.name ?? "Missing media")}
+        badge={KindIcon && <KindIcon />}
+        badgeClassName="text-white"
+        badgeColor={display && `var(--${display.color})`}
+        title={display?.label ?? clip.kind}
         subtitle={`${kindName} · ${microsToSeconds(clip.duration).toFixed(1)}s`}
       />
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
@@ -52,8 +58,7 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
               { label: "Start", value: formatTimecode(clip.start) },
               { label: "End", value: formatTimecode(clip.start + clip.duration) },
               { label: "Duration", value: formatTimecode(clip.duration) },
-              // Text has no source file.
-              ...(text ? [] : [{ label: "Source in", value: formatTimecode(clip.sourceIn) }]),
+              ...(sourceless ? [] : [{ label: "Source in", value: formatTimecode(clip.sourceIn) }]),
             ]}
           />
         </InspectorSection>
@@ -61,7 +66,7 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
           <InfoList
             rows={[
               { label: "Track", value: track.name },
-              ...(text ? [] : [{ label: "File", value: media?.path ?? "—" }]),
+              ...(sourceless ? [] : [{ label: "File", value: media?.path ?? "—" }]),
             ]}
           />
         </InspectorSection>

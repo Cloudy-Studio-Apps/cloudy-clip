@@ -9,7 +9,7 @@ import { createEmptyProject, createProjectModule, projectRef } from "@/modules/p
 import { addClip, timelineModule } from "@/modules/timeline";
 import { textRef } from "./text.ref";
 import { transformModule } from "@/modules/transform";
-import { clipText, isTextClip, textStyleOf } from "@/modules/project";
+import { clipText, isTextClip, textStyleOf } from "./logic/layout";
 import { addText, applyTextPreset, setText, setTextStyle } from "./text.commands";
 import { textModule } from "./text.module";
 

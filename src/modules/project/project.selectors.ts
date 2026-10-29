@@ -35,9 +35,7 @@ export function orderedTracks(state: ProjectState): Track[] {
 
 /** Whether any clip uses the media. */
 export function isMediaInUse(state: ProjectState, mediaId: string): boolean {
-  return Object.values(state.clips).some(
-    (clip) => clip.kind !== "text" && clip.mediaId === mediaId,
-  );
+  return Object.values(state.clips).some((clip) => clip.mediaId === mediaId);
 }
 
 /** The named preset a format matches by aspect ratio: square, landscape or vertical. */

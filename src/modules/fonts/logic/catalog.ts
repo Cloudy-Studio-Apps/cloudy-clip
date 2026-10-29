@@ -1,4 +1,4 @@
-import type { FontWeight } from "@/modules/project";
+import type { FontWeight } from "../fonts.types";
 import type { FontFaceSource, FontFamily, FontVariant } from "../fonts.types";
 import { sortVariants } from "./variants";
 

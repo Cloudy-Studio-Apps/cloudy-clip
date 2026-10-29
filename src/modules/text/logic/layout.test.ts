@@ -1,16 +1,15 @@
 import { describe, expect, it } from "vitest";
+import type { TextMeasure } from "@/modules/element";
+import type { Clip } from "@/modules/project";
+import type { TextStyle } from "../text.types";
 import {
-  bundledCssFamily,
-  canvasTextMeasure,
-  cssFontFamily,
+  clipText,
   defaultTextStyle,
   mergeTextStyle,
   textBox,
   textFont,
-  clipText,
   textLayout,
-} from "./project.text";
-import type { Clip, TextMeasure, TextStyle } from "./project.types";
+} from "./layout";
 
 const format = { width: 1080, height: 1920, fps: 30 };
 const measure: TextMeasure = (t, _f, ls) => t.length * 10 + Math.max(0, t.length - 1) * ls;
@@ -106,15 +105,7 @@ describe("textLayout", () => {
   });
 });
 
-describe("fonts", () => {
-  it("quotes and escapes families", () => {
-    expect(cssFontFamily({ family: 'O\'Font "X"', source: "google" })).toMatch(/^"O'Font \\"X\\""/);
-    expect(cssFontFamily({ family: "Source Sans 3", source: "google" })).toMatch(
-      /^"Source Sans 3"/,
-    );
-    expect(cssFontFamily({ family: "Inter", source: "bundled" })).toContain("Inter Variable");
-  });
-
+describe("textFont", () => {
   it("builds the CSS font", () => {
     expect(textFont({ ...base, italic: true, weight: "400" }).startsWith("italic 400 97px ")).toBe(
       true,
@@ -133,30 +124,5 @@ describe("mergeTextStyle", () => {
   it("skips undefined keys inside a nested group", () => {
     const next = mergeTextStyle(base, { fill: { color: undefined, opacity: 0.5 } });
     expect(next.fill).toEqual({ color: "#ffffff", opacity: 0.5 });
-  });
-});
-
-describe("canvasTextMeasure", () => {
-  it("takes off the trailing spacing the canvas adds", () => {
-    const ctx = {
-      font: "",
-      letterSpacing: "0px",
-      measureText: (t: string) => ({
-        width: t.length * 10 + t.length * parseFloat(ctx.letterSpacing),
-      }),
-    };
-    expect(canvasTextMeasure(ctx)("abc", "16px x", 4)).toBe(30 + 8);
-    expect(canvasTextMeasure(ctx)("abc", "16px x", 0)).toBe(30);
-  });
-
-  it("measures letter by letter without ctx.letterSpacing", () => {
-    const ctx = { font: "", measureText: (t: string) => ({ width: t.length * 10 }) };
-    expect(canvasTextMeasure(ctx)("abc", "16px x", 4)).toBe(38);
-    expect(canvasTextMeasure(null)("abc", "16px x", 4)).toBe(0);
-  });
-
-  it("maps bundled family names", () => {
-    expect(bundledCssFamily("Inter")).toBe("Inter Variable");
-    expect(bundledCssFamily("Other")).toBe("Other");
   });
 });

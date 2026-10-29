@@ -1,23 +1,16 @@
 import type { Micros } from "@/core";
-import {
-  clipText,
-  mergeTextStyle,
-  textBox,
-  textStyleOf,
-  type MediaId,
-  type PictureSize,
-  type ProjectState,
-  type TextMeasure,
-} from "@/modules/project";
+import { mergeProps, type ElementApi, type TextMeasure } from "@/modules/element";
+import type { MediaId, PictureSize, ProjectState } from "@/modules/project";
 import type { TextOverride } from "@/modules/preview";
 import type { VisibleLayer } from "../transform.types";
 
 /**
- * Pictures on screen at `time` (video clips and text), top-most first (the order to hit-test
+ * Pictures on screen at `time` (media clips and elements that draw themselves), top-most first (the order to hit-test
  * in). Video clips whose picture size isn't known yet are left out; text is measured.
  */
 export function visibleLayers(
   state: ProjectState,
+  elements: Pick<ElementApi, "get" | "resolve">,
   sizeOf: (mediaId: MediaId) => PictureSize | undefined,
   time: Micros,
   measure: TextMeasure,
@@ -32,23 +25,25 @@ export function visibleLayers(
       if (!clip) continue;
       if (clip.start > time) break; // sorted by start
       if (time >= clip.start + clip.duration) continue;
-      if (clip.kind === "text") {
-        const live = liveText(clipId);
-        const shown = live
-          ? {
-              ...clip,
-              props: {
-                ...mergeTextStyle(textStyleOf(clip, state.format), live.style ?? {}),
-                text: live.text ?? clipText(clip),
-              },
-            }
-          : clip;
-        layers.push({ clipId, source: textBox(state.format, shown, measure), fit: "none" });
+      const picture = elements.get(clip.kind)?.definition.picture;
+      if (!picture) continue;
+      if (picture.source === "media") {
+        if (!clip.mediaId || state.media[clip.mediaId]?.kind !== "video") continue;
+        const source = sizeOf(clip.mediaId);
+        if (source) layers.push({ clipId, source, fit: picture.fit });
         continue;
       }
-      if (!clip.mediaId || state.media[clip.mediaId]?.kind !== "video") continue;
-      const source = sizeOf(clip.mediaId);
-      if (source) layers.push({ clipId, source, fit: "contain" });
+      if (!picture.size) continue;
+      const live = liveText(clipId);
+      const saved = elements.resolve(clip, state.format);
+      const props = live
+        ? mergeProps(saved, { ...live.style, ...(live.text !== undefined && { text: live.text }) })
+        : saved;
+      layers.push({
+        clipId,
+        source: picture.size(props, { format: state.format, measure }),
+        fit: picture.fit,
+      });
     }
   }
   return layers;

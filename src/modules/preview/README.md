@@ -4,7 +4,7 @@ Playback and the preview: the playhead, the engine that draws the timeline at th
 viewer (zoom and pan around the frame) and the preview panel with its transport bar.
 
 - **Tier:** core
-- **Requires:** `project`, `media`, `fonts`
+- **Requires:** `project`, `element` (how each kind of clip is drawn), `media`, `fonts`
 - **Contributes:** panel `preview.panel` (main); keybindings `preview.toggle-play` (Space),
   `preview.seek-start` (Home)
 - **Points it owns:** `previewOverlays` (`preview.points.ts`): layers drawn over the frame, sized
@@ -26,12 +26,12 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
     `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
     clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only).
-    Text clips need no element: `engine.text.ts` draws them from the document (`textLayout` +
-    `clipPlacement(…, "none")`, the same box the canvas tools use): background box, then per line
-    the shadow (first painted pass only), outline stroke and fill. A font that is not loaded yet
-    (`fonts.ensure` is false) is drawn in Inter, and the module redraws on `fonts.onLoaded`.
-    Letter spacing uses `ctx.letterSpacing`, or letter by letter when the webview lacks it
-    (`canvasTextMeasure` in `project` measures the same way). Swap engines by
+    Each clip is drawn as its element's `picture` says: `source: "media"` through a media element
+    as above; any other element (text, a plugin's) with its own `draw(ctx, props, env)`, at
+    `clipPlacement(format, size(props), transform, fit)`, the same box the canvas tools use. Props
+    are the clip's resolved values with the live override merged over them. `env.ensureFont` is
+    `fonts.ensure`; the module redraws on `fonts.onLoaded`; `env.measure` is `canvasTextMeasure`
+    (`element`) over the engine's canvas. An element without `picture` is not drawn. Swap engines by
     implementing `PreviewEngine` (`preview.types.ts`).
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it is tested in
     node). Renders every frame while playing, on demand while paused.
