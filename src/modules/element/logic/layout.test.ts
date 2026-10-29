@@ -201,6 +201,19 @@ describe("resolveLayout fixes", () => {
     expect(issues).toEqual([]);
   });
 
+  it("places a color's opacity sibling when the color sits in a row", () => {
+    const tint = prop.group(
+      { label: "Tint" },
+      { color: prop.color({ opacity: "opacity" }), opacity: prop.number() },
+    );
+    const { sections, issues } = resolveLayout(
+      element([{ title: "A", items: [{ row: ["tint.color"] }] }], [], { tint }),
+      controlOf,
+    );
+    expect(issues).toEqual([]);
+    expect(sections.map((s) => s.title)).toEqual(["A"]);
+  });
+
   it("lets a row repeat a path placed elsewhere", () => {
     const { issues } = resolveLayout(
       element([{ title: "A", items: [{ row: ["size"] }, "size", "text", "letterSpacing", "box"] }]),

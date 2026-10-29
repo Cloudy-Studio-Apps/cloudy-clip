@@ -52,8 +52,13 @@ export function resolveLayout(
     placed.add(path);
     // A color's opacity is edited by the color's own field.
     const sibling = siblingOf(path, spec);
-    if (sibling !== undefined && !inRow) {
-      if (placed.has(sibling)) issue(`path "${sibling}" is placed twice`);
+    if (sibling !== undefined) {
+      if (!inRow && placed.has(sibling) && !inRows.has(sibling)) {
+        issue(`path "${sibling}" is placed twice`);
+      }
+      if (inRow) {
+        if (!placed.has(sibling)) inRows.add(sibling);
+      } else inRows.delete(sibling);
       placed.add(sibling);
     }
     const item: ResolvedItem = {
