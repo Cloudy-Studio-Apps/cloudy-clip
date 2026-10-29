@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useModule } from "@/core";
+import { fontsRef } from "@/modules/fonts";
 import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { canvasTextMeasure, projectRef, type MediaId, type PictureSize } from "@/modules/project";
@@ -11,12 +12,13 @@ const keyOf = (layers: readonly VisibleLayer[]) =>
 
 /**
  * Pictures (video and text) on screen at the playhead, top-most first. Recomputed on every playhead move,
- * project change and probe change, but React re-renders only when the list itself changes
+ * project change, probe change and font load, but React re-renders only when the list itself changes
  * (at cuts), never per frame.
  */
 export function useVisibleLayers(): VisibleLayer[] {
   const project = useModule(projectRef).store;
   const media = useModule(mediaRef);
+  const fonts = useModule(fontsRef);
   const { playback, textClipOverride, onTextOverride } = useModule(previewRef);
   const [layers, setLayers] = useState<VisibleLayer[]>([]);
 
@@ -47,13 +49,16 @@ export function useVisibleLayers(): VisibleLayer[] {
     const offProject = project.subscribe(update);
     const offOverride = onTextOverride(update);
     const offProbes = media.probes.subscribe(update);
+    // A font that arrives changes the text's size: measure again so the box matches the picture.
+    const offFonts = fonts.onLoaded(update);
     return () => {
       offTime();
       offProject();
       offProbes();
       offOverride();
+      offFonts();
     };
-  }, [media, playback, project, textClipOverride, onTextOverride]);
+  }, [fonts, media, playback, project, textClipOverride, onTextOverride]);
 
   return layers;
 }

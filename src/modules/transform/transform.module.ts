@@ -15,7 +15,7 @@ export const transformModule = defineModule({
   ref: transformRef,
   name: "Transform",
   tier: "feature",
-  requires: ["project", "media", "inspector", "preview", "timeline"],
+  requires: ["project", "media", "fonts", "inspector", "preview", "timeline"],
   commands: transformCommands,
   mcpTools: transformMcpTools,
   setup({ contribute }) {

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { COLOR_KEY_STEP } from "./kit.color";
 import { usePointerDrag } from "./kit.pointer";
 import { hsvToHex } from "../lib/color";
@@ -12,12 +13,21 @@ const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
 /** The square where saturation (left to right) and brightness (bottom to top) are picked. */
 export function ColorArea({ hsv, onChange }: ColorAreaProps) {
-  const drag = usePointerDrag(({ x, y }, info) => onChange({ ...hsv, s: x, v: 1 - y }, info));
+  const thumb = useRef<HTMLSpanElement>(null);
+  const drag = usePointerDrag(({ x, y }, info) => {
+    // The thumb follows the pointer through the DOM; React re-renders only when the drag is done.
+    if (thumb.current) {
+      thumb.current.style.left = `${x * 100}%`;
+      thumb.current.style.top = `${y * 100}%`;
+    }
+    onChange({ ...hsv, s: x, v: 1 - y }, info);
+  });
   return (
     <div
       role="slider"
       tabIndex={0}
       aria-label="Saturation and brightness"
+      data-color-part="area"
       aria-valuetext={`Saturation ${Math.round(hsv.s * 100)}%, brightness ${Math.round(hsv.v * 100)}%`}
       {...drag}
       onKeyDown={(event) => {
@@ -43,6 +53,7 @@ export function ColorArea({ hsv, onChange }: ColorAreaProps) {
       }}
     >
       <span
+        ref={thumb}
         aria-hidden
         className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-xs border-2 border-white shadow-soft"
         style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%` }}

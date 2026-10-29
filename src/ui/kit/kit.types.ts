@@ -1,3 +1,5 @@
+import type { PointerEvent } from "react";
+
 /** One choice of a `SegmentedControl`. */
 export interface SegmentedOption<T extends string> {
   value: T;
@@ -28,4 +30,17 @@ export interface DragPosition {
 export interface InfoRow {
   label: string;
   value: string;
+}
+
+/** Handlers to spread on the element that is dragged. */
+export interface PointerDragHandlers {
+  onPointerDown(event: PointerEvent<HTMLElement>): void;
+  onPointerMove(event: PointerEvent<HTMLElement>): void;
+  onPointerUp(event: PointerEvent<HTMLElement>): void;
+  onPointerCancel(event: PointerEvent<HTMLElement>): void;
+}
+
+/** The browser's `EyeDropper`, which not every webview has. */
+export interface EyeDropperLike {
+  open(): Promise<{ sRGBHex: string }>;
 }

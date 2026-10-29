@@ -1,17 +1,13 @@
 import { Pipette } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ColorArea } from "./ColorArea";
 import { ColorSlider } from "./ColorSlider";
 import { ColorSwatches } from "./ColorSwatches";
 import { HexInput } from "./HexInput";
-import { DEFAULT_SWATCHES } from "./kit.color";
+import { CHECKERBOARD, DEFAULT_SWATCHES } from "./kit.color";
 import { IconButton } from "./IconButton";
 import { hexToHsv, hsvToHex, normalizeHex } from "../lib/color";
-import type { ColorChangeInfo, Hsv } from "./kit.types";
-
-interface EyeDropperLike {
-  open(): Promise<{ sRGBHex: string }>;
-}
+import type { ColorChangeInfo, EyeDropperLike, Hsv } from "./kit.types";
 
 interface ColorPickerProps {
   /** `#rrggbb`. */
@@ -23,6 +19,11 @@ interface ColorPickerProps {
   recents?: readonly string[];
   swatches?: readonly string[];
 }
+
+const opacityTrack = (hex: string) => `linear-gradient(to right, transparent, ${hex})`;
+// A picker graphic, not a theme color: white to the hue, then black from the bottom.
+const areaBackground = (hue: number) =>
+  `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${hsvToHex({ h: hue, s: 1, v: 1 })})`;
 
 const HUES = "linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)";
 
@@ -43,16 +44,31 @@ export function ColorPicker({
   }
   const alpha = opacity ?? 1;
 
+  const root = useRef<HTMLDivElement>(null);
+  const part = (name: string) =>
+    root.current?.querySelector<HTMLElement>(`[data-color-part="${name}"]`);
+
+  // Drag steps repaint what depends on the color straight in the DOM (no React state per move);
+  // the release syncs the state once.
+  const paint = (next: Hsv, hex: string) => {
+    const area = part("area");
+    if (area) area.style.background = areaBackground(next.h);
+    const track = part("Opacity");
+    if (track) track.style.background = `${opacityTrack(hex)}, ${CHECKERBOARD}`;
+    const input = root.current?.querySelector<HTMLInputElement>('input[aria-label="Hex color"]');
+    if (input) input.value = hex;
+  };
   const setHsv = (next: Hsv, info: ColorChangeInfo) => {
     const hex = hsvToHex(next);
-    setMemo({ hex, hsv: next });
+    if (info.done) setMemo({ hex, hsv: next });
+    else paint(next, hex);
     onChange(hex, alpha, info);
   };
   const pick = (hex: string) => onChange(hex, alpha, { done: true });
   const dropper = typeof window !== "undefined" && "EyeDropper" in window;
 
   return (
-    <div className="flex w-52 flex-col gap-2">
+    <div ref={root} className="flex w-52 flex-col gap-2">
       <ColorArea hsv={hsv} onChange={setHsv} />
       <ColorSlider
         label="Hue"
@@ -65,7 +81,7 @@ export function ColorPicker({
           label="Opacity"
           value={opacity}
           checkered
-          track={`linear-gradient(to right, transparent, ${color})`}
+          track={opacityTrack(color)}
           onChange={(value, info) => onChange(color, value, info)}
         />
       )}

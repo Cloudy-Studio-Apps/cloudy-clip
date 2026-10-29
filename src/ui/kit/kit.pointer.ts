@@ -1,13 +1,5 @@
 import { useRef, type PointerEvent } from "react";
-import type { ColorChangeInfo, DragPosition } from "./kit.types";
-
-/** Handlers to spread on the element that is dragged. */
-export interface PointerDragHandlers {
-  onPointerDown(event: PointerEvent<HTMLElement>): void;
-  onPointerMove(event: PointerEvent<HTMLElement>): void;
-  onPointerUp(event: PointerEvent<HTMLElement>): void;
-  onPointerCancel(event: PointerEvent<HTMLElement>): void;
-}
+import type { ColorChangeInfo, DragPosition, PointerDragHandlers } from "./kit.types";
 
 /**
  * Reports the pointer's position inside an element while it is pressed and dragged (captured, so

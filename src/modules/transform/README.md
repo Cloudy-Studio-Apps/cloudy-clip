@@ -6,7 +6,7 @@ it to move (snapping to the frame's center lines), drag a corner to scale, drag 
 rotate (Shift snaps to 15°). Click empty space to deselect.
 
 - **Tier:** feature
-- **Requires:** `project`, `media` (picture sizes), `inspector` (its section), `preview`, `timeline` (the selection)
+- **Requires:** `project`, `media` (picture sizes), `fonts` (re-measure text when a font loads), `inspector` (its section), `preview`, `timeline` (the selection)
 - **Contributes:** preview overlay `transform.overlay`; inspector section `transform.section`
   (order 100, video-track clips)
 - **Points it owns:** —

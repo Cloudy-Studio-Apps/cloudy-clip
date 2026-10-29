@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { CHECKERBOARD, COLOR_KEY_STEP } from "./kit.color";
 import { usePointerDrag } from "./kit.pointer";
 import type { ColorChangeInfo } from "./kit.types";
@@ -15,12 +16,18 @@ interface ColorSliderProps {
 
 /** A horizontal track with a thumb, for hue or opacity. */
 export function ColorSlider({ label, value, track, checkered, onChange }: ColorSliderProps) {
-  const drag = usePointerDrag(({ x }, info) => onChange(x, info));
+  const thumb = useRef<HTMLSpanElement>(null);
+  const drag = usePointerDrag(({ x }, info) => {
+    // The thumb follows the pointer through the DOM; React re-renders only when the drag is done.
+    if (thumb.current) thumb.current.style.left = `${x * 100}%`;
+    onChange(x, info);
+  });
   return (
     <div
       role="slider"
       tabIndex={0}
       aria-label={label}
+      data-color-part={label}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
@@ -36,6 +43,7 @@ export function ColorSlider({ label, value, track, checkered, onChange }: ColorS
       style={{ background: checkered ? `${track}, ${CHECKERBOARD}` : track }}
     >
       <span
+        ref={thumb}
         aria-hidden
         className="pointer-events-none absolute top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-xs border border-white shadow-soft"
         style={{ left: `${value * 100}%` }}
