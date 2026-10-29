@@ -10,9 +10,8 @@ import {
   type Clip,
 } from "@/modules/project";
 import { textFont, textLayout, textPadding, textStyleOf, clipText } from "../logic/layout";
-import { canvasTextMeasure } from "@/modules/element";
+import { canvasTextMeasure, setProps } from "@/modules/element";
 import { EDIT_HIDDEN_STYLE, editCommitAction } from "../logic/editing";
-import { setText } from "../text.commands";
 
 interface TextEditorProps {
   clip: Clip;
@@ -61,16 +60,16 @@ export function TextEditor({ clip, onDone }: TextEditorProps) {
   );
 
   const show = (words: string) =>
-    preview.previewTextClip(clip.id, { text: words, style: EDIT_HIDDEN_STYLE });
+    preview.previewProps(clip.id, { ...EDIT_HIDDEN_STYLE, text: words });
 
   // Opens: hides the canvas text and selects the words. Closes: clears the live override.
   useEffect(() => {
     const field = area.current;
     if (!field) return;
-    preview.previewTextClip(clip.id, { text: field.value, style: EDIT_HIDDEN_STYLE });
+    preview.previewProps(clip.id, { ...EDIT_HIDDEN_STYLE, text: field.value });
     field.focus();
     field.select();
-    return () => preview.previewTextClip(clip.id, null);
+    return () => preview.previewProps(clip.id, null);
   }, [preview, clip.id]);
 
   // Follows the typed words, the clip, and the frame's size (viewer zoom and panel resizes).
@@ -89,9 +88,9 @@ export function TextEditor({ clip, onDone }: TextEditorProps) {
     if (ended.current || !field) return;
     ended.current = true;
     const words = field.value;
-    // "revert" and "none" keep the saved words; only a real change is one `text.setText`.
+    // "revert" and "none" keep the saved words; only a real change is one `element.setProps`.
     if (editCommitAction(clipText(clip), words) === "commit") {
-      await bus.run(setText, { clipId: clip.id, text: words });
+      await bus.run(setProps, { clipIds: [clip.id], patch: { text: words } });
     }
     onDone();
   };

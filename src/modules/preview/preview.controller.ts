@@ -1,11 +1,6 @@
 import { createLogger, type Micros } from "@/core";
 import type { ClipId, ClipTransform } from "@/modules/project";
-import type {
-  PreviewController,
-  PreviewControllerDeps,
-  PreviewEngine,
-  TextOverride,
-} from "./preview.types";
+import type { PreviewController, PreviewControllerDeps, PreviewEngine } from "./preview.types";
 import { createViewport } from "./preview.viewport";
 
 const log = createLogger("preview");
@@ -26,8 +21,8 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   /** Live transforms of a gesture in progress, drawn instead of the saved ones. */
   const transforms = new Map<ClipId, ClipTransform>();
 
-  /** Live text edits, drawn instead of the saved words and style. */
-  const textOverrides = new Map<ClipId, TextOverride>();
+  /** Live patches of clips' values, drawn over the saved ones. */
+  const propsOverrides = new Map<ClipId, Record<string, unknown>>();
 
   const overrideListeners = new Set<(clipId: ClipId) => void>();
 
@@ -40,7 +35,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
         clock.getTime(),
         clock.isPlaying(),
         transforms,
-        textOverrides,
+        propsOverrides,
       );
     } catch (error) {
       log.error("Render failed", error);
@@ -130,17 +125,17 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
       else transforms.delete(clipId);
       requestRedraw();
     },
-    previewTextClip(clipId, override) {
-      if (override) textOverrides.set(clipId, override);
-      else textOverrides.delete(clipId);
+    previewProps(clipId, patch) {
+      if (patch) propsOverrides.set(clipId, patch);
+      else propsOverrides.delete(clipId);
       requestRedraw();
       overrideListeners.forEach((listener) => listener(clipId));
     },
-    onTextOverride(listener) {
+    onPropsOverride(listener) {
       overrideListeners.add(listener);
       return () => void overrideListeners.delete(listener);
     },
-    textClipOverride: (clipId) => textOverrides.get(clipId),
+    propsOverride: (clipId) => propsOverrides.get(clipId),
     viewport: createViewport(),
     dispose() {
       clock.pause();

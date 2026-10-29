@@ -21,7 +21,7 @@ export function useVisibleLayers(): VisibleLayer[] {
   const media = useModule(mediaRef);
   const fonts = useModule(fontsRef);
   const elements = useModule(elementRef);
-  const { playback, textClipOverride, onTextOverride } = useModule(previewRef);
+  const { playback, propsOverride, onPropsOverride } = useModule(previewRef);
   const [layers, setLayers] = useState<VisibleLayer[]>([]);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function useVisibleLayers(): VisibleLayer[] {
         sizeOf,
         playback.getTime(),
         measure,
-        textClipOverride,
+        propsOverride,
       );
       const key = keyOf(next);
       if (key === lastKey) return;
@@ -50,7 +50,7 @@ export function useVisibleLayers(): VisibleLayer[] {
     };
     const offTime = playback.onTime(update);
     const offProject = project.subscribe(update);
-    const offOverride = onTextOverride(update);
+    const offOverride = onPropsOverride(update);
     const offProbes = media.probes.subscribe(update);
     // A font that arrives changes the text's size: measure again so the box matches the picture.
     const offFonts = fonts.onLoaded(update);
@@ -61,7 +61,7 @@ export function useVisibleLayers(): VisibleLayer[] {
       offOverride();
       offFonts();
     };
-  }, [elements, fonts, media, playback, project, textClipOverride, onTextOverride]);
+  }, [elements, fonts, media, playback, project, propsOverride, onPropsOverride]);
 
   return layers;
 }

@@ -115,22 +115,22 @@ describe("preview controller", () => {
     await expect(controller.captureFrame()).rejects.toThrow("The preview is not visible");
   });
 
-  it("keeps a live text override until cleared and redraws", () => {
+  it("keeps a live props override until cleared and redraws", () => {
     const { controller, engines, flush } = setup();
     controller.attachCanvas(canvas);
     flush();
     const before = engines[0]?.renders ?? 0;
-    controller.previewTextClip("c1", { text: "Hi" });
-    expect(controller.textClipOverride("c1")).toEqual({ text: "Hi" });
+    controller.previewProps("c1", { text: "Hi", outline: { width: 4 } });
+    expect(controller.propsOverride("c1")).toEqual({ text: "Hi", outline: { width: 4 } });
     flush();
     expect(engines[0]?.renders).toBe(before + 1);
     const seen: string[] = [];
-    const off = controller.onTextOverride((id) => seen.push(id));
-    controller.previewTextClip("c1", { text: "Yo" });
-    controller.previewTextClip("c1", null);
-    expect(controller.textClipOverride("c1")).toBeUndefined();
+    const off = controller.onPropsOverride((id) => seen.push(id));
+    controller.previewProps("c1", { text: "Yo" });
+    controller.previewProps("c1", null);
+    expect(controller.propsOverride("c1")).toBeUndefined();
     off();
-    controller.previewTextClip("c1", { text: "x" });
+    controller.previewProps("c1", { text: "x" });
     expect(seen).toEqual(["c1", "c1"]);
   });
 });

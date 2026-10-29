@@ -53,12 +53,9 @@ edit its words and look.
   - `logic/fontpick.ts`: `pickVariant` (keep the weight/italic if the family has it, else
     `closestVariant`), `availableWeights`, `hasItalic`, `visibleWindow` (the rows the font list
     renders). `logic/patch.ts`: `mergePatch`.
-  - `ui/text.live.hook.ts`: `useTextLive(clip)`. **Live editing:** a drag step calls
-    `input(patch)`, which only runs `PreviewApi.previewTextClip(id, { style })` (a patch merged over
-    the saved style; no React state). The release (or a toggle, segment, preset, swatch or typed
-    value) calls `commit(patch)`: one `text.setStyle` with everything input so far, skipped when
-    nothing changes, then the override is cleared. The words work alike (`inputText`,
-    `commitText` on blur or Ctrl/Cmd+Enter; empty words revert). A drag is one undo step.
+  - `ui/text.live.hook.ts`: `useTextLive(clip)`, a thin wrapper over the inspector's
+    `usePropsLive` (live preview, one `element.setProps` on release). The words work alike
+    (`inputText`, `commitText` on blur or Ctrl/Cmd+Enter; empty or unchanged words revert).
   - `ui/Text*Section.tsx`: the six sections (the inspector supplies each one's collapsible
     frame); `StyleSlider` / `StyleColor` wrap the kit fields with the live hook. `FontPicker` is a
     popover; `FontList` shows only the rows in view (fixed 28 px rows) over the families, with search,

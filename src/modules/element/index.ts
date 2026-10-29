@@ -24,7 +24,14 @@ export { canvasTextMeasure } from "./logic/measure";
 /** The Zod schema of a patch of values. */
 export { patchSchema } from "./logic/schema";
 /** Merging, resolving and minimizing values; reading a dotted path. */
-export { deepEqual, getPath, mergeProps, minimizeProps, resolveProps } from "./logic/values";
+export {
+  deepEqual,
+  getPath,
+  isPlainObject,
+  mergeProps,
+  minimizeProps,
+  resolveProps,
+} from "./logic/values";
 export type {
   AnyElement,
   CreateEntry,

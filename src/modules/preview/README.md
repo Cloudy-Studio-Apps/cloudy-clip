@@ -13,9 +13,10 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   that take input, so overlays stacked later never block the ones below
 - **API** (`PreviewApi`, per kernel): `playback` (the clock), `attachCanvas`, `redraw`,
   `captureFrame`, `previewTransform(clipId, transform | null)` (draws a live transform during a
-  canvas gesture without changing the project), `previewTextClip(clipId, { text?, style? } | null)`
-  (a live text edit drawn instead of the saved words/style until cleared; `style` may be partial)
-  `onTextOverride(listener)` (fires on set/clear) and `textClipOverride(clipId)` (so the canvas tools measure the box being drawn), `viewport` (`store`, `zoomBy`, `panBy`, `fit`)
+  canvas gesture without changing the project), `previewProps(clipId, patch | null)`
+  (a live patch of any element's values drawn over the saved ones until cleared; groups may be
+  partial), `onPropsOverride(listener)` (fires on set/clear) and `propsOverride(clipId)` (so the
+  canvas tools measure the picture being drawn), `viewport` (`store`, `zoomBy`, `panBy`, `fit`)
 - **Files:**
   - `preview.clock.ts`: the playhead, driven by `requestAnimationFrame`; listeners are called per
     frame without React.

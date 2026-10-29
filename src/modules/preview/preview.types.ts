@@ -3,12 +3,6 @@ import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ClipId, ClipTransform, ProjectState } from "@/modules/project";
 
-/** Live words and/or style of a text clip while it is being edited; the style may be partial. */
-export interface TextOverride {
-  text?: string;
-  style?: Record<string, unknown>;
-}
-
 /** Called on every frame while playing, and once per seek while paused. */
 export type TimeListener = (time: Micros) => void;
 
@@ -45,7 +39,7 @@ export interface PreviewEngine {
     time: Micros,
     playing: boolean,
     transforms?: ReadonlyMap<ClipId, ClipTransform>,
-    textOverrides?: ReadonlyMap<ClipId, TextOverride>,
+    propsOverrides?: ReadonlyMap<ClipId, Record<string, unknown>>,
   ): void;
   /** Stops all media without forgetting state (e.g. on pause). */
   pauseAll(): void;
@@ -91,15 +85,15 @@ export interface PreviewApi {
    */
   previewTransform(clipId: ClipId, transform: ClipTransform | null): void;
   /**
-   * Draws a text clip with this live `text` and/or `style` (partial) instead of the saved ones,
-   * without changing the project (live feedback while editing). Pass null to go back to the saved
-   * values. The edit commits with `text.setText` / `text.setStyle`.
+   * Draws a clip with this live patch of its values (any element: text, a plugin's) merged over
+   * the saved ones, without changing the project (feedback while a slider is dragged or words are
+   * typed). Pass null to go back to the saved values. The edit commits with `element.setProps`.
    */
-  previewTextClip(clipId: ClipId, override: TextOverride | null): void;
-  /** Calls `listener` with the clip id whenever a text override is set or cleared. Returns the unsubscribe. */
-  onTextOverride(listener: (clipId: ClipId) => void): () => void;
-  /** The live override of a text clip, so the canvas tools measure the box being drawn. */
-  textClipOverride(clipId: ClipId): TextOverride | undefined;
+  previewProps(clipId: ClipId, patch: Record<string, unknown> | null): void;
+  /** Calls `listener` with the clip id whenever a live patch is set or cleared. Returns the unsubscribe. */
+  onPropsOverride(listener: (clipId: ClipId) => void): () => void;
+  /** The live patch of a clip, so the canvas tools measure the picture being drawn. */
+  propsOverride(clipId: ClipId): Record<string, unknown> | undefined;
   /** Zoom and pan of the viewer. View state only: not in the project, not undoable. */
   readonly viewport: ViewportApi;
 }

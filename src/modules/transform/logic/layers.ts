@@ -1,7 +1,6 @@
 import type { Micros } from "@/core";
 import { mergeProps, type ElementApi, type TextMeasure } from "@/modules/element";
 import type { MediaId, PictureSize, ProjectState } from "@/modules/project";
-import type { TextOverride } from "@/modules/preview";
 import type { VisibleLayer } from "../transform.types";
 
 /**
@@ -14,7 +13,7 @@ export function visibleLayers(
   sizeOf: (mediaId: MediaId) => PictureSize | undefined,
   time: Micros,
   measure: TextMeasure,
-  liveText: (clipId: string) => TextOverride | undefined = () => undefined,
+  liveProps: (clipId: string) => Record<string, unknown> | undefined = () => undefined,
 ): VisibleLayer[] {
   const layers: VisibleLayer[] = [];
   for (const trackId of state.trackOrder) {
@@ -34,11 +33,9 @@ export function visibleLayers(
         continue;
       }
       if (!picture.size) continue;
-      const live = liveText(clipId);
+      const live = liveProps(clipId);
       const saved = elements.resolve(clip, state.format);
-      const props = live
-        ? mergeProps(saved, { ...live.style, ...(live.text !== undefined && { text: live.text }) })
-        : saved;
+      const props = live ? mergeProps(saved, live) : saved;
       layers.push({
         clipId,
         source: picture.size(props, { format: state.format, measure }),

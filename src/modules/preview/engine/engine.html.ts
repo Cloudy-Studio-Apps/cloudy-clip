@@ -10,7 +10,7 @@ import {
   type ProjectState,
   type Track,
 } from "@/modules/project";
-import type { PreviewEngine, TextOverride } from "../preview.types";
+import type { PreviewEngine } from "../preview.types";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
 import type { EngineOptions } from "./engine.types";
@@ -56,7 +56,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     time: Micros,
     playing: boolean,
     transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
-    textOverrides: ReadonlyMap<ClipId, TextOverride> = new Map(),
+    propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>> = new Map(),
   ): void {
     const active: Array<{ clip: Clip; track: Track }> = [];
     const upcoming: Array<{ clip: Clip; track: Track }> = [];
@@ -108,7 +108,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
     // Only paint complete frames: a layer still decoding would flash black. Keep the previous
     // picture instead; the controller retries until every layer has its frame.
-    if (this.settled) this.draw(project, active, transforms, textOverrides);
+    if (this.settled) this.draw(project, active, transforms, propsOverrides);
   }
 
   pauseAll(): void {
@@ -131,7 +131,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     project: ProjectState,
     active: Array<{ clip: Clip; track: Track }>,
     transforms: ReadonlyMap<ClipId, ClipTransform>,
-    textOverrides: ReadonlyMap<ClipId, TextOverride>,
+    propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
   ): void {
     const { ctx, canvas } = this;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -149,7 +149,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       const picture = this.elements.get(clip.kind)?.definition.picture;
       if (!picture) continue;
       if (picture.source !== "media") {
-        this.drawPicture(picture, project, clip, transform, textOverrides.get(clip.id), kx, ky);
+        this.drawPicture(picture, project, clip, transform, propsOverrides.get(clip.id), kx, ky);
         continue;
       }
       if (!hasMedia(clip) || project.media[clip.mediaId]?.kind !== "video") continue;
@@ -177,18 +177,13 @@ export class HtmlMediaEngine implements PreviewEngine {
     project: ProjectState,
     clip: Clip,
     transform: ClipTransform,
-    override: TextOverride | undefined,
+    override: Record<string, unknown> | undefined,
     kx: number,
     ky: number,
   ): void {
     if (!picture.size || !picture.draw) return;
     const saved = this.elements.resolve(clip, project.format);
-    const props = override
-      ? mergeProps(saved, {
-          ...override.style,
-          ...(override.text !== undefined && { text: override.text }),
-        })
-      : saved;
+    const props = override ? mergeProps(saved, override) : saved;
     const measure = canvasTextMeasure(this.ctx);
     const size = picture.size(props, { format: project.format, measure });
     const placement = clipPlacement(project.format, size, transform, picture.fit);
