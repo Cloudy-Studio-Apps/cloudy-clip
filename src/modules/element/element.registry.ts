@@ -9,22 +9,10 @@ import type {
   SharedGroup,
 } from "./element.types";
 import { groupValue } from "./logic/clip";
+import { indexFields } from "./logic/fields";
 import { narrowGroup } from "./logic/groups";
 import { patchSchema } from "./logic/schema";
 import { mergeProps, resolveProps } from "./logic/values";
-
-/** Every field of a tree by path, groups first then their fields. */
-function indexFields(
-  tree: Readonly<Record<string, PropSpec>>,
-  prefix: string,
-  out: Map<string, PropSpec>,
-) {
-  for (const [name, spec] of Object.entries(tree)) {
-    if (name.includes(".")) continue;
-    out.set(prefix + name, spec);
-    if (spec.kind === "group") indexFields(spec.fields ?? {}, `${prefix}${name}.`, out);
-  }
-}
 
 /**
  * The element registry of one kernel: elements from the points, with their shared groups and

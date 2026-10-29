@@ -2,7 +2,6 @@ import type { ComponentType, ReactNode } from "react";
 import type { z } from "zod";
 import type { PropSpec, ResolvedItem, ResolvedSection } from "@/modules/element";
 import type { StoreApi } from "zustand/vanilla";
-import type { Clip } from "@/modules/project";
 
 /** The colors picked lately, shared by every color field of the inspector. Not in history. */
 export interface RecentColors {
@@ -17,9 +16,16 @@ export interface InspectorApi {
   readonly recents: RecentColors;
 }
 
+/** What a panel edits: a clip, or a junction. Only its id and kind are known to controls. */
+export interface PanelSubject {
+  id: string;
+  kind: string;
+}
+
 /** What a field control gets: the value at its path and a way to change it. */
 export interface FieldControlProps {
-  clip: Clip;
+  /** The clip (or junction) being edited. */
+  clip: PanelSubject;
   /** Dotted path of the value (`outline.width`). */
   path: string;
   spec: PropSpec;
@@ -52,7 +58,7 @@ export type PropertyControl =
 /** What a section layout gets: the resolved section and a way to draw its items. */
 export interface SectionLayoutProps {
   section: ResolvedSection;
-  clip: Clip;
+  clip: PanelSubject;
   values: Record<string, unknown>;
   live: PropsLive;
   /** Draws one item (field, row, sub-section, command) with its control. */
@@ -83,4 +89,10 @@ export interface PropsLiveDeps {
   read(): Record<string, unknown> | null;
   /** Runs the command with the whole patch. */
   commit(patch: Record<string, unknown>): Promise<unknown>;
+}
+
+/** What a junction panel changes: some values and/or the overlap (in seconds, as shown). */
+export interface JunctionEdit {
+  patch?: Record<string, unknown>;
+  seconds?: number;
 }

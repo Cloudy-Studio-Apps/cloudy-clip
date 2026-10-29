@@ -49,7 +49,7 @@ declaration, and one command changes any element's values.
     that `fonts`' `FontRequest` fits, so `element` doesn't import `fonts`.
   - `logic/commands.ts`: `checkPanelCommand`, `layoutCommands(element)` (the command ids in its
     layout and its groups' sections, once each).
-  - `logic/layout.ts`: `resolveLayout(element, controlOf)` → sections + issues. Without a
+  - `logic/layout.ts`: `resolveLayout(source, controlOf)` (source: a `LayoutSource`, so other property trees like a junction kind's use it too; fields from `indexFields`, `logic/fields.ts`) → sections + issues. Without a
     `layout`: "General" (top-level fields, order 0), then one section per group (order 10, 20, …,
     its toggle in the header), then each supported shared group's own section (its `layout` with
     paths under its key, or its fields; at its `order`, transform 900) unless the layout placed the

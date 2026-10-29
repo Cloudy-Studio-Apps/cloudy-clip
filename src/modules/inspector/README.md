@@ -4,11 +4,12 @@ The right column of the editor. With nothing selected it shows the project (reso
 clip count), how to connect an agent over MCP, and a tip from the seal; with one clip, the panel
 generated from its element, then timing, track and file (clips without a file show no file; a
 linked picture + sound counts as one clip: the one clicked, via the timeline's
-`selectionSubject`); with several, which ones.
+`selectionSubject`); with several, which ones. With one junction selected (the timeline's
+`junctionSelection`), the junction's panel.
 
 - **Tier:** feature
 - **Requires:** `project`, `element` (layouts, values, `element.setProps`), `preview` (live props),
-  `timeline` (the selection)
+  `timeline` (the selection), `junction` (kinds, `junction.set`/`junction.remove`)
 - **Contributes:** panel `inspector.panel` (inspector slot); the built-in controls and the
   `section` layout to its own points
 - **Points it owns** (`inspector.points.ts`, read by `ElementPanel`):
@@ -57,6 +58,17 @@ linked picture + sound counts as one clip: the one clicked, via the timeline's
     while that command runs stays in the preview and goes with the next commit); `dispose`
     clears without committing (clip deleted or deselected mid-drag). `ui/props.live.hook.ts`:
     `usePropsLive(clip)` wraps it per clip and disposes on unmount.
+  - `ui/PropertyPanel.tsx`: the part `ElementPanel` and `JunctionView` share: takes a `LayoutSource`
+    (an element, or a junction kind's properties), the resolved `values` and a `live` (`input`/
+    `commit(patch)`), and draws the sections, fields, rows and sub-sections; `include` leaves
+    sections out, `renderCommand` draws command items (junctions have none: they show as
+    unavailable). Controls get a `PanelSubject` (`{ id, kind }`) in `clip`.
+  - `ui/JunctionView.tsx`: header with the junction's `display` (a missing kind shows "(not
+    available)", no values, still Remove); a Duration row in seconds (`junction.set { duration }`
+    in integer µs, limits from `durationLimits`, only for kinds that overlap); the kind's values
+    through `PropertyPanel`, committed by `ui/junction.live.hook.ts` (`createPropsLive` with no
+    preview) as `junction.set { junctionIds, patch }`; a Remove button (`junction.remove`).
+    `logic/junction.ts`: `junctionSetInput`, `junctionLayoutSource`.
 - **Not yet:** a real dial; tabs; editing several selected clips at once.
 
 No commands or MCP tools of its own: agents read the same data with `project_get_state` and

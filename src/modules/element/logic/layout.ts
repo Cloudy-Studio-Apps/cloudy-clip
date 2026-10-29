@@ -3,8 +3,8 @@ import type {
   LayoutIssue,
   LayoutItem,
   LayoutSection,
+  LayoutSource,
   PropSpec,
-  ResolvedElement,
   ResolvedItem,
   ResolvedSection,
 } from "../element.types";
@@ -19,7 +19,7 @@ const OTHER_ORDER = 10_000;
  * panel is still complete (forgotten properties go to an "Other" section).
  */
 export function resolveLayout(
-  element: ResolvedElement,
+  element: LayoutSource,
   controlOf: LayoutControlOf,
 ): { sections: ResolvedSection[]; issues: LayoutIssue[] } {
   const { definition, fields, groups } = element;
@@ -186,7 +186,7 @@ function pick(entry: { control?: string; label?: string; icon?: string }) {
 }
 
 /** The layout of an element that declares none: General, then one section per group. */
-function generated(element: ResolvedElement): LayoutSection[] {
+function generated(element: LayoutSource): LayoutSection[] {
   const entries = Object.entries(element.definition.properties).filter(
     ([name, spec]) => !name.includes(".") && !spec.hidden,
   );

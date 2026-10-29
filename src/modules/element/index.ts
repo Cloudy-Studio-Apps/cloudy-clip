@@ -17,6 +17,8 @@ export { defineElement, definePropType, defineSharedGroup } from "./logic/define
 export { defaultControl, prop } from "./logic/props";
 /** An element's panel with every path checked and every control and label picked. */
 export { resolveLayout } from "./logic/layout";
+/** Every field of a property tree by path (`outline`, `outline.width`), for `resolveLayout`. */
+export { indexFields } from "./logic/fields";
 /** Whether a command can sit in a panel (takes clipIds, at most one more field). */
 export { checkPanelCommand } from "./logic/commands";
 /** The label of a field path ("letterSpacing" → "Letter spacing"). */
@@ -48,6 +50,7 @@ export type {
   FaceRequest,
   LayoutIssue,
   LayoutItem,
+  LayoutSource,
   LayoutControlOf,
   LayoutSection,
   NormalizeEnv,

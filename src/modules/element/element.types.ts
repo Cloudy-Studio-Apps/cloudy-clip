@@ -261,6 +261,14 @@ export interface SchemaEnv {
   groups: readonly { key: string; tree: PropertyTree }[];
 }
 
+/** What `resolveLayout` reads: an element, or any other kind of properties (a junction's). */
+export interface LayoutSource {
+  definition: Pick<AnyElement, "kind" | "properties" | "layout">;
+  groups: readonly SharedGroup[];
+  /** Every field by path (see `indexFields`). */
+  fields: ReadonlyMap<string, PropSpec>;
+}
+
 /** An element with what the registry works out from it, for one kernel. */
 export interface ResolvedElement {
   definition: AnyElement;

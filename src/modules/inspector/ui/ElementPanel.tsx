@@ -1,22 +1,12 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useModule, usePoint } from "@/core";
-import {
-  defaultControl,
-  elementRef,
-  elements as elementPoint,
-  propTypes,
-  resolveLayout,
-  type ResolvedItem,
-} from "@/modules/element";
+import { elementRef, elements as elementPoint } from "@/modules/element";
 import { projectRef, type Clip, type Track } from "@/modules/project";
-import { sectionLayouts } from "../inspector.points";
-import { isEnabled } from "../logic/conditions";
 import { CommandItem } from "./CommandItem";
-import { FieldItem } from "./FieldItem";
 import { useWarnOnce } from "./panel.warn.hook";
+import { PropertyPanel } from "./PropertyPanel";
 import { usePropsLive } from "./props.live.hook";
-import { SubSection } from "./SubSection";
 import { WarningRow } from "./WarningRow";
 
 /**
@@ -27,8 +17,6 @@ import { WarningRow } from "./WarningRow";
 export function ElementPanel({ clip, track }: { clip: Clip; track: Track }) {
   const elements = useModule(elementRef);
   const format = useStore(useModule(projectRef).store.api, (s) => s.format);
-  const types = usePoint(propTypes);
-  const layouts = usePoint(sectionLayouts);
   // Re-render when elements are registered or removed (a plugin loaded after the panel opened).
   const registered = usePoint(elementPoint);
   const live = usePropsLive(clip);
@@ -38,19 +26,8 @@ export function ElementPanel({ clip, track }: { clip: Clip; track: Track }) {
     [elements, clip.kind, registered],
   );
   const values = useMemo(() => elements.resolve(clip, format), [elements, clip, format]);
-  const layout = useMemo(
-    () =>
-      resolved
-        ? resolveLayout(resolved, (_path, spec) =>
-            defaultControl(spec, spec.type ? types.find((t) => t.name === spec.type) : undefined),
-          )
-        : null,
-    [resolved, types],
-  );
-  const issues = layout?.issues.map((i) => i.message).join("\n") ?? "";
-  useWarnOnce(issues || null);
   useWarnOnce(resolved ? null : `no element is registered for "${clip.kind}" clips`);
-  if (!resolved || !layout) {
+  if (!resolved) {
     return (
       <div className="p-3">
         <WarningRow
@@ -61,58 +38,19 @@ export function ElementPanel({ clip, track }: { clip: Clip; track: Track }) {
     );
   }
 
-  const enabled = (path: string) => {
-    const spec = resolved.fields.get(path);
-    return spec !== undefined && isEnabled(spec, values);
-  };
-  const renderItem = (item: ResolvedItem, index: number): ReactNode => {
-    switch (item.type) {
-      case "field":
-        return <FieldItem key={item.path} item={item} clip={clip} values={values} live={live} />;
-      case "command":
-        return <CommandItem key={`${item.id}:${index}`} item={item} clip={clip} />;
-      case "row":
-        return (
-          <div key={index} className="flex items-center gap-1.5">
-            {item.items.map(renderItem)}
-          </div>
-        );
-      case "sub":
-        return (
-          <SubSection key={index} item={item} values={values} live={live} enabled={enabled}>
-            {item.items.map(renderItem)}
-          </SubSection>
-        );
-    }
-  };
-
-  return layout.sections
-    .filter((section) => {
-      const group = resolved.groups.find((g) => g.id === section.key);
-      return !group?.appliesTo || group.appliesTo(clip, track);
-    })
-    .map((section) => {
-      const Layout = layouts.find((l) => l.id === section.layout)?.component;
-      if (!Layout) {
-        return (
-          <div key={section.key} className="border-b border-border p-3">
-            <WarningRow
-              title={`"${section.title}" can't be shown.`}
-              detail={`The section layout "${section.layout}" isn't registered. Its plugin may be missing or turned off.`}
-            />
-          </div>
-        );
-      }
-      return (
-        <Layout
-          key={section.key}
-          section={section}
-          clip={clip}
-          values={values}
-          live={live}
-          renderItem={renderItem}
-          enabled={enabled}
-        />
-      );
-    });
+  return (
+    <PropertyPanel
+      subject={clip}
+      source={resolved}
+      values={values}
+      live={live}
+      include={(section) => {
+        const group = resolved.groups.find((g) => g.id === section.key);
+        return !group?.appliesTo || group.appliesTo(clip, track);
+      }}
+      renderCommand={(item, index) => (
+        <CommandItem key={`${item.id}:${index}`} item={item} clip={clip} />
+      )}
+    />
+  );
 }
