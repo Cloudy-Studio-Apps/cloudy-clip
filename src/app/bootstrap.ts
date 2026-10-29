@@ -7,6 +7,7 @@ import {
   type Kernel,
   type AnyModuleDefinition,
 } from "@/core";
+import { fontsModule } from "@/modules/fonts";
 import { inspectorModule } from "@/modules/inspector";
 import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
@@ -20,6 +21,7 @@ const log = createLogger("app");
 /** Built-in modules, in any order: the kernel orders them by their dependencies. */
 const MODULES: AnyModuleDefinition[] = [
   projectModule,
+  fontsModule,
   mediaModule,
   timelineModule,
   previewModule,

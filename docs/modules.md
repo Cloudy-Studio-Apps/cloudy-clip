@@ -27,14 +27,15 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `core`    | The app can't exist without it. Loaded first.                                                  | core modules only     |
 | `feature` | Optional. Written only against public APIs (`index.ts`), exactly as a plugin would be written. | core and feature ones |
 
-| Module      | Tier    | Requires                                  | Owns                                                    |
-| ----------- | ------- | ----------------------------------------- | ------------------------------------------------------- |
-| `project`   | core    | —                                         | the document (format, media, tracks, clips), placement  |
-| `media`     | core    | `project`                                 | import, probes, proxies, library panel                  |
-| `preview`   | core    | `project`, `media`                        | playback clock, engine, viewer, preview panel, overlays |
-| `timeline`  | core    | `project`, `media`, `preview`             | track and clip commands, selection, timeline panel      |
-| `inspector` | feature | `project`, `timeline`, `transform`        | the right column                                        |
-| `transform` | feature | `project`, `media`, `preview`, `timeline` | `transform.setClipTransform`, canvas tools              |
+| Module      | Tier    | Requires                                  | Owns                                                     |
+| ----------- | ------- | ----------------------------------------- | -------------------------------------------------------- |
+| `project`   | core    | —                                         | the document (format, media, tracks, clips), placement   |
+| `fonts`     | core    | —                                         | font families (bundled, installed, Google), face loading |
+| `media`     | core    | `project`                                 | import, probes, proxies, library panel                   |
+| `preview`   | core    | `project`, `media`                        | playback clock, engine, viewer, preview panel, overlays  |
+| `timeline`  | core    | `project`, `media`, `preview`             | track and clip commands, selection, timeline panel       |
+| `inspector` | feature | `project`, `timeline`, `transform`        | the right column                                         |
+| `transform` | feature | `project`, `media`, `preview`, `timeline` | `transform.setClipTransform`, canvas tools               |
 
 The built-in `history` module (undo/redo) lives in `src/core/history`.
 

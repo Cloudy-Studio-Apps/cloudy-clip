@@ -31,3 +31,37 @@ export interface FontFaceSource {
 
 /** Whether a face is ready to draw. */
 export type FontStatus = "loaded" | "loading" | "missing";
+
+/** An installed face as the native side reports it. */
+export interface InstalledFace {
+  family: string;
+  /** Raw weight, e.g. 350; rounded to a CSS weight when grouped. */
+  weight: number;
+  italic: boolean;
+}
+
+/** The native and network side of fonts. Faked in tests. */
+export interface FontService {
+  /** Every installed face. */
+  installed(): Promise<InstalledFace[]>;
+  /** Google's families: cache while fresh (7 days), else downloaded and cached, else stale, else a fallback list. */
+  googleCatalog(): Promise<FontFamily[]>;
+  /** Downloads (or reads from the cache) a Google face and registers it with the document. */
+  loadGoogleFace(request: FontRequest): Promise<boolean>;
+  /** Waits for an installed or bundled face drawn by name; true when the browser has it. */
+  loadByName(request: FontRequest): Promise<boolean>;
+}
+
+/** Fonts API of the `fonts` module. */
+export interface FontsApi {
+  /** Bundled, installed, then Google families. Read once per kernel; offline still resolves. */
+  families(): Promise<FontFamily[]>;
+  /** Loads a face once per kernel. Resolves true when it can be drawn; never rejects. */
+  load(request: FontRequest): Promise<boolean>;
+  /** The state of a face; `undefined` when it was never requested. */
+  status(request: FontRequest): FontStatus | undefined;
+  /** True when the face is loaded; otherwise starts loading it and returns false. */
+  ensure(request: FontRequest): boolean;
+  /** Called when a face finishes loading (or turns out missing). Returns the unsubscribe. */
+  onLoaded(listener: (request: FontRequest) => void): () => void;
+}

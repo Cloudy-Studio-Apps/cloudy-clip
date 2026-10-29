@@ -107,6 +107,7 @@ src/
   ui/           the UI kit: design tokens (styles/), stateless components (kit/), brand (SealMark)
   modules/      one folder per module (see docs/modules.md)
     project/    the document: format, media, tracks, clips; selectors; clip placement
+    fonts/      font families (bundled, installed, Google) and face loading
     media/      import, probing, proxies, the library panel
     preview/    playback clock, preview engine, viewer zoom/pan, the preview panel
     timeline/   track and clip commands, the timeline panel
