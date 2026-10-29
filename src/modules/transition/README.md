@@ -3,8 +3,8 @@
 Transitions between clips. A transition is a junction of the `transition` kind: it sits on the cut
 between two adjacent clips of a video track, overlaps them (0.5 s by default) and mixes their
 pictures with a preset (a look: dissolve, wipe, glitch…). This module holds the kind, the presets
-point and the command to apply one; the presets themselves and the Transitions tab come in later
-changes.
+point and the command to apply one; the seven built-in presets are in `presets/`; the Transitions tab comes
+in a later change.
 
 - **Tier:** feature
 - **Requires:** `project`, `element`, `junction`
@@ -26,7 +26,13 @@ changes.
   - `transition.options.ts`: the `transition-options` prop type and the API.
   - `transition.apply.command.ts`: `transition.apply`.
   - `transition.mcp.ts`: the tools.
-- **Not yet:** presets, the Transitions tab and its `transition-options` control.
+  - `presets/`: `fade`, `cross-dissolve`, `dissolve` (seeded block mask), `wipe` (gradient mask),
+    `glare`, `woosh` (4-pass offset smear), `glitch` (slice offsets + red/blue split); `presets.ts`
+    lists them as `builtInPresets`, contributed by the module. Masks are drawn into canvas `b`
+    with `destination-in` (in place when `b` is a canvas, else into a temporary canvas); no pixel
+    reads and no `ctx.filter`.
+  - `logic/`: `easing.ts`, `noise.ts` (seeded random, block masks), `color.ts`.
+- **Not yet:** the Transitions tab and its `transition-options` control.
 
 ## Commands and tools
 

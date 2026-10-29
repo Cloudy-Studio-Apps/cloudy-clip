@@ -192,6 +192,6 @@ describe("transition.apply", () => {
     expect(entry.category).toBe("basic");
     expect(Object.keys(entry.options.properties)).toEqual(["amount"]);
     expect(entry.defaults).toEqual({ amount: 0.5 });
-    expect(listed.map((p) => p.id)).toEqual(["test.fade", "test.wipe"]);
+    expect(listed.map((p) => p.id)).toEqual(expect.arrayContaining(["test.fade", "test.wipe"]));
   });
 });
