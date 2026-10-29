@@ -17,7 +17,7 @@ the preview with the transform tools.
     time, or opens a new top video track (in the same undo step).
   - `ui/TextPanel.tsx`: the tab; `ui/text.gesture.ts`: click-or-drag on the tile (DOM ghost, no
     renders), dropping through `TimelineApi.dropTarget`.
-  - The clip itself (`TextClip`), its style and its box (`textBox`) live in `project`, so the
+  - The clip itself (`TextClip`), its style (`TextStyle`) and its box (`textBox`) live in `project`, so the
     preview draws it and the canvas tools hit-test it from the same numbers.
 - **Not yet:** editing the words, fonts, colors, sizes, alignment, styles/presets, animations,
   auto captions.

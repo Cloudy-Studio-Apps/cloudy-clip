@@ -13,9 +13,14 @@ lives here, so every change is undoable and readable by agents.
 - **Files:**
   - `project.types.ts`: `ProjectState`, `Track`, `Clip` (`MediaClip | TextClip`), `ClipTransform`,
     `ClipPlacement`.
-  - `project.text.ts`: the default text (`DEFAULT_TEXT`, `TEXT_STYLE`, `textFont`, `isTextClip`)
-    and `textBox(format, text, measure)`, the natural size of a text that the engine draws and the
-    canvas tools hit-test.
+  - `project.text.ts`: `DEFAULT_TEXT`, `isTextClip`, and the text model's functions.
+    `TextClip.style?: TextStyle` (font ref, size, weight, italic, letter spacing, line height, align,
+    uppercase, fill, outline, background, shadow; sizes in output px, colors `#rrggbb`); a clip without
+    `style` uses `defaultTextStyle(format)` (the old look). `textStyleOf`, `mergeTextStyle` (one level
+    deep), `cssFontFamily`/`textFont` (quoted, escaped CSS), `displayText` (uppercase),
+    `textPadding`, `textLayout(text, style, measure)` (lines, box, line positions from the box
+    center; blank lines keep their height) and `textBox(format, clip, measure)`, the natural size
+    that the engine draws and the canvas tools hit-test. `TextMeasure` takes the letter spacing.
   - `project.store.ts`: `FORMAT_PRESETS`, `createEmptyProject()`.
   - `project.selectors.ts`: `projectDuration`, `orderedTracks`, `trackClips`, `clipEnd`,
     `isMediaInUse`, `formatPreset`.

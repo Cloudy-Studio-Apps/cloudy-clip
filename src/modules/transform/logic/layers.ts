@@ -28,7 +28,7 @@ export function visibleLayers(
       if (clip.start > time) break; // sorted by start
       if (time >= clip.start + clip.duration) continue;
       if (clip.kind === "text") {
-        layers.push({ clipId, source: textBox(state.format, clip.text, measure), fit: "none" });
+        layers.push({ clipId, source: textBox(state.format, clip, measure), fit: "none" });
         continue;
       }
       if (state.media[clip.mediaId]?.kind !== "video") continue;

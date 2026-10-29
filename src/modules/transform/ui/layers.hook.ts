@@ -29,9 +29,10 @@ export function useVisibleLayers(): VisibleLayer[] {
     };
     // Text is measured like the engine draws it (a 2D canvas with the same font).
     const ctx = document.createElement("canvas").getContext("2d");
-    const measure: TextMeasure = (text, font) => {
+    const measure: TextMeasure = (text, font, letterSpacing) => {
       if (!ctx) return 0;
       ctx.font = font;
+      if ("letterSpacing" in ctx) ctx.letterSpacing = `${letterSpacing}px`;
       return ctx.measureText(text).width;
     };
     let lastKey: string | null = null;

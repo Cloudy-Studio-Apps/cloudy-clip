@@ -63,19 +63,108 @@ export interface MediaClip extends ClipBase {
 
 /**
  * Text drawn over the video, on a video track. It has no source file, so it can be any length
- * (`sourceIn` stays 0). Drawn in the default style (`project.text.ts`) for now.
+ * (`sourceIn` stays 0). Without `style` it is drawn in the default style (`defaultTextStyle`).
  */
 export interface TextClip extends ClipBase {
   kind: "text";
   /** The words shown. */
   text: string;
+  /** How the words look; missing means `defaultTextStyle(format)`. */
+  style?: TextStyle;
 }
 
 /** A clip on the timeline: a piece of media or a text. */
 export type Clip = MediaClip | TextClip;
 
-/** Width of `text` drawn in the CSS `font`, in pixels (canvas `measureText`, faked in tests). */
-export type TextMeasure = (text: string, font: string) => number;
+/** Weight of a font, as CSS numbers. */
+export type FontWeight = "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
+
+/** Where a font comes from: shipped with the app, installed on the system, or Google Fonts. */
+export type FontSource = "bundled" | "installed" | "google";
+
+/** A font family and where to get it. */
+export interface TextFontRef {
+  family: string;
+  source: FontSource;
+}
+
+/** Horizontal alignment of the lines inside the text's box. */
+export type TextAlign = "left" | "center" | "right";
+
+/** Color of the letters (`#rrggbb`) and its opacity (0-1). */
+export interface TextFill {
+  color: string;
+  opacity: number;
+}
+
+/** Stroke around the letters; `width` in output pixels. */
+export interface TextOutline {
+  enabled: boolean;
+  color: string;
+  width: number;
+}
+
+/** Box behind the text; `padding` and `radius` in output pixels. */
+export interface TextBackground {
+  enabled: boolean;
+  color: string;
+  opacity: number;
+  padding: number;
+  radius: number;
+}
+
+/** Shadow of the letters; `blur` and `distance` in output pixels, `angle` in degrees (90 = down). */
+export interface TextShadow {
+  enabled: boolean;
+  color: string;
+  opacity: number;
+  blur: number;
+  distance: number;
+  angle: number;
+}
+
+/** Everything that decides how a text looks. Sizes are output pixels. */
+export interface TextStyle {
+  font: TextFontRef;
+  /** Font size in output pixels. */
+  size: number;
+  weight: FontWeight;
+  italic: boolean;
+  /** Extra space between letters, in output pixels. */
+  letterSpacing: number;
+  /** Line height in font sizes. */
+  lineHeight: number;
+  align: TextAlign;
+  uppercase: boolean;
+  fill: TextFill;
+  outline: TextOutline;
+  background: TextBackground;
+  shadow: TextShadow;
+}
+
+/** A partial style: top-level fields, and nested groups may be partial too (one level deep). */
+export type TextStylePatch = {
+  [K in keyof TextStyle]?: TextStyle[K] extends object ? Partial<TextStyle[K]> : TextStyle[K];
+};
+
+/** One laid-out line. `x` is its left edge and `y` its middle, both from the box center. */
+export interface TextLine {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+}
+
+/** A text laid out: its box, its lines, and the CSS font and line height used. */
+export interface TextLayout {
+  box: PictureSize;
+  lines: TextLine[];
+  font: string;
+  lineHeight: number;
+}
+
+/** Width of `text` drawn in the CSS `font` with `letterSpacing` pixels between letters (canvas `measureText`, faked in tests). */
+export type TextMeasure = (text: string, font: string, letterSpacing: number) => number;
 
 /**
  * Placement of a clip's picture in the output frame. The picture is first fitted (contained) in
