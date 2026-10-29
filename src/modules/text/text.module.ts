@@ -1,6 +1,7 @@
 import { Type } from "lucide-react";
 import { defineModule, layoutPanels } from "@/core";
 import { inspectorSections } from "@/modules/inspector";
+import { previewOverlays } from "@/modules/preview";
 import { textCommands } from "./text.commands";
 import { textMcpTools } from "./text.mcp";
 import { textRef } from "./text.ref";
@@ -8,6 +9,7 @@ import { createRecentColors } from "./text.recents.store";
 import {
   TextBackgroundSection,
   TextContentSection,
+  TextEditOverlay,
   TextFillSection,
   TextFontSection,
   TextOutlineSection,
@@ -34,6 +36,8 @@ export const textModule = defineModule({
       icon: Type,
       component: TextPanel,
     });
+    // After transform's overlay (text requires it), so the editor's layer sits on top.
+    contribute(previewOverlays, { id: "text.editor", component: TextEditOverlay });
     const sections = [
       { id: "content", title: "Content", order: 10, component: TextContentSection },
       { id: "font", title: "Font", order: 20, component: TextFontSection },

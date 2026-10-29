@@ -94,7 +94,11 @@ export function TransformOverlay() {
   };
 
   return (
-    <div ref={frameRef} className="absolute inset-0" onPointerDown={onPointerDown}>
+    <div
+      ref={frameRef}
+      className="pointer-events-auto absolute inset-0"
+      onPointerDown={onPointerDown}
+    >
       <div
         ref={verticalRef}
         hidden

@@ -19,7 +19,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen), `frame.ts`
     (screen → frame coordinates). Placement is `project`'s `clipPlacement`, so the box and the
     picture always agree.
-  - `ui/`: `TransformOverlay`, `SelectionBox`, `transform.gesture.ts` (while dragging, the preview
+  - `ui/`: `TransformOverlay` (its root takes the pointer: `pointer-events-auto`, since the overlay wrappers ignore it), `SelectionBox`, `transform.gesture.ts` (while dragging, the preview
     draws the live value through `PreviewApi.previewTransform` and the box follows through direct
     DOM updates; release commits one command, so one undo step), `layers.hook.ts`. The box shows
     when the selection is one clip or one linked picture + sound (`selectionSubject`).

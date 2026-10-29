@@ -33,7 +33,7 @@ export function PreviewStage() {
       <div ref={frameRef} className="absolute left-1/2 top-1/2 will-change-transform">
         <canvas ref={canvasRef} className="block size-full bg-black shadow-frame" />
         {overlays.map(({ id, component: Overlay }) => (
-          <div key={id} className="absolute inset-0">
+          <div key={id} className="pointer-events-none absolute inset-0">
             <ErrorBoundary name={id}>
               <Overlay />
             </ErrorBoundary>

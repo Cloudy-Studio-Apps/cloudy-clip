@@ -14,7 +14,7 @@ edit its words and look.
 - **Contributes:** panel `text.panel` (side, icon `Type`); inspector sections, all for `kind === "text"`:
   `text.content` (10: words + preset row), `text.font` (20: family picker, size, weight, italic,
   letter and line spacing, align, uppercase), `text.fill` (30), `text.outline` (40),
-  `text.background` (50), `text.shadow` (60)
+  `text.background` (50), `text.shadow` (60); preview overlay `text.editor` (in-place editing)
 - **Points it owns:** —
 - **API:** `TextApi.recents`: the recent colors (`store` of `{ colors }`, `push(color)`), per kernel,
   saved in `localStorage` key `cloudy-clip.colors.recent` (max 12)
@@ -48,6 +48,16 @@ edit its words and look.
     popover; `FontList` shows only the rows in view (fixed 28 px rows) over the families, with search,
     and `FontRow` shows the source and a "Missing" note. The family button shows
     "Missing — showing Inter" while `fonts.status(...)` is `missing` (re-rendered by `fonts.onLoaded`).
+  - `ui/TextEditOverlay.tsx` / `ui/TextEditor.tsx`: **editing on the canvas.** Double-clicking the
+    selected text in the frame (its first click selected it) opens a transparent `textarea` over it
+    with the clip's font, size, color, alignment and spacing, scaled by clip scale x viewer zoom and
+    rotated with the clip (placed from `textLayout` + `clipPlacement`, straight on the DOM, no
+    renders while typing or zooming). While open, the canvas text is hidden with a live style
+    (`EDIT_HIDDEN_STYLE`: no fill, shadow, outline or background; same size, so the box does not
+    move) and the typed words are previewed; a layer covers the frame so the transform tools see no
+    pointer (the overlay is contributed after transform's, so it sits on top). Enter adds a line.
+    Escape, blur or a click outside end the edit through `logic/editing.ts` `editCommitAction`:
+    unchanged does nothing, blank reverts to the old words, else one `text.setText` (one undo step).
 - **Not yet:** animations, auto captions.
 
 | Command            | MCP tool            | Notes                                                                              |

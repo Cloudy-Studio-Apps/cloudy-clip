@@ -5,3 +5,4 @@ export { TextFillSection } from "./TextFillSection";
 export { TextOutlineSection } from "./TextOutlineSection";
 export { TextBackgroundSection } from "./TextBackgroundSection";
 export { TextShadowSection } from "./TextShadowSection";
+export { TextEditOverlay } from "./TextEditOverlay";

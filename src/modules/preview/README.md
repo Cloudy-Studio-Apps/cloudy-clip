@@ -8,7 +8,9 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
 - **Contributes:** panel `preview.panel` (main); keybindings `preview.toggle-play` (Space),
   `preview.seek-start` (Home)
 - **Points it owns:** `previewOverlays` (`preview.points.ts`): layers drawn over the frame, sized
-  and moved with it, positioned in % of the frame (`transform` contributes its selection box)
+  and moved with it, positioned in % of the frame (`transform` contributes its selection box). Each overlay's
+  wrapper ignores the pointer (`pointer-events-none`); an overlay turns it back on for the parts
+  that take input, so overlays stacked later never block the ones below
 - **API** (`PreviewApi`, per kernel): `playback` (the clock), `attachCanvas`, `redraw`,
   `captureFrame`, `previewTransform(clipId, transform | null)` (draws a live transform during a
   canvas gesture without changing the project), `previewTextClip(clipId, { text?, style? } | null)`
