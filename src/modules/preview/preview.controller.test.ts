@@ -124,7 +124,13 @@ describe("preview controller", () => {
     expect(controller.textClipOverride("c1")).toEqual({ text: "Hi" });
     flush();
     expect(engines[0]?.renders).toBe(before + 1);
+    const seen: string[] = [];
+    const off = controller.onTextOverride((id) => seen.push(id));
+    controller.previewTextClip("c1", { text: "Yo" });
     controller.previewTextClip("c1", null);
     expect(controller.textClipOverride("c1")).toBeUndefined();
+    off();
+    controller.previewTextClip("c1", { text: "x" });
+    expect(seen).toEqual(["c1", "c1"]);
   });
 });

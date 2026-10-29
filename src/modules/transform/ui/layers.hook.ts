@@ -17,7 +17,7 @@ const keyOf = (layers: readonly VisibleLayer[]) =>
 export function useVisibleLayers(): VisibleLayer[] {
   const project = useModule(projectRef).store;
   const media = useModule(mediaRef);
-  const { playback, textClipOverride } = useModule(previewRef);
+  const { playback, textClipOverride, onTextOverride } = useModule(previewRef);
   const [layers, setLayers] = useState<VisibleLayer[]>([]);
 
   useEffect(() => {
@@ -45,13 +45,15 @@ export function useVisibleLayers(): VisibleLayer[] {
     };
     const offTime = playback.onTime(update);
     const offProject = project.subscribe(update);
+    const offOverride = onTextOverride(update);
     const offProbes = media.probes.subscribe(update);
     return () => {
       offTime();
       offProject();
       offProbes();
+      offOverride();
     };
-  }, [media, playback, project, textClipOverride]);
+  }, [media, playback, project, textClipOverride, onTextOverride]);
 
   return layers;
 }

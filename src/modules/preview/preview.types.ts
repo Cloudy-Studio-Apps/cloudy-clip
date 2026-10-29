@@ -96,6 +96,8 @@ export interface PreviewApi {
    * values. The edit commits with `text.setText` / `text.setStyle`.
    */
   previewTextClip(clipId: ClipId, override: TextOverride | null): void;
+  /** Calls `listener` with the clip id whenever a text override is set or cleared. Returns the unsubscribe. */
+  onTextOverride(listener: (clipId: ClipId) => void): () => void;
   /** The live override of a text clip, so the canvas tools measure the box being drawn. */
   textClipOverride(clipId: ClipId): TextOverride | undefined;
   /** Zoom and pan of the viewer. View state only: not in the project, not undoable. */

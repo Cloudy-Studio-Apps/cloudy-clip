@@ -29,6 +29,8 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   /** Live text edits, drawn instead of the saved words and style. */
   const textOverrides = new Map<ClipId, TextOverride>();
 
+  const overrideListeners = new Set<(clipId: ClipId) => void>();
+
   function renderNow(): void {
     redrawQueued = false;
     if (!engine) return;
@@ -132,6 +134,11 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
       if (override) textOverrides.set(clipId, override);
       else textOverrides.delete(clipId);
       requestRedraw();
+      overrideListeners.forEach((listener) => listener(clipId));
+    },
+    onTextOverride(listener) {
+      overrideListeners.add(listener);
+      return () => void overrideListeners.delete(listener);
     },
     textClipOverride: (clipId) => textOverrides.get(clipId),
     viewport: createViewport(),

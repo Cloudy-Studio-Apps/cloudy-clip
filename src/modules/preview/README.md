@@ -13,7 +13,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   `captureFrame`, `previewTransform(clipId, transform | null)` (draws a live transform during a
   canvas gesture without changing the project), `previewTextClip(clipId, { text?, style? } | null)`
   (a live text edit drawn instead of the saved words/style until cleared; `style` may be partial)
-  and `textClipOverride(clipId)` (so the canvas tools measure the box being drawn), `viewport` (`store`, `zoomBy`, `panBy`, `fit`)
+  `onTextOverride(listener)` (fires on set/clear) and `textClipOverride(clipId)` (so the canvas tools measure the box being drawn), `viewport` (`store`, `zoomBy`, `panBy`, `fit`)
 - **Files:**
   - `preview.clock.ts`: the playhead, driven by `requestAnimationFrame`; listeners are called per
     frame without React.

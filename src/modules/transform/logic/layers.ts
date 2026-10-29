@@ -3,19 +3,13 @@ import {
   mergeTextStyle,
   textBox,
   textStyleOf,
-  type TextStylePatch,
   type MediaId,
   type PictureSize,
   type ProjectState,
   type TextMeasure,
 } from "@/modules/project";
+import type { TextOverride } from "@/modules/preview";
 import type { VisibleLayer } from "../transform.types";
-
-/** Live words and/or style of a text clip, measured instead of the saved ones. */
-export interface LiveText {
-  text?: string;
-  style?: TextStylePatch;
-}
 
 /**
  * Pictures on screen at `time` (video clips and text), top-most first (the order to hit-test
@@ -26,7 +20,7 @@ export function visibleLayers(
   sizeOf: (mediaId: MediaId) => PictureSize | undefined,
   time: Micros,
   measure: TextMeasure,
-  liveText: (clipId: string) => LiveText | undefined = () => undefined,
+  liveText: (clipId: string) => TextOverride | undefined = () => undefined,
 ): VisibleLayer[] {
   const layers: VisibleLayer[] = [];
   for (const trackId of state.trackOrder) {
