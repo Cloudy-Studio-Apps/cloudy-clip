@@ -4,6 +4,7 @@ import { inspectorModule } from "@/modules/inspector";
 import { createFakeMediaModule } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { elementModule, elements, setProps } from "@/modules/element";
+import { junctionModule } from "@/modules/junction";
 import { previewModule } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
 import { addClip, addElement, timelineModule } from "@/modules/timeline";
@@ -34,6 +35,7 @@ beforeEach(async () => {
   statuses = await kernel.modules.loadAll([
     createProjectModule(project),
     elementModule,
+    junctionModule,
     createFakeMediaModule({ mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 } }),
     createFakeFontsModule({
       families: [

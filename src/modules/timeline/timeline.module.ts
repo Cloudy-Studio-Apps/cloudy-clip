@@ -13,7 +13,7 @@ export const timelineModule = defineModule({
   ref: timelineRef,
   name: "Timeline",
   tier: "core",
-  requires: ["project", "element", "media", "preview"],
+  requires: ["project", "element", "junction", "media", "preview"],
   commands: timelineCommands,
   mcpTools: timelineMcpTools,
   setup(ctx) {

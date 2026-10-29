@@ -1,6 +1,7 @@
 import type { Micros } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
-import type { ClipId, TrackId } from "@/modules/project";
+import type { JunctionKindDefinition } from "@/modules/junction";
+import type { ClipId, ClipMove, JunctionId, ProjectState, TrackId } from "@/modules/project";
 
 /** Ephemeral view state of the timeline. Not part of the undo history. */
 export interface TimelineViewState {
@@ -58,4 +59,18 @@ export interface TrimLimits {
   nextStart: Micros;
   /** The clip has no source file (text): it can grow both ways and `sourceIn` stays put. */
   sourceless?: boolean;
+}
+
+/** A junction kind's declaration, or undefined when no loaded module registers it. */
+export type JunctionKindOf = (kind: string) => JunctionKindDefinition | undefined;
+
+/** A project state worked out by a clip command, and the junctions the edit removed. */
+export interface JunctionEdit {
+  state: ProjectState;
+  removed: JunctionId[];
+}
+
+/** A clip moved to a start time on a track (its own or another of the same kind). */
+export interface ClipTrackMove extends ClipMove {
+  trackId: TrackId;
 }

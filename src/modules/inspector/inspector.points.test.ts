@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createKernel, defineModule, defineModuleRef } from "@/core";
 import { elementModule } from "@/modules/element";
+import { junctionModule } from "@/modules/junction";
 import { createEmptyProject, createProjectModule } from "@/modules/project";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { createFakeMediaModule } from "@/modules/media";
@@ -30,6 +31,7 @@ async function load(...extra: ReturnType<typeof testModule>[]) {
   const statuses = await kernel.modules.loadAll([
     createProjectModule(createEmptyProject()),
     elementModule,
+    junctionModule,
     createFakeMediaModule({}),
     createFakeFontsModule(),
     previewModule,

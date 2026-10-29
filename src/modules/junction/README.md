@@ -16,6 +16,8 @@ the preview mix are built on it by other modules.
   kind's defaults; `{}` for a missing kind), `display(junction, format)` (label and icon for the
   chip; a missing kind gives `"<kind> (not available)"`, `missing: true` and one warning),
   `warn(message)` (logs once per kernel). Worked out once, kept until a point changes.
+  Exported for other modules' commands that change joined clips (the timeline): `durationLimits`,
+  `clampDuration`, `checkDuration` (the `junction.invalid_duration` failure), `cutNear`, `cutAfter`.
 - **Files:**
   - `junction.types.ts`: `JunctionKindDefinition`, `OverlapRule`, `MixFn`/`MixEnv`,
     `NormalizeEnv` (`format`, `previous` resolved props, `{}` on add), `JunctionDisplay`, `JunctionApi`.

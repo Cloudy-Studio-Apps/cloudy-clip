@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { CommandFailure, formatTimecode, type Micros } from "@/core";
 import type { MediaApi } from "@/modules/media";
-import type { Clip, ProjectState, Track } from "@/modules/project";
+import {
+  findLayoutConflict,
+  type Clip,
+  type ClipId,
+  type ProjectState,
+  type Track,
+} from "@/modules/project";
 
 /** Input schema for a time on the timeline. */
 export const time = z.number().int().min(0).describe("Microseconds");
@@ -48,4 +54,21 @@ export function overlapError(state: ProjectState, other: Clip): CommandFailure {
     `That spot overlaps clip "${other.id}" (${formatTimecode(other.start)}–${formatTimecode(end)}) on track "${state.tracks[other.trackId]?.name}". Pick a free spot or another track.`,
     { clipId: other.id, start: other.start, end },
   );
+}
+
+/**
+ * Fails when `next` has clips overlapping where no junction allows it (`timeline.overlap`, naming
+ * the clip in the way: the one the edit didn't move) or starting before 0
+ * (`timeline.out_of_range`). Spec rule 12.
+ */
+export function checkLayout(next: ProjectState, moved: ReadonlySet<ClipId>): void {
+  const conflict = findLayoutConflict(next);
+  if (!conflict) return;
+  if (conflict.clip === conflict.other) {
+    throw new CommandFailure(
+      "timeline.out_of_range",
+      "A clip would start before the beginning of the timeline",
+    );
+  }
+  throw overlapError(next, moved.has(conflict.clip.id) ? conflict.other : conflict.clip);
 }

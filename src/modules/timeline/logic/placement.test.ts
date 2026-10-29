@@ -5,6 +5,7 @@ import {
   findOverlap,
   freeTrack,
   neighbourBounds,
+  snapCandidates,
   snapSpan,
   snapTime,
   trackEnd,
@@ -66,6 +67,50 @@ describe("findOverlap", () => {
 
   it("computes the track end", () => {
     expect(trackEnd(state, trackId)).toBe(7 * S);
+  });
+});
+
+/** c0 [0,4) and c1 [3.5,7.5) joined by a 0.5 s junction "j"; c2 [9,10). */
+function joinedClips(): { state: ProjectState; trackId: string } {
+  const built = projectWithClips([
+    [0, 4 * S],
+    [3.5 * S, 4 * S],
+    [9 * S, S],
+  ]);
+  built.state.junctions.j = {
+    id: "j",
+    kind: "test",
+    trackId: built.trackId,
+    leftClipId: "c0",
+    rightClipId: "c1",
+    duration: 0.5 * S,
+    props: {},
+  };
+  return built;
+}
+
+describe("junction-aware placement", () => {
+  it("findOverlap with self skips a neighbour overlapping by exactly the junction", () => {
+    const { state, trackId } = joinedClips();
+    const c1 = state.clips.c1!;
+    expect(findOverlap(state, trackId, c1.start, c1.duration, new Set(["c1"]))?.id).toBe("c0");
+    expect(findOverlap(state, trackId, c1.start, c1.duration, new Set(["c1"]), c1)).toBeUndefined();
+    // Another overlap than the junction's is still in the way.
+    expect(findOverlap(state, trackId, 3 * S, c1.duration, new Set(["c1"]), c1)?.id).toBe("c0");
+    const c0 = state.clips.c0!;
+    expect(findOverlap(state, trackId, 0, c0.duration, new Set(["c0"]), c0)).toBeUndefined();
+  });
+
+  it("neighbourBounds stops a joined neighbour at its edge minus the overlap", () => {
+    const { state } = joinedClips();
+    expect(neighbourBounds(state, state.clips.c1!)).toEqual({ prevEnd: 3.5 * S, nextStart: 9 * S });
+    expect(neighbourBounds(state, state.clips.c0!)).toEqual({ prevEnd: 0, nextStart: 4 * S });
+  });
+
+  it("snapCandidates include the junction's cut (middle of the overlap)", () => {
+    const { state } = joinedClips();
+    expect(snapCandidates(state, 0)).toContain(3.75 * S);
+    expect(snapCandidates(state, 0, new Set(["c1"]))).not.toContain(3.75 * S);
   });
 });
 

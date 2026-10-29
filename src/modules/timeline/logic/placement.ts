@@ -1,5 +1,12 @@
 import type { Micros } from "@/core";
-import type { Clip, ClipId, ProjectState, TrackId, TrackKind } from "@/modules/project";
+import {
+  allowedOverlap,
+  type Clip,
+  type ClipId,
+  type ProjectState,
+  type TrackId,
+  type TrackKind,
+} from "@/modules/project";
 import type { TrimLimits } from "../timeline.types";
 
 /** Smallest clip length allowed: one frame at the project frame rate. */
@@ -7,13 +14,18 @@ export function minClipDuration(state: ProjectState): Micros {
   return Math.ceil(1_000_000 / state.format.fps);
 }
 
-/** Returns the first clip on the track overlapping `[start, start + duration)`, ignoring some. */
+/**
+ * Returns the first clip on the track overlapping `[start, start + duration)`, ignoring some.
+ * When the span is `self` placed there, a neighbour it overlaps at one edge by exactly the
+ * allowed overlap (a junction joining them, spec rule 12) is not in the way.
+ */
 export function findOverlap(
   state: ProjectState,
   trackId: TrackId,
   start: Micros,
   duration: Micros,
   ignore: ReadonlySet<ClipId> = new Set(),
+  self?: Clip,
 ): Clip | undefined {
   const end = start + duration;
   const track = state.tracks[trackId];
@@ -21,9 +33,29 @@ export function findOverlap(
   for (const id of track.clipIds) {
     if (ignore.has(id)) continue;
     const clip = state.clips[id];
-    if (clip && clip.start < end && start < clip.start + clip.duration) return clip;
+    if (!clip || !(clip.start < end && start < clip.start + clip.duration)) continue;
+    if (self && joinedOverlap(state, self, start, end, clip)) continue;
+    return clip;
   }
   return undefined;
+}
+
+/** `self` at `[start, end)` overlaps `other` at one edge by exactly their allowed overlap. */
+function joinedOverlap(
+  state: ProjectState,
+  self: Clip,
+  start: Micros,
+  end: Micros,
+  other: Clip,
+): boolean {
+  const otherEnd = other.start + other.duration;
+  if (start < other.start && end < otherEnd) {
+    return end - other.start === allowedOverlap(state, self, other);
+  }
+  if (other.start < start && otherEnd < end) {
+    return otherEnd - start === allowedOverlap(state, other, self);
+  }
+  return false;
 }
 
 /** The first track of `kind` (in display order) where `[start, start + duration)` is free. */
@@ -54,21 +86,29 @@ export function sortClipIds(ids: readonly ClipId[], clips: Record<ClipId, Clip>)
   return [...ids].sort((a, b) => (clips[a]?.start ?? 0) - (clips[b]?.start ?? 0));
 }
 
-/** Neighbours of a clip on its track: end of the previous clip and start of the next. */
+/**
+ * Neighbours of a clip on its track: end of the previous clip and start of the next. A neighbour
+ * joined to the clip (overlapping it by a junction's duration) bounds it at its edge ∓ that
+ * duration, which is the clip's own edge.
+ */
 export function neighbourBounds(
   state: ProjectState,
   clip: Clip,
 ): { prevEnd: Micros; nextStart: Micros } {
   let prevEnd = 0;
   let nextStart = Number.POSITIVE_INFINITY;
+  const end = clip.start + clip.duration;
   for (const id of state.tracks[clip.trackId]?.clipIds ?? []) {
     if (id === clip.id) continue;
     const other = state.clips[id];
     if (!other) continue;
-    const otherEnd = other.start + other.duration;
-    if (otherEnd <= clip.start) prevEnd = Math.max(prevEnd, otherEnd);
-    else if (other.start >= clip.start + clip.duration)
-      nextStart = Math.min(nextStart, other.start);
+    if (other.start < clip.start) {
+      const bound = other.start + other.duration - allowedOverlap(state, other, clip);
+      if (bound <= clip.start) prevEnd = Math.max(prevEnd, bound);
+    } else {
+      const bound = other.start + allowedOverlap(state, clip, other);
+      if (bound >= end) nextStart = Math.min(nextStart, bound);
+    }
   }
   return { prevEnd, nextStart };
 }
@@ -136,7 +176,10 @@ export function snapSpan(
   return Math.abs(startDelta) <= Math.abs(endDelta) ? snappedStart : start + endDelta;
 }
 
-/** Times worth snapping to: zero, the playhead, and every clip edge (except ignored clips). */
+/**
+ * Times worth snapping to: zero, the playhead, every clip edge (except ignored clips) and every
+ * junction's cut (the middle of its overlap).
+ */
 export function snapCandidates(
   state: ProjectState,
   playhead: Micros,
@@ -146,6 +189,11 @@ export function snapCandidates(
   for (const clip of Object.values(state.clips)) {
     if (ignore.has(clip.id)) continue;
     candidates.push(clip.start, clip.start + clip.duration);
+  }
+  for (const junction of Object.values(state.junctions)) {
+    const right = state.clips[junction.rightClipId];
+    if (!right || ignore.has(junction.leftClipId) || ignore.has(right.id)) continue;
+    candidates.push(right.start + Math.floor(junction.duration / 2));
   }
   return candidates;
 }

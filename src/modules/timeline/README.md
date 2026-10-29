@@ -4,7 +4,8 @@ Editing tracks and clips on the timeline, and the timeline panel: ruler, track h
 clips, playhead and the toolbar (split, delete, add track, zoom).
 
 - **Tier:** core
-- **Requires:** `project`, `element` (clip labels, colors, bodies), `media`, `preview`
+- **Requires:** `project`, `element` (clip labels, colors, bodies), `junction` (kind limits when
+  clip edits change joined clips), `media`, `preview`
 - **Contributes:** panel `timeline.panel` (bottom); keybindings `timeline.split` (S),
   `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace)
 - **Points it owns:** —
@@ -15,8 +16,13 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   modules that place their own clips: `findOverlap`, `freeTrack`, `overlapError`,
   `selectionSubject`. `CreateTiles({ panel })`: the create tiles of a side panel.
 - **Files:**
-  - `timeline.track.commands.ts` (tracks), `timeline.clip.commands.ts` (clips), shared checks in
-    `timeline.guards.ts`; `timeline.commands.ts` lists them.
+  - `timeline.track.commands.ts` (tracks), `timeline.clip.commands.ts` (add, unlink),
+    `timeline.move.commands.ts` (move, trim), `timeline.split.commands.ts` (split, delete), shared
+    checks in `timeline.guards.ts` (`checkLayout`: the whole layout through `project`'s
+    `findLayoutConflict`); `timeline.commands.ts` lists them.
+  - `timeline.junctions.ts`: what the clip commands share to keep junctions valid: `moveClips`,
+    `followMove`, `rippleTrim`, `fitJunctions`, `junctionsOverlapping`, and `commitState` (writes
+    a state worked out with `project`'s pure helpers as one undo step).
   - `timeline.element.command.ts`: `timeline.addElement` (`kind`, optional `props`, `start`
     (default the playhead), `duration` (3 s), `trackId`): a clip of an element without a file. No
     track: the top track of the element's first track kind with room, or a new top one (same undo
@@ -41,9 +47,30 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   the first audio track with room (a new one if none). Linked clips are moved (same offset, each on
   its own track), trimmed (same edge, tightest limit), split (halves linked left/right) and deleted
   together until `timeline.unlinkClips`; if any of them can't make the change, nothing changes.
-  Clips never overlap on a track (move/add fail with `timeline.overlap`); trims are clamped to the
-  source media, neighbours and a one-frame minimum; clips only move between tracks of the same
-  kind; a split keeps the clip's transform on both halves; only audio tracks can be muted.
+  Clips never overlap on a track except by exactly the duration of a junction joining them (or
+  of the picture pair their sounds are linked to; `allowedOverlap` in `project`), and every guard
+  goes through that rule: `findOverlap(…, self)`, `neighbourBounds` (a joined neighbour bounds a
+  clip at its own edge), `checkLayout`; move/add fail with `timeline.overlap`. Trims are clamped
+  to the source media, neighbours and a one-frame minimum; clips only move between tracks of the
+  same kind; a split keeps the clip's transform on both halves; only audio tracks can be muted.
+  `snapCandidates` include each junction's cut (the middle of its overlap).
+- **Junctions** (spec rules 2, 10, 11): after every clip command no junction is stale
+  (`staleJunctions` is empty).
+  - **Move:** a junction whose clips both moved by the same offset is kept; a different overlap
+    becomes its duration if the kind's limits allow it (else `junction.invalid_duration`, nothing
+    changes); touching, apart or on different tracks removes an overlapping junction, no shift
+    back. The result is the clip plus `removedJunctions`.
+  - **Trim:** shrinking a joined edge (A's end, B's start) ripples B, everything after it on the
+    track and their partners by the change, so the overlap stays; a joined edge can't be extended
+    (its neighbour bounds it). When a clip gets too short, the junction shrinks to the kind's new
+    maximum in the same step and what follows moves later by the difference.
+  - **Split:** a junction on a split clip's end moves to its right half; one on its start stays
+    on the left half (same id). Inside an overlap: `junction.split_in_overlap` with `clipIds`;
+    without them, those clips and their partners stay whole and the rest are split.
+  - **Delete:** the junctions of deleted clips go too; nothing shifts. The result adds
+    `removedJunctions`.
+  - A junction whose kind isn't registered is kept where the rules allow and its limits are not
+    checked.
 - **Not yet:** markers, groups, compositions, ripple and other Pro tools, magnetic main track.
 
 | Command                   | MCP tool                    |

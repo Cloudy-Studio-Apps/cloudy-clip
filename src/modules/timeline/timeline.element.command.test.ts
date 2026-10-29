@@ -9,6 +9,7 @@ import {
   prop,
   sharedGroups,
 } from "@/modules/element";
+import { junctionModule } from "@/modules/junction";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { createFakeMediaModule } from "@/modules/media";
 import { previewModule, previewRef } from "@/modules/preview";
@@ -74,6 +75,7 @@ beforeEach(async () => {
   await kernel.modules.loadAll([
     createProjectModule(project),
     elementModule,
+    junctionModule,
     createFakeMediaModule({ mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 } }),
     createFakeFontsModule(),
     previewModule,
