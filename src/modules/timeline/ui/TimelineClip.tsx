@@ -4,12 +4,11 @@ import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { elementRef, type ElementDisplay } from "@/modules/element";
-import { type Clip, type ProjectState, projectRef } from "@/modules/project";
+import { type Clip, type ProjectState, partnersOf, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { cn } from "@/ui";
 import { timelineRef } from "../timeline.ref";
 import { timeToPx } from "../logic/geometry";
-import { partnersOf } from "../logic/links";
 import { ClipBody } from "./ClipBody";
 import { gestureMode, startClipGesture } from "./clip.gesture";
 

@@ -2,10 +2,9 @@ import { Film, Music, Scissors, Trash, Unlink } from "lucide-react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { projectRef } from "@/modules/project";
+import { partnersOf, projectRef } from "@/modules/project";
 import { ToolbarButton, ToolbarSeparator } from "@/ui";
 import { timelineRef } from "../timeline.ref";
-import { partnersOf } from "../logic/links";
 import { addTrack, deleteClips, splitAt, unlinkClips } from "../timeline.commands";
 import { ZoomSlider } from "./ZoomSlider";
 

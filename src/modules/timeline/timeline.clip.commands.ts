@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, formatTimecode } from "@/core";
 import { mediaHasAudio, mediaRef } from "@/modules/media";
-import { type Clip, type TrackId, type TrackKind, projectRef } from "@/modules/project";
+import {
+  type Clip,
+  type TrackId,
+  type TrackKind,
+  partnersOf,
+  projectRef,
+  withPartners,
+} from "@/modules/project";
 import {
   clampTrim,
   findOverlap,
@@ -10,7 +17,6 @@ import {
   sortClipIds,
   trackEnd,
 } from "./logic/placement";
-import { partnersOf, withPartners } from "./logic/links";
 import { linkedTrimEdge, trimLimits } from "./logic/trim";
 import { mediaDuration, overlapError, requireClip, requireTrack, time } from "./timeline.guards";
 import { addTrack } from "./timeline.track.commands";

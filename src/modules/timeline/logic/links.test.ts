@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyProject, type ProjectState } from "@/modules/project";
-import { partnersOf, selectionSubject, withPartners } from "./links";
+import { selectionSubject } from "./links";
 
 const S = 1_000_000;
 
@@ -28,28 +28,7 @@ function linkedProject(): ProjectState {
   return state;
 }
 
-describe("links", () => {
-  it("finds the partner of a linked clip", () => {
-    expect(partnersOf(linkedProject(), "v").map((c) => c.id)).toEqual(["a"]);
-  });
-
-  it("has no partners for an unlinked clip", () => {
-    expect(partnersOf(linkedProject(), "x")).toEqual([]);
-  });
-
-  it("ignores a link whose partner is gone", () => {
-    const state = linkedProject();
-    delete state.clips.a;
-    expect(partnersOf(state, "v")).toEqual([]);
-  });
-
-  it("expands ids with partners, input order first, without duplicates", () => {
-    const state = linkedProject();
-    expect(withPartners(state, ["v"])).toEqual(["v", "a"]);
-    expect(withPartners(state, ["a", "v"])).toEqual(["a", "v"]);
-    expect(withPartners(state, ["x"])).toEqual(["x"]);
-  });
-
+describe("selectionSubject", () => {
   it("finds the one clip a selection is about", () => {
     const state = linkedProject();
     expect(selectionSubject(state, [])).toBeUndefined();

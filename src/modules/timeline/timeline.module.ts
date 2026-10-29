@@ -1,10 +1,9 @@
 import { defineModule, keybindings, layoutPanels } from "@/core";
-import { projectRef } from "@/modules/project";
+import { partnersOf, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { deleteClips, splitAt, timelineCommands } from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
 import { timelineRef } from "./timeline.ref";
-import { partnersOf } from "./logic/links";
 import { createTimelineView } from "./timeline.store";
 import { TimelinePanel } from "./ui";
 import { laneBoxes } from "./ui/lane-boxes";

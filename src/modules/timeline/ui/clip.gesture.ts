@@ -1,10 +1,9 @@
 import type { CommandBus, Micros, PatchableStore } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
-import type { Clip, ProjectState } from "@/modules/project";
+import { partnersOf, type Clip, type ProjectState } from "@/modules/project";
 import type { MediaApi } from "@/modules/media";
 import type { PlaybackClock } from "@/modules/preview";
 import { pxToTime, timeToPx } from "../logic/geometry";
-import { partnersOf } from "../logic/links";
 import { clampTrim, findOverlap, snapCandidates, snapSpan, snapTime } from "../logic/placement";
 import { linkedTrimEdge, trimLimits } from "../logic/trim";
 import { moveClip, trimClip } from "../timeline.commands";

@@ -36,6 +36,7 @@ export function createEmptyProject(): ProjectState {
     },
     trackOrder: [video, audio],
     clips: {},
+    junctions: {},
   };
 }
 

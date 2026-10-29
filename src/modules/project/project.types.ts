@@ -136,6 +136,34 @@ export interface ProjectState {
    */
   trackOrder: TrackId[];
   clips: Record<ClipId, Clip>;
+  /** Things on the cut between two adjacent clips of one track (transitions). */
+  junctions: Record<JunctionId, Junction>;
+}
+
+export type JunctionId = string;
+
+/** Something on the cut between two adjacent clips of one track (spec rule 1). */
+export interface Junction {
+  id: JunctionId;
+  kind: string;
+  trackId: TrackId;
+  leftClipId: ClipId;
+  rightClipId: ClipId;
+  /** Overlap of the two clips; 0 for kinds that don't overlap. */
+  duration: Micros;
+  props: Record<string, unknown>;
+}
+
+/** A clip's new start on the timeline. */
+export interface ClipMove {
+  clipId: ClipId;
+  start: Micros;
+}
+
+/** Two clips of one track that overlap where they may not (or `clip` starts before 0, `other` is `clip`). */
+export interface LayoutConflict {
+  clip: Clip;
+  other: Clip;
 }
 
 /** The project module's API for one kernel. */

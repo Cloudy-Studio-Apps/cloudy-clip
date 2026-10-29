@@ -19,8 +19,22 @@ export {
   clipTransform,
   normalizeRotation,
 } from "./project.geometry";
+export { partnersOf, withPartners } from "./logic/links";
+export {
+  allowedOverlap,
+  applyMoves,
+  findLayoutConflict,
+  junctionBetween,
+  junctionsOfClip,
+  rippleMoves,
+  staleJunctions,
+} from "./logic/junctions";
 export type {
   Clip,
+  ClipMove,
+  Junction,
+  JunctionId,
+  LayoutConflict,
   ClipFit,
   ClipId,
   ClipPlacement,
