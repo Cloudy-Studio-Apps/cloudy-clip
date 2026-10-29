@@ -53,7 +53,7 @@ These are the rules, and they are strict. How things work is described in the `R
 9. A feature owns its whole surface: its commands, MCP tools, UI and contributions live in its folder, even when the data it edits lives in `project`. Don't add a feature's command to another module.
 10. `<name>.module.ts` is wiring only: `defineModule`, `ctx.contribute`, creating stores and services. No logic.
 11. **No module-level singletons** for state or services. `setup(ctx)` runs once per kernel and creates them (store factories in `<name>.store.ts`), registering each cleanup with `ctx.onDispose` right after acquiring it.
-12. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels` and `keybindings`; the preview reads `previewOverlays`.
+12. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels` and `keybindings`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls` and `sectionLayouts`.
 
 **Commands and state**
 
@@ -72,7 +72,7 @@ These are the rules, and they are strict. How things work is described in the `R
 19. Media is streamed by the loopback HTTP server, never a custom URI scheme (WebKitGTK's GStreamer can't read those). Media elements use `crossOrigin = "anonymous"`.
 20. Proxies contain one video and one audio stream with no timecode/data tracks (`-dn -write_tmcd 0 -map_metadata -1`), or WebKitGTK shows no frames. Bump `PROXY_RECIPE` whenever the recipe changes. FFmpeg is the external system binary.
 21. Never draw a video frame on `seeked`: wait for `requestVideoFrameCallback` (with the timeout fallback). The engine paints only when every visible layer has its frame.
-22. Where a clip's picture sits is computed only by `clipPlacement()` (`project`), so the engine and the canvas tools always agree.
+22. Where a clip's picture sits is computed only by `clipPlacement()` (`project`) with its element's picture size and fit, so the engine and the canvas tools always agree. Every kind of clip is an element (`defineElement`, see `docs/modules.md`); never branch on `clip.kind` outside the module that owns the element.
 
 **Performance**
 
@@ -107,12 +107,13 @@ src/
   ui/           the UI kit: design tokens (styles/), stateless components (kit/), brand (SealMark)
   modules/      one folder per module (see docs/modules.md)
     project/    the document: format, media, tracks, clips; selectors; clip placement
+    element/    kinds of clip: element declarations, shared groups, prop types, element.setProps
     fonts/      font families (bundled, installed, Google) and face loading
     media/      import, probing, proxies, the library panel
     preview/    playback clock, preview engine, viewer zoom/pan, the preview panel
     timeline/   track and clip commands, the timeline panel
-    inspector/  the right column (feature)
-    transform/  move/scale/rotate pictures on the canvas (feature)
+    inspector/  the right column, panels generated from elements, controls (feature)
+    transform/  the transform shared group, move/scale/rotate on the canvas (feature)
     text/       text clips: the Text tab, styling, in-place editing (feature)
 src-tauri/      the Rust side: native media server + proxies (media/), installed fonts (fonts/), MCP server (mcp/)
 ```

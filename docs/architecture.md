@@ -34,6 +34,12 @@ Cloudy Clip is built so that **a user, an agent (over MCP), and a future plugin 
 6. On success, undoable commands push one history entry `{ label, origin, patches }`. Ctrl+Z (or the agent's `history_undo`) applies the inverse patches, whoever made the change.
 7. Zustand subscribers re-render only what changed. The preview redraws.
 
+An inspector field is the common case: a slider drag only calls `PreviewApi.previewProps` (no
+React state, no history); the release runs one `element.setProps({ clipIds, patch })`, which looks
+up the clip's element, checks the patch against the schema built from its declared properties,
+runs its `normalize`, stores only what differs from the defaults in `clip.props`, and becomes one
+undo step. Agents send the same patch through `element_set_props`.
+
 ## How an agent call flows
 
 ```
@@ -79,7 +85,7 @@ export const timelineModule = defineModule({
 Cross-module rules:
 
 - Import other modules only through `@/modules/<name>` (their `index.ts`), and the kernel only through `@/core`. ESLint enforces this.
-- Dependencies point one way: `project ← media ← preview ← timeline`.
+- Dependencies point one way: `project ← element ← media ← preview ← timeline`. No module branches on a clip's kind: it asks the clip's element (`ElementApi.get(kind)`).
 
 ## State
 

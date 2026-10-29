@@ -27,16 +27,17 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `core`    | The app can't exist without it. Loaded first.                                                  | core modules only     |
 | `feature` | Optional. Written only against public APIs (`index.ts`), exactly as a plugin would be written. | core and feature ones |
 
-| Module      | Tier    | Requires                                                            | Owns                                                     |
-| ----------- | ------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
-| `project`   | core    | —                                                                   | the document (format, media, tracks, clips), placement   |
-| `fonts`     | core    | —                                                                   | font families (bundled, installed, Google), face loading |
-| `media`     | core    | `project`                                                           | import, probes, proxies, library panel                   |
-| `preview`   | core    | `project`, `media`                                                  | playback clock, engine, viewer, preview panel, overlays  |
-| `timeline`  | core    | `project`, `media`, `preview`                                       | track and clip commands, selection, timeline panel       |
-| `inspector` | feature | `project`, `timeline`                                               | the right column                                         |
-| `transform` | feature | `project`, `media`, `inspector`, `preview`, `timeline`              | `transform.setClipTransform`, canvas tools               |
-| `text`      | feature | `project`, `preview`, `timeline`, `transform`, `fonts`, `inspector` | text clips: Text tab, styling, in-place editing          |
+| Module      | Tier    | Requires                                                                       | Owns                                                                   |
+| ----------- | ------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `project`   | core    | —                                                                              | the document (format, media, tracks, clips), placement                 |
+| `element`   | core    | `project`                                                                      | element declarations, shared groups, prop types, `element.setProps`    |
+| `fonts`     | core    | `element`                                                                      | font families (bundled, installed, Google), face loading               |
+| `media`     | core    | `project`, `element`                                                           | import, probes, proxies, library panel, the `media` element            |
+| `preview`   | core    | `project`, `element`, `media`, `fonts`                                         | playback clock, engine, viewer, preview panel, overlays                |
+| `timeline`  | core    | `project`, `element`, `media`, `preview`                                       | track and clip commands, `addElement`, create tiles, timeline panel    |
+| `inspector` | feature | `project`, `element`, `preview`, `timeline`                                    | the right column, generated element panels, controls                   |
+| `transform` | feature | `project`, `element`, `media`, `fonts`, `preview`, `timeline`                  | the `transform` shared group, `transform.reset`, canvas tools          |
+| `text`      | feature | `project`, `element`, `preview`, `timeline`, `transform`, `fonts`, `inspector` | the `text` element, Text tab, presets, font controls, in-place editing |
 
 The built-in `history` module (undo/redo) lives in `src/core/history`.
 
@@ -146,14 +147,63 @@ it, so does the UI, and it becomes a command.
 
 ## Contributing to the UI
 
-| Point             | Owner        | Item                                                                                   |
-| ----------------- | ------------ | -------------------------------------------------------------------------------------- |
-| `layoutPanels`    | core (shell) | `{ id, title, slot: "side"\|"main"\|"inspector"\|"bottom", icon?, order?, component }` |
-| `keybindings`     | core (shell) | `{ id, key, mod?, shift?, resolve() → { command, input } \| null }`                    |
-| `previewOverlays` | `preview`    | `{ id, component }`, drawn over the frame, in % of it                                  |
+| Point              | Owner        | Item                                                                                   |
+| ------------------ | ------------ | -------------------------------------------------------------------------------------- |
+| `layoutPanels`     | core (shell) | `{ id, title, slot: "side"\|"main"\|"inspector"\|"bottom", icon?, order?, component }` |
+| `keybindings`      | core (shell) | `{ id, key, mod?, shift?, resolve() → { command, input } \| null }`                    |
+| `previewOverlays`  | `preview`    | `{ id, component }`, drawn over the frame, in % of it                                  |
+| `elements`         | `element`    | an `ElementDefinition` (`defineElement`), keyed by `kind`                              |
+| `sharedGroups`     | `element`    | a `SharedGroup` (`defineSharedGroup`), keyed by `id`                                   |
+| `propTypes`        | `element`    | a `PropType` (`definePropType`), keyed by `name`                                       |
+| `propertyControls` | `inspector`  | `{ id, for: "field" \| "command", component }`                                         |
+| `sectionLayouts`   | `inspector`  | `{ id, component }`, draws a whole panel section                                       |
 
 `side` panels become tabs of the left rail (`title` + `icon`). Keybindings always resolve to a
 command, so shortcuts, buttons and agents share one path.
+
+## Declaring an element
+
+Every kind of clip is an element. Declare it once and contribute it; validation, defaults, the
+inspector panel, drawing, hit-testing, creation and the MCP description all come from it. See
+`src/modules/element/README.md` and `src/modules/text/text.element.ts`.
+
+```ts
+export const stickerElement = defineElement({
+  kind: "sticker",
+  name: "Sticker",
+  source: "none", // no file: any length, sourceIn stays 0
+  tracks: ["video"],
+  supports: { transform: { except: ["rotation"] } }, // shared groups, opt-in
+  properties: {
+    tint: prop.color({ opacity: "opacity" }),
+    opacity: prop.number({ min: 0, max: 1, control: "slider", display: { scale: 100, unit: "%" } }),
+    border: prop.group(
+      { label: "Border", toggle: "on" },
+      { on: prop.boolean(), width: prop.number({ min: 0, max: 50 }) },
+    ),
+    "transform.scale": { kind: "number", ui: { max: 4 } }, // narrow a shared field
+  },
+  defaults: () => ({ tint: "#ffffff", opacity: 1, border: { on: false, width: 4 } }),
+  layout: [
+    { title: "Look", items: ["tint", { command: "sticker.shuffle", label: "Shuffle" }] },
+    { items: ["border"] },
+  ], // optional
+  display: (clip) => ({ icon: Sticker, color: "clip-type", label: "Sticker", body: "none" }),
+  picture: { fit: "none", size: () => ({ width: 200, height: 200 }), draw: drawSticker },
+  create: [{ panel: "stickers", id: "star", label: "Star" }],
+});
+// in setup: ctx.contribute(elements, stickerElement)
+```
+
+- Values live in `clip.props`, only what differs from `defaults(format)`; change them with
+  `element.setProps` (MCP `element_set_props`). Shared group values live under their key.
+- Without `layout`: a "General" section for top-level fields, one section per group (its toggle
+  in the header), then each shared group's own section.
+- A command placed in a layout is named by id and takes `clipIds` plus at most one field; augment
+  `CommandInputs` in your `<name>.types.ts` so the id type-checks:
+  `declare module "@/core" { interface CommandInputs { "sticker.shuffle": { clipIds: string[] } } }`.
+- Missing commands, controls, section layouts or prop types show a warning row and are logged once;
+  the rest of the panel works.
 
 ## README template
 
@@ -188,7 +238,8 @@ Every module's `README.md` follows this shape. Update it in the same change as t
    `defineModule`. TSDoc on each.
 5. State goes in factories in `<name>.store.ts`, created in `setup`; cleanups go to `ctx.onDispose`.
 6. UI goes in `ui/`, one component per file, built from `@/ui`; contribute it through a point.
-7. Pure logic goes in `logic/` with tests.
+7. Pure logic goes in `logic/` with tests. A new kind of clip is an element (see "Declaring an
+   element"); its commands that act on clips take `clipIds` and augment `CommandInputs`.
 8. Add the module to `MODULES` in `src/app/bootstrap.ts`.
 9. Write the README in the template, and add the module to the tier table above.
 10. `pnpm typecheck`, `pnpm lint` and `pnpm test` pass.

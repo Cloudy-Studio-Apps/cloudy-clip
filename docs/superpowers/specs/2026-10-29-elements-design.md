@@ -1,6 +1,6 @@
 # Elements: declared properties, generated panels, generic commands
 
-Status: agreed with the user on 2026-10-29. Implementation plan:
+Status: agreed with the user on 2026-10-29; implemented the same day (see the plan's ledger rulings: the generic add is `timeline.addElement`, fonts own the font basics and the `font` prop type). Implementation plan:
 `docs/superpowers/plans/2026-10-29-elements.md`.
 
 ## Why
