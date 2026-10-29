@@ -7,11 +7,12 @@ import {
   type PictureSize,
   type ProjectState,
 } from "@/modules/project";
-import type { VisibleLayer } from "../transform.types";
+import type { TransformField, VisibleLayer } from "../transform.types";
 
 /**
  * Pictures on screen at `time` (media clips and elements that draw themselves), top-most first (the order to hit-test
- * in). Video clips whose picture size isn't known yet are left out; text is measured.
+ * in). Video clips whose picture size isn't known yet are left out; text is measured. Elements
+ * without the transform group can't be moved on the canvas, so they are left out too.
  */
 export function visibleLayers(
   state: ProjectState,
@@ -30,14 +31,17 @@ export function visibleLayers(
       if (!clip) continue;
       if (clip.start > time) break; // sorted by start
       if (time >= clip.start + clip.duration) continue;
-      const picture = elements.get(clip.kind)?.definition.picture;
-      if (!picture) continue;
+      const element = elements.get(clip.kind);
+      const picture = element?.definition.picture;
+      const group = element?.groups.find((g) => g.id === "transform");
+      if (!picture || !group) continue;
+      const fields = new Set(Object.keys(group.properties) as TransformField[]);
       const live = liveProps(clipId);
       const transform = clipTransform(clip, live?.transform as Partial<ClipTransform> | undefined);
       if (picture.source === "media") {
         if (!clip.mediaId || state.media[clip.mediaId]?.kind !== "video") continue;
         const source = sizeOf(clip.mediaId);
-        if (source) layers.push({ clipId, source, fit: picture.fit, transform });
+        if (source) layers.push({ clipId, source, fit: picture.fit, transform, fields });
         continue;
       }
       if (!picture.size) continue;
@@ -48,6 +52,7 @@ export function visibleLayers(
         source: picture.size(props, { format: state.format, measure }),
         fit: picture.fit,
         transform,
+        fields,
       });
     }
   }

@@ -21,13 +21,19 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
   - `transform.commands.ts`: `transform.reset` (`clipIds`): drops `Clip.transform`, one undo step.
   - `logic/`: pure, tested parts: `picking.ts` (hit test of rotated pictures), `gestures.ts`
     (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override; each layer's `transform` is
-    the live `transform` patch over the saved one, so a panel slider moves the box too), `frame.ts`
+    the live `transform` patch over the saved one, so a panel slider moves the box too; elements
+    without the `transform` group are left out, so they can't be picked or dragged, and each layer
+    lists the transform `fields` its element supports), `commit.ts` (`transformPatch`: only the
+    changed, supported fields, or null), `frame.ts`
     (screen → frame coordinates). Placement is `project`'s `clipPlacement`, so the box and the
     picture always agree.
   - `ui/`: `TransformOverlay` (its root takes the pointer: `pointer-events-auto`, since the overlay wrappers ignore it), `SelectionBox`, `transform.gesture.ts` (while dragging, the preview
     draws the live value through `PreviewApi.previewTransform` and the box follows through direct
-    DOM updates; release commits one `element.setProps` with a `transform` patch, one undo step), `layers.hook.ts`. The box shows
-    when the selection is one clip or one linked picture + sound (`selectionSubject`).
+    DOM updates; release commits one `element.setProps` with a `transform` patch of the changed, supported
+    fields, one undo step; nothing when none changed), `layers.hook.ts`. The box shows
+    when the selection is one clip or one linked picture + sound (`selectionSubject`). An element
+    that `except`s fields: the box hides the corners without `scale` and the rotate handle without
+    `rotation`, and a picture without `x` and `y` is selected by a click but not dragged.
 - **Not yet:** keyframes, crop, flip, opacity.
 
 | Command                                 | MCP tool                                 |

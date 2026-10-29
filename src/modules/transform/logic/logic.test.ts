@@ -11,24 +11,35 @@ import { screenToFrame } from "./frame";
 import { containsPoint, topmostAt } from "./picking";
 import { visibleLayers } from "./layers";
 
-/** Media drawn by the decoder; text measured from its words (40 px padding each side). */
+/** The transform group as a resolved element lists it: its fields by key. */
+const group = (...fields: string[]) => ({
+  id: "transform",
+  properties: Object.fromEntries(fields.map((f) => [f, { kind: "number" }])),
+});
+const ALL = group("x", "y", "scale", "rotation");
+const textSize = (props: { text: string }, env: { measure: TextMeasure }) => ({
+  width: env.measure(props.text, "", 0) + 80,
+  height: 100,
+});
+
+/**
+ * Media drawn by the decoder; text measured from its words (40 px padding each side); `still`
+ * text without rotation; a `shape` that draws itself but has no transform group.
+ */
 const elements = {
   get: (kind: string) =>
     kind === "media"
-      ? { definition: { picture: { fit: "contain", source: "media" } } }
+      ? { definition: { picture: { fit: "contain", source: "media" } }, groups: [ALL] }
       : kind === "text"
-        ? {
-            definition: {
-              picture: {
-                fit: "none",
-                size: (props: { text: string }, env: { measure: TextMeasure }) => ({
-                  width: env.measure(props.text, "", 0) + 80,
-                  height: 100,
-                }),
-              },
-            },
-          }
-        : undefined,
+        ? { definition: { picture: { fit: "none", size: textSize } }, groups: [ALL] }
+        : kind === "still"
+          ? {
+              definition: { picture: { fit: "none", size: textSize } },
+              groups: [group("x", "y", "scale")],
+            }
+          : kind === "shape"
+            ? { definition: { picture: { fit: "none", size: textSize } }, groups: [] }
+            : undefined,
   resolve: (clip: Clip) => clip.props,
 } as unknown as Pick<ElementApi, "get" | "resolve">;
 
@@ -161,5 +172,23 @@ describe("visibleLayers", () => {
     );
     expect(layer).toMatchObject({ clipId: "t", fit: "none" });
     expect(layer!.source.width).toBeGreaterThan(200);
+  });
+
+  it("leaves out pictures without the transform group and lists the supported fields", () => {
+    const state = createEmptyProject();
+    const top = state.trackOrder[0]!;
+    const base = { props: { text: "Hi" }, trackId: top, start: 0, sourceIn: 0, duration: 10 };
+    state.clips.s = { ...base, id: "s", kind: "shape" };
+    state.clips.t = { ...base, id: "t", kind: "still" };
+    state.tracks[top]!.clipIds = ["s", "t"];
+    const layers = visibleLayers(
+      state,
+      elements,
+      () => undefined,
+      5,
+      (t) => t.length * 50,
+    );
+    expect(layers.map((l) => l.clipId)).toEqual(["t"]);
+    expect([...layers[0]!.fields].sort()).toEqual(["scale", "x", "y"]);
   });
 });

@@ -1,21 +1,43 @@
 import { setProps } from "@/modules/element";
 import { clipPlacement } from "@/modules/project";
+import { transformPatch } from "../logic/commit";
 import { toFramePoint } from "../logic/frame";
 import { moveTransform, rotateTransform, ROTATION_STEP, scaleTransform } from "../logic/gestures";
+import type { ClipTransform } from "@/modules/project";
 import type { TransformGestureOptions } from "../transform.types";
 import { applyBox } from "./box.style";
 
 /** Snap distance to the frame's center lines, in screen pixels. */
 const SNAP_SCREEN_PX = 8;
+const KEYS = ["x", "y", "scale", "rotation"] as const;
 
 /**
  * Drags a clip's picture on the canvas. While dragging, the preview draws the live transform and
- * the box follows (no React renders, nothing in the project changes). Release commits one
- * `element.setProps` (a `transform` patch), so the gesture is a single undo step.
+ * the box follows (no React renders, nothing in the project changes). Only the fields the element
+ * supports change. Release commits one `element.setProps` with the changed fields (a `transform`
+ * patch), so the gesture is a single undo step.
  */
 export function startTransformGesture(options: TransformGestureOptions): void {
-  const { mode, clipId, start, source, fit, format, frame, box, guides, down, preview, bus } =
-    options;
+  const {
+    mode,
+    clipId,
+    start,
+    source,
+    fit,
+    fields,
+    format,
+    frame,
+    box,
+    guides,
+    down,
+    preview,
+    bus,
+  } = options;
+  // Fields the element doesn't support stay where they started.
+  const supported = (next: ClipTransform): ClipTransform => ({
+    ...next,
+    ...Object.fromEntries([...KEYS].filter((k) => !fields.has(k)).map((k) => [k, start[k]])),
+  });
   const at = (e: PointerEvent) => toFramePoint(frame, format, e.clientX, e.clientY);
   const from = at(down);
   const startPlacement = clipPlacement(format, source, start, fit);
@@ -39,6 +61,7 @@ export function startTransformGesture(options: TransformGestureOptions): void {
     } else {
       current = rotateTransform(start, center, from, to, e.shiftKey ? ROTATION_STEP : 0);
     }
+    current = supported(current);
     preview.previewTransform(clipId, current);
     if (box) applyBox(box, clipPlacement(format, source, current, fit), format);
   };
@@ -49,13 +72,9 @@ export function startTransformGesture(options: TransformGestureOptions): void {
     window.removeEventListener("pointercancel", finish);
     document.body.style.cursor = "";
     showGuides(false, false);
-    const changed =
-      current.x !== start.x ||
-      current.y !== start.y ||
-      current.scale !== start.scale ||
-      current.rotation !== start.rotation;
-    const result = changed
-      ? await bus.run(setProps, { clipIds: [clipId], patch: { transform: { ...current } } })
+    const patch = transformPatch(start, current, fields);
+    const result = patch
+      ? await bus.run(setProps, { clipIds: [clipId], patch: { transform: patch } })
       : null;
     preview.previewTransform(clipId, null);
     // On failure (or no change) React won't re-render the box: put it back where it was.

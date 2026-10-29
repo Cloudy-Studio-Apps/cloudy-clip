@@ -75,12 +75,15 @@ export function TransformOverlay() {
 
     e.preventDefault();
     e.stopPropagation();
+    // A click still selects; a picture that can't move isn't dragged.
+    if (mode === "move" && !target.fields.has("x") && !target.fields.has("y")) return;
     startTransformGesture({
       mode,
       clipId: target.clipId,
       start: target.transform,
       source: target.source,
       fit: target.fit,
+      fields: target.fields,
       format,
       frame,
       box: target === selected ? boxRef.current : null,
@@ -113,6 +116,10 @@ export function TransformOverlay() {
           ref={boxRef}
           placement={selected.placement}
           format={format}
+          handles={{
+            scale: selected.fields.has("scale"),
+            rotate: selected.fields.has("rotation"),
+          }}
         />
       )}
     </div>

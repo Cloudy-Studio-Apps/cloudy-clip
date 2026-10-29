@@ -23,7 +23,12 @@ export interface VisibleLayer {
   fit: ClipFit;
   /** The transform drawn now: the live `transform` patch, if any, over the saved one. */
   transform: ClipTransform;
+  /** The transform fields its element supports (without its `except` fields). */
+  fields: ReadonlySet<TransformField>;
 }
+
+/** One field of a clip's transform. */
+export type TransformField = keyof ClipTransform;
 
 /** What a canvas drag does: move the picture, scale it from a corner, or rotate it. */
 export type TransformGestureMode = "move" | "scale" | "rotate";
@@ -35,6 +40,8 @@ export interface TransformGestureOptions {
   start: ClipTransform;
   source: PictureSize;
   fit: ClipFit;
+  /** The fields the clip's element supports; the others stay at `start`. */
+  fields: ReadonlySet<TransformField>;
   format: ProjectFormat;
   /** The overlay, which covers the frame exactly. */
   frame: HTMLElement;
