@@ -1,7 +1,7 @@
 import type { Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ClipId, ClipTransform, ProjectState } from "@/modules/project";
+import type { ClipId, ClipTransform, Junction, ProjectState } from "@/modules/project";
 
 /** Called on every frame while playing, and once per seek while paused. */
 export type TimeListener = (time: Micros) => void;
@@ -136,4 +136,13 @@ export interface PreviewOverlay {
   /** Unique id, `<module>.<name>`. */
   id: string;
   component: ComponentType;
+}
+
+/** A junction whose overlap is under the playhead. */
+export interface ActiveJunction {
+  junction: Junction;
+  /** 0 at the overlap's start → 1 at its end. */
+  progress: number;
+  /** Seconds since the overlap started. */
+  elapsed: number;
 }

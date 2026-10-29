@@ -4,7 +4,8 @@ Playback and the preview: the playhead, the engine that draws the timeline at th
 viewer (zoom and pan around the frame) and the preview panel with its transport bar.
 
 - **Tier:** core
-- **Requires:** `project`, `element` (how each kind of clip is drawn), `media`, `fonts`
+- **Requires:** `project`, `element` (how each kind of clip is drawn), `junction` (how the two
+  clips of a junction are mixed), `media`, `fonts`
 - **Contributes:** panel `preview.panel` (main); keybindings `preview.toggle-play` (Space),
   `preview.seek-start` (Home)
 - **Points it owns:** `previewOverlays` (`preview.points.ts`): layers drawn over the frame, sized
@@ -35,6 +36,26 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     `fonts.ensure`; the module redraws on `fonts.onLoaded`; `env.measure` is `canvasTextMeasure`
     (`element`) over the engine's canvas. An element without `picture` is not drawn. Swap engines by
     implementing `PreviewEngine` (`preview.types.ts`).
+    **Junctions (the mixing hook):** during a junction's overlap a video track has two active
+    clips. `engine.mix.ts` (`drawTrack`) draws each with the normal placement path into one of
+    two pooled full-frame offscreen canvases (`MixCanvases`: default accelerated 2D canvases,
+    never `willReadFrequently`), then calls the kind's `mix(ctx, a, b, progress, props, env)` on
+    the main canvas in that track's place in the bottom → top order. `env` has the format,
+    `kx`/`ky`, `elapsed` (seconds since the overlap started) and `random()`, a generator seeded by
+    the junction id and re-created each frame (`logic/random.ts`), so noise is the same on every
+    frame. A kind without `mix` (or a kind that isn't registered) draws nothing extra: the clips
+    draw in start order, so the right covers the left. Nothing here is transition-specific;
+    effects can reuse the hook later. The frame is painted only when both clips' frames are ready
+    (rule 21). Each clip id has its own element (the pool only reuses a _free_ one), so the two
+    halves of a split joined by a junction play at once; the right clip is preloaded from
+    `start - 1.5 s` like any upcoming clip, and waiting pictures are silenced with volume 0, not
+    `muted`, so their frame is drawable when the overlap starts. A split with no junction still
+    reuses the warm element. `engine.audio.ts` sets each element's sound: linked sound clips
+    overlapping under a junction get an equal-power crossfade (`soundGains`, `crossfadeGains` in
+    `logic/junctions.ts`).
+  - `logic/`: `junctions.ts` (`activeJunctions(project, trackId, time)`: overlapping junctions
+    under the playhead with their `progress` and `elapsed`; `crossfadeGains(progress)`;
+    `soundGains(project, time)`), `random.ts` (`seededRandom(seed)`).
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it is tested in
     node). Renders every frame while playing, on demand while paused.
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).

@@ -1,6 +1,8 @@
 import type { ElementApi } from "@/modules/element";
 import type { FontRequest } from "@/modules/fonts";
-import type { MediaId } from "@/modules/project";
+import type { JunctionApi } from "@/modules/junction";
+import type { Micros } from "@/core";
+import type { Clip, MediaId, ProjectState, Track } from "@/modules/project";
 
 /** One pooled media element and what it is currently showing. */
 export interface Slot {
@@ -32,6 +34,23 @@ export interface EngineOptions {
   ensureFont(request: FontRequest): boolean;
   /** The kinds of clip: how each one is drawn and its values. */
   elements: Pick<ElementApi, "get" | "resolve">;
+  /** The kinds of junction: how two overlapping clips of a track are mixed, and their values. */
+  junctions: Pick<JunctionApi, "get" | "resolve">;
   /** Called when a frame becomes available while paused (e.g. a seek finished). */
   onFrameReady(): void;
 }
+
+/** A track's clips under the playhead, in start order (two during a junction's overlap). */
+export interface ActiveTrack {
+  track: Track;
+  clips: Clip[];
+}
+
+/** One video track to draw at `time`. */
+export interface TrackFrame extends ActiveTrack {
+  project: ProjectState;
+  time: Micros;
+}
+
+/** Draws one clip onto `target` at its placement (a media frame or the element's own `draw`). */
+export type ClipDrawer = (target: CanvasRenderingContext2D, clip: Clip) => void;

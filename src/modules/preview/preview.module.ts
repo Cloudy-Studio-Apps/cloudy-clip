@@ -1,6 +1,7 @@
 import { defineModule, keybindings, layoutPanels, type Micros } from "@/core";
 import { elementRef } from "@/modules/element";
 import { fontsRef } from "@/modules/fonts";
+import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
 import { projectDuration, projectRef } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/engine.html";
@@ -16,7 +17,7 @@ export const previewModule = defineModule({
   ref: previewRef,
   name: "Preview",
   tier: "core",
-  requires: ["project", "element", "media", "fonts"],
+  requires: ["project", "element", "junction", "media", "fonts"],
   commands: previewCommands,
   mcpTools: previewMcpTools,
   setup(ctx) {
@@ -24,6 +25,7 @@ export const previewModule = defineModule({
     const media = ctx.require(mediaRef);
     const fonts = ctx.require(fontsRef);
     const elements = ctx.require(elementRef);
+    const junctions = ctx.require(junctionRef);
     let duration: Micros = projectDuration(project.getState());
     ctx.onDispose(
       project.subscribe((state, previous) => {
@@ -42,6 +44,7 @@ export const previewModule = defineModule({
           mediaUrl: media.mediaUrl,
           ensureFont: (request) => fonts.ensure(request),
           elements,
+          junctions,
           onFrameReady,
         }),
       requestFrame: (callback) => void requestAnimationFrame(callback),

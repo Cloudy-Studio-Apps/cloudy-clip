@@ -12,7 +12,8 @@ const MAX_IDLE_SLOTS = 4;
 /**
  * Pooled `<video>`/`<audio>` elements, one per active or upcoming clip. Elements are reused
  * across clips of the same file (a split plays seamlessly), and idle ones beyond a small warm
- * set release their decoder.
+ * set release their decoder. Only a *free* element is reused: two clips needed at once (the two
+ * halves of a split joined by a junction, overlapping) always get two elements.
  */
 export class MediaSlotPool {
   private readonly slots: Slot[] = [];
