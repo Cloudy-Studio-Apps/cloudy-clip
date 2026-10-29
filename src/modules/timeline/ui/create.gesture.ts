@@ -2,11 +2,12 @@
 const DRAG_THRESHOLD = 4;
 
 /**
- * Tracks a press on a text tile: a click calls `onClick`, a drag shows a ghost under the pointer
- * (plain DOM, no React renders) and calls `onDrop` with where it was released.
+ * Tracks a press on a create tile: a click calls `onClick`, a drag shows a ghost labelled `label`
+ * under the pointer (plain DOM, no React renders) and calls `onDrop` with where it was released.
  */
-export function startTextDrag(
+export function startCreateDrag(
   down: PointerEvent,
+  label: string,
   handlers: { onClick(): void; onDrop(clientX: number, clientY: number): void },
 ): void {
   let ghost: HTMLDivElement | null = null;
@@ -15,9 +16,9 @@ export function startTextDrag(
     if (!ghost) {
       if (Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) < DRAG_THRESHOLD) return;
       ghost = document.createElement("div");
-      ghost.textContent = "Text";
+      ghost.textContent = label;
       ghost.className =
-        "pointer-events-none fixed left-0 top-0 z-50 rounded-sm bg-clip-type px-2 py-1 text-sm font-bold text-white shadow-popover";
+        "pointer-events-none fixed left-0 top-0 z-50 rounded-sm bg-primary px-2 py-1 text-sm font-bold text-primary-foreground shadow-popover";
       document.body.appendChild(ghost);
       document.body.style.cursor = "grabbing";
     }

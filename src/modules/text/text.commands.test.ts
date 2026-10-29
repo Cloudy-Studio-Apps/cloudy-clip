@@ -4,19 +4,19 @@ import { inspectorModule } from "@/modules/inspector";
 import { createFakeMediaModule } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { elementModule, elements, setProps } from "@/modules/element";
-import { previewModule, previewRef } from "@/modules/preview";
+import { previewModule } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
-import { addClip, timelineModule } from "@/modules/timeline";
+import { addClip, addElement, timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
 import { clipText, isTextClip, textStyleOf } from "./logic/layout";
-import { addText, applyTextPreset } from "./text.commands";
+import { applyTextPreset } from "./text.commands";
+import { textElement } from "./text.element";
 import { textModule } from "./text.module";
 
 const S = 1_000_000;
 let kernel: Kernel;
 let statuses: Record<string, string>;
 const doc = () => kernel.modules.require(projectRef).store.getState();
-const videoTracks = () => doc().trackOrder.filter((id) => doc().tracks[id]!.kind === "video");
 
 async function run<T>(
   promise: Promise<{ ok: true; value: T } | { ok: false; error: { code: string } }>,
@@ -56,44 +56,7 @@ describe("text module wiring", () => {
   });
 });
 
-describe("text.add", () => {
-  it("adds 3 s of the default text at the playhead on the top video track", async () => {
-    await run(kernel.bus.run(addClip, { mediaId: "mv" })); // the playhead stays within content
-    kernel.modules.require(previewRef).playback.seek(2 * S);
-    const clip = await run(kernel.bus.run(addText, {}));
-    expect(clip).toMatchObject({ kind: "text", props: {}, start: 2 * S, duration: 3 * S });
-    expect(clip.trackId).toBe(videoTracks()[0]);
-  });
-
-  it("opens a new top video track over a video", async () => {
-    await run(kernel.bus.run(addClip, { mediaId: "mv" }));
-    const clip = await run(kernel.bus.run(addText, { start: S }));
-    expect(videoTracks()).toHaveLength(2);
-    expect(clip.trackId).toBe(videoTracks()[0]);
-  });
-
-  it("refuses an audio track", async () => {
-    const audio = doc().trackOrder.find((id) => doc().tracks[id]!.kind === "audio")!;
-    const result = await kernel.bus.run(addText, { trackId: audio });
-    expect(!result.ok && result.error.code).toBe("text.kind_mismatch");
-  });
-
-  it("refuses a busy named track", async () => {
-    await run(kernel.bus.run(addClip, { mediaId: "mv" }));
-    const result = await kernel.bus.run(addText, { start: S, trackId: videoTracks()[0] });
-    expect(!result.ok && result.error.code).toBe("timeline.overlap");
-  });
-
-  it("undoes adding text, and the track it opened, in one step", async () => {
-    await run(kernel.bus.run(addClip, { mediaId: "mv" }));
-    const before = doc();
-    await run(kernel.bus.run(addText, { start: S }));
-    kernel.history.undo();
-    expect(doc()).toEqual(before);
-  });
-});
-
-const textClip = async () => run(kernel.bus.run(addText, { start: 0 }));
+const textClip = async () => run(kernel.bus.run(addElement, { kind: "text", start: 0 }));
 const styleOf = (id: string) => textStyleOf(doc().clips[id]!, doc().format);
 
 const set = (clipIds: string[], patch: Record<string, unknown>) =>
@@ -173,7 +136,7 @@ describe("text.applyPreset", () => {
 describe("text.applyPreset on several clips", () => {
   it("styles every clip in one undo step, sized from the frame's short side", async () => {
     const a = await textClip();
-    const b = await run(kernel.bus.run(addText, { start: 5 * S }));
+    const b = await run(kernel.bus.run(addElement, { kind: "text", start: 5 * S }));
     await run(kernel.bus.run(applyTextPreset, { clipIds: [a.id, b.id], preset: "title" }));
     const size = Math.round(0.09 * Math.min(doc().format.width, doc().format.height));
     expect(styleOf(a.id).size).toBe(size);
@@ -218,11 +181,6 @@ describe("faces the family lacks (Roboto: 400 only, no italic)", () => {
     expect(styleOf(clip.id)).toMatchObject({ weight: "400", italic: false });
   });
 
-  it("text.add with a preset and a font snaps to the family", async () => {
-    const clip = await run(kernel.bus.run(addText, { preset: "pop", style: { font: roboto } }));
-    expect(styleOf(clip.id)).toMatchObject({ weight: "400", italic: false });
-  });
-
   it("a font alone snaps a bold clip", async () => {
     const clip = await textClip();
     await run(set([clip.id], { font: roboto }));
@@ -236,10 +194,36 @@ describe("faces the family lacks (Roboto: 400 only, no italic)", () => {
   });
 });
 
-describe("text.add with a look", () => {
-  it("stores the preset and the words", async () => {
-    const clip = await run(kernel.bus.run(addText, { preset: "outline", text: "Hi" }));
-    expect(clipText(clip)).toBe("Hi");
-    expect(styleOf(clip.id)?.outline.enabled).toBe(true);
+describe("the Text tab's tiles", () => {
+  const entry = (id: string) => textElement.create!.find((e) => e.id === id)!;
+
+  it("add a plain text, a title and a placed lower third", async () => {
+    const format = doc().format;
+    const plain = await run(
+      kernel.bus.run(addElement, { kind: "text", start: 0, props: entry("plain").props?.(format) }),
+    );
+    expect(doc().clips[plain.id]!.props).toEqual({});
+    const title = await run(
+      kernel.bus.run(addElement, {
+        kind: "text",
+        start: 4 * S,
+        props: entry("title").props!(format),
+      }),
+    );
+    expect(styleOf(title.id).weight).toBe("900");
+    const lower = await run(
+      kernel.bus.run(addElement, {
+        kind: "text",
+        start: 8 * S,
+        props: entry("lower-third").props!(format),
+      }),
+    );
+    expect(styleOf(lower.id).align).toBe("left");
+    expect(doc().clips[lower.id]!.transform).toEqual({
+      x: -0.2 * format.width,
+      y: 0.32 * format.height,
+      scale: 1,
+      rotation: 0,
+    });
   });
 });

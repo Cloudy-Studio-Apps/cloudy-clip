@@ -12,7 +12,7 @@ import { textControls } from "./ui/controls";
 
 /**
  * Text over the video: the text element (its values, panel and drawing), the Text tab (add or drag
- * a text onto the timeline), `text.add` / `text.applyPreset` and the controls its panel needs.
+ * a text onto the timeline: its `create` tiles), `text.applyPreset` and the controls its panel needs.
  */
 export const textModule = defineModule({
   ref: textRef,

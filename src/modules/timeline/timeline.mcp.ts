@@ -1,6 +1,7 @@
 import { commandTool } from "@/core";
 import {
   addClip,
+  addElement,
   addTrack,
   deleteClips,
   moveClip,
@@ -17,6 +18,7 @@ export const timelineMcpTools = [
   commandTool(addTrack, { name: "timeline_add_track" }),
   commandTool(removeTrack, { name: "timeline_remove_track" }),
   commandTool(addClip, { name: "timeline_add_clip" }),
+  commandTool(addElement, { name: "timeline_add_element" }),
   commandTool(moveClip, { name: "timeline_move_clip" }),
   commandTool(trimClip, { name: "timeline_trim_clip" }),
   commandTool(splitAt, { name: "timeline_split" }),

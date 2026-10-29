@@ -2,8 +2,10 @@
  * Timeline module: tracks and clips editing (commands + UI).
  * @module timeline
  */
+/** Track and clip commands; `addElement` adds a clip of an element without a file (text). */
 export {
   addClip,
+  addElement,
   addTrack,
   deleteClips,
   moveClip,
@@ -29,6 +31,8 @@ export { overlapError } from "./timeline.guards";
 export { selectionSubject } from "./logic/links";
 export type { DropTarget, TimelineApi, TimelineViewState, TrimEdge } from "./timeline.types";
 
+/** The create tiles of a side panel (every element's `create` entries for that panel). */
+export { CreateTiles } from "./ui/CreateTiles";
 /** Module definition, loaded by the app shell. */
 export { timelineModule } from "./timeline.module";
 /** Handle for `require(timelineRef)` / `useModule(timelineRef)`. */

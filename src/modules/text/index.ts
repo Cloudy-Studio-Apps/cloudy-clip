@@ -2,8 +2,6 @@
  * Text module: text clips drawn over the video, added from the Text tab or by agents.
  * @module text
  */
-/** Adds a text clip over the video at the playhead or a given time (optional words, preset, style). */
-export { addText } from "./text.add.command";
 /** Applies a preset look (title, highlight, outline, pop, lower-third) to text clips. */
 export { applyTextPreset } from "./text.preset.command";
 /** The text element: its values, panel layout, drawing and timeline look. */

@@ -1,7 +1,9 @@
-import { addText } from "./text.add.command";
 import { applyTextPreset } from "./text.preset.command";
 
-export { addText, applyTextPreset };
+export { applyTextPreset };
 
-/** Every command the text module registers. Words and style change with `element.setProps`. */
-export const textCommands = [addText, applyTextPreset];
+/**
+ * Every command the text module registers. Texts are added with `timeline.addElement` and their
+ * words and style change with `element.setProps`.
+ */
+export const textCommands = [applyTextPreset];

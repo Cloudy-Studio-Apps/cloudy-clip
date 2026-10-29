@@ -3,6 +3,7 @@ import { defineElement, prop } from "@/modules/element";
 import { fontsRef } from "@/modules/fonts";
 import { checkExplicitFace } from "./logic/faces";
 import { DEFAULT_TEXT, defaultTextStyle, textLayout } from "./logic/layout";
+import { presetStyle, presetTransform } from "./logic/presets";
 import { snapStyleToFamily } from "./logic/snap";
 import { drawText } from "./text.draw";
 import { textPanelLayout } from "./text.panel";
@@ -147,6 +148,19 @@ export const textElement = defineElement<typeof textProperties, TextProps>({
     label: typeof clip.props.text === "string" ? clip.props.text : DEFAULT_TEXT,
     body: "none",
   }),
+  create: [
+    { panel: "text", id: "plain", label: "Text" },
+    { panel: "text", id: "title", label: "Title", props: (format) => presetStyle("title", format) },
+    {
+      panel: "text",
+      id: "lower-third",
+      label: "Lower third",
+      props: (format) => ({
+        ...presetStyle("lower-third", format),
+        transform: presetTransform("lower-third", format),
+      }),
+    },
+  ],
   picture: {
     fit: "none",
     size: (props, env) => textLayout(props.text, props, env.measure).box,

@@ -9,7 +9,7 @@ text element: Content, Font, Fill, Outline, Background, Shadow, then Transform.
 
 - **Tier:** feature
 - **Requires:** `project`, `element` (the text element, `element.setProps`), `preview` (the
-  playhead, live props), `timeline` (tracks, placement checks, drop targets), `transform` (the
+  playhead, live props), `timeline` (`addElement`, `CreateTiles`), `transform` (the
   shared group presets place), `fonts` (face checks against `knownFamilies()`, family list),
   `inspector` (`propertyControls`, `usePropsLive`)
 - **Contributes:** element `text`; controls `font-picker`, `font-weight`, `font-italic` (fields)
@@ -33,9 +33,12 @@ textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs 
   - `text.preset.command.ts`: `text.applyPreset` (`clipIds`, `preset`): per clip one nested
     `element.setProps` with the preset style, its face snapped to the family first, and, for the
     lower third, the `transform`. All clips in one undo step.
-  - `text.add.command.ts`: `text.add`. Without a track it uses the top video track with room at that
-    time, or opens a new top video track (in the same undo step). Optional `text`, `preset`, `style`
-    (applied as default, preset, style). `text.schema.ts`: its style patch and preset ids.
+  - `text.schema.ts`: `textPresetId`, the preset names for `text.applyPreset`'s input.
+  - Creating: the element's `create` entries for panel `text`: **Text** (default look),
+    **Title** (the title preset), **Lower third** (the preset plus its transform). The Text tab
+    shows them with the timeline's `CreateTiles`; "Add text" and the tiles run
+    `timeline.addElement` (kind `text`), which puts the clip on the top video track with room or a
+    new one, at the playhead or the drop point.
   - `logic/layout.ts`: `DEFAULT_TEXT`, `clipText`, `textStyleOf`, `defaultTextStyle`,
     `mergeTextStyle`, `textFont`, `displayText`, `textPadding`, `textLayout` (lines, box, positions
     from the box center; blank lines keep their height), `textBox`. Types (`TextStyle`,
@@ -54,8 +57,7 @@ textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs 
     preset). `FontList` shows only the rows in view (fixed 28 px rows) with search; `FontRow` shows
     the source and a "Missing" note; the family button shows "Missing — showing Inter" while
     `fonts.status(...)` is `missing` (re-rendered by `fonts.onLoaded`).
-  - `ui/TextPanel.tsx`: the tab; `ui/text.gesture.ts`: click-or-drag on the tile (DOM ghost, no
-    renders), dropping through `TimelineApi.dropTarget`.
+  - `ui/TextPanel.tsx`: the tab: "Add text" and `CreateTiles panel="text"`.
   - `ui/TextEditOverlay.tsx` / `ui/TextEditor.tsx`: **editing on the canvas.** Double-clicking the
     selected text in the frame (its first click selected it) opens a transparent `textarea` over it
     with the clip's font, size, color, alignment and spacing, scaled by clip scale x viewer zoom and
@@ -76,8 +78,8 @@ textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs 
   text; keyframes; auto captions; vertical alignment and wrapping boxes; exporting fonts with a
   project; an exact left-anchored Lower third.
 
-| Command            | MCP tool            | Notes                                                                              |
-| ------------------ | ------------------- | ---------------------------------------------------------------------------------- |
-| `text.add`         | `text_add`          | `start` (default playhead), `duration` (3 s), `trackId`, `text`, `preset`, `style` |
-| `text.applyPreset` | `text_apply_preset` | `clipIds`, `preset`: `title`, `highlight`, `outline`, `pop`, `lower-third` (moves) |
-| `element.setProps` | `element_set_props` | (owned by `element`) words and style: `{ text }`, `{ size, outline: { … } }`, …    |
+| Command               | MCP tool               | Notes                                                                              |
+| --------------------- | ---------------------- | ---------------------------------------------------------------------------------- |
+| `timeline.addElement` | `timeline_add_element` | (owned by `timeline`) `{ kind: "text", props?, start?, duration?, trackId? }`      |
+| `text.applyPreset`    | `text_apply_preset`    | `clipIds`, `preset`: `title`, `highlight`, `outline`, `pop`, `lower-third` (moves) |
+| `element.setProps`    | `element_set_props`    | (owned by `element`) words and style: `{ text }`, `{ size, outline: { … } }`, …    |
