@@ -1,6 +1,6 @@
 import type { z } from "zod";
-import type { MixFn } from "@/modules/junction";
-import type { PropertyTree } from "@/modules/element";
+import type { Cut, MixFn } from "@/modules/junction";
+import type { PropertyTree, PropSpec } from "@/modules/element";
 import type { ProjectFormat } from "@/modules/project";
 
 /** A look of transition (dissolve, wipe, glitch…): declared once with `defineTransitionPreset`. */
@@ -42,4 +42,41 @@ declare module "@/modules/element" {
   interface CustomValues {
     "transition-options": Record<string, unknown>;
   }
+}
+
+/** One of a preset's options as the inspector shows it. */
+export interface OptionField {
+  name: string;
+  spec: PropSpec;
+  label: string;
+  /** Control id from the inspector's `propertyControls`. */
+  control: string;
+}
+
+/** What a press on a preset tile reports. */
+export interface PresetGestureHandlers {
+  onClick(): void;
+  /** The cut under the pointer while dragging, or null (the highlight follows it). */
+  cutAt(clientX: number, clientY: number): Cut | null;
+  /** Called when the highlighted cut changes (null clears it). */
+  onHover(cut: Cut | null): void;
+  /** Released over a cut. */
+  onDrop(cut: Cut): void;
+}
+
+/** The two sample pictures a thumbnail mixes, as CSS colors. */
+export interface SampleColors {
+  a: string;
+  b: string;
+}
+
+/** Scratch objects kept per destination canvas (R9), so nothing is allocated per frame. */
+export interface Scratch {
+  ghost?: HTMLCanvasElement;
+  dissolve?: {
+    key: string;
+    values: Float32Array;
+    canvas: HTMLCanvasElement;
+    image: ImageData;
+  };
 }

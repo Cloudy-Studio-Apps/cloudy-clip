@@ -7,9 +7,11 @@ point and the command to apply one; the seven built-in presets are in `presets/`
 lists them.
 
 - **Tier:** feature
-- **Requires:** `project`, `element`, `junction`, `timeline` (selection, `cutTarget`, `highlightCut`)
+- **Requires:** `project`, `element`, `junction`, `timeline` (selection, `cutTarget`, `highlightCut`), `inspector` (the
+  `propertyControls` point, `FieldRow`, `FieldControlProps`)
 - **Contributes:** the `transition` kind (to `junctionKinds`), the `transition-options` value type
-  (to `propTypes`), panel `transition.panel` (side, icon `Blend`), the command and tools below
+  (to `propTypes`), the `transition-preset` and `transition-options` controls (to
+  `propertyControls`), panel `transition.panel` (side, icon `Blend`), the command and tools below
 - **Points it owns** (`transition.points.ts`): `transitionPresets` (id `transition.presets`, keyed
   by `id`), items made with `defineTransitionPreset`: `id`, `name`, `category`, `properties` (the
   options), `defaults(format)`, `mix`, optional `thumbnail`.
@@ -41,7 +43,11 @@ lists them.
     `thumbnail ?? mix` over two token-colored sample pictures: a static frame at 0.5, and a
     `requestAnimationFrame` loop only while hovered; the hook's own picture canvases are redrawn
     every frame because mask presets draw into `b`). Sizes in `transition.layout.ts`.
-- **Not yet:** the `transition-options` control.
+  - `ui/controls.ts`, `TransitionPresetControl` (a select of the registered presets for the
+    kind's `preset`, committed as `{ preset }`; the kind drops the old options) and
+    `TransitionOptionsControl` (the chosen preset's options, drawn by the inspector control each
+    spec names, found in `propertyControls`; every change is committed as the whole `{ options }`
+    through the `live` it was given). `logic/options.ts`: `optionFields`, `optionsPatch`.
 
 ## Commands and tools
 

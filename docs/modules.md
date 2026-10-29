@@ -39,7 +39,7 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `inspector`  | feature | `project`, `element`, `preview`, `timeline`, `junction`                        | the right column, generated element panels, controls                              |
 | `transform`  | feature | `project`, `element`, `media`, `fonts`, `preview`, `timeline`                  | the `transform` shared group, `transform.reset`, canvas tools                     |
 | `text`       | feature | `project`, `element`, `preview`, `timeline`, `transform`, `fonts`, `inspector` | the `text` element, Text tab, presets, font controls, in-place editing            |
-| `transition` | feature | `project`, `element`, `junction`, `timeline`                                   | the `transition` junction kind, the `transitionPresets` point, `transition.apply` |
+| `transition` | feature | `project`, `element`, `junction`, `timeline`, `inspector`                      | the `transition` junction kind, the `transitionPresets` point, `transition.apply` |
 
 The built-in `history` module (undo/redo) lives in `src/core/history`.
 

@@ -1,15 +1,5 @@
 import { blockMask } from "../logic/noise";
-
-/** Scratch objects kept per destination canvas (R9), so nothing is allocated per frame. */
-interface Scratch {
-  ghost?: HTMLCanvasElement;
-  dissolve?: {
-    key: string;
-    values: Float32Array;
-    canvas: HTMLCanvasElement;
-    image: ImageData;
-  };
-}
+import type { Scratch } from "../transition.types";
 
 const scratches = new WeakMap<object, Scratch>();
 

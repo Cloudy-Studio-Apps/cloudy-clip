@@ -3,6 +3,7 @@ import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core
 import { elementModule, prop } from "@/modules/element";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
+import { inspectorModule } from "@/modules/inspector";
 import { createFakeMediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import {
@@ -101,6 +102,7 @@ beforeEach(async () => {
     createFakeMediaModule({}),
     createFakeFontsModule(),
     previewModule,
+    inspectorModule,
     timelineModule,
     transitionModule,
     presetsModule,

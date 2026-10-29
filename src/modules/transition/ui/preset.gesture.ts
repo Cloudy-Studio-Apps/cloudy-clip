@@ -1,18 +1,8 @@
 import type { Cut } from "@/modules/junction";
+import type { PresetGestureHandlers } from "../transition.types";
 
 /** Pixels the pointer must move before a press becomes a drag (so clicks still work). */
 const DRAG_THRESHOLD = 4;
-
-/** What a press on a preset tile reports. */
-export interface PresetGestureHandlers {
-  onClick(): void;
-  /** The cut under the pointer while dragging, or null (the highlight follows it). */
-  cutAt(clientX: number, clientY: number): Cut | null;
-  /** Called when the highlighted cut changes (null clears it). */
-  onHover(cut: Cut | null): void;
-  /** Released over a cut. */
-  onDrop(cut: Cut): void;
-}
 
 /**
  * Tracks a press on a preset tile: a click calls `onClick`; a drag shows a ghost labelled `label`

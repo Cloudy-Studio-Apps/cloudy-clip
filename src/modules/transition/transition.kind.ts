@@ -16,7 +16,7 @@ export function createTransitionKind(api: TransitionApi) {
     icon: Blend,
     tracks: ["video"],
     properties: {
-      preset: prop.string({ label: "Preset" }),
+      preset: prop.string({ label: "Preset", control: "transition-preset" }),
       options: prop.custom("transition-options", {}, { label: "Options" }),
     },
     defaults: () => ({ preset: "", options: {} }),

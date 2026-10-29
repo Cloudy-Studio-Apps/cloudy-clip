@@ -1,8 +1,4 @@
-/** The two sample pictures a thumbnail mixes, as CSS colors. */
-export interface SampleColors {
-  a: string;
-  b: string;
-}
+import type { SampleColors } from "../transition.types";
 
 /** Colors from the design tokens (`--clip-video`, `--clip-type`), with plain fallbacks. */
 export function sampleColors(): SampleColors {
