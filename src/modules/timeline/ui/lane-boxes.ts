@@ -9,3 +9,14 @@ export function laneBoxes(): LaneBox[] {
     return [{ trackId, left: rect.left, top: rect.top, bottom: rect.bottom }];
   });
 }
+
+/** Marks the lane of a track as a drop target (`data-cut-target`), or clears every mark (null). */
+export function highlightLane(trackId: string | null): void {
+  for (const lane of document.querySelectorAll<HTMLElement>("[data-cut-target]")) {
+    if (lane.dataset.trackId !== trackId) delete lane.dataset.cutTarget;
+  }
+  if (trackId === null) return;
+  for (const lane of document.querySelectorAll<HTMLElement>("[data-track-id]")) {
+    if (lane.dataset.trackId === trackId) lane.dataset.cutTarget = "";
+  }
+}

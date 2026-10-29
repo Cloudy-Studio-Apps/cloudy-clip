@@ -1,5 +1,5 @@
 import { createStore } from "zustand/vanilla";
-import type { ClipId, ProjectState } from "@/modules/project";
+import type { ClipId, ProjectState, TrackId } from "@/modules/project";
 import { cutAtX } from "./logic/cut";
 import { laneDropTarget } from "./logic/drop";
 import type { LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
@@ -15,6 +15,7 @@ export function createTimelineView(
   partners: (id: ClipId) => ClipId[] = () => [],
   lanes: () => LaneBox[] = () => [],
   project?: () => ProjectState,
+  highlightLane: (trackId: TrackId | null) => void = () => {},
 ): TimelineApi {
   const view = createStore<TimelineViewState>()(() => ({
     pxPerSecond: 60,
@@ -35,6 +36,9 @@ export function createTimelineView(
       if (!lane || !project) return null;
       const x = clientX - lane.left;
       return cutAtX(project(), lane.trackId, x, view.getState().pxPerSecond, 8) ?? null;
+    },
+    highlightCut(cut) {
+      highlightLane(cut ? cut.trackId : null);
     },
     selectJunction(id) {
       view.setState(

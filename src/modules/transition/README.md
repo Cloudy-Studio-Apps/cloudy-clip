@@ -3,13 +3,13 @@
 Transitions between clips. A transition is a junction of the `transition` kind: it sits on the cut
 between two adjacent clips of a video track, overlaps them (0.5 s by default) and mixes their
 pictures with a preset (a look: dissolve, wipe, glitch…). This module holds the kind, the presets
-point and the command to apply one; the seven built-in presets are in `presets/`; the Transitions tab comes
-in a later change.
+point and the command to apply one; the seven built-in presets are in `presets/`; the Transitions tab (`ui/`)
+lists them.
 
 - **Tier:** feature
-- **Requires:** `project`, `element`, `junction`
+- **Requires:** `project`, `element`, `junction`, `timeline` (selection, `cutTarget`, `highlightCut`)
 - **Contributes:** the `transition` kind (to `junctionKinds`), the `transition-options` value type
-  (to `propTypes`), the command and tools below
+  (to `propTypes`), panel `transition.panel` (side, icon `Blend`), the command and tools below
 - **Points it owns** (`transition.points.ts`): `transitionPresets` (id `transition.presets`, keyed
   by `id`), items made with `defineTransitionPreset`: `id`, `name`, `category`, `properties` (the
   options), `defaults(format)`, `mix`, optional `thumbnail`.
@@ -32,7 +32,16 @@ in a later change.
     with `destination-in` (in place when `b` is a canvas, else into a temporary canvas); no pixel
     reads and no `ctx.filter`.
   - `logic/`: `easing.ts`, `noise.ts` (seeded random, block masks), `color.ts`.
-- **Not yet:** the Transitions tab and its `transition-options` control.
+  - `ui/`: `TransitionsPanel` (one section per category, ordered by `logic/categories.ts`),
+    `PresetTile` (click: `transition.apply` on the selected junction, else the cut after the
+    selected video clip, else a "Select a clip or a cut first" notice; press-and-drag through
+    `preset.gesture.ts`: a DOM ghost, the cut under the pointer highlighted with
+    `timeline.highlightCut`, `transition.apply { leftClipId, rightClipId }` on release over a cut,
+    nothing elsewhere), `PresetThumbnail` and `thumbnail.hook.ts` (a canvas drawing the preset's
+    `thumbnail ?? mix` over two token-colored sample pictures: a static frame at 0.5, and a
+    `requestAnimationFrame` loop only while hovered; the hook's own picture canvases are redrawn
+    every frame because mask presets draw into `b`). Sizes in `transition.layout.ts`.
+- **Not yet:** the `transition-options` control.
 
 ## Commands and tools
 

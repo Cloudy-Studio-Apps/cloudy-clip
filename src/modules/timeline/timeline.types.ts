@@ -59,6 +59,11 @@ export interface TimelineApi {
   selectJunction(id: JunctionId | null): void;
   /** The cut under a screen point (within 8 px), for drops from other panels. */
   cutTarget(clientX: number, clientY: number): Cut | null;
+  /**
+   * Highlights the lane of a cut as a drop target (a `data-cut-target` attribute on the lane
+   * element, no renders), or clears the highlight (null).
+   */
+  highlightCut(cut: Cut | null): void;
 }
 
 /** A junction chip as the lane draws it. */

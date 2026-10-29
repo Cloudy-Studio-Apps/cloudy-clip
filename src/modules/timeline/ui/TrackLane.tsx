@@ -79,7 +79,7 @@ export const TrackLane = memo(function TrackLane({
     <div
       ref={ref}
       data-track-id={track.id}
-      className="relative border-b border-border"
+      className="relative border-b border-border data-[cut-target]:bg-primary-soft"
       style={{ height: trackHeight(track.kind) }}
       onPointerDown={(e) => {
         if (e.button !== 0 || e.target !== e.currentTarget) return;

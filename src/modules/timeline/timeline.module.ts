@@ -7,7 +7,7 @@ import { timelineMcpTools } from "./timeline.mcp";
 import { timelineRef } from "./timeline.ref";
 import { createTimelineView } from "./timeline.store";
 import { TimelinePanel } from "./ui";
-import { laneBoxes } from "./ui/lane-boxes";
+import { highlightLane, laneBoxes } from "./ui/lane-boxes";
 
 /** Tracks and clips editing: commands, tools and the timeline panel. */
 export const timelineModule = defineModule({
@@ -23,6 +23,7 @@ export const timelineModule = defineModule({
       (id) => partnersOf(project.getState(), id).map((c) => c.id),
       laneBoxes,
       () => project.getState(),
+      highlightLane,
     );
     const { view } = timeline;
     ctx.contribute(layoutPanels, {
