@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { notify, useKernel } from "@/core";
+import { useKernel } from "@/core";
 import { isTextClip, type Clip } from "@/modules/project";
 import { Button } from "@/ui";
 import { applyTextPreset } from "../text.commands";
@@ -49,13 +49,7 @@ export function TextContentSection({ clip }: { clip: Clip }) {
           <Button
             key={preset.id}
             size="sm"
-            onClick={() =>
-              void bus
-                .run(applyTextPreset, { clipId: clip.id, preset: preset.id })
-                .then((result) => {
-                  if (!result.ok) notify("error", result.error.message);
-                })
-            }
+            onClick={() => void bus.run(applyTextPreset, { clipId: clip.id, preset: preset.id })}
           >
             {preset.label}
           </Button>

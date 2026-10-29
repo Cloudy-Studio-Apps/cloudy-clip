@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { notify, useKernel, useModule } from "@/core";
+import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import {
   isTextClip,
@@ -60,10 +60,7 @@ export function useTextLive(clip: Clip): TextLive {
         if (!changed) return done();
         void bus
           .run(setTextStyle, { clipIds: [id], style: merged as z.input<typeof textStylePatch> })
-          .then((result) => {
-            if (!result.ok) notify("error", result.error.message);
-            done();
-          });
+          .then(done);
       },
       inputText(text) {
         words.current = text;
@@ -81,7 +78,6 @@ export function useTextLive(clip: Clip): TextLive {
         }
         const result = await bus.run(setText, { clipId: id, text });
         finish();
-        if (!result.ok) notify("error", result.error.message);
         return result.ok;
       },
     };
