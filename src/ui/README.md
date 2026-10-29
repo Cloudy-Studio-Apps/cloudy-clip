@@ -21,15 +21,20 @@ Fontsource, so they work offline). Icons come from `lucide-react`.
 
 ## Components
 
-| Export                              | Use                                                                                |
-| ----------------------------------- | ---------------------------------------------------------------------------------- |
-| `Button`                            | Text button, `primary` (one per area) or `secondary`, `sm`/`md`                    |
-| `IconButton`                        | Icon-only, `label` is tooltip + aria label, `active` for toggles, `solid` for play |
-| `SegmentedControl`                  | Mutually exclusive choices (aspect ratio)                                          |
-| `ToolbarButton`, `ToolbarSeparator` | Compact icon + label actions (timeline toolbar)                                    |
-| `ProgressBar`                       | Thin determinate bar (proxy encoding)                                              |
-| `EmptyState`                        | The seal's "nothing here yet" panel                                                |
-| `Waveform`                          | Decorative audio waveform (`tileWidth` repeats it), colored with `text-*`          |
-| `Kbd`                               | A keyboard key in running text                                                     |
-| `SealMark`                          | The seal logo; use it in light touches, never as clutter                           |
-| `cn`                                | Joins class names                                                                  |
+| Export                                    | Use                                                                                                                                                                        |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`                                  | Text button, `primary` (one per area) or `secondary`, `sm`/`md`                                                                                                            |
+| `IconButton`                              | Icon-only, `label` is tooltip + aria label, `active` for toggles, `solid` for play                                                                                         |
+| `SegmentedControl`                        | Mutually exclusive choices (aspect ratio)                                                                                                                                  |
+| `ToolbarButton`, `ToolbarSeparator`       | Compact icon + label actions (timeline toolbar)                                                                                                                            |
+| `ProgressBar`                             | Thin determinate bar (proxy encoding)                                                                                                                                      |
+| `EmptyState`                              | The seal's "nothing here yet" panel                                                                                                                                        |
+| `Waveform`                                | Decorative audio waveform (`tileWidth` repeats it), colored with `text-*`                                                                                                  |
+| `Popover`                                 | Anchored floating panel (portal, outside press/Escape close, focus returns)                                                                                                |
+| `ColorPicker`, `ColorField`               | Color area + hue/opacity + hex + eyedropper (if supported) + swatches/recents; `onChange(color, opacity, {done})`: drag steps `done:false`, release/hex/swatch `done:true` |
+| `SliderField`                             | Range + number; `onInput` per move, `onCommit` once on release/Enter                                                                                                       |
+| `NumberField`, `SelectField`, `ToggleRow` | Compact number box, select, switch that shows sub-fields when on                                                                                                           |
+| `normalizeHex`, `hexToHsv`, `hsvToHex`    | Color helpers (`lib/color.ts`)                                                                                                                                             |
+| `Kbd`                                     | A keyboard key in running text                                                                                                                                             |
+| `SealMark`                                | The seal logo; use it in light touches, never as clutter                                                                                                                   |
+| `cn`                                      | Joins class names                                                                                                                                                          |

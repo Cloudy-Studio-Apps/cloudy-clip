@@ -27,5 +27,21 @@ export { EmptyState } from "./kit/EmptyState";
 export { Waveform } from "./kit/Waveform";
 /** A keyboard key in running text. */
 export { Kbd } from "./kit/Kbd";
+/** A floating panel anchored to a trigger: portal, outside-press and Escape close, focus returns. */
+export { Popover } from "./kit/Popover";
+/** Saturation/brightness area, hue and opacity sliders, hex, eyedropper, swatches and recents. */
+export { ColorPicker } from "./kit/ColorPicker";
+/** A labelled swatch button that opens a `ColorPicker`, with hex and opacity % boxes. */
+export { ColorField } from "./kit/ColorField";
+/** A labelled range plus number box: `onInput` per move, `onCommit` once on release or Enter. */
+export { SliderField } from "./kit/SliderField";
+/** A compact number box that commits on Enter or blur. */
+export { NumberField } from "./kit/NumberField";
+/** A labelled switch that shows its sub-fields while on. */
+export { ToggleRow } from "./kit/ToggleRow";
+/** A native select styled as the other fields. */
+export { SelectField } from "./kit/SelectField";
+/** Normalizes `#abc`/`abc`/`#aabbcc` to lowercase `#aabbcc`, or null. */
+export { normalizeHex, hexToHsv, hsvToHex } from "./lib/color";
 
-export type { SegmentedOption } from "./kit/kit.types";
+export type { SegmentedOption, ColorChangeInfo, Hsv } from "./kit/kit.types";
