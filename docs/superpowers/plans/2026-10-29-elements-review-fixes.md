@@ -145,7 +145,7 @@
     - `resetProps` with `paths: ["nope"]` → `element.invalid_props`; with `["locked"]` → `element.read_only`.
     - With a `normalize` spy element: a transform-only patch doesn't call `normalize`.
   - `transform.commands.test.ts`: `transform.reset` on an untransformed clip adds no undo step.
-  - `timeline.element.command.test.ts`: `{ kind: "note", props: { size: 500 } }` on an empty project fails `element.invalid_props` before writing: spy on `addTrack` by checking that `kernel.history.getSnapshot().past.length` and `doc()` are unchanged, and that a `{ props: { size: 500 } }` call on a project with **no** video track still leaves `trackOrder` unchanged (it would have opened one if validation ran after).
+  - `timeline.element.command.test.ts`: `{ kind: "note", props: { size: 500 } }` fails `element.invalid_props` and the project is unchanged (this already passes because of rollback; it pins the behavior). That validation runs **before** any write isn't observable in state, so check it by reading the command: the `element.schema` parse comes before `addTrack` and `ctx.mutate`.
 - [ ] **Step 2: Run.** Expected: FAIL (the history-length and normalize-spy tests).
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Verify.** All checks pass.
