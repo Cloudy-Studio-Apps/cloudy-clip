@@ -9,7 +9,7 @@ Two product ideas drive the architecture:
 1. **Agents are first-class editors.** An MCP server is built in and on by default. An agent can do anything a user can do, on the same live project, and the user can undo it. Neither side has powers the other lacks.
 2. **Plugins come later, but the API is designed now.** Built-in modules register through the same surface third-party plugins will use.
 
-**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips and text clips with full styling and fonts). No export, effects, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
+**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, text clips with full styling and fonts, and junctions with transitions between clips). No export, effects, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
 
 ## Commands
 
@@ -108,6 +108,7 @@ src/
   modules/      one folder per module (see docs/modules.md)
     project/    the document: format, media, tracks, clips; selectors; clip placement
     element/    kinds of clip: element declarations, shared groups, prop types, element.setProps
+    junction/   what sits on a cut between two clips: junction kinds and their registry
     fonts/      font families (bundled, installed, Google) and face loading
     media/      import, probing, proxies, the library panel
     preview/    playback clock, preview engine, viewer zoom/pan, the preview panel
@@ -115,6 +116,7 @@ src/
     inspector/  the right column, panels generated from elements, controls (feature)
     transform/  the transform shared group, move/scale/rotate on the canvas (feature)
     text/       text clips: the Text tab, styling, in-place editing (feature)
+    transition/ the transition junction kind, the seven presets, the Transitions tab (feature)
 src-tauri/      the Rust side: native media server + proxies (media/), installed fonts (fonts/), MCP server (mcp/)
 ```
 

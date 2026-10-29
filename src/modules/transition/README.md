@@ -37,7 +37,7 @@ lists them.
     selected video clip, else a "Select a clip or a cut first" notice; press-and-drag through
     `preset.gesture.ts`: a DOM ghost, the cut under the pointer highlighted with
     `timeline.highlightCut`, `transition.apply { leftClipId, rightClipId }` on release over a cut,
-    nothing elsewhere), `PresetThumbnail` and `thumbnail.hook.ts` (a canvas drawing the preset's
+    nothing elsewhere), `PresetThumbnail`, `thumbnail.hook.ts` and `thumbnail.draw.ts` (a canvas drawing the preset's
     `thumbnail ?? mix` over two token-colored sample pictures: a static frame at 0.5, and a
     `requestAnimationFrame` loop only while hovered; the hook's own picture canvases are redrawn
     every frame because mask presets draw into `b`). Sizes in `transition.layout.ts`.

@@ -32,7 +32,7 @@ the preview mix are built on it by other modules.
     with `resolveProps`.
 - **Values:** a junction's `props` hold what differs from `defaults(format)` (`minimizeProps` from
   `element`), like a clip's.
-- **Not yet:** timeline chips, preview mixing, kinds (the transition feature).
+- **Kinds:** the `transition` feature module contributes the `transition` kind. **Not yet:** other kinds.
 
 ## Commands and tools
 

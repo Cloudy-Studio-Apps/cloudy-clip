@@ -30,7 +30,7 @@ lives here, so every change is undoable and readable by agents.
     `findLayoutConflict`, `staleJunctions`.
   - `createProjectModule(initial)` seeds the document in tests.
 - **Invariants:** track order is top → bottom (higher video tracks are drawn on top);
-  `Track.clipIds` is sorted by `start` and clips on a track never overlap; times are microseconds;
+  `Track.clipIds` is sorted by `start` and clips on a track never overlap, except by `allowedOverlap` (junctions); times are microseconds;
   `Clip.transform` is optional (missing = fitted and centered): `x`/`y` offset of the picture's center
   from the frame's center in output pixels, `scale` relative to fit, `rotation` clockwise degrees.
   Video tracks hold pictures only; audio tracks hold sound (a video file's sound sits there as a

@@ -117,4 +117,4 @@ All times are integer microseconds.
 
 ## Deferred
 
-Project save/load and autosave, export (engine and licensing), filmstrip thumbnails and waveforms, effects/transitions, text animations, mobile builds, the external plugin loader.
+Project save/load and autosave, export (engine and licensing), filmstrip thumbnails and waveforms, effects, text animations, mobile builds, the external plugin loader.
