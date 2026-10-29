@@ -11,6 +11,8 @@ export type { Kernel } from "./kernel.types";
 export { defineCommand } from "./command/command.define";
 export type {
   CommandBus,
+  CommandInputs,
+  PanelCommandId,
   CommandContext,
   CommandDefinition,
   CommandExecutedEvent,

@@ -65,6 +65,19 @@ export interface CommandExecutedEvent {
   durationMs: number;
 }
 
+/**
+ * Inputs of commands by id, for places that name a command by its id (an element's layout). Each
+ * module extends it for its own commands:
+ * `declare module "@/core" { interface CommandInputs { "text.applyPreset": { clipIds: string[]; preset: TextPresetId } } }`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- filled by declaration merging
+export interface CommandInputs {}
+
+/** Ids of commands that can be placed in an inspector panel: their input takes `clipIds`. */
+export type PanelCommandId = {
+  [K in keyof CommandInputs]: CommandInputs[K] extends { clipIds: string[] } ? K : never;
+}[keyof CommandInputs];
+
 /** Dispatches commands. One per kernel. */
 export interface CommandBus {
   /** Registers a command. Fails if the id is already taken. */

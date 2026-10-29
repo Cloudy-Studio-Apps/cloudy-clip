@@ -1,0 +1,252 @@
+import type { LucideIcon } from "lucide-react";
+import type { z } from "zod";
+import type { ModuleRef, PanelCommandId } from "@/core";
+import type { FontRequest } from "@/modules/fonts";
+import type {
+  Clip,
+  ClipPlacement,
+  PictureSize,
+  ProjectFormat,
+  ProjectState,
+  SharedGroupValues,
+  TextMeasure,
+  Track,
+  TrackKind,
+} from "@/modules/project";
+
+/** The kind of value a property holds. */
+export type PropKind = "string" | "number" | "boolean" | "color" | "enum" | "group" | "custom";
+
+/** A condition on the element's values: a path to a boolean (`"outline.enabled"`) or a function. */
+export type PropCondition = string | ((props: Record<string, unknown>) => boolean);
+
+/** How a property shows in the inspector. None of it changes what is stored. */
+export interface PropUi {
+  /** Label in the panel; defaults to the field name ("letterSpacing" → "Letter spacing"). */
+  label?: string;
+  /** Control id from the inspector's `propertyControls`; defaults by value type. */
+  control?: string;
+  /** Range of the control, when it should be narrower than what may be stored. */
+  ui?: { min?: number; max?: number; step?: number };
+  /** Shown value = stored × `scale`, with `unit` (opacity 0–1 shown as %). */
+  display?: { scale?: number; unit?: string };
+  /** Icon name (lucide) for icon controls. */
+  icon?: string;
+  /** Stored and validated, but not shown in the panel. */
+  hidden?: boolean;
+  /** Shown disabled; `element.setProps` refuses it. */
+  readOnly?: boolean;
+  /** Shown only while the condition holds. */
+  visibleWhen?: PropCondition;
+  /** Greyed out unless the condition holds. */
+  enabledWhen?: PropCondition;
+}
+
+/**
+ * One declared property, made with the `prop.*` builders. `T` is the type of its value (a phantom
+ * field, never set), so an element's values can be typed with `PropsOf`.
+ */
+export interface PropSpec<T = unknown> extends PropUi {
+  kind: PropKind;
+  readonly __value?: T;
+  /** number: range and step; string: length. */
+  min?: number;
+  max?: number;
+  step?: number;
+  /** number: unit shown next to it ("px", "°"). */
+  unit?: string;
+  /** string: several lines. */
+  multiline?: boolean;
+  /** string: trimmed before it is checked and stored. */
+  trim?: boolean;
+  /** enum: the allowed values and their labels. */
+  values?: readonly string[];
+  labels?: Readonly<Record<string, string>>;
+  /** color: a sibling 0–1 number edited by the same color field. */
+  opacity?: string;
+  /** group: the boolean field that switches the group on (shown in its header). */
+  toggle?: string;
+  /** group: its fields. */
+  fields?: PropertyTree;
+  /** custom: the prop type's name in `propTypes`, and its arguments. */
+  type?: string;
+  args?: unknown;
+}
+
+/** An element's declared properties by name. `"group.field"` keys narrow a shared group's field. */
+export type PropertyTree = Readonly<Record<string, PropSpec>>;
+
+/** The values of a property tree. */
+export type PropsOf<T extends PropertyTree> = {
+  [K in keyof T]: T[K] extends PropSpec<infer V> ? V : never;
+};
+
+/** A partial set of values: fields optional, groups partial (one level deep). */
+export type PropsPatch<P> = {
+  [K in keyof P]?: P[K] extends object ? Partial<P[K]> : P[K];
+};
+
+/**
+ * Arguments of custom prop types by name, extended by the module that registers each one:
+ * `declare module "@/modules/element" { interface CustomProps { font: { sources: FontSource[] } } }`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- filled by declaration merging
+export interface CustomProps {}
+
+/** Values of custom prop types by name, extended next to `CustomProps`. */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- filled by declaration merging
+export interface CustomValues {}
+
+/** A kind of value beyond the built-in ones (a font), registered in `propTypes`. */
+export interface PropType {
+  /** The name `prop.custom(name, …)` uses. */
+  name: string;
+  /** The Zod schema of a value, for these arguments. */
+  schema(args: unknown): z.ZodType;
+  /** The control that edits it by default. */
+  control: string;
+}
+
+/**
+ * Properties several elements share (transform), defined once by the module that owns them and
+ * opted into with an element's `supports`. Their values live on the clip under `key`.
+ */
+export interface SharedGroup {
+  /** The name used in `supports`. */
+  id: string;
+  /** Where its values are stored on a clip. */
+  key: keyof SharedGroupValues;
+  label: string;
+  /** Position of its section in the panel. */
+  order: number;
+  properties: PropertyTree;
+  defaults(format: ProjectFormat): Record<string, unknown>;
+  /** Fixes the merged values before they are stored (e.g. brings rotation into range). */
+  normalize?(value: Record<string, unknown>): Record<string, unknown>;
+  /** Whether the group applies to this clip on this track (transform: video tracks only). */
+  appliesTo?(clip: Clip, track: Track): boolean;
+  /** Its section; generated from its properties when missing. */
+  layout?: LayoutSection;
+}
+
+/** What `normalize` gets besides the merged values. */
+export interface NormalizeEnv {
+  /** The patch being applied (as given), to tell what the user asked for from what was there. */
+  patch: Record<string, unknown>;
+  format: ProjectFormat;
+  /** Another module's API (fonts, to check faces). */
+  require<A>(ref: ModuleRef<A>): A;
+}
+
+/** What `display` gets besides the clip. */
+export interface DisplayEnv {
+  project: ProjectState;
+  track: Track | undefined;
+}
+
+/** How a clip shows on the timeline and in the inspector's header. */
+export interface ElementDisplay {
+  icon: LucideIcon;
+  /** Color token suffix: `clip-video` → `bg-clip-video`. */
+  color: string;
+  label: string;
+  /** What the timeline draws inside the clip. */
+  body: "poster" | "waveform" | "none";
+}
+
+/** What `draw` gets besides the values. */
+export interface DrawEnv {
+  format: ProjectFormat;
+  /** Where the picture lands, from `clipPlacement` with the element's size and fit. */
+  placement: ClipPlacement;
+  /** Canvas pixels per output pixel. */
+  kx: number;
+  ky: number;
+  measure: TextMeasure;
+  /** Whether a font face is ready; starts loading it when not. */
+  ensureFont(request: FontRequest): boolean;
+}
+
+/** How an element is drawn in the frame. */
+export interface PictureDefinition<P> {
+  /** `contain`: fitted in the frame before its transform; `none`: natural size in output px. */
+  fit: "contain" | "none";
+  /** `media`: decoded from the clip's file by the preview engine (no `size`/`draw`). */
+  source?: "media";
+  /** Size of the picture before its transform, in output pixels. */
+  size?(props: P, env: { format: ProjectFormat; measure: TextMeasure }): PictureSize;
+  /** Paints the picture. The canvas is in canvas pixels; use `env.placement`, `kx`, `ky`. */
+  draw?(ctx: CanvasRenderingContext2D, props: P, env: DrawEnv): void;
+}
+
+/** A tile that creates this element from a side panel. */
+export interface CreateEntry {
+  /** The panel id that shows the tile (`CreateTiles panel="text"`). */
+  panel: string;
+  id: string;
+  label: string;
+  /** Values of the new clip (may include shared groups, like `transform`). */
+  props?(format: ProjectFormat): Record<string, unknown>;
+}
+
+/** An item of a layout section. */
+export type LayoutItem =
+  | string
+  | { path: string; control?: string; label?: string }
+  | { row: LayoutItem[] }
+  | { title: string; items: LayoutItem[] }
+  | { group: string; items: string[] }
+  | { command: PanelCommandId; control?: string; label?: string; icon?: string };
+
+/** A section of an element's panel. */
+export interface LayoutSection {
+  /** Heading; a group alone in the section gives its label. */
+  title?: string;
+  order?: number;
+  /** Section layout id from the inspector's `sectionLayouts`; `"section"` by default. */
+  layout?: string;
+  items: LayoutItem[];
+}
+
+/**
+ * A kind of clip: its properties, panel, picture, timeline look and how it is created. Declared
+ * once with `defineElement` and contributed to the `elements` point.
+ */
+export interface ElementDefinition<P = Record<string, unknown>> {
+  /** Stored as `clip.kind`. */
+  kind: string;
+  /** Human name ("Text"). */
+  name: string;
+  /** `media`: plays a file (`clip.mediaId`); `none`: no source file, any length. */
+  source: "media" | "none";
+  /** Track kinds it may sit on, preferred first. */
+  tracks: readonly TrackKind[];
+  /** Shared groups it opts into, whole or `except` some fields. */
+  supports?: Readonly<Record<string, true | { except: readonly string[] }>>;
+  properties: PropertyTree;
+  /** Values of a clip that stores none. */
+  defaults(format: ProjectFormat): P;
+  /** Cross-field rules on the merged values; may throw `CommandFailure`. */
+  normalize?(next: P, env: NormalizeEnv): P;
+  display(clip: Clip, env: DisplayEnv): ElementDisplay;
+  layout?: readonly LayoutSection[];
+  picture?: PictureDefinition<P>;
+  create?: readonly CreateEntry[];
+}
+
+/** Any element, as the `elements` point holds them. */
+export type AnyElement = ElementDefinition<Record<string, unknown>>;
+
+/** An element from `defineElement`, with a typed reader of a clip's values. */
+export type DefinedElement<P> = ElementDefinition<P> & {
+  /** The clip's values: its stored props over the element's defaults for `format`. */
+  resolve(clip: { props?: Record<string, unknown> }, format: ProjectFormat): P;
+};
+
+/** What `patchSchema` needs besides the element's own properties. */
+export interface SchemaEnv {
+  /** A registered custom prop type by name. */
+  propType(name: string): PropType | undefined;
+  /** Supported shared groups: their key on the clip and their (narrowed) fields. */
+  groups: readonly { key: string; tree: PropertyTree }[];
+}

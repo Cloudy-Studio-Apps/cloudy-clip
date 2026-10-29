@@ -206,6 +206,14 @@ export interface ClipPlacement {
   rotation: number;
 }
 
+/**
+ * Values of the shared property groups (see the element module's `sharedGroups`), each stored on
+ * the clip under its own key. A module that owns a shared group extends this interface.
+ */
+export interface SharedGroupValues {
+  transform: ClipTransform;
+}
+
 /** Pixel size of a picture. */
 export interface PictureSize {
   width: number;

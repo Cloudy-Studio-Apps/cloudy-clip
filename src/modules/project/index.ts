@@ -51,6 +51,7 @@ export type {
   ProjectApi,
   ProjectFormat,
   ProjectState,
+  SharedGroupValues,
   FontSource,
   FontWeight,
   TextAlign,
