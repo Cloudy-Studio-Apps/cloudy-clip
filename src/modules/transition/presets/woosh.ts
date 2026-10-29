@@ -19,12 +19,14 @@ export const wooshPreset = defineTransitionPreset({
     const shift = easeInOutCubic(progress) * width * sign;
     const spread = bump(progress) * width * 0.08;
     ctx.save();
-    ctx.clearRect(0, 0, width, height);
-    ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = 1 / PASSES;
-    for (let i = 0; i < PASSES; i++) {
-      const smear = (i / (PASSES - 1) - 0.5) * spread;
-      const x = shift + smear;
+    ctx.globalCompositeOperation = "source-over";
+    // One opaque pass covers the frame; the smear passes blend over it, so no edge goes dark.
+    ctx.globalAlpha = 1;
+    ctx.drawImage(a, shift, 0, width, height);
+    ctx.drawImage(b, shift - width * sign, 0, width, height);
+    ctx.globalAlpha = 0.25;
+    for (let i = 0; i < PASSES - 1; i++) {
+      const x = shift + (i / (PASSES - 2) - 0.5) * spread * 2;
       ctx.drawImage(a, x, 0, width, height);
       ctx.drawImage(b, x - width * sign, 0, width, height);
     }

@@ -3,6 +3,7 @@ import { prop } from "@/modules/element";
 import { bump } from "../logic/easing";
 import { seededRandom } from "../logic/noise";
 import { defineTransitionPreset } from "../transition.points";
+import { ghostCanvas } from "./presets.cache";
 
 /** A cut at the middle; around it, seeded horizontal slice offsets and a red/blue split. */
 export const glitchPreset = defineTransitionPreset({
@@ -35,11 +36,9 @@ export const glitchPreset = defineTransitionPreset({
       ctx.drawImage(source, 0, y, width, h, dx, y, width, h);
     }
     // Red and blue ghosts: the picture, multiplied to one channel, added back with an offset.
-    const tmp = document.createElement("canvas");
-    tmp.width = width;
-    tmp.height = height;
-    const t = tmp.getContext("2d");
-    if (t) {
+    const ghost = ghostCanvas(ctx.canvas, width, height);
+    if (ghost) {
+      const t = ghost.ctx;
       const split = width * 0.02 * amount;
       const ghosts: [string, number][] = [
         ["#ff0000", -split],
@@ -53,8 +52,9 @@ export const glitchPreset = defineTransitionPreset({
         t.fillRect(0, 0, width, height);
         ctx.globalCompositeOperation = "lighter";
         ctx.globalAlpha = 0.6 * amount;
-        ctx.drawImage(tmp, dx, 0);
+        ctx.drawImage(ghost.canvas, dx, 0);
       }
+      t.globalCompositeOperation = "source-over";
     }
     ctx.restore();
   },
