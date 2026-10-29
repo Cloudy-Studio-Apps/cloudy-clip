@@ -2,7 +2,7 @@ import { RotateCcw } from "lucide-react";
 import { useKernel } from "@/core";
 import { clipTransform, type Clip } from "@/modules/project";
 import { Button, InfoList } from "@/ui";
-import { setClipTransform } from "../transform.commands";
+import { resetTransform } from "../transform.commands";
 
 /** Where the clip's picture sits in the frame (changed on the canvas), and a way back to fit. */
 export function TransformSection({ clip }: { clip: Clip }) {
@@ -25,7 +25,7 @@ export function TransformSection({ clip }: { clip: Clip }) {
         size="sm"
         className="self-start"
         disabled={!clip.transform}
-        onClick={() => void bus.run(setClipTransform, { clipId: clip.id, reset: true })}
+        onClick={() => void bus.run(resetTransform, { clipIds: [clip.id] })}
       >
         <RotateCcw />
         Reset

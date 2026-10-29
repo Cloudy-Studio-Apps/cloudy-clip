@@ -1,7 +1,8 @@
 import { commandTool } from "@/core";
-import { setClipTransform } from "./transform.commands";
+import { resetTransform } from "./transform.commands";
 
-/** Agents place pictures in the frame with the same command as the canvas tools. */
-export const transformMcpTools = [
-  commandTool(setClipTransform, { name: "transform_set_clip_transform" }),
-];
+/**
+ * Agents reset pictures with the same command as the inspector. They move, scale and rotate them
+ * with `element_set_props` (`{ transform: { … } }`), like the canvas tools.
+ */
+export const transformMcpTools = [commandTool(resetTransform, { name: "transform_reset" })];

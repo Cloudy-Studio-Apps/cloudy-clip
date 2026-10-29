@@ -87,7 +87,7 @@ export interface PreviewApi {
   /**
    * Draws a clip with `transform` instead of its saved one, without changing the project (live
    * feedback while dragging on the canvas). Pass null to go back to the saved transform. The
-   * gesture commits with `transform.setClipTransform` on release.
+   * gesture commits with `element.setProps` (a `transform` patch) on release.
    */
   previewTransform(clipId: ClipId, transform: ClipTransform | null): void;
   /**

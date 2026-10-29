@@ -1,7 +1,7 @@
+import { setProps } from "@/modules/element";
 import { clipPlacement } from "@/modules/project";
 import { toFramePoint } from "../logic/frame";
 import { moveTransform, rotateTransform, ROTATION_STEP, scaleTransform } from "../logic/gestures";
-import { setClipTransform } from "../transform.commands";
 import type { TransformGestureOptions } from "../transform.types";
 import { applyBox } from "./box.style";
 
@@ -11,7 +11,7 @@ const SNAP_SCREEN_PX = 8;
 /**
  * Drags a clip's picture on the canvas. While dragging, the preview draws the live transform and
  * the box follows (no React renders, nothing in the project changes). Release commits one
- * `transform.setClipTransform`, so the gesture is a single undo step.
+ * `element.setProps` (a `transform` patch), so the gesture is a single undo step.
  */
 export function startTransformGesture(options: TransformGestureOptions): void {
   const { mode, clipId, start, source, fit, format, frame, box, guides, down, preview, bus } =
@@ -54,7 +54,9 @@ export function startTransformGesture(options: TransformGestureOptions): void {
       current.y !== start.y ||
       current.scale !== start.scale ||
       current.rotation !== start.rotation;
-    const result = changed ? await bus.run(setClipTransform, { clipId, ...current }) : null;
+    const result = changed
+      ? await bus.run(setProps, { clipIds: [clipId], patch: { transform: { ...current } } })
+      : null;
     preview.previewTransform(clipId, null);
     // On failure (or no change) React won't re-render the box: put it back where it was.
     if (box && !result?.ok) applyBox(box, startPlacement, format);

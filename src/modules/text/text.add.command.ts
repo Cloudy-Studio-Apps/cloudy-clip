@@ -21,7 +21,7 @@ export const addText = defineCommand({
   id: "text.add",
   label: "Add text",
   description:
-    'Adds a text clip drawn over the video. It shows the words "Text" in the default style (bold, white, centered) unless you pass text, a preset (title, highlight, outline, pop, lower-third) and/or a style patch (applied in that order; pick a font family with fonts_list; weight and italic move to the closest face the family has). Move, scale or rotate it with transform_set_clip_transform; move, trim, split or delete it with the timeline tools. Optional: start (microseconds, defaults to the playhead), duration (microseconds, default 3 s), trackId (a video track; defaults to the top video track with room there, or a new top video track). Fails if the named track is busy there. Returns the new clip.',
+    'Adds a text clip drawn over the video. It shows the words "Text" in the default style (bold, white, centered) unless you pass text, a preset (title, highlight, outline, pop, lower-third) and/or a style patch (applied in that order; pick a font family with fonts_list; weight and italic move to the closest face the family has). Move, scale or rotate it with element_set_props ({ transform: { x, y, scale, rotation } }); move, trim, split or delete it with the timeline tools. Optional: start (microseconds, defaults to the playhead), duration (microseconds, default 3 s), trackId (a video track; defaults to the top video track with room there, or a new top video track). Fails if the named track is busy there. Returns the new clip.',
   undoable: true,
   input: z.object({
     start: z.number().int().min(0).optional().describe("Microseconds"),

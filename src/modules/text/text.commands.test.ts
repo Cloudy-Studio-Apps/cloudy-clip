@@ -182,7 +182,7 @@ describe("text.applyPreset", () => {
 describe("text.applyPreset rollback", () => {
   it("leaves the style alone when the nested transform fails", async () => {
     const clip = await textClip();
-    // A frame this wide puts the lower third beyond what setClipTransform accepts.
+    // A frame this wide puts the lower third beyond what the transform group accepts.
     kernel.modules.require(projectRef).store.api.setState((s) => ({
       format: { ...s.format, width: 1_000_000 },
     }));

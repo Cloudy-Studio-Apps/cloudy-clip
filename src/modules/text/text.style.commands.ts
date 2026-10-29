@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand, type CommandContext } from "@/core";
 import { fontsRef } from "@/modules/fonts";
-import { minimizeProps } from "@/modules/element";
+import { minimizeProps, setProps } from "@/modules/element";
 import { projectRef, type Clip, type ProjectFormat } from "@/modules/project";
 import {
   DEFAULT_TEXT,
@@ -12,7 +12,6 @@ import {
   textStyleOf,
 } from "./logic/layout";
 import type { TextStyle } from "./text.types";
-import { setClipTransform } from "@/modules/transform";
 import { presetStyle, presetTransform } from "./logic/presets";
 import { checkExplicitFace } from "./logic/faces";
 import { snapStyleToFamily } from "./logic/snap";
@@ -107,13 +106,23 @@ export const applyTextPreset = defineCommand({
     const clip = textClipOf(ctx, clipId);
     const store = ctx.require(projectRef).store;
     const format = store.getState().format;
-    const merged = mergeTextStyle(textStyleOf(clip, format), presetStyle(preset, format));
-    writeStyles(
-      ctx,
-      new Map([[clipId, snapStyleToFamily(merged, ctx.require(fontsRef).knownFamilies())]]),
+    const style = presetStyle(preset, format);
+    // A preset's weight and italic move to the closest face the family has (never fail).
+    const face = snapStyleToFamily(
+      mergeTextStyle(textStyleOf(clip, format), style),
+      ctx.require(fontsRef).knownFamilies(),
     );
     const transform = presetTransform(preset, format);
-    if (transform) await ctx.execute(setClipTransform, { clipId, ...transform });
+    // One patch: the style and (lower third) the place, checked and written together.
+    await ctx.execute(setProps, {
+      clipIds: [clipId],
+      patch: {
+        ...style,
+        weight: face.weight,
+        italic: face.italic,
+        ...(transform && { transform }),
+      },
+    });
     return store.getState().clips[clipId];
   },
 });

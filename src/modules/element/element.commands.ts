@@ -50,6 +50,27 @@ function parsePatch(element: ResolvedElement, patch: Record<string, unknown>) {
   return values;
 }
 
+/** Fails when the patch names a shared group that doesn't apply to one of the clips. */
+function checkGroupsApply(
+  element: ResolvedElement,
+  clips: readonly Clip[],
+  state: ProjectState,
+  patch: Record<string, unknown>,
+) {
+  for (const group of element.groups) {
+    if (patch[group.key] === undefined || !group.appliesTo) continue;
+    for (const clip of clips) {
+      const track = state.tracks[clip.trackId];
+      if (track && !group.appliesTo(clip, track)) {
+        throw new CommandFailure(
+          "element.invalid_props",
+          `Clip "${clip.id}" has no ${group.label.toLowerCase()} on a ${track.kind} track`,
+        );
+      }
+    }
+  }
+}
+
 /**
  * Changes the values of clips of one kind (text, a plugin's element): only the given fields, groups
  * one level deep. Supported shared groups go under their key (`transform: { x }`).
@@ -66,6 +87,7 @@ export const setProps = defineCommand({
     const state = store.getState();
     const { clips, element } = target(ctx, state, input.clipIds);
     const patch = parsePatch(element, input.patch);
+    checkGroupsApply(element, clips, state, patch);
     const next = clips.map((clip) => ({
       id: clip.id,
       props: applyPropsPatch(ctx, element, clip, patch, state.format),

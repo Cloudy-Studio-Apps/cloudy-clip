@@ -23,8 +23,8 @@ edit its words and look.
     time, or opens a new top video track (in the same undo step). Optional `text`, `preset`, `style`
     (applied as default, preset, style).
   - `text.style.commands.ts`: `text.setText`, `text.setStyle`, `text.applyPreset`. All clips are
-    validated before the one mutation; `applyPreset` runs `transform.setClipTransform` nested, so
-    it is one undo step. `text.commands.ts` lists them.
+    validated before the one mutation; `applyPreset` sends one nested `element.setProps` with the
+    style (face snapped first) and, for the lower third, the `transform`: one undo step. `text.commands.ts` lists them.
   - `text.schema.ts`: Zod for the style patch (ranges, `#rrggbb` lowercased).
   - `logic/snap.ts`: `snapStyleToFamily` moves a style's weight/italic to the closest face its family
     has (`closestVariant`). `text.add` and `text.applyPreset` always snap; `text.setStyle` snaps too,

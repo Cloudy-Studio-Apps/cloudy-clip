@@ -44,3 +44,9 @@ export interface TransformGestureOptions {
   preview: PreviewApi;
   bus: CommandBus;
 }
+
+declare module "@/core" {
+  interface CommandInputs {
+    "transform.reset": { clipIds: string[] };
+  }
+}
