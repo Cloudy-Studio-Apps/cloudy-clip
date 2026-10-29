@@ -1,12 +1,13 @@
 import { Scissors } from "lucide-react";
-import { describe, expect, it } from "vitest";
-import { createKernel, defineModule, defineModuleRef } from "@/core";
+import { describe, expect, it, vi } from "vitest";
+import { createKernel, defineModule, defineModuleRef, type Logger, type PointReader } from "@/core";
 import { elementModule, prop } from "@/modules/element";
 import { createEmptyProject, createProjectModule, type Junction } from "@/modules/project";
 import { defineJunctionKind } from "./logic/define";
 import { junctionKinds } from "./junction.points";
 import { junctionModule } from "./junction.module";
 import { junctionRef } from "./junction.ref";
+import { createJunctionApi } from "./junction.registry";
 
 const testKind = defineJunctionKind({
   kind: "test.fade",
@@ -73,12 +74,21 @@ describe("junction registry", () => {
     expect(api.resolve(junction("gone", { mode: "b" }), format)).toEqual({});
   });
 
-  it("display of an unregistered kind says not available and warns once", async () => {
-    const { api, format } = await load();
+  it("display of an unregistered kind says not available and warns once", () => {
+    const warn = vi.fn();
+    const log: Logger = { debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() };
+    const points: PointReader = {
+      get: () => [],
+      find: () => undefined,
+      subscribe: () => () => {},
+    };
+    const api = createJunctionApi(points, log);
+    const format = createEmptyProject().format;
     const first = api.display(junction("ghost"), format);
     api.display(junction("ghost"), format);
     expect(first.label).toBe("ghost (not available)");
     expect(first.missing).toBe(true);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("cache is rebuilt when a kind is contributed after load", async () => {
