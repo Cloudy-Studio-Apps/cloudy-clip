@@ -1,4 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
+import type { TextStylePatch } from "@/modules/project";
 
 /** The colors picked lately, shared by every color field of the text sections. Not in history. */
 export interface RecentColors {
@@ -15,3 +16,15 @@ export interface TextApi {
 
 /** Ready-made looks for a text: `title`, `highlight`, `outline`, `pop` and `lower-third`. */
 export type TextPresetId = "title" | "highlight" | "outline" | "pop" | "lower-third";
+
+/** What the inspector fields use to edit a text clip. */
+export interface TextLive {
+  /** Shows `patch` in the preview (merged over what was already input) without touching the project. */
+  input(patch: TextStylePatch): void;
+  /** Commits the input so far plus `patch` as one `text.setStyle` (skipped when nothing changes), then clears the live override. */
+  commit(patch: TextStylePatch): void;
+  /** Shows these words in the preview. */
+  inputText(text: string): void;
+  /** Commits the words as one `text.setText`. Resolves false when nothing changed or they were empty (the field reverts). */
+  commitText(text: string): Promise<boolean>;
+}

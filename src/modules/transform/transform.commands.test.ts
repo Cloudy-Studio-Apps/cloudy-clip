@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, type Kernel } from "@/core";
 import { createFakeMediaModule } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
+import { inspectorModule } from "@/modules/inspector";
 import { previewModule } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
 import { addClip, splitAt, timelineModule } from "@/modules/timeline";
@@ -35,6 +36,7 @@ beforeEach(async () => {
     createFakeFontsModule(),
     previewModule,
     timelineModule,
+    inspectorModule,
     transformModule,
   ]);
 });

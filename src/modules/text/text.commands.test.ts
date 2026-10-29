@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, type Kernel } from "@/core";
+import { inspectorModule, inspectorSections } from "@/modules/inspector";
 import { createFakeMediaModule } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule, previewRef } from "@/modules/preview";
 import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
+import { textRef } from "./text.ref";
 import { transformModule } from "@/modules/transform";
 import { isTextClip, type TextClip } from "@/modules/project";
 import { addText, applyTextPreset, setText, setTextStyle } from "./text.commands";
@@ -12,6 +14,7 @@ import { textModule } from "./text.module";
 
 const S = 1_000_000;
 let kernel: Kernel;
+let statuses: Record<string, string>;
 const doc = () => kernel.modules.require(projectRef).store.getState();
 const videoTracks = () => doc().trackOrder.filter((id) => doc().tracks[id]!.kind === "video");
 
@@ -28,7 +31,7 @@ beforeEach(async () => {
   const project = createEmptyProject();
   project.media.mv = { id: "mv", name: "a.mp4", path: "/a.mp4", kind: "video", size: 1 };
   project.mediaOrder = ["mv"];
-  await kernel.modules.loadAll([
+  statuses = await kernel.modules.loadAll([
     createProjectModule(project),
     createFakeMediaModule({ mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 } }),
     createFakeFontsModule({
@@ -36,11 +39,24 @@ beforeEach(async () => {
         { family: "Roboto", source: "google", variants: [{ weight: "400", style: "normal" }] },
       ],
     }),
+    inspectorModule,
     transformModule,
     previewModule,
     timelineModule,
     textModule,
   ]);
+});
+
+describe("text module wiring", () => {
+  it("loads, contributes its six inspector sections and has recent colors", () => {
+    expect(statuses.text).toBe("active");
+    expect(statuses.transform).toBe("active");
+    const ids = kernel.points.get(inspectorSections).map((s) => s.id);
+    for (const name of ["content", "font", "fill", "outline", "background", "shadow"]) {
+      expect(ids).toContain(`text.${name}`);
+    }
+    expect(kernel.modules.require(textRef).recents.store.getState().colors).toBeInstanceOf(Array);
+  });
 });
 
 describe("text.add", () => {

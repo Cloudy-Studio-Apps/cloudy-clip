@@ -12,19 +12,8 @@ import {
 import type { z } from "zod";
 import { mergePatch } from "../logic/patch";
 import type { textStylePatch } from "../text.schema";
+import type { TextLive } from "../text.types";
 import { setText, setTextStyle } from "../text.commands";
-
-/** What the inspector fields use to edit a text clip. */
-export interface TextLive {
-  /** Shows `patch` in the preview (merged over what was already input) without touching the project. */
-  input(patch: TextStylePatch): void;
-  /** Commits the input so far plus `patch` as one `text.setStyle` (skipped when nothing changes), then clears the live override. */
-  commit(patch: TextStylePatch): void;
-  /** Shows these words in the preview. */
-  inputText(text: string): void;
-  /** Commits the words as one `text.setText`. Resolves false when nothing changed or they were empty (the field reverts). */
-  commitText(text: string): Promise<boolean>;
-}
 
 /**
  * Live preview plus commit for a text clip: drag steps go to `previewTextClip` only (no React
