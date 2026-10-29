@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { z } from "zod";
 import type { ModuleRef, PanelCommandId } from "@/core";
-import type { FontRequest } from "@/modules/fonts";
 import type {
   Clip,
   ClipPlacement,
@@ -163,7 +162,16 @@ export interface DrawEnv {
   ky: number;
   measure: TextMeasure;
   /** Whether a font face is ready; starts loading it when not. */
-  ensureFont(request: FontRequest): boolean;
+  ensureFont(request: FaceRequest): boolean;
+}
+
+/** A font face to draw with (a `FontRequest` of `fonts`, without depending on it). */
+export interface FaceRequest {
+  family: string;
+  source: string;
+  /** `"100"` … `"900"`. */
+  weight: string;
+  style: "normal" | "italic";
 }
 
 /** How an element is drawn in the frame. */

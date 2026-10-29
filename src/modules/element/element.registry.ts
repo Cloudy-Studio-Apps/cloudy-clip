@@ -58,6 +58,12 @@ export function createElementApi(
     const fields = new Map<string, PropSpec>();
     indexFields(definition.properties, "", fields);
     for (const group of groups) indexFields(group.properties, `${group.key}.`, fields);
+    for (const [path, spec] of fields) {
+      if (spec.kind !== "custom" || (spec.type && points.find(propTypes, spec.type))) continue;
+      warn(
+        `element "${definition.kind}": value type "${spec.type}" for "${path}" is not registered (is its module loaded?)`,
+      );
+    }
     const schema = patchSchema(definition.properties, {
       propType: (name) => points.find(propTypes, name),
       groups: groups.map((g) => ({ key: g.key, tree: g.properties })),

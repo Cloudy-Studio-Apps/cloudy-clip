@@ -1,5 +1,5 @@
 import { useModule, usePoint } from "@/core";
-import { elementRef, getPath, type ResolvedItem } from "@/modules/element";
+import { elementRef, getPath, propTypes, type ResolvedItem } from "@/modules/element";
 import type { Clip } from "@/modules/project";
 import { propertyControls } from "../inspector.points";
 import type { PropsLive } from "../inspector.types";
@@ -18,7 +18,10 @@ interface FieldItemProps {
 export function FieldItem({ item, clip, values, live }: FieldItemProps) {
   const elements = useModule(elementRef);
   const controls = usePoint(propertyControls);
+  const types = usePoint(propTypes);
   const spec = elements.get(clip.kind)?.fields.get(item.path);
+  const typeMissing =
+    spec?.kind === "custom" && !types.some((t) => t.name === spec.type) ? spec.type : undefined;
   const control = controls.find((c) => c.id === item.control && c.for === "field");
   const missing = spec && !control;
   useWarnOnce(
@@ -27,6 +30,15 @@ export function FieldItem({ item, clip, values, live }: FieldItemProps) {
       : null,
   );
   if (!spec || !isVisible(spec, values)) return null;
+  // The registry already logged it once (element.registry.ts).
+  if (typeMissing !== undefined) {
+    return (
+      <WarningRow
+        title={`"${item.label}" can't be shown.`}
+        detail={`The value type "${typeMissing}" isn't registered. Its plugin may be missing or turned off.`}
+      />
+    );
+  }
   if (!control || control.for !== "field") {
     return (
       <WarningRow

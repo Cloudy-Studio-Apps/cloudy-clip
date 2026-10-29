@@ -4,6 +4,7 @@ import { useModule, usePoint } from "@/core";
 import {
   defaultControl,
   elementRef,
+  elements as elementPoint,
   propTypes,
   resolveLayout,
   type ResolvedItem,
@@ -28,8 +29,14 @@ export function ElementPanel({ clip, track }: { clip: Clip; track: Track }) {
   const format = useStore(useModule(projectRef).store.api, (s) => s.format);
   const types = usePoint(propTypes);
   const layouts = usePoint(sectionLayouts);
+  // Re-render when elements are registered or removed (a plugin loaded after the panel opened).
+  const registered = usePoint(elementPoint);
   const live = usePropsLive(clip);
-  const resolved = elements.get(clip.kind);
+  const resolved = useMemo(
+    () => elements.get(clip.kind),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `registered` invalidates the lookup
+    [elements, clip.kind, registered],
+  );
   const values = useMemo(() => elements.resolve(clip, format), [elements, clip, format]);
   const layout = useMemo(
     () =>

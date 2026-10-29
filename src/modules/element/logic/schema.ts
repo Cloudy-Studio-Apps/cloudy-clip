@@ -33,8 +33,12 @@ function valueSchema(spec: PropSpec, env: SchemaEnv): z.ZodType {
       return z.enum((spec.values ?? []) as [string, ...string[]]);
     case "group":
       return groupSchema(spec.fields ?? {}, env);
-    case "custom":
-      return (spec.type && env.propType(spec.type)?.schema(spec.args)) || z.unknown();
+    case "custom": {
+      const type = spec.type ? env.propType(spec.type) : undefined;
+      // A type whose module isn't loaded can't be checked, so nothing is accepted for it.
+      if (!type) return z.never({ error: `value type "${spec.type}" is not registered` });
+      return type.schema(spec.args);
+    }
   }
 }
 

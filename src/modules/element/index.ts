@@ -45,6 +45,7 @@ export type {
   ElementApi,
   ElementDefinition,
   ElementDisplay,
+  FaceRequest,
   LayoutIssue,
   LayoutItem,
   LayoutControlOf,

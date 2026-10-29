@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CommandDefinition } from "@/core";
-import type { PanelCommandCheck } from "../element.types";
+import type { LayoutItem, PanelCommandCheck, ResolvedElement } from "../element.types";
 
 /**
  * Whether a command can sit in a panel: it must exist, take `clipIds` (an array, filled from the
@@ -37,4 +37,18 @@ export function checkPanelCommand(
   }
   const [field] = others;
   return field ? { ok: true, field: { name: field[0], schema: field[1] } } : { ok: true };
+}
+
+/** The command ids placed in an element's panel (its layout and its groups' sections), once each. */
+export function layoutCommands(element: ResolvedElement): string[] {
+  const ids = new Set<string>();
+  const walk = (item: LayoutItem) => {
+    if (typeof item === "string" || "path" in item || "group" in item) return;
+    if ("command" in item) ids.add(item.command);
+    else if ("row" in item) item.row.forEach(walk);
+    else item.items.forEach(walk);
+  };
+  for (const section of element.definition.layout ?? []) section.items.forEach(walk);
+  for (const group of element.groups) group.layout?.items.forEach(walk);
+  return [...ids];
 }

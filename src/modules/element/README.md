@@ -42,6 +42,13 @@ declaration, and one command changes any element's values.
 - **Values:** `clip.props` holds only what differs from `defaults(format)`, so a value the clip
   doesn't store follows the project's format. Shared group values live under their own key
   (`clip.transform`).
+  - **Missing value types:** a `custom` prop whose type isn't in `propTypes` parses as `z.never()`
+    ("value type … is not registered"), so no value is accepted, and the registry logs once
+    `element "<kind>": value type "<name>" for "<path>" is not registered (is its module loaded?)`.
+  - `DrawEnv.ensureFont` takes a `FaceRequest` (family, source, weight, style), a structural type
+    that `fonts`' `FontRequest` fits, so `element` doesn't import `fonts`.
+  - `logic/commands.ts`: `checkPanelCommand`, `layoutCommands(element)` (the command ids in its
+    layout and its groups' sections, once each).
   - `logic/layout.ts`: `resolveLayout(element, controlOf)` → sections + issues. Without a
     `layout`: "General" (top-level fields, order 0), then one section per group (order 10, 20, …,
     its toggle in the header), then each supported shared group's own section (its `layout` with
@@ -65,8 +72,8 @@ declaration, and one command changes any element's values.
   the timeline's `CreateTiles` and added with `timeline.addElement`.
 - **Not yet:** saving projects (`version` migrations), lists of groups, keyframes.
 
-| Command              | MCP tool              | Notes                                                                                                                      |
-| -------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `element.setProps`   | `element_set_props`   | `clipIds` (one kind), `patch`. `element.clip_not_found`, `mixed_kinds`, `unknown_kind`, `invalid_props`, `read_only`       |
-| `element.resetProps` | `element_reset_props` | `clipIds`, optional `paths` (fields, groups, or shared group keys); without paths every prop. `invalid_props`, `read_only` |
-| —                    | `element_describe`    | every element: name, tracks, source, supports, JSON schema of the patch, defaults for the format                           |
+| Command              | MCP tool              | Notes                                                                                                                                           |
+| -------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `element.setProps`   | `element_set_props`   | `clipIds` (one kind), `patch`. `element.clip_not_found`, `mixed_kinds`, `unknown_kind`, `invalid_props`, `read_only`                            |
+| `element.resetProps` | `element_reset_props` | `clipIds`, optional `paths` (fields, groups, or shared group keys); without paths every prop. `invalid_props`, `read_only`                      |
+| —                    | `element_describe`    | every element: name, tracks, source, supports, JSON schema of the patch, defaults for the format, `commands` (panel commands, `layoutCommands`) |

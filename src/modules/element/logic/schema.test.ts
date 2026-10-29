@@ -44,3 +44,12 @@ describe("patchSchema", () => {
     expect(schema.safeParse({ "transform.scale": 2 }).success).toBe(false);
   });
 });
+
+describe("patchSchema with a missing value type", () => {
+  it("refuses any value of an unregistered custom type", () => {
+    const ghost = { font: { kind: "custom", type: "ghost" } } as const;
+    const schema = patchSchema(ghost, { propType: () => undefined, groups: [] });
+    expect(schema.safeParse({ font: {} }).success).toBe(false);
+    expect(schema.safeParse({}).success).toBe(true);
+  });
+});

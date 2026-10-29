@@ -64,6 +64,17 @@ const transform = defineSharedGroup({
   defaults: () => ({ x: 0, y: 0, scale: 1, rotation: 0 }),
 });
 
+const haunted = defineElement({
+  kind: "haunted",
+  name: "Haunted",
+  source: "none",
+  tracks: ["video"],
+  properties: { face: { kind: "custom", type: "ghost" } },
+  layout: [{ title: "A", items: ["face", { command: "element.resetProps" }] }],
+  defaults: () => ({}),
+  display: () => ({ icon: Type, color: "clip-type", label: "Haunted", body: "none" }),
+});
+
 const testModule = defineModule({
   ref: defineModuleRef<Record<string, never>>("test"),
   name: "Test",
@@ -72,7 +83,7 @@ const testModule = defineModule({
   commands: [],
   mcpTools: [],
   setup({ contribute }) {
-    contribute(elements, note, other, spy);
+    contribute(elements, note, other, spy, haunted);
     contribute(sharedGroups, transform);
     return { api: {} };
   },
@@ -223,7 +234,12 @@ describe("element_describe", () => {
       },
     );
     const first = result.content[0] as { text: string };
-    const described = JSON.parse(first.text) as Array<{ kind: string; defaults: unknown }>;
+    const described = JSON.parse(first.text) as Array<{
+      kind: string;
+      defaults: unknown;
+      commands: string[];
+    }>;
+    expect(described.find((e) => e.kind === "haunted")?.commands).toEqual(["element.resetProps"]);
     expect(described.find((e) => e.kind === "note")?.defaults).toEqual({
       text: "Hi",
       size: 10,
@@ -241,6 +257,13 @@ describe("ElementApi.warn", () => {
     api.warn('element "x": something');
     api.warn('element "x": other');
     expect(log.warn).toHaveBeenCalledTimes(2);
+    api.dispose();
+  });
+  it("reports a value type that isn't registered", () => {
+    const log = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const api = createElementApi(kernel.points, log);
+    api.get("haunted");
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('value type "ghost"'));
     api.dispose();
   });
 });

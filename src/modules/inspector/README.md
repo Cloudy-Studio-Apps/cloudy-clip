@@ -32,7 +32,8 @@ linked picture + sound counts as one clip: the one clicked, via the timeline's
 - **Files:** `ui/InspectorPanel.tsx` picks the view (`ProjectView`, `ClipView`, `MultiView`);
   `InspectorHeader` and `InspectorSection` (collapsible, optional header `actions`) are shared by
   them; `InfoList` comes from `@/ui`. The header shows the clip's element `display`.
-  - `ui/ElementPanel.tsx`: `resolveLayout` of the clip's element (controls by `defaultControl`,
+  - `ui/ElementPanel.tsx`: reads the `elements` point, so an element registered after the panel
+    opened shows; `resolveLayout` of the clip's element (controls by `defaultControl`,
     custom types' control from `propTypes`), memoized per resolved element; values resolved once
     per clip change. Shared group sections whose `appliesTo` is false for the clip are left out.
     Each section is drawn by its layout from `sectionLayouts`, each item by `renderItem`: fields
@@ -42,8 +43,8 @@ linked picture + sound counts as one clip: the one clicked, via the timeline's
   - `ui/CommandItem.tsx`: `checkPanelCommand(id, bus.get(id))`; the control is the item's
     `control`, else `button` (no field) or `choices` (an enum field). Runs `bus.execute(id, {
 ...input, clipIds: [clip.id] })`.
-  - **Missing pieces never break the panel:** an unknown command, control, section layout or
-    element shows a `WarningRow` in place ("… isn't available." / "… can't be shown." with the
+  - **Missing pieces never break the panel:** an unknown command, control, section layout,
+    value type (a `custom` field whose `propTypes` entry is missing) or element shows a `WarningRow` in place ("… isn't available." / "… can't be shown." with the
     reason) and is logged once per kernel (`useWarnOnce` → `ElementApi.warn`); layout issues from
     `resolveLayout` are logged the same way.
   - `logic/display.ts` (`toDisplay`/`fromDisplay`: opacity 0–1 shown as %), `logic/conditions.ts`
