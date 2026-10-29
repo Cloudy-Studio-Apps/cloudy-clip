@@ -18,7 +18,7 @@ const WEIGHT_NAME: Record<FontWeight, string> = {
 const ALL_WEIGHTS = Object.keys(WEIGHT_NAME) as FontWeight[];
 
 /** The `font-weight` control: only the weights the clip's family has (all while it is unknown). */
-export function FontWeightControl({ value, values, label, live }: FieldControlProps) {
+export function FontWeightControl({ value, values, label, live, disabled }: FieldControlProps) {
   const family = useClipFamily(values);
   const weights = family ? availableWeights(family) : ALL_WEIGHTS;
   return (
@@ -26,6 +26,7 @@ export function FontWeightControl({ value, values, label, live }: FieldControlPr
       label={label}
       className="min-w-0 flex-1"
       value={String(value)}
+      disabled={disabled}
       options={weights.map((w) => ({ value: w, label: `${WEIGHT_NAME[w]} ${w}` }))}
       onChange={(next) => {
         const face = pickVariant(family, {

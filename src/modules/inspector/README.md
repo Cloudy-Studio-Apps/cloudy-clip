@@ -20,8 +20,11 @@ linked picture + sound counts as one clip: the one clicked, via the timeline's
     spec names), `segmented`, `select`; for commands `button` and `choices` (one button per enum
     value).
   - `sectionLayouts` (keyed by `id`): `{ id, component }` gets `SectionLayoutProps` (`section`,
-    `clip`, `values`, `live`, `renderItem`). Built in: `section` (`ui/PanelSection.tsx`):
-    collapsible, the group's toggle as a `Switch` in the header, items only while it is on.
+    `clip`, `values`, `live`, `renderItem`, `enabled(path)`). Built in: `section`
+    (`ui/PanelSection.tsx`): collapsible, the group's toggle as a `Switch` in the header (disabled
+    when `enabled(header)` is false), items only while it is on.
+  - Every built-in field control passes `disabled` (read-only or `enabledWhen` false) to its kit
+    field, so a disabled field can't send a command.
 - **API:** `InspectorApi.recents`: the recent colors of every color field (`store` of `{ colors }`,
   `push(color)`), per kernel, saved in `localStorage` key `cloudy-clip.colors.recent` (max 12;
   `inspector.recents.store.ts`, `logic/recents.ts`). Exported for custom controls:

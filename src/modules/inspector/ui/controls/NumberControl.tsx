@@ -6,7 +6,7 @@ import { shownRange } from "./controls.range";
 import { FieldRow } from "./FieldRow";
 
 /** A number box; commits on Enter or blur. Also the `dial` control for now. */
-export function NumberControl({ path, spec, value, label, live }: FieldControlProps) {
+export function NumberControl({ path, spec, value, label, live, disabled }: FieldControlProps) {
   const range = shownRange(spec);
   return (
     <FieldRow label={label}>
@@ -17,6 +17,7 @@ export function NumberControl({ path, spec, value, label, live }: FieldControlPr
         min={toDisplay(spec.min ?? -Infinity, spec.display)}
         max={toDisplay(spec.max ?? Infinity, spec.display)}
         step={range.step}
+        disabled={disabled}
         unit={range.unit}
         onChange={(shown) => live.commit(pathPatch(path, fromDisplay(shown, spec.display)))}
       />

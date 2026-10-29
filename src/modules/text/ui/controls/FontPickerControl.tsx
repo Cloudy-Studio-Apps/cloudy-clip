@@ -6,7 +6,7 @@ import type { TextStyle } from "../../text.types";
 import { FontPicker } from "../FontPicker";
 
 /** The `font-picker` control: the family button and its searchable list; keeps the closest face. */
-export function FontPickerControl({ values, live }: FieldControlProps) {
+export function FontPickerControl({ values, live, disabled }: FieldControlProps) {
   const fonts = useModule(fontsRef);
   const style = values as unknown as TextStyle;
   const pick = (family: FontFamily) => {
@@ -18,5 +18,5 @@ export function FontPickerControl({ values, live }: FieldControlProps) {
     void fonts.load({ ...font, ...face });
     live.commit({ font, weight: face.weight, italic: face.style === "italic" });
   };
-  return <FontPicker style={style} onPick={pick} />;
+  return <FontPicker style={style} onPick={pick} disabled={disabled} />;
 }

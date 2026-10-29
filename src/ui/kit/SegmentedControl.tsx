@@ -8,6 +8,8 @@ interface SegmentedControlProps<T extends string> {
   value: T | undefined;
   onChange(value: T): void;
   className?: string;
+  /** Shown dimmed; nothing can be changed. */
+  disabled?: boolean;
 }
 
 /** A row of mutually exclusive choices, e.g. the preview's aspect ratio. */
@@ -17,6 +19,7 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   className,
+  disabled,
 }: SegmentedControlProps<T>) {
   return (
     <div
@@ -24,6 +27,7 @@ export function SegmentedControl<T extends string>({
       aria-label={label}
       className={cn(
         "inline-flex h-7 rounded-sm border border-border bg-surface-sunken p-0.5",
+        disabled && "opacity-50",
         className,
       )}
     >
@@ -35,12 +39,13 @@ export function SegmentedControl<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
+            disabled={disabled}
             title={option.hint}
             className={cn(
-              "min-w-10 cursor-pointer rounded-xs px-2 font-mono text-xs",
+              "min-w-10 cursor-pointer rounded-xs px-2 font-mono text-xs disabled:cursor-default",
               selected
                 ? "bg-muted text-foreground shadow-soft"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-muted-foreground enabled:hover:text-foreground",
             )}
             onClick={() => onChange(option.value)}
           >

@@ -12,6 +12,8 @@ interface NumberFieldProps {
   /** Fires once, on Enter or blur, with a clamped number. */
   onChange(value: number): void;
   className?: string;
+  /** Shown dimmed; nothing can be changed. */
+  disabled?: boolean;
 }
 
 /** A compact number box that commits on Enter or blur and restores the value on bad input. */
@@ -24,6 +26,7 @@ export function NumberField({
   unit,
   onChange,
   className,
+  disabled,
 }: NumberFieldProps) {
   const [text, setText] = useState(String(value));
   const [seen, setSeen] = useState(value);
@@ -42,12 +45,14 @@ export function NumberField({
     <label
       className={cn(
         "flex h-7 items-center gap-1 rounded-sm border border-border bg-surface-sunken px-2 focus-within:border-ring",
+        disabled && "opacity-50",
         className,
       )}
     >
       <input
         aria-label={label}
         inputMode="decimal"
+        disabled={disabled}
         value={text}
         onChange={(event) => setText(event.target.value)}
         onBlur={(event) => commit(event.target.value)}

@@ -51,7 +51,7 @@ textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs 
     fractions of the short side). `logic/fontpick.ts`: `pickVariant` (keep the weight/italic if the
     family has it, else `closestVariant`), `availableWeights`, `hasItalic`, `visibleWindow` (the rows
     the font list renders).
-  - `ui/controls/`: `FontPickerControl` (the `FontPicker` popover; picking a family keeps the
+  - `ui/controls/`: every field control honors `disabled`. `FontPickerControl` (the `FontPicker` popover, whose trigger is disabled with it; picking a family keeps the
     closest face and loads it), `FontWeightControl` (only the weights the family has),
     `FontItalicControl` (disabled when the family has no italic), `PresetRowControl` (one button per
     preset). `FontList` shows only the rows in view (fixed 28 px rows) with search; `FontRow` shows

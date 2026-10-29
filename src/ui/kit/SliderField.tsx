@@ -12,6 +12,8 @@ interface SliderFieldProps {
   onInput(value: number): void;
   /** Fires once, on release or when a number is typed (one undo step). */
   onCommit(value: number): void;
+  /** Shown dimmed; nothing can be changed. */
+  disabled?: boolean;
 }
 
 /**
@@ -28,6 +30,7 @@ export function SliderField({
   unit,
   onInput,
   onCommit,
+  disabled,
 }: SliderFieldProps) {
   const range = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -59,6 +62,7 @@ export function SliderField({
         min={min}
         max={max}
         step={step}
+        disabled={disabled}
         defaultValue={value}
         onPointerDown={() => {
           dragging.current = true;
@@ -73,7 +77,7 @@ export function SliderField({
         onPointerUp={(event) => finish(Number(event.currentTarget.value))}
         onPointerCancel={(event) => finish(Number(event.currentTarget.value))}
         onBlur={(event) => finish(Number(event.currentTarget.value))}
-        className="h-1 min-w-0 flex-1 cursor-pointer accent-primary"
+        className="h-1 min-w-0 flex-1 cursor-pointer accent-primary disabled:cursor-default disabled:opacity-50"
       />
       <div ref={box} className="contents">
         <NumberField
@@ -83,6 +87,7 @@ export function SliderField({
           max={max}
           step={step}
           unit={unit}
+          disabled={disabled}
           onChange={(next) => {
             if (range.current) range.current.value = String(next);
             onInput(next);

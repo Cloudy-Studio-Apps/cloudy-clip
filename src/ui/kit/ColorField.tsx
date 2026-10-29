@@ -14,6 +14,8 @@ interface ColorFieldProps {
   onChange(color: string, opacity: number, info: ColorChangeInfo): void;
   recents?: readonly string[];
   swatches?: readonly string[];
+  /** Shown dimmed; nothing can be changed. */
+  disabled?: boolean;
 }
 
 /** A labelled row: a swatch that opens the picker, the hex text and the opacity %. */
@@ -24,39 +26,42 @@ export function ColorField({
   onChange,
   recents,
   swatches,
+  disabled,
 }: ColorFieldProps) {
   const alpha = opacity ?? 1;
   const shown = `${color}${Math.round(alpha * 255)
     .toString(16)
     .padStart(2, "0")}`;
+  const swatchButton = (
+    <button
+      type="button"
+      aria-label={`${label} color`}
+      disabled={disabled}
+      className="size-7 shrink-0 cursor-pointer rounded-sm border border-border disabled:cursor-default disabled:opacity-50"
+      style={{ background: `linear-gradient(${shown}, ${shown}), ${CHECKERBOARD}` }}
+    />
+  );
   return (
     <div className="flex items-center gap-2">
       <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
-      <Popover
-        side="left"
-        trigger={
-          <button
-            type="button"
-            aria-label={`${label} color`}
-            className="size-7 shrink-0 cursor-pointer rounded-sm border border-border"
-            style={{
-              background: `linear-gradient(${shown}, ${shown}), ${CHECKERBOARD}`,
-            }}
+      {disabled ? (
+        swatchButton
+      ) : (
+        <Popover side="left" trigger={swatchButton}>
+          <ColorPicker
+            color={color}
+            opacity={opacity}
+            onChange={onChange}
+            recents={recents}
+            swatches={swatches}
           />
-        }
-      >
-        <ColorPicker
-          color={color}
-          opacity={opacity}
-          onChange={onChange}
-          recents={recents}
-          swatches={swatches}
-        />
-      </Popover>
+        </Popover>
+      )}
       <HexInput
         value={color}
         onChange={(hex) => onChange(hex, alpha, { done: true })}
         className="w-20"
+        disabled={disabled}
       />
       {opacity !== undefined && (
         <NumberField
@@ -67,6 +72,7 @@ export function ColorField({
           unit="%"
           onChange={(percent) => onChange(color, percent / 100, { done: true })}
           className="w-14"
+          disabled={disabled}
         />
       )}
     </div>

@@ -57,6 +57,8 @@ export interface SectionLayoutProps {
   live: PropsLive;
   /** Draws one item (field, row, sub-section, command) with its control. */
   renderItem(item: ResolvedItem, index: number): ReactNode;
+  /** Whether the field at `path` can be changed now (not read-only, its `enabledWhen` holds). */
+  enabled(path: string): boolean;
 }
 
 /** How a whole section is drawn (`"section"`: collapsible, its group's toggle in the header). */

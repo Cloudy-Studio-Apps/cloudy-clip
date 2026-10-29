@@ -10,6 +10,7 @@ import {
 } from "@/modules/element";
 import { projectRef, type Clip, type Track } from "@/modules/project";
 import { sectionLayouts } from "../inspector.points";
+import { isEnabled } from "../logic/conditions";
 import { CommandItem } from "./CommandItem";
 import { FieldItem } from "./FieldItem";
 import { useWarnOnce } from "./panel.warn.hook";
@@ -53,6 +54,10 @@ export function ElementPanel({ clip, track }: { clip: Clip; track: Track }) {
     );
   }
 
+  const enabled = (path: string) => {
+    const spec = resolved.fields.get(path);
+    return spec !== undefined && isEnabled(spec, values);
+  };
   const renderItem = (item: ResolvedItem, index: number): ReactNode => {
     switch (item.type) {
       case "field":
@@ -67,7 +72,7 @@ export function ElementPanel({ clip, track }: { clip: Clip; track: Track }) {
         );
       case "sub":
         return (
-          <SubSection key={index} item={item} values={values} live={live}>
+          <SubSection key={index} item={item} values={values} live={live} enabled={enabled}>
             {item.items.map(renderItem)}
           </SubSection>
         );
@@ -99,6 +104,7 @@ export function ElementPanel({ clip, track }: { clip: Clip; track: Track }) {
           values={values}
           live={live}
           renderItem={renderItem}
+          enabled={enabled}
         />
       );
     });

@@ -13,7 +13,15 @@ const SWATCHES = ["#ffffff", "#1f2430", "#f2a385", "#8cc4f0", "#f5d97a", "#b9a3f
  * A color (and its sibling opacity, when the spec names one): drags show live; a release, typed
  * hex or swatch commits once and is remembered in the recent colors.
  */
-export function ColorControl({ path, spec, value, values, label, live }: FieldControlProps) {
+export function ColorControl({
+  path,
+  spec,
+  value,
+  values,
+  label,
+  live,
+  disabled,
+}: FieldControlProps) {
   const recents = useModule(inspectorRef).recents;
   const colors = useStore(recents.store, (s) => s.colors);
   const parent = path.includes(".") ? path.slice(0, path.lastIndexOf(".") + 1) : "";
@@ -24,6 +32,7 @@ export function ColorControl({ path, spec, value, values, label, live }: FieldCo
       label={label}
       color={typeof value === "string" ? value : "#000000"}
       opacity={opacity}
+      disabled={disabled}
       swatches={SWATCHES}
       recents={colors}
       onChange={(color, alpha, info) => {

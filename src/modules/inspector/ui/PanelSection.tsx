@@ -8,7 +8,7 @@ import { InspectorSection } from "./InspectorSection";
  * The built-in `section` layout: collapsible, with its group's toggle in the header. While the
  * toggle is off only the header shows.
  */
-export function PanelSection({ section, values, live, renderItem }: SectionLayoutProps) {
+export function PanelSection({ section, values, live, renderItem, enabled }: SectionLayoutProps) {
   const header = section.header;
   const on = header === undefined || getPath(values, header) === true;
   return (
@@ -19,6 +19,7 @@ export function PanelSection({ section, values, live, renderItem }: SectionLayou
           <Switch
             label={section.title}
             checked={on}
+            disabled={!enabled(header)}
             onChange={(checked) => live.commit(pathPatch(header, checked))}
           />
         )

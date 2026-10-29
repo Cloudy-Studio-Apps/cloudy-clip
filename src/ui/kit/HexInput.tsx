@@ -7,10 +7,12 @@ interface HexInputProps {
   value: string;
   onChange(hex: string): void;
   className?: string;
+  /** Shown dimmed; nothing can be changed. */
+  disabled?: boolean;
 }
 
 /** A hex text box: commits a valid color on Enter or blur, otherwise restores the last one. */
-export function HexInput({ value, onChange, className }: HexInputProps) {
+export function HexInput({ value, onChange, className, disabled }: HexInputProps) {
   const [text, setText] = useState(value);
   const [seen, setSeen] = useState(value);
   if (seen !== value) {
@@ -28,6 +30,7 @@ export function HexInput({ value, onChange, className }: HexInputProps) {
     <input
       aria-label="Hex color"
       spellCheck={false}
+      disabled={disabled}
       value={text}
       onChange={(event) => setText(event.target.value)}
       onBlur={commit}
@@ -36,7 +39,7 @@ export function HexInput({ value, onChange, className }: HexInputProps) {
         if (event.key === "Escape") setText(value);
       }}
       className={cn(
-        "h-7 min-w-0 rounded-sm border border-border bg-surface-sunken px-2 font-mono text-xs uppercase text-foreground outline-none focus:border-ring",
+        "h-7 min-w-0 rounded-sm border border-border bg-surface-sunken px-2 font-mono text-xs uppercase text-foreground outline-none focus:border-ring disabled:opacity-50",
         className,
       )}
     />

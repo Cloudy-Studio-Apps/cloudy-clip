@@ -5,7 +5,7 @@ import { pathPatch } from "../../logic/paths";
 import { FieldRow } from "./FieldRow";
 
 /** One of a few values as a segmented row (the `segmented` control), committed at once. */
-export function ChoiceControl({ path, spec, value, label, live }: FieldControlProps) {
+export function ChoiceControl({ path, spec, value, label, live, disabled }: FieldControlProps) {
   const options = (spec.values ?? []).map((v) => ({
     value: v,
     label: spec.labels?.[v] ?? labelOf(v),
@@ -16,6 +16,7 @@ export function ChoiceControl({ path, spec, value, label, live }: FieldControlPr
         label={label}
         options={options}
         value={typeof value === "string" ? value : undefined}
+        disabled={disabled}
         onChange={(next) => live.commit(pathPatch(path, next))}
       />
     </FieldRow>

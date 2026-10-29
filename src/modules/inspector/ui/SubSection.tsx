@@ -8,17 +8,20 @@ interface SubSectionProps {
   item: Extract<ResolvedItem, { type: "sub" }>;
   values: Record<string, unknown>;
   live: PropsLive;
+  /** Whether the field at a path can be changed now. */
+  enabled(path: string): boolean;
   children: ReactNode;
 }
 
 /** A titled group inside a section; with a toggle, its fields show only while it is on. */
-export function SubSection({ item, values, live, children }: SubSectionProps) {
+export function SubSection({ item, values, live, enabled, children }: SubSectionProps) {
   const header = item.header;
   if (header !== undefined) {
     return (
       <ToggleRow
         label={item.title}
         checked={getPath(values, header) === true}
+        disabled={!enabled(header)}
         onChange={(checked) => live.commit(pathPatch(header, checked))}
       >
         {children}
