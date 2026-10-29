@@ -103,8 +103,14 @@ export interface Junction {
   duration: Micros;
   props: Record<string, unknown>;
 }
-export interface ClipMove { clipId: ClipId; start: Micros }
-export interface LayoutConflict { clip: Clip; other: Clip }
+export interface ClipMove {
+  clipId: ClipId;
+  start: Micros;
+}
+export interface LayoutConflict {
+  clip: Clip;
+  other: Clip;
+}
 // ProjectState gains: junctions: Record<JunctionId, Junction>;
 
 // logic/links.ts
@@ -113,7 +119,11 @@ export function withPartners(state: ProjectState, clipIds: readonly ClipId[]): C
 
 // logic/junctions.ts
 /** The junction joining exactly these two clips (left, right), if any. */
-export function junctionBetween(state: ProjectState, leftId: ClipId, rightId: ClipId): Junction | undefined;
+export function junctionBetween(
+  state: ProjectState,
+  leftId: ClipId,
+  rightId: ClipId,
+): Junction | undefined;
 /** Junctions that have this clip on either side. */
 export function junctionsOfClip(state: ProjectState, clipId: ClipId): Junction[];
 /**
@@ -176,7 +186,8 @@ export type OverlapRule =
 export interface MixEnv {
   format: ProjectFormat;
   /** Canvas pixels per output pixel. */
-  kx: number; ky: number;
+  kx: number;
+  ky: number;
   /** Deterministic random in [0, 1) seeded by the junction id (stable across frames). */
   random(): number;
   /** Seconds since the junction started (for animated grain). */
@@ -185,10 +196,16 @@ export interface MixEnv {
 /** Draws one frame of a junction onto `ctx` (full frame, identity transform, canvas pixels). */
 export type MixFn = (
   ctx: CanvasRenderingContext2D,
-  a: CanvasImageSource, b: CanvasImageSource,
-  progress: number, props: Record<string, unknown>, env: MixEnv,
+  a: CanvasImageSource,
+  b: CanvasImageSource,
+  progress: number,
+  props: Record<string, unknown>,
+  env: MixEnv,
 ) => void;
-export interface JunctionDisplay { label: string; icon: LucideIcon }
+export interface JunctionDisplay {
+  label: string;
+  icon: LucideIcon;
+}
 export interface JunctionKindDefinition {
   kind: string;
   name: string;
@@ -203,7 +220,10 @@ export interface JunctionKindDefinition {
   mix?: MixFn;
   display?(props: Record<string, unknown>): Partial<JunctionDisplay>;
 }
-export interface ResolvedJunctionKind { definition: JunctionKindDefinition; schema: z.ZodObject }
+export interface ResolvedJunctionKind {
+  definition: JunctionKindDefinition;
+  schema: z.ZodObject;
+}
 export interface JunctionApi {
   get(kind: string): ResolvedJunctionKind | undefined;
   list(): readonly ResolvedJunctionKind[];
@@ -244,15 +264,33 @@ types from `propTypes`). Values are merged/minimized with the element helpers (`
 
 ```ts
 // limits.ts
-export interface DurationLimits { min: Micros; max: Micros; default: Micros } // in junction.types.ts
+export interface DurationLimits {
+  min: Micros;
+  max: Micros;
+  default: Micros;
+} // in junction.types.ts
 /** Limits for a kind between two clips; `{0,0,0}` when the kind doesn't overlap. max ≥ min or the cut can't take it. */
-export function durationLimits(kind: JunctionKindDefinition, state: ProjectState, left: Clip, right: Clip): DurationLimits;
+export function durationLimits(
+  kind: JunctionKindDefinition,
+  state: ProjectState,
+  left: Clip,
+  right: Clip,
+): DurationLimits;
 /** `d` clamped into the limits (for drags). */
 export function clampDuration(d: Micros, limits: DurationLimits): Micros;
 // cut.ts
-export interface Cut { trackId: TrackId; left: Clip; right: Clip } // in junction.types.ts
+export interface Cut {
+  trackId: TrackId;
+  left: Clip;
+  right: Clip;
+} // in junction.types.ts
 /** The cut between two clips that touch, or overlap by their junction, nearest to `time` within `tolerance`. */
-export function cutNear(state: ProjectState, trackId: TrackId, time: Micros, tolerance: Micros): Cut | undefined;
+export function cutNear(
+  state: ProjectState,
+  trackId: TrackId,
+  time: Micros,
+  tolerance: Micros,
+): Cut | undefined;
 /** The cut at the end of a clip (its right neighbour touching it), if any. */
 export function cutAfter(state: ProjectState, clipId: ClipId): Cut | undefined;
 ```
@@ -407,14 +445,26 @@ engine/engine.types.ts, engine/engine.html.ts, engine/engine.slots.ts, README.md
 
 ```ts
 // logic/junctions.ts
-export interface ActiveJunction { junction: Junction; progress: number; elapsed: number } // preview.types.ts
+export interface ActiveJunction {
+  junction: Junction;
+  progress: number;
+  elapsed: number;
+} // preview.types.ts
 /** Overlapping junctions under `time` on a track: progress = (time - right.start) / duration. */
-export function activeJunctions(project: ProjectState, trackId: TrackId, time: Micros): ActiveJunction[];
+export function activeJunctions(
+  project: ProjectState,
+  trackId: TrackId,
+  time: Micros,
+): ActiveJunction[];
 /** Volume factors (0..1) for the left and right sound clips under a junction (equal-power). */
 export function crossfadeGains(progress: number): { left: number; right: number };
 // engine.types.ts: EngineOptions gains `junctions: Pick<JunctionApi, "get" | "resolve">`
 // engine.mix.ts
-export class MixCanvases { /** two pooled full-frame canvases sized like the main one */ a(): CanvasRenderingContext2D; b(): CanvasRenderingContext2D; dispose(): void }
+export class MixCanvases {
+  /** two pooled full-frame canvases sized like the main one */ a(): CanvasRenderingContext2D;
+  b(): CanvasRenderingContext2D;
+  dispose(): void;
+}
 ```
 
 Engine behavior: per video track, active clips may be two (left and right of an overlap). Draw
@@ -464,15 +514,19 @@ transition.commands.test.ts, README.md}`; modify `src/app/bootstrap.ts`, `docs/m
 ```ts
 // transition.types.ts
 export interface TransitionPresetDefinition {
-  id: string; name: string;
+  id: string;
+  name: string;
   category: "basic" | "overlay" | "blur" | "glitch" | (string & {});
-  properties: PropertyTree;                       // the preset's options
+  properties: PropertyTree; // the preset's options
   defaults(format: ProjectFormat): Record<string, unknown>;
   mix: MixFn;
   /** Optional faster thumbnail draw; defaults to `mix` over two sample pictures. */
   thumbnail?: MixFn;
 }
-export interface TransitionProps { preset: string; options: Record<string, unknown> }
+export interface TransitionProps {
+  preset: string;
+  options: Record<string, unknown>;
+}
 export type TransitionApi = Record<string, never>;
 // transition.points.ts
 export const transitionPresets: Point<TransitionPresetDefinition>; // "transition.presets", keyed by id
@@ -510,21 +564,22 @@ dissolve.ts, wipe.ts, glare.ts, woosh.ts, glitch.ts}` and `src/modules/transitio
 easing.test.ts, noise.ts, noise.test.ts}`; modify `transition.module.ts` (contribute
 `builtInPresets`).
 
-| id              | name           | category | options (defaults)                                            | look                                                                                                   |
-| --------------- | -------------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `fade`          | Fade           | basic    | `color` `#000000`                                             | a → color by p=0.5, color → b after                                                                    |
-| `cross-dissolve`| Cross dissolve | basic    | —                                                             | a, then b at `globalAlpha = ease(p)`                                                                    |
-| `dissolve`      | Dissolve       | basic    | `grain` 0..1 (0.5)                                            | b revealed through a seeded block mask whose threshold = p (block size from `grain`)                    |
-| `wipe`          | Left to right  | basic    | `direction` left/right/up/down (`right`), `softness` 0..1 (0.3) | b over a through a moving linear-gradient mask (`destination-in` on canvas b)                            |
-| `glare`         | Glare          | overlay  | `color` `#ffffff`                                             | cut at p=0.5 under a radial `lighter` flash peaking at 0.5, with a diagonal streak sweeping across      |
-| `woosh`         | Woosh          | blur     | `direction` left/right (`left`)                               | a slides out / b slides in with ease-in-out; motion blur per Task 1's result                             |
-| `glitch`        | Glitch         | glitch   | `intensity` 0..1 (0.6)                                        | cut at p=0.5; around it, seeded slice offsets + red/blue `lighter` split per Task 1's result             |
+| id               | name           | category | options (defaults)                                              | look                                                                                               |
+| ---------------- | -------------- | -------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `fade`           | Fade           | basic    | `color` `#000000`                                               | a → color by p=0.5, color → b after                                                                |
+| `cross-dissolve` | Cross dissolve | basic    | —                                                               | a, then b at `globalAlpha = ease(p)`                                                               |
+| `dissolve`       | Dissolve       | basic    | `grain` 0..1 (0.5)                                              | b revealed through a seeded block mask whose threshold = p (block size from `grain`)               |
+| `wipe`           | Left to right  | basic    | `direction` left/right/up/down (`right`), `softness` 0..1 (0.3) | b over a through a moving linear-gradient mask (`destination-in` on canvas b)                      |
+| `glare`          | Glare          | overlay  | `color` `#ffffff`                                               | cut at p=0.5 under a radial `lighter` flash peaking at 0.5, with a diagonal streak sweeping across |
+| `woosh`          | Woosh          | blur     | `direction` left/right (`left`)                                 | a slides out / b slides in with ease-in-out; motion blur per Task 1's result                       |
+| `glitch`         | Glitch         | glitch   | `intensity` 0..1 (0.6)                                          | cut at p=0.5; around it, seeded slice offsets + red/blue `lighter` split per Task 1's result       |
 
 ```ts
 // logic/easing.ts
-export function easeInOutCubic(t: number): number;  export function bump(t: number): number; // 0→1→0, peak at 0.5
+export function easeInOutCubic(t: number): number;
+export function bump(t: number): number; // 0→1→0, peak at 0.5
 // logic/noise.ts
-export function seededRandom(seed: string): () => number;          // mulberry32 over a string hash
+export function seededRandom(seed: string): () => number; // mulberry32 over a string hash
 export function blockMask(width: number, height: number, block: number, seed: string): Float32Array; // per-block thresholds 0..1
 ```
 

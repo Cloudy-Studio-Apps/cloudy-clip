@@ -86,7 +86,7 @@ clips really play during it and the video gets shorter.
      `resolve(junction)`).
    - **`timeline`** (requires `junction`): draws the chips, keeps junctions valid in every clip
      command (via the `project` rules), selects junctions, and exposes `cutTarget(clientX,
-     clientY)` (the cut under a screen point, for drops from the tab) next to `dropTarget`.
+clientY)` (the cut under a screen point, for drops from the tab) next to `dropTarget`.
    - **`preview`** (requires `junction`): the mixing hook (below).
 5. **Generic commands** (owned by `junction`): `junction.add` (`kind`, `leftClipId`,
    `rightClipId` or `at` + `trackId` to pick the cut, optional `props`, optional `duration`),
@@ -154,7 +154,7 @@ clips really play during it and the video gets shorter.
 15. The engine **paints only when both clips' frames are ready** (rule 21). Two clips of the same
     file (a split with a transition between its halves) need **two media elements at once** during
     the overlap. The slot pool assigns a slot per clip id (`MediaSlotPool.assigned`; "reused across
-    clips" means a *free* warm element on the same file is picked), so two active clips already
+    clips" means a _free_ warm element on the same file is picked), so two active clips already
     get two elements; the builder must check that the right clip is preloaded (seeked and its
     frame presented) before the overlap starts, and that the seamless-split path still works when
     there is no junction.
@@ -181,17 +181,18 @@ clips really play during it and the video gets shorter.
     options schema. **Swapping the preset drops the old preset's options** (keeps the duration).
 17. **First catalog**, grouped like CapCut's library:
 
-    | Category | Preset                    | Look                                                              |
-    | -------- | ------------------------- | ----------------------------------------------------------------- |
-    | Basic    | Fade                      | A fades to black, B fades in from black                           |
-    | Basic    | Cross dissolve            | A blends smoothly into B                                          |
-    | Basic    | Dissolve **(my call)**    | Grainy: B appears in random specks/blocks                         |
-    | Basic    | Left to right             | Smooth soft-edged wipe (direction value; push as a later variant) |
-    | Overlay  | Glare                     | A bright flash/light sweep hides the cut                          |
-    | Blur     | Woosh **(my call)**       | A fast blurred swipe (whip pan), picture only, no sound           |
-    | Glitch   | Glitch                    | Shifted slices and a red/blue split                               |
+    | Category | Preset                 | Look                                                              |
+    | -------- | ---------------------- | ----------------------------------------------------------------- |
+    | Basic    | Fade                   | A fades to black, B fades in from black                           |
+    | Basic    | Cross dissolve         | A blends smoothly into B                                          |
+    | Basic    | Dissolve **(my call)** | Grainy: B appears in random specks/blocks                         |
+    | Basic    | Left to right          | Smooth soft-edged wipe (direction value; push as a later variant) |
+    | Overlay  | Glare                  | A bright flash/light sweep hides the cut                          |
+    | Blur     | Woosh **(my call)**    | A fast blurred swipe (whip pan), picture only, no sound           |
+    | Glitch   | Glitch                 | Shifted slices and a red/blue split                               |
 
     More presets later through the same declarations.
+
 18. **Applying** **(my call)**: drag a preset from the tab onto a cut (the cut under the pointer
     highlights; dropping elsewhere does nothing), or click a preset to apply it to the selected
     cut/junction, or to the cut at the end of the selected clip. Applying onto a cut that already
