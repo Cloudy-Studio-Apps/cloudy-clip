@@ -35,7 +35,19 @@ declaration, and one command changes any element's values.
 - **Values:** `clip.props` holds only what differs from `defaults(format)`, so a value the clip
   doesn't store follows the project's format. Shared group values live under their own key
   (`clip.transform`).
-- **Not yet:** layouts (`resolveLayout`), drawing through elements, creation.
+  - `logic/layout.ts`: `resolveLayout(element, controlOf)` → sections + issues. Without a
+    `layout`: "General" (top-level fields, order 0), then one section per group (order 10, 20, …,
+    its toggle in the header), then each supported shared group's own section (its `layout` with
+    paths under its key, or its fields; at its `order`, transform 900) unless the layout placed the
+    group whole. A group alone in a section takes it over; next to other items it is a sub-section;
+    `{ group, items }` shows only those fields; `{ title, items }` is an explicit sub-section; a
+    sub-section inside one is shown flat (issue). Unknown paths are skipped and paths placed twice
+    (outside a `row`) ignored (issues); forgotten properties go to "Other" (order 10000, issue).
+    Hidden fields never show. Labels default to `labelOf(path)`.
+  - `logic/commands.ts`: `checkPanelCommand(id, command)`: placeable when it exists and takes
+    `clipIds` (an array) plus at most one field; else `missing`, `no_clip_ids` or
+    `too_many_fields`, each with a message for the log and the panel's warning row.
+- **Not yet:** drawing through elements, creation.
 
 | Command              | MCP tool              | Notes                                                                                                                |
 | -------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |

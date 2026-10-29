@@ -287,3 +287,32 @@ declare module "@/core" {
     "element.resetProps": { clipIds: string[]; paths?: string[] };
   }
 }
+
+/** An item of a resolved panel section. */
+export type ResolvedItem =
+  | { type: "field"; path: string; control: string; label: string }
+  | { type: "row"; items: ResolvedItem[] }
+  | { type: "sub"; title: string; header?: string; items: ResolvedItem[] }
+  | { type: "command"; id: string; control?: string; label?: string; icon?: string };
+
+/** A panel section with every item worked out: paths checked, controls and labels picked. */
+export interface ResolvedSection {
+  key: string;
+  title: string;
+  order: number;
+  /** Section layout id (`"section"` by default). */
+  layout: string;
+  /** Path of the boolean shown in the header (a group's toggle). */
+  header?: string;
+  items: ResolvedItem[];
+}
+
+/** A mistake in a declaration, worth a warning; the panel still renders. */
+export interface LayoutIssue {
+  message: string;
+}
+
+/** Whether a command can be placed in a panel, and the one field the panel draws for it. */
+export type PanelCommandCheck =
+  | { ok: true; field?: { name: string; schema: z.ZodType } }
+  | { ok: false; reason: "missing" | "no_clip_ids" | "too_many_fields"; message: string };

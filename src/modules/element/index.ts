@@ -13,6 +13,12 @@ export { elements, propTypes, sharedGroups } from "./element.points";
 export { defineElement, definePropType, defineSharedGroup } from "./logic/define";
 /** Builders of declared properties, and the control a property uses by default. */
 export { defaultControl, prop } from "./logic/props";
+/** An element's panel with every path checked and every control and label picked. */
+export { resolveLayout } from "./logic/layout";
+/** Whether a command can sit in a panel (takes clipIds, at most one more field). */
+export { checkPanelCommand } from "./logic/commands";
+/** The label of a field path ("letterSpacing" → "Letter spacing"). */
+export { labelOf } from "./logic/labels";
 /** The Zod schema of a patch of values. */
 export { patchSchema } from "./logic/schema";
 /** Merging, resolving and minimizing values; reading a dotted path. */
@@ -28,9 +34,11 @@ export type {
   ElementApi,
   ElementDefinition,
   ElementDisplay,
+  LayoutIssue,
   LayoutItem,
   LayoutSection,
   NormalizeEnv,
+  PanelCommandCheck,
   PictureDefinition,
   PropertyTree,
   PropsOf,
@@ -39,6 +47,8 @@ export type {
   PropType,
   PropUi,
   ResolvedElement,
+  ResolvedItem,
+  ResolvedSection,
   SharedGroup,
 } from "./element.types";
 
