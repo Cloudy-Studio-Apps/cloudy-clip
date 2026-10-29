@@ -107,6 +107,22 @@ describe("junction-aware placement", () => {
     expect(neighbourBounds(state, state.clips.c0!)).toEqual({ prevEnd: 0, nextStart: 4 * S });
   });
 
+  it("neighbourBounds with a ripple edge ignores the neighbour joined on that edge", () => {
+    const { state } = joinedClips();
+    expect(neighbourBounds(state, state.clips.c0!, "end")).toEqual({
+      prevEnd: 0,
+      nextStart: 9 * S,
+    });
+    expect(neighbourBounds(state, state.clips.c1!, "start")).toEqual({
+      prevEnd: 0,
+      nextStart: 9 * S,
+    });
+    expect(neighbourBounds(state, state.clips.c1!, "end")).toEqual({
+      prevEnd: 3.5 * S,
+      nextStart: 9 * S,
+    });
+  });
+
   it("snapCandidates include the junction's cut (middle of the overlap)", () => {
     const { state } = joinedClips();
     expect(snapCandidates(state, 0)).toContain(3.75 * S);

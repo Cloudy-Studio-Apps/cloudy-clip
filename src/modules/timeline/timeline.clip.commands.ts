@@ -1,3 +1,4 @@
+import { produce } from "immer";
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import { mediaHasAudio, mediaRef } from "@/modules/media";
@@ -5,6 +6,7 @@ import {
   type Clip,
   type TrackId,
   type TrackKind,
+  findLayoutConflict,
   projectRef,
   withPartners,
 } from "@/modules/project";
@@ -123,12 +125,15 @@ export const addClip = defineCommand({
   },
 });
 
-/** Breaks the link between clips, so each is edited on its own. */
+/**
+ * Breaks the link between clips, so each is edited on its own. Refused while their sounds overlap
+ * only because their pictures are joined by a junction (spec rule 7).
+ */
 export const unlinkClips = defineCommand({
   id: "timeline.unlinkClips",
   label: "Unlink",
   description:
-    "Unlinks clips from their linked clips (a video's picture and sound), so each can be moved, trimmed, split and deleted on its own. Undo links them again. Fails if none of the clips is linked. Returns how many clips lost their link.",
+    "Unlinks clips from their linked clips (a video's picture and sound), so each can be moved, trimmed, split and deleted on its own. Undo links them again. Fails if none of the clips is linked, and with timeline.unlink_joined when the clips' sounds overlap under a junction (transition) of their pictures: remove the junction first. Returns how many clips lost their link.",
   undoable: true,
   input: z.object({ clipIds: z.array(z.string()).min(1) }),
   run(ctx, { clipIds }) {
@@ -137,6 +142,17 @@ export const unlinkClips = defineCommand({
     const linked = withPartners(state, clipIds).filter((id) => state.clips[id]?.linkId);
     if (linked.length === 0) {
       throw new CommandFailure("timeline.not_linked", "None of these clips is linked");
+    }
+    const next = produce(state, (draft) => {
+      for (const id of linked) delete draft.clips[id]!.linkId;
+    });
+    const conflict = findLayoutConflict(next);
+    if (conflict) {
+      throw new CommandFailure(
+        "timeline.unlink_joined",
+        `Clips "${conflict.clip.id}" and "${conflict.other.id}" overlap under a junction (transition) of their linked clips; unlinked, nothing would cover that overlap. Remove the junction first.`,
+        { clipId: conflict.other.id },
+      );
     }
     ctx.mutate(ctx.require(projectRef).store, (draft) => {
       for (const id of linked) delete draft.clips[id]!.linkId;

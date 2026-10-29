@@ -6,11 +6,15 @@ import { clampTrim, minClipDuration, neighbourBounds } from "./placement";
 /** Length of a media file, if known. */
 export type MediaDurationOf = (mediaId: MediaId) => Micros | undefined;
 
-/** The limits a trim of `clip` is clamped to: source length, one frame, neighbours. */
+/**
+ * The limits a trim of `clip` is clamped to: source length, one frame, neighbours. Given the
+ * `edge` being trimmed, a neighbour joined to the clip on that edge is no limit: it ripples.
+ */
 export function trimLimits(
   state: ProjectState,
   clip: Clip,
   durationOf: MediaDurationOf,
+  edge?: TrimEdge,
 ): TrimLimits {
   // Elements without a source file (text) have no media.
   const sourceless = clip.mediaId === undefined;
@@ -19,7 +23,7 @@ export function trimLimits(
       (sourceless || !clip.mediaId ? undefined : durationOf(clip.mediaId)) ??
       Number.POSITIVE_INFINITY,
     minDuration: minClipDuration(state),
-    ...neighbourBounds(state, clip),
+    ...neighbourBounds(state, clip, edge),
     ...(sourceless && { sourceless }),
   };
 }
@@ -36,7 +40,7 @@ export function linkedTrimEdge(
   durationOf: MediaDurationOf,
 ): Micros {
   const edges = group.map((clip) => {
-    const next = clampTrim(clip, edge, to, trimLimits(state, clip, durationOf));
+    const next = clampTrim(clip, edge, to, trimLimits(state, clip, durationOf, edge));
     return edge === "start" ? next.start : next.start + next.duration;
   });
   return edge === "start" ? Math.max(...edges) : Math.min(...edges);

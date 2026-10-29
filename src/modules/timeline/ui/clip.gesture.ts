@@ -118,7 +118,7 @@ export function startClipGesture(options: {
     const shared = linkedTrimEdge(state, group, edge, to, durationOf);
     const show = (c: Clip, el: HTMLElement | null) => {
       if (!el) return;
-      const next = clampTrim(c, edge, shared, trimLimits(state, c, durationOf));
+      const next = clampTrim(c, edge, shared, trimLimits(state, c, durationOf, edge));
       el.style.left = `${timeToPx(next.start, pxPerSecond)}px`;
       el.style.width = `${timeToPx(next.duration, pxPerSecond)}px`;
     };

@@ -65,14 +65,14 @@ export const moveClip = defineCommand({
 /**
  * Moves one edge of a clip. The result is clamped: a clip never grows past its source media,
  * never overlaps its neighbours, and never gets shorter than one frame. Linked clips get the
- * same edge (the tightest of their limits). A joined edge ripples the clips after it so the
- * junction's overlap stays; a junction too long for the new lengths shrinks to its maximum.
+ * same edge (the tightest of their limits). A joined edge (shorter or longer) ripples the clips
+ * after it so the junction's overlap stays; a junction too long for the new lengths shrinks to its maximum.
  */
 export const trimClip = defineCommand({
   id: "timeline.trimClip",
   label: "Trim clip",
   description:
-    'Moves the "start" or "end" edge of a clip to a timeline time. Clamped to the source media length, the neighbouring clips, and a one-frame minimum. Linked clips (a video\'s picture and sound) are trimmed to the same edge, the tightest of their limits. Trimming an edge joined by a junction (transition) moves the right-hand clip and everything after it on that track (with linked partners) by the change, so the overlap stays; if a clip gets too short for the junction, its duration shrinks to the new maximum (later clips shift by the difference). Returns the resulting clip.',
+    'Moves the "start" or "end" edge of a clip to a timeline time. Clamped to the source media length, the neighbouring clips (except one joined by a junction on that edge), and a one-frame minimum. Linked clips (a video\'s picture and sound) are trimmed to the same edge, the tightest of their limits. Trimming an edge joined by a junction (transition: the end of the left clip or the start of the right one), shorter or longer, keeps the start of the right clip where the overlap needs it and moves its end and everything after it on that track (with linked partners) by the change, so the overlap stays (fails with timeline.overlap if something unlinked is in the way); if a clip gets too short for the junction, its duration shrinks to the new maximum (later clips shift by the difference). Returns the resulting clip.',
   undoable: true,
   input: z.object({ clipId: z.string(), edge: z.enum(["start", "end"]), time }),
   run(ctx, { clipId, edge, time: to }) {
@@ -86,7 +86,7 @@ export const trimClip = defineCommand({
       for (const c of group) {
         Object.assign(
           draft.clips[c.id]!,
-          clampTrim(c, edge, edgeTime, trimLimits(state, c, durationOf)),
+          clampTrim(c, edge, edgeTime, trimLimits(state, c, durationOf, edge)),
         );
       }
     });

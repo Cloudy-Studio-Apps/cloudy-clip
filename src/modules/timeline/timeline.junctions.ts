@@ -117,8 +117,8 @@ export function fitJunctions(
 }
 
 /**
- * A trim with its junctions kept (spec rule 10): each joined edge that moved (a left clip's end,
- * a right clip's start) ripples the right clip, what follows it on the track and their partners
+ * A trim with its junctions kept (spec rule 10): each joined edge that moved, shorter or longer
+ * (a left clip's end, a right clip's start), ripples the right clip, what follows it on the track and their partners
  * by the change, so the overlap stays; then junctions shrink to fit the new lengths.
  */
 export function rippleTrim(
@@ -137,6 +137,9 @@ export function rippleTrim(
     if (!ids.has(own) || !old || !now) continue;
     const shift = edge === "end" ? end(now) - end(old) : old.start - now.start;
     if (shift === 0) continue;
+    // Every trimmed clip got the same edge (linkedTrimEdge), so every joined edge changed by the
+    // same shift; the ripples of a picture's junction and of its sound's overlap the same clips,
+    // so each clip moves once (summing would move it twice).
     for (const move of rippleMoves(trimmed, junction.rightClipId, shift)) {
       if (!moves.has(move.clipId)) moves.set(move.clipId, move);
     }

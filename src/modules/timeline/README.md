@@ -50,7 +50,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   Clips never overlap on a track except by exactly the duration of a junction joining them (or
   of the picture pair their sounds are linked to; `allowedOverlap` in `project`), and every guard
   goes through that rule: `findOverlap(…, self)`, `neighbourBounds` (a joined neighbour bounds a
-  clip at its own edge), `checkLayout`; move/add fail with `timeline.overlap`. Trims are clamped
+  clip at its own edge, except on the edge being trimmed), `checkLayout`; move/add fail with `timeline.overlap`. Trims are clamped
   to the source media, neighbours and a one-frame minimum; clips only move between tracks of the
   same kind; a split keeps the clip's transform on both halves; only audio tracks can be muted.
   `snapCandidates` include each junction's cut (the middle of its overlap).
@@ -60,15 +60,20 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     becomes its duration if the kind's limits allow it (else `junction.invalid_duration`, nothing
     changes); touching, apart or on different tracks removes an overlapping junction, no shift
     back. The result is the clip plus `removedJunctions`.
-  - **Trim:** shrinking a joined edge (A's end, B's start) ripples B, everything after it on the
-    track and their partners by the change, so the overlap stays; a joined edge can't be extended
-    (its neighbour bounds it). When a clip gets too short, the junction shrinks to the kind's new
+  - **Trim:** trimming a joined edge (A's end, B's start), shorter or longer, keeps the overlap:
+    B's start stays where the junction needs it, and B's end, everything after it on the track and
+    their partners move by the change (`rippleTrim`). The joined neighbour doesn't limit that edge
+    (`trimLimits(…, edge)` / `neighbourBounds(…, rippleEdge)`); anything unlinked in the way of
+    the ripple refuses the trim (`timeline.overlap`). Extending B's start is still limited by its
+    source and by time 0. When a clip gets too short, the junction shrinks to the kind's new
     maximum in the same step and what follows moves later by the difference.
   - **Split:** a junction on a split clip's end moves to its right half; one on its start stays
     on the left half (same id). Inside an overlap: `junction.split_in_overlap` with `clipIds`;
     without them, those clips and their partners stay whole and the rest are split.
   - **Delete:** the junctions of deleted clips go too; nothing shifts. The result adds
     `removedJunctions`.
+  - **Unlink:** refused with `timeline.unlink_joined` while the clips' sounds overlap only
+    because their pictures are joined (remove the junction first); nothing changes.
   - A junction whose kind isn't registered is kept where the rules allow and its limits are not
     checked.
 - **Not yet:** markers, groups, compositions, ripple and other Pro tools, magnetic main track.

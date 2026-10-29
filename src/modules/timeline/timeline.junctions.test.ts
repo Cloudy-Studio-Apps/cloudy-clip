@@ -15,7 +15,7 @@ import {
   type Junction,
   type ProjectState,
 } from "@/modules/project";
-import { deleteClips, moveClip, splitAt, trimClip } from "./timeline.commands";
+import { deleteClips, moveClip, splitAt, trimClip, unlinkClips } from "./timeline.commands";
 import { timelineModule } from "./timeline.module";
 
 const S = 1_000_000;
@@ -246,11 +246,51 @@ describe("trimming joined clips", () => {
     expect(staleJunctions(doc())).toEqual([]);
   });
 
-  it("a joined edge can't be trimmed past the junction (no extension)", async () => {
-    await joined();
-    await run(kernel.bus.run(trimClip, { clipId: "A", edge: "end", time: 6 * S }));
-    expect(doc().clips.A!.duration).toBe(4 * S);
+  it("extending A's end ripples B, C and sounds later and keeps the overlap", async () => {
+    const j = await joined();
+    await run(kernel.bus.run(trimClip, { clipId: "A", edge: "end", time: 5 * S }));
+    expect(starts()).toEqual({ A: 0, B: 4.5, C: 8.5, sA: 0, sB: 4.5, sC: 8.5 });
+    expect(doc().clips.A!.duration).toBe(5 * S);
+    expect(doc().clips.sA!.duration).toBe(5 * S);
+    expect(doc().junctions[j.id]!.duration).toBe(0.5 * S);
     expect(staleJunctions(doc())).toEqual([]);
+  });
+
+  it("extending B's start keeps B's start and ripples its end, C and sounds later", async () => {
+    // B starts 1 s into its source, so it has 1 s of head to grow into.
+    const j = await joined((s) => {
+      s.clips.B!.sourceIn = S;
+      s.clips.sB!.sourceIn = S;
+      s.clips.B!.mediaId = "m";
+      s.clips.sB!.mediaId = "m";
+    });
+    await run(kernel.bus.run(trimClip, { clipId: "B", edge: "start", time: 2.5 * S }));
+    expect(doc().clips.B).toMatchObject({ start: 3.5 * S, sourceIn: 0, duration: 5 * S });
+    expect(doc().clips.sB).toMatchObject({ start: 3.5 * S, sourceIn: 0, duration: 5 * S });
+    expect(starts()).toMatchObject({ A: 0, C: 8.5, sC: 8.5 });
+    expect(doc().junctions[j.id]!.duration).toBe(0.5 * S);
+    expect(staleJunctions(doc())).toEqual([]);
+  });
+
+  it("extending a joined edge into an unlinked clip is refused", async () => {
+    await joined((s) => {
+      s.clips.X = clip("X", s.trackOrder[1]!, 12 * S, S);
+      s.tracks[s.trackOrder[1]!]!.clipIds.push("X");
+    });
+    const before = doc();
+    const result = await kernel.bus.run(trimClip, { clipId: "A", edge: "end", time: 7 * S });
+    expect(!result.ok && result.error.code).toBe("timeline.overlap");
+    expect(doc()).toBe(before);
+  });
+});
+
+describe("unlinking joined clips", () => {
+  it("unlinking A while its sound overlaps B's under the junction fails, changing nothing", async () => {
+    await joined();
+    const before = doc();
+    const result = await kernel.bus.run(unlinkClips, { clipIds: ["A"] });
+    expect(!result.ok && result.error.code).toBe("timeline.unlink_joined");
+    expect(doc()).toBe(before);
   });
 });
 

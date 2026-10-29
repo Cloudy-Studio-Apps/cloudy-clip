@@ -1,13 +1,15 @@
 import type { Micros } from "@/core";
 import {
   allowedOverlap,
+  junctionBetween,
+  partnersOf,
   type Clip,
   type ClipId,
   type ProjectState,
   type TrackId,
   type TrackKind,
 } from "@/modules/project";
-import type { TrimLimits } from "../timeline.types";
+import type { TrimEdge, TrimLimits } from "../timeline.types";
 
 /** Smallest clip length allowed: one frame at the project frame rate. */
 export function minClipDuration(state: ProjectState): Micros {
@@ -89,11 +91,13 @@ export function sortClipIds(ids: readonly ClipId[], clips: Record<ClipId, Clip>)
 /**
  * Neighbours of a clip on its track: end of the previous clip and start of the next. A neighbour
  * joined to the clip (overlapping it by a junction's duration) bounds it at its edge ∓ that
- * duration, which is the clip's own edge.
+ * duration, which is the clip's own edge. With `rippleEdge`, a neighbour joined on that edge
+ * doesn't bound it at all: a trim of a joined edge ripples that neighbour along (spec rule 10).
  */
 export function neighbourBounds(
   state: ProjectState,
   clip: Clip,
+  rippleEdge?: TrimEdge,
 ): { prevEnd: Micros; nextStart: Micros } {
   let prevEnd = 0;
   let nextStart = Number.POSITIVE_INFINITY;
@@ -103,14 +107,25 @@ export function neighbourBounds(
     const other = state.clips[id];
     if (!other) continue;
     if (other.start < clip.start) {
+      if (rippleEdge === "start" && joined(state, other, clip)) continue;
       const bound = other.start + other.duration - allowedOverlap(state, other, clip);
       if (bound <= clip.start) prevEnd = Math.max(prevEnd, bound);
     } else {
+      if (rippleEdge === "end" && joined(state, clip, other)) continue;
       const bound = other.start + allowedOverlap(state, clip, other);
       if (bound >= end) nextStart = Math.min(nextStart, bound);
     }
   }
   return { prevEnd, nextStart };
+}
+
+/** A junction joins `left` and `right`, or (spec rule 7) a partner of each. */
+function joined(state: ProjectState, left: Clip, right: Clip): boolean {
+  if (junctionBetween(state, left.id, right.id)) return true;
+  const rightPartners = partnersOf(state, right.id);
+  return partnersOf(state, left.id).some((pl) =>
+    rightPartners.some((pr) => junctionBetween(state, pl.id, pr.id)),
+  );
 }
 
 /**
