@@ -1,16 +1,9 @@
 import { createId, createPatchableStore } from "@/core";
 import { projectPolicy } from "./logic/fields";
-import type { FormatPreset, ProjectFormat, ProjectState } from "./project.types";
-
-/** Output size for each preset. */
-export const FORMAT_PRESETS: Record<FormatPreset, ProjectFormat> = {
-  "9:16": { width: 1080, height: 1920, fps: 30 },
-  "16:9": { width: 1920, height: 1080, fps: 30 },
-  "1:1": { width: 1080, height: 1080, fps: 30 },
-};
+import type { ProjectFormat, ProjectState } from "./project.types";
 
 /** Format of what has no composition to take one from. */
-export const DEFAULT_FORMAT: ProjectFormat = FORMAT_PRESETS["9:16"];
+export const DEFAULT_FORMAT: ProjectFormat = { width: 1080, height: 1920, fps: 30 };
 
 /** A fresh project: one vertical composition with a video track and an audio track. */
 export function createEmptyProject(): ProjectState {

@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { commandTool, defineMcpTool, textResult } from "@/core";
-import { setFormat } from "./project.commands";
+import { defineMcpTool, textResult } from "@/core";
 import { orderedJunctions } from "./logic/junctions";
 import { orderedTracks, trackClips } from "./project.selectors";
 import { projectRef } from "./project.ref";
@@ -45,4 +44,4 @@ const getState = defineMcpTool({
   },
 });
 
-export const projectMcpTools = [getState, commandTool(setFormat, { name: "project_set_format" })];
+export const projectMcpTools = [getState];

@@ -123,9 +123,6 @@ export interface ProjectFormat {
   fps: number;
 }
 
-/** Named output formats offered in the UI and to agents. */
-export type FormatPreset = "9:16" | "16:9" | "1:1";
-
 /**
  * Settings of one timeline, and that timeline's tracks. The timeline panel is a window on one
  * composition; a composition placed on another timeline is a clip that mirrors it.

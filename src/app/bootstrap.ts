@@ -8,6 +8,7 @@ import {
   type AnyModuleDefinition,
 } from "@/core";
 import { collabModule } from "@/modules/collab";
+import { compositionModule } from "@/modules/composition";
 import { elementModule } from "@/modules/element";
 import { fontsModule } from "@/modules/fonts";
 import { inspectorModule } from "@/modules/inspector";
@@ -32,6 +33,7 @@ const MODULES: AnyModuleDefinition[] = [
   mediaModule,
   timelineModule,
   previewModule,
+  compositionModule,
   inspectorModule,
   transformModule,
   textModule,

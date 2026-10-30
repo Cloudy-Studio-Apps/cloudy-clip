@@ -1,4 +1,3 @@
-import { FormatPicker } from "./FormatPicker";
 import { PlayButton } from "./PlayButton";
 import { Timecode } from "./Timecode";
 import { ViewerZoom } from "./ViewerZoom";
@@ -13,7 +12,6 @@ export function Transport() {
       </div>
       <div className="flex items-center justify-end gap-1.5">
         <ViewerZoom />
-        <FormatPicker />
       </div>
     </div>
   );

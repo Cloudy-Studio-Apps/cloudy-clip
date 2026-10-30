@@ -18,13 +18,13 @@ lives here, so every change is undoable and readable by agents.
     `SharedGroupValues`. A `Clip` names its element in `kind` (`"media"`, `"text"`, a plugin's)
     and stores only the values that differ from the element's defaults in `props`; `mediaId` is
     set for clips that play a file; shared group values (`transform`) live under their own key.
-  - `project.store.ts`: `FORMAT_PRESETS`, `DEFAULT_FORMAT`, `createEmptyProject()`.
+  - `project.store.ts`: `DEFAULT_FORMAT`, `createEmptyProject()`.
   - `project.view.ts`: the view above. `project.testing.ts`: `seedProject(seed)`, one composition `c1` for test fixtures.
   - `logic/compositions.ts`: `contains(state, outer, inner)`, `settleCompositions` (the policy's `settle`: keeps Extend to fit lengths true inside every step).
   - `logic/fields.ts`: `projectPolicy`, the store's `StorePolicy`: what lets a step be undone past others' newer steps. `diff` lists changes by field (one level into plain objects; a created or deleted entity is one change), `repair` rebuilds `clipIds`, each `trackOrder`, `compositionOrder` and `mediaOrder`, and `validate` refuses a missing Main, tracks without a composition, a composition inside itself, missing tracks or media, overlaps, stale junctions and two junctions on a cut.
   - `project.selectors.ts`: `orderedTracks(state, compositionId)`, `trackClips`, `clipEnd`,
     `compositionOf`, `compositionClips`, `compositionContent`, `placementsOf`, `formatOf(state, clip)`,
-    `formatOfTrack`, `frameDuration`, `isMediaInUse`, `formatPreset`.
+    `formatOfTrack`, `frameDuration`, `isMediaInUse`.
   - `project.geometry.ts`: `clipPlacement(format, sourceSize, transform)`, the one place a clip's
     transform becomes a rectangle in the frame (the preview engine and the canvas tools both use it);
     `clipTransform(clip, live?)` (the saved transform or the identity, with a live patch merged
@@ -48,7 +48,6 @@ lives here, so every change is undoable and readable by agents.
   Clips on a track overlap only by the `allowedOverlap` of the pair.
 - **Not yet:** a project name, saving and loading.
 
-| Command             | MCP tool             | Notes                                                                          |
-| ------------------- | -------------------- | ------------------------------------------------------------------------------ |
-| `project.setFormat` | `project_set_format` | `9:16`, `16:9`, `1:1`, on the open composition                                 |
-| —                   | `project_get_state`  | Whole document: each composition with its tracks, clips and `junctions` inline |
+| Command | MCP tool            | Notes                                                                          |
+| ------- | ------------------- | ------------------------------------------------------------------------------ |
+| —       | `project_get_state` | Whole document: each composition with its tracks, clips and `junctions` inline |

@@ -3,8 +3,7 @@
  * Other modules read it here and change it through their own commands.
  * @module project
  */
-export { setFormat } from "./project.commands";
-export { DEFAULT_FORMAT, FORMAT_PRESETS, createEmptyProject } from "./project.store";
+export { DEFAULT_FORMAT, createEmptyProject } from "./project.store";
 export {
   clipEnd,
   compositionClips,
@@ -12,7 +11,6 @@ export {
   compositionOf,
   formatOf,
   formatOfTrack,
-  formatPreset,
   frameDuration,
   isMediaInUse,
   orderedTracks,
@@ -53,7 +51,6 @@ export type {
   CompositionView,
   CompositionViewState,
   PictureSize,
-  FormatPreset,
   MediaAsset,
   MediaId,
   MediaKind,

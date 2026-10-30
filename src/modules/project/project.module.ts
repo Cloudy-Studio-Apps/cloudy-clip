@@ -1,5 +1,4 @@
 import { defineModule } from "@/core";
-import { projectCommands } from "./project.commands";
 import { projectMcpTools } from "./project.mcp";
 import { projectRef } from "./project.ref";
 import { createProjectStore } from "./project.store";
@@ -15,7 +14,6 @@ export function createProjectModule(initial?: ProjectState) {
     ref: projectRef,
     name: "Project",
     tier: "core",
-    commands: projectCommands,
     mcpTools: projectMcpTools,
     setup(ctx) {
       const store = createProjectStore(initial);

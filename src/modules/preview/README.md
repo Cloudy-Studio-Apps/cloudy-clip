@@ -67,8 +67,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).
   - `ui/`: `PreviewStage` (frame + overlays, placed imperatively by `stage.layout.hook.ts`;
     Ctrl/Cmd + wheel zooms at the pointer, wheel and middle-drag pan via
-    `stage.navigation.hook.ts`), `Transport` (`Timecode`, `PlayButton`, `ViewerZoom`,
-    `FormatPicker`).
+    `stage.navigation.hook.ts`), `Transport` (`Timecode`, `PlayButton`, `ViewerZoom`).
   - Native (`src-tauri/src/webview`, Linux): WebKitGTK 2.54 repainted only part of the canvas
     layer on screen (a strip at the right of the video stayed black or showed an old frame, and
     sometimes the whole picture stayed black while audio played) although the canvas pixels were
