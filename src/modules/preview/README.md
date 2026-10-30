@@ -32,6 +32,10 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
     `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
     clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only).
+    Images never take a media element: `engine.images.ts` (`ImageCache`) keeps decoded stills and
+    frames of animated images by URL, up to a pixel budget, and rasterizes SVGs once. `imageFrames`
+    (`media`) names the picture at the clip's own time, looped, and the second ahead is loaded early, so a stretched GIF
+    keeps moving; scrubbing moves it too. The engine waits for the picture like any other layer, and a broken one never blocks.
     Each clip is drawn as its element's `picture` says: `source: "media"` through a media element
     as above; any other element (text, a plugin's) with its own `draw(ctx, props, env)`, at
     `clipPlacement(format, size(props), transform, fit)`, the same box the canvas tools use. Props

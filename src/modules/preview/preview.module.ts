@@ -33,7 +33,12 @@ export const previewModule = defineModule({
       return id === null ? null : (project.getState().compositions[id] ?? null);
     };
     const clock = createPlaybackClock(() => openComposition()?.duration ?? 0);
-    const engineOptions = { mediaUrl: media.mediaUrl, elements, junctions };
+    const engineOptions = {
+      mediaUrl: media.mediaUrl,
+      imageFrames: media.imageFrames,
+      elements,
+      junctions,
+    };
     const controller = createPreviewController({
       clock,
       getProject: () => project.getState(),

@@ -2,6 +2,7 @@ import type { ElementApi } from "@/modules/element";
 import type { MixCanvases } from "./engine.mix";
 import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
+import type { MediaApi } from "@/modules/media";
 import type { Micros } from "@/core";
 import type {
   Clip,
@@ -34,10 +35,19 @@ export interface Slot {
   presented: boolean;
 }
 
+/** A decoded picture and its size, ready to draw. */
+export interface CachedPicture {
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+}
+
 /** What the HTML engine needs from the app. */
 export interface EngineOptions {
   /** URL that streams a media item. */
   mediaUrl(id: MediaId): string;
+  /** URLs of an image's picture at a moment of its clip, then those up to `ahead` later. */
+  imageFrames: MediaApi["imageFrames"];
   /**
    * Whether a font face can be drawn now; when not, it starts loading and the engine draws text
    * in Inter (the caller redraws when it arrives).

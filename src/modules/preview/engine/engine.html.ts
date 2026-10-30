@@ -6,8 +6,10 @@ import {
   formatOf,
   type Clip,
   type ClipId,
+  type ClipPlacement,
   type ClipTransform,
   type Composition,
+  type MediaAsset,
   type MediaId,
   type ProjectFormat,
   type ProjectState,
@@ -17,11 +19,12 @@ import { soundGains } from "../logic/junctions";
 import { picturesSettled } from "../logic/readiness";
 import type { PreviewEngine } from "../preview.types";
 import { quietSlot, voiceSlot } from "./engine.audio";
+import { ImageCache } from "./engine.images";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
-import type { EngineOptions, PlacementTarget, ResolvedFrame } from "./engine.types";
+import type { CachedPicture, EngineOptions, PlacementTarget, ResolvedFrame } from "./engine.types";
 
 /** Whether a clip plays a file (media clips). */
 function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
@@ -30,9 +33,25 @@ function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
 
 /** Clips starting within this window are prepared ahead so cuts don't stutter. */
 const PRELOAD_AHEAD: Micros = 1_500_000;
+/** Frames of an animated image loaded ahead of the one showing, so it plays without stalling. */
+const PRELOAD_FRAMES: Micros = 1_000_000;
 
 /** No gesture or live patch: what clips inside a placement are drawn with. */
 const NOTHING = new Map();
+
+/** Draws a picture at its placement. `kx` and `ky` are canvas pixels per output pixel. */
+function land(
+  target: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  place: ClipPlacement,
+  kx: number,
+  ky: number,
+): void {
+  target.setTransform(kx, 0, 0, ky, 0, 0);
+  target.translate(place.cx, place.cy);
+  target.rotate((place.rotation * Math.PI) / 180);
+  target.drawImage(source, -place.width / 2, -place.height / 2, place.width, place.height);
+}
 
 /**
  * Preview engine built on HTML media elements and a 2D canvas.
@@ -43,12 +62,15 @@ const NOTHING = new Map();
  *   junction between its halves plays both halves at once).
  * - While playing, elements play natively (hardware decoding, native audio) and are only
  *   re-seeked when they drift from the clock.
+ * - Images never take an element: stills and the frames of animated images come from `ImageCache`.
  * - Video layers are drawn bottom → top, letterboxed to the project format. Under a junction, the
  *   two clips of a track are drawn offscreen and combined by the junction kind's `mix`.
  */
 export class HtmlMediaEngine implements PreviewEngine {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly pool: MediaSlotPool;
+  private readonly images: ImageCache;
+  private readonly imageFrames: EngineOptions["imageFrames"];
   private settled = true;
   private readonly ensureFont: EngineOptions["ensureFont"];
   private readonly elements: EngineOptions["elements"];
@@ -65,6 +87,8 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (!ctx) throw new Error("2D canvas is not available");
     this.ctx = ctx;
     this.pool = new MediaSlotPool(options);
+    this.images = new ImageCache(options.onFrameReady);
+    this.imageFrames = options.imageFrames;
     this.ensureFont = options.ensureFont;
     this.elements = options.elements;
     this.junctions = options.junctions;
@@ -111,7 +135,12 @@ export class HtmlMediaEngine implements PreviewEngine {
         this.pictureReady(format, clip, clip.start, propsOverrides.get(clip.id));
         continue;
       }
-      if (!project.media[clip.mediaId]) continue;
+      const media = project.media[clip.mediaId];
+      if (!media) continue;
+      if (media.kind === "image") {
+        this.wantImage(media, 0);
+        continue;
+      }
       const seconds = microsToSeconds(clip.sourceIn + at - clip.start);
       const slot = this.pool.acquire(path, clip, track.kind, seconds);
       if (!slot) continue;
@@ -153,6 +182,12 @@ export class HtmlMediaEngine implements PreviewEngine {
         if (!hasMedia(clip)) continue; // drawn from the document, no media element
         const media = project.media[clip.mediaId];
         if (!media) continue;
+        if (media.kind === "image") {
+          // Never a pooled element: the picture comes from the cache, at the clip's own time.
+          const current = this.wantImage(media, time - clip.start);
+          if (!track.hidden && !this.images.ready(current)) this.settled = false;
+          continue;
+        }
         const desired = microsToSeconds(clip.sourceIn + time - clip.start);
         // The track decides the element: pictures come from video tracks (always silent), sound
         // from audio tracks (a video file's sound plays through an <audio> on the same URL).
@@ -175,6 +210,14 @@ export class HtmlMediaEngine implements PreviewEngine {
     const ready = (clip: Clip) =>
       this.pictureReady(composition.format, clip, time, propsOverrides.get(clip.id));
     if (!picturesSettled(pictures, ready)) this.settled = false;
+  }
+
+  /** Asks for an image's picture at a moment of its clip and what follows. Returns its URL. */
+  private wantImage(asset: MediaAsset, elapsed: Micros): string {
+    const raster = asset.name.toLowerCase().endsWith(".svg");
+    const urls = this.imageFrames(asset.id, elapsed, PRELOAD_FRAMES);
+    for (const url of urls) this.images.want(url, { raster });
+    return urls[0]!;
   }
 
   pauseAll(): void {
@@ -203,6 +246,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   dispose(): void {
     this.pool.dispose();
+    this.images.dispose();
     this.mixCanvases.dispose();
     this.nested.dispose();
   }
@@ -249,6 +293,13 @@ export class HtmlMediaEngine implements PreviewEngine {
         this.drawPlacement(box, project, inner, pathOf(clip), transform);
         return;
       }
+      const media = clip.mediaId ? project.media[clip.mediaId] : undefined;
+      if (media?.kind === "image") {
+        const [url] = this.imageFrames(media.id, time - clip.start, 0);
+        const picture = url ? this.images.picture(url) : undefined;
+        if (picture) this.drawCached(on, format, picture, transform, kx, ky);
+        return;
+      }
       this.drawClip(on, format, clip, pathOf(clip), time, transform, propsOverrides, kx, ky);
     };
 
@@ -285,11 +336,19 @@ export class HtmlMediaEngine implements PreviewEngine {
     const height = Math.max(1, Math.round(size.height * ratio));
     const nested = this.nested.take(path, width, height);
     this.drawFrame(nested.ctx, nested.mix, project, inner, path, NOTHING, NOTHING);
-    const place = clipPlacement(format, size, transform);
-    on.setTransform(kx, 0, 0, ky, 0, 0);
-    on.translate(place.cx, place.cy);
-    on.rotate((place.rotation * Math.PI) / 180);
-    on.drawImage(nested.ctx.canvas, -place.width / 2, -place.height / 2, place.width, place.height);
+    land(on, nested.ctx.canvas, clipPlacement(format, size, transform), kx, ky);
+  }
+
+  /** Draws an image from the cache, where a video frame of its size would land. */
+  private drawCached(
+    target: CanvasRenderingContext2D,
+    format: ProjectFormat,
+    { source, width, height }: CachedPicture,
+    transform: ClipTransform,
+    kx: number,
+    ky: number,
+  ): void {
+    land(target, source, clipPlacement(format, { width, height }, transform), kx, ky);
   }
 
   /** Draws one clip onto `target` at its placement: a media frame or the element's own `draw`. */
@@ -325,15 +384,8 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (!(element instanceof HTMLVideoElement)) return;
     if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) return;
 
-    const place = clipPlacement(
-      format,
-      { width: element.videoWidth, height: element.videoHeight },
-      transform,
-    );
-    target.setTransform(kx, 0, 0, ky, 0, 0);
-    target.translate(place.cx, place.cy);
-    target.rotate((place.rotation * Math.PI) / 180);
-    target.drawImage(element, -place.width / 2, -place.height / 2, place.width, place.height);
+    const size = { width: element.videoWidth, height: element.videoHeight };
+    land(target, element, clipPlacement(format, size, transform), kx, ky);
   }
 
   /** Draws an element that paints itself (text, a plugin's), at its placement. */
