@@ -39,7 +39,11 @@ export function startPresence(
       deps.history.reassign(id, LOCAL_ACTOR);
       deps.preview.dropClock(id);
     }
-    store.setState({ collaborators: next });
+    const { followed } = store.getState();
+    store.setState({
+      collaborators: next,
+      followed: followed !== null && gone.includes(followed) ? null : followed,
+    });
   }, PRUNE_MS);
 
   return () => {

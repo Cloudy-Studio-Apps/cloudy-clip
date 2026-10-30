@@ -4,7 +4,7 @@
  * @module collab
  */
 /** Commands the popover runs. */
-export { setAccess, setBlocked, setPaused } from "./collab.commands";
+export { follow, setAccess, setBlocked, setPaused } from "./collab.commands";
 export type {
   CollabAccess,
   CollabActivity,

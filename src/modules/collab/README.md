@@ -6,12 +6,13 @@ Connected agents as collaborators, shaped so people can join later (`Collaborato
 - **Requires:** `preview` (`clockFor`, `dropClock`), `timeline` (selection for `collab_get_user_context`)
 - **Contributes:** `topBarItems` (`collab.status`, `collab.avatars`), `appOverlays` (`collab.pointers`), `timelineOverlays` (`collab.playheads`), the commands and tool below; `ctx.mcp.observe`; `history.scopeUndo` (from here on Ctrl+Z means the user's own steps) and `history.nameActors`.
 - **API:** `CollabApi`: `store` (`CollabState`: `collaborators`, `blocked`, `followed`).
-- **Commands:** `collab.setAccess { actor, access }`, `collab.setPaused { actor, paused }`, `collab.setBlocked { actor, blocked }`. Not MCP tools: only the user decides these.
+- **Commands:** `collab.setAccess { actor, access }`, `collab.setPaused { actor, paused }`, `collab.setBlocked { actor, blocked }`, `collab.follow { actor | null }`. Not MCP tools: only the user decides these.
 - **Tools:** `collab_get_user_context`: the user's playhead, whether they are playing, their selection.
 - **Files:**
   - `collab.observer.ts`: the `McpObserver`. Joins agents, names steps, refuses calls with `collab.disconnected`, `collab.paused` or `collab.view_only`. Refused calls don't count as activity.
   - `collab.presence.ts`: tells an agent when the user undid its step (sent with its next reply), and retires agents every 5 s: idle after 2 min, gone after 15 min, when their steps pass to the user and their playhead is dropped.
   - `collab.notes.ts`: messages owed to agents.
+  - `collab.follow.ts`: while following, the user's playhead and timeline go where the agent's playhead goes. Off by default. Any other time on the user's clock, or play, ends it: scrubs never reach the bus, so the clock is the only place to see them.
   - `logic/identify.ts`, `logic/activity.ts`, `logic/prune.ts`: name and color of a client; a sentence for a tool; who has been quiet too long.
   - `logic/targets.ts`, `logic/locate.ts`: what an agent is touching (from a tool's name, then the fields a command changed) and where that is on screen. A clip no page has rendered gives the timeline's nearest edge; a card or section not on screen gives its panel, then its rail tab. Other modules only mark elements with `data-collab-target` (`clip:`, `media:`, `panel:`, `inspector:`), so they import nothing from here.
   - `ui/`: `AgentPointers` (app overlay: an arrow and label per agent, moved with `transform`), `AgentPlayheads` (timeline overlay: a dashed line per agent, and an outline on the clip it is on, by a CSS rule on `data-collab-target`, so it holds for clips the timeline hasn't rendered yet), `CollabAvatars` (top bar, right; opens `CollabPanel`), `AgentStatusStrip` (top bar, center, while an agent works), `AgentControls`, `CollabAvatar`, `ClaudeMark`, `collab.status.ts`.

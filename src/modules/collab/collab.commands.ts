@@ -54,4 +54,16 @@ export const setBlocked = defineCommand({
   },
 });
 
-export const collabCommands = [setAccess, setPaused, setBlocked];
+/** Makes the user's playhead follow an agent's, or stops (null). Ends when the user moves it. */
+export const follow = defineCommand({
+  id: "collab.follow",
+  label: "Follow agent",
+  description: "Makes the user's preview follow a collaborator's playhead, or stops following.",
+  undoable: false,
+  input: z.object({ actor: z.string().nullable() }),
+  run(ctx, { actor }) {
+    ctx.require(collabRef).store.setState({ followed: actor });
+  },
+});
+
+export const collabCommands = [setAccess, setPaused, setBlocked, follow];

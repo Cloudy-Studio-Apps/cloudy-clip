@@ -2,6 +2,7 @@ import { appOverlays, defineModule, topBarItems } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { timelineOverlays, timelineRef } from "@/modules/timeline";
 import { collabCommands } from "./collab.commands";
+import { startFollow } from "./collab.follow";
 import { collabMcpTools } from "./collab.mcp";
 import { createCollabNotes } from "./collab.notes";
 import { createCollabObserver } from "./collab.observer";
@@ -32,6 +33,7 @@ export const collabModule = defineModule({
         timeline: ctx.require(timelineRef),
       }),
     );
+    ctx.onDispose(startFollow(store, ctx.require(previewRef), ctx.require(timelineRef)));
     ctx.contribute(
       topBarItems,
       { id: "collab.status", slot: "center", component: AgentStatusStrip },

@@ -1,6 +1,8 @@
-import { useHistory, useKernel } from "@/core";
-import { Button, SegmentedControl } from "@/ui";
-import { setAccess, setBlocked, setPaused } from "../collab.commands";
+import { useStore } from "zustand";
+import { useHistory, useKernel, useModule } from "@/core";
+import { Button, SegmentedControl, ToggleRow } from "@/ui";
+import { follow, setAccess, setBlocked, setPaused } from "../collab.commands";
+import { collabRef } from "../collab.ref";
 import type { CollabAccess, Collaborator } from "../collab.types";
 
 const ACCESS_OPTIONS = [
@@ -14,6 +16,7 @@ export function AgentControls({ who, blocked }: { who: Collaborator; blocked: bo
   useHistory(); // the label below follows the history
   const undoLabel = history.undoLabelOf(who.id);
   const actor = who.id;
+  const followed = useStore(useModule(collabRef).store, (state) => state.followed === actor);
 
   return (
     <div className="flex flex-col gap-2 border-y border-border py-2.5">
@@ -27,6 +30,12 @@ export function AgentControls({ who, blocked }: { who: Collaborator; blocked: bo
           onChange={(access) => void bus.run(setAccess, { actor, access })}
         />
       </div>
+      <ToggleRow
+        label="Follow agent"
+        checked={followed}
+        disabled={blocked}
+        onChange={(on) => void bus.run(follow, { actor: on ? actor : null })}
+      />
       <div className="flex gap-1.5">
         <Button
           size="sm"
