@@ -31,7 +31,7 @@ export {
   timelineTabs,
 } from "./timeline.points";
 /** Width of the track headers, where time 0 starts in a timeline overlay. */
-export { HEADER_WIDTH } from "./timeline.layout";
+export { HEADER_WIDTH, RULER_HEIGHT } from "./timeline.layout";
 /** Pixels from time 0 to a time at a zoom level. */
 export { timeToPx } from "./logic/geometry";
 /** The `timeline.overlap` failure for a spot taken by another clip, with where it is. */

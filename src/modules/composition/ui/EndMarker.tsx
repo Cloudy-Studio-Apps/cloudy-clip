@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule, type Micros } from "@/core";
 import { frameDuration, useOpenComposition } from "@/modules/project";
-import { HEADER_WIDTH, timelineRef, timeToPx } from "@/modules/timeline";
+import { HEADER_WIDTH, RULER_HEIGHT, timelineRef, timeToPx } from "@/modules/timeline";
 import { setSettings } from "../composition.commands";
 import { startEndDrag } from "./end.gesture";
 
-/** Where the open composition ends: a draggable marker, and everything past it dimmed. */
+/** Where the open composition ends: a line with a handle in the ruler, and everything past it dimmed. */
 export function EndMarker() {
   const { bus } = useKernel();
   const timeline = useModule(timelineRef);
@@ -38,24 +38,34 @@ export function EndMarker() {
         ref={dim}
         className="pointer-events-none absolute inset-y-0 right-0 z-[12] bg-black/40"
       />
+      {/* The line takes no pointer: it sits on the last clip's edge, where drops and trims aim. */}
       <div
         ref={line}
-        title="End of the composition. Drag to change its length."
-        className="absolute inset-y-0 z-[13] w-1.5 -translate-x-1/2 cursor-ew-resize border-x-2 border-x-transparent bg-primary bg-clip-padding"
-        onPointerDown={(event) => {
-          if (event.button !== 0) return;
-          event.stopPropagation();
-          startEndDrag(
-            event.nativeEvent,
-            composition.duration,
-            frameDuration(composition.format),
-            (px) => Math.round((px / pxPerSecond) * 1_000_000),
-            place,
-            (time) =>
-              void bus.run(setSettings, { compositionId: id, duration: time, extendToFit: false }),
-          );
-        }}
-      />
+        className="pointer-events-none absolute inset-y-0 z-[35] w-px -translate-x-1/2 bg-primary"
+      >
+        <div
+          title="End of the composition. Drag to change its length."
+          className="pointer-events-auto sticky top-0 -ml-1 w-2.5 cursor-ew-resize rounded-b-xs bg-primary"
+          style={{ height: RULER_HEIGHT }}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            event.stopPropagation();
+            startEndDrag(
+              event.nativeEvent,
+              composition.duration,
+              frameDuration(composition.format),
+              (px) => Math.round((px / pxPerSecond) * 1_000_000),
+              place,
+              (time) =>
+                void bus.run(setSettings, {
+                  compositionId: id,
+                  duration: time,
+                  extendToFit: false,
+                }),
+            );
+          }}
+        />
+      </div>
     </>
   );
 }
