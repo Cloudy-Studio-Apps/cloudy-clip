@@ -3,6 +3,7 @@ import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { HEADER_WIDTH, timelineRef, timeToPx } from "@/modules/timeline";
+import { cn } from "@/ui";
 import { collabRef } from "../collab.ref";
 import type { Collaborator } from "../collab.types";
 
@@ -29,7 +30,10 @@ function AgentPlayhead({ who }: { who: Collaborator }) {
   return (
     <div
       ref={ref}
-      className="pointer-events-none absolute top-0 bottom-0 left-0 z-[14] w-0 border-l-2 border-dashed transition-transform duration-700 ease-out"
+      className={cn(
+        "pointer-events-none absolute top-0 bottom-0 left-0 z-[14] w-0 border-l-2 border-dashed transition-[transform,opacity] duration-700 ease-out",
+        who.resting && "opacity-0",
+      )}
       style={{ borderColor: who.color }}
     />
   );
@@ -45,7 +49,7 @@ export function AgentPlayheads() {
   );
   // A rule, not a prop on the clip: the target may be off the rendered pages.
   const outlines = agents
-    .filter((who) => who.target?.startsWith("clip:"))
+    .filter((who) => !who.resting && who.target?.startsWith("clip:"))
     .map(
       (who) =>
         `[data-collab-target="${who.target}"]{outline:2px solid ${who.color};outline-offset:-2px}`,

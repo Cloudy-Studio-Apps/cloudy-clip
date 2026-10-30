@@ -10,7 +10,7 @@ Connected agents as collaborators, shaped so people can join later (`Collaborato
 - **Tools:** `collab_get_user_context`: the user's playhead, whether they are playing, their selection.
 - **Files:**
   - `collab.observer.ts`: the `McpObserver`. Joins agents, names steps, refuses calls with `collab.disconnected`, `collab.paused` or `collab.view_only`. Refused calls don't count as activity.
-  - `collab.presence.ts`: tells an agent when the user undid its step (sent with its next reply), and retires agents every 5 s: idle after 2 min, gone after 15 min, when their steps pass to the user and their playhead is dropped.
+  - `collab.presence.ts`: tells an agent when the user undid its step (sent with its next reply), and checks agents every second: resting after 4 s without a call (pointer, outline and playhead fade out until the next call, keeping their place so the arrow glides from there), idle after 2 min, gone after 15 min, when their steps pass to the user and their playhead is dropped.
   - `collab.notes.ts`: messages owed to agents.
   - `collab.follow.ts`: while following, the user's playhead and timeline go where the agent's playhead goes. Off by default. Any other time on the user's clock, or play, ends it: scrubs never reach the bus, so the clock is the only place to see them.
   - `logic/identify.ts`, `logic/activity.ts`, `logic/prune.ts`: name and color of a client; a sentence for a tool; who has been quiet too long.

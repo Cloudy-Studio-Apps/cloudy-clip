@@ -7,7 +7,7 @@ import { changesTarget } from "./logic/targets";
 import type { CollabNotes, CollabState } from "./collab.types";
 
 /** How often quiet agents are looked for. */
-const PRUNE_MS = 5000;
+const PRUNE_MS = 1000;
 
 /** Tells an agent when the user undoes its step, and retires agents gone quiet. */
 export function startPresence(
@@ -30,9 +30,10 @@ export function startPresence(
 
   const timer = setInterval(() => {
     const { collaborators } = store.getState();
-    const { idle, gone } = prune(Object.values(collaborators), Date.now());
-    if (idle.length === 0 && gone.length === 0) return;
+    const { resting, idle, gone } = prune(Object.values(collaborators), Date.now());
+    if (resting.length === 0 && idle.length === 0 && gone.length === 0) return;
     const next = { ...collaborators };
+    for (const id of resting) next[id] = { ...next[id]!, resting: true };
     for (const id of idle) next[id] = { ...next[id]!, idle: true };
     for (const id of gone) {
       delete next[id];

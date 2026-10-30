@@ -39,8 +39,8 @@ function Pointer({ who }: { who: Collaborator }) {
     <div
       ref={ref}
       className={cn(
-        "absolute top-0 left-0 transition-transform duration-500 ease-out",
-        who.idle && "opacity-50",
+        "absolute top-0 left-0 transition-[transform,opacity] duration-500 ease-out",
+        who.resting && "opacity-0",
       )}
     >
       <svg viewBox="0 0 16 18" className="size-4 drop-shadow" aria-hidden="true">

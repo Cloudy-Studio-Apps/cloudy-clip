@@ -52,6 +52,7 @@ export function createCollabObserver(
       paused: false,
       lastSeen: Date.now(),
       running: 0,
+      resting: false,
       idle: false,
       activity: null,
       target: null,
@@ -69,6 +70,7 @@ export function createCollabObserver(
       patch(who.id, {
         running: who.running + 1,
         lastSeen: Date.now(),
+        resting: false,
         idle: false,
         activity: { label: activityLabel(tool.name, "running"), status: "running" },
         target: toolTarget(tool.name) ?? who.target,

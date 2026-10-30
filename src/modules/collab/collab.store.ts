@@ -12,6 +12,7 @@ const YOU: Collaborator = {
   paused: false,
   lastSeen: 0,
   running: 0,
+  resting: false,
   idle: false,
   activity: null,
   target: null,

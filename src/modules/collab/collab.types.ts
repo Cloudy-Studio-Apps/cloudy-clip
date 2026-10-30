@@ -31,6 +31,8 @@ export interface Collaborator {
   lastSeen: number;
   /** Calls in progress. */
   running: number;
+  /** Quiet for a few seconds: its pointer, outline and playhead fade out until its next call. */
+  resting: boolean;
   /** Quiet for a while, but still around. */
   idle: boolean;
   activity: CollabActivity | null;
@@ -60,6 +62,8 @@ export interface CollabApi {
 
 /** Who has been quiet too long. */
 export interface PruneResult {
+  /** Stopped working a moment ago. */
+  resting: ActorId[];
   /** Went idle. */
   idle: ActorId[];
   /** Gone for good. */
