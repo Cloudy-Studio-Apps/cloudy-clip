@@ -1,4 +1,5 @@
 import type { ElementApi } from "@/modules/element";
+import type { MixCanvases } from "./engine.mix";
 import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
 import type { Micros } from "@/core";
@@ -111,3 +112,17 @@ export interface TrackFrame extends ActiveTrack {
 
 /** Draws one clip onto `target` at its placement (a media frame or the element's own `draw`). */
 export type ClipDrawer = (target: CanvasRenderingContext2D, clip: Clip) => void;
+
+/** One placement's offscreen picture, and the canvases for the transitions inside it. */
+export interface NestedCanvas {
+  ctx: CanvasRenderingContext2D;
+  mix: MixCanvases;
+}
+
+/** What a placement lands on: a canvas, its format, and its pixels per output pixel. */
+export interface PlacementTarget {
+  on: CanvasRenderingContext2D;
+  format: ProjectFormat;
+  kx: number;
+  ky: number;
+}

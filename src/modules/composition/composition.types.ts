@@ -1,10 +1,12 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { Micros } from "@/core";
+import type { CommandBus, Micros } from "@/core";
+import type { MediaApi } from "@/modules/media";
 import type {
   Clip,
   ClipId,
   CompositionId,
   JunctionId,
+  ProjectApi,
   ProjectFormat,
   TrackId,
 } from "@/modules/project";
@@ -21,15 +23,23 @@ export interface CompositionPreset {
   format: ProjectFormat;
 }
 
+/** The time a group of clips covers. */
+export interface GroupSpan {
+  start: Micros;
+  end: Micros;
+}
+
 /** What grouping clips means, or the clip in the way. */
 export type GroupPlan =
   | {
       homeId: CompositionId;
-      span: { start: Micros; end: Micros };
+      span: GroupSpan;
       videoTrack: TrackId | null;
       audioTrack: TrackId | null;
       clips: ClipId[];
       droppedJunctions: JunctionId[];
+      /** Clips left outside that were joined to the selection's edge; trimmed to it. */
+      neighbours: ClipId[];
     }
   | { blocked: Clip };
 
@@ -46,6 +56,14 @@ export interface CompositionUiState {
   waiting: string | null;
   /** What lands once the dialog is confirmed. */
   pendingDrop: TimelineDrop | null;
+}
+
+/** What `createCompositionDrop` needs. */
+export interface DropDeps {
+  bus: CommandBus;
+  project: ProjectApi;
+  media: Pick<MediaApi, "getProbe" | "pictureMeta" | "probes">;
+  api: Pick<CompositionApi, "ui" | "openNew">;
 }
 
 /** The composition module's API for one kernel. */

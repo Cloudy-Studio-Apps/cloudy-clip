@@ -7,6 +7,7 @@ import type { Micros } from "@/core";
 export function startEndDrag(
   down: PointerEvent,
   start: Micros,
+  shortest: Micros,
   timeAtDelta: (px: number) => Micros,
   place: (time: Micros) => void,
   commit: (time: Micros) => void,
@@ -14,7 +15,7 @@ export function startEndDrag(
   const originX = down.clientX;
   let time = start;
   const onMove = (event: PointerEvent) => {
-    time = Math.max(1, start + timeAtDelta(event.clientX - originX));
+    time = Math.max(shortest, start + timeAtDelta(event.clientX - originX));
     place(time);
   };
   const onUp = () => {

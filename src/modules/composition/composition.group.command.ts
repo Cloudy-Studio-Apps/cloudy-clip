@@ -2,7 +2,20 @@ import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import { projectRef, type Clip, type TrackId } from "@/modules/project";
 import { addTrack, sortClipIds } from "@/modules/timeline";
+import type { GroupSpan } from "./composition.types";
 import { planGroup } from "./logic/group";
+
+/** Cuts a clip left beside the placement to the edge of `span`, on the placement's tracks. */
+function trimToSpan(clip: Clip, { start, end }: GroupSpan): void {
+  const clipStop = clip.start + clip.duration;
+  if (clip.start < start && clipStop > start) clip.duration = start - clip.start;
+  else if (clip.start >= start && clip.start < end && clipStop > end) {
+    const cut = end - clip.start;
+    clip.start = end;
+    clip.duration -= cut;
+    if (clip.mediaId !== undefined || clip.compositionRef !== undefined) clip.sourceIn += cut;
+  }
+}
 
 /** Puts clips into a new composition, and a placement of it where they were. */
 export const groupClips = defineCommand({
@@ -27,7 +40,7 @@ export const groupClips = defineCommand({
         { clipId: plan.blocked.id },
       );
     }
-    const { homeId, span, clips: moved, droppedJunctions } = plan;
+    const { homeId, span, clips: moved, droppedJunctions, neighbours } = plan;
     const trackFor = async (kind: "video" | "audio", found: TrackId | null): Promise<TrackId> =>
       found ?? (await ctx.execute(addTrack, { kind, compositionId: homeId })).trackId;
     const videoTrack = await trackFor("video", plan.videoTrack);
@@ -70,6 +83,7 @@ export const groupClips = defineCommand({
         clip.start -= span.start;
       }
       for (const junctionId of droppedJunctions) delete draft.junctions[junctionId];
+      for (const clipId of neighbours) trimToSpan(draft.clips[clipId]!, span);
       for (const junction of Object.values(draft.junctions)) {
         const lane = movedIds.has(junction.leftClipId) ? lanes.get(junction.trackId) : undefined;
         if (lane) junction.trackId = lane;

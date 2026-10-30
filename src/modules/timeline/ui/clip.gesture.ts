@@ -68,7 +68,7 @@ export function startClipGesture(options: {
     playback.getTime(),
     groupIds,
   );
-  const homeLane = element.parentElement;
+  const homeLane = element.closest<HTMLElement>("[data-track-id]");
   const homeTop = homeLane?.getBoundingClientRect().top ?? 0;
   const homeKind = state.tracks[clip.trackId]?.kind;
 

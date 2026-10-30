@@ -19,7 +19,7 @@ export const splitAt = defineCommand({
   id: "timeline.splitAt",
   label: "Split",
   description:
-    "Splits clips in two at a timeline time. Pass clipIds to split only those (their linked clips are split too); otherwise every clip under that time is split. Linked halves stay linked: left with left, right with right. A junction (transition) at a split clip's end moves to its right half. Splitting inside a junction's overlap fails with junction.split_in_overlap when clipIds are given; without clipIds those clips (and their partners) are left whole and the rest are split. Returns the ids of the new right-hand clips.",
+    "Splits clips in two at a timeline time. Pass clipIds to split only those (their linked clips are split too); otherwise every clip under that time in your open composition is split. Linked halves stay linked: left with left, right with right. A junction (transition) at a split clip's end moves to its right half. Splitting inside a junction's overlap fails with junction.split_in_overlap when clipIds are given; without clipIds those clips (and their partners) are left whole and the rest are split. Returns the ids of the new right-hand clips.",
   undoable: true,
   input: z.object({ at: time, clipIds: z.array(z.string()).optional() }),
   run(ctx, { at, clipIds }) {

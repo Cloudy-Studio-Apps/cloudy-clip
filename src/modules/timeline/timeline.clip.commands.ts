@@ -32,7 +32,7 @@ export const addClip = defineCommand({
   id: "timeline.addClip",
   label: "Add clip",
   description:
-    "Places imported media on the timeline. A video file becomes a picture clip on a video track plus, if it has sound, a linked sound clip on an audio track (linked clips move, trim, split and delete together until unlinked). Optional: trackId (a track of either kind; for an audio file it must be an audio track), audioTrackId (where a video's sound goes), start (defaults to the end of the first track of the main kind), sourceIn and duration to use only part of the file. Fails if a named track is busy at that spot. Returns { clips } (picture first).",
+    "Places imported media on the timeline of your open composition, or of the track you name. A video file becomes a picture clip on a video track plus, if it has sound, a linked sound clip on an audio track (linked clips move, trim, split and delete together until unlinked). Optional: trackId (a track of either kind; for an audio file it must be an audio track), audioTrackId (where a video's sound goes), start (defaults to the end of the first track of the main kind), sourceIn and duration to use only part of the file. Fails if a named track is busy at that spot. Returns { clips } (picture first).",
   undoable: true,
   input: z.object({
     mediaId: z.string(),

@@ -1,17 +1,8 @@
-import { LOCAL_ACTOR, notify, type CommandBus } from "@/core";
-import type { MediaApi } from "@/modules/media";
-import type { ProjectApi } from "@/modules/project";
+import { LOCAL_ACTOR, notify } from "@/core";
 import type { TimelineDrop, TimelineDropHandler } from "@/modules/timeline";
 import { createFromMedia, openComposition } from "./composition.commands";
 import { placeComposition } from "./composition.place.command";
-import type { CompositionApi } from "./composition.types";
-
-interface DropDeps {
-  bus: CommandBus;
-  project: ProjectApi;
-  media: Pick<MediaApi, "getProbe" | "pictureMeta" | "probes">;
-  api: Pick<CompositionApi, "ui" | "openNew">;
-}
+import type { DropDeps } from "./composition.types";
 
 /**
  * What a drop on a timeline does when no composition can take it: an item with a picture starts

@@ -10,7 +10,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace); with a junction selected
   they run `junction.remove` instead of deleting clips
 - **Points it owns** (`timeline.points.ts`): `timelineTabs` (between the toolbar and the ruler; `composition` contributes its tabs), `timelineMenuItems` (the right-click menu), `clipActions` (a clip's double-click and right-click), `timelineDropHandlers` (who gets a drop first; `timeline.drop(drop)` asks them, then places it), `timelineOverlays` (id `timeline.overlays`, keyed by `id`): layers in the scrolling content, beside the playhead and outside the virtualized pages.
-- **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history), `clipBox(id)` and `panelBox()` (screen boxes; `clipBox` works for clips no page has rendered), `onScroll`, `scrollToTime`, `attachScroller`,
+- **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history), `switchComposition(from, to)` (keeps zoom and scroll per composition, clears the selection), `drop(drop)` (puts something on the timeline: `timelineDropHandlers`, then the usual placement), `clipBox(id)` and `panelBox()` (screen boxes; `clipBox` works for clips no page has rendered), `onScroll`, `scrollToTime`, `attachScroller`,
   `setZoom`, `selectClip` (selecting a clip selects its linked partners and clears the junction
   selection), `selectJunction(id | null)` (selecting a junction clears the clip selection;
   `view.junctionSelection`), `cutTarget(clientX, clientY)` (the cut near a point, within `CUT_SNAP_PX`, for
@@ -95,7 +95,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     because their pictures are joined (remove the junction first); nothing changes.
   - A junction whose kind isn't registered is kept where the rules allow and its limits are not
     checked.
-- **Not yet:** markers, groups, compositions, ripple and other Pro tools, magnetic main track.
+- **Not yet:** markers, groups, ripple and other Pro tools, magnetic main track.
 
 | Command                   | MCP tool                    |
 | ------------------------- | --------------------------- |

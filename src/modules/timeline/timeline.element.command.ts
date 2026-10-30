@@ -18,7 +18,7 @@ export const addElement = defineCommand({
   id: "timeline.addElement",
   label: "Add element",
   description:
-    'Adds a clip of an element that has no source file, e.g. kind "text". List the kinds, their properties and defaults with element_describe. Optional: props (values to start with, same shape as element_set_props, may include "transform"), start (microseconds, defaults to your playhead), duration (microseconds, default 3 s), trackId (a track the element may sit on; by default the top track of its preferred kind with room there, or a new top track). Fails if the named track is busy there. Media files are placed with timeline_add_clip instead. Returns the new clip.',
+    'Adds a clip of an element that has no source file, e.g. kind "text", to your open composition or the track you name. List the kinds, their properties and defaults with element_describe. Optional: props (values to start with, same shape as element_set_props, may include "transform"), start (microseconds, defaults to your playhead), duration (microseconds, default 3 s), trackId (a track the element may sit on; by default the top track of its preferred kind with room there, or a new top track). Fails if the named track is busy there. Media files are placed with timeline_add_clip instead. Returns the new clip.',
   undoable: true,
   input: z.object({
     kind: z.string(),

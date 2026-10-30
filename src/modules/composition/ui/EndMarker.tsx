@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule, type Micros } from "@/core";
-import { useOpenComposition } from "@/modules/project";
+import { frameDuration, useOpenComposition } from "@/modules/project";
 import { HEADER_WIDTH, timelineRef, timeToPx } from "@/modules/timeline";
 import { setSettings } from "../composition.commands";
 import { startEndDrag } from "./end.gesture";
@@ -48,6 +48,7 @@ export function EndMarker() {
           startEndDrag(
             event.nativeEvent,
             composition.duration,
+            frameDuration(composition.format),
             (px) => Math.round((px / pxPerSecond) * 1_000_000),
             place,
             (time) =>

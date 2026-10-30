@@ -522,4 +522,32 @@ describe("composition commands", () => {
     await ok(setSettings, { compositionId, format: { width: 1920, height: 1080, fps: 30 } });
     expect(state().clips.t!.transform!.y).toBe(600);
   });
+
+  it("refuses a length under one frame, which would shrink every placement to nothing", async () => {
+    const { compositionId } = await ok(createComposition, {});
+    expect(await failure(setSettings, { compositionId, duration: 1 })).toBe(
+      "composition.too_short",
+    );
+    expect(await failure(createComposition, { duration: 1 })).toBe("composition.too_short");
+  });
+
+  it("groups a clip with a transition at the edge, and ends the neighbour there", async () => {
+    const { compositionId } = await ok(createComposition, {});
+    const [v] = state().compositions[compositionId]!.trackOrder as [string, string];
+    write((draft) => {
+      draft.clips.l = text("l", v, 0, { duration: 3 * S });
+      draft.clips.m = text("m", v, 2 * S, { duration: 3 * S, kind: "media", mediaId: "m" });
+      draft.clips.r = text("r", v, 4 * S, { duration: 3 * S, kind: "media", mediaId: "m" });
+      draft.tracks[v]!.clipIds = ["l", "m", "r"];
+      const junction = { kind: "cut", trackId: v, duration: S, props: {} };
+      draft.junctions.a = { ...junction, id: "a", leftClipId: "l", rightClipId: "m" };
+      draft.junctions.b = { ...junction, id: "b", leftClipId: "m", rightClipId: "r" };
+    });
+    const { compositionId: grouped } = await ok(groupClips, { clipIds: ["m"] });
+    expect(state().junctions).toEqual({});
+    expect(state().clips.l!.duration).toBe(2 * S);
+    expect(state().clips.r).toMatchObject({ start: 5 * S, sourceIn: S, duration: 2 * S });
+    const [picture] = placementsOf(state(), grouped);
+    expect(picture).toMatchObject({ start: 2 * S, duration: 3 * S });
+  });
 });

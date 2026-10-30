@@ -7,7 +7,7 @@ Connected agents as collaborators, shaped so people can join later (`Collaborato
 - **Contributes:** `topBarItems` (`collab.status`, `collab.avatars`), `appOverlays` (`collab.pointers`), `timelineOverlays` (`collab.playheads`), the commands and tool below; `ctx.mcp.observe`; `history.scopeUndo` (from here on Ctrl+Z means the user's own steps) and `history.nameActors`.
 - **API:** `CollabApi`: `store` (`CollabState`: `collaborators`, `blocked`, `followed`).
 - **Commands:** `collab.setAccess { actor, access }`, `collab.setPaused { actor, paused }`, `collab.setBlocked { actor, blocked }`, `collab.follow { actor | null }`. Not MCP tools: only the user decides these.
-- **Tools:** `collab_get_user_context`: the user's playhead, whether they are playing, their selection.
+- **Tools:** `collab_get_user_context`: the user's open composition, playhead, whether they are playing, their selection.
 - **Files:**
   - `collab.observer.ts`: the `McpObserver`. Joins agents, names steps, refuses calls with `collab.disconnected`, `collab.paused` or `collab.view_only`. Refused calls don't count as activity.
   - `collab.presence.ts`: tells an agent when the user undid its step (sent with its next reply), and checks agents every second: resting after 4 s without a call (pointer, outline and playhead fade out until the next call, keeping their place so the arrow glides from there), idle after 2 min, gone after 15 min, when their steps pass to the user and their playhead is dropped.

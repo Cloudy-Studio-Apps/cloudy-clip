@@ -9,12 +9,14 @@ const getState = defineMcpTool({
   name: "project_get_state",
   readOnly: true,
   description:
-    "Returns the whole project: the id of the main composition, each composition with its settings, tracks (top to bottom) with their clips in timeline order and junctions (transitions between adjacent clips, ordered by track then time), and the imported media. Times are microseconds. Call this first.",
+    "Returns the whole project: the id of the main composition, the one you have open (`open`), each composition with its settings, tracks (top to bottom) with their clips in timeline order and junctions (transitions between adjacent clips, ordered by track then time), and the imported media. Times are microseconds. Call this first.",
   input: z.object({}),
   handler(_input, ctx) {
-    const state = ctx.require(projectRef).store.getState();
+    const { store, view } = ctx.require(projectRef);
+    const state = store.getState();
     return textResult({
       main: state.mainCompositionId,
+      open: view.openFor(ctx.caller.key),
       compositions: state.compositionOrder.flatMap((id) => {
         const composition = state.compositions[id];
         if (!composition) return [];

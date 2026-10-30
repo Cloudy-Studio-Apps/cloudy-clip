@@ -1,10 +1,5 @@
 import { MixCanvases } from "./engine.mix";
-
-/** One placement's offscreen picture, and the canvases for the transitions inside it. */
-interface NestedCanvas {
-  ctx: CanvasRenderingContext2D;
-  mix: MixCanvases;
-}
+import type { NestedCanvas } from "./engine.types";
 
 /**
  * The transparent canvases composition clips are drawn into, one per placement on screen. Default

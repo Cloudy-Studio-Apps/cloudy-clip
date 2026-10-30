@@ -21,7 +21,7 @@ import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
-import type { EngineOptions, ResolvedFrame } from "./engine.types";
+import type { EngineOptions, PlacementTarget, ResolvedFrame } from "./engine.types";
 
 /** Whether a clip plays a file (media clips). */
 function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
@@ -33,12 +33,6 @@ const PRELOAD_AHEAD: Micros = 1_500_000;
 
 /** No gesture or live patch: what clips inside a placement are drawn with. */
 const NOTHING = new Map();
-
-/** Canvas pixels per output pixel. */
-interface Scale {
-  kx: number;
-  ky: number;
-}
 
 /**
  * Preview engine built on HTML media elements and a 2D canvas.
@@ -277,7 +271,7 @@ export class HtmlMediaEngine implements PreviewEngine {
    * frame. Inside, clips are drawn as saved: live gestures only touch the composition that's open.
    */
   private drawPlacement(
-    { on, format, kx, ky }: { on: CanvasRenderingContext2D; format: ProjectFormat } & Scale,
+    { on, format, kx, ky }: PlacementTarget,
     project: ProjectState,
     inner: ResolvedFrame,
     path: string,

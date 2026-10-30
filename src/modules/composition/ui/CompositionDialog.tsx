@@ -37,9 +37,10 @@ function Form({ composition, onClose }: { composition: Composition | null; onClo
   const [format, setFormat] = useState(composition?.format ?? DEFAULT_FORMAT);
   const [background, setBackground] = useState(composition?.background ?? "#000000");
   const [extendToFit, setExtendToFit] = useState(composition?.extendToFit ?? false);
-  const [length, setLength] = useState(
+  const [initialLength] = useState(() =>
     formatLength(composition?.duration ?? 10_000_000, format.fps),
   );
+  const [length, setLength] = useState(initialLength);
   const [ratioLocked, setRatioLocked] = useState(false);
   const [resize, setResize] = useState<"keep" | "scale">("keep");
   const resized =
@@ -69,8 +70,21 @@ function Form({ composition, onClose }: { composition: Composition | null; onClo
       duration,
       extendToFit,
     };
+    // Only what was edited: the length box rounds to frames, so it mustn't rewrite an untouched
+    // length, and a Save that changed nothing is no undo step.
+    const changes = composition && {
+      ...(name.trim() && name.trim() !== composition.name && { name: name.trim() }),
+      ...((resized || format.fps !== composition.format.fps) && { format }),
+      ...(background !== composition.background && { background }),
+      ...(length !== initialLength && { duration }),
+      ...(extendToFit !== composition.extendToFit && { extendToFit }),
+    };
+    if (changes && Object.keys(changes).length === 0) {
+      onClose();
+      return;
+    }
     const run = composition
-      ? bus.run(setSettings, { compositionId: composition.id, ...settings, resize })
+      ? bus.run(setSettings, { compositionId: composition.id, ...changes, resize })
       : bus.run(createComposition, settings);
     void run.then((result) => {
       if (!result.ok) return;

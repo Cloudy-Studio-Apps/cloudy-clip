@@ -5,6 +5,7 @@ import {
   withPartners,
   type Clip,
   type ClipId,
+  type Junction,
   type ProjectState,
 } from "@/modules/project";
 import type { GroupPlan } from "../composition.types";
@@ -31,23 +32,37 @@ export function planGroup(state: ProjectState, clipIds: readonly ClipId[]): Grou
   const start = Math.min(...clips.map((clip) => clip.start));
   const end = Math.max(...clips.map(clipEnd));
 
+  // A neighbour joined at the edge of the selection overlaps it, and is trimmed to the edge.
+  const junctions = Object.values(state.junctions);
+  const crossing = junctions.filter(
+    (j) => selected.has(j.leftClipId) !== selected.has(j.rightClipId),
+  );
+  const atEdge = (j: Junction) =>
+    selected.has(j.leftClipId)
+      ? state.clips[j.leftClipId]!.start + state.clips[j.leftClipId]!.duration === end
+      : state.clips[j.rightClipId]!.start === start;
+  const neighbours = new Set(
+    withPartners(
+      state,
+      crossing
+        .filter(atEdge)
+        .map((j) => (selected.has(j.leftClipId) ? j.rightClipId : j.leftClipId)),
+    ),
+  );
   const inTheWay = (clip: Clip) =>
-    !selected.has(clip.id) && clip.start < end && clipEnd(clip) > start;
+    !selected.has(clip.id) && !neighbours.has(clip.id) && clip.start < end && clipEnd(clip) > start;
   for (const trackId of [videoTrack, audioTrack]) {
     const track = trackId === null ? undefined : state.tracks[trackId];
     const blocked = track && trackClips(state, track).find(inTheWay);
     if (blocked) return { blocked };
   }
-  const junctions = Object.values(state.junctions);
-  const crosses = (left: ClipId, right: ClipId) => selected.has(left) !== selected.has(right);
   return {
     homeId: home.id,
     span: { start, end },
     videoTrack,
     audioTrack,
     clips: ids,
-    droppedJunctions: junctions
-      .filter((j) => crosses(j.leftClipId, j.rightClipId))
-      .map((j) => j.id),
+    droppedJunctions: crossing.map((j) => j.id),
+    neighbours: [...neighbours],
   };
 }

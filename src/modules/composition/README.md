@@ -8,7 +8,7 @@ What a timeline is. A composition is a size, a frame rate, a background, a lengt
 - **Points it owns:** —
 - **API** (`CompositionApi`): `ui` (open dialog and selected tile, not in history), `openNew`, `openSettings(id)`, `closeDialog`, `select(id)`, `cancelWaiting`, `landPending`.
 - **Files:**
-  - `composition.commands.ts`: the commands below. `composition.guards.ts`: `requireComposition`, `checkFormat`, `formatInput`.
+  - `composition.commands.ts`: the list of commands below, from `composition.create.commands.ts`, `composition.settings.commands.ts`, `composition.library.commands.ts`, `composition.place.command.ts`, `composition.unique.command.ts`, `composition.group.command.ts`. `composition.guards.ts`: `requireComposition`, `checkFormat`, `checkLength` (`composition.too_short`), input schemas.
   - `composition.presets.ts`: `COMPOSITION_PRESETS`, `FPS_OPTIONS`.
   - `composition.drop.ts`: drops. A composition is placed, or just opens with nothing open. With nothing open, with compositions around, Main opens and the drop goes on; a video waits for its metadata outside the bus (`WaitingDrop`, Escape cancels), then runs `composition.createFromMedia`; audio and elements go through the dialog and land on confirm.
   - `composition.store.ts`: `createCompositionUi()`. `logic/timecode.ts`: `formatLength`, `parseLength` (`mm:ss:ff`).
