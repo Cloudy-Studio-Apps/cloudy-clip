@@ -5,6 +5,7 @@ import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/engine.html";
+import { rememberPlayheads } from "./logic/playheads";
 import { createCapture } from "./preview.capture";
 import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
@@ -38,7 +39,14 @@ export const previewModule = defineModule({
       getProject: () => project.getState(),
       getComposition: openComposition,
       getDuration: (actor) => openComposition(actor)?.duration ?? 0,
-      subscribeProject: (listener) => project.subscribe(listener),
+      subscribeProject(listener) {
+        const offProject = project.subscribe(listener);
+        const offView = view.store.subscribe(listener);
+        return () => {
+          offProject();
+          offView();
+        };
+      },
       subscribeMedia: (listener) => media.probes.subscribe(listener),
       createEngine: (canvas, onFrameReady) =>
         new HtmlMediaEngine(canvas, {
@@ -60,6 +68,19 @@ export const previewModule = defineModule({
           }),
       }),
     });
+    // Each composition keeps its playhead: a switch stops playback and goes where this one was.
+    const playheads = rememberPlayheads();
+    let shown = view.openFor(LOCAL_ACTOR);
+    const followOpen = () => {
+      const next = view.openFor(LOCAL_ACTOR);
+      if (next === shown) return;
+      const time = playheads.switchTo(shown, next, clock.getTime());
+      shown = next;
+      clock.pause();
+      clock.seek(time);
+    };
+    ctx.onDispose(view.store.subscribe(followOpen));
+    ctx.onDispose(project.subscribe(followOpen));
     // A font arriving (or failing) changes how text is drawn and measured.
     ctx.onDispose(fonts.onLoaded(() => controller.redraw()));
     ctx.onDispose(() => {

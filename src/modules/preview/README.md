@@ -63,7 +63,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     `soundGains(project, time)`), `random.ts` (`seededRandom(seed)`), `drift.ts`
     (`driftSeek(state)`: where to seek a playing element, or `null`).
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it runs in
-    node). Renders every frame while playing, on demand while paused.
+    node). It draws the composition the user has open (`project`'s `view`); an agent's clock runs on the length of its own open composition, and `captureAt(time, compositionId)` draws any composition. `logic/playheads.ts`: each composition keeps its playhead, restored on a switch. Renders every frame while playing, on demand while paused.
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).
   - `ui/`: `PreviewStage` (frame + overlays, placed imperatively by `stage.layout.hook.ts`;
     Ctrl/Cmd + wheel zooms at the pointer, wheel and middle-drag pan via

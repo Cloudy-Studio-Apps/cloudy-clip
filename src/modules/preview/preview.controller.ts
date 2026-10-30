@@ -37,8 +37,12 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
 
   function renderNow(): void {
     redrawQueued = false;
+    if (!engine) return;
     const composition = deps.getComposition();
-    if (!engine || !composition) return;
+    if (!composition) {
+      engine.pauseAll();
+      return;
+    }
     try {
       engine.render(
         deps.getProject(),

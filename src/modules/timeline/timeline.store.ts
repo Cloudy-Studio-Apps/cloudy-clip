@@ -1,5 +1,5 @@
 import { createStore } from "zustand/vanilla";
-import type { ClipId, ProjectState } from "@/modules/project";
+import type { ClipId, CompositionId, ProjectState } from "@/modules/project";
 import { cutAtX } from "./logic/cut";
 import { laneDropTarget } from "./logic/drop";
 import { timeToPx } from "./logic/geometry";
@@ -26,8 +26,26 @@ export function createTimelineView(
   }));
   let scroller: HTMLElement | null = null;
   const scrollListeners = new Set<() => void>();
+  const places = new Map<CompositionId, { pxPerSecond: number; scrollLeft: number }>();
   return {
     view,
+    switchComposition(from, to) {
+      if (from !== null) {
+        const { pxPerSecond } = view.getState();
+        places.set(from, { pxPerSecond, scrollLeft: scroller?.scrollLeft ?? 0 });
+      }
+      const place = to === null ? undefined : places.get(to);
+      view.setState({
+        selection: [],
+        junctionSelection: [],
+        cutPreview: null,
+        ...(place && { pxPerSecond: place.pxPerSecond }),
+      });
+      // After the new timeline has laid out, so its width can hold the old scroll.
+      requestAnimationFrame(() => {
+        if (scroller) scroller.scrollLeft = place?.scrollLeft ?? 0;
+      });
+    },
     clipBox(id) {
       const clip = project?.().clips[id];
       const lane = clip && lanes().find((l) => l.trackId === clip.trackId);

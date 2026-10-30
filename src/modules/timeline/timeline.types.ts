@@ -4,6 +4,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { Cut, JunctionKindDefinition } from "@/modules/junction";
 import type { LucideIcon } from "lucide-react";
 import type {
+  CompositionId,
   ClipId,
   ClipMove,
   Junction,
@@ -109,6 +110,8 @@ export interface TimelineApi {
   scrollToTime(time: Micros): void;
   /** Registers the scrolling element. For the timeline panel. Returns the detach. */
   attachScroller(element: HTMLElement): () => void;
+  /** Keeps `from`'s zoom and scroll, restores `to`'s, and clears the selection. */
+  switchComposition(from: CompositionId | null, to: CompositionId | null): void;
 }
 
 /** A junction chip as the lane draws it. */

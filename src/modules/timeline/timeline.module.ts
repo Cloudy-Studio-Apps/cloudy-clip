@@ -1,4 +1,4 @@
-import { defineModule, keybindings, layoutPanels } from "@/core";
+import { defineModule, keybindings, layoutPanels, LOCAL_ACTOR } from "@/core";
 import { removeJunction } from "@/modules/junction";
 import { partnersOf, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
@@ -18,13 +18,22 @@ export const timelineModule = defineModule({
   commands: timelineCommands,
   mcpTools: timelineMcpTools,
   setup(ctx) {
-    const project = ctx.require(projectRef).store;
+    const { store: project, view: compositions } = ctx.require(projectRef);
     const timeline = createTimelineView(
       (id) => partnersOf(project.getState(), id).map((c) => c.id),
       laneBoxes,
       () => project.getState(),
     );
     const { view } = timeline;
+    let shown = compositions.openFor(LOCAL_ACTOR);
+    const followOpen = () => {
+      const next = compositions.openFor(LOCAL_ACTOR);
+      if (next === shown) return;
+      timeline.switchComposition(shown, next);
+      shown = next;
+    };
+    ctx.onDispose(compositions.store.subscribe(followOpen));
+    ctx.onDispose(project.subscribe(followOpen));
     ctx.contribute(layoutPanels, {
       id: "timeline.panel",
       title: "Timeline",
