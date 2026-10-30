@@ -24,7 +24,11 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   - `engine/`: the v1 `PreviewEngine`. `engine.html.ts` renders and draws video layers bottom → top,
     each placed with `clipPlacement` (`project`); `engine.slots.ts` pools media elements (reused
     across clips of the same file, so splits play seamlessly; clips starting within 1.5 s are
-    preloaded); `engine.sync.ts` keeps elements on the clock and re-seeks only on drift.
+    preloaded); `engine.sync.ts` keeps elements on the clock and re-seeks only on drift
+    (`logic/drift.ts`). The clock moves during a seek and a seek flushes the sound (an audible
+    tick), so a seek aims where the clock will be when it lands, using what the slot's last seek
+    took (`seekCost`). A seek to the clock itself lands late on long-GOP files, stays over the
+    limit and repeats every 500 ms.
     Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
     `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
     clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only).
@@ -56,7 +60,8 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     `logic/junctions.ts`).
   - `logic/`: `junctions.ts` (`activeJunctions(project, trackId, time)`: overlapping junctions
     under the playhead with their `progress` and `elapsed`; `crossfadeGains(progress)`;
-    `soundGains(project, time)`), `random.ts` (`seededRandom(seed)`).
+    `soundGains(project, time)`), `random.ts` (`seededRandom(seed)`), `drift.ts`
+    (`driftSeek(state)`: where to seek a playing element, or `null`).
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it is tested in
     node). Renders every frame while playing, on demand while paused.
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).

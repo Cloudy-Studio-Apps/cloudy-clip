@@ -16,6 +16,8 @@ export interface Slot {
   seekTarget: number | null;
   /** `performance.now()` of the last seek. */
   lastSeekAt: number;
+  /** Seconds the last seek took, so the next one can aim ahead of the moving clock. */
+  seekCost: number;
   /**
    * Whether the frame for the current position has actually been decoded. WebKit fires
    * `seeked` before that, so drawing at `seeked` can paint black.

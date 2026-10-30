@@ -1,5 +1,6 @@
 import { createLogger } from "@/core";
 import type { Clip, MediaId } from "@/modules/project";
+import { INITIAL_SEEK_COST } from "../logic/drift";
 import type { EngineOptions, Slot } from "./engine.types";
 
 const log = createLogger("preview.engine");
@@ -138,9 +139,11 @@ export class MediaSlotPool {
       clipId: null,
       seekTarget: null,
       lastSeekAt: 0,
+      seekCost: INITIAL_SEEK_COST,
       presented: false,
     };
     element.addEventListener("seeked", () => {
+      slot.seekCost = (performance.now() - slot.lastSeekAt) / 1000;
       slot.seekTarget = null;
       this.watchForFrame(slot);
     });

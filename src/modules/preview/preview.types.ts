@@ -138,6 +138,22 @@ export interface PreviewOverlay {
   component: ComponentType;
 }
 
+/** A playing element against the clock, for deciding whether to seek it. */
+export interface DriftState {
+  /** Where the element is (seconds). */
+  current: number;
+  /** Where the clock wants it. */
+  desired: number;
+  /** Length of the file; `NaN` until known. */
+  duration: number;
+  /** Target of the seek in flight. */
+  seekTarget: number | null;
+  /** Milliseconds since the last seek. */
+  sinceSeekMs: number;
+  /** Seconds the last seek took. */
+  seekCost: number;
+}
+
 /** A junction whose overlap is under the playhead. */
 export interface ActiveJunction {
   junction: Junction;
