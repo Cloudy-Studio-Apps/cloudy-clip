@@ -5,6 +5,36 @@ import { sealSvg } from "./seal.face";
 import { SEAL_EYES as EYES, SEAL_MOUTHS as MOUTHS } from "./seal.parts";
 import { SEAL_PROPS as PROPS } from "./seal.props";
 
+const ANIMATIONS = import.meta.glob<string>("./anim/*.json", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const STILLS = import.meta.glob<string>("./anim/*.svg", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+
+/** A moving seal, as a Lottie file made by `scripts/stickers.seals.mjs`. */
+function moving(
+  name: string,
+  label: string,
+  keywords: string[],
+  aspect: number,
+): StickerDefinition {
+  const url = ANIMATIONS[`./anim/${name}.json`] ?? "";
+  return {
+    id: name,
+    label,
+    keywords: ["seal", "foca", "animated", ...keywords],
+    topics: ["reactions"],
+    aspect,
+    thumbnail: STILLS[`./anim/${name}.svg`],
+    art: () => ({ type: "lottie", url }),
+  };
+}
+
 function seal(name: string, label: string, keywords: string[], face: SealFace): StickerDefinition {
   const url = svgDataUrl(sealSvg(face));
   return {
@@ -99,5 +129,12 @@ export const sealPack = defineStickerPack({
   id: "seal",
   name: "Cloudy Seal",
   order: 10,
-  stickers: SEAL_STICKERS,
+  stickers: [
+    moving("hopping", "Hopping", ["jump", "bounce", "waiting"], 80 / 76),
+    moving("celebrating", "Celebrating", ["party", "wave", "cheer"], 80 / 76),
+    moving("patting", "Patting", ["belly", "drum", "full"], 1),
+    moving("painting", "Painting", ["art", "brush", "palette"], 100 / 68),
+    moving("adrift", "Adrift", ["dizzy", "lost", "error", "ice"], 224 / 170),
+    ...SEAL_STICKERS,
+  ],
 });

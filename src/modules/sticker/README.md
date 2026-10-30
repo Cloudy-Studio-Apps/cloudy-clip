@@ -21,6 +21,9 @@ cut across packs and optional variations.
     placeholder and never holds the frame; `ready` says no only while a list or image loads.
   - `sticker.art.ts`: decoded art per kernel. Images are rasterized at the size they show at, in
     powers of two, again only when larger, at most 64 kept.
+  - `sticker.lottie.ts`: animated art, `lottie-web`'s light canvas build, imported on first use. It
+    never plays: each draw seeks to the clip's time, looped, so paused, scrubbing, capture and a
+    hidden window all show the exact frame, and one player serves any number of clips.
   - `logic/size.ts`: the longer side is `STICKER_SHARE` (0.3) of the frame's short side.
 
   - `ui/`: `StickersPanel` (the tab, its view is local state), `StickerHome` (recently used, pack

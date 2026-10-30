@@ -184,6 +184,17 @@ export interface StickerArtCache {
   dispose(): void;
 }
 
+/** A Lottie file ready to draw. */
+export interface LottiePlayer {
+  /** Paints the frame at `seconds`, looping, centered on the origin. */
+  drawAt(
+    ctx: CanvasRenderingContext2D,
+    seconds: number,
+    box: { width: number; height: number },
+  ): void;
+  dispose(): void;
+}
+
 declare module "@/modules/element" {
   interface CustomProps {
     /** `prop.custom("sticker-variation", {})`: the chosen option of each of a sticker's axes. */

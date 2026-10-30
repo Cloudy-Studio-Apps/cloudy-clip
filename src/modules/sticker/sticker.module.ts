@@ -29,7 +29,10 @@ export const stickerModule = defineModule({
     const preview = require(previewRef);
     const library = createStickerLibrary(points, log);
     const recents = createStickerRecents();
-    const art = createStickerArtCache({ onReady: () => preview.redraw() });
+    const art = createStickerArtCache({
+      onReady: () => preview.redraw(),
+      onError: (message, error) => log.error(message, error),
+    });
     onDispose(() => art.dispose());
     onDispose(library.onLoaded(() => preview.redraw()));
     contribute(propTypes, stickerVariationType);
