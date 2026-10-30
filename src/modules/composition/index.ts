@@ -15,6 +15,8 @@ export {
   setMain,
   setSettings,
 } from "./composition.commands";
+/** Places a composition on a timeline, as a live mirror. */
+export { placeComposition } from "./composition.place.command";
 /** Formats and frame rates offered in the dialog. */
 export { COMPOSITION_PRESETS, FPS_OPTIONS } from "./composition.presets";
 export type { CompositionApi, CompositionPreset, CompositionPresetId } from "./composition.types";

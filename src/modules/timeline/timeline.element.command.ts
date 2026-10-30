@@ -34,10 +34,10 @@ export const addElement = defineCommand({
       throw new CommandFailure("element.unknown_kind", `No module provides "${input.kind}" clips.`);
     }
     const { definition } = element;
-    if (definition.source === "media") {
+    if (definition.source !== "none") {
       throw new CommandFailure(
         "timeline.needs_source",
-        `${definition.name} clips play a file; place media with timeline.addClip.`,
+        `${definition.name} clips have a source; place them with timeline.addClip or composition.place.`,
       );
     }
     const start = input.start ?? ctx.require(previewRef).clockFor(ctx.actor).getTime();

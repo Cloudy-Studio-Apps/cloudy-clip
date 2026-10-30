@@ -13,6 +13,7 @@ import {
 } from "@/modules/project";
 import { addClip } from "@/modules/timeline";
 import { checkFormat, formatInput, requireComposition } from "./composition.guards";
+import { placeComposition } from "./composition.place.command";
 import { cloneComposition } from "./logic/clone";
 
 const DEFAULT_DURATION = 10_000_000;
@@ -275,6 +276,7 @@ export const closeTab = defineCommand({
 });
 
 export const compositionCommands = [
+  placeComposition,
   createComposition,
   createFromMedia,
   setSettings,

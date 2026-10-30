@@ -16,11 +16,12 @@ export function trimLimits(
   durationOf: MediaDurationOf,
   edge?: TrimEdge,
 ): TrimLimits {
-  // Elements without a source file (text) have no media.
-  const sourceless = clip.mediaId === undefined;
+  // Elements without a source (text) have no length of their own.
+  const placed = clip.compositionRef && state.compositions[clip.compositionRef];
+  const sourceless = clip.mediaId === undefined && !placed;
   return {
     mediaDuration:
-      (sourceless || !clip.mediaId ? undefined : durationOf(clip.mediaId)) ??
+      (placed ? placed.duration : clip.mediaId ? durationOf(clip.mediaId) : undefined) ??
       Number.POSITIVE_INFINITY,
     minDuration: minClipDuration(formatOf(state, clip)),
     ...neighbourBounds(state, clip, edge),

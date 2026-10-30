@@ -21,7 +21,7 @@ export {
  * overlapping a span on a track, the first track of a kind with room for a span, and the
  * `timeline.overlap` failure that explains a clash.
  */
-export { findOverlap, freeTrack } from "./logic/placement";
+export { findOverlap, freeTrack, minClipDuration, sortClipIds, trackEnd } from "./logic/placement";
 /** Layers over the lanes; contribute with `ctx.contribute(timelineOverlays, …)`. */
 export {
   timelineDropHandlers,

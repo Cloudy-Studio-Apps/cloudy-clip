@@ -86,7 +86,8 @@ export const trimClip = defineCommand({
     const state = ctx.require(projectRef).store.getState();
     const clip = requireClip(state, clipId);
     const media = ctx.require(mediaRef);
-    const durationOf = (id: string) => media.getProbe(id)?.duration;
+    const durationOf = (id: string) =>
+      media.pictureMeta(id)?.duration ?? media.getProbe(id)?.duration;
     const group = [clip, ...partnersOf(state, clipId)];
     const edgeTime = linkedTrimEdge(state, group, edge, to, durationOf);
     const trimmed = produce(state, (draft) => {

@@ -1,4 +1,5 @@
 import { appOverlays, defineModule, LOCAL_ACTOR } from "@/core";
+import { elements } from "@/modules/element";
 import { librarySections, mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/modules/timeline";
 import { compositionCommands, extendToFitOnce } from "./composition.commands";
 import { createCompositionDrop } from "./composition.drop";
+import { compositionElement } from "./composition.element";
 import { compositionMcpTools } from "./composition.mcp";
 import { compositionRef } from "./composition.ref";
 import { createCompositionUi } from "./composition.store";
@@ -28,10 +30,11 @@ export const compositionModule = defineModule({
   ref: compositionRef,
   name: "Compositions",
   tier: "core",
-  requires: ["project", "media", "timeline"],
+  requires: ["project", "element", "media", "timeline"],
   commands: compositionCommands,
   mcpTools: compositionMcpTools,
   setup(ctx) {
+    ctx.contribute(elements, compositionElement);
     ctx.contribute(librarySections, { id: "composition.section", component: CompositionSection });
     ctx.contribute(timelineTabs, { id: "composition.tabs", component: CompositionTabs });
     ctx.contribute(

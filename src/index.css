@@ -77,6 +77,7 @@
   --color-clip-video: var(--clip-video);
   --color-clip-audio: var(--clip-audio);
   --color-clip-type: var(--clip-type);
+  --color-clip-composition: var(--clip-composition);
 
   --color-ice-200: var(--ice-200);
   --color-ice-300: var(--ice-300);

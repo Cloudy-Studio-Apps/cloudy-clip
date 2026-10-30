@@ -180,8 +180,11 @@ export interface FaceRequest {
 export interface PictureDefinition<P> {
   /** `contain`: fitted in the frame before its transform; `none`: natural size in output px. */
   fit: "contain" | "none";
-  /** `media`: decoded from the clip's file by the preview engine (no `size`/`draw`). */
-  source?: "media";
+  /**
+   * `media`: decoded from the clip's file by the preview engine; `composition`: rendered from
+   * the clip's composition. Neither has `size` or `draw`.
+   */
+  source?: "media" | "composition";
   /** Size of the picture before its transform, in output pixels. */
   size?(props: P, env: { format: ProjectFormat; measure: TextMeasure }): PictureSize;
   /** Paints the picture. The canvas is in canvas pixels; use `env.placement`, `kx`, `ky`. */
@@ -231,8 +234,11 @@ export interface ElementDefinition<P = Record<string, unknown>> {
   kind: string;
   /** Human name ("Text"). */
   name: string;
-  /** `media`: plays a file (`clip.mediaId`); `none`: no source file, any length. */
-  source: "media" | "none";
+  /**
+   * `media`: plays a file (`clip.mediaId`); `composition`: plays a composition
+   * (`clip.compositionRef`); `none`: no source file, any length.
+   */
+  source: "media" | "composition" | "none";
   /** Track kinds it may sit on, preferred first. */
   tracks: readonly TrackKind[];
   /** Shared groups it opts into, whole or `except` some fields. */

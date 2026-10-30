@@ -12,7 +12,7 @@ import {
   type Clip,
   type ProjectState,
 } from "@/modules/project";
-import { timelineModule } from "@/modules/timeline";
+import { splitAt, timelineModule, trimClip } from "@/modules/timeline";
 import {
   createComposition,
   createFromMedia,
@@ -24,6 +24,7 @@ import {
 } from "./composition.commands";
 import { createCompositionDrop } from "./composition.drop";
 import { compositionModule } from "./composition.module";
+import { placeComposition } from "./composition.place.command";
 import { compositionRef } from "./composition.ref";
 
 const S = 1_000_000;
@@ -330,6 +331,64 @@ describe("composition commands", () => {
       const item = { type: "composition" as const, id: main.compositionId };
       expect(drop().handler.handle({ item })).toBe(true);
       await vi.waitFor(() => expect(view().openFor(LOCAL_ACTOR)).toBe(main.compositionId));
+    });
+  });
+
+  describe("placing", () => {
+    it("refuses a cycle, direct and through another composition", async () => {
+      const a = await ok(createComposition, {});
+      const outer = await ok(createComposition, {});
+      view().setOpen(LOCAL_ACTOR, outer.compositionId);
+      await ok(placeComposition, a);
+      view().setOpen(LOCAL_ACTOR, a.compositionId);
+      expect(await failure(placeComposition, a)).toBe("composition.cycle");
+      expect(await failure(placeComposition, outer)).toBe("composition.cycle");
+    });
+
+    it("places a picture and a linked sound clip, even for a silent composition", async () => {
+      const intro = await ok(createComposition, { duration: 5 * S });
+      const main = await ok(createComposition, {});
+      const { clips } = (await ok(placeComposition, intro)) as unknown as { clips: string[] };
+      expect(clips).toHaveLength(2);
+      const [picture, sound] = clips.map((id) => state().clips[id]!);
+      expect(picture).toMatchObject({ kind: "composition", duration: 5 * S });
+      expect(sound!.linkId).toBe(picture!.linkId);
+      expect(sound!.compositionRef).toBe(intro.compositionId);
+      expect(state().tracks[sound!.trackId]!.kind).toBe("audio");
+      expect(state().tracks[picture!.trackId]!.compositionId).toBe(main.compositionId);
+    });
+
+    it("goes after what is on the track, and reports a busy spot", async () => {
+      const intro = await ok(createComposition, { duration: 5 * S });
+      await ok(createComposition, {});
+      await ok(placeComposition, intro);
+      const second = (await ok(placeComposition, intro)) as unknown as { clips: string[] };
+      expect(state().clips[second.clips[0]!]!.start).toBe(5 * S);
+      expect(
+        await failure(placeComposition, {
+          ...intro,
+          start: 0,
+          trackId: state().clips[second.clips[0]!]!.trackId,
+        }),
+      ).toBe("timeline.overlap");
+    });
+
+    it("limits a placement's trim to the composition's length", async () => {
+      const intro = await ok(createComposition, { duration: 5 * S });
+      await ok(createComposition, {});
+      const { clips } = (await ok(placeComposition, intro)) as unknown as { clips: string[] };
+      await kernel.bus.run(trimClip, { clipId: clips[0]!, edge: "end", time: 9 * S });
+      expect(state().clips[clips[0]!]!.duration).toBe(5 * S);
+    });
+
+    it("splits a placement keeping both halves on the same composition", async () => {
+      const intro = await ok(createComposition, { duration: 5 * S });
+      await ok(createComposition, {});
+      await ok(placeComposition, intro);
+      await kernel.bus.run(splitAt, { at: 2 * S });
+      const pictures = Object.values(state().clips).filter((c) => c.compositionRef);
+      expect(pictures).toHaveLength(4);
+      expect(pictures.map((c) => c.sourceIn).sort((a, b) => a - b)).toEqual([0, 0, 2 * S, 2 * S]);
     });
   });
 });

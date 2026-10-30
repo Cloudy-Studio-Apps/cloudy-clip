@@ -20,7 +20,7 @@ lives here, so every change is undoable and readable by agents.
     set for clips that play a file; shared group values (`transform`) live under their own key.
   - `project.store.ts`: `DEFAULT_FORMAT`, `createEmptyProject()`.
   - `project.view.ts`: the view above. `project.testing.ts`: `seedProject(seed)`, one composition `c1` for test fixtures.
-  - `logic/compositions.ts`: `contains(state, outer, inner)`, `settleCompositions` (the policy's `settle`: keeps Extend to fit lengths true inside every step).
+  - `logic/compositions.ts`: `contains(state, outer, inner)`, `settleCompositions` (the policy's `settle`, innermost first, inside every step: Extend to fit lengths, placements shortened to their composition, a transition that no longer fits removed with the left clip ending at the next one's start; it never moves a `start`).
   - `logic/fields.ts`: `projectPolicy`, the store's `StorePolicy`: what lets a step be undone past others' newer steps. `diff` lists changes by field (one level into plain objects; a created or deleted entity is one change), `repair` rebuilds `clipIds`, each `trackOrder`, `compositionOrder` and `mediaOrder`, and `validate` refuses a missing Main, tracks without a composition, a composition inside itself, missing tracks or media, overlaps, stale junctions and two junctions on a cut.
   - `project.selectors.ts`: `orderedTracks(state, compositionId)`, `trackClips`, `clipEnd`,
     `compositionOf`, `compositionClips`, `compositionContent`, `placementsOf`, `formatOf(state, clip)`,

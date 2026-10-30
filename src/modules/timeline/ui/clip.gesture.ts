@@ -60,7 +60,8 @@ export function startClipGesture(options: {
   }));
   const group = [clip, ...partners.map((p) => p.clip)];
   const groupIds = new Set(group.map((c) => c.id));
-  const durationOf = (id: string) => media.getProbe(id)?.duration;
+  const durationOf = (id: string) =>
+    media.pictureMeta(id)?.duration ?? media.getProbe(id)?.duration;
   const candidates = snapCandidates(
     state,
     compositionOf(state, state.tracks[clip.trackId]!).id,
