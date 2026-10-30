@@ -17,7 +17,8 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
   - Native side (`src-tauri/src/media`): `media_register` validates paths into an id → path
     allowlist, under ids TypeScript made, so a saved project keeps them (registering an id again
     replaces it); `media_stat` says what a file is without registering it; a loopback HTTP server streams them with Range support (`media_server_url`).
-  - Proxies: pro/camera formats (ProRes, APV, 10-bit HEVC, high bitrates, 24-bit PCM, …) get a light
+  - Proxies: pro/camera formats (ProRes, APV, 10-bit HEVC, high bitrates, 24-bit PCM, …) and containers
+    a media element can't open (`always_converted`: AVI, MPG, MTS, MXF, AIFF, WMA, …) get a light
     H.264 copy made with the system FFmpeg. Progress arrives as `media://proxy` events and is stored
     in `probe.proxy`, with `hasAudio` once ffprobe has read the streams. Without FFmpeg, files are
     played directly.

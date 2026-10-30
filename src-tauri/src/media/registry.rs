@@ -120,10 +120,56 @@ fn extension(path: &Path) -> Option<String> {
 /// Maps an extension to a media kind. `None` means the file is not accepted.
 pub fn kind_of(path: &Path) -> Option<MediaKind> {
     match extension(path)?.as_str() {
-        "mp4" | "m4v" | "mov" | "webm" | "mkv" => Some(MediaKind::Video),
-        "mp3" | "wav" | "m4a" | "aac" | "ogg" | "oga" | "flac" | "opus" => Some(MediaKind::Audio),
+        "mp4" | "m4v" | "mov" | "webm" | "mkv" | "avi" | "wmv" | "asf" | "mpg" | "mpeg" | "m2v"
+        | "vob" | "mts" | "m2ts" | "ts" | "mxf" | "flv" | "f4v" | "3gp" | "3g2" | "ogv" | "dv" => {
+            Some(MediaKind::Video)
+        }
+        "mp3" | "wav" | "m4a" | "aac" | "ogg" | "oga" | "flac" | "opus" | "aif" | "aiff"
+        | "wma" | "ac3" | "eac3" | "dts" | "caf" | "amr" | "m4b" | "mka" | "ape" | "wv" | "au" => {
+            Some(MediaKind::Audio)
+        }
         _ => None,
     }
+}
+
+/// Whether the webview can't load this format at all, whatever codec is inside: an AVI holding
+/// H.264 still won't open in a media element, so these always go through FFmpeg.
+pub fn always_converted(path: &Path) -> bool {
+    matches!(
+        extension(path).as_deref(),
+        Some(
+            "avi"
+                | "wmv"
+                | "asf"
+                | "mpg"
+                | "mpeg"
+                | "m2v"
+                | "vob"
+                | "mts"
+                | "m2ts"
+                | "ts"
+                | "mxf"
+                | "flv"
+                | "f4v"
+                | "3gp"
+                | "3g2"
+                | "ogv"
+                | "dv"
+                | "aif"
+                | "aiff"
+                | "wma"
+                | "ac3"
+                | "eac3"
+                | "dts"
+                | "caf"
+                | "amr"
+                | "m4b"
+                | "mka"
+                | "ape"
+                | "wv"
+                | "au"
+        )
+    )
 }
 
 /// MIME type for the `Content-Type` header.
@@ -146,6 +192,14 @@ pub fn mime_of(path: &Path) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn new_containers_are_media_and_always_converted() {
+        assert_eq!(kind_of(Path::new("/a/b.AVI")), Some(MediaKind::Video));
+        assert_eq!(kind_of(Path::new("/a/b.aiff")), Some(MediaKind::Audio));
+        assert!(always_converted(Path::new("/a/b.mts")));
+        assert!(!always_converted(Path::new("/a/b.mp4")));
+    }
 
     #[test]
     fn rejects_unknown_extensions() {

@@ -44,13 +44,34 @@ export function createMediaService(state: MediaState): MediaService {
   };
 }
 
-/** File extensions accepted by the importer (must match `kind_of` in Rust). */
-export const ACCEPTED_EXTENSIONS = [
+/** Video file extensions (must match `kind_of` in Rust). */
+export const VIDEO_EXTENSIONS = [
   "mp4",
   "m4v",
   "mov",
   "webm",
   "mkv",
+  "avi",
+  "wmv",
+  "asf",
+  "mpg",
+  "mpeg",
+  "m2v",
+  "vob",
+  "mts",
+  "m2ts",
+  "ts",
+  "mxf",
+  "flv",
+  "f4v",
+  "3gp",
+  "3g2",
+  "ogv",
+  "dv",
+];
+
+/** Audio file extensions (must match `kind_of` in Rust). */
+export const AUDIO_EXTENSIONS = [
   "mp3",
   "wav",
   "m4a",
@@ -59,4 +80,20 @@ export const ACCEPTED_EXTENSIONS = [
   "oga",
   "flac",
   "opus",
+  "aif",
+  "aiff",
+  "wma",
+  "ac3",
+  "eac3",
+  "dts",
+  "caf",
+  "amr",
+  "m4b",
+  "mka",
+  "ape",
+  "wv",
+  "au",
 ];
+
+/** File extensions accepted by the importer. */
+export const ACCEPTED_EXTENSIONS = [...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS];

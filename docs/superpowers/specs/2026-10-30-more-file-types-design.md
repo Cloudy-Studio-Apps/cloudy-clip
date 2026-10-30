@@ -35,12 +35,12 @@ door ends the session before editing starts, and agents hit the same wall throug
 
 ## Formats
 
-| Group    | Added                                                                                     | How it plays                                       |
-| -------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Video    | avi wmv asf mpg mpeg m2v vob mts m2ts ts mxf flv f4v 3gp 3g2 ogv dv                       | Always a proxy, whatever the codec                 |
-| Audio    | aif aiff wma ac3 eac3 dts caf amr m4b mka ape wv au                                       | Always a proxy                                     |
-| Image    | png jpg jpeg jfif webp bmp svg gif apng                                                   | Shown directly, unless too large or animated       |
-| Image    | avif heic heif tif tiff tga dds psd exr hdr dpx jxl                                       | Always converted to a PNG with FFmpeg              |
+| Group | Added                                                               | How it plays                                 |
+| ----- | ------------------------------------------------------------------- | -------------------------------------------- |
+| Video | avi wmv asf mpg mpeg m2v vob mts m2ts ts mxf flv f4v 3gp 3g2 ogv dv | Always a proxy, whatever the codec           |
+| Audio | aif aiff wma ac3 eac3 dts caf amr m4b mka ape wv au                 | Always a proxy                               |
+| Image | png jpg jpeg jfif webp bmp svg gif apng                             | Shown directly, unless too large or animated |
+| Image | avif heic heif tif tiff tga dds psd exr hdr dpx jxl                 | Always converted to a PNG with FFmpeg        |
 
 The existing lists keep their behaviour. `kind_of` in Rust and `ACCEPTED_EXTENSIONS` in TypeScript
 stay matched.

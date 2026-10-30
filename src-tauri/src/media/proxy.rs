@@ -26,7 +26,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Semaphore;
 
-use super::registry::{MediaKind, MediaRegistry};
+use super::registry::{MediaKind, MediaRegistry, always_converted};
 
 /// Event carrying [`ProxyEvent`] payloads.
 pub const PROXY_EVENT: &str = "media://proxy";
@@ -142,7 +142,7 @@ impl ProxyJobs {
                 report(
                     ProxyState::Skipped,
                     None,
-                    Some("FFmpeg was not found, so pro formats (ProRes, APV, HEVC 10-bit…) may not play. Install FFmpeg to edit them.".into()),
+                    Some("FFmpeg was not found, so some formats won't play and GIFs won't move. Install FFmpeg to edit them.".into()),
                 );
                 return;
             };
@@ -158,7 +158,8 @@ impl ProxyJobs {
             let has_audio = Some(probe.audio_codec.is_some());
             let meta = probe.meta();
             let report = |state, progress, message| emit(state, progress, message, has_audio, meta);
-            let Some(reason) = proxy_reason(&probe, kind) else {
+            let Some(reason) = container_reason(&path).or_else(|| proxy_reason(&probe, kind))
+            else {
                 report(ProxyState::Skipped, None, None);
                 return;
             };
@@ -287,7 +288,7 @@ async fn ffprobe(tools: &Tools, path: &Path) -> Result<Probe, String> {
         .await
         .map_err(|e| format!("Could not run ffprobe: {e}"))?;
     if !output.status.success() {
-        return Err("This file is not a readable video or audio file".into());
+        return Err("This file is not a readable media file".into());
     }
     let json: Value = serde_json::from_slice(&output.stdout)
         .map_err(|e| format!("Unexpected ffprobe output: {e}"))?;
@@ -346,6 +347,12 @@ fn parse_probe(json: &Value) -> Probe {
         .and_then(|s| s.parse::<f64>().ok())
         .map(|seconds| (seconds * 1_000_000.0) as u64);
     probe
+}
+
+/// Why a file gets a proxy whatever is inside it, or `None` if its container isn't the reason.
+fn container_reason(path: &Path) -> Option<String> {
+    let extension = path.extension()?.to_string_lossy().to_ascii_uppercase();
+    always_converted(path).then(|| format!("{extension} files are converted for editing"))
 }
 
 /// Returns why a proxy is needed, or `None` if the webview can play the file well as is.
@@ -550,6 +557,16 @@ mod tests {
 
     fn probe(json: Value) -> Probe {
         parse_probe(&json)
+    }
+
+    #[test]
+    fn a_friendly_codec_in_an_avi_still_gets_a_proxy() {
+        assert!(
+            container_reason(Path::new("/a/b.avi"))
+                .unwrap()
+                .contains("AVI")
+        );
+        assert!(container_reason(Path::new("/a/b.mov")).is_none());
     }
 
     #[test]

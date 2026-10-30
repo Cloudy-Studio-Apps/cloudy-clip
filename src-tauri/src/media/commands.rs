@@ -22,7 +22,9 @@ pub struct RegisterFile {
 #[derive(Serialize)]
 #[serde(tag = "status", rename_all = "lowercase")]
 pub enum RegisterOutcome {
-    Ok { media: RegisteredMedia },
+    Ok {
+        media: RegisteredMedia,
+    },
     Error {
         id: String,
         path: String,

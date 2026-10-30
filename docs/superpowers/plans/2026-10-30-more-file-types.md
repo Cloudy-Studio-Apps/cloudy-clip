@@ -38,6 +38,7 @@ CLAUDE.md rule 3 keeps these out of the test suite, so each one is a checklist i
 ### Task 1: More video and audio
 
 **Files:**
+
 - Modify: `src-tauri/src/media/registry.rs:121-127`
 - Modify: `src-tauri/src/media/proxy.rs:145,161,290,526-`
 - Modify: `src/modules/media/media.service.ts:47-62`
@@ -45,6 +46,7 @@ CLAUDE.md rule 3 keeps these out of the test suite, so each one is a checklist i
 - Modify: `src/modules/media/README.md`
 
 **Interfaces:**
+
 - Produces: `registry::always_converted(path: &Path) -> bool`; `proxy::container_reason(path: &Path) -> Option<String>`; TS `VIDEO_EXTENSIONS`, `AUDIO_EXTENSIONS`, `ACCEPTED_EXTENSIONS: string[]` in `media.service.ts`.
 
 - [ ] **Step 1: Write the failing Rust tests**
@@ -100,6 +102,7 @@ git commit -m "feat(media): import more video and audio formats through proxies"
 ### Task 2: Images in the document
 
 **Files:**
+
 - Modify: `src/modules/project/project.types.ts:9-10`, `project.selectors.ts`, `index.ts`
 - Modify: `src/modules/workspace/logic/format.ts:41`
 - Modify: `src/modules/timeline/logic/trim.ts:19-21`, `timeline.split.commands.ts:78-88`, `timeline.clip.commands.ts:35,50-68,85-89`, `ui/TrackLane.tsx:69-71`
@@ -110,6 +113,7 @@ git commit -m "feat(media): import more video and audio formats through proxies"
 - Modify: READMEs of `project`, `timeline`
 
 **Interfaces:**
+
 - Produces: `MediaKind = "video" | "audio" | "image"`; `followsFileTime(state: Pick<ProjectState, "media">, clip: Clip): boolean` exported from `@/modules/project`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -120,7 +124,9 @@ Add an image asset and the probe `{ status: "ready", width: 800, height: 600, du
 describe("image clips", () => {
   it("lands at the file's default length, or the length asked for", async () => {
     expect(clipOf(await add({ mediaId: "photo" })).duration).toBe(5 * S);
-    expect(clipOf(await add({ mediaId: "photo", duration: 9 * S, start: 20 * S })).duration).toBe(9 * S);
+    expect(clipOf(await add({ mediaId: "photo", duration: 9 * S, start: 20 * S })).duration).toBe(
+      9 * S,
+    );
   });
   it("stretches past its default length and keeps sourceIn 0", async () => {
     const id = clipOf(await add({ mediaId: "photo" })).id;
@@ -171,11 +177,13 @@ git commit -m "feat(project): image media that stretches like text"
 ### Task 3: Native image pipeline
 
 **Files:**
+
 - Create: `src-tauri/src/media/image.rs`
 - Modify: `src-tauri/src/media/mod.rs`, `registry.rs`, `proxy.rs`, `server.rs:54-55,76-105`
 - Modify: `src/modules/media/media.types.ts:29-35`, `README.md`
 
 **Interfaces:**
+
 - Consumes: `registry::always_converted` from Task 1.
 - Produces:
   - `MediaKind::Image`, serialized `"image"`.
@@ -261,10 +269,12 @@ git commit -m "feat(media): convert images and extract animated frames natively"
 ### Task 4: Images in the media module
 
 **Files:**
+
 - Create: `src/modules/media/logic/animation.ts`
 - Modify: `src/modules/media/media.probe.ts`, `media.service.ts`, `media.store.ts`, `media.module.ts`, `media.types.ts`, `media.testing.ts`, `media.element.ts`, `media.mcp.ts`, `media.commands.ts:15,78`, `ui/MediaThumb.tsx`, `ui/media.pick.hook.ts`, `README.md`
 
 **Interfaces:**
+
 - Consumes: `ProbeMeta.frames`, the frames route, `MediaKind` `image`.
 - Produces:
   - `frameIndexAt(animation: ImageAnimation, elapsed: Micros): number` in `logic/animation.ts`: `Math.floor(microsToSeconds(elapsed) * fps) % frames`. It loops, and is why a stretched GIF keeps moving.
@@ -307,10 +317,12 @@ git commit -m "feat(media): read images, posters and animation in the library"
 ### Task 5: Images and GIFs in the preview
 
 **Files:**
+
 - Create: `src/modules/preview/engine/engine.images.ts`
 - Modify: `src/modules/preview/engine/engine.html.ts:51,67,107-120,153-155,323-336`, `engine.types.ts`, `src/modules/preview/preview.module.ts:36`, `README.md`
 
 **Interfaces:**
+
 - Consumes: `MediaApi.imageFrames` from Task 4.
 - Produces: `EngineOptions.imageFrames: MediaApi["imageFrames"]`; class `ImageCache` with `constructor(onReady: () => void)`, `want(url: string, options: { raster: boolean }): void`, `ready(url: string): boolean` (true once loaded or failed, so broken media never blocks), `picture(url: string): { source: CanvasImageSource; width: number; height: number } | undefined`, `dispose(): void`.
 
@@ -341,6 +353,7 @@ git commit -m "feat(preview): draw images and animate GIFs"
 ### Task 6: Verify in the running app
 
 **Files:**
+
 - Modify: whatever the checks expose
 - Modify: `CLAUDE.md` only if a rule changed
 
