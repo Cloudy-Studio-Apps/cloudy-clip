@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useKernel, useModule, usePoint } from "@/core";
 import { elements, type AnyElement, type CreateEntry } from "@/modules/element";
-import { projectRef } from "@/modules/project";
+import { projectRef, useOpenFormat } from "@/modules/project";
 import { addElement } from "../timeline.element.command";
 import { timelineRef } from "../timeline.ref";
 import { startCreateDrag } from "./create.gesture";
@@ -15,6 +15,7 @@ export function CreateTiles({ panel }: { panel: string }) {
   const { bus } = useKernel();
   const timeline = useModule(timelineRef);
   const project = useModule(projectRef).store;
+  const format = useOpenFormat();
   const all = usePoint(elements);
   const tiles = useMemo(
     () =>
@@ -29,7 +30,7 @@ export function CreateTiles({ panel }: { panel: string }) {
   const add = (element: AnyElement, entry: CreateEntry, at: { start?: number; trackId?: string }) =>
     void bus.run(addElement, {
       kind: element.kind,
-      props: entry.props?.(project.getState().format) ?? {},
+      props: entry.props?.(format) ?? {},
       ...at,
     });
 

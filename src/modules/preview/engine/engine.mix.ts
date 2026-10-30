@@ -61,7 +61,7 @@ export class MixCanvases {
  */
 export function drawTrack(
   ctx: CanvasRenderingContext2D,
-  { project, track, clips, time }: TrackFrame,
+  { project, format, track, clips, time }: TrackFrame,
   canvases: MixCanvases,
   junctions: EngineOptions["junctions"],
   drawClip: ClipDrawer,
@@ -86,11 +86,11 @@ export function drawTrack(
     const b = canvases.b();
     if (left) drawClip(a, left);
     drawClip(b, clip);
-    const props = junctions.resolve(junction, project.format);
-    const kx = ctx.canvas.width / project.format.width;
-    const ky = ctx.canvas.height / project.format.height;
+    const props = junctions.resolve(junction, format);
+    const kx = ctx.canvas.width / format.width;
+    const ky = ctx.canvas.height / format.height;
     // A fresh generator each frame, seeded by the junction: the same noise on every frame.
-    const env = { format: project.format, kx, ky, random: seededRandom(junction.id), elapsed };
+    const env = { format, kx, ky, random: seededRandom(junction.id), elapsed };
     ctx.save();
     try {
       ctx.setTransform(1, 0, 0, 1, 0, 0);

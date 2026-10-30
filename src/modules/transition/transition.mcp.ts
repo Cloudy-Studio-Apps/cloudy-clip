@@ -9,11 +9,11 @@ const listPresets = defineMcpTool({
   name: "transition_list_presets",
   readOnly: true,
   description:
-    "Lists every transition preset: id, name, category, the JSON schema of its options and their default values for the project's current format. Use the id with transition_apply.",
+    "Lists every transition preset: id, name, category, the JSON schema of its options and their default values for the format of your open composition. Use the id with transition_apply.",
   input: z.object({}),
   handler(_input, ctx) {
     const api = ctx.require(transitionRef);
-    const { format } = ctx.require(projectRef).store.getState();
+    const format = ctx.require(projectRef).view.formatFor(ctx.caller.key);
     return textResult(
       api.list().map((preset) => ({
         id: preset.id,

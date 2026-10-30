@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
-import { projectDuration, projectRef } from "@/modules/project";
+import { compositionContent, projectRef } from "@/modules/project";
 import { previewRef } from "./preview.ref";
 
 /** Starts playback from the playhead. */
@@ -13,7 +13,8 @@ export const play = defineCommand({
   input: z.object({}),
   run(ctx) {
     const playback = ctx.require(previewRef).clockFor(ctx.actor);
-    if (projectDuration(ctx.require(projectRef).store.getState()) === 0) {
+    const { store, view } = ctx.require(projectRef);
+    if (compositionContent(store.getState(), view.requireOpen(ctx.actor).id) === 0) {
       throw new CommandFailure("preview.empty", "The timeline is empty");
     }
     playback.play();

@@ -4,7 +4,7 @@ import { checkGroupsApply, elementRef, parsePatch, setProps } from "@/modules/el
 import { previewRef } from "@/modules/preview";
 import { projectRef, type Clip, type Track } from "@/modules/project";
 import { findOverlap, freeTrack } from "./logic/placement";
-import { overlapError } from "./timeline.guards";
+import { overlapError, targetComposition } from "./timeline.guards";
 import { addTrack } from "./timeline.track.commands";
 
 /** Length of a new clip of an element without a source file. */
@@ -58,8 +58,10 @@ export const addElement = defineCommand({
       sourceIn: 0,
       props,
     };
+    const composition = targetComposition(ctx, trackId);
     const track: Track = named ?? {
       id: "",
+      compositionId: composition.id,
       kind,
       name: "",
       clipIds: [],
@@ -84,7 +86,7 @@ export const addElement = defineCommand({
       if (overlap) throw overlapError(state, overlap);
     } else {
       trackId =
-        freeTrack(store.getState(), kind, start, duration) ??
+        freeTrack(store.getState(), composition, kind, start, duration) ??
         (await ctx.execute(addTrack, { kind })).trackId;
     }
 

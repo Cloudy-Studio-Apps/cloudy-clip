@@ -1,10 +1,16 @@
 import type { Micros } from "@/core";
 import {
   allowedOverlap,
+  compositionClips,
+  frameDuration,
   junctionBetween,
+  orderedJunctions,
   partnersOf,
   type Clip,
   type ClipId,
+  type Composition,
+  type CompositionId,
+  type ProjectFormat,
   type ProjectState,
   type TrackId,
   type TrackKind,
@@ -12,9 +18,9 @@ import {
 import type { JunctionKindOf, TrimEdge, TrimLimits } from "../timeline.types";
 import { overlapAccepted } from "./joined";
 
-/** Smallest clip length allowed: one frame at the project frame rate. */
-export function minClipDuration(state: ProjectState): Micros {
-  return Math.ceil(1_000_000 / state.format.fps);
+/** Smallest clip length allowed: one frame at the composition's frame rate. */
+export function minClipDuration(format: ProjectFormat): Micros {
+  return frameDuration(format);
 }
 
 /**
@@ -67,11 +73,12 @@ function joinedOverlap(
 /** The first track of `kind` (in display order) where `[start, start + duration)` is free. */
 export function freeTrack(
   state: ProjectState,
+  composition: Composition,
   kind: TrackKind,
   start: Micros,
   duration: Micros,
 ): TrackId | undefined {
-  return state.trackOrder.find(
+  return composition.trackOrder.find(
     (id) => state.tracks[id]?.kind === kind && !findOverlap(state, id, start, duration),
   );
 }
@@ -201,15 +208,16 @@ export function snapSpan(
  */
 export function snapCandidates(
   state: ProjectState,
+  compositionId: CompositionId,
   playhead: Micros,
   ignore: ReadonlySet<ClipId> = new Set(),
 ): Micros[] {
   const candidates = [0, playhead];
-  for (const clip of Object.values(state.clips)) {
+  for (const clip of compositionClips(state, compositionId)) {
     if (ignore.has(clip.id)) continue;
     candidates.push(clip.start, clip.start + clip.duration);
   }
-  for (const junction of Object.values(state.junctions)) {
+  for (const junction of orderedJunctions(state, compositionId)) {
     const right = state.clips[junction.rightClipId];
     if (!right || ignore.has(junction.leftClipId) || ignore.has(right.id)) continue;
     candidates.push(right.start + Math.floor(junction.duration / 2));

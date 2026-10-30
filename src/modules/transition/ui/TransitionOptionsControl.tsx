@@ -1,9 +1,8 @@
 import { useMemo, useRef } from "react";
-import { useStore } from "zustand";
 import { useModule, usePoint } from "@/core";
 import { propTypes } from "@/modules/element";
 import { propertyControls, type FieldControlProps, type PropsLive } from "@/modules/inspector";
-import { projectRef } from "@/modules/project";
+import { useOpenFormat } from "@/modules/project";
 import { optionFields, optionsPatch } from "../logic/options";
 import { transitionRef } from "../transition.ref";
 
@@ -22,7 +21,7 @@ export function TransitionOptionsControl({
   const transitions = useModule(transitionRef);
   const controls = usePoint(propertyControls);
   const types = usePoint(propTypes);
-  const format = useStore(useModule(projectRef).store.api, (s) => s.format);
+  const format = useOpenFormat();
   const preset = transitions.find(String(values.preset ?? ""));
   const stored = useMemo(
     () => (value && typeof value === "object" ? (value as Record<string, unknown>) : {}),

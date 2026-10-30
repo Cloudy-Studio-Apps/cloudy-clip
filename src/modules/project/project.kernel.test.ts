@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createKernel } from "@/core";
+import { createKernel, LOCAL_ACTOR, type Kernel } from "@/core";
 import { setFormat } from "./project.commands";
 import { createProjectModule } from "./project.module";
 import { projectRef } from "./project.ref";
+
+const format = (kernel: Kernel) => {
+  const { store, view } = kernel.modules.require(projectRef);
+  return store.getState().compositions[view.openFor(LOCAL_ACTOR)!]!.format;
+};
 
 async function kernelWithProject() {
   const kernel = await createKernel();
@@ -15,8 +20,8 @@ describe("project per kernel", () => {
     const a = await kernelWithProject();
     const b = await kernelWithProject();
     await a.bus.run(setFormat, { preset: "16:9" });
-    expect(a.modules.require(projectRef).store.getState().format.width).toBe(1920);
-    expect(b.modules.require(projectRef).store.getState().format).toMatchObject({
+    expect(format(a).width).toBe(1920);
+    expect(format(b)).toMatchObject({
       width: 1080,
       height: 1920,
     });
@@ -26,7 +31,7 @@ describe("project per kernel", () => {
     const kernel = await kernelWithProject();
     await kernel.bus.run(setFormat, { preset: "16:9" }, { origin: "agent" });
     await kernel.bus.execute("history.undo", {});
-    expect(kernel.modules.require(projectRef).store.getState().format).toMatchObject({
+    expect(format(kernel)).toMatchObject({
       width: 1080,
       height: 1920,
     });

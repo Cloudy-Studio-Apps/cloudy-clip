@@ -66,7 +66,7 @@ export const TrackLane = memo(function TrackLane({
       const threshold = pxToTime(SNAP_PX, pxPerSecond);
       const start = snapTime(
         timeAt(lane, clientX, pxPerSecond),
-        snapCandidates(state, playback.getTime()),
+        snapCandidates(state, track.compositionId, playback.getTime()),
         threshold,
       );
       // An audio file needs an audio lane; a video takes any lane (on an audio lane, its sound
@@ -79,7 +79,7 @@ export const TrackLane = memo(function TrackLane({
     };
     lane.addEventListener(MEDIA_DROP, onDrop);
     return () => lane.removeEventListener(MEDIA_DROP, onDrop);
-  }, [bus, playback, project, pxPerSecond, track.id, track.kind]);
+  }, [bus, playback, project, pxPerSecond, track.compositionId, track.id, track.kind]);
 
   return (
     <div

@@ -12,8 +12,10 @@ export const setFormat = defineCommand({
   undoable: true,
   input: z.object({ preset: z.enum(["9:16", "16:9", "1:1"]) }),
   run(ctx, { preset }) {
-    ctx.mutate(ctx.require(projectRef).store, (draft) => {
-      draft.format = { ...FORMAT_PRESETS[preset] };
+    const project = ctx.require(projectRef);
+    const { id } = project.view.requireOpen(ctx.actor);
+    ctx.mutate(project.store, (draft) => {
+      draft.compositions[id]!.format = { ...FORMAT_PRESETS[preset] };
     });
     return FORMAT_PRESETS[preset];
   },

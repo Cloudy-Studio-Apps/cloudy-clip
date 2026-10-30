@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyProject } from "../project.store";
+import { seedProject } from "../project.testing";
 import type { Junction, ProjectState } from "../project.types";
 import {
   allowedOverlap,
@@ -23,9 +23,9 @@ interface Spec {
 
 /** Video track (0) and audio track (1) with the given clips; clipIds in the order given. */
 function state(clips: Spec[], junctions: Junction[] = []): ProjectState {
-  const s = createEmptyProject();
+  const s = seedProject();
   for (const c of clips) {
-    const trackId = s.trackOrder[c.track]!;
+    const trackId = s.compositions.c1!.trackOrder[c.track]!;
     s.clips[c.id] = {
       id: c.id,
       trackId,
@@ -160,11 +160,11 @@ describe("applyMoves", () => {
     ]);
     const j = junction(s, "j", "A", "B", 0);
     const next = applyMoves(s, [{ clipId: "A", start: 5 * S }], { j });
-    expect(next.tracks[next.trackOrder[0]!]!.clipIds).toEqual(["B", "A"]);
+    expect(next.tracks[next.compositions.c1!.trackOrder[0]!]!.clipIds).toEqual(["B", "A"]);
     expect(next.clips.A!.start).toBe(5 * S);
     expect(next.junctions.j).toEqual(j);
     expect(s.clips.A!.start).toBe(0);
-    expect(s.tracks[s.trackOrder[0]!]!.clipIds).toEqual(["A", "B"]);
+    expect(s.tracks[s.compositions.c1!.trackOrder[0]!]!.clipIds).toEqual(["A", "B"]);
     expect(s.junctions.j).toBeUndefined();
     expect(applyMoves(next, [], { j: null }).junctions.j).toBeUndefined();
   });

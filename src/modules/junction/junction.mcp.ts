@@ -12,7 +12,7 @@ const describeJunctions = defineMcpTool({
     "Lists every kind of junction (transitions, a plugin's): its name, the track kinds it may sit on, how it overlaps the two clips (default and minimum duration in microseconds for the project's frame rate; the maximum depends on the clips and is reported by junction_add/junction_set when exceeded; overlap is false when the kind doesn't overlap), the JSON schema of the patch junction_set accepts and its default values for the project's current format.",
   input: z.object({}),
   handler(_input, ctx) {
-    const state = ctx.require(projectRef).store.getState();
+    const format = ctx.require(projectRef).view.formatFor(ctx.caller.key);
     return textResult(
       ctx
         .require(junctionRef)
@@ -24,12 +24,12 @@ const describeJunctions = defineMcpTool({
           overlap: definition.overlap
             ? {
                 default: definition.overlap.default,
-                min: definition.overlap.min(state),
+                min: definition.overlap.min(format),
                 max: "up to what the two clips allow (see the junction.invalid_duration error)",
               }
             : false,
           schema: z.toJSONSchema(schema, { io: "input", unrepresentable: "any" }),
-          defaults: definition.defaults(state.format),
+          defaults: definition.defaults(format),
         })),
     );
   },

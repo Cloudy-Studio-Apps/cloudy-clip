@@ -1,8 +1,10 @@
-import type { Micros, PatchableStore } from "@/core";
+import type { ActorId, Micros, PatchableStore } from "@/core";
+import type { StoreApi } from "zustand/vanilla";
 
 export type MediaId = string;
 export type TrackId = string;
 export type ClipId = string;
+export type CompositionId = string;
 
 /** What a file contains. Decided from its extension at import. */
 export type MediaKind = "video" | "audio";
@@ -26,6 +28,8 @@ export type TrackKind = "video" | "audio";
 /** A horizontal lane on the timeline. Clips on one track never overlap. */
 export interface Track {
   id: TrackId;
+  /** The composition this track belongs to. */
+  compositionId: CompositionId;
   kind: TrackKind;
   name: string;
   /** Clips on this track, sorted by `start`. */
@@ -56,6 +60,8 @@ export interface Clip extends Partial<SharedGroupValues> {
   props: Record<string, unknown>;
   /** The file it plays (media clips). */
   mediaId?: MediaId;
+  /** The composition it plays (composition clips); a live mirror of that composition. */
+  compositionRef?: CompositionId;
   /**
    * Clips sharing a `linkId` are linked (a video's picture and its sound): they are selected,
    * moved, trimmed, split and deleted together until unlinked. Missing means unlinked.
@@ -110,7 +116,7 @@ export interface PictureSize {
   height: number;
 }
 
-/** Output canvas of the project. */
+/** Output canvas of a composition. */
 export interface ProjectFormat {
   width: number;
   height: number;
@@ -121,20 +127,41 @@ export interface ProjectFormat {
 export type FormatPreset = "9:16" | "16:9" | "1:1";
 
 /**
- * The project document: everything that is part of the user's work. Changed only through
- * commands, so every change is undoable and visible to agents.
+ * Settings of one timeline, and that timeline's tracks. The timeline panel is a window on one
+ * composition; a composition placed on another timeline is a clip that mirrors it.
  */
-export interface ProjectState {
+export interface Composition {
+  id: CompositionId;
+  name: string;
+  /** Output size and frame rate. */
   format: ProjectFormat;
-  media: Record<MediaId, MediaAsset>;
-  /** Import order. */
-  mediaOrder: MediaId[];
-  tracks: Record<TrackId, Track>;
+  /** CSS colour shown behind the clips when this composition is the output. */
+  background: string;
+  /** What it plays. Kept up to date while `extendToFit` is on. */
+  duration: Micros;
+  /** The duration follows the end of the last clip. */
+  extendToFit: boolean;
   /**
    * Track order as shown, top to bottom. Video tracks higher in the list are drawn on top of
    * lower ones.
    */
   trackOrder: TrackId[];
+}
+
+/**
+ * The project document: everything that is part of the user's work. Changed only through
+ * commands, so every change is undoable and visible to agents.
+ */
+export interface ProjectState {
+  compositions: Record<CompositionId, Composition>;
+  /** Order in the Library. */
+  compositionOrder: CompositionId[];
+  /** Opens first and is exported later. Null only when there are no compositions. */
+  mainCompositionId: CompositionId | null;
+  media: Record<MediaId, MediaAsset>;
+  /** Import order. */
+  mediaOrder: MediaId[];
+  tracks: Record<TrackId, Track>;
   clips: Record<ClipId, Clip>;
   /** Things on the cut between two adjacent clips of one track (transitions). */
   junctions: Record<JunctionId, Junction>;
@@ -167,6 +194,30 @@ export interface LayoutConflict {
   other: Clip;
 }
 
+/** What each actor has open. View state: never in the document, never undoable. */
+export interface CompositionViewState {
+  /** An actor's open composition; `null` once they closed everything, missing means Main. */
+  open: Record<ActorId, CompositionId | null>;
+  /** The user's tabs above the timeline. */
+  tabs: CompositionId[];
+}
+
+/** Who has which composition open. An agent's never moves the user's. */
+export interface CompositionView {
+  store: StoreApi<CompositionViewState>;
+  /** The composition `actor` has open: theirs, else Main; null when none. */
+  openFor(actor: ActorId): CompositionId | null;
+  /** Opens a composition for `actor`, or closes everything with `null`. */
+  setOpen(actor: ActorId, id: CompositionId | null): void;
+  /** Removes a tab; the user moves to its neighbour when it was open. Nothing is lost. */
+  closeTab(id: CompositionId): void;
+  /** The composition `actor` has open. Throws `composition.none_open` when there is none. */
+  requireOpen(actor: ActorId): Composition;
+  /** Format of the composition `actor` has open; the default when there is none. */
+  formatFor(actor: ActorId): ProjectFormat;
+  dispose(): void;
+}
+
 /** The project module's API for one kernel. */
 export interface ProjectApi {
   /**
@@ -174,4 +225,6 @@ export interface ProjectApi {
    * only through commands (`ctx.mutate`), so every change is undoable.
    */
   readonly store: PatchableStore<ProjectState>;
+  /** Who has which composition open. */
+  readonly view: CompositionView;
 }

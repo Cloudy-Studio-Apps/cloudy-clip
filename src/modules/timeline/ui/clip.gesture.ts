@@ -1,6 +1,6 @@
 import type { CommandBus, Micros, PatchableStore } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
-import { partnersOf, type Clip, type ProjectState } from "@/modules/project";
+import { partnersOf, type Clip, type ProjectState, compositionOf } from "@/modules/project";
 import type { MediaApi } from "@/modules/media";
 import type { PlaybackClock } from "@/modules/preview";
 import { pxToTime, timeToPx } from "../logic/geometry";
@@ -61,7 +61,12 @@ export function startClipGesture(options: {
   const group = [clip, ...partners.map((p) => p.clip)];
   const groupIds = new Set(group.map((c) => c.id));
   const durationOf = (id: string) => media.getProbe(id)?.duration;
-  const candidates = snapCandidates(state, playback.getTime(), groupIds);
+  const candidates = snapCandidates(
+    state,
+    compositionOf(state, state.tracks[clip.trackId]!).id,
+    playback.getTime(),
+    groupIds,
+  );
   const homeLane = element.parentElement;
   const homeTop = homeLane?.getBoundingClientRect().top ?? 0;
   const homeKind = state.tracks[clip.trackId]?.kind;

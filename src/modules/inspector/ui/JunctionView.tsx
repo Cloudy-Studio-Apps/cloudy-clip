@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useStore } from "zustand";
 import { microsToSeconds, useKernel, useModule } from "@/core";
 import { durationLimits, junctionRef, removeJunction, setJunction } from "@/modules/junction";
-import { projectRef, type JunctionId } from "@/modules/project";
+import { projectRef, type JunctionId, useOpenFormat } from "@/modules/project";
 import { Button, NumberField } from "@/ui";
 import { junctionLayoutSource, junctionSetInput } from "../logic/junction";
 import { FieldRow } from "./controls/FieldRow";
@@ -22,7 +22,7 @@ export function JunctionView({ junctionId }: { junctionId: JunctionId }) {
   const right = useStore(project.api, (s) =>
     junction ? s.clips[junction.rightClipId] : undefined,
   );
-  const format = useStore(project.api, (s) => s.format);
+  const format = useOpenFormat();
   const resolved = junction ? junctions.get(junction.kind) : undefined;
   const live = useJunctionLive(junctionId);
   const source = useMemo(

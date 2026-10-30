@@ -1,6 +1,5 @@
-import { useStore } from "zustand";
-import { useKernel, useModule } from "@/core";
-import { formatPreset, projectRef, setFormat, type FormatPreset } from "@/modules/project";
+import { useKernel } from "@/core";
+import { formatPreset, setFormat, type FormatPreset, useOpenFormat } from "@/modules/project";
 import { SegmentedControl, type SegmentedOption } from "@/ui";
 
 const PRESETS: readonly SegmentedOption<FormatPreset>[] = [
@@ -12,7 +11,7 @@ const PRESETS: readonly SegmentedOption<FormatPreset>[] = [
 /** The project's aspect ratio. Changing it is an undoable edit. */
 export function FormatPicker() {
   const { bus } = useKernel();
-  const format = useStore(useModule(projectRef).store.api, (s) => s.format);
+  const format = useOpenFormat();
 
   return (
     <SegmentedControl

@@ -37,10 +37,12 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
 
   function renderNow(): void {
     redrawQueued = false;
-    if (!engine) return;
+    const composition = deps.getComposition();
+    if (!engine || !composition) return;
     try {
       engine.render(
         deps.getProject(),
+        composition,
         clock.getTime(),
         clock.isPlaying(),
         transforms,
@@ -110,7 +112,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
       if (actor === LOCAL_ACTOR) return clock;
       let virtual = clocks.get(actor);
       if (!virtual) {
-        virtual = createVirtualClock(deps.getDuration, clock.getTime());
+        virtual = createVirtualClock(() => deps.getDuration(actor), clock.getTime());
         clocks.set(actor, virtual);
       }
       return virtual;
@@ -121,7 +123,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     },
     attachCanvas,
     redraw: requestRedraw,
-    captureAt: (time) => deps.capture.captureAt(time),
+    captureAt: (time, compositionId) => deps.capture.captureAt(time, compositionId),
     previewTransform(clipId, transform) {
       if (transform) transforms.set(clipId, transform);
       else transforms.delete(clipId);

@@ -11,7 +11,15 @@ import {
   withPartners,
 } from "@/modules/project";
 import { findOverlap, freeTrack, minClipDuration, sortClipIds, trackEnd } from "./logic/placement";
-import { mediaDuration, overlapError, requireClip, requireTrack, time } from "./timeline.guards";
+import {
+  mediaDuration,
+  overlapError,
+  requireClip,
+  requireSameComposition,
+  requireTrack,
+  targetComposition,
+  time,
+} from "./timeline.guards";
 import { addTrack } from "./timeline.track.commands";
 
 /**
@@ -69,17 +77,22 @@ export const addClip = defineCommand({
       }
       named.audio = track.id;
     }
+    const composition = targetComposition(ctx, input.trackId ?? input.audioTrackId);
+    for (const id of Object.values(named)) {
+      requireSameComposition(requireTrack(state, id), composition);
+    }
 
     const sourceIn = input.sourceIn ?? 0;
     if (sourceIn >= total) {
       throw new CommandFailure("timeline.out_of_range", "sourceIn is past the end of the media");
     }
     const duration = Math.min(input.duration ?? total - sourceIn, total - sourceIn);
-    if (duration < minClipDuration(state)) {
+    if (duration < minClipDuration(composition.format)) {
       throw new CommandFailure("timeline.too_short", "The clip would be shorter than one frame");
     }
     const main = kinds[0]!;
-    const mainTrack = named[main] ?? state.trackOrder.find((id) => state.tracks[id]?.kind === main);
+    const mainTrack =
+      named[main] ?? composition.trackOrder.find((id: string) => state.tracks[id]?.kind === main);
     const start = input.start ?? (mainTrack ? trackEnd(state, mainTrack) : 0);
 
     const trackIds: TrackId[] = [];
@@ -94,9 +107,9 @@ export const addClip = defineCommand({
         trackIds.push(wanted);
         continue;
       }
-      let trackId = freeTrack(state, kind, start, duration);
+      let trackId = freeTrack(state, composition, kind, start, duration);
       if (!trackId) {
-        trackId = (await ctx.execute(addTrack, { kind })).trackId;
+        trackId = (await ctx.execute(addTrack, { kind, compositionId: composition.id })).trackId;
         state = ctx.require(projectRef).store.getState();
       }
       trackIds.push(trackId);

@@ -9,7 +9,13 @@ import {
   type Micros,
 } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
-import { projectDuration, type Clip, projectRef } from "@/modules/project";
+import {
+  compositionContent,
+  projectRef,
+  useOpenComposition,
+  type Clip,
+  type TrackId,
+} from "@/modules/project";
 import { timelineOverlays } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
@@ -20,6 +26,8 @@ import { Ruler } from "./Ruler";
 import { TimelineToolbar } from "./TimelineToolbar";
 import { TrackHeader } from "./TrackHeader";
 import { TrackLane } from "./TrackLane";
+
+const NO_TRACKS: readonly TrackId[] = [];
 
 /**
  * The timeline panel.
@@ -34,10 +42,12 @@ export function TimelinePanel() {
   const { bus } = useKernel();
   const scrollRef = useRef<HTMLDivElement>(null);
   const pxPerSecond = useStore(timeline.view, (s) => s.pxPerSecond);
-  const trackOrder = useStore(project.api, (s) => s.trackOrder);
+  const open = useOpenComposition();
+  const trackOrder = open?.trackOrder ?? NO_TRACKS;
   const tracksById = useStore(project.api, (s) => s.tracks);
   const clipsById = useStore(project.api, (s) => s.clips);
-  const duration = useStore(project.api, projectDuration);
+  const content = useStore(project.api, (s) => (open ? compositionContent(s, open.id) : 0));
+  const duration = Math.max(open?.duration ?? 0, content);
   const [view, setView] = useState({ page: 0, pageWidth: 1200 });
   const overlays = usePoint(timelineOverlays);
 

@@ -1,10 +1,13 @@
 import { z } from "zod";
-import { CommandFailure, formatTimecode, type Micros } from "@/core";
+import { CommandFailure, formatTimecode, type CommandContext, type Micros } from "@/core";
 import type { MediaApi } from "@/modules/media";
 import {
+  compositionOf,
   findLayoutConflict,
+  projectRef,
   type Clip,
   type ClipId,
+  type Composition,
   type ProjectState,
   type Track,
 } from "@/modules/project";
@@ -24,6 +27,24 @@ export function requireTrack(state: ProjectState, trackId: string): Track {
   const track = state.tracks[trackId];
   if (!track) throw new CommandFailure("timeline.track_not_found", `No track with id "${trackId}"`);
   return track;
+}
+
+/** The composition a command works in: the named track's, else the actor's open one. */
+export function targetComposition(ctx: CommandContext, trackId?: string): Composition {
+  const { store, view } = ctx.require(projectRef);
+  if (trackId === undefined) return view.requireOpen(ctx.actor);
+  const state = store.getState();
+  return compositionOf(state, requireTrack(state, trackId));
+}
+
+/** Refuses a track of another composition: clips never move between timelines. */
+export function requireSameComposition(track: Track, composition: Composition): void {
+  if (track.compositionId !== composition.id) {
+    throw new CommandFailure(
+      "timeline.other_composition",
+      `Track "${track.name}" is in another composition.`,
+    );
+  }
 }
 
 /** Length of a media file, or a failure explaining why it can't be placed yet. */

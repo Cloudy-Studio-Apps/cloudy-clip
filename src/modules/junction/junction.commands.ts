@@ -3,10 +3,11 @@ import { createId, defineCommand, type CommandContext } from "@/core";
 import {
   applyMoves,
   findLayoutConflict,
-  projectRef,
-  rippleMoves,
+  formatOf,
   type Junction,
+  projectRef,
   type ProjectState,
+  rippleMoves,
 } from "@/modules/project";
 import {
   checkDuration,
@@ -74,7 +75,7 @@ export const addJunction = defineCommand({
     const limits = durationLimits(definition, state, cut.left, cut.right);
     const duration = definition.overlap ? (input.duration ?? limits.default) : 0;
     if (definition.overlap) checkDuration(definition, duration, limits);
-    const props = nextProps(resolved, state, {}, input.props ?? {}, {});
+    const props = nextProps(resolved, formatOf(state, cut.left), {}, input.props ?? {}, {});
     const junction: Junction = {
       id: createId("junction"),
       kind: definition.kind,
@@ -120,10 +121,10 @@ export const setJunction = defineCommand({
           ? current.props
           : nextProps(
               resolved,
-              state,
+              formatOf(state, left),
               current.props,
               input.patch,
-              api.resolve(current, state.format),
+              api.resolve(current, formatOf(state, left)),
             );
       let duration = current.duration;
       if (definition.overlap && input.duration !== undefined) {

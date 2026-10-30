@@ -2,7 +2,7 @@ import type { ElementApi } from "@/modules/element";
 import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
 import type { Micros } from "@/core";
-import type { Clip, MediaId, ProjectState, Track } from "@/modules/project";
+import type { Clip, MediaId, ProjectFormat, ProjectState, Track } from "@/modules/project";
 
 /** One pooled media element and what it is currently showing. */
 export interface Slot {
@@ -53,6 +53,8 @@ export interface ActiveTrack {
 /** One video track to draw at `time`. */
 export interface TrackFrame extends ActiveTrack {
   project: ProjectState;
+  /** Format of the composition being drawn. */
+  format: ProjectFormat;
   time: Micros;
 }
 

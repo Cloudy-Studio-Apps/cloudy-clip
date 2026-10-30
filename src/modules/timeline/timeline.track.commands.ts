@@ -2,16 +2,17 @@ import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import { produce } from "immer";
 import {
+  findLayoutConflict,
+  orderedTracks,
+  projectRef,
   type ProjectState,
   type TrackKind,
-  findLayoutConflict,
-  projectRef,
 } from "@/modules/project";
 import { requireTrack } from "./timeline.guards";
 
-function nextTrackName(state: ProjectState, kind: TrackKind): string {
+function nextTrackName(state: ProjectState, compositionId: string, kind: TrackKind): string {
   const base = kind === "video" ? "Video" : "Audio";
-  const count = Object.values(state.tracks).filter((t) => t.kind === kind).length;
+  const count = orderedTracks(state, compositionId).filter((t) => t.kind === kind).length;
   return `${base} ${count + 1}`;
 }
 
@@ -20,22 +21,33 @@ export const addTrack = defineCommand({
   id: "timeline.addTrack",
   label: "Add track",
   description:
-    "Adds an empty track. Video tracks are added at the top (their picture is drawn above lower tracks); audio tracks at the bottom. Returns the new track id.",
+    "Adds an empty track to your open composition, or to compositionId. Video tracks are added at the top (their picture is drawn above lower tracks); audio tracks at the bottom. Returns the new track id.",
   undoable: true,
-  input: z.object({ kind: z.enum(["video", "audio"]), name: z.string().min(1).max(60).optional() }),
-  run(ctx, { kind, name }) {
+  input: z.object({
+    kind: z.enum(["video", "audio"]),
+    name: z.string().min(1).max(60).optional(),
+    compositionId: z.string().optional(),
+  }),
+  run(ctx, { kind, name, compositionId }) {
     const id = createId("track");
-    ctx.mutate(ctx.require(projectRef).store, (draft) => {
+    const project = ctx.require(projectRef);
+    const home = compositionId ?? project.view.requireOpen(ctx.actor).id;
+    if (!project.store.getState().compositions[home]) {
+      throw new CommandFailure("composition.not_found", `No composition with id "${home}"`);
+    }
+    ctx.mutate(project.store, (draft) => {
       draft.tracks[id] = {
         id,
+        compositionId: home,
         kind,
-        name: name ?? nextTrackName(draft, kind),
+        name: name ?? nextTrackName(draft, home, kind),
         clipIds: [],
         muted: false,
         hidden: false,
       };
-      if (kind === "video") draft.trackOrder.unshift(id);
-      else draft.trackOrder.push(id);
+      const { trackOrder } = draft.compositions[home]!;
+      if (kind === "video") trackOrder.unshift(id);
+      else trackOrder.push(id);
     });
     return { trackId: id };
   },
@@ -60,7 +72,8 @@ export const removeTrack = defineCommand({
       for (const id of doomed) delete draft.clips[id];
       for (const id of removedJunctions) delete draft.junctions[id];
       delete draft.tracks[trackId];
-      draft.trackOrder = draft.trackOrder.filter((id) => id !== trackId);
+      const composition = draft.compositions[track.compositionId]!;
+      composition.trackOrder = composition.trackOrder.filter((id) => id !== trackId);
     };
     const conflict = findLayoutConflict(produce(state, apply));
     if (conflict) {

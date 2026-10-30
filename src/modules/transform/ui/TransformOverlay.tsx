@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { clipPlacement, projectRef } from "@/modules/project";
+import { clipPlacement, projectRef, useOpenFormat } from "@/modules/project";
 import { selectionSubject, timelineRef } from "@/modules/timeline";
 import { topmostAt } from "../logic/picking";
 import type { TransformGestureMode } from "../transform.types";
@@ -26,7 +26,7 @@ export function TransformOverlay() {
   const horizontalRef = useRef<HTMLDivElement>(null);
 
   const layers = useVisibleLayers();
-  const format = useStore(project.api, (s) => s.format);
+  const format = useOpenFormat();
   const clips = useStore(project.api, (s) => s.clips);
   const selection = useStore(timeline.view, (s) => s.selection);
 

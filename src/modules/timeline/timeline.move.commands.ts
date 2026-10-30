@@ -2,10 +2,16 @@ import { produce } from "immer";
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import { mediaRef } from "@/modules/media";
-import { partnersOf, projectRef } from "@/modules/project";
+import { partnersOf, projectRef, compositionOf } from "@/modules/project";
 import { clampTrim } from "./logic/placement";
 import { linkedTrimEdge, trimLimits } from "./logic/trim";
-import { checkLayout, requireClip, requireTrack, time } from "./timeline.guards";
+import {
+  checkLayout,
+  requireClip,
+  requireSameComposition,
+  requireTrack,
+  time,
+} from "./timeline.guards";
 import {
   commitState,
   followMove,
@@ -38,6 +44,7 @@ export const moveClip = defineCommand({
         `A ${source.kind} clip cannot move to the ${target.kind} track "${target.name}".`,
       );
     }
+    requireSameComposition(target, compositionOf(state, source));
     const delta = start - clip.start;
     const moves = [clip, ...partnersOf(state, clipId)].map((c) => ({
       clipId: c.id,

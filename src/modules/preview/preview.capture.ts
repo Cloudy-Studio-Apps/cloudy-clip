@@ -1,5 +1,6 @@
 import type { Micros } from "@/core";
 import type { FontRequest } from "@/modules/fonts";
+import type { CompositionId } from "@/modules/project";
 import type { PreviewCapture, PreviewCaptureDeps, PreviewEngine } from "./preview.types";
 
 /** How long a frame may take to decode. */
@@ -34,18 +35,20 @@ export function createCapture(deps: PreviewCaptureDeps): PreviewCapture {
     canvas = null;
   }
 
-  async function capture(time: Micros): Promise<string> {
+  async function capture(time: Micros, compositionId: CompositionId): Promise<string> {
     clearTimeout(idleTimer);
     const project = deps.getProject();
+    const composition = deps.getComposition(compositionId);
+    if (!composition) throw new Error("That composition no longer exists");
     canvas ??= document.createElement("canvas");
     engine ??= deps.createEngine(canvas, ensureFont);
-    canvas.width = project.format.width;
-    canvas.height = project.format.height;
+    canvas.width = composition.format.width;
+    canvas.height = composition.format.height;
 
     const deadline = performance.now() + SETTLE_LIMIT_MS;
     for (;;) {
       waitingForFont = false;
-      engine.render(project, time, false);
+      engine.render(project, composition, time, false);
       const settled = engine.isSettled();
       if (settled && !waitingForFont) break;
       if (performance.now() > deadline) {
@@ -61,8 +64,8 @@ export function createCapture(deps: PreviewCaptureDeps): PreviewCapture {
   }
 
   return {
-    captureAt(time) {
-      const result = queue.then(() => capture(time));
+    captureAt(time, compositionId) {
+      const result = queue.then(() => capture(time, compositionId));
       queue = result.catch(() => undefined);
       return result;
     },

@@ -2,19 +2,12 @@ import type { LucideIcon } from "lucide-react";
 import type { z } from "zod";
 import type { Micros } from "@/core";
 import type { PropertyTree } from "@/modules/element";
-import type {
-  Clip,
-  Junction,
-  ProjectFormat,
-  ProjectState,
-  TrackId,
-  TrackKind,
-} from "@/modules/project";
+import type { Clip, Junction, ProjectFormat, TrackId, TrackKind } from "@/modules/project";
 
 /** How much two clips of a junction overlap; `false` when the kind doesn't overlap them. */
 export type OverlapRule =
   | false
-  | { default: Micros; min(state: ProjectState): Micros; max(left: Clip, right: Clip): Micros };
+  | { default: Micros; min(format: ProjectFormat): Micros; max(left: Clip, right: Clip): Micros };
 
 /** What a mix function knows besides the pictures. */
 export interface MixEnv {

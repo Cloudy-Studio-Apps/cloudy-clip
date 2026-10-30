@@ -1,13 +1,14 @@
 import type { Draft } from "immer";
 import type { FieldChange, StorePolicy } from "@/core";
-import type { Clip, ProjectState, TrackId } from "../project.types";
+import type { Clip, CompositionId, ProjectState, TrackId } from "../project.types";
+import { contains, settleCompositions } from "./compositions";
 import { findLayoutConflict, staleJunctions } from "./junctions";
 
 /** Collections of records compared field by field. */
-const RECORDS = ["clips", "tracks", "junctions"] as const;
+const RECORDS = ["compositions", "clips", "tracks", "junctions"] as const;
 
-/** Derived from `clip.trackId` and `clip.start`, so never a field of its own. */
-const DERIVED_FIELDS = new Set(["clipIds"]);
+/** Derived from `clip.trackId`, `clip.start` and `track.compositionId`, so never fields of their own. */
+const DERIVED_FIELDS = new Set(["clipIds", "trackOrder"]);
 
 function isPlain(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -78,13 +79,45 @@ function repair(draft: Draft<ProjectState>): void {
     const here = onTrack.get(track.id) ?? [];
     track.clipIds = here.sort((a, b) => a.start - b.start).map((clip) => clip.id);
   }
-  draft.trackOrder = reconcile(draft.trackOrder, new Set(Object.keys(draft.tracks)));
+  const held = new Map<CompositionId, Set<TrackId>>();
+  for (const track of Object.values(draft.tracks)) {
+    held.set(track.compositionId, (held.get(track.compositionId) ?? new Set()).add(track.id));
+  }
+  for (const composition of Object.values(draft.compositions)) {
+    composition.trackOrder = reconcile(
+      composition.trackOrder,
+      held.get(composition.id) ?? new Set(),
+    );
+  }
+  draft.compositionOrder = reconcile(
+    draft.compositionOrder,
+    new Set(Object.keys(draft.compositions)),
+  );
   draft.mediaOrder = reconcile(draft.mediaOrder, new Set(Object.keys(draft.media)));
 }
 
 function validate(state: ProjectState): string | null {
+  const main = state.mainCompositionId;
+  const empty = Object.keys(state.compositions).length === 0;
+  if (empty ? main !== null : main === null || !state.compositions[main]) {
+    return "the project would have no main composition";
+  }
+  for (const track of Object.values(state.tracks)) {
+    if (!state.compositions[track.compositionId]) {
+      return "a track would be left without its composition";
+    }
+  }
   for (const clip of Object.values(state.clips)) {
     if (!state.tracks[clip.trackId]) return "a clip would be left without its track";
+    if (clip.compositionRef !== undefined) {
+      if (!state.compositions[clip.compositionRef]) {
+        return "a clip would be left without its composition";
+      }
+      const home = state.tracks[clip.trackId]!.compositionId;
+      if (contains(state, clip.compositionRef, home)) {
+        return "a composition would be inside itself";
+      }
+    }
     if (clip.mediaId !== undefined && !state.media[clip.mediaId]) {
       return "a clip would be left without its media";
     }
@@ -100,17 +133,29 @@ function validate(state: ProjectState): string | null {
   return null;
 }
 
+/** With Extend to fit on, `duration` follows the clips, so editing a clip must not conflict over it. */
+function isDerivedDuration(change: FieldChange, before: ProjectState, after: ProjectState) {
+  const [collection, id, field] = change.path;
+  if (collection !== "compositions" || field !== "duration" || id === undefined) return false;
+  return !!before.compositions[id]?.extendToFit && !!after.compositions[id]?.extendToFit;
+}
+
 /** How the project's steps are undone out of order (see `StorePolicy`). */
 export const projectPolicy: StorePolicy<ProjectState> = {
   diff(before, after) {
     const out: FieldChange[] = [];
     for (const name of RECORDS) diffCollection(name, before[name], after[name], true, out);
     diffCollection("media", before.media, after.media, false, out);
-    if (!same(before.format, after.format)) {
-      diffFields(["format"], { ...before.format }, { ...after.format }, false, out);
+    if (before.mainCompositionId !== after.mainCompositionId) {
+      out.push({
+        path: ["mainCompositionId"],
+        before: before.mainCompositionId,
+        after: after.mainCompositionId,
+      });
     }
-    return out;
+    return out.filter((change) => !isDerivedDuration(change, before, after));
   },
   repair,
   validate,
+  settle: settleCompositions,
 };

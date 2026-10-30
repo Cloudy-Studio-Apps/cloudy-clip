@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
 import { elementModule, prop } from "@/modules/element";
 import {
-  createEmptyProject,
+  seedProject,
   createProjectModule,
   projectRef,
   type Clip,
@@ -78,9 +78,9 @@ const clip = (
 
 /** V1: A [0,4) B [4,8) C [8,10); sounds sA sB sC linked on A1. */
 function project(): ProjectState {
-  const s = createEmptyProject();
-  trackV = s.trackOrder[0]!;
-  trackA = s.trackOrder[1]!;
+  const s = seedProject();
+  trackV = s.compositions.c1!.trackOrder[0]!;
+  trackA = s.compositions.c1!.trackOrder[1]!;
   const rows: [string, number, number][] = [
     ["A", 0, 4],
     ["B", 4, 4],

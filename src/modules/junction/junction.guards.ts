@@ -1,9 +1,12 @@
 import { CommandFailure, formatTimecode, type Micros } from "@/core";
 import { mergeProps, minimizeProps, resolveProps } from "@/modules/element";
 import {
-  junctionBetween,
+  formatOfTrack,
+  frameDuration,
   type Junction,
+  junctionBetween,
   type LayoutConflict,
+  type ProjectFormat,
   type ProjectState,
 } from "@/modules/project";
 import { cutAfter, cutNear } from "./logic/cut";
@@ -64,7 +67,12 @@ export function requireCut(
     if (!state.tracks[input.trackId]) {
       throw new CommandFailure("timeline.track_not_found", `No track with id "${input.trackId}"`);
     }
-    cut = cutNear(state, input.trackId, input.at, Math.ceil(1_000_000 / state.format.fps));
+    cut = cutNear(
+      state,
+      input.trackId,
+      input.at,
+      frameDuration(formatOfTrack(state, input.trackId)),
+    );
     if (!cut) {
       throw new CommandFailure(
         "junction.no_cut",
@@ -121,7 +129,7 @@ export function checkDuration(
  */
 export function nextProps(
   resolved: ResolvedJunctionKind,
-  state: ProjectState,
+  format: ProjectFormat,
   stored: Record<string, unknown>,
   patch: Record<string, unknown>,
   previous: Record<string, unknown>,
@@ -136,11 +144,9 @@ export function nextProps(
       `${definition.name}: ${where}${issue.message}`,
     );
   }
-  const defaults = definition.defaults(state.format);
+  const defaults = definition.defaults(format);
   const merged = resolveProps(mergeProps(stored, parsed.data as Record<string, unknown>), defaults);
-  const next = definition.normalize
-    ? definition.normalize(merged, { format: state.format, previous })
-    : merged;
+  const next = definition.normalize ? definition.normalize(merged, { format, previous }) : merged;
   return minimizeProps(next, defaults);
 }
 

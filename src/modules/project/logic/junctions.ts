@@ -4,6 +4,7 @@ import type {
   Clip,
   ClipId,
   ClipMove,
+  CompositionId,
   Junction,
   JunctionId,
   LayoutConflict,
@@ -33,16 +34,15 @@ export function junctionsOfClip(state: ProjectState, clipId: ClipId): Junction[]
   );
 }
 
-/** Junctions ordered by the track's position, then by time of the left clip. */
-export function orderedJunctions(state: ProjectState): Junction[] {
-  const trackIndex = (j: Junction) => {
-    const i = state.trackOrder.indexOf(j.trackId);
-    return i < 0 ? Number.MAX_SAFE_INTEGER : i;
-  };
+/** A composition's junctions ordered by the track's position, then by time of the left clip. */
+export function orderedJunctions(state: ProjectState, compositionId: CompositionId): Junction[] {
+  const trackOrder = state.compositions[compositionId]?.trackOrder ?? [];
   const time = (j: Junction) => state.clips[j.leftClipId]?.start ?? 0;
-  return Object.values(state.junctions).sort(
-    (a, b) => trackIndex(a) - trackIndex(b) || time(a) - time(b),
-  );
+  return Object.values(state.junctions)
+    .filter((j) => trackOrder.includes(j.trackId))
+    .sort(
+      (a, b) => trackOrder.indexOf(a.trackId) - trackOrder.indexOf(b.trackId) || time(a) - time(b),
+    );
 }
 
 /**
@@ -112,9 +112,7 @@ export function applyMoves(
 
 /** First pair of clips on any track that overlaps by anything other than `allowedOverlap`, or starts < 0. */
 export function findLayoutConflict(state: ProjectState): LayoutConflict | undefined {
-  for (const trackId of state.trackOrder) {
-    const track = state.tracks[trackId];
-    if (!track) continue;
+  for (const track of Object.values(state.tracks)) {
     const clips = track.clipIds.map((id) => state.clips[id]).filter((c): c is Clip => !!c);
     for (const [i, clip] of clips.entries()) {
       if (clip.start < 0) return { clip, other: clip };

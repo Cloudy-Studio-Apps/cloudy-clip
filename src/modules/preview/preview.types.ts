@@ -2,7 +2,14 @@ import type { ActorId, Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { FontRequest } from "@/modules/fonts";
-import type { ClipId, ClipTransform, Junction, ProjectState } from "@/modules/project";
+import type {
+  ClipId,
+  ClipTransform,
+  Composition,
+  CompositionId,
+  Junction,
+  ProjectState,
+} from "@/modules/project";
 
 /** Called on every frame while playing, and once per seek while paused. */
 export type TimeListener = (time: Micros) => void;
@@ -37,6 +44,7 @@ export interface PreviewEngine {
    */
   render(
     project: ProjectState,
+    composition: Composition,
     time: Micros,
     playing: boolean,
     transforms?: ReadonlyMap<ClipId, ClipTransform>,
@@ -55,8 +63,10 @@ export interface PreviewEngine {
 export interface PreviewControllerDeps {
   clock: PlaybackClock;
   getProject(): ProjectState;
-  /** Length of the timeline (cached by the caller; read on every project change). */
-  getDuration(): Micros;
+  /** The composition `actor` has open (the user's by default). */
+  getComposition(actor?: ActorId): Composition | null;
+  /** Length of the composition `actor` has open (the user's by default). */
+  getDuration(actor?: ActorId): Micros;
   /** Called on every project change. Returns an unsubscribe function. */
   subscribeProject(listener: () => void): () => void;
   /** Called on every media metadata change (e.g. a proxy became ready). */
@@ -70,6 +80,7 @@ export interface PreviewControllerDeps {
 /** What offscreen capture needs from the rest of the app. */
 export interface PreviewCaptureDeps {
   getProject(): ProjectState;
+  getComposition(id: CompositionId): Composition | null;
   /** Whether a font can be drawn now; when not, it starts loading. */
   ensureFont(request: FontRequest): boolean;
   /** A picture-only engine that asks `ensureFont` about fonts. */
@@ -81,7 +92,7 @@ export interface PreviewCaptureDeps {
 
 /** Offscreen capture, owned by the preview controller. */
 export interface PreviewCapture {
-  captureAt(time: Micros): Promise<string>;
+  captureAt(time: Micros, compositionId: CompositionId): Promise<string>;
   dispose(): void;
 }
 
@@ -104,7 +115,7 @@ export interface PreviewApi {
    * The timeline at `time` as a base64 PNG at the project's size. Doesn't touch the user's preview
    * and works with the window hidden. Rejects if a frame isn't decoded within 3 s.
    */
-  captureAt(time: Micros): Promise<string>;
+  captureAt(time: Micros, compositionId: CompositionId): Promise<string>;
   /**
    * Draws a clip with `transform` instead of its saved one, without changing the project (live
    * feedback while dragging on the canvas). Pass null to go back to the saved transform. The

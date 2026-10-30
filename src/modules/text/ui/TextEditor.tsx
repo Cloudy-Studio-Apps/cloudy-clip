@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import {
+  type Clip,
   clipPlacement,
   clipTransform,
-  projectRef,
   type PictureSize,
-  type Clip,
+  useOpenFormat,
 } from "@/modules/project";
 import { textFont, textLayout, textPadding, textStyleOf, clipText } from "../logic/layout";
 import { canvasTextMeasure, setProps } from "@/modules/element";
@@ -28,7 +27,7 @@ interface TextEditorProps {
 export function TextEditor({ clip, onDone }: TextEditorProps) {
   const { bus } = useKernel();
   const preview = useModule(previewRef);
-  const format = useStore(useModule(projectRef).store.api, (s) => s.format);
+  const format = useOpenFormat();
   const style = useMemo(() => textStyleOf(clip, format), [clip, format]);
   const transform = useMemo(() => clipTransform(clip), [clip]);
   const box = useRef<HTMLDivElement>(null);

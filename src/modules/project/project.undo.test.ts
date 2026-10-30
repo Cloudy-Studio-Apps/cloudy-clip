@@ -9,6 +9,7 @@ import {
   type PatchableStore,
 } from "@/core";
 import { createProjectStore } from "./project.store";
+import { seedProject } from "./project.testing";
 import type { Clip, ProjectState } from "./project.types";
 
 const AGENT = "agent-1";
@@ -20,19 +21,32 @@ function clip(id: string, start: number, trackId = "t1"): Clip {
 /** A project with `a` on `t1`, and a kernel to edit it as any actor. */
 async function setup() {
   const kernel: Kernel = await createKernel();
-  const store: PatchableStore<ProjectState> = createProjectStore({
-    format: { width: 1080, height: 1920, fps: 30 },
-    media: {},
-    mediaOrder: [],
-    tracks: {
-      t1: { id: "t1", kind: "video", name: "1", clipIds: ["a"], muted: false, hidden: false },
-      t2: { id: "t2", kind: "video", name: "2", clipIds: [], muted: false, hidden: false },
-      t3: { id: "t3", kind: "video", name: "3", clipIds: [], muted: false, hidden: false },
-    },
-    trackOrder: ["t1", "t2", "t3"],
-    clips: { a: clip("a", 0) },
-    junctions: {},
-  });
+  const store: PatchableStore<ProjectState> = createProjectStore(
+    seedProject({
+      tracks: {
+        t1: { id: "t1", kind: "video", name: "1", clipIds: ["a"], muted: false, hidden: false },
+        t2: {
+          id: "t2",
+          compositionId: "c1",
+          kind: "video",
+          name: "2",
+          clipIds: [],
+          muted: false,
+          hidden: false,
+        },
+        t3: {
+          id: "t3",
+          compositionId: "c1",
+          kind: "video",
+          name: "3",
+          clipIds: [],
+          muted: false,
+          hidden: false,
+        },
+      },
+      clips: { a: clip("a", 0) },
+    }),
+  );
   const recipes: Array<(draft: ProjectState) => void> = [];
   const step = defineCommand({
     id: "test.step",
@@ -133,13 +147,14 @@ describe("per-actor undo", () => {
     await t.edit(AGENT, (d) => {
       d.tracks.t4 = {
         id: "t4",
+        compositionId: "c1",
         kind: "video",
         name: "4",
         clipIds: [],
         muted: false,
         hidden: false,
       };
-      d.trackOrder.push("t4");
+      d.compositions.c1!.trackOrder.push("t4");
     });
     await t.edit(LOCAL_ACTOR, (d) => {
       d.clips.a!.trackId = "t4";
@@ -152,8 +167,16 @@ describe("per-actor undo", () => {
   });
 
   const addTrack4 = (d: ProjectState) => {
-    d.tracks.t4 = { id: "t4", kind: "video", name: "4", clipIds: [], muted: false, hidden: false };
-    d.trackOrder.push("t4");
+    d.tracks.t4 = {
+      id: "t4",
+      compositionId: "c1",
+      kind: "video",
+      name: "4",
+      clipIds: [],
+      muted: false,
+      hidden: false,
+    };
+    d.compositions.c1!.trackOrder.push("t4");
   };
 
   it("refuses a step of several parts whole, changing nothing", async () => {
@@ -186,12 +209,12 @@ describe("per-actor undo", () => {
   it("restores a deleted track past a later step", async () => {
     await t.edit(AGENT, (d) => {
       delete d.tracks.t2;
-      d.trackOrder = ["t1", "t3"];
+      d.compositions.c1!.trackOrder = ["t1", "t3"];
     });
     await t.edit(LOCAL_ACTOR, (d) => void (d.clips.a!.start = 5));
     t.history.undo(AGENT);
     expect(t.state().tracks.t2).toMatchObject({ id: "t2", clipIds: [] });
-    expect(t.state().trackOrder).toEqual(["t1", "t3", "t2"]);
+    expect(t.state().compositions.c1!.trackOrder).toEqual(["t1", "t3", "t2"]);
   });
 
   it("redoes a created track past a later step", async () => {
@@ -235,26 +258,26 @@ describe("per-actor undo", () => {
   it("an undo by the latest actor restores order exactly", async () => {
     await t.edit(LOCAL_ACTOR, (d) => {
       delete d.tracks.t2;
-      d.trackOrder = ["t1", "t3"];
+      d.compositions.c1!.trackOrder = ["t1", "t3"];
     });
     t.history.undo(LOCAL_ACTOR);
-    expect(t.state().trackOrder).toEqual(["t1", "t2", "t3"]);
+    expect(t.state().compositions.c1!.trackOrder).toEqual(["t1", "t2", "t3"]);
   });
 
   it("an unbroken undo and redo chain restores order exactly", async () => {
     await t.edit(LOCAL_ACTOR, (d) => {
       delete d.tracks.t2;
-      d.trackOrder = ["t1", "t3"];
+      d.compositions.c1!.trackOrder = ["t1", "t3"];
     });
     await t.edit(LOCAL_ACTOR, (d) => void (d.tracks.t1!.name = "x"));
     t.history.undo(LOCAL_ACTOR);
     t.history.undo(LOCAL_ACTOR);
     t.history.redo(LOCAL_ACTOR);
     t.history.redo(LOCAL_ACTOR);
-    expect(t.state().trackOrder).toEqual(["t1", "t3"]);
+    expect(t.state().compositions.c1!.trackOrder).toEqual(["t1", "t3"]);
     t.history.undo(LOCAL_ACTOR);
     t.history.undo(LOCAL_ACTOR);
-    expect(t.state().trackOrder).toEqual(["t1", "t2", "t3"]);
+    expect(t.state().compositions.c1!.trackOrder).toEqual(["t1", "t2", "t3"]);
   });
 
   it("redoes an out-of-order undo", async () => {
@@ -304,5 +327,25 @@ describe("per-actor undo", () => {
     await t.edit(LOCAL_ACTOR, (d) => void (d.clips.a!.start = 5), "Move");
     expect(t.history.undoLabelOf(AGENT)).toBe("Trim");
     expect(t.history.undoLabelOf("nobody")).toBeNull();
+  });
+
+  it("lets two actors undo out of order in an Extend to fit composition", async () => {
+    const { kernel, store, edit } = await setup();
+    await edit(AGENT, (d) => {
+      d.compositions.c1!.extendToFit = true;
+    });
+    await edit(LOCAL_ACTOR, (d) => {
+      d.clips.a!.start = 100;
+    });
+    await edit(AGENT, (d) => {
+      d.clips.b = clip("b", 100_000);
+      d.tracks.t1!.clipIds.push("b");
+    });
+    expect(store.getState().compositions.c1!.duration).toBe(100_010);
+    expect(() => kernel.history.undo(LOCAL_ACTOR)).not.toThrow();
+    expect(store.getState().clips.a!.start).toBe(0);
+    expect(store.getState().compositions.c1!.duration).toBe(100_010);
+    expect(() => kernel.history.undo(AGENT)).not.toThrow();
+    expect(store.getState().compositions.c1!.duration).toBe(33_334);
   });
 });

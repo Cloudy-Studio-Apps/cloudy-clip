@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyProject } from "../project.store";
+import { seedProject } from "../project.testing";
 import type { ProjectState } from "../project.types";
 import { partnersOf, withPartners } from "./links";
 
@@ -7,8 +7,8 @@ const S = 1_000_000;
 
 /** A video clip "v" and an audio clip "a" linked by "l1", plus an unlinked audio clip "x". */
 function linkedProject(): ProjectState {
-  const state = createEmptyProject();
-  const [video, audio] = state.trackOrder as [string, string];
+  const state = seedProject();
+  const [video, audio] = state.compositions.c1!.trackOrder as [string, string];
   const clip = (id: string, trackId: string, start: number, linkId?: string) => {
     state.clips[id] = {
       id,

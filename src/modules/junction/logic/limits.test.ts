@@ -1,6 +1,6 @@
 import { Scissors } from "lucide-react";
 import { describe, expect, it } from "vitest";
-import { createEmptyProject, type Clip } from "@/modules/project";
+import { seedProject, type Clip } from "@/modules/project";
 import { defineJunctionKind } from "./define";
 import { clampDuration, durationLimits } from "./limits";
 
@@ -25,14 +25,13 @@ const kind = defineJunctionKind({
   defaults: () => ({}),
   overlap: {
     default: 500_000,
-    min: (state) => Math.ceil(S / state.format.fps),
+    min: (format) => Math.ceil(S / format.fps),
     max: (l, r) => Math.floor(Math.min(l.duration, r.duration) / 2),
   },
 });
 
 describe("durationLimits", () => {
-  const state = createEmptyProject();
-  state.format.fps = 30;
+  const state = seedProject();
 
   it("limits: max is half the shorter clip", () => {
     const l = durationLimits(kind, state, clip("a", 0, 4 * S), clip("b", 4 * S, 3 * S));

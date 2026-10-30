@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-import { useStore } from "zustand";
 import { useModule, usePoint } from "@/core";
 import { elementRef, elements as elementPoint } from "@/modules/element";
-import { projectRef, type Clip, type Track } from "@/modules/project";
+import { type Clip, type Track, useOpenFormat } from "@/modules/project";
 import { CommandItem } from "./CommandItem";
 import { useWarnOnce } from "./panel.warn.hook";
 import { PropertyPanel } from "./PropertyPanel";
@@ -16,7 +15,7 @@ import { WarningRow } from "./WarningRow";
  */
 export function ElementPanel({ clip, track }: { clip: Clip; track: Track }) {
   const elements = useModule(elementRef);
-  const format = useStore(useModule(projectRef).store.api, (s) => s.format);
+  const format = useOpenFormat();
   // Re-render when elements are registered or removed (a plugin loaded after the panel opened).
   const registered = usePoint(elementPoint);
   const live = usePropsLive(clip);

@@ -1,5 +1,5 @@
 import type { Micros } from "@/core";
-import type { Clip, MediaId, ProjectState } from "@/modules/project";
+import { formatOf, type Clip, type MediaId, type ProjectState } from "@/modules/project";
 import type { TrimEdge, TrimLimits } from "../timeline.types";
 import { clampTrim, minClipDuration, neighbourBounds } from "./placement";
 
@@ -22,7 +22,7 @@ export function trimLimits(
     mediaDuration:
       (sourceless || !clip.mediaId ? undefined : durationOf(clip.mediaId)) ??
       Number.POSITIVE_INFINITY,
-    minDuration: minClipDuration(state),
+    minDuration: minClipDuration(formatOf(state, clip)),
     ...neighbourBounds(state, clip, edge),
     ...(sourceless && { sourceless }),
   };

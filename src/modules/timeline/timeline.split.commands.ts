@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, formatTimecode } from "@/core";
-import { type Clip, projectRef, withPartners } from "@/modules/project";
+import { type Clip, projectRef, withPartners, compositionClips, formatOf } from "@/modules/project";
 import { minClipDuration, sortClipIds } from "./logic/placement";
 import { checkLayout, requireClip, time } from "./timeline.guards";
 import {
@@ -24,7 +24,7 @@ export const splitAt = defineCommand({
   input: z.object({ at: time, clipIds: z.array(z.string()).optional() }),
   run(ctx, { at, clipIds }) {
     const state = ctx.require(projectRef).store.getState();
-    const min = minClipDuration(state);
+    const open = clipIds ? undefined : ctx.require(projectRef).view.requireOpen(ctx.actor);
     if (clipIds) clipIds.forEach((id) => requireClip(state, id));
     const blocking = junctionsOverlapping(state, at);
     const blocked = new Set(
@@ -35,10 +35,11 @@ export const splitAt = defineCommand({
     );
     const candidates = clipIds
       ? withPartners(state, clipIds).map((id) => requireClip(state, id))
-      : Object.values(state.clips).filter((clip) => !blocked.has(clip.id));
-    const targets = candidates.filter(
-      (clip) => at - clip.start >= min && clip.start + clip.duration - at >= min,
-    );
+      : compositionClips(state, open!.id).filter((clip) => !blocked.has(clip.id));
+    const targets = candidates.filter((clip) => {
+      const min = minClipDuration(formatOf(state, clip));
+      return at - clip.start >= min && clip.start + clip.duration - at >= min;
+    });
     const inOverlap = targets.find((clip) => blocked.has(clip.id));
     if (inOverlap) {
       throw new CommandFailure(

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import { setProps } from "@/modules/element";
 import { fontsRef } from "@/modules/fonts";
-import { projectRef } from "@/modules/project";
+import { projectRef, formatOf } from "@/modules/project";
 import { isTextClip, mergeTextStyle, textStyleOf } from "./logic/layout";
 import { presetStyle, presetTransform } from "./logic/presets";
 import { snapStyleToFamily } from "./logic/snap";
@@ -18,7 +18,8 @@ export const applyTextPreset = defineCommand({
   input: z.object({ clipIds: z.array(z.string()).min(1), preset: textPresetId }),
   async run(ctx, { clipIds, preset }) {
     const store = ctx.require(projectRef).store;
-    const { clips, format } = store.getState();
+    const state = store.getState();
+    const { clips } = state;
     const targets = clipIds.map((id) => {
       const clip = clips[id];
       if (!clip) throw new CommandFailure("text.clip_not_found", `No clip with id "${id}"`);
@@ -27,10 +28,11 @@ export const applyTextPreset = defineCommand({
       }
       return clip;
     });
-    const style = presetStyle(preset, format);
-    const transform = presetTransform(preset, format);
     const families = ctx.require(fontsRef).knownFamilies();
     for (const clip of targets) {
+      const format = formatOf(state, clip);
+      const style = presetStyle(preset, format);
+      const transform = presetTransform(preset, format);
       // A preset's weight and italic move to the closest face the family has (never fail).
       const face = snapStyleToFamily(mergeTextStyle(textStyleOf(clip, format), style), families);
       // One patch per clip: the style and (lower third) the place, checked and written together.

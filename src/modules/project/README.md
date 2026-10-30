@@ -1,6 +1,6 @@
 # project
 
-The project document: the output format, imported media, tracks and clips. Everything the user makes
+The project document: compositions, imported media, tracks and clips. Everything the user makes
 lives here, so every change is undoable and readable by agents.
 
 - **Tier:** core
@@ -9,16 +9,22 @@ lives here, so every change is undoable and readable by agents.
 - **Points it owns:** —
 - **API** (`useModule(projectRef)` / `ctx.require(projectRef)`): `store`, a patchable store of
   `ProjectState`. Read it freely; change it only through commands (`ctx.mutate`). Other modules edit
-  it with their own commands.
+  it with their own commands. `view` says who has which composition open: `openFor(actor)`,
+  `setOpen`, `closeTab`, `requireOpen` (throws `composition.none_open`), `formatFor`. An actor whose
+  composition is gone falls back to Main, then to none. `useOpenComposition()` and `useOpenFormat()`
+  read it for the user.
 - **Files:**
-  - `project.types.ts`: `ProjectState`, `Track`, `Clip`, `ClipTransform`, `ClipPlacement`,
+  - `project.types.ts`: `ProjectState`, `Composition`, `Track`, `Clip`, `ClipTransform`, `ClipPlacement`,
     `SharedGroupValues`. A `Clip` names its element in `kind` (`"media"`, `"text"`, a plugin's)
     and stores only the values that differ from the element's defaults in `props`; `mediaId` is
     set for clips that play a file; shared group values (`transform`) live under their own key.
-  - `project.store.ts`: `FORMAT_PRESETS`, `createEmptyProject()`.
-  - `logic/fields.ts`: `projectPolicy`, the store's `StorePolicy`: what lets a step be undone past others' newer steps. `diff` lists changes by field (one level into plain objects; a created or deleted entity is one change), `repair` rebuilds `clipIds`, `trackOrder` and `mediaOrder`, and `validate` refuses missing tracks or media, overlaps, stale junctions and two junctions on a cut.
-  - `project.selectors.ts`: `projectDuration`, `orderedTracks`, `trackClips`, `clipEnd`,
-    `isMediaInUse`, `formatPreset`.
+  - `project.store.ts`: `FORMAT_PRESETS`, `DEFAULT_FORMAT`, `createEmptyProject()`.
+  - `project.view.ts`: the view above. `project.testing.ts`: `seedProject(seed)`, one composition `c1` for test fixtures.
+  - `logic/compositions.ts`: `contains(state, outer, inner)`, `settleCompositions` (the policy's `settle`: keeps Extend to fit lengths true inside every step).
+  - `logic/fields.ts`: `projectPolicy`, the store's `StorePolicy`: what lets a step be undone past others' newer steps. `diff` lists changes by field (one level into plain objects; a created or deleted entity is one change), `repair` rebuilds `clipIds`, each `trackOrder`, `compositionOrder` and `mediaOrder`, and `validate` refuses a missing Main, tracks without a composition, a composition inside itself, missing tracks or media, overlaps, stale junctions and two junctions on a cut.
+  - `project.selectors.ts`: `orderedTracks(state, compositionId)`, `trackClips`, `clipEnd`,
+    `compositionOf`, `compositionClips`, `compositionContent`, `placementsOf`, `formatOf(state, clip)`,
+    `formatOfTrack`, `frameDuration`, `isMediaInUse`, `formatPreset`.
   - `project.geometry.ts`: `clipPlacement(format, sourceSize, transform)`, the one place a clip's
     transform becomes a rectangle in the frame (the preview engine and the canvas tools both use it);
     `clipTransform(clip, live?)` (the saved transform or the identity, with a live patch merged
@@ -30,7 +36,7 @@ lives here, so every change is undoable and readable by agents.
     another track, else 0), `rippleMoves`, `applyMoves` (pure, keeps `clipIds` sorted),
     `findLayoutConflict`, `staleJunctions`.
   - `createProjectModule(initial)` seeds the document in tests.
-- **Invariants:** track order is top → bottom (higher video tracks are drawn on top);
+- **Invariants:** tracks, clips and junctions stay in flat records with project-wide ids, and a track belongs to one composition, so a clip or track id says which composition it means; track order is top → bottom (higher video tracks are drawn on top);
   `Track.clipIds` is sorted by `start` and clips on a track never overlap, except by `allowedOverlap` (junctions); times are microseconds;
   `Clip.transform` is optional (missing = fitted and centered): `x`/`y` offset of the picture's center
   from the frame's center in output pixels, `scale` relative to fit, `rotation` clockwise degrees.
@@ -42,7 +48,7 @@ lives here, so every change is undoable and readable by agents.
   Clips on a track overlap only by the `allowedOverlap` of the pair.
 - **Not yet:** a project name, saving and loading.
 
-| Command             | MCP tool             | Notes                                                                            |
-| ------------------- | -------------------- | -------------------------------------------------------------------------------- |
-| `project.setFormat` | `project_set_format` | `9:16`, `16:9`, `1:1`                                                            |
-| —                   | `project_get_state`  | Whole document, tracks with clips inline, plus `junctions` (by track, then time) |
+| Command             | MCP tool             | Notes                                                                          |
+| ------------------- | -------------------- | ------------------------------------------------------------------------------ |
+| `project.setFormat` | `project_set_format` | `9:16`, `16:9`, `1:1`, on the open composition                                 |
+| —                   | `project_get_state`  | Whole document: each composition with its tracks, clips and `junctions` inline |

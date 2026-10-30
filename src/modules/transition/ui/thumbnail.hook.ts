@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import { useModule } from "@/core";
-import { projectRef } from "@/modules/project";
+import { projectRef, DEFAULT_FORMAT } from "@/modules/project";
 import { seededRandom } from "../logic/noise";
 import {
   THUMB_HEIGHT,
@@ -39,7 +39,9 @@ export function usePresetThumbnail(
     return (progress: number, elapsed: number): void => {
       const ctx = canvasRef.current?.getContext("2d");
       if (!ctx || !aCtx || !bCtx) return;
-      const format = project.getState().format;
+      const format =
+        project.getState().compositions[project.getState().mainCompositionId ?? ""]?.format ??
+        DEFAULT_FORMAT;
       const colors = sampleColors();
       drawSample(aCtx, colors.a, "circle");
       drawSample(bCtx, colors.b, "square");

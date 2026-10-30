@@ -10,10 +10,10 @@ const describeElements = defineMcpTool({
   name: "element_describe",
   readOnly: true,
   description:
-    "Lists every kind of clip (text, media, …): its name, the track kinds it may sit on, whether it plays a file, the shared groups it supports (transform), the JSON schema of the patch element_set_props accepts (ranges, units in descriptions) and its default values for the project's current format, and the commands its inspector panel offers (each takes clipIds). Values a clip doesn't store are these defaults.",
+    "Lists every kind of clip (text, media, …): its name, the track kinds it may sit on, whether it plays a file, the shared groups it supports (transform), the JSON schema of the patch element_set_props accepts (ranges, units in descriptions) and its default values for the format of your open composition, and the commands its inspector panel offers (each takes clipIds). Values a clip doesn't store are these defaults.",
   input: z.object({}),
   handler(_input, ctx) {
-    const format = ctx.require(projectRef).store.getState().format;
+    const format = ctx.require(projectRef).view.formatFor(ctx.caller.key);
     return textResult(
       ctx
         .require(elementRef)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyProject, type ProjectState } from "@/modules/project";
+import { seedProject, type ProjectState } from "@/modules/project";
 import {
   clampTrim,
   findOverlap,
@@ -17,8 +17,8 @@ function projectWithClips(spans: Array<[number, number]>): {
   state: ProjectState;
   trackId: string;
 } {
-  const state = createEmptyProject();
-  const trackId = state.trackOrder[0]!;
+  const state = seedProject();
+  const trackId = state.compositions.c1!.trackOrder[0]!;
   spans.forEach(([start, duration], i) => {
     const id = `c${i}`;
     state.clips[id] = {
@@ -41,11 +41,11 @@ describe("freeTrack", () => {
     const { state, trackId } = projectWithClips([[0, 2 * S]]);
     const second = "v2";
     state.tracks[second] = { ...state.tracks[trackId]!, id: second, clipIds: [] };
-    state.trackOrder.splice(1, 0, second);
-    expect(freeTrack(state, "video", 3 * S, S)).toBe(trackId);
-    expect(freeTrack(state, "video", S, S)).toBe(second);
+    state.compositions.c1!.trackOrder.splice(1, 0, second);
+    expect(freeTrack(state, state.compositions.c1!, "video", 3 * S, S)).toBe(trackId);
+    expect(freeTrack(state, state.compositions.c1!, "video", S, S)).toBe(second);
     state.tracks[second]!.clipIds = ["c0"];
-    expect(freeTrack(state, "video", S, S)).toBeUndefined();
+    expect(freeTrack(state, state.compositions.c1!, "video", S, S)).toBeUndefined();
   });
 });
 
@@ -125,8 +125,8 @@ describe("junction-aware placement", () => {
 
   it("snapCandidates include the junction's cut (middle of the overlap)", () => {
     const { state } = joinedClips();
-    expect(snapCandidates(state, 0)).toContain(3.75 * S);
-    expect(snapCandidates(state, 0, new Set(["c1"]))).not.toContain(3.75 * S);
+    expect(snapCandidates(state, "c1", 0)).toContain(3.75 * S);
+    expect(snapCandidates(state, "c1", 0, new Set(["c1"]))).not.toContain(3.75 * S);
   });
 });
 

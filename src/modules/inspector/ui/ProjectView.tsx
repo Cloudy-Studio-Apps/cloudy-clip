@@ -1,6 +1,6 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
-import { projectRef } from "@/modules/project";
+import { projectRef, useOpenFormat } from "@/modules/project";
 import { InfoList, SealMark } from "@/ui";
 import { AgentsSection } from "./AgentsSection";
 import { InspectorHeader } from "./InspectorHeader";
@@ -10,7 +10,7 @@ import { InspectorTip } from "./InspectorTip";
 /** Shown when nothing is selected: the project's canvas and how agents can join. */
 export function ProjectView() {
   const project = useModule(projectRef).store;
-  const format = useStore(project.api, (s) => s.format);
+  const format = useOpenFormat();
   const clipCount = useStore(project.api, (s) => Object.keys(s.clips).length);
 
   return (

@@ -6,7 +6,14 @@ import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule, mediaRef } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule } from "@/modules/preview";
-import { createEmptyProject, createProjectModule, projectRef, trackClips } from "@/modules/project";
+import {
+  createProjectModule,
+  projectRef,
+  seedProject,
+  trackClips,
+  type ProjectState,
+} from "@/modules/project";
+import { snapCandidates } from "./logic/placement";
 import {
   addClip,
   addTrack,
@@ -44,11 +51,11 @@ async function pair(start = 0) {
 }
 
 const trackOfKind = (kind: "video" | "audio", nth = 0) =>
-  doc().trackOrder.filter((id) => doc().tracks[id]!.kind === kind)[nth]!;
+  doc().compositions.c1!.trackOrder.filter((id) => doc().tracks[id]!.kind === kind)[nth]!;
 
 beforeEach(async () => {
   kernel = await createKernel();
-  const project = createEmptyProject();
+  const project = seedProject();
   project.media.mv = { id: "mv", name: "a.mp4", path: "/a.mp4", kind: "video", size: 1 };
   project.media.ma = { id: "ma", name: "a.mp3", path: "/a.mp3", kind: "audio", size: 1 };
   project.mediaOrder = ["mv", "ma"];
@@ -134,7 +141,9 @@ describe("timeline commands", () => {
     const { trackId } = await run(kernel.bus.run(addTrack, { kind: "audio" }));
     const { clips } = await run(kernel.bus.run(addClip, { mediaId: "mv", start: 0, trackId }));
     expect(clips[0]!.trackId).toBe(trackOfKind("video", 0));
-    expect(doc().trackOrder.filter((id) => doc().tracks[id]!.kind === "video")).toHaveLength(2);
+    expect(
+      doc().compositions.c1!.trackOrder.filter((id) => doc().tracks[id]!.kind === "video"),
+    ).toHaveLength(2);
   });
 
   it("undoes adding a pair in one step", async () => {
@@ -167,7 +176,7 @@ describe("timeline commands", () => {
     const audioTrack = kernel.modules
       .require(projectRef)
       .store.getState()
-      .trackOrder.find((id) => doc().tracks[id]!.kind === "audio")!;
+      .compositions.c1!.trackOrder.find((id) => doc().tracks[id]!.kind === "audio")!;
     const wrong = await kernel.bus.run(moveClip, {
       clipId: clip.id,
       start: 0,
@@ -349,5 +358,78 @@ describe("linked clips", () => {
       muted: true,
     });
     expect(!result.ok && result.error.code).toBe("timeline.kind_mismatch");
+  });
+
+  describe("with a second composition", () => {
+    const seedSecond = () => {
+      const { store } = kernel.modules.require(projectRef);
+      (store as unknown as { reset(state: ProjectState): void }).reset({
+        ...doc(),
+        compositions: {
+          ...doc().compositions,
+          c2: { ...doc().compositions.c1!, id: "c2", trackOrder: ["other"] },
+        },
+        tracks: {
+          ...doc().tracks,
+          other: {
+            id: "other",
+            compositionId: "c2",
+            kind: "video",
+            name: "Other",
+            clipIds: ["far"],
+            muted: false,
+            hidden: false,
+          },
+        },
+        clips: {
+          ...doc().clips,
+          far: {
+            id: "far",
+            kind: "text",
+            trackId: "other",
+            start: 0,
+            sourceIn: 0,
+            duration: 2 * S,
+            props: {},
+          },
+        },
+      });
+    };
+
+    it("splits only the open composition when no clips are named", async () => {
+      await place({ mediaId: "mv" });
+      seedSecond();
+      expect((await kernel.bus.run(splitAt, { at: S })).ok).toBe(true);
+      expect(doc().tracks.other!.clipIds).toEqual(["far"]);
+    });
+
+    it("snaps only to clips of the composition", () => {
+      seedSecond();
+      expect(snapCandidates(doc(), "c1", 0)).not.toContain(2 * S);
+    });
+
+    it("names a new track after the tracks of its own composition", async () => {
+      seedSecond();
+      const result = await kernel.bus.run(addTrack, { kind: "video" });
+      expect(result.ok && doc().tracks[result.value.trackId]!.name).toBe("Video 2");
+    });
+
+    it("refuses to move a clip into another composition", async () => {
+      const clip = await place({ mediaId: "ma" });
+      seedSecond();
+      const result = await kernel.bus.run(moveClip, {
+        clipId: clip.id,
+        start: 0,
+        trackId: "other",
+      });
+      expect(!result.ok && result.error.code).toBe("timeline.kind_mismatch");
+      const video = await place({ mediaId: "mv" });
+      const moved = await kernel.bus.run(moveClip, {
+        clipId: video.id,
+        start: 0,
+        trackId: "other",
+      });
+      expect(!moved.ok && moved.error.code).toBe("timeline.other_composition");
+    });
   });
 });

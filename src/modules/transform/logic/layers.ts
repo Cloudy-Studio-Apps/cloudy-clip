@@ -3,6 +3,7 @@ import { mergeProps, type ElementApi, type TextMeasure } from "@/modules/element
 import {
   clipTransform,
   type ClipTransform,
+  type Composition,
   type MediaId,
   type PictureSize,
   type ProjectState,
@@ -16,6 +17,7 @@ import type { TransformField, VisibleLayer } from "../transform.types";
  */
 export function visibleLayers(
   state: ProjectState,
+  composition: Composition,
   elements: Pick<ElementApi, "get" | "resolve">,
   sizeOf: (mediaId: MediaId) => PictureSize | undefined,
   time: Micros,
@@ -23,7 +25,7 @@ export function visibleLayers(
   liveProps: (clipId: string) => Record<string, unknown> | undefined = () => undefined,
 ): VisibleLayer[] {
   const layers: VisibleLayer[] = [];
-  for (const trackId of state.trackOrder) {
+  for (const trackId of composition.trackOrder) {
     const track = state.tracks[trackId];
     if (!track || track.kind !== "video" || track.hidden) continue;
     for (const clipId of track.clipIds) {
@@ -45,11 +47,11 @@ export function visibleLayers(
         continue;
       }
       if (!picture.size) continue;
-      const saved = elements.resolve(clip, state.format);
+      const saved = elements.resolve(clip, composition.format);
       const props = live ? mergeProps(saved, live) : saved;
       layers.push({
         clipId,
-        source: picture.size(props, { format: state.format, measure }),
+        source: picture.size(props, { format: composition.format, measure }),
         fit: picture.fit,
         transform,
         fields,

@@ -1,5 +1,11 @@
 import { microsToSeconds, type Micros } from "@/core";
-import { allowedOverlap, type ClipId, type ProjectState, type TrackId } from "@/modules/project";
+import {
+  allowedOverlap,
+  type ClipId,
+  type Composition,
+  type ProjectState,
+  type TrackId,
+} from "@/modules/project";
 import type { ActiveJunction } from "../preview.types";
 
 /** Overlapping junctions under `time` on a track: progress = (time - right.start) / duration. */
@@ -31,9 +37,13 @@ export function crossfadeGains(progress: number): { left: number; right: number 
  * that a junction covers (a picture junction's linked sounds, junction rule 4). Clips not in the map
  * play at full volume.
  */
-export function soundGains(project: ProjectState, time: Micros): Map<ClipId, number> {
+export function soundGains(
+  project: ProjectState,
+  composition: Composition,
+  time: Micros,
+): Map<ClipId, number> {
   const gains = new Map<ClipId, number>();
-  for (const trackId of project.trackOrder) {
+  for (const trackId of composition.trackOrder) {
     const track = project.tracks[trackId];
     if (track?.kind !== "audio") continue;
     for (let i = 1; i < track.clipIds.length; i++) {

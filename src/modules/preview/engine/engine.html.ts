@@ -6,7 +6,9 @@ import {
   type Clip,
   type ClipId,
   type ClipTransform,
+  type Composition,
   type MediaId,
+  type ProjectFormat,
   type ProjectState,
   type Track,
 } from "@/modules/project";
@@ -66,6 +68,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   render(
     project: ProjectState,
+    composition: Composition,
     time: Micros,
     playing: boolean,
     transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
@@ -73,7 +76,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   ): void {
     const active: ActiveTrack[] = [];
     const upcoming: Array<{ clip: Clip; track: Track }> = [];
-    for (const trackId of project.trackOrder) {
+    for (const trackId of composition.trackOrder) {
       const track = project.tracks[trackId];
       if (!track) continue;
       if (this.pictureOnly && track.kind !== "video") continue;
@@ -95,7 +98,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.pool.release(needed);
 
     // Sound clips crossfading under a junction (junction rule 4); others play at full volume.
-    const gains = soundGains(project, time);
+    const gains = soundGains(project, composition, time);
     this.settled = true;
     for (const { track, clips } of active) {
       // During a junction's overlap both clips are here, each on its own element (one per clip
@@ -121,13 +124,13 @@ export class HtmlMediaEngine implements PreviewEngine {
         clips.filter((clip) => !hasMedia(clip)).map((clip) => ({ clip, hidden: track.hidden })),
       );
     const ready = (clip: Clip) =>
-      this.pictureReady(project, clip, time, propsOverrides.get(clip.id));
+      this.pictureReady(composition.format, clip, time, propsOverrides.get(clip.id));
     if (!picturesSettled(pictures, ready)) this.settled = false;
 
     for (const { clip, track } of upcoming) {
       if (!hasMedia(clip)) {
         // Asked ahead, so its picture is loaded by the time it shows.
-        this.pictureReady(project, clip, clip.start, propsOverrides.get(clip.id));
+        this.pictureReady(composition.format, clip, clip.start, propsOverrides.get(clip.id));
         continue;
       }
       if (!project.media[clip.mediaId]) continue;
@@ -142,7 +145,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
     // Only paint complete frames: a layer still decoding would flash black. Keep the previous
     // picture instead; the controller retries until every layer has its frame.
-    if (this.settled) this.draw(project, time, active, transforms, propsOverrides);
+    if (this.settled) this.draw(project, composition, time, active, transforms, propsOverrides);
   }
 
   pauseAll(): void {
@@ -176,6 +179,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   private draw(
     project: ProjectState,
+    composition: Composition,
     time: Micros,
     active: ActiveTrack[],
     transforms: ReadonlyMap<ClipId, ClipTransform>,
@@ -183,19 +187,26 @@ export class HtmlMediaEngine implements PreviewEngine {
   ): void {
     const { ctx, canvas } = this;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = composition.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     // Canvas pixels per output pixel (the canvas keeps the format's aspect ratio).
-    const kx = canvas.width / project.format.width;
-    const ky = canvas.height / project.format.height;
+    const { format } = composition;
+    const kx = canvas.width / format.width;
+    const ky = canvas.height / format.height;
     const drawClip = (target: CanvasRenderingContext2D, clip: Clip) =>
-      this.drawClip(target, project, clip, time, transforms, propsOverrides, kx, ky);
+      this.drawClip(target, project, format, clip, time, transforms, propsOverrides, kx, ky);
 
     // trackOrder is top → bottom; draw bottom first so higher tracks end up on top.
     for (let i = active.length - 1; i >= 0; i--) {
       const { track, clips } = active[i]!;
       if (track.kind !== "video" || track.hidden) continue;
-      drawTrack(ctx, { project, track, clips, time }, this.mixCanvases, this.junctions, drawClip);
+      drawTrack(
+        ctx,
+        { project, format, track, clips, time },
+        this.mixCanvases,
+        this.junctions,
+        drawClip,
+      );
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
@@ -204,6 +215,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private drawClip(
     target: CanvasRenderingContext2D,
     project: ProjectState,
+    format: ProjectFormat,
     clip: Clip,
     time: Micros,
     transforms: ReadonlyMap<ClipId, ClipTransform>,
@@ -220,7 +232,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       this.drawPicture(
         target,
         picture,
-        project,
+        format,
         clip,
         time,
         transform,
@@ -236,7 +248,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) return;
 
     const place = clipPlacement(
-      project.format,
+      format,
       { width: element.videoWidth, height: element.videoHeight },
       transform,
     );
@@ -250,7 +262,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private drawPicture(
     target: CanvasRenderingContext2D,
     picture: PictureDefinition<Record<string, unknown>>,
-    project: ProjectState,
+    format: ProjectFormat,
     clip: Clip,
     time: Micros,
     transform: ClipTransform,
@@ -259,13 +271,13 @@ export class HtmlMediaEngine implements PreviewEngine {
     ky: number,
   ): void {
     if (!picture.size || !picture.draw) return;
-    const saved = this.elements.resolve(clip, project.format);
+    const saved = this.elements.resolve(clip, format);
     const props = override ? mergeProps(saved, override) : saved;
     const measure = canvasTextMeasure(this.ctx);
-    const size = picture.size(props, { format: project.format, measure });
-    const placement = clipPlacement(project.format, size, transform, picture.fit);
+    const size = picture.size(props, { format, measure });
+    const placement = clipPlacement(format, size, transform, picture.fit);
     const env = {
-      format: project.format,
+      format,
       placement,
       time: time - clip.start,
       kx,
@@ -278,14 +290,14 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   /** Whether a clip that paints itself can paint at `time`; asking may start its loading. */
   private pictureReady(
-    project: ProjectState,
+    format: ProjectFormat,
     clip: Clip,
     time: Micros,
     override: Record<string, unknown> | undefined,
   ): boolean {
     const picture = this.elements.get(clip.kind)?.definition.picture;
     if (!picture?.ready) return true;
-    const saved = this.elements.resolve(clip, project.format);
+    const saved = this.elements.resolve(clip, format);
     const props = override ? mergeProps(saved, override) : saved;
     return picture.ready(props, { time: time - clip.start });
   }

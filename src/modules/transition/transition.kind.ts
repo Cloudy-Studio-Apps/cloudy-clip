@@ -2,6 +2,7 @@ import { Blend } from "lucide-react";
 import { CommandFailure } from "@/core";
 import { minimizeProps, prop, resolveProps } from "@/modules/element";
 import { defineJunctionKind } from "@/modules/junction";
+import { frameDuration } from "@/modules/project";
 import type { TransitionApi } from "./transition.types";
 
 /**
@@ -22,7 +23,7 @@ export function createTransitionKind(api: TransitionApi) {
     defaults: () => ({ preset: "", options: {} }),
     overlap: {
       default: 500_000,
-      min: (state) => Math.ceil(1_000_000 / state.format.fps),
+      min: frameDuration,
       max: (left, right) => Math.floor(Math.min(left.duration, right.duration) / 2),
     },
     normalize(next, env) {

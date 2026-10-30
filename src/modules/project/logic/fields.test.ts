@@ -16,15 +16,26 @@ function clip(id: string, start: number, extra: Partial<Clip> = {}): Clip {
 }
 
 function track(id: string, clipIds: string[]): Track {
-  return { id, kind: "video", name: id, clipIds, muted: false, hidden: false };
+  return { id, compositionId: "x", kind: "video", name: id, clipIds, muted: false, hidden: false };
 }
 
 const before: ProjectState = {
-  format: { width: 1080, height: 1920, fps: 30 },
+  compositions: {
+    x: {
+      id: "x",
+      name: "Main",
+      format: { width: 1080, height: 1920, fps: 30 },
+      background: "#000000",
+      duration: 30,
+      extendToFit: true,
+      trackOrder: ["t1", "t2"],
+    },
+  },
+  compositionOrder: ["x"],
+  mainCompositionId: "x",
   media: {},
   mediaOrder: [],
   tracks: { t1: track("t1", ["c1", "c2"]), t2: track("t2", []) },
-  trackOrder: ["t1", "t2"],
   clips: {
     c1: clip("c1", 0, { props: { text: "a", size: 10 } }),
     c2: clip("c2", 20),
@@ -72,10 +83,34 @@ describe("project field changes", () => {
     const after = {
       ...before,
       tracks: { ...before.tracks, t1: track("t1", ["c2", "c1"]) },
-      trackOrder: ["t2", "t1"],
+      compositions: { x: { ...before.compositions.x!, trackOrder: ["t2", "t1"] } },
       mediaOrder: ["m1"],
     };
     expect(projectPolicy.diff(before, after)).toEqual([]);
+  });
+});
+
+describe("derived duration", () => {
+  const withDuration = (duration: number, extendToFit = true): ProjectState => ({
+    ...before,
+    compositions: { x: { ...before.compositions.x!, duration, extendToFit } },
+  });
+
+  it("is not a change while Extend to fit is on", () => {
+    expect(paths(withDuration(99))).toEqual([]);
+  });
+
+  it("is a change on a fixed length", () => {
+    const fixed = {
+      ...before,
+      compositions: { x: { ...before.compositions.x!, extendToFit: false } },
+    };
+    expect(
+      projectPolicy.diff(fixed, {
+        ...fixed,
+        compositions: { x: { ...fixed.compositions.x!, duration: 99 } },
+      }),
+    ).toEqual([{ path: ["compositions", "x", "duration"], before: 30, after: 99 }]);
   });
 });
 
@@ -85,15 +120,39 @@ describe("project repair", () => {
     state.clips.c2!.trackId = "t2";
     state.clips.c3 = clip("c3", 5, { trackId: "t2" });
     state.tracks.t3 = track("t3", []);
-    state.trackOrder = ["t1", "gone", "t2"];
+    state.compositions.x!.trackOrder = ["t1", "gone", "t2"];
     projectPolicy.repair(state);
     expect(state.tracks.t1!.clipIds).toEqual(["c1"]);
     expect(state.tracks.t2!.clipIds).toEqual(["c3", "c2"]);
-    expect(state.trackOrder).toEqual(["t1", "t2", "t3"]);
+    expect(state.compositions.x!.trackOrder).toEqual(["t1", "t2", "t3"]);
   });
 });
 
 describe("project validate", () => {
+  it("refuses a track without its composition", () => {
+    const state = structuredClone(before);
+    state.tracks.t2!.compositionId = "gone";
+    expect(projectPolicy.validate(state)).toMatch(/composition/);
+  });
+
+  it("refuses a clip that plays a missing composition", () => {
+    const state = structuredClone(before);
+    state.clips.c1!.compositionRef = "gone";
+    expect(projectPolicy.validate(state)).toMatch(/composition/);
+  });
+
+  it("refuses a composition inside itself", () => {
+    const state = structuredClone(before);
+    state.clips.c1!.compositionRef = "x";
+    expect(projectPolicy.validate(state)).toMatch(/inside itself/);
+  });
+
+  it("refuses a project without Main", () => {
+    const state = structuredClone(before);
+    state.mainCompositionId = null;
+    expect(projectPolicy.validate(state)).toMatch(/main/i);
+  });
+
   const withClip = (c: Clip): ProjectState => ({ ...before, clips: { ...before.clips, c3: c } });
   const junction = (id: string, leftClipId: string, rightClipId: string, duration = 0) => ({
     id,

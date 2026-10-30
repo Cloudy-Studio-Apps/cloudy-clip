@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand, type CommandContext } from "@/core";
-import { projectRef, type Clip, type ProjectState } from "@/modules/project";
+import { projectRef, type Clip, type ProjectState, formatOf } from "@/modules/project";
 import { elementRef } from "./element.ref";
 import { checkGroupsApply, checkResetPaths, parsePatch } from "./element.guards";
 import type { GroupWrites } from "./element.types";
@@ -87,8 +87,8 @@ export const setProps = defineCommand({
     );
     const next = clips.map((clip) => ({
       id: clip.id,
-      props: applyPropsPatch(ctx, element, clip, patch, state.format),
-      groups: applyGroupPatch(element, clip, patch, state.format),
+      props: applyPropsPatch(ctx, element, clip, patch, formatOf(state, clip)),
+      groups: applyGroupPatch(element, clip, patch, formatOf(state, clip)),
     }));
     write(ctx, state, next);
     const after = store.getState();
@@ -110,11 +110,12 @@ export const resetProps = defineCommand({
     const { clips, element } = target(ctx, state, input.clipIds);
     if (input.paths) checkResetPaths(element, input.paths);
     const next = clips.map((clip) => {
-      const reset = resetPaths(element, clip, input.paths, state.format);
+      const format = formatOf(state, clip);
+      const reset = resetPaths(element, clip, input.paths, format);
       return {
         id: clip.id,
         ...reset,
-        props: finishProps(ctx, element, reset.props, {}, state.format),
+        props: finishProps(ctx, element, reset.props, {}, format),
       };
     });
     write(ctx, state, next);

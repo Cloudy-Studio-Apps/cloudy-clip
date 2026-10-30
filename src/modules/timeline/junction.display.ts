@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { junctionRef } from "@/modules/junction";
-import { projectRef, type ProjectState, type TrackId } from "@/modules/project";
+import { projectRef, type ProjectState, type TrackId, formatOfTrack } from "@/modules/project";
 import type { JunctionChipInfo } from "./timeline.types";
 
 /**
@@ -18,7 +18,7 @@ export function useTrackChips(trackId: TrackId): JunctionChipInfo[] {
       .filter((j) => j.trackId === trackId)
       .map((j) => {
         const left = s.clips[j.leftClipId];
-        const shown = junctions.display(j, s.format);
+        const shown = junctions.display(j, formatOfTrack(s, j.trackId));
         return `${j.id}|${left ? left.start + left.duration : 0}|${j.duration}|${shown.label}|${shown.missing}`;
       })
       .join("\n"),
@@ -32,7 +32,7 @@ export function useTrackChips(trackId: TrackId): JunctionChipInfo[] {
         const left = state.clips[junction.leftClipId];
         if (!left) return [];
         const leftEnd = left.start + left.duration;
-        const shown = junctions.display(junction, state.format);
+        const shown = junctions.display(junction, formatOfTrack(state, junction.trackId));
         return [
           {
             junction,

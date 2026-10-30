@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand, type CommandContext } from "@/core";
 import { cutAfter, cutNear, addJunction, setJunction, type Cut } from "@/modules/junction";
-import { junctionBetween, projectRef, type Junction, type ProjectState } from "@/modules/project";
+import {
+  junctionBetween,
+  projectRef,
+  type Junction,
+  type ProjectState,
+  formatOfTrack,
+  frameDuration,
+} from "@/modules/project";
 import { transitionRef } from "./transition.ref";
 
 const micros = z.number().int().min(0).describe("Microseconds");
@@ -27,7 +34,12 @@ function findCut(state: ProjectState, input: z.output<typeof applyInput>): Cut {
       if (cut?.left.id === left.id && cut.right.id === right.id) return cut;
     }
   } else if (input.trackId !== undefined && input.at !== undefined) {
-    const cut = cutNear(state, input.trackId, input.at, Math.ceil(1_000_000 / state.format.fps));
+    const cut = cutNear(
+      state,
+      input.trackId,
+      input.at,
+      frameDuration(formatOfTrack(state, input.trackId)),
+    );
     if (cut) return cut;
   } else {
     throw new CommandFailure(

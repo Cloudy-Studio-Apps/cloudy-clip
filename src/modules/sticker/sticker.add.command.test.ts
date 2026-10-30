@@ -6,7 +6,7 @@ import { inspectorModule } from "@/modules/inspector";
 import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
-import { createEmptyProject, createProjectModule, projectRef } from "@/modules/project";
+import { seedProject, createProjectModule, projectRef } from "@/modules/project";
 import { timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
 import { addSticker } from "./sticker.add.command";
@@ -79,7 +79,7 @@ function readyOf(art: StickerArtCache, pack: string, sticker: string): boolean {
 beforeEach(async () => {
   kernel = await createKernel();
   await kernel.modules.loadAll([
-    createProjectModule(createEmptyProject()),
+    createProjectModule(seedProject()),
     elementModule,
     junctionModule,
     createFakeMediaModule({}),

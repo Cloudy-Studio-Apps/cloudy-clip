@@ -1,7 +1,6 @@
 import { useEffect, type RefObject } from "react";
-import { useStore } from "zustand";
 import { useModule } from "@/core";
-import { projectRef } from "@/modules/project";
+import { useOpenFormat } from "@/modules/project";
 import { previewRef } from "../preview.ref";
 
 /** Space kept around the frame when it fits the stage, in px. */
@@ -18,7 +17,7 @@ export function useStageLayout(
   canvasRef: RefObject<HTMLCanvasElement | null>,
 ): void {
   const preview = useModule(previewRef);
-  const format = useStore(useModule(projectRef).store.api, (s) => s.format);
+  const format = useOpenFormat();
 
   useEffect(() => {
     const stage = stageRef.current;

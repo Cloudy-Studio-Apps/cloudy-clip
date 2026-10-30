@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useModule } from "@/core";
+import { LOCAL_ACTOR, useModule } from "@/core";
 import { fontsRef } from "@/modules/fonts";
 import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
@@ -22,7 +22,7 @@ const keyOf = (layers: readonly VisibleLayer[]) =>
  * list itself changes (at cuts, or a panel's live transform), never per frame of playback.
  */
 export function useVisibleLayers(): VisibleLayer[] {
-  const project = useModule(projectRef).store;
+  const { store: project, view } = useModule(projectRef);
   const media = useModule(mediaRef);
   const fonts = useModule(fontsRef);
   const elements = useModule(elementRef);
@@ -40,14 +40,20 @@ export function useVisibleLayers(): VisibleLayer[] {
     const measure = canvasTextMeasure(document.createElement("canvas").getContext("2d"));
     let lastKey: string | null = null;
     const update = () => {
-      const next = visibleLayers(
-        project.getState(),
-        elements,
-        sizeOf,
-        playback.getTime(),
-        measure,
-        propsOverride,
-      );
+      const state = project.getState();
+      const open = view.openFor(LOCAL_ACTOR);
+      const composition = open === null ? undefined : state.compositions[open];
+      const next = composition
+        ? visibleLayers(
+            state,
+            composition,
+            elements,
+            sizeOf,
+            playback.getTime(),
+            measure,
+            propsOverride,
+          )
+        : [];
       const key = keyOf(next);
       if (key === lastKey) return;
       lastKey = key;
@@ -55,6 +61,7 @@ export function useVisibleLayers(): VisibleLayer[] {
     };
     const offTime = playback.onTime(update);
     const offProject = project.subscribe(update);
+    const offView = view.store.subscribe(update);
     const offOverride = onPropsOverride(update);
     const offProbes = media.probes.subscribe(update);
     // A font that arrives changes the text's size: measure again so the box matches the picture.
@@ -62,11 +69,12 @@ export function useVisibleLayers(): VisibleLayer[] {
     return () => {
       offTime();
       offProject();
+      offView();
       offProbes();
       offOverride();
       offFonts();
     };
-  }, [elements, fonts, media, playback, project, propsOverride, onPropsOverride]);
+  }, [elements, fonts, media, playback, project, view, propsOverride, onPropsOverride]);
 
   return layers;
 }

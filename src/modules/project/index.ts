@@ -1,18 +1,26 @@
 /**
- * Project module: the document (format, media, tracks, clips) and its selectors.
+ * Project module: the document (compositions, media, tracks, clips) and its selectors.
  * Other modules read it here and change it through their own commands.
  * @module project
  */
 export { setFormat } from "./project.commands";
-export { FORMAT_PRESETS, createEmptyProject } from "./project.store";
+export { DEFAULT_FORMAT, FORMAT_PRESETS, createEmptyProject } from "./project.store";
 export {
   clipEnd,
+  compositionClips,
+  compositionContent,
+  compositionOf,
+  formatOf,
+  formatOfTrack,
   formatPreset,
+  frameDuration,
   isMediaInUse,
   orderedTracks,
-  projectDuration,
+  placementsOf,
   trackClips,
 } from "./project.selectors";
+export { contains } from "./logic/compositions";
+export { useOpenComposition, useOpenFormat } from "./project.view.hook";
 export {
   IDENTITY_TRANSFORM,
   clipPlacement,
@@ -26,6 +34,7 @@ export {
   findLayoutConflict,
   junctionBetween,
   junctionsOfClip,
+  orderedJunctions,
   rippleMoves,
   staleJunctions,
 } from "./logic/junctions";
@@ -39,6 +48,10 @@ export type {
   ClipId,
   ClipPlacement,
   ClipTransform,
+  Composition,
+  CompositionId,
+  CompositionView,
+  CompositionViewState,
   PictureSize,
   FormatPreset,
   MediaAsset,
@@ -52,6 +65,9 @@ export type {
   TrackId,
   TrackKind,
 } from "./project.types";
+
+export { seedProject } from "./project.testing";
+export type { ProjectSeed } from "./project.testing";
 
 /** Module definition, loaded by the app shell. */
 export { createProjectModule, projectModule } from "./project.module";

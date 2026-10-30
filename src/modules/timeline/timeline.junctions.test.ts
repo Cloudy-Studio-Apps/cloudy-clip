@@ -7,7 +7,7 @@ import { addJunction, defineJunctionKind, junctionKinds, junctionModule } from "
 import { createFakeMediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import {
-  createEmptyProject,
+  seedProject,
   createProjectModule,
   projectRef,
   staleJunctions,
@@ -57,7 +57,7 @@ const kindsModule = defineModule({
 let kernel: Kernel;
 let trackV: string;
 const doc = () => kernel.modules.require(projectRef).store.getState();
-const frame = () => Math.ceil(S / doc().format.fps);
+const frame = () => Math.ceil(S / doc().compositions.c1!.format.fps);
 
 const clip = (
   id: string,
@@ -78,9 +78,9 @@ const clip = (
 
 /** V1: A [0,4) B [4,8) C [8,10); sounds sA sB sC linked on A1. */
 function project(): ProjectState {
-  const s = createEmptyProject();
-  trackV = s.trackOrder[0]!;
-  const trackA = s.trackOrder[1]!;
+  const s = seedProject();
+  trackV = s.compositions.c1!.trackOrder[0]!;
+  const trackA = s.compositions.c1!.trackOrder[1]!;
   const rows: [string, number, number][] = [
     ["A", 0, 4],
     ["B", 4, 4],
@@ -281,8 +281,8 @@ describe("trimming joined clips", () => {
 
   it("extending a joined edge into an unlinked clip is refused", async () => {
     await joined((s) => {
-      s.clips.X = clip("X", s.trackOrder[1]!, 12 * S, S);
-      s.tracks[s.trackOrder[1]!]!.clipIds.push("X");
+      s.clips.X = clip("X", s.compositions.c1!.trackOrder[1]!, 12 * S, S);
+      s.tracks[s.compositions.c1!.trackOrder[1]!]!.clipIds.push("X");
     });
     const before = doc();
     const result = await kernel.bus.run(trimClip, { clipId: "A", edge: "end", time: 7 * S });
@@ -328,7 +328,7 @@ describe("splitting and deleting joined clips", () => {
   it("splitting everything under the playhead skips clips in an overlap", async () => {
     await joined((s) => {
       s.tracks.V2 = { ...s.tracks[trackV]!, id: "V2", name: "V2", clipIds: ["X"] };
-      s.trackOrder.unshift("V2");
+      s.compositions.c1!.trackOrder.unshift("V2");
       s.clips.X = clip("X", "V2", 0, 10 * S);
     });
     const { created } = await run(kernel.bus.run(splitAt, { at: 3.75 * S }));
@@ -362,7 +362,7 @@ describe("removing tracks with joined clips", () => {
     const j = await joined((s) => {
       for (const c of Object.values(s.clips)) delete c.linkId;
       for (const id of ["sA", "sB", "sC"]) delete s.clips[id];
-      s.tracks[s.trackOrder[1]!]!.clipIds = [];
+      s.tracks[s.compositions.c1!.trackOrder[1]!]!.clipIds = [];
     });
     const result = await run(kernel.bus.run(removeTrack, { trackId: trackV }));
     expect(result.removedJunctions).toEqual([j.id]);
@@ -373,7 +373,7 @@ describe("removing tracks with joined clips", () => {
 
   it("removes the audio track and keeps the junction of the pictures", async () => {
     const j = await joined();
-    const audio = doc().trackOrder[1]!;
+    const audio = doc().compositions.c1!.trackOrder[1]!;
     const result = await run(kernel.bus.run(removeTrack, { trackId: audio }));
     expect(result.removedJunctions).toEqual([]);
     expect(Object.keys(doc().junctions)).toEqual([j.id]);
