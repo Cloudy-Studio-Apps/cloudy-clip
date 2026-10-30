@@ -44,6 +44,12 @@ export interface StorePolicy<T extends object> {
   diff(before: T, after: T): FieldChange[];
   /** Rebuilds what is derived from the fields (ordering arrays). */
   repair(draft: Draft<T>): void;
+  /**
+   * Keeps consequences true that no command should have to know about: runs inside every change,
+   * so what it writes is part of the step and undone with it. It can't fail, and reads nothing
+   * outside the state.
+   */
+  settle?(draft: Draft<T>): void;
   /** Why the state is invalid, or null. */
   validate(state: T): string | null;
 }

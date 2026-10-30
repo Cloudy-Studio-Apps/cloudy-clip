@@ -34,7 +34,10 @@ export function createPatchableStore<T extends object>(
     hasPolicy: policy !== undefined,
     produce(recipe) {
       const previous = api.getState();
-      const [next, patches, inversePatches] = produceWithPatches(previous, recipe);
+      const [next, patches, inversePatches] = produceWithPatches(previous, (draft) => {
+        recipe(draft);
+        policy?.settle?.(draft);
+      });
       if (patches.length === 0) return null;
       api.setState(next, true);
       return {
@@ -49,6 +52,7 @@ export function createPatchableStore<T extends object>(
       const next = produce(api.getState(), (draft: Draft<T>) => {
         for (const { path, value } of writes) writePath(draft, path, value);
         policy.repair(draft);
+        policy.settle?.(draft);
       });
       const problem = policy.validate(next);
       if (problem === null) api.setState(next, true);
