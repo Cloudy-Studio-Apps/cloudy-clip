@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
-import { MICROS_PER_SECOND, useKernel, useModule, type Micros } from "@/core";
+import {
+  ErrorBoundary,
+  MICROS_PER_SECOND,
+  useKernel,
+  useModule,
+  usePoint,
+  type Micros,
+} from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { projectDuration, type Clip, projectRef } from "@/modules/project";
+import { timelineOverlays } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { addClip } from "../timeline.commands";
@@ -31,6 +39,7 @@ export function TimelinePanel() {
   const clipsById = useStore(project.api, (s) => s.clips);
   const duration = useStore(project.api, projectDuration);
   const [view, setView] = useState({ page: 0, pageWidth: 1200 });
+  const overlays = usePoint(timelineOverlays);
 
   // Track which page is visible; only page changes cause a render.
   const measure = useCallback(() => {
@@ -53,12 +62,14 @@ export function TimelinePanel() {
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
     measure();
+    const detach = timeline.attachScroller(scroller);
     return () => {
+      detach();
       cancelAnimationFrame(frame);
       scroller.removeEventListener("scroll", onScroll);
       observer.disconnect();
     };
-  }, [measure]);
+  }, [measure, timeline]);
 
   useEffect(measure, [pxPerSecond, measure]);
 
@@ -153,6 +164,11 @@ export function TimelinePanel() {
             </p>
           )}
           <Playhead scrollRef={scrollRef} />
+          {overlays.map(({ id, component: Overlay }) => (
+            <ErrorBoundary key={id} name={id}>
+              <Overlay />
+            </ErrorBoundary>
+          ))}
         </div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import type { Micros } from "@/core";
+import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { Cut, JunctionKindDefinition } from "@/modules/junction";
 import type { LucideIcon } from "lucide-react";
@@ -55,6 +56,24 @@ export interface LaneBox {
   bottom: number;
 }
 
+/** A box on screen, in pixels from the window's top left. */
+export interface ScreenBox {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * Something drawn over the lanes, such as a collaborator's playhead. It sits in the scrolling
+ * content, outside the virtualized pages: `left` is `HEADER_WIDTH + timeToPx(time)`.
+ */
+export interface TimelineOverlay {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  component: ComponentType;
+}
+
 /** The timeline module's API for one kernel: its view state (zoom, selection). */
 export interface TimelineApi {
   /** Zoom and selection. Read with `useStore(api.view, selector)`. */
@@ -80,6 +99,16 @@ export interface TimelineApi {
    * changes, not on every pointer move.
    */
   previewCut(preview: CutPreview | null): void;
+  /** The clip's box on screen, or null when no lane shows it. It may be outside the panel. */
+  clipBox(id: ClipId): ScreenBox | null;
+  /** The visible timeline on screen, or null when it isn't shown. */
+  panelBox(): ScreenBox | null;
+  /** Calls `listener` when the timeline scrolls. Returns the unsubscribe. */
+  onScroll(listener: () => void): () => void;
+  /** Brings a time into view. */
+  scrollToTime(time: Micros): void;
+  /** Registers the scrolling element. For the timeline panel. Returns the detach. */
+  attachScroller(element: HTMLElement): () => void;
 }
 
 /** A junction chip as the lane draws it. */

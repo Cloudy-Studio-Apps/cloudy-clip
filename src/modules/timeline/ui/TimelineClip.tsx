@@ -60,6 +60,7 @@ export const TimelineClip = memo(function TimelineClip({
     <div
       ref={ref}
       data-clip-id={clip.id}
+      data-collab-target={`clip:${clip.id}`}
       className={cn(
         "group absolute bottom-[3px] top-[3px] overflow-hidden rounded-xs border text-white select-none data-[invalid=true]:!border-destructive data-[invalid=true]:!bg-destructive",
         selected ? "border-white shadow-[inset_0_0_0_1px_white]" : "border-black/30",

@@ -2,6 +2,7 @@ import { createStore } from "zustand/vanilla";
 import type { ClipId, ProjectState } from "@/modules/project";
 import { cutAtX } from "./logic/cut";
 import { laneDropTarget } from "./logic/drop";
+import { timeToPx } from "./logic/geometry";
 import { CUT_SNAP_PX } from "./timeline.layout";
 import type { LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
 
@@ -23,8 +24,46 @@ export function createTimelineView(
     junctionSelection: [],
     cutPreview: null,
   }));
+  let scroller: HTMLElement | null = null;
+  const scrollListeners = new Set<() => void>();
   return {
     view,
+    clipBox(id) {
+      const clip = project?.().clips[id];
+      const lane = clip && lanes().find((l) => l.trackId === clip.trackId);
+      if (!clip || !lane) return null;
+      const { pxPerSecond } = view.getState();
+      return {
+        left: lane.left + timeToPx(clip.start, pxPerSecond),
+        right: lane.left + timeToPx(clip.start + clip.duration, pxPerSecond),
+        top: lane.top,
+        bottom: lane.bottom,
+      };
+    },
+    panelBox() {
+      const box = scroller?.getBoundingClientRect();
+      return box ? { left: box.left, top: box.top, right: box.right, bottom: box.bottom } : null;
+    },
+    onScroll(listener) {
+      scrollListeners.add(listener);
+      return () => scrollListeners.delete(listener);
+    },
+    scrollToTime(time) {
+      if (!scroller) return;
+      const x = timeToPx(time, view.getState().pxPerSecond);
+      if (x < scroller.scrollLeft || x > scroller.scrollLeft + scroller.clientWidth - 200) {
+        scroller.scrollLeft = Math.max(0, x - 40);
+      }
+    },
+    attachScroller(element) {
+      scroller = element;
+      const notify = () => scrollListeners.forEach((listener) => listener());
+      element.addEventListener("scroll", notify, { passive: true });
+      return () => {
+        element.removeEventListener("scroll", notify);
+        if (scroller === element) scroller = null;
+      };
+    },
     setZoom(pxPerSecond) {
       const clamped = Math.min(MAX_PX_PER_SECOND, Math.max(MIN_PX_PER_SECOND, pxPerSecond));
       view.setState({ pxPerSecond: clamped });

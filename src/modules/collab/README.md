@@ -13,7 +13,7 @@ Connected agents as collaborators, shaped so people can join later (`Collaborato
   - `collab.presence.ts`: tells an agent when the user undid its step (sent with its next reply), and retires agents every 5 s: idle after 2 min, gone after 15 min, when their steps pass to the user and their playhead is dropped.
   - `collab.notes.ts`: messages owed to agents.
   - `logic/identify.ts`, `logic/activity.ts`, `logic/prune.ts`: name and color of a client; a sentence for a tool; who has been quiet too long.
-  - `ui/`: `CollabAvatars` (top bar, right; opens `CollabPanel`), `AgentStatusStrip` (top bar, center, while an agent works), `AgentControls`, `CollabAvatar`, `ClaudeMark`, `collab.status.ts`.
+  - `ui/`: `AgentPlayheads` (timeline overlay: a dashed line per agent, and an outline on the clip it is on, by a CSS rule on `data-collab-target`, so it holds for clips the timeline hasn't rendered yet), `CollabAvatars` (top bar, right; opens `CollabPanel`), `AgentStatusStrip` (top bar, center, while an agent works), `AgentControls`, `CollabAvatar`, `ClaudeMark`, `collab.status.ts`.
 - **Rules:**
   - Stop and Pause can't interrupt: the running call finishes, later ones are refused.
   - Disconnect refuses calls until the user reconnects or the app restarts. `blocked` is apart from `collaborators` so it outlives them. It doesn't close the MCP session.
