@@ -1,5 +1,11 @@
 import type { Micros } from "@/core";
-import { formatOf, type Clip, type MediaId, type ProjectState } from "@/modules/project";
+import {
+  followsFileTime,
+  formatOf,
+  type Clip,
+  type MediaId,
+  type ProjectState,
+} from "@/modules/project";
 import type { TrimEdge, TrimLimits } from "../timeline.types";
 import { clampTrim, minClipDuration, neighbourBounds } from "./placement";
 
@@ -16,9 +22,9 @@ export function trimLimits(
   durationOf: MediaDurationOf,
   edge?: TrimEdge,
 ): TrimLimits {
-  // Elements without a source (text) have no length of their own.
+  // Text and images have no length of their own.
   const placed = clip.compositionRef && state.compositions[clip.compositionRef];
-  const sourceless = clip.mediaId === undefined && !placed;
+  const sourceless = !followsFileTime(state, clip);
   return {
     mediaDuration:
       (placed ? placed.duration : clip.mediaId ? durationOf(clip.mediaId) : undefined) ??

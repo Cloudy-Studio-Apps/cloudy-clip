@@ -75,6 +75,16 @@ export function orderedTracks(state: ProjectState, compositionId: CompositionId)
   return tracks;
 }
 
+/**
+ * Whether a clip plays its file's time, so its length is bounded by it and `sourceIn` moves when
+ * trimmed or split. Images and elements without a file have no time of their own.
+ */
+export function followsFileTime(state: Pick<ProjectState, "media">, clip: Clip): boolean {
+  if (clip.compositionRef !== undefined) return true;
+  if (clip.mediaId === undefined) return false;
+  return state.media[clip.mediaId]?.kind !== "image";
+}
+
 /** Whether any clip uses the media. */
 export function isMediaInUse(state: ProjectState, mediaId: string): boolean {
   return Object.values(state.clips).some((clip) => clip.mediaId === mediaId);

@@ -20,11 +20,15 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
   const display = element?.display(clip, { project: project.getState(), track });
   // Elements without a source file (text) have no source offset and no file.
   const sourceless = clip.mediaId === undefined;
+  // An image has a file but no time of its own.
+  const image = media?.kind === "image";
   const kindName =
     element?.source === "media"
-      ? track.kind === "video"
-        ? "Video"
-        : "Audio"
+      ? image
+        ? "Image"
+        : track.kind === "video"
+          ? "Video"
+          : "Audio"
       : (element?.name ?? clip.kind);
   const KindIcon = display?.icon;
 
@@ -45,7 +49,9 @@ export function ClipView({ clipId }: { clipId: ClipId }) {
               { label: "Start", value: formatTimecode(clip.start) },
               { label: "End", value: formatTimecode(clip.start + clip.duration) },
               { label: "Duration", value: formatTimecode(clip.duration) },
-              ...(sourceless ? [] : [{ label: "Source in", value: formatTimecode(clip.sourceIn) }]),
+              ...(sourceless || image
+                ? []
+                : [{ label: "Source in", value: formatTimecode(clip.sourceIn) }]),
             ]}
           />
         </InspectorSection>

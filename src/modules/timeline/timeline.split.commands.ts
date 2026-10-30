@@ -1,7 +1,14 @@
 import { produce } from "immer";
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, formatTimecode } from "@/core";
-import { type Clip, projectRef, withPartners, compositionClips, formatOf } from "@/modules/project";
+import {
+  type Clip,
+  compositionClips,
+  followsFileTime,
+  formatOf,
+  projectRef,
+  withPartners,
+} from "@/modules/project";
 import { minClipDuration, sortClipIds } from "./logic/placement";
 import { checkLayout, requireClip, time } from "./timeline.guards";
 import {
@@ -75,17 +82,14 @@ export const splitAt = defineCommand({
           ...(left.transform && { transform: { ...left.transform } }),
           ...(linkId && { linkId }),
         };
-        // Text has no source file, so its `sourceIn` stays 0.
+        // Text and images have no time of their own, so their `sourceIn` stays 0.
         const right: Clip = {
           ...base,
           kind: left.kind,
           props: structuredClone(target.props),
           ...(left.mediaId !== undefined && { mediaId: left.mediaId }),
           ...(left.compositionRef !== undefined && { compositionRef: left.compositionRef }),
-          sourceIn:
-            left.mediaId === undefined && left.compositionRef === undefined
-              ? 0
-              : left.sourceIn + offset,
+          sourceIn: followsFileTime(draft, left) ? left.sourceIn + offset : 0,
         };
         left.duration = offset;
         draft.clips[right.id] = right;

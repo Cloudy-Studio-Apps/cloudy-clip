@@ -24,7 +24,8 @@ lives here, so every change is undoable and readable by agents.
   - `logic/fields.ts`: `projectPolicy`, the store's `StorePolicy`: what lets a step be undone past others' newer steps. `diff` lists changes by field (one level into plain objects; a created or deleted entity is one change), `repair` rebuilds `clipIds`, each `trackOrder`, `compositionOrder` and `mediaOrder`, and `validate` refuses a missing Main, tracks without a composition, a composition inside itself, missing tracks or media, overlaps, stale junctions and two junctions on a cut.
   - `project.selectors.ts`: `orderedTracks(state, compositionId)`, `trackClips`, `clipEnd`,
     `compositionOf`, `compositionClips`, `compositionContent`, `placementsOf`, `formatOf(state, clip)`,
-    `formatOfTrack`, `frameDuration`, `isMediaInUse`.
+    `formatOfTrack`, `frameDuration`, `isMediaInUse`, `followsFileTime(state, clip)` (false for text and
+    images, which have no time of their own).
   - `project.geometry.ts`: `clipPlacement(format, sourceSize, transform)`, the one place a clip's
     transform becomes a rectangle in the frame (the preview engine and the canvas tools both use it);
     `clipTransform(clip, live?)` (the saved transform or the identity, with a live patch merged

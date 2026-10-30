@@ -41,7 +41,7 @@ export function visibleLayers(
       const live = liveProps(clipId);
       const transform = clipTransform(clip, live?.transform as Partial<ClipTransform> | undefined);
       if (picture.source === "media") {
-        if (!clip.mediaId || state.media[clip.mediaId]?.kind !== "video") continue;
+        if (!clip.mediaId || state.media[clip.mediaId]?.kind === "audio") continue;
         const source = sizeOf(clip.mediaId);
         if (source) layers.push({ clipId, source, fit: picture.fit, transform, fields });
         continue;

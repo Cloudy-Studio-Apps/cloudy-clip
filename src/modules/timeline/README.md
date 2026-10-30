@@ -51,8 +51,9 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     A chip of an unregistered kind shows muted. `TrackLane` draws only the chips in the rendered
     pages. `logic/cut.ts`: `cutAtX`.
 - **Rules:** video tracks hold pictures (and text clips) only, audio tracks hold sound. Every
-  command works on any clip kind; a clip without a file (`mediaId`; text) trims to any length
-  (`TrimLimits.sourceless`) and keeps `sourceIn` at 0 when split. Splitting copies `props` to
+  command works on any clip kind; a clip without a time of its own (`followsFileTime`: text, images) trims to any
+  length (`TrimLimits.sourceless`) and keeps `sourceIn` at 0 when split. An image goes on video
+  tracks only and lands at the length its probe reports. Splitting copies `props` to
   each half. A clip shows its element's `display`: label, color (`var(--<token>)`) and body
   (filmstrip, waveform or none), worked out once per project change (one selector). Adding a video file creates
   its picture and, if ffprobe found sound (`mediaHasAudio`), a linked sound clip (`Clip.linkId`) on

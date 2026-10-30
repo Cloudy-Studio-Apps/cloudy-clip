@@ -66,9 +66,9 @@ export const TrackLane = memo(function TrackLane({
         snapCandidates(state, track.compositionId, playback.getTime()),
         threshold,
       );
-      // An audio file needs an audio lane; a video takes any lane (on an audio lane, its sound
-      // lands there and its picture on a video track).
-      const fits = media?.kind !== "audio" || track.kind === "audio";
+      // An audio file needs an audio lane and an image a video lane; a video takes any lane (on an
+      // audio lane, its sound lands there and its picture on a video track).
+      const fits = !media || media.kind === "video" || media.kind === track.kind;
       timeline.drop({ item, start, ...(fits && { trackId: track.id }) });
     };
     lane.addEventListener(MEDIA_DROP, onDrop);

@@ -65,11 +65,11 @@ export const createFromMedia = defineCommand({
     for (const id of mediaIds) {
       const file = files[id];
       if (!file) throw new CommandFailure("media.not_found", `No media with id "${id}"`);
-      if (file.kind === "video" && !media.pictureMeta(id)) {
+      if (file.kind !== "audio" && !media.pictureMeta(id)) {
         throw new CommandFailure("media.not_ready", `${file.name} is still being read.`);
       }
     }
-    const first = mediaIds.find((id) => files[id]!.kind === "video");
+    const first = mediaIds.find((id) => files[id]!.kind !== "audio");
     if (first === undefined) {
       throw new CommandFailure(
         "composition.no_picture",

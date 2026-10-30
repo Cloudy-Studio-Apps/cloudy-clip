@@ -32,7 +32,7 @@ export const addClip = defineCommand({
   id: "timeline.addClip",
   label: "Add clip",
   description:
-    "Places imported media on the timeline of your open composition, or of the track you name. A video file becomes a picture clip on a video track plus, if it has sound, a linked sound clip on an audio track (linked clips move, trim, split and delete together until unlinked). Optional: trackId (a track of either kind; for an audio file it must be an audio track), audioTrackId (where a video's sound goes), start (defaults to the end of the first track of the main kind), sourceIn and duration to use only part of the file. Fails if a named track is busy at that spot. Returns { clips } (picture first).",
+    "Places imported media on the timeline of your open composition, or of the track you name. A video file becomes a picture clip on a video track plus, if it has sound, a linked sound clip on an audio track (linked clips move, trim, split and delete together until unlinked). An image makes one picture clip, 5 s long unless you pass duration (an animated image: one loop), and stretches to any length (an animated image loops). Optional: trackId (a track of either kind; for an audio file it must be an audio track, for an image a video track), audioTrackId (where a video's sound goes), start (defaults to the end of the first track of the main kind), sourceIn and duration to use only part of the file (an image takes no sourceIn). Fails if a named track is busy at that spot. Returns { clips } (picture first).",
   undoable: true,
   input: z.object({
     mediaId: z.string(),
@@ -51,7 +51,7 @@ export const addClip = defineCommand({
     const kinds: TrackKind[] =
       media.kind === "audio"
         ? ["audio"]
-        : mediaHasAudio(mediaApi.getProbe(media.id))
+        : media.kind === "video" && mediaHasAudio(mediaApi.getProbe(media.id))
           ? ["video", "audio"]
           : ["video"];
 
@@ -63,6 +63,12 @@ export const addClip = defineCommand({
         throw new CommandFailure(
           "timeline.kind_mismatch",
           `"${media.name}" is audio; it cannot go on the ${track.kind} track "${track.name}".`,
+        );
+      }
+      if (media.kind === "image" && track.kind !== "video") {
+        throw new CommandFailure(
+          "timeline.kind_mismatch",
+          `"${media.name}" is an image; it cannot go on the ${track.kind} track "${track.name}".`,
         );
       }
       named[track.kind] = track.id;
@@ -83,10 +89,14 @@ export const addClip = defineCommand({
     }
 
     const sourceIn = input.sourceIn ?? 0;
-    if (sourceIn >= total) {
+    if (sourceIn >= total || (media.kind === "image" && sourceIn > 0)) {
       throw new CommandFailure("timeline.out_of_range", "sourceIn is past the end of the media");
     }
-    const duration = Math.min(input.duration ?? total - sourceIn, total - sourceIn);
+    // An image has no time to run out of: `total` is only the length it lands at.
+    const duration =
+      media.kind === "image"
+        ? (input.duration ?? total)
+        : Math.min(input.duration ?? total - sourceIn, total - sourceIn);
     if (duration < minClipDuration(composition.format)) {
       throw new CommandFailure("timeline.too_short", "The clip would be shorter than one frame");
     }

@@ -11,6 +11,7 @@ export {
   compositionOf,
   formatOf,
   formatOfTrack,
+  followsFileTime,
   frameDuration,
   isMediaInUse,
   orderedTracks,

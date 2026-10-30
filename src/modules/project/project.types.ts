@@ -6,8 +6,8 @@ export type TrackId = string;
 export type ClipId = string;
 export type CompositionId = string;
 
-/** What a file contains. Decided from its extension at import. */
-export type MediaKind = "video" | "audio";
+/** What a file contains. Decided from its extension at import. Whether an image moves is read later, from the file. */
+export type MediaKind = "video" | "audio" | "image";
 
 /** A file the user imported. The file itself stays where it is; only its path is kept. */
 export interface MediaAsset {

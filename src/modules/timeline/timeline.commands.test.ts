@@ -58,7 +58,8 @@ beforeEach(async () => {
   const project = seedProject();
   project.media.mv = { id: "mv", name: "a.mp4", path: "/a.mp4", kind: "video", size: 1 };
   project.media.ma = { id: "ma", name: "a.mp3", path: "/a.mp3", kind: "audio", size: 1 };
-  project.mediaOrder = ["mv", "ma"];
+  project.media.mi = { id: "mi", name: "a.png", path: "/a.png", kind: "image", size: 1 };
+  project.mediaOrder = ["mv", "ma", "mi"];
   await kernel.modules.loadAll([
     createProjectModule(project),
     elementModule,
@@ -66,6 +67,7 @@ beforeEach(async () => {
     createFakeMediaModule({
       mv: { status: "ready", duration: 10 * S, width: 1920, height: 1080 },
       ma: { status: "ready", duration: 60 * S },
+      mi: { status: "ready", duration: 5 * S, width: 800, height: 600 },
     }),
     createFakeFontsModule(),
     previewModule,
@@ -425,5 +427,35 @@ describe("linked clips", () => {
       });
       expect(!moved.ok && moved.error.code).toBe("timeline.other_composition");
     });
+  });
+});
+
+describe("image clips", () => {
+  it("land at the file's default length, or the length asked for", async () => {
+    expect((await place({ mediaId: "mi" })).duration).toBe(5 * S);
+    expect((await place({ mediaId: "mi", start: 20 * S, duration: 9 * S })).duration).toBe(9 * S);
+  });
+
+  it("stretch past their default length and keep sourceIn 0", async () => {
+    const { id } = await place({ mediaId: "mi" });
+    await run(kernel.bus.run(trimClip, { clipId: id, edge: "end", time: 12 * S }));
+    expect(doc().clips[id]).toMatchObject({ duration: 12 * S, sourceIn: 0 });
+    await run(kernel.bus.run(trimClip, { clipId: id, edge: "start", time: 3 * S }));
+    expect(doc().clips[id]).toMatchObject({ start: 3 * S, duration: 9 * S, sourceIn: 0 });
+  });
+
+  it("keep sourceIn 0 on both halves of a split", async () => {
+    await place({ mediaId: "mi" });
+    await run(kernel.bus.run(splitAt, { at: 2 * S }));
+    expect(trackClips(doc(), doc().tracks[trackOfKind("video")]!).map((c) => c.sourceIn)).toEqual([
+      0, 0,
+    ]);
+  });
+
+  it("refuse an audio track and a sourceIn", async () => {
+    const onAudio = await kernel.bus.run(addClip, { mediaId: "mi", trackId: trackOfKind("audio") });
+    expect(onAudio).toMatchObject({ ok: false, error: { code: "timeline.kind_mismatch" } });
+    const withSource = await kernel.bus.run(addClip, { mediaId: "mi", sourceIn: S });
+    expect(withSource).toMatchObject({ ok: false, error: { code: "timeline.out_of_range" } });
   });
 });

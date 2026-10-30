@@ -38,7 +38,7 @@ const documentSchema = z.looseObject({
       id: z.string(),
       name: z.string(),
       path: z.string(),
-      kind: z.enum(["video", "audio"]),
+      kind: z.enum(["video", "audio", "image"]),
       size: z.number(),
     }),
   ),
