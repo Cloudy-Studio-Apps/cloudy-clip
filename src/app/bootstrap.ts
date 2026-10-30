@@ -7,6 +7,7 @@ import {
   type Kernel,
   type AnyModuleDefinition,
 } from "@/core";
+import { collabModule } from "@/modules/collab";
 import { elementModule } from "@/modules/element";
 import { fontsModule } from "@/modules/fonts";
 import { inspectorModule } from "@/modules/inspector";
@@ -34,6 +35,7 @@ const MODULES: AnyModuleDefinition[] = [
   transformModule,
   textModule,
   transitionModule,
+  collabModule,
 ];
 
 /**

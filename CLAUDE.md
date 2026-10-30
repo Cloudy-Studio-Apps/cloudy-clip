@@ -118,6 +118,7 @@ src/
     transform/  the transform shared group, move/scale/rotate on the canvas (feature)
     text/       text clips: the Text tab, styling, in-place editing (feature)
     transition/ the transition junction kind, the seven presets, the Transitions tab (feature)
+    collab/     agents as collaborators: presence, access, pointer, Follow (feature)
 src-tauri/      the Rust side: native media server + proxies (media/), installed fonts (fonts/), MCP server (mcp/)
 ```
 
