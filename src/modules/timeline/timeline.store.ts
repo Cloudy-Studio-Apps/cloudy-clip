@@ -1,7 +1,8 @@
 import { createStore } from "zustand/vanilla";
-import type { ClipId, ProjectState, TrackId } from "@/modules/project";
+import type { ClipId, ProjectState } from "@/modules/project";
 import { cutAtX } from "./logic/cut";
 import { laneDropTarget } from "./logic/drop";
+import { CUT_SNAP_PX } from "./timeline.layout";
 import type { LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
 
 export const MIN_PX_PER_SECOND = 2;
@@ -15,12 +16,12 @@ export function createTimelineView(
   partners: (id: ClipId) => ClipId[] = () => [],
   lanes: () => LaneBox[] = () => [],
   project?: () => ProjectState,
-  highlightLane: (trackId: TrackId | null) => void = () => {},
 ): TimelineApi {
   const view = createStore<TimelineViewState>()(() => ({
     pxPerSecond: 60,
     selection: [],
     junctionSelection: [],
+    cutPreview: null,
   }));
   return {
     view,
@@ -35,10 +36,10 @@ export function createTimelineView(
       const lane = lanes().find((l) => clientY >= l.top && clientY < l.bottom);
       if (!lane || !project) return null;
       const x = clientX - lane.left;
-      return cutAtX(project(), lane.trackId, x, view.getState().pxPerSecond, 8) ?? null;
+      return cutAtX(project(), lane.trackId, x, view.getState().pxPerSecond, CUT_SNAP_PX) ?? null;
     },
-    highlightCut(cut) {
-      highlightLane(cut ? cut.trackId : null);
+    previewCut(preview) {
+      view.setState({ cutPreview: preview });
     },
     selectJunction(id) {
       view.setState(

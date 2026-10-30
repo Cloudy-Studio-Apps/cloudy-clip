@@ -1,7 +1,9 @@
 import { useRef } from "react";
 import { useKernel, useModule, notify } from "@/core";
+import { junctionRef } from "@/modules/junction";
 import { projectRef } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
+import { previewOnCut } from "../logic/preview";
 import { applyTransition } from "../transition.apply.command";
 import type { TransitionPresetDefinition } from "../transition.types";
 import { startPresetDrag } from "./preset.gesture";
@@ -16,6 +18,7 @@ export function PresetTile({ preset }: { preset: TransitionPresetDefinition }) {
   const { bus } = useKernel();
   const timeline = useModule(timelineRef);
   const project = useModule(projectRef).store;
+  const junctions = useModule(junctionRef);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const thumbnail = usePresetThumbnail(preset, canvasRef);
 
@@ -45,8 +48,18 @@ export function PresetTile({ preset }: { preset: TransitionPresetDefinition }) {
         if (e.button !== 0) return;
         startPresetDrag(e.nativeEvent, preset.name, {
           onClick: apply,
-          cutAt: (x, y) => timeline.cutTarget(x, y),
-          onHover: (cut) => timeline.highlightCut(cut),
+          cutAt: (x, y) => {
+            const cut = timeline.cutTarget(x, y);
+            const track = cut && project.getState().tracks[cut.trackId];
+            const tracks = junctions.get("transition")?.definition.tracks;
+            return cut && track && tracks?.includes(track.kind) ? cut : null;
+          },
+          onHover: (cut) => {
+            const kind = junctions.get("transition")?.definition;
+            if (!cut || !kind) return timeline.previewCut(null);
+            const landing = previewOnCut(project.getState(), kind, cut);
+            timeline.previewCut({ cut, label: preset.name, icon: kind.icon, ...landing });
+          },
           onDrop: (cut) =>
             void bus.run(applyTransition, {
               preset: preset.id,

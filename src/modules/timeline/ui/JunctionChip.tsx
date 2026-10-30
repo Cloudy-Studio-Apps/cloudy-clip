@@ -4,6 +4,7 @@ import { useKernel, useModule } from "@/core";
 import { junctionRef } from "@/modules/junction";
 import { projectRef } from "@/modules/project";
 import { cn } from "@/ui";
+import { timeToPx } from "../logic/geometry";
 import { timelineRef } from "../timeline.ref";
 import type { JunctionChipInfo } from "../timeline.types";
 import { chipBox, startJunctionDrag } from "./junction.gesture";
@@ -22,6 +23,7 @@ export const JunctionChip = memo(function JunctionChip({ chip, pxPerSecond }: Ju
   const ref = useRef<HTMLDivElement>(null);
   const { junction, icon: Icon } = chip;
   const selected = useStore(timeline.view, (s) => s.junctionSelection.includes(junction.id));
+  const shift = useStore(timeline.view, (s) => s.cutPreview?.shifts[junction.leftClipId] ?? 0);
   const box = chipBox(chip.leftEnd, junction.duration, pxPerSecond);
   const draggable = Boolean(junctions.get(junction.kind)?.definition.overlap);
 
@@ -56,7 +58,7 @@ export const JunctionChip = memo(function JunctionChip({ chip, pxPerSecond }: Ju
         selected ? "border-foreground" : "border-foreground/30",
         chip.missing ? "text-muted-foreground" : "text-foreground",
       )}
-      style={{ left: box.left, width: box.width }}
+      style={{ left: box.left + timeToPx(shift, pxPerSecond), width: box.width }}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         e.stopPropagation();

@@ -6,6 +6,8 @@ export const HEADER_WIDTH = 148;
 export const RULER_HEIGHT = 28;
 /** Pointer distance (px) within which edits snap to edges and the playhead. */
 export const SNAP_PX = 8;
+/** Pointer distance (px) within which something dragged over a lane snaps to a cut. */
+export const CUT_SNAP_PX = 24;
 /** Distance (px) from a clip edge that grabs the trim handle instead of moving the clip. */
 export const TRIM_HANDLE_PX = 6;
 /** Empty time kept after the last clip, so there is room to drop and drag (seconds). */

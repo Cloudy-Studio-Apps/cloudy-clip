@@ -26,6 +26,22 @@ export function ghostCanvas(
   return ctx ? { canvas: s.ghost, ctx } : null;
 }
 
+/** The scratch canvas of one blur `level` owned by `owner`, resized only when the size changes. */
+export function blurCanvas(
+  owner: object,
+  level: number,
+  width: number,
+  height: number,
+): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
+  const s = scratchOf(owner);
+  s.blur ??= [];
+  const canvas = (s.blur[level] ??= document.createElement("canvas"));
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  return ctx ? { canvas, ctx } : null;
+}
+
 /**
  * The dissolve mask as a `cols` x `rows` canvas (one pixel per block, opaque where the block's
  * threshold is below `progress`). Thresholds are cached per owner and seed; pixels are only written.

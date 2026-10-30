@@ -34,6 +34,7 @@ export const TimelineClip = memo(function TimelineClip({
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
+  const shift = useStore(timeline.view, (s) => s.cutPreview?.shifts[clip.id] ?? 0);
   const elements = useModule(elementRef);
   const mediaId = clip.mediaId;
   // One string, so the selector's result is stable (the display reads media names and tracks);
@@ -62,11 +63,13 @@ export const TimelineClip = memo(function TimelineClip({
       className={cn(
         "group absolute bottom-[3px] top-[3px] overflow-hidden rounded-xs border text-white select-none data-[invalid=true]:!border-destructive data-[invalid=true]:!bg-destructive",
         selected ? "border-white shadow-[inset_0_0_0_1px_white]" : "border-black/30",
+        shift !== 0 && "transition-transform duration-100",
       )}
       style={{
         backgroundColor: `var(--${color})`,
         left: timeToPx(clip.start, pxPerSecond),
         width: timeToPx(clip.duration, pxPerSecond),
+        transform: shift !== 0 ? `translateX(${timeToPx(shift, pxPerSecond)}px)` : undefined,
       }}
       onPointerMove={(e) => {
         // Show the right cursor for move vs. trim.

@@ -56,9 +56,9 @@ export interface OptionField {
 /** What a press on a preset tile reports. */
 export interface PresetGestureHandlers {
   onClick(): void;
-  /** The cut under the pointer while dragging, or null (the highlight follows it). */
+  /** The cut under the pointer while dragging that can take a transition, or null. */
   cutAt(clientX: number, clientY: number): Cut | null;
-  /** Called when the highlighted cut changes (null clears it). */
+  /** Called when the hovered cut changes (null when there is none). */
   onHover(cut: Cut | null): void;
   /** Released over a cut. */
   onDrop(cut: Cut): void;
@@ -73,6 +73,8 @@ export interface SampleColors {
 /** Scratch objects kept per destination canvas (R9), so nothing is allocated per frame. */
 export interface Scratch {
   ghost?: HTMLCanvasElement;
+  /** One canvas per blur level (Woosh). */
+  blur?: HTMLCanvasElement[];
   dissolve?: {
     key: string;
     values: Float32Array;

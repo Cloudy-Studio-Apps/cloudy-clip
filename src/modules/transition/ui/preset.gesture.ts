@@ -6,8 +6,8 @@ const DRAG_THRESHOLD = 4;
 
 /**
  * Tracks a press on a preset tile: a click calls `onClick`; a drag shows a ghost labelled `label`
- * under the pointer (plain DOM, no React renders), highlights the cut under it and, released over
- * a cut, calls `onDrop`. Released anywhere else does nothing.
+ * under the pointer (plain DOM, no React renders), hands over to the cut's preview while one is
+ * under it and, released over a cut, calls `onDrop`. Released anywhere else does nothing.
  */
 export function startPresetDrag(
   down: PointerEvent,
@@ -36,6 +36,7 @@ export function startPresetDrag(
     }
     ghost.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 12}px)`;
     setHovered(handlers.cutAt(e.clientX, e.clientY));
+    ghost.hidden = hovered !== null;
   }
 
   function finish(e: PointerEvent, released: boolean): void {
@@ -49,8 +50,8 @@ export function startPresetDrag(
     ghost.remove();
     document.body.style.cursor = "";
     const target = released ? handlers.cutAt(e.clientX, e.clientY) : null;
-    setHovered(null);
     if (target) handlers.onDrop(target);
+    setHovered(null);
   }
 
   const onUp = (e: PointerEvent) => finish(e, true);

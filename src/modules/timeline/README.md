@@ -13,9 +13,10 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
 - **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history),
   `setZoom`, `selectClip` (selecting a clip selects its linked partners and clears the junction
   selection), `selectJunction(id | null)` (selecting a junction clears the clip selection;
-  `view.junctionSelection`), `cutTarget(clientX, clientY)` (the cut under a point within 8 px, for
-  drops from other panels), `highlightCut(cut | null)` (marks the cut's lane with `data-cut-target`
-  while something is dragged over it, no renders). The selection is shared:
+  `view.junctionSelection`), `cutTarget(clientX, clientY)` (the cut near a point, within `CUT_SNAP_PX`, for
+  drops from other panels), `previewCut(preview | null)` (`view.cutPreview`: the lanes draw where a
+  dragged junction would land, with its real size, name and length, and show the clips it would move
+  in their new place, without touching the project). The selection is shared:
   the preview's canvas tools select through it. `dropTarget(clientX, clientY)` gives the track and
   time under a screen point, for drops from other panels (the Text tab). Exported helpers for
   modules that place their own clips: `findOverlap`, `freeTrack`, `overlapError`,

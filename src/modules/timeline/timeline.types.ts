@@ -19,6 +19,22 @@ export interface TimelineViewState {
   selection: ClipId[];
   /** Selected junctions (a clip selection and a junction selection never coexist). */
   junctionSelection: JunctionId[];
+  /** What a drag from another panel would put on a cut, while it hovers one. */
+  cutPreview: CutPreview | null;
+}
+
+/** A junction not placed yet, shown on the cut it would land on. */
+export interface CutPreview {
+  cut: Cut;
+  /** Name shown on the tag. */
+  label: string;
+  icon?: LucideIcon;
+  /** Overlap it would have (microseconds). */
+  duration: Micros;
+  /** False when the cut can't take it; dropping would be refused. */
+  fits: boolean;
+  /** How far each clip would move (microseconds); the lanes show them there meanwhile. */
+  shifts: Record<ClipId, Micros>;
 }
 
 /** Which edge of a clip a trim moves. */
@@ -57,13 +73,13 @@ export interface TimelineApi {
   dropTarget(clientX: number, clientY: number): DropTarget | null;
   /** Selects a junction (clearing the clip selection), or clears the junction selection (null). */
   selectJunction(id: JunctionId | null): void;
-  /** The cut under a screen point (within 8 px), for drops from other panels. */
+  /** The cut under a screen point (within `CUT_SNAP_PX`), for drops from other panels. */
   cutTarget(clientX: number, clientY: number): Cut | null;
   /**
-   * Highlights the lane of a cut as a drop target (a `data-cut-target` attribute on the lane
-   * element, no renders), or clears the highlight (null).
+   * Shows where a dragged junction would land, or clears it (null). Call it when the hovered cut
+   * changes, not on every pointer move.
    */
-  highlightCut(cut: Cut | null): void;
+  previewCut(preview: CutPreview | null): void;
 }
 
 /** A junction chip as the lane draws it. */

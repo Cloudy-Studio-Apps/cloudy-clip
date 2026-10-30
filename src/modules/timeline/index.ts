@@ -29,7 +29,13 @@ export { overlapError } from "./timeline.guards";
  * selection is exactly one linked group (a video's picture and sound). Otherwise undefined.
  */
 export { selectionSubject } from "./logic/links";
-export type { DropTarget, TimelineApi, TimelineViewState, TrimEdge } from "./timeline.types";
+export type {
+  CutPreview,
+  DropTarget,
+  TimelineApi,
+  TimelineViewState,
+  TrimEdge,
+} from "./timeline.types";
 
 /** The create tiles of a side panel (every element's `create` entries for that panel). */
 export { CreateTiles } from "./ui/CreateTiles";

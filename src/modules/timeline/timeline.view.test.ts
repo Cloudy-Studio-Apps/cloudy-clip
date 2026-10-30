@@ -1,3 +1,4 @@
+import type { CutPreview } from "./timeline.types";
 import { describe, expect, it } from "vitest";
 import { createTimelineView } from "./timeline.store";
 
@@ -36,6 +37,21 @@ describe("timeline view", () => {
     expect(selection()).toEqual(["x"]);
   });
 
+  it("previewCut sets and clears the cut preview", () => {
+    const timeline = createTimelineView();
+    const preview = {
+      cut: { trackId: "t", left: {}, right: {} },
+      label: "Fade",
+      duration: 500_000,
+      fits: true,
+      shifts: {},
+    } as unknown as CutPreview;
+    timeline.previewCut(preview);
+    expect(timeline.view.getState().cutPreview).toBe(preview);
+    timeline.previewCut(null);
+    expect(timeline.view.getState().cutPreview).toBeNull();
+  });
+
   it("selecting a junction clears the clip selection", () => {
     const timeline = createTimelineView();
     const { view } = timeline;
@@ -69,6 +85,7 @@ describe("timeline view", () => {
       pxPerSecond: 60,
       selection: [],
       junctionSelection: [],
+      cutPreview: null,
     });
   });
 });

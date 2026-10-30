@@ -7,7 +7,7 @@ point and the command to apply one; the seven built-in presets are in `presets/`
 lists them.
 
 - **Tier:** feature
-- **Requires:** `project`, `element`, `junction`, `timeline` (selection, `cutTarget`, `highlightCut`), `inspector` (the
+- **Requires:** `project`, `element`, `junction`, `timeline` (selection, `cutTarget`, `previewCut`), `inspector` (the
   `propertyControls` point, `FieldRow`, `FieldControlProps`)
 - **Contributes:** the `transition` kind (to `junctionKinds`), the `transition-options` value type
   (to `propTypes`), the `transition-preset` and `transition-options` controls (to
@@ -29,7 +29,7 @@ lists them.
   - `transition.apply.command.ts`: `transition.apply`.
   - `transition.mcp.ts`: the tools.
   - `presets/`: `fade`, `cross-dissolve`, `dissolve` (seeded block mask), `wipe` (gradient mask),
-    `glare`, `woosh` (4-pass offset smear), `glitch` (slice offsets + red/blue split); `presets.ts`
+    `glare`, `woosh` (a whip pan blurred by squeezing and stretching through scratch canvases), `glitch` (slice offsets + red/blue split); `presets.ts`
     lists them as `builtInPresets`, contributed by the module. Masks are drawn into canvas `b`
     with `destination-in` (in place when `b` is a canvas, else into a temporary canvas); no pixel
     reads and no `ctx.filter`.
@@ -37,8 +37,9 @@ lists them.
   - `ui/`: `TransitionsPanel` (one section per category, ordered by `logic/categories.ts`),
     `PresetTile` (click: `transition.apply` on the selected junction, else the cut after the
     selected video clip, else a "Select a clip or a cut first" notice; press-and-drag through
-    `preset.gesture.ts`: a DOM ghost, the cut under the pointer highlighted with
-    `timeline.highlightCut`, `transition.apply { leftClipId, rightClipId }` on release over a cut,
+    `preset.gesture.ts`: a DOM ghost that gives way, near a cut of a video track, to
+    `timeline.previewCut` with what `logic/preview.ts` works out (`previewOnCut`: the duration,
+    whether it fits, and how far each clip would move), `transition.apply { leftClipId, rightClipId }` on release over a cut,
     nothing elsewhere), `PresetThumbnail`, `thumbnail.hook.ts` and `thumbnail.draw.ts` (a canvas drawing the preset's
     `thumbnail ?? mix` over two token-colored sample pictures: a static frame at 0.5, and a
     `requestAnimationFrame` loop only while hovered; the hook's own picture canvases are redrawn

@@ -1,14 +1,17 @@
 import { memo, useEffect, useMemo, useRef } from "react";
+import { useStore } from "zustand";
 import { useKernel, useModule, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { type Clip, type Track, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
+import { cn } from "@/ui";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime } from "../logic/geometry";
 import { snapCandidates, snapTime } from "../logic/placement";
 import { addClip } from "../timeline.commands";
 import { SNAP_PX, trackHeight } from "../timeline.layout";
 import { useTrackChips } from "../junction.display";
+import { CutPreviewMark } from "./CutPreviewMark";
 import { JunctionChip } from "./JunctionChip";
 import { TimelineClip } from "./TimelineClip";
 
@@ -43,6 +46,9 @@ export const TrackLane = memo(function TrackLane({
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
   const allChips = useTrackChips(track.id);
+  const cutPreview = useStore(timeline.view, (s) =>
+    s.cutPreview?.cut.trackId === track.id ? s.cutPreview : null,
+  );
   const chips = useMemo(
     () => allChips.filter((c) => c.center >= from && c.center <= to),
     [allChips, from, to],
@@ -79,7 +85,7 @@ export const TrackLane = memo(function TrackLane({
     <div
       ref={ref}
       data-track-id={track.id}
-      className="relative border-b border-border data-[cut-target]:bg-primary-soft"
+      className={cn("relative border-b border-border", cutPreview && "bg-primary-soft")}
       style={{ height: trackHeight(track.kind) }}
       onPointerDown={(e) => {
         if (e.button !== 0 || e.target !== e.currentTarget) return;
@@ -93,6 +99,7 @@ export const TrackLane = memo(function TrackLane({
       {chips.map((chip) => (
         <JunctionChip key={chip.junction.id} chip={chip} pxPerSecond={pxPerSecond} />
       ))}
+      {cutPreview && <CutPreviewMark preview={cutPreview} pxPerSecond={pxPerSecond} />}
     </div>
   );
 });
