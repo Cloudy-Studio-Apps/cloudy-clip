@@ -10,7 +10,7 @@ rail), from which compositions and files are dragged onto the timeline.
 source: "media" }`, labelled with the file name, a filmstrip on video tracks and a waveform on audio)
 - **Points it owns:** `librarySections` (`media.points.ts`): sections above the files (`composition` contributes its own).
 - **API** (`useModule(mediaRef)` / `ctx.require(mediaRef)`): `probes`, `fileDrop`, `getProbe`,
-  `waitForProbe`, `mediaUrl`. `mediaHasAudio(probe)` (exported helper) says whether a file has
+  `waitForProbe`, `pictureMeta(id)` (size, frame rate, length as soon as ffprobe has read them, rotation included), `mediaUrl`. `mediaHasAudio(probe)` (exported helper) says whether a file has
   sound (true unless ffprobe found none). `createFakeMediaModule(probes)` (`media.testing.ts`) stands in for it
   in tests.
 - **Files:**

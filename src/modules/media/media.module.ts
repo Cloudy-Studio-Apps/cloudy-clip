@@ -84,6 +84,7 @@ export const mediaModule = defineModule({
         fileDrop,
         getProbe,
         waitForProbe: state.waitForProbe,
+        pictureMeta: state.pictureMeta,
         mediaUrl: service.mediaUrl,
       },
     };

@@ -70,6 +70,20 @@ pub struct ProxyEvent {
     /// Whether the file has a sound stream, once `ffprobe` has read it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_audio: Option<bool>,
+    /// What a composition needs from a video, as soon as `ffprobe` has read it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub meta: Option<ProbeMeta>,
+}
+
+/// A video's size (as shown, after rotation), frame rate and length.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct ProbeMeta {
+    pub width: u64,
+    pub height: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fps: Option<f64>,
+    /// Microseconds.
+    pub duration: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -104,7 +118,11 @@ impl ProxyJobs {
         let cache_dir = self.cache_dir.clone();
         let encoder = self.encoder.clone();
         tauri::async_runtime::spawn(async move {
-            let emit = |state, progress, message: Option<String>, has_audio: Option<bool>| {
+            let emit = |state,
+                        progress,
+                        message: Option<String>,
+                        has_audio: Option<bool>,
+                        meta: Option<ProbeMeta>| {
                 let _ = app.emit(
                     PROXY_EVENT,
                     ProxyEvent {
@@ -113,10 +131,11 @@ impl ProxyJobs {
                         progress,
                         message,
                         has_audio,
+                        meta,
                     },
                 );
             };
-            let report = |state, progress, message| emit(state, progress, message, None);
+            let report = |state, progress, message| emit(state, progress, message, None, None);
             report(ProxyState::Analyzing, None, None);
 
             let Some(tools) = find_tools() else {
@@ -137,7 +156,8 @@ impl ProxyJobs {
             };
             // From here on every event says whether the file has sound.
             let has_audio = Some(probe.audio_codec.is_some());
-            let report = |state, progress, message| emit(state, progress, message, has_audio);
+            let meta = probe.meta();
+            let report = |state, progress, message| emit(state, progress, message, has_audio, meta);
             let Some(reason) = proxy_reason(&probe, kind) else {
                 report(ProxyState::Skipped, None, None);
                 return;
@@ -185,6 +205,25 @@ struct Probe {
     audio_codec: Option<String>,
     bit_rate: u64,
     duration_us: Option<u64>,
+    fps: Option<f64>,
+    /// Degrees the player turns the picture.
+    rotation: i64,
+}
+
+impl Probe {
+    /// What a composition needs from a video; `None` for a file without a picture or a length.
+    fn meta(&self) -> Option<ProbeMeta> {
+        if self.video_codec.is_none() || self.width == 0 || self.height == 0 {
+            return None;
+        }
+        let turned = self.rotation.rem_euclid(180) == 90;
+        Some(ProbeMeta {
+            width: if turned { self.height } else { self.width },
+            height: if turned { self.width } else { self.height },
+            fps: self.fps,
+            duration: self.duration_us?,
+        })
+    }
 }
 
 /// Finds `ffmpeg`/`ffprobe` once per run.
@@ -255,6 +294,24 @@ async fn ffprobe(tools: &Tools, path: &Path) -> Result<Probe, String> {
     Ok(parse_probe(&json))
 }
 
+/// Reads ffprobe's `"30000/1001"`. `"0/0"` means it doesn't know.
+fn parse_rate(rate: &str) -> Option<f64> {
+    let (num, den) = rate.split_once('/')?;
+    let (num, den) = (num.parse::<f64>().ok()?, den.parse::<f64>().ok()?);
+    (num > 0.0 && den > 0.0).then_some(num / den)
+}
+
+/// The rotation a stream asks for: the display matrix, or the older `rotate` tag.
+fn rotation_of(stream: &Value) -> i64 {
+    stream["side_data_list"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find_map(|data| data["rotation"].as_i64())
+        .or_else(|| stream["tags"]["rotate"].as_str()?.parse().ok())
+        .unwrap_or(0)
+}
+
 fn parse_probe(json: &Value) -> Probe {
     let number = |v: &Value| -> Option<u64> {
         v.as_str()
@@ -273,6 +330,10 @@ fn parse_probe(json: &Value) -> Probe {
                     probe.pix_fmt = stream["pix_fmt"].as_str().map(str::to_owned);
                     probe.width = stream["width"].as_u64().unwrap_or(0);
                     probe.height = stream["height"].as_u64().unwrap_or(0);
+                    probe.fps = ["avg_frame_rate", "r_frame_rate"]
+                        .iter()
+                        .find_map(|key| stream[*key].as_str().and_then(parse_rate));
+                    probe.rotation = rotation_of(stream);
                 }
             }
             Some("audio") if probe.audio_codec.is_none() => probe.audio_codec = codec,
@@ -465,6 +526,32 @@ async fn encode(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_a_fractional_frame_rate() {
+        assert!((parse_rate("30000/1001").unwrap() - 29.97).abs() < 0.01);
+        assert_eq!(parse_rate("25/1"), Some(25.0));
+        assert_eq!(parse_rate("0/0"), None);
+    }
+
+    #[test]
+    fn picture_size_follows_the_rotation_of_a_phone_video() {
+        let probe = parse_probe(&json!({
+            "streams": [{
+                "codec_type": "video",
+                "codec_name": "h264",
+                "width": 1920,
+                "height": 1080,
+                "avg_frame_rate": "30/1",
+                "side_data_list": [{ "rotation": -90 }],
+            }],
+            "format": { "duration": "2.5" },
+        }));
+        let meta = probe.meta().unwrap();
+        assert_eq!((meta.width, meta.height), (1080, 1920));
+        assert_eq!(meta.fps, Some(30.0));
+        assert_eq!(meta.duration, 2_500_000);
+    }
     use serde_json::json;
 
     fn probe(json: Value) -> Probe {
@@ -475,6 +562,7 @@ mod tests {
     fn proxy_event_serializes_has_audio() {
         let event = |has_audio| ProxyEvent {
             media_id: "m".into(),
+            meta: None,
             state: ProxyState::Skipped,
             progress: None,
             message: None,

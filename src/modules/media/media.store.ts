@@ -1,6 +1,9 @@
 import { createStore } from "zustand/vanilla";
 import type { MediaProbe, MediaProbeState, MediaState, ProxyInfo } from "./media.types";
 
+/** Frame rate of a video that doesn't say (FFmpeg is missing). */
+const UNKNOWN_FPS = 30;
+
 /** Whether the proxy pipeline is done with a file (so its metadata can be read). */
 export function isProxySettled(proxy: ProxyInfo | undefined): boolean {
   return proxy?.state === "ready" || proxy?.state === "skipped" || proxy?.state === "error";
@@ -34,8 +37,18 @@ export function createMediaState(): MediaState {
           ...proxy,
           message: proxy.message ?? previous?.message,
           hasAudio: proxy.hasAudio ?? previous?.hasAudio,
+          meta: proxy.meta ?? previous?.meta,
         },
       });
+    },
+    pictureMeta(id) {
+      const probe = getProbe(id);
+      const meta = probe?.proxy?.meta;
+      const width = probe?.width ?? meta?.width;
+      const height = probe?.height ?? meta?.height;
+      const duration = probe?.duration ?? meta?.duration;
+      if (!width || !height || !duration) return undefined;
+      return { width, height, duration, fps: meta?.fps ?? UNKNOWN_FPS };
     },
     waitForProbe(id, timeoutMs = 15_000) {
       const settled = (p: MediaProbe | undefined) => p && p.status !== "pending";

@@ -21,6 +21,25 @@ export interface ProxyInfo {
   message?: string;
   /** Whether the file has a sound stream, from ffprobe; missing when unknown. */
   hasAudio?: boolean;
+  /** A video's size, frame rate and length, as soon as ffprobe has read it. */
+  meta?: ProbeMeta;
+}
+
+/** What ffprobe says about a video, before any proxy exists (mirrors `ProbeMeta` in Rust). */
+export interface ProbeMeta {
+  width: number;
+  height: number;
+  /** Missing when ffprobe can't tell. */
+  fps?: number;
+  duration: Micros;
+}
+
+/** What a composition takes from a video. */
+export interface PictureMeta {
+  width: number;
+  height: number;
+  fps: number;
+  duration: Micros;
 }
 
 /** Payload of the `media://proxy` event. */
@@ -89,6 +108,11 @@ export interface MediaApi {
    * (default 15 s). Used by agents' tools so they get usable metadata in one call.
    */
   waitForProbe(id: MediaId, timeoutMs?: number): Promise<MediaProbe | undefined>;
+  /**
+   * A video's size, frame rate (30 when unknown) and length, once known: from ffprobe at the start
+   * of import, so it doesn't wait for a proxy. Undefined for audio and for files still being read.
+   */
+  pictureMeta(id: MediaId): PictureMeta | undefined;
   /**
    * URL that streams a registered file from the native loopback media server (with Range
    * support). Changes once a proxy is ready, so media elements reload.
