@@ -21,11 +21,34 @@ export interface PatchableStore<T extends object> {
   subscribe(listener: (state: T, previous: T) => void): () => void;
 }
 
+/** One field across a change. `undefined` means it was, or became, absent. */
+export interface FieldChange {
+  path: readonly string[];
+  before: unknown;
+  after: unknown;
+}
+
+/**
+ * What lets a store's steps be undone out of order, past other people's later steps. Patches can't
+ * do it: they address arrays by index and may replace whole records. So a store with a policy
+ * also describes each change field by field, and repairs and validates what such an undo leaves.
+ */
+export interface StorePolicy<T extends object> {
+  /** The fields that differ. An entity created or deleted is one change at its own path. */
+  diff(before: T, after: T): FieldChange[];
+  /** Rebuilds what is derived from the fields (ordering arrays). */
+  repair(draft: Draft<T>): void;
+  /** Why the state is invalid, or null. */
+  validate(state: T): string | null;
+}
+
 /** The patches produced by one `mutate` call on one store. */
 export interface StoreChange {
   store: PatchableStore<object>;
   patches: Patch[];
   inversePatches: Patch[];
+  /** The change field by field, when the store has a policy. */
+  fields?: FieldChange[];
 }
 
 /**
@@ -37,6 +60,13 @@ export interface PatchableStoreInternal<T extends object> extends PatchableStore
   produce(recipe: (draft: Draft<T>) => void): StoreChange | null;
   /** Applies previously recorded patches (used by undo/redo and rollback). */
   apply(patches: Patch[]): void;
+  /**
+   * Writes values at paths (`undefined` deletes), repairs and validates. Commits, or changes
+   * nothing and returns why the result is invalid. Only for stores with a policy.
+   */
+  writeFields(writes: ReadonlyArray<{ path: readonly string[]; value: unknown }>): string | null;
+  /** Whether out-of-order writes are possible. */
+  readonly hasPolicy: boolean;
   /** Replaces the whole state. Only for tests and future project loading. */
   reset(state: T): void;
 }

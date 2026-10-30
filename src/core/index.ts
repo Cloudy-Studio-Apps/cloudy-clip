@@ -28,7 +28,7 @@ export type { History, HistoryEntry, HistorySnapshot } from "./history/history.t
 
 // Document stores
 export { createPatchableStore } from "./store/store.patchable";
-export type { PatchableStore } from "./store/store.types";
+export type { FieldChange, StorePolicy, PatchableStore } from "./store/store.types";
 
 // Modules
 export { defineModule, defineModuleRef } from "./module/module.define";

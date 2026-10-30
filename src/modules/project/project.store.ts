@@ -1,4 +1,5 @@
 import { createId, createPatchableStore } from "@/core";
+import { projectPolicy } from "./logic/fields";
 import type { FormatPreset, ProjectFormat, ProjectState } from "./project.types";
 
 /** Output size for each preset. */
@@ -42,5 +43,5 @@ export function createEmptyProject(): ProjectState {
 
 /** Creates the project document of one kernel. */
 export function createProjectStore(initial: ProjectState = createEmptyProject()) {
-  return createPatchableStore<ProjectState>("project", initial);
+  return createPatchableStore<ProjectState>("project", initial, projectPolicy);
 }
