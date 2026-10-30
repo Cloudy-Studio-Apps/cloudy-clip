@@ -48,7 +48,7 @@ export function orderedJunctions(state: ProjectState): Junction[] {
 /**
  * How much `left` and `right` (same track, left.start < right.start) may overlap: the junction's
  * duration if one joins them, or, when each is linked to a side of a junction on another track
- * (spec rule 7: partner of left ↔ partner of right), that junction's duration; else 0.
+ * (junction rule 4: partner of left ↔ partner of right), that junction's duration; else 0.
  */
 export function allowedOverlap(state: ProjectState, left: Clip, right: Clip): Micros {
   const own = junctionBetween(state, left.id, right.id);

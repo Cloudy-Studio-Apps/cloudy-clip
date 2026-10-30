@@ -28,7 +28,7 @@ export function crossfadeGains(progress: number): { left: number; right: number 
 
 /**
  * Volume factors for sound clips crossfading under `time`: the overlapping pairs on audio tracks
- * that a junction covers (a picture junction's linked sounds, spec rule 7). Clips not in the map
+ * that a junction covers (a picture junction's linked sounds, junction rule 4). Clips not in the map
  * play at full volume.
  */
 export function soundGains(project: ProjectState, time: Micros): Map<ClipId, number> {

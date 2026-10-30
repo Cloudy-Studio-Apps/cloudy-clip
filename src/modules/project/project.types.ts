@@ -143,7 +143,7 @@ export interface ProjectState {
 /** Id of a junction, unique in the project. */
 export type JunctionId = string;
 
-/** Something on the cut between two adjacent clips of one track (spec rule 1). */
+/** Something on the cut between two adjacent clips of one track. */
 export interface Junction {
   id: JunctionId;
   kind: string;

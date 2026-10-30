@@ -10,7 +10,7 @@ import {
 } from "@/modules/project";
 import type { JunctionKindOf } from "../timeline.types";
 
-/** The junction that allows `left` and `right` to overlap: their own, or their partners' (spec rule 7). */
+/** The junction that allows `left` and `right` to overlap: their own, or their partners' (junction rule 4). */
 function governingJunction(state: ProjectState, left: Clip, right: Clip): Junction | undefined {
   const own = junctionBetween(state, left.id, right.id);
   if (own) return own;

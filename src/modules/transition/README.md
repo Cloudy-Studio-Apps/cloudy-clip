@@ -49,6 +49,25 @@ lists them.
     `TransitionOptionsControl` (the chosen preset's options, drawn by the inspector control each
     spec names, found in `propertyControls`; every change is committed as the whole `{ options }`
     through the `live` it was given). `logic/options.ts`: `optionFields`, `optionsPatch`.
+- **Applying:** drag a preset onto a cut, or click it to use the selected cut or junction, or the
+  cut at the end of the selected clip. On a cut that already has a transition this replaces its
+  preset and keeps the duration.
+- **Silent:** transitions are picture only, like CapCut's. Sound on a cut would be its own junction
+  kind.
+- **Not yet:** more presets (they use the same declarations), a push variant of the wipe, a GPU
+  renderer.
+
+## Presets
+
+| Category | Preset         | Look                                    |
+| -------- | -------------- | --------------------------------------- |
+| Basic    | Fade           | A fades to black, B fades in from black |
+| Basic    | Cross dissolve | A blends smoothly into B                |
+| Basic    | Dissolve       | Grainy: B appears in random blocks      |
+| Basic    | Left to right  | A soft-edged wipe                       |
+| Overlay  | Glare          | A bright flash hides the cut            |
+| Blur     | Woosh          | A fast blurred swipe (whip pan)         |
+| Glitch   | Glitch         | Shifted slices and a red/blue split     |
 
 ## Commands and tools
 

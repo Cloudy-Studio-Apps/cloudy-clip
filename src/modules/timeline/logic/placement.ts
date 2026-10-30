@@ -20,7 +20,7 @@ export function minClipDuration(state: ProjectState): Micros {
 /**
  * Returns the first clip on the track overlapping `[start, start + duration)`, ignoring some.
  * When the span is `self` placed there, a neighbour it overlaps at one edge by exactly the
- * allowed overlap (a junction joining them, spec rule 12) is not in the way; with `kindOf`, any
+ * allowed overlap (a junction joining them, junction rule 8) is not in the way; with `kindOf`, any
  * overlap the junction's kind accepts (the move command resizes the junction) is not in the way.
  */
 export function findOverlap(
@@ -96,7 +96,7 @@ export function sortClipIds(ids: readonly ClipId[], clips: Record<ClipId, Clip>)
  * Neighbours of a clip on its track: end of the previous clip and start of the next. A neighbour
  * joined to the clip (overlapping it by a junction's duration) bounds it at its edge ∓ that
  * duration, which is the clip's own edge. With `rippleEdge`, a neighbour joined on that edge
- * doesn't bound it at all: a trim of a joined edge ripples that neighbour along (spec rule 10).
+ * doesn't bound it at all: a trim of a joined edge ripples that neighbour along (junction rule 10).
  */
 export function neighbourBounds(
   state: ProjectState,
@@ -123,7 +123,7 @@ export function neighbourBounds(
   return { prevEnd, nextStart };
 }
 
-/** A junction joins `left` and `right`, or (spec rule 7) a partner of each. */
+/** A junction joins `left` and `right`, or (junction rule 4) a partner of each. */
 function joined(state: ProjectState, left: Clip, right: Clip): boolean {
   if (junctionBetween(state, left.id, right.id)) return true;
   const rightPartners = partnersOf(state, right.id);

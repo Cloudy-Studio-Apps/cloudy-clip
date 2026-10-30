@@ -19,7 +19,7 @@ function end(clip: Clip): Micros {
   return clip.start + clip.duration;
 }
 
-/** The kernel's junction kinds; a kind no loaded module registers is undefined (spec rule 11). */
+/** The kernel's junction kinds; a kind no loaded module registers is undefined (junction rule 7). */
 export function junctionKindOf(ctx: CommandContext): JunctionKindOf {
   const api = ctx.require(junctionRef);
   return (kind) => api.get(kind)?.definition;
@@ -49,7 +49,7 @@ export function moveClips(state: ProjectState, moves: readonly ClipTrackMove[]):
 }
 
 /**
- * The junctions of moved clips after a move (spec rule 10): the same overlap keeps the junction;
+ * The junctions of moved clips after a move (junction rule 10): the same overlap keeps the junction;
  * another overlap becomes its duration when the kind's limits allow it (else
  * `junction.invalid_duration`; an unregistered kind isn't checked); touching, apart or on
  * different tracks removes an overlapping junction (no shift back). A junction without overlap
@@ -92,7 +92,7 @@ export function followMove(
 /**
  * Shrinks the junctions of these clips that are now longer than their kind allows (the clips got
  * shorter) to the new maximum, moving the right clip, what follows it on the track and their
- * partners later by the difference (spec rule 10). Fails with `junction.invalid_duration` when the
+ * partners later by the difference (junction rule 10). Fails with `junction.invalid_duration` when the
  * kind no longer fits at all. Unregistered kinds are left alone.
  */
 export function fitJunctions(
@@ -117,7 +117,7 @@ export function fitJunctions(
 }
 
 /**
- * A trim with its junctions kept (spec rule 10): each joined edge that moved, shorter or longer
+ * A trim with its junctions kept (junction rule 10): each joined edge that moved, shorter or longer
  * (a left clip's end, a right clip's start), ripples the right clip, what follows it on the track and their partners
  * by the change, so the overlap stays; then junctions shrink to fit the new lengths.
  */

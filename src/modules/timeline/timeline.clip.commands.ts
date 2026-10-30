@@ -127,7 +127,7 @@ export const addClip = defineCommand({
 
 /**
  * Breaks the link between clips, so each is edited on its own. Refused while their sounds overlap
- * only because their pictures are joined by a junction (spec rule 7).
+ * only because their pictures are joined by a junction (junction rule 4).
  */
 export const unlinkClips = defineCommand({
   id: "timeline.unlinkClips",

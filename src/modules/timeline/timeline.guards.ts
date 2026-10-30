@@ -59,7 +59,7 @@ export function overlapError(state: ProjectState, other: Clip): CommandFailure {
 /**
  * Fails when `next` has clips overlapping where no junction allows it (`timeline.overlap`, naming
  * the clip in the way: the one the edit didn't move) or starting before 0
- * (`timeline.out_of_range`). Spec rule 12.
+ * (`timeline.out_of_range`). Junction rule 8.
  */
 export function checkLayout(next: ProjectState, moved: ReadonlySet<ClipId>): void {
   const conflict = findLayoutConflict(next);

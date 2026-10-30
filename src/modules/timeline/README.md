@@ -66,7 +66,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   to the source media, neighbours and a one-frame minimum; clips only move between tracks of the
   same kind; a split keeps the clip's transform on both halves; only audio tracks can be muted.
   `snapCandidates` include each junction's cut (the middle of its overlap).
-- **Junctions** (spec rules 2, 10, 11): after every clip command no junction is stale
+- **Junctions** (junction rules 2, 7, 10): after every clip command no junction is stale
   (`staleJunctions` is empty).
   - **Move:** a junction whose clips both moved by the same offset is kept; a different overlap
     becomes its duration if the kind's limits allow it (else `junction.invalid_duration`, nothing

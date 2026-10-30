@@ -90,7 +90,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     for (const { clip } of upcoming) needed.add(clip.id);
     this.pool.release(needed);
 
-    // Sound clips crossfading under a junction (spec rule 7); others play at full volume.
+    // Sound clips crossfading under a junction (junction rule 4); others play at full volume.
     const gains = soundGains(project, time);
     this.settled = true;
     for (const { track, clips } of active) {
