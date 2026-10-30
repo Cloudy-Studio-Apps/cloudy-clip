@@ -18,6 +18,7 @@ import { picturesSettled } from "../logic/readiness";
 import type { PreviewEngine } from "../preview.types";
 import { quietSlot, voiceSlot } from "./engine.audio";
 import { MixCanvases, drawTrack } from "./engine.mix";
+import { NestedCanvases } from "./engine.nested";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
 import type { EngineOptions, ResolvedFrame } from "./engine.types";
@@ -29,6 +30,15 @@ function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
 
 /** Clips starting within this window are prepared ahead so cuts don't stutter. */
 const PRELOAD_AHEAD: Micros = 1_500_000;
+
+/** No gesture or live patch: what clips inside a placement are drawn with. */
+const NOTHING = new Map();
+
+/** Canvas pixels per output pixel. */
+interface Scale {
+  kx: number;
+  ky: number;
+}
 
 /**
  * Preview engine built on HTML media elements and a 2D canvas.
@@ -50,6 +60,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly elements: EngineOptions["elements"];
   private readonly junctions: EngineOptions["junctions"];
   private readonly mixCanvases: MixCanvases;
+  private readonly nested = new NestedCanvases();
   private readonly pictureOnly: boolean;
 
   constructor(
@@ -80,17 +91,21 @@ export class HtmlMediaEngine implements PreviewEngine {
       preloadAhead: PRELOAD_AHEAD,
     });
     const needed = new Set<string>();
+    const placements = new Set<string>();
     const collect = ({ tracks, upcoming }: ResolvedFrame) => {
       for (const { path } of upcoming) needed.add(path);
       for (const { clips } of tracks) {
         for (const { path, inner } of clips) {
-          if (inner) collect(inner);
-          else needed.add(path);
+          if (inner) {
+            placements.add(path);
+            collect(inner);
+          } else needed.add(path);
         }
       }
     };
     collect(frame);
     this.pool.release(needed);
+    this.nested.release(placements);
 
     this.settled = true;
     this.prepare(project, frame, playing, propsOverrides, 1, false);
@@ -195,6 +210,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   dispose(): void {
     this.pool.dispose();
     this.mixCanvases.dispose();
+    this.nested.dispose();
   }
 
   private draw(
@@ -207,13 +223,14 @@ export class HtmlMediaEngine implements PreviewEngine {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = frame.composition.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    this.drawFrame(ctx, project, frame, "", transforms, propsOverrides);
+    this.drawFrame(ctx, this.mixCanvases, project, frame, "", transforms, propsOverrides);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   /** Draws a frame's pictures onto `target`, which is sized like its composition's format. */
   private drawFrame(
     target: CanvasRenderingContext2D,
+    mix: MixCanvases,
     project: ProjectState,
     { composition, time, tracks }: ResolvedFrame,
     prefix: string,
@@ -225,8 +242,21 @@ export class HtmlMediaEngine implements PreviewEngine {
     const kx = target.canvas.width / format.width;
     const ky = target.canvas.height / format.height;
     const pathOf = (clip: Clip) => (prefix ? `${prefix}/${clip.id}` : clip.id);
-    const drawClip = (on: CanvasRenderingContext2D, clip: Clip) =>
-      this.drawClip(on, format, clip, pathOf(clip), time, transforms, propsOverrides, kx, ky);
+    const inners = new Map<ClipId, ResolvedFrame>();
+    for (const { clips } of tracks) {
+      for (const { clip, inner } of clips) if (inner) inners.set(clip.id, inner);
+    }
+    const drawClip = (on: CanvasRenderingContext2D, clip: Clip) => {
+      const live = propsOverrides.get(clip.id)?.transform as Partial<ClipTransform> | undefined;
+      const transform = transforms.get(clip.id) ?? clipTransform(clip, live);
+      const inner = inners.get(clip.id);
+      if (inner) {
+        const box = { on, format, kx, ky };
+        this.drawPlacement(box, project, inner, pathOf(clip), transform);
+        return;
+      }
+      this.drawClip(on, format, clip, pathOf(clip), time, transform, propsOverrides, kx, ky);
+    };
 
     // Tracks are top → bottom; draw bottom first so higher tracks end up on top.
     for (let i = tracks.length - 1; i >= 0; i--) {
@@ -235,11 +265,37 @@ export class HtmlMediaEngine implements PreviewEngine {
       drawTrack(
         target,
         { project, format, track, clips: clips.map(({ clip }) => clip), time },
-        this.mixCanvases,
+        mix,
         this.junctions,
         drawClip,
       );
     }
+  }
+
+  /**
+   * Draws a composition clip: its frame goes into a transparent canvas, which lands like a video
+   * frame. Inside, clips are drawn as saved: live gestures only touch the composition that's open.
+   */
+  private drawPlacement(
+    { on, format, kx, ky }: { on: CanvasRenderingContext2D; format: ProjectFormat } & Scale,
+    project: ProjectState,
+    inner: ResolvedFrame,
+    path: string,
+    transform: ClipTransform,
+  ): void {
+    const size = inner.composition.format;
+    // No sharper than the preview itself: a 4K composition in a small window stays cheap.
+    const limit = Math.max(this.canvas.width, this.canvas.height);
+    const ratio = Math.min(1, limit / Math.max(size.width, size.height));
+    const width = Math.max(1, Math.round(size.width * ratio));
+    const height = Math.max(1, Math.round(size.height * ratio));
+    const nested = this.nested.take(path, width, height);
+    this.drawFrame(nested.ctx, nested.mix, project, inner, path, NOTHING, NOTHING);
+    const place = clipPlacement(format, size, transform);
+    on.setTransform(kx, 0, 0, ky, 0, 0);
+    on.translate(place.cx, place.cy);
+    on.rotate((place.rotation * Math.PI) / 180);
+    on.drawImage(nested.ctx.canvas, -place.width / 2, -place.height / 2, place.width, place.height);
   }
 
   /** Draws one clip onto `target` at its placement: a media frame or the element's own `draw`. */
@@ -249,14 +305,11 @@ export class HtmlMediaEngine implements PreviewEngine {
     clip: Clip,
     path: string,
     time: Micros,
-    transforms: ReadonlyMap<ClipId, ClipTransform>,
+    transform: ClipTransform,
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
     kx: number,
     ky: number,
   ): void {
-    // The canvas gesture wins; else a panel's live transform patch over the saved one.
-    const live = propsOverrides.get(clip.id)?.transform as Partial<ClipTransform> | undefined;
-    const transform = transforms.get(clip.id) ?? clipTransform(clip, live);
     const picture = this.elements.get(clip.kind)?.definition.picture;
     if (!picture) return;
     if (picture.source !== "media") {

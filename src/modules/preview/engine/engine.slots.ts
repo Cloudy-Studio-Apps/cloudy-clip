@@ -1,4 +1,4 @@
-import { createLogger } from "@/core";
+import { createLogger, notify } from "@/core";
 import type { Clip, MediaId } from "@/modules/project";
 import { INITIAL_SEEK_COST } from "../logic/drift";
 import type { EngineOptions, Slot } from "./engine.types";
@@ -9,6 +9,8 @@ const log = createLogger("preview.engine");
 const PRESENT_FALLBACK_MS = 250;
 /** Media elements kept warm after use; beyond this, idle ones release their decoder. */
 const MAX_IDLE_SLOTS = 4;
+/** Elements one frame may hold. Nesting multiplies decoders, so inner clips stop here. */
+const MAX_ACTIVE_ELEMENTS = 12;
 
 /**
  * Pooled `<video>`/`<audio>` elements, one per active or upcoming clip. Elements are reused
@@ -19,6 +21,7 @@ const MAX_IDLE_SLOTS = 4;
 export class MediaSlotPool {
   private readonly slots: Slot[] = [];
   private readonly assigned = new Map<string, Slot>();
+  private overloadReported = false;
 
   constructor(private readonly options: EngineOptions) {}
 
@@ -69,6 +72,13 @@ export class MediaSlotPool {
     if (existing) {
       if (existing.url !== url) this.load(existing, clip.mediaId, url);
       return existing;
+    }
+    if (this.assigned.size >= MAX_ACTIVE_ELEMENTS && path.includes("/")) {
+      if (!this.overloadReported) {
+        this.overloadReported = true;
+        notify("info", "This timeline plays many videos at once, so the preview leaves some out.");
+      }
+      return null;
     }
 
     let best: Slot | undefined;

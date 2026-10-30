@@ -62,6 +62,8 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     under the playhead with their `progress` and `elapsed`; `crossfadeGains(progress)`;
     `soundGains(project, time)`), `random.ts` (`seededRandom(seed)`), `drift.ts`
     (`driftSeek(state)`: where to seek a playing element, or `null`).
+  - `logic/frame.ts`: `resolveFrame(project, compositionId, time, options)`: a composition at a time as a tree, descending into placements at their local time (`sourceIn + time - start`). Every clip has a `path` of placement ids (`outer/inner`), because one original can be on screen twice: slots, needed sets and canvases key on it, never the bare clip id. A placement on a video track shows only pictures, on an audio track only sound; a hidden track shows nothing inside.
+  - `engine/engine.nested.ts`: `NestedCanvases`: one transparent canvas per placement on screen (capped at the preview's size), with its own `MixCanvases`, since a transition inside a placement must not share canvases with one around it. Inner clips draw as saved: live gestures only touch the open composition. The background colour only fills the top level. Above 12 elements in a frame, inner clips are left out and the user is told once.
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it runs in
     node). It draws the composition the user has open (`project`'s `view`); an agent's clock runs on the length of its own open composition, and `captureAt(time, compositionId)` draws any composition. `logic/playheads.ts`: each composition keeps its playhead, restored on a switch. Renders every frame while playing, on demand while paused.
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).

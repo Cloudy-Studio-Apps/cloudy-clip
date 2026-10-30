@@ -46,6 +46,15 @@ export function visibleLayers(
         if (source) layers.push({ clipId, source, fit: picture.fit, transform, fields });
         continue;
       }
+      if (picture.source === "composition") {
+        const placed = clip.compositionRef && state.compositions[clip.compositionRef];
+        if (placed) {
+          const { width, height } = placed.format;
+          const source = { width, height };
+          layers.push({ clipId, source, fit: picture.fit, transform, fields });
+        }
+        continue;
+      }
       if (!picture.size) continue;
       const saved = elements.resolve(clip, composition.format);
       const props = live ? mergeProps(saved, live) : saved;
