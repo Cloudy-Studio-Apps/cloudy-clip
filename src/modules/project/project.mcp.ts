@@ -8,6 +8,7 @@ import { projectRef } from "./project.ref";
 /** The whole project in an agent-friendly shape: tracks in order with their clips inline. */
 const getState = defineMcpTool({
   name: "project_get_state",
+  readOnly: true,
   description:
     "Returns the whole project: format, duration, imported media, and tracks (top to bottom) with their clips in timeline order, and junctions (transitions between adjacent clips, ordered by track then time). Times are microseconds. Call this first.",
   input: z.object({}),

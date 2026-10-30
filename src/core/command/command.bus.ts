@@ -3,6 +3,8 @@ import { createLogger } from "../errors/logger";
 import { CommandFailure, err, ok, toAppError } from "../errors/result";
 import type { AppError, Result } from "../errors/result.types";
 import { asInternal } from "../store/store.patchable";
+import type { StoreChange } from "../store/store.types";
+import { LOCAL_ACTOR } from "./command.actor";
 import type {
   CommandBusOptions,
   Transaction,
@@ -10,7 +12,6 @@ import type {
   CommandContext,
   CommandDefinition,
   CommandExecutedEvent,
-  CommandOrigin,
   ExecuteOptions,
 } from "./command.types";
 
@@ -51,6 +52,7 @@ export function createCommandBus({
   function createContext(command: CommandDefinition, tx: Transaction): CommandContext {
     const ctx: CommandContext = {
       origin: tx.origin,
+      actor: tx.actor,
       log: createLogger(command.id),
       mutate(store, recipe) {
         if (tx.closed) {
@@ -116,12 +118,12 @@ export function createCommandBus({
   async function executeNow(
     command: CommandDefinition,
     input: unknown,
-    origin: CommandOrigin,
+    tx: Transaction,
+    label: string | undefined,
   ): Promise<Result<unknown, AppError>> {
     const parsed = parseInput(command, input);
     if (!parsed.ok) return parsed;
 
-    const tx: Transaction = { origin, changes: [], closed: false };
     try {
       const run = Promise.resolve().then(() =>
         command.run(createContext(command, tx), parsed.value),
@@ -132,8 +134,9 @@ export function createCommandBus({
         if (command.undoable) {
           history.push({
             commandId: command.id,
-            label: command.label,
-            origin,
+            label: label ?? command.label,
+            origin: tx.origin,
+            actor: tx.actor,
             changes: tx.changes,
           });
         } else {
@@ -157,14 +160,19 @@ export function createCommandBus({
     options: ExecuteOptions | undefined,
   ): Promise<Result<unknown, AppError>> {
     const origin = options?.origin ?? "user";
+    const actor = options?.actor ?? LOCAL_ACTOR;
     const task = queue.then(async () => {
       const started = performance.now();
+      const tx: Transaction = { origin, actor, changes: [], closed: false };
       const result = command
-        ? await executeNow(command, input, origin)
+        ? await executeNow(command, input, tx, options?.label)
         : err("unknown_command", `No command registered with id "${id}"`);
+      const changes: StoreChange[] = result.ok ? tx.changes : [];
       const event: CommandExecutedEvent = {
         commandId: id,
         origin,
+        actor,
+        changes,
         result,
         durationMs: performance.now() - started,
       };

@@ -7,6 +7,7 @@ import { junctionRef } from "./junction.ref";
 /** Describes every kind of junction, so an agent knows what `junction_add` and `junction_set` accept. */
 const describeJunctions = defineMcpTool({
   name: "junction_describe",
+  readOnly: true,
   description:
     "Lists every kind of junction (transitions, a plugin's): its name, the track kinds it may sit on, how it overlaps the two clips (default and minimum duration in microseconds for the project's frame rate; the maximum depends on the clips and is reported by junction_add/junction_set when exceeded; overlap is false when the kind doesn't overlap), the JSON schema of the patch junction_set accepts and its default values for the project's current format.",
   input: z.object({}),

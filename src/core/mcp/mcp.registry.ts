@@ -1,5 +1,5 @@
 import { toInputJsonSchema } from "./mcp.tool";
-import type { McpRegistry, McpToolDefinition, McpToolManifest } from "./mcp.types";
+import type { McpObserver, McpRegistry, McpToolDefinition, McpToolManifest } from "./mcp.types";
 
 const TOOL_NAME = /^[a-z][a-z0-9_]{0,63}$/;
 
@@ -8,6 +8,7 @@ export function createMcpRegistry(): McpRegistry {
   const tools = new Map<string, McpToolDefinition>();
   const listeners = new Set<() => void>();
   let cachedManifest: McpToolManifest[] | null = null;
+  let observer: McpObserver | null = null;
 
   function changed(): void {
     cachedManifest = null;
@@ -43,5 +44,12 @@ export function createMcpRegistry(): McpRegistry {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    observe(next) {
+      observer = next;
+      return () => {
+        if (observer === next) observer = null;
+      };
+    },
+    observer: () => observer,
   };
 }

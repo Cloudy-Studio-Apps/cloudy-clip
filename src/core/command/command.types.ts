@@ -10,10 +10,18 @@ import type { PatchableStore } from "../store/store.types";
 /** Who triggered a command. Recorded in history so the UI can show what an agent changed. */
 export type CommandOrigin = "user" | "agent" | "plugin";
 
+/**
+ * Who a change belongs to: the local user, or a collaborator's stable key. Undo steps and
+ * playheads are kept per actor.
+ */
+export type ActorId = string;
+
 /** Passed to every command's `run`. The only way a command may change document state. */
 export interface CommandContext {
   /** Who triggered this execution. */
   readonly origin: CommandOrigin;
+  /** Whose change this is. */
+  readonly actor: ActorId;
   /** Logger scoped to the command id. */
   readonly log: Logger;
   /**
@@ -55,12 +63,19 @@ export interface CommandDefinition<I extends z.ZodType = z.ZodType, O = unknown>
 export interface ExecuteOptions {
   /** Defaults to `"user"`. */
   origin?: CommandOrigin;
+  /** Defaults to the local user. */
+  actor?: ActorId;
+  /** Name of the undo step, instead of the command's label. */
+  label?: string;
 }
 
 /** Emitted after every command finishes, successfully or not. */
 export interface CommandExecutedEvent {
   commandId: string;
   origin: CommandOrigin;
+  actor: ActorId;
+  /** What the command changed (empty when it failed or changed nothing). */
+  changes: StoreChange[];
   result: Result<unknown, AppError>;
   durationMs: number;
 }
@@ -109,6 +124,7 @@ export interface CommandBusOptions {
 /** Mutable state of one top-level execution, shared with nested commands. */
 export interface Transaction {
   origin: CommandOrigin;
+  actor: ActorId;
   changes: StoreChange[];
   /** Set when the execution timed out: late mutations are refused. */
   closed: boolean;

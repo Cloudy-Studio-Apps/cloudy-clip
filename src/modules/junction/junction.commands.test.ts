@@ -226,6 +226,7 @@ describe("junction commands", () => {
       {
         bus: kernel.bus,
         history: kernel.history,
+        caller: { key: "agent", name: "Agent" },
         require: (ref) => kernel.modules.require(ref),
       },
     );

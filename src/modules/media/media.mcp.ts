@@ -26,7 +26,7 @@ const importTool = defineMcpTool({
   input: importMedia.input,
   async handler(input, { bus, require }) {
     const media = require(mediaRef);
-    const result = await bus.run(importMedia, input, { origin: "agent" });
+    const result = await bus.run(importMedia, input);
     if (!result.ok) return errorResult(result.error);
     const value: ImportResult = result.value;
     await Promise.all(value.imported.map((asset) => media.waitForProbe(asset.id)));
@@ -39,6 +39,7 @@ const importTool = defineMcpTool({
 
 const listTool = defineMcpTool({
   name: "media_list",
+  readOnly: true,
   description:
     "Lists imported media with metadata: kind, duration (microseconds), width/height, status (pending, ready, error), and proxy (state, progress 0..1, message) for files being optimized for editing.",
   input: z.object({}),

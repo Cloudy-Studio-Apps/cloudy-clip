@@ -6,6 +6,7 @@ import { searchFamilies } from "./logic/variants";
 /** Lists the font families text can use. */
 const listFonts = defineMcpTool({
   name: "fonts_list",
+  readOnly: true,
   description:
     'Lists the font families a text clip can use (bundled, installed on this computer, Google Fonts). Optional "query" filters by name; "source" is bundled, installed or google; "limit" defaults to 50 (max 200). Returns family, source, available weights and whether italic exists.',
   input: z.object({

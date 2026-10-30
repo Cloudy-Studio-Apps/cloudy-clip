@@ -18,11 +18,12 @@ export function createHistory(limit = DEFAULT_LIMIT): History {
       canRedo: future.length > 0,
       undoLabel: past.at(-1)?.label ?? null,
       redoLabel: future.at(-1)?.label ?? null,
-      past: past.map(({ id, commandId, label, origin, timestamp }) => ({
+      past: past.map(({ id, commandId, label, origin, actor, timestamp }) => ({
         id,
         commandId,
         label,
         origin,
+        actor,
         timestamp,
       })),
     };

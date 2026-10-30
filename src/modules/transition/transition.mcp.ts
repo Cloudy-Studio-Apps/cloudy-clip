@@ -7,6 +7,7 @@ import { transitionRef } from "./transition.ref";
 /** Lists the transition presets, so an agent knows what `transition_apply` accepts. */
 const listPresets = defineMcpTool({
   name: "transition_list_presets",
+  readOnly: true,
   description:
     "Lists every transition preset: id, name, category, the JSON schema of its options and their default values for the project's current format. Use the id with transition_apply.",
   input: z.object({}),

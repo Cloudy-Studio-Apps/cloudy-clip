@@ -1,4 +1,4 @@
-import type { CommandOrigin } from "../command/command.types";
+import type { ActorId, CommandOrigin } from "../command/command.types";
 import type { StoreChange } from "../store/store.types";
 
 /** One undoable step: everything a single top-level command changed. */
@@ -8,6 +8,7 @@ export interface HistoryEntry {
   commandId: string;
   label: string;
   origin: CommandOrigin;
+  actor: ActorId;
   timestamp: number;
   /** Changes in the order they were applied. */
   changes: StoreChange[];
@@ -22,7 +23,9 @@ export interface HistorySnapshot {
   /** Label of the step `redo` would reapply. */
   redoLabel: string | null;
   /** Most recent last. */
-  past: ReadonlyArray<Pick<HistoryEntry, "id" | "commandId" | "label" | "origin" | "timestamp">>;
+  past: ReadonlyArray<
+    Pick<HistoryEntry, "id" | "commandId" | "label" | "origin" | "actor" | "timestamp">
+  >;
 }
 
 /** The shared undo/redo stack. User, agent, and plugin changes all live in it. */

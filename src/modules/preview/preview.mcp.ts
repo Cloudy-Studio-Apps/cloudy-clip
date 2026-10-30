@@ -5,6 +5,7 @@ import { previewRef } from "./preview.ref";
 
 const captureFrame = defineMcpTool({
   name: "preview_capture_frame",
+  readOnly: true,
   description:
     "Returns a PNG of the preview, so you can see the result. Pass `time` (microseconds) to look at a specific moment (playback pauses); otherwise the current playhead is used.",
   input: z.object({ time: z.number().int().min(0).optional().describe("Microseconds") }),

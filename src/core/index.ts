@@ -8,8 +8,10 @@ export { createKernel } from "./kernel";
 export type { Kernel } from "./kernel.types";
 
 // Commands
+export { LOCAL_ACTOR } from "./command/command.actor";
 export { defineCommand } from "./command/command.define";
 export type {
+  ActorId,
   CommandBus,
   CommandInputs,
   PanelCommandId,
@@ -62,7 +64,10 @@ export { createTauriMcpTransport } from "./mcp/mcp.transport.tauri";
 export type {
   McpBridge,
   McpCall,
+  McpCallVerdict,
+  McpCaller,
   McpContent,
+  McpObserver,
   McpRegistry,
   McpToolContext,
   McpToolDefinition,

@@ -22,19 +22,21 @@ export function errorResult(error: AppError): McpToolResult {
 }
 
 /**
- * Exposes a command as an MCP tool with the same input schema. The command runs with origin
- * `"agent"` and goes into the shared undo history like any user edit.
+ * Exposes a command as an MCP tool with the same input schema. The command runs as the caller
+ * and goes into the undo history like any user edit. It counts as read-only unless the command
+ * is undoable or `writes` says it changes the project some other way.
  */
 export function commandTool<I extends z.ZodObject, O>(
   command: CommandDefinition<I, O>,
-  options: { name: string; description?: string },
+  options: { name: string; description?: string; writes?: boolean },
 ): McpToolDefinition<I> {
   return {
     name: options.name,
     description: options.description ?? command.description,
     input: command.input,
+    readOnly: !(command.undoable || options.writes),
     async handler(input, { bus }) {
-      const result = await bus.execute(command.id, input, { origin: "agent" });
+      const result = await bus.execute(command.id, input);
       return result.ok ? textResult(result.value ?? { ok: true }) : errorResult(result.error);
     },
   };

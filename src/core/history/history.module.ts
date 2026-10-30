@@ -21,13 +21,14 @@ export function createHistoryModule(history: History): ModuleDefinition {
     tier: "core",
     commands: [undo, redo],
     mcpTools: [
-      commandTool(undo, { name: "history_undo" }),
-      commandTool(redo, { name: "history_redo" }),
+      commandTool(undo, { name: "history_undo", writes: true }),
+      commandTool(redo, { name: "history_redo", writes: true }),
       defineMcpTool({
         name: "history_list",
         description:
           "Lists the undoable steps, oldest first, with who made each one (user, agent, plugin).",
         input: z.object({}),
+        readOnly: true,
         handler: (_input, ctx) => textResult(ctx.history.getSnapshot()),
       }),
     ],

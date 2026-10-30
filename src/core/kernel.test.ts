@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { defineCommand } from "./command/command.define";
+import { LOCAL_ACTOR } from "./command/command.actor";
 import { commandTool, defineMcpTool, textResult } from "./mcp/mcp.tool";
 import { createMcpBridge } from "./mcp/mcp.bridge";
 import type { McpTransport } from "./mcp/mcp.types";
@@ -13,6 +14,7 @@ import type { PatchableStore } from "./store/store.types";
 const noopTransport: McpTransport = {
   registerTools: async () => {},
   onCall: async () => () => {},
+  onConnected: async () => () => {},
   respond: async () => {},
 };
 
@@ -64,6 +66,99 @@ describe("kernel", () => {
 
     await kernel.bus.execute("history.undo", {});
     expect(store.getState().title).toBe("a");
+  });
+
+  const claude = { key: "agent-1", name: "Claude Code" };
+
+  it("records the calling agent on the step", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    await bridgeOf(kernel).handle({
+      id: "1",
+      name: "doc_rename",
+      arguments: { title: "b" },
+      caller: claude,
+    });
+    expect(kernel.history.getSnapshot().past.at(-1)).toMatchObject({
+      actor: "agent-1",
+      origin: "agent",
+    });
+  });
+
+  it("a hand-written tool using ctx.bus runs as its caller", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    const unregister = kernel.mcp.register(
+      defineMcpTool({
+        name: "doc_rename_by_hand",
+        description: "Renames.",
+        input: z.object({}),
+        async handler(_input, { bus }) {
+          await bus.run(rename, { title: "c" });
+          return textResult("done");
+        },
+      }),
+    );
+    await bridgeOf(kernel).handle({
+      id: "1",
+      name: "doc_rename_by_hand",
+      arguments: {},
+      caller: claude,
+    });
+    expect(kernel.history.getSnapshot().past.at(-1)).toMatchObject({
+      actor: "agent-1",
+      origin: "agent",
+    });
+    unregister();
+  });
+
+  it("an observer's deny stops the call before the tool runs", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    kernel.mcp.observe({
+      connected: () => {},
+      call: () => ({ deny: { code: "x.no", message: "no" } }),
+      finished: () => [],
+    });
+    const result = await bridgeOf(kernel).handle({
+      id: "1",
+      name: "doc_rename",
+      arguments: { title: "b" },
+    });
+    expect(result.isError).toBe(true);
+    expect(kernel.modules.require(docRef).store.getState().title).toBe("a");
+  });
+
+  it("appends the observer's notes to the reply and stamps its label on the step", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    kernel.mcp.observe({
+      connected: () => {},
+      call: () => ({ label: "Rename the doc" }),
+      finished: () => ["note"],
+    });
+    const result = await bridgeOf(kernel).handle({
+      id: "1",
+      name: "doc_rename",
+      arguments: { title: "b" },
+    });
+    expect(result.content.at(-1)).toEqual({ type: "text", text: "note" });
+    expect(kernel.history.getSnapshot().undoLabel).toBe("Rename the doc");
+  });
+
+  it("a user command defaults to the local actor", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    await kernel.bus.run(rename, { title: "b" });
+    expect(kernel.history.getSnapshot().past.at(-1)?.actor).toBe(LOCAL_ACTOR);
+  });
+
+  it("marks what writes: undoable commands and anything flagged", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    expect(kernel.mcp.get("doc_rename")?.readOnly).toBe(false);
+    expect(kernel.mcp.get("history_undo")?.readOnly).toBe(false);
+    expect(kernel.mcp.get("history_list")?.readOnly).toBe(true);
   });
 
   it("MCP tools can require modules", async () => {

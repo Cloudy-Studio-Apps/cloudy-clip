@@ -8,6 +8,7 @@ import { layoutCommands } from "./logic/commands";
 /** Describes every kind of clip, so an agent knows what `element_set_props` accepts. */
 const describeElements = defineMcpTool({
   name: "element_describe",
+  readOnly: true,
   description:
     "Lists every kind of clip (text, media, …): its name, the track kinds it may sit on, whether it plays a file, the shared groups it supports (transform), the JSON schema of the patch element_set_props accepts (ranges, units in descriptions) and its default values for the project's current format, and the commands its inspector panel offers (each takes clipIds). Values a clip doesn't store are these defaults.",
   input: z.object({}),
