@@ -3,6 +3,7 @@ import type { MediaApi } from "@/modules/media";
 import type { ProjectApi } from "@/modules/project";
 import type { TimelineDrop, TimelineDropHandler } from "@/modules/timeline";
 import { createFromMedia, openComposition } from "./composition.commands";
+import { placeComposition } from "./composition.place.command";
 import type { CompositionApi } from "./composition.types";
 
 interface DropDeps {
@@ -49,8 +50,11 @@ export function createCompositionDrop({ bus, project, media, api }: DropDeps) {
     handle(drop) {
       const { item } = drop;
       const nothingOpen = view.openFor(LOCAL_ACTOR) === null;
-      if (item.type === "composition" && nothingOpen) {
-        void bus.run(openComposition, { compositionId: item.id });
+      if (item.type === "composition") {
+        const { start, trackId } = drop;
+        void (nothingOpen
+          ? bus.run(openComposition, { compositionId: item.id })
+          : bus.run(placeComposition, { compositionId: item.id, start, trackId }));
         return true;
       }
       if (!nothingOpen) return false;

@@ -4,13 +4,13 @@ What a timeline is. A composition is a size, a frame rate, a background, a lengt
 
 - **Tier:** core
 - **Requires:** `project`, `element`, `media`, `timeline`
-- **Contributes:** element `composition` (`composition.element.ts`: `picture: { fit: "contain", source: "composition" }`, sits on video and audio tracks); `librarySections` (`CompositionSection`), `timelineTabs` (`CompositionTabs`), `timelineOverlays` (`EmptyStart`, `EndMarker`), `timelineMenuItems` (Composition Settings, Extend to fit), `timelineDropHandlers` (`composition.drop.ts`), `appOverlays` (`CompositionDialogHost`)
+- **Contributes:** element `composition` (`composition.element.ts`: `picture: { fit: "contain", source: "composition" }`, sits on video and audio tracks); `librarySections` (`CompositionSection`), `timelineTabs` (`CompositionTabs`), `timelineOverlays` (`EmptyStart`, `EndMarker`), `timelineMenuItems` (Composition Settings, Extend to fit), `timelineDropHandlers` (`composition.drop.ts`), `clipActions` (double-click opens the original), `appOverlays` (`CompositionDialogHost`)
 - **Points it owns:** —
 - **API** (`CompositionApi`): `ui` (open dialog and selected tile, not in history), `openNew`, `openSettings(id)`, `closeDialog`, `select(id)`, `cancelWaiting`, `landPending`.
 - **Files:**
   - `composition.commands.ts`: the commands below. `composition.guards.ts`: `requireComposition`, `checkFormat`, `formatInput`.
   - `composition.presets.ts`: `COMPOSITION_PRESETS`, `FPS_OPTIONS`.
-  - `composition.drop.ts`: drops with nothing open. A composition opens; with compositions around, Main opens and the drop goes on; a video waits for its metadata outside the bus (`WaitingDrop`, Escape cancels), then runs `composition.createFromMedia`; audio and elements go through the dialog and land on confirm.
+  - `composition.drop.ts`: drops. A composition is placed, or just opens with nothing open. With nothing open, with compositions around, Main opens and the drop goes on; a video waits for its metadata outside the bus (`WaitingDrop`, Escape cancels), then runs `composition.createFromMedia`; audio and elements go through the dialog and land on confirm.
   - `composition.store.ts`: `createCompositionUi()`. `logic/timecode.ts`: `formatLength`, `parseLength` (`mm:ss:ff`).
   - `ui/`: `CompositionDialog` (New Composition and Composition Settings share one form), `CompositionTile`, `CompositionSection`, `CompositionTabs`, `EmptyStart`, `EndMarker` with `end.gesture.ts` (moves through the DOM, one `setSettings` on release).
   - `logic/clone.ts`: `cloneComposition(draft, id, name)`: new ids, links remapped, placed compositions stay shared.

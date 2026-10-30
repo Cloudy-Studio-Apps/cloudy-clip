@@ -6,6 +6,7 @@ import type { LibraryItem } from "@/modules/media";
 import type { LucideIcon } from "lucide-react";
 import type { MenuItem } from "@/ui";
 import type {
+  Clip,
   CompositionId,
   ClipId,
   ClipMove,
@@ -187,4 +188,13 @@ export interface TimelineDropHandler {
   id: string;
   /** True when it took care of the drop. */
   handle(drop: TimelineDrop): boolean;
+}
+
+/** What a module does with a clip. */
+export interface ClipActions {
+  id: string;
+  /** A double click. True when it took care of it. */
+  doubleClick?(clip: Clip): boolean;
+  /** Entries of the clip's right-click menu. */
+  items?(clip: Clip): MenuItem[];
 }

@@ -9,7 +9,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
 - **Contributes:** panel `timeline.panel` (bottom); keybindings `timeline.split` (S),
   `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace); with a junction selected
   they run `junction.remove` instead of deleting clips
-- **Points it owns** (`timeline.points.ts`): `timelineTabs` (between the toolbar and the ruler; `composition` contributes its tabs), `timelineMenuItems` (the right-click menu), `timelineDropHandlers` (who gets a drop first; `timeline.drop(drop)` asks them, then places it), `timelineOverlays` (id `timeline.overlays`, keyed by `id`): layers in the scrolling content, beside the playhead and outside the virtualized pages.
+- **Points it owns** (`timeline.points.ts`): `timelineTabs` (between the toolbar and the ruler; `composition` contributes its tabs), `timelineMenuItems` (the right-click menu), `clipActions` (a clip's double-click and right-click), `timelineDropHandlers` (who gets a drop first; `timeline.drop(drop)` asks them, then places it), `timelineOverlays` (id `timeline.overlays`, keyed by `id`): layers in the scrolling content, beside the playhead and outside the virtualized pages.
 - **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history), `clipBox(id)` and `panelBox()` (screen boxes; `clipBox` works for clips no page has rendered), `onScroll`, `scrollToTime`, `attachScroller`,
   `setZoom`, `selectClip` (selecting a clip selects its linked partners and clears the junction
   selection), `selectJunction(id | null)` (selecting a junction clears the clip selection;

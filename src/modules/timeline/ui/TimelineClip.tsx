@@ -1,13 +1,14 @@
 import { Link } from "lucide-react";
 import { memo, useMemo, useRef } from "react";
 import { useStore } from "zustand";
-import { useKernel, useModule } from "@/core";
+import { useKernel, useModule, usePoint } from "@/core";
 import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
 import { elementRef, type ElementDisplay } from "@/modules/element";
 import { type Clip, type ProjectState, partnersOf, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
-import { cn } from "@/ui";
+import { cn, ContextMenu } from "@/ui";
+import { clipActions } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { timeToPx } from "../logic/geometry";
 import { ClipBody } from "./ClipBody";
@@ -55,54 +56,58 @@ export const TimelineClip = memo(function TimelineClip({
     mediaId ? s.probes[mediaId]?.posterUrl : undefined,
   );
   const linked = useStore(project.api, (s) => partnersOf(s, clip.id).length > 0);
+  const actions = usePoint(clipActions);
 
   return (
-    <div
-      ref={ref}
-      data-clip-id={clip.id}
-      data-collab-target={`clip:${clip.id}`}
-      className={cn(
-        "group absolute bottom-[3px] top-[3px] overflow-hidden rounded-xs border text-white select-none data-[invalid=true]:!border-destructive data-[invalid=true]:!bg-destructive",
-        selected ? "border-white shadow-[inset_0_0_0_1px_white]" : "border-black/30",
-        shift !== 0 && "transition-transform duration-100",
-      )}
-      style={{
-        backgroundColor: `var(--${color})`,
-        left: timeToPx(clip.start, pxPerSecond),
-        width: timeToPx(clip.duration, pxPerSecond),
-        transform: shift !== 0 ? `translateX(${timeToPx(shift, pxPerSecond)}px)` : undefined,
-      }}
-      onPointerMove={(e) => {
-        // Show the right cursor for move vs. trim.
-        const mode = gestureMode(e.nativeEvent.offsetX, e.currentTarget.offsetWidth);
-        e.currentTarget.style.cursor = mode === "move" ? "grab" : "ew-resize";
-      }}
-      onPointerDown={(e) => {
-        if (e.button !== 0 || !ref.current || !rootRef.current) return;
-        e.stopPropagation();
-        timeline.selectClip(clip.id, e.shiftKey || e.metaKey || e.ctrlKey);
-        startClipGesture({
-          bus,
-          clip,
-          element: ref.current,
-          root: rootRef.current,
-          down: e.nativeEvent,
-          view: timeline.view,
-          playback,
-          media,
-          project,
-          kindOf: (kind) => junctions.get(kind)?.definition,
-        });
-      }}
-    >
-      <div className="pointer-events-none flex h-[17px] items-center gap-1 bg-black/25 px-1.5 text-xs font-medium">
-        {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
-        <span className="min-w-0 flex-1 truncate">{label}</span>
+    <ContextMenu items={() => actions.flatMap((action) => action.items?.(clip) ?? [])}>
+      <div
+        ref={ref}
+        data-clip-id={clip.id}
+        data-collab-target={`clip:${clip.id}`}
+        className={cn(
+          "group absolute bottom-[3px] top-[3px] overflow-hidden rounded-xs border text-white select-none data-[invalid=true]:!border-destructive data-[invalid=true]:!bg-destructive",
+          selected ? "border-white shadow-[inset_0_0_0_1px_white]" : "border-black/30",
+          shift !== 0 && "transition-transform duration-100",
+        )}
+        style={{
+          backgroundColor: `var(--${color})`,
+          left: timeToPx(clip.start, pxPerSecond),
+          width: timeToPx(clip.duration, pxPerSecond),
+          transform: shift !== 0 ? `translateX(${timeToPx(shift, pxPerSecond)}px)` : undefined,
+        }}
+        onDoubleClick={() => actions.some((action) => action.doubleClick?.(clip))}
+        onPointerMove={(e) => {
+          // Show the right cursor for move vs. trim.
+          const mode = gestureMode(e.nativeEvent.offsetX, e.currentTarget.offsetWidth);
+          e.currentTarget.style.cursor = mode === "move" ? "grab" : "ew-resize";
+        }}
+        onPointerDown={(e) => {
+          if (e.button !== 0 || !ref.current || !rootRef.current) return;
+          e.stopPropagation();
+          timeline.selectClip(clip.id, e.shiftKey || e.metaKey || e.ctrlKey);
+          startClipGesture({
+            bus,
+            clip,
+            element: ref.current,
+            root: rootRef.current,
+            down: e.nativeEvent,
+            view: timeline.view,
+            playback,
+            media,
+            project,
+            kindOf: (kind) => junctions.get(kind)?.definition,
+          });
+        }}
+      >
+        <div className="pointer-events-none flex h-[17px] items-center gap-1 bg-black/25 px-1.5 text-xs font-medium">
+          {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
+          <span className="min-w-0 flex-1 truncate">{label}</span>
+        </div>
+        <ClipBody body={body} poster={poster} />
+        {/* Trim handles: brackets on hover. */}
+        <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-white" />
+        <div className="pointer-events-none absolute inset-y-0 -right-px w-[7px] group-hover:border-r-[3px] group-hover:border-white" />
       </div>
-      <ClipBody body={body} poster={poster} />
-      {/* Trim handles: brackets on hover. */}
-      <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-white" />
-      <div className="pointer-events-none absolute inset-y-0 -right-px w-[7px] group-hover:border-r-[3px] group-hover:border-white" />
-    </div>
+    </ContextMenu>
   );
 });

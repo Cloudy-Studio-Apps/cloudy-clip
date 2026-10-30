@@ -1,5 +1,6 @@
 import { definePoint } from "@/core";
 import type {
+  ClipActions,
   TimelineDropHandler,
   TimelineMenuItems,
   TimelineOverlay,
@@ -24,4 +25,9 @@ export const timelineMenuItems = definePoint<TimelineMenuItems>("timeline.menuIt
 /** Who gets a drop before the timeline, in order. The timeline's `drop` reads them. */
 export const timelineDropHandlers = definePoint<TimelineDropHandler>("timeline.dropHandlers", {
   keyOf: (handler) => handler.id,
+});
+
+/** What modules do with a clip: double-click and right-click. Each clip reads them. */
+export const clipActions = definePoint<ClipActions>("timeline.clipActions", {
+  keyOf: (actions) => actions.id,
 });

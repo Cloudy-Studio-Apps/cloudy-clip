@@ -24,6 +24,7 @@ export {
 export { findOverlap, freeTrack, minClipDuration, sortClipIds, trackEnd } from "./logic/placement";
 /** Layers over the lanes; contribute with `ctx.contribute(timelineOverlays, …)`. */
 export {
+  clipActions,
   timelineDropHandlers,
   timelineMenuItems,
   timelineOverlays,
@@ -41,6 +42,7 @@ export { overlapError } from "./timeline.guards";
  */
 export { selectionSubject } from "./logic/links";
 export type {
+  ClipActions,
   ScreenBox,
   TimelineDrop,
   TimelineDropHandler,

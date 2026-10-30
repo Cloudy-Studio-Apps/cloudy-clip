@@ -3,13 +3,14 @@ import { elements } from "@/modules/element";
 import { librarySections, mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import {
+  clipActions,
   timelineDropHandlers,
   timelineMenuItems,
   timelineOverlays,
   timelineRef,
   timelineTabs,
 } from "@/modules/timeline";
-import { compositionCommands, extendToFitOnce } from "./composition.commands";
+import { compositionCommands, extendToFitOnce, openComposition } from "./composition.commands";
 import { createCompositionDrop } from "./composition.drop";
 import { compositionElement } from "./composition.element";
 import { compositionMcpTools } from "./composition.mcp";
@@ -63,6 +64,14 @@ export const compositionModule = defineModule({
         if (drop) timeline.drop(drop);
       },
     };
+    ctx.contribute(clipActions, {
+      id: "composition.clip",
+      doubleClick({ compositionRef }) {
+        if (compositionRef === undefined) return false;
+        void ctx.bus.run(openComposition, { compositionId: compositionRef });
+        return true;
+      },
+    });
     ctx.contribute(timelineMenuItems, {
       id: "composition.menu",
       items() {
