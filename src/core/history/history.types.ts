@@ -63,8 +63,10 @@ export interface History {
   scopeUndo(): void;
   /** Hands `from`'s remaining steps to `to` and drops `from`'s redo steps. */
   reassign(from: ActorId, to: ActorId): void;
-  /** How refusals name an actor. */
+  /** How refusals and toasts name an actor. */
   nameActors(name: (actor: ActorId) => string): void;
+  /** An actor's name, as `nameActors` says. */
+  nameOf(actor: ActorId): string;
   /** Drops all steps. */
   clear(): void;
   getSnapshot(): HistorySnapshot;

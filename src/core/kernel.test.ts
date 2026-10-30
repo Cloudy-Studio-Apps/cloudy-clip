@@ -161,6 +161,73 @@ describe("kernel", () => {
     expect(kernel.mcp.get("history_list")?.readOnly).toBe(true);
   });
 
+  it("without scoping, Ctrl+Z reaches an agent's step", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    await kernel.bus.run(rename, { title: "b" }, { origin: "agent", actor: "agent-1" });
+    const result = await kernel.bus.execute("history.undo", {});
+    expect(result.ok).toBe(true);
+    expect(kernel.modules.require(docRef).store.getState().title).toBe("a");
+  });
+
+  it("with scoping, the user's undo leaves an agent's step alone", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    kernel.history.scopeUndo();
+    await kernel.bus.run(rename, { title: "b" }, { origin: "agent", actor: "agent-1" });
+    const result = await kernel.bus.execute("history.undo", {});
+    expect(result.ok).toBe(false);
+    expect(kernel.modules.require(docRef).store.getState().title).toBe("b");
+  });
+
+  it("history_undo reverts the calling agent's own step only", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    const bridge = bridgeOf(kernel);
+    await bridge.handle({ id: "1", name: "doc_rename", arguments: { title: "b" }, caller: claude });
+    const other = { key: "agent-2", name: "Codex" };
+    const refused = await bridge.handle({
+      id: "2",
+      name: "history_undo",
+      arguments: {},
+      caller: other,
+    });
+    expect(refused.isError).toBe(true);
+    await bridge.handle({ id: "3", name: "history_undo", arguments: {}, caller: claude });
+    expect(kernel.modules.require(docRef).store.getState().title).toBe("a");
+  });
+
+  it("undoFor reverts another actor's step for the user, and refuses an agent", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    kernel.history.scopeUndo();
+    await kernel.bus.run(rename, { title: "b" }, { origin: "agent", actor: "agent-1" });
+    const refused = await kernel.bus.execute(
+      "history.undoFor",
+      { actor: "agent-1" },
+      { origin: "agent", actor: "agent-2" },
+    );
+    expect(refused.ok).toBe(false);
+    const result = await kernel.bus.execute("history.undoFor", { actor: "agent-1" });
+    expect(result).toMatchObject({ ok: true, value: { undone: "Rename", actor: "agent-1" } });
+    expect(kernel.modules.require(docRef).store.getState().title).toBe("a");
+  });
+
+  it("reassign gives a gone agent's steps to the user and drops its redo", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    kernel.history.scopeUndo();
+    await kernel.bus.run(rename, { title: "b" }, { origin: "agent", actor: "agent-1" });
+    await kernel.bus.run(rename, { title: "c" }, { origin: "agent", actor: "agent-1" });
+    kernel.history.undo("agent-1");
+    kernel.history.reassign("agent-1", LOCAL_ACTOR);
+    expect(kernel.history.redo("agent-1")).toBeNull();
+    expect(kernel.history.redo(LOCAL_ACTOR)).toBeNull();
+    expect(kernel.history.getSnapshot().canUndo).toBe(true);
+    await kernel.bus.execute("history.undo", {});
+    expect(kernel.modules.require(docRef).store.getState().title).toBe("a");
+  });
+
   it("MCP tools can require modules", async () => {
     const kernel = await createKernel();
     await kernel.modules.load(docModule);

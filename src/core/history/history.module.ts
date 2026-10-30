@@ -14,19 +14,19 @@ export const historyRef = defineModuleRef("history");
  * Created per kernel because its commands close over that kernel's `History`.
  */
 export function createHistoryModule(history: History): ModuleDefinition {
-  const { undo, redo } = createHistoryCommands(history);
+  const { undo, redo, undoFor } = createHistoryCommands(history);
   return defineModule({
     ref: historyRef,
     name: "History",
     tier: "core",
-    commands: [undo, redo],
+    commands: [undo, redo, undoFor],
     mcpTools: [
       commandTool(undo, { name: "history_undo", writes: true }),
       commandTool(redo, { name: "history_redo", writes: true }),
       defineMcpTool({
         name: "history_list",
         description:
-          "Lists the undoable steps, oldest first, with who made each one (user, agent, plugin).",
+          "Lists the undoable steps, oldest first, with who made each one (origin: user, agent or plugin; actor: which one).",
         input: z.object({}),
         readOnly: true,
         handler: (_input, ctx) => textResult(ctx.history.getSnapshot()),

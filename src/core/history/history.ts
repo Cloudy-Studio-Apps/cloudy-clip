@@ -179,6 +179,7 @@ export function createHistory(limit = DEFAULT_LIMIT): History {
     nameActors(name) {
       nameOf = name;
     },
+    nameOf: (actor) => nameOf(actor),
     clear() {
       log = [];
       futures.clear();

@@ -52,13 +52,13 @@ export async function bootstrap(): Promise<Kernel> {
     }
   }
 
-  kernel.bus.onExecuted(({ origin, result, commandId }) => {
+  kernel.bus.onExecuted(({ origin, actor, result, commandId }) => {
     const command = kernel.bus.get(commandId);
     if (!result.ok) {
       if (origin === "user") notify("error", result.error.message);
     } else if (origin === "agent" && command?.undoable) {
       // Tell the user what an agent changed. It can be undone like any edit.
-      notify("info", `Agent: ${command.label}`);
+      notify("info", `${kernel.history.nameOf(actor)}: ${command.label}`);
     }
   });
 
