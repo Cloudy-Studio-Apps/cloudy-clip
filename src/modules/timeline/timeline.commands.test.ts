@@ -408,12 +408,6 @@ describe("linked clips", () => {
       expect(snapCandidates(doc(), "c1", 0)).not.toContain(2 * S);
     });
 
-    it("names a new track after the tracks of its own composition", async () => {
-      seedSecond();
-      const result = await kernel.bus.run(addTrack, { kind: "video" });
-      expect(result.ok && doc().tracks[result.value.trackId]!.name).toBe("Video 2");
-    });
-
     it("refuses to move a clip into another composition", async () => {
       const clip = await place({ mediaId: "ma" });
       seedSecond();

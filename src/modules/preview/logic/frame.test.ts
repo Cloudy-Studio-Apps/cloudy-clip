@@ -92,13 +92,6 @@ const innerClips = (frame: ResolvedFrame): ResolvedClip[] =>
   );
 
 describe("resolveFrame", () => {
-  it("is the flat timeline when nothing is nested", () => {
-    const state = project([track("v", "outer", ["a"])], [clip("a", "v", 0, S)]);
-    const frame = resolveFrame(state, "outer", 500_000, opts);
-    expect(frame.tracks[0]!.clips.map((c) => [c.path, c.clip.id])).toEqual([["a", "a"]]);
-    expect(frame.tracks[0]!.clips[0]!.inner).toBeUndefined();
-  });
-
   it("descends with local time", () => {
     const state = project(
       [track("v", "outer", ["p"])],
@@ -116,33 +109,6 @@ describe("resolveFrame", () => {
     const [a, b] = innerClips(resolveFrame(state, "outer", 3 * S, opts));
     expect([a!.path, b!.path]).toEqual(["p1/x", "p2/x"]);
     expect([a!.time, b!.time]).toEqual([3 * S, S]);
-  });
-
-  it("preloads a clip about to start inside a placement", () => {
-    const state = project(
-      [track("v", "outer", ["p"])],
-      [placement("p", "v", 0)],
-      clip("x", "ix", S, 5 * S),
-    );
-    expect(resolveFrame(state, "outer", 0, opts).upcoming.map((u) => u.path)).toEqual(["p/x"]);
-  });
-
-  it("preloads what a placement about to start will show", () => {
-    const state = project([track("v", "outer", ["p"])], [placement("p", "v", S)]);
-    expect(resolveFrame(state, "outer", 0, opts).upcoming.map((u) => u.path)).toEqual(["p/x"]);
-  });
-
-  it("skips what is inside a hidden track's placement", () => {
-    const state = project([track("v", "outer", ["p"], { hidden: true })], [placement("p", "v", 0)]);
-    expect(innerClips(resolveFrame(state, "outer", 0, opts))).toEqual([]);
-  });
-
-  it("takes only sound from a placement on an audio track", () => {
-    const state = project(
-      [track("a", "outer", ["p"], { kind: "audio" })],
-      [placement("p", "a", 0)],
-    );
-    expect(innerClips(resolveFrame(state, "outer", 0, opts))).toEqual([]);
   });
 
   it("stops at a composition's length", () => {

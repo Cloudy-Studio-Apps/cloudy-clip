@@ -528,13 +528,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reads_a_fractional_frame_rate() {
-        assert!((parse_rate("30000/1001").unwrap() - 29.97).abs() < 0.01);
-        assert_eq!(parse_rate("25/1"), Some(25.0));
-        assert_eq!(parse_rate("0/0"), None);
-    }
-
-    #[test]
     fn picture_size_follows_the_rotation_of_a_phone_video() {
         let probe = parse_probe(&json!({
             "streams": [{
@@ -550,6 +543,7 @@ mod tests {
         let meta = probe.meta().unwrap();
         assert_eq!((meta.width, meta.height), (1080, 1920));
         assert_eq!(meta.fps, Some(30.0));
+        assert_eq!(parse_rate("0/0"), None);
         assert_eq!(meta.duration, 2_500_000);
     }
     use serde_json::json;

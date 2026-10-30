@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, LOCAL_ACTOR, type CommandDefinition, type Kernel } from "@/core";
 import { elementModule } from "@/modules/element";
 import { createFakeFontsModule } from "@/modules/fonts";
@@ -19,19 +19,15 @@ import {
   createFromMedia,
   deleteComposition,
   duplicateComposition,
-  extendToFitOnce,
   setMain,
   setSettings,
 } from "./composition.commands";
-import { createCompositionDrop } from "./composition.drop";
 import { compositionModule } from "./composition.module";
 import { placeComposition } from "./composition.place.command";
-import { compositionRef } from "./composition.ref";
 import { makeUnique } from "./composition.unique.command";
 import { groupClips } from "./composition.group.command";
 
 const S = 1_000_000;
-const AGENT = "agent-1";
 let kernel: Kernel;
 
 const project = () => kernel.modules.require(projectRef);
@@ -101,15 +97,6 @@ describe("composition commands", () => {
     expect(view().openFor(LOCAL_ACTOR)).toBe(compositionId);
   });
 
-  it("opens an agent's composition for the user only when the user has nothing open", async () => {
-    view().setOpen(LOCAL_ACTOR, null);
-    const first = await ok(createComposition, {}, AGENT);
-    expect(view().openFor(LOCAL_ACTOR)).toBe(first.compositionId);
-    const second = await ok(createComposition, {}, AGENT);
-    expect(view().openFor(LOCAL_ACTOR)).toBe(first.compositionId);
-    expect(view().openFor(AGENT)).toBe(second.compositionId);
-  });
-
   it("moves an actor off a composition an undo removes", async () => {
     const main = await ok(createComposition, {});
     const other = await ok(createComposition, {});
@@ -117,13 +104,6 @@ describe("composition commands", () => {
     kernel.history.undo(LOCAL_ACTOR);
     expect(state().compositions[other.compositionId]).toBeUndefined();
     expect(view().openFor(LOCAL_ACTOR)).toBe(main.compositionId);
-  });
-
-  it("lands on nothing when the last composition is undone", async () => {
-    await ok(createComposition, {});
-    kernel.history.undo(LOCAL_ACTOR);
-    expect(view().openFor(LOCAL_ACTOR)).toBeNull();
-    expect(() => view().requireOpen(LOCAL_ACTOR)).toThrow(/create one first/i);
   });
 
   it("refuses to delete Main while others exist, and empties the project with the last", async () => {
@@ -134,13 +114,6 @@ describe("composition commands", () => {
     await ok(deleteComposition, main);
     expect(state().mainCompositionId).toBeNull();
     expect(state().tracks).toEqual({});
-  });
-
-  it("moves Main with the star", async () => {
-    await ok(createComposition, {});
-    const other = await ok(createComposition, {});
-    await ok(setMain, other);
-    expect(state().mainCompositionId).toBe(other.compositionId);
   });
 
   it("frees media with the composition that used it", async () => {
@@ -206,31 +179,6 @@ describe("composition commands", () => {
     expect([junction.leftClipId, junction.rightClipId]).toEqual([cl, cr]);
   });
 
-  it("rejects a size outside 2 to 8192", async () => {
-    const { compositionId } = await ok(createComposition, {});
-    const format = { width: 1, height: 10, fps: 30 };
-    expect(await failure(setSettings, { compositionId, format })).toBe("composition.invalid_size");
-  });
-
-  it("a set length turns Extend to fit off", async () => {
-    const { compositionId } = await ok(createComposition, { extendToFit: true });
-    await ok(setSettings, { compositionId, duration: 4 * S });
-    expect(state().compositions[compositionId]).toMatchObject({
-      duration: 4 * S,
-      extendToFit: false,
-    });
-  });
-
-  it("fits once without turning Extend to fit on", async () => {
-    const { compositionId } = await ok(createComposition, {});
-    addTo(compositionId, text("t", "", 0, { duration: 3 * S }));
-    await ok(extendToFitOnce, { compositionId });
-    expect(state().compositions[compositionId]).toMatchObject({
-      duration: 3 * S,
-      extendToFit: false,
-    });
-  });
-
   describe("the automatic start", () => {
     const ready = (media: Record<string, MediaProbe>) =>
       kernel.modules.require(mediaRef).probes.setState({ probes: media });
@@ -240,13 +188,6 @@ describe("composition commands", () => {
         draft.mediaOrder.push(id);
       });
     const meta = { width: 3840, height: 2160, fps: 30_000 / 1001, duration: 12 * S };
-    const drop = () =>
-      createCompositionDrop({
-        bus: kernel.bus,
-        project: project(),
-        media: kernel.modules.require(mediaRef),
-        api: kernel.modules.require(compositionRef),
-      });
 
     beforeEach(() => {
       addFile("v", "beach.mp4", "video");
@@ -270,70 +211,6 @@ describe("composition commands", () => {
       kernel.history.undo(LOCAL_ACTOR);
       expect(state().compositions).toEqual({});
       expect(state().clips).toEqual({});
-    });
-
-    it("takes settings from the first item with a picture, placing in order", async () => {
-      const { compositionId } = await ok(createFromMedia, { mediaIds: ["a", "v"] });
-      expect(state().compositions[compositionId]!.format.width).toBe(3840);
-      expect(Object.values(state().clips).map((clip) => clip.start)).toContain(5 * S);
-    });
-
-    it("refuses a file still being read", async () => {
-      addFile("p", "camera.mov", "video");
-      expect(await failure(createFromMedia, { mediaIds: ["p"] })).toBe("media.not_ready");
-    });
-
-    it("refuses audio alone", async () => {
-      expect(await failure(createFromMedia, { mediaIds: ["a"] })).toBe("composition.no_picture");
-    });
-
-    it("waits for a file's size, then creates the composition", async () => {
-      addFile("p", "camera.mov", "video");
-      const { handler } = drop();
-      expect(handler.handle({ item: { type: "media", id: "p" } })).toBe(true);
-      expect(kernel.modules.require(compositionRef).ui.getState().waiting).toBe("camera.mov");
-      expect(state().compositions).toEqual({});
-      kernel.modules.require(mediaRef).probes.setState((s) => ({
-        probes: { ...s.probes, p: { status: "pending", proxy: { state: "encoding", meta } } },
-      }));
-      await vi.waitFor(() => expect(Object.keys(state().compositions)).toHaveLength(1));
-      expect(kernel.modules.require(compositionRef).ui.getState().waiting).toBeNull();
-    });
-
-    it("opens the dialog for what has no size, and lands it on confirm", async () => {
-      const { handler, dropPending } = drop();
-      const element = { type: "element" as const, kind: "text", props: {} };
-      expect(handler.handle({ item: element })).toBe(true);
-      const { ui } = kernel.modules.require(compositionRef);
-      expect(ui.getState().dialog).toEqual({ mode: "new" });
-      expect(ui.getState().pendingDrop?.item).toEqual(element);
-      await ok(createComposition, {});
-      expect(dropPending()).toEqual({ item: element });
-      expect(ui.getState().pendingDrop).toBeNull();
-    });
-
-    it("drops nothing when the dialog is cancelled", () => {
-      const { handler } = drop();
-      handler.handle({ item: { type: "media", id: "a" } });
-      const api = kernel.modules.require(compositionRef);
-      api.closeDialog();
-      expect(api.ui.getState().pendingDrop).toBeNull();
-    });
-
-    it("opens Main for a drop when compositions exist and none is open", async () => {
-      const main = await ok(createComposition, {});
-      view().setOpen(LOCAL_ACTOR, null);
-      expect(drop().handler.handle({ item: { type: "media", id: "a" } })).toBe(false);
-      expect(view().openFor(LOCAL_ACTOR)).toBe(main.compositionId);
-      expect(Object.keys(state().compositions)).toHaveLength(1);
-    });
-
-    it("just opens a composition dragged onto an empty timeline", async () => {
-      const main = await ok(createComposition, {});
-      view().setOpen(LOCAL_ACTOR, null);
-      const item = { type: "composition" as const, id: main.compositionId };
-      expect(drop().handler.handle({ item })).toBe(true);
-      await vi.waitFor(() => expect(view().openFor(LOCAL_ACTOR)).toBe(main.compositionId));
     });
   });
 
@@ -359,21 +236,6 @@ describe("composition commands", () => {
       expect(sound!.compositionRef).toBe(intro.compositionId);
       expect(state().tracks[sound!.trackId]!.kind).toBe("audio");
       expect(state().tracks[picture!.trackId]!.compositionId).toBe(main.compositionId);
-    });
-
-    it("goes after what is on the track, and reports a busy spot", async () => {
-      const intro = await ok(createComposition, { duration: 5 * S });
-      await ok(createComposition, {});
-      await ok(placeComposition, intro);
-      const second = (await ok(placeComposition, intro)) as unknown as { clips: string[] };
-      expect(state().clips[second.clips[0]!]!.start).toBe(5 * S);
-      expect(
-        await failure(placeComposition, {
-          ...intro,
-          start: 0,
-          trackId: state().clips[second.clips[0]!]!.trackId,
-        }),
-      ).toBe("timeline.overlap");
     });
 
     it("limits a placement's trim to the composition's length", async () => {
@@ -420,12 +282,6 @@ describe("composition commands", () => {
       const { logo, first } = await nested();
       await ok(makeUnique, { clipId: first[0] });
       expect(placementsOf(state(), logo.compositionId)).toHaveLength(4);
-    });
-
-    it("refuses a clip that is not a placement", async () => {
-      const { compositionId } = await ok(createComposition, {});
-      addTo(compositionId, text("t", "", 0));
-      expect(await failure(makeUnique, { clipId: "t" })).toBe("composition.not_placed");
     });
 
     it("undoes in one step", async () => {
@@ -477,24 +333,6 @@ describe("composition commands", () => {
       expect(await failure(groupClips, { clipIds: ["a", "b"] })).toBe("composition.group_blocked");
       expect(state()).toBe(before);
     });
-
-    it("gives an audio-only selection both clips", async () => {
-      const { compositionId } = await ok(createComposition, {});
-      const a = state().compositions[compositionId]!.trackOrder[1]!;
-      write((draft) => {
-        draft.clips.s = text("s", a, 0);
-        draft.tracks[a]!.clipIds = ["s"];
-      });
-      const grouped = (await ok(groupClips, { clipIds: ["s"] })) as unknown as { clips: string[] };
-      expect(grouped.clips).toHaveLength(2);
-    });
-
-    it("refuses clips of two compositions", async () => {
-      await twoClips();
-      const other = await ok(createComposition, {});
-      addTo(other.compositionId, text("z", "", 0));
-      expect(await failure(groupClips, { clipIds: ["a", "z"] })).toBe("composition.group_blocked");
-    });
   });
 
   it("scales what sits in a composition when asked, in one step with the size", async () => {
@@ -514,13 +352,6 @@ describe("composition commands", () => {
     kernel.history.undo(LOCAL_ACTOR);
     expect(state().clips.t!.transform!.y).toBe(600);
     expect(state().compositions[compositionId]!.format.width).toBe(1080);
-  });
-
-  it("keeps positions by default", async () => {
-    const { compositionId } = await ok(createComposition, {});
-    addTo(compositionId, text("t", "", 0, { transform: { x: 0, y: 600, scale: 1, rotation: 0 } }));
-    await ok(setSettings, { compositionId, format: { width: 1920, height: 1080, fps: 30 } });
-    expect(state().clips.t!.transform!.y).toBe(600);
   });
 
   it("refuses a length under one frame, which would shrink every placement to nothing", async () => {

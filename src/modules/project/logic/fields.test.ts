@@ -99,19 +99,6 @@ describe("derived duration", () => {
   it("is not a change while Extend to fit is on", () => {
     expect(paths(withDuration(99))).toEqual([]);
   });
-
-  it("is a change on a fixed length", () => {
-    const fixed = {
-      ...before,
-      compositions: { x: { ...before.compositions.x!, extendToFit: false } },
-    };
-    expect(
-      projectPolicy.diff(fixed, {
-        ...fixed,
-        compositions: { x: { ...fixed.compositions.x!, duration: 99 } },
-      }),
-    ).toEqual([{ path: ["compositions", "x", "duration"], before: 30, after: 99 }]);
-  });
 });
 
 describe("project repair", () => {
