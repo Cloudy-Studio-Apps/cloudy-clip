@@ -1,4 +1,4 @@
-import type { Draft } from "immer";
+import { current, produce, type Draft } from "immer";
 import type { Micros } from "@/core";
 import { clipEnd, compositionClips, frameDuration } from "../project.selectors";
 import type { Clip, ClipId, Composition, CompositionId, ProjectState } from "../project.types";
@@ -72,13 +72,8 @@ function dropBrokenJunctions(state: ProjectState, shortened: ReadonlySet<ClipId>
   }
 }
 
-/**
- * Keeps what follows from a composition's length true inside every step, innermost first: its
- * placements fit what it plays, and with Extend to fit it is as long as its content (one frame
- * when it has none).
- */
-export function settleCompositions(draft: Draft<ProjectState>): void {
-  const state = draft as ProjectState;
+/** One pass over a state that can be written to. */
+function settle(state: ProjectState): void {
   for (const composition of innermostFirst(state)) {
     const frame = frameDuration(composition.format);
     const shortened = new Set<ClipId>();
@@ -94,4 +89,17 @@ export function settleCompositions(draft: Draft<ProjectState>): void {
     );
     composition.duration = Math.max(end, frame);
   }
+}
+
+/**
+ * Keeps what follows from a composition's length true inside every step, innermost first: its
+ * placements fit what it plays, and with Extend to fit it is as long as its content (one frame
+ * when it has none). Works on a copy: a command may have put a finished, frozen state in the draft.
+ */
+export function settleCompositions(draft: Draft<ProjectState>): void {
+  const before = current(draft) as ProjectState;
+  const after = produce(before, settle);
+  if (after.compositions !== before.compositions) draft.compositions = after.compositions;
+  if (after.clips !== before.clips) draft.clips = after.clips;
+  if (after.junctions !== before.junctions) draft.junctions = after.junctions;
 }

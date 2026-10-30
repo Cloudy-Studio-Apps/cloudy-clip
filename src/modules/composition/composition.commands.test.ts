@@ -381,11 +381,11 @@ describe("composition commands", () => {
       expect(state().clips[clips[0]!]!.duration).toBe(5 * S);
     });
 
-    it("splits a placement keeping both halves on the same composition", async () => {
+    it("splits a placement keeping both halves on the same composition, with an Extend to fit home", async () => {
       const intro = await ok(createComposition, { duration: 5 * S });
-      await ok(createComposition, {});
+      await ok(createComposition, { extendToFit: true });
       await ok(placeComposition, intro);
-      await kernel.bus.run(splitAt, { at: 2 * S });
+      await ok(splitAt, { at: 2 * S });
       const pictures = Object.values(state().clips).filter((c) => c.compositionRef);
       expect(pictures).toHaveLength(4);
       expect(pictures.map((c) => c.sourceIn).sort((a, b) => a - b)).toEqual([0, 0, 2 * S, 2 * S]);
