@@ -182,7 +182,7 @@ describe("composition commands", () => {
   describe("the automatic start", () => {
     const ready = (media: Record<string, MediaProbe>) =>
       kernel.modules.require(mediaRef).probes.setState({ probes: media });
-    const addFile = (id: string, name: string, kind: "video" | "audio") =>
+    const addFile = (id: string, name: string, kind: "video" | "audio" | "image") =>
       write((draft) => {
         draft.media[id] = { id, name, path: `/${name}`, kind, size: 1 };
         draft.mediaOrder.push(id);
@@ -197,6 +197,24 @@ describe("composition commands", () => {
         a: { status: "ready", duration: 5 * S },
         p: { status: "pending" },
       });
+    });
+
+    it("takes a size from an animated image, not the rate of its frames", async () => {
+      addFile("g", "loop.gif", "image");
+      ready({
+        g: {
+          status: "ready",
+          duration: S,
+          width: 160,
+          height: 120,
+          proxy: {
+            state: "ready",
+            meta: { width: 160, height: 120, fps: 10, duration: S, frames: 10 },
+          },
+        },
+      });
+      const { compositionId } = await ok(createFromMedia, { mediaIds: ["g"] });
+      expect(state().compositions[compositionId]!.format).toMatchObject({ fps: 30 });
     });
 
     it("makes a composition matching the file, in one undo step", async () => {

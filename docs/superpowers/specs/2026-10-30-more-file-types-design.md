@@ -93,6 +93,10 @@ sends `MediaKind::Image` there, and it shares the one-encode-at-a-time semaphore
    average, at most 30) and long side at most 1280. PNG because every FFmpeg build has it and it keeps
    alpha. The folder is written under a partial name and renamed when complete, like proxies are.
 
+At most 900 frames are kept (added after review): a longer file plays its first part, and its message
+says so, so a long GIF can't fill the disk or hold the encoder for minutes. A file whose frames are in
+the cache isn't decoded again to count them, so a reopened project animates at once.
+
 `ProbeMeta` gains `frames: Option<u32>`, and for an animated image it carries size, fps and duration.
 `Entry` gains `frames: Option<PathBuf>`. The server gains one route,
 `/media/<token>/<id>/frames/<n>`, which takes a number, not a path, under the same token and loopback

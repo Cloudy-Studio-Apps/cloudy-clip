@@ -51,6 +51,7 @@ pub async fn media_register(
                         app.clone(),
                         registry.inner().clone(),
                         media.id.clone(),
+                        media.generation,
                         path.clone(),
                         media.kind,
                     );

@@ -116,6 +116,7 @@ impl ProxyJobs {
         app: AppHandle,
         registry: Arc<MediaRegistry>,
         id: String,
+        generation: u64,
         path: PathBuf,
         kind: MediaKind,
     ) {
@@ -127,6 +128,10 @@ impl ProxyJobs {
                         message: Option<String>,
                         has_audio: Option<bool>,
                         meta: Option<ProbeMeta>| {
+                // The file was replaced: the id's state belongs to its new job now.
+                if !registry.is_current(&id, generation) {
+                    return;
+                }
                 let _ = app.emit(
                     PROXY_EVENT,
                     ProxyEvent {
@@ -158,6 +163,7 @@ impl ProxyJobs {
                     encoder: &encoder,
                     registry: &registry,
                     id: &id,
+                    generation,
                     path: &path,
                 };
                 image::prepare(job, emit).await;
@@ -194,7 +200,7 @@ impl ProxyJobs {
                 }
             };
             if tokio::fs::try_exists(&target).await.unwrap_or(false) {
-                registry.set_proxy(&id, target);
+                registry.set_proxy(&id, generation, target);
                 report(ProxyState::Ready, Some(1.0), Some(reason));
                 return;
             }
@@ -209,7 +215,7 @@ impl ProxyJobs {
             let on_progress = |p: f32| report(ProxyState::Encoding, Some(p), None);
             match encode(&tools, &path, &target, kind, probe.duration_us, on_progress).await {
                 Ok(()) => {
-                    registry.set_proxy(&id, target);
+                    registry.set_proxy(&id, generation, target);
                     report(ProxyState::Ready, Some(1.0), Some(reason));
                 }
                 Err(message) => report(ProxyState::Error, None, Some(message)),

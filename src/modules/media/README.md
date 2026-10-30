@@ -27,7 +27,7 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
     are served as they are up to 3840 on the long side; the rest (HEIC, TIFF, PSD, AVIF, …) and larger ones become one PNG. A file
     with several frames is animated whatever its extension says, and ffprobe has to count them: animated WebP and APNG report no
     length. Its frames go into a cache folder as PNGs at a steady rate (at most 30 fps, 1280 on the long side), which keeps
-    transparency everywhere, and are served by number at `<url>/<id>/frames/<n>`. Only animated images send `meta`, with `frames`. Without FFmpeg, a GIF shows its first frame.
+    transparency everywhere, and are served by number at `<url>/<id>/frames/<n>`. Only animated images send `meta`, with `frames`. At most 900 frames are kept, and the file's message says so. A file whose frames are in the cache isn't decoded again to count them. A job on a file that has since been replaced (relink, undo) changes nothing: `is_current` compares the registration it started from. Without FFmpeg, a GIF shows its first frame.
   - `media.files.ts`: keeps the registry and probes in step with the document: probes what comes in, and when an item's path changes (relink, undo, redo) registers the new file and reads it again. `MediaProbe.revision` is in its URL, so media elements reload.
   - `media.probe.ts`: once the proxy state settles, a bounded queue reads each file. Images load in a plain `Image` (size, a PNG poster that keeps transparency, and the length they land at: 5 s for a still, one loop when animated). Others load in a hidden
     media element to read duration, size and a poster (the element is silenced with `volume = 0`,

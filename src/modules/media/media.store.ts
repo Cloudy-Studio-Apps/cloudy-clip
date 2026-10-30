@@ -1,7 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import type { MediaProbe, MediaProbeState, MediaState, ProxyInfo } from "./media.types";
 
-/** Frame rate of a video that doesn't say (FFmpeg is missing). */
+/** Frame rate of a picture that doesn't say (FFmpeg is missing, or it is an image). */
 const UNKNOWN_FPS = 30;
 
 /** Whether the proxy pipeline is done with a file (so its metadata can be read). */
@@ -60,7 +60,9 @@ export function createMediaState(): MediaState {
       const height = probe?.height ?? meta?.height;
       const duration = probe?.duration ?? meta?.duration;
       if (!width || !height || !duration) return undefined;
-      return { width, height, duration, fps: meta?.fps ?? UNKNOWN_FPS };
+      // An animated image's rate is how its frames were saved, not how to edit around it.
+      const fps = meta?.frames ? UNKNOWN_FPS : (meta?.fps ?? UNKNOWN_FPS);
+      return { width, height, duration, fps };
     },
     waitForProbe(id, timeoutMs = 15_000) {
       const settled = (p: MediaProbe | undefined) => p && p.status !== "pending";

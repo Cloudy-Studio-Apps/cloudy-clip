@@ -10,6 +10,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::Serialize;
 
@@ -33,6 +34,9 @@ pub struct RegisteredMedia {
     pub name: String,
     pub kind: MediaKind,
     pub size: u64,
+    /// Which registration of the id this is, for the jobs working on it.
+    #[serde(skip)]
+    pub generation: u64,
 }
 
 /// What a file is, without registering it.
@@ -44,6 +48,7 @@ pub struct MediaFile {
 }
 
 struct Entry {
+    generation: u64,
     original: PathBuf,
     proxy: Option<PathBuf>,
     /// Folder of an animated image's frames, `00000.png` onwards.
@@ -53,6 +58,7 @@ struct Entry {
 #[derive(Default)]
 pub struct MediaRegistry {
     entries: RwLock<HashMap<String, Entry>>,
+    generations: AtomicU64,
 }
 
 impl MediaRegistry {
@@ -60,6 +66,7 @@ impl MediaRegistry {
     /// restarts. Registering an id again replaces its entry (and drops its proxy).
     pub fn register(&self, id: &str, path: &Path, size: u64) -> AppResult<RegisteredMedia> {
         let MediaFile { name, kind, size } = describe(path, size)?;
+        let generation = self.generations.fetch_add(1, Ordering::Relaxed);
 
         self.entries
             .write()
@@ -67,6 +74,7 @@ impl MediaRegistry {
             .insert(
                 id.to_owned(),
                 Entry {
+                    generation,
                     original: path.to_path_buf(),
                     proxy: None,
                     frames: None,
@@ -79,7 +87,16 @@ impl MediaRegistry {
             name,
             kind,
             size,
+            generation,
         })
+    }
+
+    /// Whether an id still is this registration. A job on a file that has since been replaced
+    /// (relink, undo) keeps running, and must then change nothing.
+    pub fn is_current(&self, id: &str, generation: u64) -> bool {
+        self.entries
+            .read()
+            .is_ok_and(|entries| entries.get(id).is_some_and(|e| e.generation == generation))
     }
 
     /// The file to stream for an id: its proxy if one is ready, otherwise the original.
@@ -94,19 +111,21 @@ impl MediaRegistry {
         )
     }
 
-    /// Attaches a finished proxy to an id.
-    pub fn set_proxy(&self, id: &str, proxy: PathBuf) {
+    /// Attaches a finished proxy to a registration of an id.
+    pub fn set_proxy(&self, id: &str, generation: u64, proxy: PathBuf) {
         if let Ok(mut entries) = self.entries.write()
             && let Some(entry) = entries.get_mut(id)
+            && entry.generation == generation
         {
             entry.proxy = Some(proxy);
         }
     }
 
-    /// Attaches the folder of an animated image's frames to an id.
-    pub fn set_frames(&self, id: &str, frames: PathBuf) {
+    /// Attaches the folder of an animated image's frames to a registration of an id.
+    pub fn set_frames(&self, id: &str, generation: u64, frames: PathBuf) {
         if let Ok(mut entries) = self.entries.write()
             && let Some(entry) = entries.get_mut(id)
+            && entry.generation == generation
         {
             entry.frames = Some(frames);
         }
@@ -250,12 +269,28 @@ mod tests {
         assert!(always_converted(Path::new("/a/b.tiff")));
         assert!(!always_converted(Path::new("/a/b.png")));
         let registry = MediaRegistry::default();
-        registry.register("m", Path::new("/a/b.gif"), 1).unwrap();
+        let media = registry.register("m", Path::new("/a/b.gif"), 1).unwrap();
         assert_eq!(registry.frame_path_of("m", 3), None);
-        registry.set_frames("m", PathBuf::from("/cache/x.frames"));
+        registry.set_frames("m", media.generation, PathBuf::from("/cache/x.frames"));
         assert_eq!(
             registry.frame_path_of("m", 3),
             Some(PathBuf::from("/cache/x.frames/00003.png"))
+        );
+    }
+
+    #[test]
+    fn a_job_on_a_replaced_file_changes_nothing() {
+        let registry = MediaRegistry::default();
+        let old = registry.register("m", Path::new("/a/b.gif"), 1).unwrap();
+        let new = registry.register("m", Path::new("/a/c.png"), 1).unwrap();
+        assert!(!registry.is_current("m", old.generation));
+        assert!(registry.is_current("m", new.generation));
+        registry.set_frames("m", old.generation, PathBuf::from("/cache/x.frames"));
+        registry.set_proxy("m", old.generation, PathBuf::from("/cache/p.png"));
+        assert_eq!(registry.frame_path_of("m", 0), None);
+        assert_eq!(
+            registry.playback_path_of("m"),
+            Some(PathBuf::from("/a/c.png"))
         );
     }
 
@@ -278,7 +313,7 @@ mod tests {
             Some(PathBuf::from("/tmp/Clip.MP4"))
         );
         assert_eq!(registry.playback_path_of("nope"), None);
-        registry.set_proxy(&media.id, PathBuf::from("/cache/p.mp4"));
+        registry.set_proxy(&media.id, media.generation, PathBuf::from("/cache/p.mp4"));
         assert_eq!(
             registry.playback_path_of(&media.id),
             Some(PathBuf::from("/cache/p.mp4"))
