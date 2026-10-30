@@ -1,4 +1,5 @@
-import { defineModule } from "@/core";
+import { Sticker } from "lucide-react";
+import { defineModule, layoutPanels } from "@/core";
 import { elements, propTypes } from "@/modules/element";
 import { previewRef } from "@/modules/preview";
 import { editingPack } from "./packs/editing/editing.pack";
@@ -13,6 +14,7 @@ import { stickerVariationType } from "./sticker.options";
 import { stickerPacks } from "./sticker.points";
 import { stickerRef } from "./sticker.ref";
 import { createStickerRecents } from "./sticker.store";
+import { StickersPanel } from "./ui";
 
 /** Stickers: packs from the `stickerPacks` point, styles from `stickerStyles`. */
 export const stickerModule = defineModule({
@@ -32,6 +34,13 @@ export const stickerModule = defineModule({
     contribute(propTypes, stickerVariationType);
     contribute(elements, createStickerElement(library, art));
     contribute(stickerPacks, sealPack, editingPack, fluentPack);
+    contribute(layoutPanels, {
+      id: "sticker.panel",
+      title: "Stickers",
+      slot: "side",
+      icon: Sticker,
+      component: StickersPanel,
+    });
     return { api: { ...library, recents } };
   },
 });

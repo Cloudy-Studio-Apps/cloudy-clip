@@ -20,7 +20,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   the preview's canvas tools select through it. `dropTarget(clientX, clientY)` gives the track and
   time under a screen point, for drops from other panels (the Text tab). Exported helpers for
   modules that place their own clips: `findOverlap`, `freeTrack`, `overlapError`,
-  `selectionSubject`. `CreateTiles({ panel })`: the create tiles of a side panel.
+  `selectionSubject`. `CreateTiles({ panel })`: the create tiles of a side panel. `startCreateDrag`: the same press for a module's own tiles.
 - **Files:**
   - `timeline.track.commands.ts` (tracks), `timeline.clip.commands.ts` (add, unlink),
     `timeline.move.commands.ts` (move, trim), `timeline.split.commands.ts` (split, delete), shared

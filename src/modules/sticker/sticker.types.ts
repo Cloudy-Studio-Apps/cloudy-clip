@@ -102,6 +102,10 @@ export interface StickerRecents {
   push(recent: StickerRecent): void;
 }
 
+/** What the Stickers tab shows. Local to the panel, never in a store. */
+export type StickerView =
+  { kind: "home" } | { kind: "all" } | { kind: "pack"; id: string } | { kind: "topic"; id: string };
+
 /** The sticker catalog of one kernel: packs and styles from the points, lists loaded on demand. */
 export interface StickerLibrary {
   /** Every pack, lowest `order` first. */

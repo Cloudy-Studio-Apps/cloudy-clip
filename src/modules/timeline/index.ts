@@ -47,6 +47,8 @@ export type {
 
 /** The create tiles of a side panel (every element's `create` entries for that panel). */
 export { CreateTiles } from "./ui/CreateTiles";
+/** The press of a create tile: a click, or a drag with a ghost to where it drops on the timeline. */
+export { startCreateDrag } from "./ui/create.gesture";
 /** Module definition, loaded by the app shell. */
 export { timelineModule } from "./timeline.module";
 /** Handle for `require(timelineRef)` / `useModule(timelineRef)`. */
