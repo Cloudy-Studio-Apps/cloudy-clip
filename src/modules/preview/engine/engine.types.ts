@@ -2,7 +2,14 @@ import type { ElementApi } from "@/modules/element";
 import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
 import type { Micros } from "@/core";
-import type { Clip, MediaId, ProjectFormat, ProjectState, Track } from "@/modules/project";
+import type {
+  Clip,
+  Composition,
+  MediaId,
+  ProjectFormat,
+  ProjectState,
+  Track,
+} from "@/modules/project";
 
 /** One pooled media element and what it is currently showing. */
 export interface Slot {
@@ -11,7 +18,8 @@ export interface Slot {
   mediaId: MediaId | null;
   /** URL currently loaded. Changes when a file gets its proxy, which forces a reload. */
   url: string | null;
-  clipId: string | null;
+  /** Path of the clip it plays, placements included (see `ResolvedClip`). */
+  path: string | null;
   /** Target of the seek in flight, to avoid re-issuing it every frame. */
   seekTarget: number | null;
   /** `performance.now()` of the last seek. */
@@ -48,6 +56,49 @@ export interface EngineOptions {
 export interface ActiveTrack {
   track: Track;
   clips: Clip[];
+}
+
+/** A clip under the playhead. */
+export interface ResolvedClip {
+  clip: Clip;
+  /** Placement ids down to this clip, joined by "/". Keys elements and canvases. */
+  path: string;
+  /** The clock of the composition it sits in. */
+  time: Micros;
+  /** What it shows, when it plays a composition. */
+  inner?: ResolvedFrame;
+}
+
+/** A track's clips under the playhead. */
+export interface ResolvedTrack {
+  track: Track;
+  clips: ResolvedClip[];
+}
+
+/** A clip starting soon, at any depth. */
+export interface UpcomingClip {
+  path: string;
+  clip: Clip;
+  track: Track;
+  /** The clock of the composition it sits in, once it shows. */
+  time: Micros;
+}
+
+/** A composition at a time, placements included. */
+export interface ResolvedFrame {
+  composition: Composition;
+  time: Micros;
+  /** Top to bottom. */
+  tracks: ResolvedTrack[];
+  upcoming: UpcomingClip[];
+}
+
+/** How a frame is resolved. */
+export interface FrameOptions {
+  /** Leave sound out (offscreen capture). */
+  pictureOnly: boolean;
+  /** How far ahead a clip counts as upcoming. */
+  preloadAhead: Micros;
 }
 
 /** One video track to draw at `time`. */

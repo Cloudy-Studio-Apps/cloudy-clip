@@ -3,6 +3,7 @@ import { canvasTextMeasure, mergeProps, type PictureDefinition } from "@/modules
 import {
   clipPlacement,
   clipTransform,
+  formatOf,
   type Clip,
   type ClipId,
   type ClipTransform,
@@ -10,8 +11,8 @@ import {
   type MediaId,
   type ProjectFormat,
   type ProjectState,
-  type Track,
 } from "@/modules/project";
+import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
 import { picturesSettled } from "../logic/readiness";
 import type { PreviewEngine } from "../preview.types";
@@ -19,7 +20,7 @@ import { quietSlot, voiceSlot } from "./engine.audio";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
-import type { ActiveTrack, EngineOptions } from "./engine.types";
+import type { EngineOptions, ResolvedFrame } from "./engine.types";
 
 /** Whether a clip plays a file (media clips). */
 function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
@@ -74,70 +75,39 @@ export class HtmlMediaEngine implements PreviewEngine {
     transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>> = new Map(),
   ): void {
-    const active: ActiveTrack[] = [];
-    const upcoming: Array<{ clip: Clip; track: Track }> = [];
-    for (const trackId of composition.trackOrder) {
-      const track = project.tracks[trackId];
-      if (!track) continue;
-      if (this.pictureOnly && track.kind !== "video") continue;
-      const here: ActiveTrack = { track, clips: [] };
-      active.push(here);
-      for (const clipId of track.clipIds) {
-        const clip = project.clips[clipId];
-        if (!clip) continue;
-        if (clip.start <= time && time < clip.start + clip.duration) here.clips.push(clip);
-        else if (clip.start > time && clip.start - time <= PRELOAD_AHEAD)
-          upcoming.push({ clip, track });
-        else if (clip.start > time + PRELOAD_AHEAD) break; // clips are sorted by start
-      }
-    }
-
+    const frame = resolveFrame(project, composition.id, time, {
+      pictureOnly: this.pictureOnly,
+      preloadAhead: PRELOAD_AHEAD,
+    });
     const needed = new Set<string>();
-    for (const { clips } of active) for (const clip of clips) needed.add(clip.id);
-    for (const { clip } of upcoming) needed.add(clip.id);
+    const collect = ({ tracks, upcoming }: ResolvedFrame) => {
+      for (const { path } of upcoming) needed.add(path);
+      for (const { clips } of tracks) {
+        for (const { path, inner } of clips) {
+          if (inner) collect(inner);
+          else needed.add(path);
+        }
+      }
+    };
+    collect(frame);
     this.pool.release(needed);
 
-    // Sound clips crossfading under a junction (junction rule 4); others play at full volume.
-    const gains = soundGains(project, composition, time);
     this.settled = true;
-    for (const { track, clips } of active) {
-      // During a junction's overlap both clips are here, each on its own element (one per clip
-      // id), and both frames must be ready before anything is painted.
-      for (const clip of clips) {
-        if (!hasMedia(clip)) continue; // drawn from the document, no media element
-        const media = project.media[clip.mediaId];
-        if (!media) continue;
-        const desired = microsToSeconds(clip.sourceIn + time - clip.start);
-        // The track decides the element: pictures come from video tracks (always silent), sound
-        // from audio tracks (a video file's sound plays through an <audio> on the same URL).
-        const slot = this.pool.acquire(clip, track.kind, desired);
-        if (!slot) continue;
-        voiceSlot(slot, track, gains.get(clip.id) ?? 1);
-        syncSlot(slot, desired, playing);
-        if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot))
-          this.settled = false;
-      }
-    }
-    const pictures = active
-      .filter(({ track }) => track.kind === "video")
-      .flatMap(({ track, clips }) =>
-        clips.filter((clip) => !hasMedia(clip)).map((clip) => ({ clip, hidden: track.hidden })),
-      );
-    const ready = (clip: Clip) =>
-      this.pictureReady(composition.format, clip, time, propsOverrides.get(clip.id));
-    if (!picturesSettled(pictures, ready)) this.settled = false;
+    this.prepare(project, frame, playing, propsOverrides, 1, false);
 
-    for (const { clip, track } of upcoming) {
+    for (const { path, clip, track, time: at } of frame.upcoming) {
       if (!hasMedia(clip)) {
         // Asked ahead, so its picture is loaded by the time it shows.
-        this.pictureReady(composition.format, clip, clip.start, propsOverrides.get(clip.id));
+        const format = formatOf(project, clip);
+        this.pictureReady(format, clip, clip.start, propsOverrides.get(clip.id));
         continue;
       }
       if (!project.media[clip.mediaId]) continue;
-      const slot = this.pool.acquire(clip, track.kind, microsToSeconds(clip.sourceIn));
+      const seconds = microsToSeconds(clip.sourceIn + at - clip.start);
+      const slot = this.pool.acquire(path, clip, track.kind, seconds);
       if (!slot) continue;
       quietSlot(slot, track);
-      syncSlot(slot, microsToSeconds(clip.sourceIn), false);
+      syncSlot(slot, seconds, false);
     }
 
     // Slots that lost their clip this frame must go quiet.
@@ -145,7 +115,57 @@ export class HtmlMediaEngine implements PreviewEngine {
 
     // Only paint complete frames: a layer still decoding would flash black. Keep the previous
     // picture instead; the controller retries until every layer has its frame.
-    if (this.settled) this.draw(project, composition, time, active, transforms, propsOverrides);
+    if (this.settled) this.draw(project, frame, transforms, propsOverrides);
+  }
+
+  /**
+   * Gets every element of a frame in place, at any depth, and checks what can be painted. `gain`
+   * and `silenced` come from the tracks around a placement.
+   */
+  private prepare(
+    project: ProjectState,
+    { composition, time, tracks }: ResolvedFrame,
+    playing: boolean,
+    propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
+    gain: number,
+    silenced: boolean,
+  ): void {
+    // Sound clips crossfading under a junction (junction rule 4); others play at full volume.
+    const gains = soundGains(project, composition, time);
+    for (const { track, clips } of tracks) {
+      // During a junction's overlap both clips are here, each on its own element (one per path),
+      // and both frames must be ready before anything is painted.
+      for (const { clip, path, inner } of clips) {
+        const own = gain * (gains.get(clip.id) ?? 1);
+        if (inner) {
+          this.prepare(project, inner, playing, propsOverrides, own, silenced || track.muted);
+          continue;
+        }
+        if (!hasMedia(clip)) continue; // drawn from the document, no media element
+        const media = project.media[clip.mediaId];
+        if (!media) continue;
+        const desired = microsToSeconds(clip.sourceIn + time - clip.start);
+        // The track decides the element: pictures come from video tracks (always silent), sound
+        // from audio tracks (a video file's sound plays through an <audio> on the same URL).
+        const slot = this.pool.acquire(path, clip, track.kind, desired);
+        if (!slot) continue;
+        voiceSlot(slot, track, own, silenced);
+        syncSlot(slot, desired, playing);
+        if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) {
+          this.settled = false;
+        }
+      }
+    }
+    const pictures = tracks
+      .filter(({ track }) => track.kind === "video")
+      .flatMap(({ track, clips }) =>
+        clips
+          .filter(({ clip, inner }) => !hasMedia(clip) && !inner)
+          .map(({ clip }) => ({ clip, hidden: track.hidden })),
+      );
+    const ready = (clip: Clip) =>
+      this.pictureReady(composition.format, clip, time, propsOverrides.get(clip.id));
+    if (!picturesSettled(pictures, ready)) this.settled = false;
   }
 
   pauseAll(): void {
@@ -179,44 +199,55 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   private draw(
     project: ProjectState,
-    composition: Composition,
-    time: Micros,
-    active: ActiveTrack[],
+    frame: ResolvedFrame,
     transforms: ReadonlyMap<ClipId, ClipTransform>,
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
   ): void {
     const { ctx, canvas } = this;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = composition.background;
+    ctx.fillStyle = frame.composition.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Canvas pixels per output pixel (the canvas keeps the format's aspect ratio).
-    const { format } = composition;
-    const kx = canvas.width / format.width;
-    const ky = canvas.height / format.height;
-    const drawClip = (target: CanvasRenderingContext2D, clip: Clip) =>
-      this.drawClip(target, project, format, clip, time, transforms, propsOverrides, kx, ky);
+    this.drawFrame(ctx, project, frame, "", transforms, propsOverrides);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
 
-    // trackOrder is top → bottom; draw bottom first so higher tracks end up on top.
-    for (let i = active.length - 1; i >= 0; i--) {
-      const { track, clips } = active[i]!;
+  /** Draws a frame's pictures onto `target`, which is sized like its composition's format. */
+  private drawFrame(
+    target: CanvasRenderingContext2D,
+    project: ProjectState,
+    { composition, time, tracks }: ResolvedFrame,
+    prefix: string,
+    transforms: ReadonlyMap<ClipId, ClipTransform>,
+    propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
+  ): void {
+    const { format } = composition;
+    // Canvas pixels per output pixel (the canvas keeps the format's aspect ratio).
+    const kx = target.canvas.width / format.width;
+    const ky = target.canvas.height / format.height;
+    const pathOf = (clip: Clip) => (prefix ? `${prefix}/${clip.id}` : clip.id);
+    const drawClip = (on: CanvasRenderingContext2D, clip: Clip) =>
+      this.drawClip(on, format, clip, pathOf(clip), time, transforms, propsOverrides, kx, ky);
+
+    // Tracks are top → bottom; draw bottom first so higher tracks end up on top.
+    for (let i = tracks.length - 1; i >= 0; i--) {
+      const { track, clips } = tracks[i]!;
       if (track.kind !== "video" || track.hidden) continue;
       drawTrack(
-        ctx,
-        { project, format, track, clips, time },
+        target,
+        { project, format, track, clips: clips.map(({ clip }) => clip), time },
         this.mixCanvases,
         this.junctions,
         drawClip,
       );
     }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   /** Draws one clip onto `target` at its placement: a media frame or the element's own `draw`. */
   private drawClip(
     target: CanvasRenderingContext2D,
-    project: ProjectState,
     format: ProjectFormat,
     clip: Clip,
+    path: string,
     time: Micros,
     transforms: ReadonlyMap<ClipId, ClipTransform>,
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
@@ -242,8 +273,8 @@ export class HtmlMediaEngine implements PreviewEngine {
       );
       return;
     }
-    if (!hasMedia(clip) || project.media[clip.mediaId]?.kind !== "video") return;
-    const element = this.pool.elementOf(clip.id);
+    if (!hasMedia(clip)) return;
+    const element = this.pool.elementOf(path);
     if (!(element instanceof HTMLVideoElement)) return;
     if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) return;
 

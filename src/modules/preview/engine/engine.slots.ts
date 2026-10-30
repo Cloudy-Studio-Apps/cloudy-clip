@@ -22,15 +22,15 @@ export class MediaSlotPool {
 
   constructor(private readonly options: EngineOptions) {}
 
-  /** The element showing a clip, if it has one. */
-  elementOf(clipId: string): HTMLMediaElement | undefined {
-    return this.assigned.get(clipId)?.element;
+  /** The element showing a clip at a path, if it has one. */
+  elementOf(path: string): HTMLMediaElement | undefined {
+    return this.assigned.get(path)?.element;
   }
 
   /** Pauses elements whose clip went away this frame, so they go quiet. */
   pauseIdle(): void {
     for (const slot of this.slots) {
-      if (slot.clipId === null && !slot.element.paused) slot.element.pause();
+      if (slot.path === null && !slot.element.paused) slot.element.pause();
     }
   }
 
@@ -46,10 +46,10 @@ export class MediaSlotPool {
 
   /** Frees slots whose clip is no longer active or upcoming (the elements stay warm). */
   release(needed: Set<string>): void {
-    for (const [clipId, slot] of this.assigned) {
-      if (needed.has(clipId)) continue;
-      this.assigned.delete(clipId);
-      slot.clipId = null;
+    for (const [path, slot] of this.assigned) {
+      if (needed.has(path)) continue;
+      this.assigned.delete(path);
+      slot.path = null;
     }
   }
 
@@ -59,12 +59,13 @@ export class MediaSlotPool {
    * free slot of the same kind, then a new element.
    */
   acquire(
+    path: string,
     clip: Clip & { mediaId: MediaId },
     kind: "video" | "audio",
     desired: number,
   ): Slot | null {
     const url = this.options.mediaUrl(clip.mediaId);
-    const existing = this.assigned.get(clip.id);
+    const existing = this.assigned.get(path);
     if (existing) {
       if (existing.url !== url) this.load(existing, clip.mediaId, url);
       return existing;
@@ -73,7 +74,7 @@ export class MediaSlotPool {
     let best: Slot | undefined;
     let bestScore = Number.POSITIVE_INFINITY;
     for (const slot of this.slots) {
-      if (slot.clipId !== null || slot.kind !== kind) continue;
+      if (slot.path !== null || slot.kind !== kind) continue;
       const sameFile = slot.url === url;
       const distance = sameFile ? Math.abs(slot.element.currentTime - desired) : Infinity;
       const score = sameFile ? distance : 1e9;
@@ -85,8 +86,8 @@ export class MediaSlotPool {
 
     const slot = best ?? this.createSlot(kind);
     if (slot.url !== url) this.load(slot, clip.mediaId, url);
-    slot.clipId = clip.id;
-    this.assigned.set(clip.id, slot);
+    slot.path = path;
+    this.assigned.set(path, slot);
     this.trimIdle();
     return slot;
   }
@@ -136,7 +137,7 @@ export class MediaSlotPool {
       kind,
       mediaId: null,
       url: null,
-      clipId: null,
+      path: null,
       seekTarget: null,
       lastSeekAt: 0,
       seekCost: INITIAL_SEEK_COST,
@@ -157,7 +158,7 @@ export class MediaSlotPool {
 
   /** Releases decoders of idle slots beyond the warm limit. */
   private trimIdle(): void {
-    const idle = this.slots.filter((s) => s.clipId === null && s.mediaId !== null);
+    const idle = this.slots.filter((s) => s.path === null && s.mediaId !== null);
     for (const slot of idle.slice(0, Math.max(0, idle.length - MAX_IDLE_SLOTS))) {
       this.unload(slot);
     }
