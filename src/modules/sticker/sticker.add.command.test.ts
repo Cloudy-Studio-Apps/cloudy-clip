@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
+import { compositionModule } from "@/modules/composition";
 import { elementModule, setProps } from "@/modules/element";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { inspectorModule } from "@/modules/inspector";
@@ -86,6 +87,7 @@ beforeEach(async () => {
     createFakeFontsModule(),
     previewModule,
     timelineModule,
+    compositionModule,
     inspectorModule,
     transformModule,
     stickerModule,

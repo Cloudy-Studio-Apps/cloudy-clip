@@ -3,15 +3,17 @@
 What a timeline is. A composition is a size, a frame rate, a background, a length and its own tracks and clips; the timeline panel is a window on one of them. The data lives in `project`; this module owns the commands and tools that change it.
 
 - **Tier:** core
-- **Requires:** `project`
-- **Contributes:** —
+- **Requires:** `project`, `media`, `timeline`
+- **Contributes:** `librarySections` (`CompositionSection`), `timelineTabs` (`CompositionTabs`), `timelineOverlays` (`EmptyStart`), `appOverlays` (`CompositionDialogHost`)
 - **Points it owns:** —
-- **API:** none yet.
+- **API** (`CompositionApi`): `ui` (open dialog and selected tile, not in history), `openNew`, `openSettings(id)`, `closeDialog`, `select(id)`.
 - **Files:**
   - `composition.commands.ts`: the commands below. `composition.guards.ts`: `requireComposition`, `checkFormat`, `formatInput`.
   - `composition.presets.ts`: `COMPOSITION_PRESETS`, `FPS_OPTIONS`.
+  - `composition.store.ts`: `createCompositionUi()`. `logic/timecode.ts`: `formatLength`, `parseLength` (`mm:ss:ff`).
+  - `ui/`: `CompositionDialog` (New Composition and Composition Settings share one form), `CompositionTile`, `CompositionSection`, `CompositionTabs`, `EmptyStart`.
   - `logic/clone.ts`: `cloneComposition(draft, id, name)`: new ids, links remapped, placed compositions stay shared.
-- **Not yet:** the dialog, the Library section, tabs, placing.
+- **Not yet:** placing.
 
 | Command                   | MCP tool                    | Notes                                                                  |
 | ------------------------- | --------------------------- | ---------------------------------------------------------------------- |

@@ -8,7 +8,7 @@ export function MediaHeader({ count }: { count: number }) {
   return (
     <div className="flex items-center justify-between gap-1.5">
       <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-subtle-foreground">
-        Media
+        Files
         {count > 0 && <span className="ml-1.5 font-normal normal-case">· {count}</span>}
       </h2>
       <Button variant="primary" size="sm" title="Import files" onClick={() => void pickMedia()}>

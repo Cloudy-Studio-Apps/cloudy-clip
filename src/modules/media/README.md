@@ -1,14 +1,14 @@
 # media
 
-Importing files, reading their metadata, editing proxies, and the library panel (the rail's Media
-tab), from which media is dragged onto the timeline.
+Importing files, reading their metadata, editing proxies, and the Library panel (a tab of the
+rail), from which compositions and files are dragged onto the timeline.
 
 - **Tier:** core
 - **Requires:** `project`, `element`
 - **Contributes:** panel `media.library` (side, icon `SquarePlay`); element `media`
   (`media.element.ts`: no own properties, supports `transform`, `picture: { fit: "contain",
 source: "media" }`, labelled with the file name, a filmstrip on video tracks and a waveform on audio)
-- **Points it owns:** —
+- **Points it owns:** `librarySections` (`media.points.ts`): sections above the files (`composition` contributes its own).
 - **API** (`useModule(mediaRef)` / `ctx.require(mediaRef)`): `probes`, `fileDrop`, `getProbe`,
   `waitForProbe`, `mediaUrl`. `mediaHasAudio(probe)` (exported helper) says whether a file has
   sound (true unless ffprobe found none). `createFakeMediaModule(probes)` (`media.testing.ts`) stands in for it

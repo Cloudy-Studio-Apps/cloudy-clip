@@ -27,6 +27,10 @@ export { EmptyState } from "./kit/EmptyState";
 export { Waveform } from "./kit/Waveform";
 /** A keyboard key in running text. */
 export { Kbd } from "./kit/Kbd";
+/** A modal panel over a dim backdrop, closed by Escape or a press outside. */
+export { Dialog } from "./kit/Dialog";
+/** A menu at the pointer, opened by a right click. */
+export { ContextMenu } from "./kit/ContextMenu";
 /** A floating panel anchored to a trigger: portal, outside-press and Escape close, focus returns. */
 export { Popover } from "./kit/Popover";
 /** Saturation/brightness area, hue and opacity sliders, hex, eyedropper, swatches and recents. */
@@ -48,4 +52,4 @@ export { InfoList } from "./kit/InfoList";
 /** Normalizes `#abc`/`abc`/`#aabbcc` to lowercase `#aabbcc`, or null. */
 export { normalizeHex, hexToHsv, hsvToHex } from "./lib/color";
 
-export type { SegmentedOption, ColorChangeInfo, Hsv, InfoRow } from "./kit/kit.types";
+export type { SegmentedOption, ColorChangeInfo, Hsv, InfoRow, MenuItem } from "./kit/kit.types";

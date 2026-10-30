@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { Micros } from "@/core";
 import type { MediaAsset, MediaId, MediaKind } from "@/modules/project";
@@ -122,4 +123,10 @@ export interface ProbeQueue {
   enqueue(asset: MediaAsset): void;
   /** Drops queued files and ignores results still in flight. */
   dispose(): void;
+}
+
+/** A section of the Library, above the files. */
+export interface LibrarySection {
+  id: string;
+  component: ComponentType;
 }

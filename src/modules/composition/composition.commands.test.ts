@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, LOCAL_ACTOR, type CommandDefinition, type Kernel } from "@/core";
 import { elementModule } from "@/modules/element";
+import { createFakeFontsModule } from "@/modules/fonts";
+import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule, removeMedia } from "@/modules/media";
+import { previewModule } from "@/modules/preview";
 import {
   createProjectModule,
   orderedTracks,
@@ -9,6 +12,7 @@ import {
   type Clip,
   type ProjectState,
 } from "@/modules/project";
+import { timelineModule } from "@/modules/timeline";
 import {
   createComposition,
   deleteComposition,
@@ -30,7 +34,7 @@ const view = () => project().view;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 async function ok(command: CommandDefinition<any, any>, input: unknown, actor?: string) {
   const result = await kernel.bus.run(command, input as never, actor ? { actor } : {});
-  if (!result.ok) throw new Error(`command failed: ${result.error.code}`);
+  if (!result.ok) throw new Error(`command failed: ${result.error.code} ${result.error.message}`);
   return result.value as { compositionId: string };
 }
 
@@ -73,7 +77,11 @@ beforeEach(async () => {
   await kernel.modules.loadAll([
     createProjectModule(empty),
     elementModule,
+    junctionModule,
     createFakeMediaModule({ m: { status: "ready", duration: 10 * S, width: 8, height: 8 } }),
+    createFakeFontsModule(),
+    previewModule,
+    timelineModule,
     compositionModule,
   ]);
 });

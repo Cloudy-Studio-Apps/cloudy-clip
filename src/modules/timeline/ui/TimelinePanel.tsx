@@ -16,7 +16,7 @@ import {
   type Clip,
   type TrackId,
 } from "@/modules/project";
-import { timelineOverlays } from "../timeline.points";
+import { timelineOverlays, timelineTabs } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { addClip } from "../timeline.commands";
@@ -50,6 +50,7 @@ export function TimelinePanel() {
   const duration = Math.max(open?.duration ?? 0, content);
   const [view, setView] = useState({ page: 0, pageWidth: 1200 });
   const overlays = usePoint(timelineOverlays);
+  const tabs = usePoint(timelineTabs);
 
   // Track which page is visible; only page changes cause a render.
   const measure = useCallback(() => {
@@ -143,6 +144,11 @@ export function TimelinePanel() {
   return (
     <section className="flex h-full flex-col">
       <TimelineToolbar />
+      {tabs.map(({ id, component: Tabs }) => (
+        <ErrorBoundary key={id} name={id}>
+          <Tabs />
+        </ErrorBoundary>
+      ))}
       <div
         ref={scrollRef}
         data-scroll="wide"
@@ -165,7 +171,7 @@ export function TimelinePanel() {
               </div>
             </div>
           ))}
-          {duration === 0 && (
+          {open && content === 0 && (
             <p
               className="pointer-events-none absolute text-sm text-subtle-foreground"
               style={{ left: HEADER_WIDTH + 16, top: 120 }}

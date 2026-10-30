@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createKernel, defineCommand, LOCAL_ACTOR, type Kernel } from "@/core";
 import { createProjectModule } from "./project.module";
 import { projectRef } from "./project.ref";
+import { seedProject } from "./project.testing";
 
 const widen = defineCommand({
   id: "test.widen",
@@ -26,7 +27,7 @@ const width = (kernel: Kernel) => {
 
 async function kernelWithProject() {
   const kernel = await createKernel();
-  await kernel.modules.load(createProjectModule());
+  await kernel.modules.load(createProjectModule(seedProject()));
   kernel.bus.register(widen);
   return kernel;
 }

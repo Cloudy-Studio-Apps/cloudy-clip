@@ -72,7 +72,7 @@ export const mediaModule = defineModule({
 
     contribute(layoutPanels, {
       id: "media.library",
-      title: "Media",
+      title: "Library",
       slot: "side",
       icon: SquarePlay,
       component: MediaLibrary,

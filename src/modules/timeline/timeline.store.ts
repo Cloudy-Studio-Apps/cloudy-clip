@@ -42,6 +42,7 @@ export function createTimelineView(
         ...(place && { pxPerSecond: place.pxPerSecond }),
       });
       // After the new timeline has laid out, so its width can hold the old scroll.
+      if (!scroller) return;
       requestAnimationFrame(() => {
         if (scroller) scroller.scrollLeft = place?.scrollLeft ?? 0;
       });

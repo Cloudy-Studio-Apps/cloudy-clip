@@ -44,3 +44,12 @@ export interface PointerDragHandlers {
 export interface EyeDropperLike {
   open(): Promise<{ sRGBHex: string }>;
 }
+
+/** One entry of a context menu. */
+export interface MenuItem {
+  label: string;
+  onSelect(): void;
+  disabled?: boolean;
+  /** Shown in the destructive colour. */
+  destructive?: boolean;
+}

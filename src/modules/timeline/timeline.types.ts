@@ -154,3 +154,9 @@ export interface JunctionEdit {
 export interface ClipTrackMove extends ClipMove {
   trackId: TrackId;
 }
+
+/** A strip between the toolbar and the ruler. */
+export interface TimelineTabs {
+  id: string;
+  component: ComponentType;
+}
