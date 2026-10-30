@@ -1,5 +1,6 @@
 import { Play } from "lucide-react";
 import { useModule } from "@/core";
+import { stickerPicture } from "../logic/picture";
 import { stickerRef } from "../sticker.ref";
 import type { StickerHit } from "../sticker.types";
 import { useStickerPress } from "./sticker.add.hook";
@@ -9,8 +10,8 @@ export function StickerTile({ hit }: { hit: StickerHit }) {
   const stickers = useModule(stickerRef);
   const press = useStickerPress();
   const { pack, sticker } = hit;
-  const art = stickers.artOf(pack, sticker.id, {});
-  const picture = sticker.thumbnail ?? (art?.type === "image" ? art.url : undefined);
+  const picture = stickerPicture(stickers, pack, sticker);
+  const moving = stickers.artOf(pack, sticker.id, {})?.type === "lottie";
   return (
     <button
       type="button"
@@ -30,7 +31,7 @@ export function StickerTile({ hit }: { hit: StickerHit }) {
           className="size-3/4 object-contain"
         />
       )}
-      {art?.type === "lottie" && (
+      {moving && (
         <Play className="absolute bottom-0.5 right-0.5 size-2.5 fill-current text-primary" />
       )}
     </button>

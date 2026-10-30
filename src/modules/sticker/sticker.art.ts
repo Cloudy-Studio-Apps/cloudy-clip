@@ -3,6 +3,8 @@ import type { LottiePlayer, StickerArt, StickerArtCache } from "./sticker.types"
 
 /** Rasters kept at once; the oldest goes first and is made again if it shows again. */
 const MAX_RASTERS = 64;
+/** The widest raster: larger stickers are scaled up from this. */
+const MAX_RASTER_WIDTH = 4096;
 
 interface ImageEntry {
   image: HTMLImageElement;
@@ -17,7 +19,7 @@ interface LottieEntry {
 
 /** The smallest power of two at least `width`, so resizing a clip doesn't raster every step. */
 function rasterWidthFor(width: number): number {
-  return 2 ** Math.ceil(Math.log2(Math.max(1, width)));
+  return Math.min(MAX_RASTER_WIDTH, 2 ** Math.ceil(Math.log2(Math.max(1, width))));
 }
 
 /**

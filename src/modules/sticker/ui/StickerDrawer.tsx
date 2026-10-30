@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
-import { useModule } from "@/core";
+import { useModule, usePoint } from "@/core";
 import { cn } from "@/ui";
+import { stickerPacks } from "../sticker.points";
 import { stickerRef } from "../sticker.ref";
 import type { StickerPackDefinition, StickerView } from "../sticker.types";
 import { useStickerList } from "./sticker.list.hook";
@@ -37,8 +38,10 @@ interface StickerDrawerProps {
 /** Slides over the panel: every topic, and every installed pack with how many stickers it has. */
 export function StickerDrawer({ view, onPick, onClose }: StickerDrawerProps) {
   const stickers = useModule(stickerRef);
-  const packs = useMemo(() => stickers.packs(), [stickers]);
-  const topics = useMemo(() => stickers.topics(), [stickers]);
+  const contributed = usePoint(stickerPacks);
+  const packs = useMemo(() => [...contributed].sort((a, b) => a.order - b.order), [contributed]);
+  // Recomputed when a pack arrives: packs bring topics.
+  const topics = useMemo(() => (contributed ? stickers.topics() : []), [stickers, contributed]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

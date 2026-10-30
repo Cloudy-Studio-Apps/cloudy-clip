@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useModule } from "@/core";
+import { stickerPicture } from "../logic/picture";
 import { stickerRef } from "../sticker.ref";
 import type { StickerPackDefinition } from "../sticker.types";
 import { useStickerList } from "./sticker.list.hook";
@@ -20,9 +21,8 @@ export function PackCover({ pack, onOpen }: { pack: StickerPackDefinition; onOpe
     >
       <span className="grid aspect-square grid-cols-2 gap-0.5">
         {cover.map(({ sticker }) => {
-          const art = stickers.artOf(pack.id, sticker.id, {});
-          const picture = sticker.thumbnail ?? art?.url;
-          return (
+          const picture = stickerPicture(stickers, pack.id, sticker);
+          return picture ? (
             <img
               key={sticker.id}
               src={picture}
@@ -30,6 +30,8 @@ export function PackCover({ pack, onOpen }: { pack: StickerPackDefinition; onOpe
               draggable={false}
               className="size-full object-contain"
             />
+          ) : (
+            <span key={sticker.id} />
           );
         })}
       </span>

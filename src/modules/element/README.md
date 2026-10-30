@@ -70,7 +70,7 @@ declaration, and one command changes any element's values.
   - `logic/measure.ts`: `canvasTextMeasure(ctx)`, a `TextMeasure` over a 2D canvas (removes the
     trailing letter spacing the canvas adds; letter by letter without `ctx.letterSpacing`). The
     engine draws and the canvas tools hit-test with it.
-- **Elements so far:** `media` (media module), `text` (text module).
+- **Elements so far:** `media` (media module), `text` (text module), `sticker` (sticker module).
 - **Creation:** an element's `create` entries (`{ panel, id, label, props?(format) }`) are shown by
   the timeline's `CreateTiles` and added with `timeline.addElement`.
 - **Not yet:** saving projects (`version` migrations), lists of groups, keyframes.

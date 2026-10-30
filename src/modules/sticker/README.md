@@ -31,6 +31,28 @@ cut across packs and optional variations.
     grid; only the rows in view are drawn, `sticker.window.hook.ts`).
   - `ui/VariationControl.tsx`: one row per axis with two options or more, swatches when they have
     them. The section is left out for a sticker with nothing to choose.
+- **Not yet:** Fluent's Color and 3D styles and other emoji groups, skin tones, Noto's animated
+  emoji (each a future plugin; they need a plugin loader so they can stay optional), GIFs, an online
+  catalog, the user's own stickers.
+
+A plugin adds a pack with `contribute(stickerPacks, defineStickerPack({ id, name, order, stickers }))`.
+A sticker needs only `id`, `label` and `art`. To add a style to a pack it doesn't own, without
+repeating its stickers:
+
+```ts
+contribute(
+  stickerStyles,
+  defineStickerStyle({
+    pack: "fluent",
+    axis: "style",
+    option: { id: "color", label: "Color" },
+    art: (sticker) => ({ type: "image", url: colorUrl(sticker.id) }),
+  }),
+);
+```
+
+The inspector shows an axis once it has two options. If the plugin goes, clips using its option
+fall back to the default. Animated art is Lottie JSON with `type: "lottie"` and a `thumbnail`.
 
 | Command       | MCP tool             | Notes                                                                                                                                   |
 | ------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
