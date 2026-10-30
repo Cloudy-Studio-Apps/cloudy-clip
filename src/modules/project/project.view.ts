@@ -63,6 +63,10 @@ export function createCompositionView(document: PatchableStore<ProjectState>): C
       const id = openFor(actor);
       return (id !== null && document.getState().compositions[id]?.format) || DEFAULT_FORMAT;
     },
+    reset() {
+      store.setState({ open: {}, tabs: [] });
+      sync();
+    },
     dispose: stop,
   };
 }

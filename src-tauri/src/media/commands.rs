@@ -3,20 +3,31 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 use super::MediaServerUrl;
 use super::proxy::ProxyJobs;
-use super::registry::{MediaRegistry, RegisteredMedia};
+use super::registry::{MediaFile, MediaRegistry, RegisteredMedia, describe};
 use crate::error::AppError;
+
+/// A file to register, under the id the frontend gave it.
+#[derive(Deserialize)]
+pub struct RegisterFile {
+    id: String,
+    path: String,
+}
 
 /// Outcome for one path. Imports are per-file: one bad file never fails the batch.
 #[derive(Serialize)]
 #[serde(tag = "status", rename_all = "lowercase")]
 pub enum RegisterOutcome {
     Ok { media: RegisteredMedia },
-    Error { path: String, error: AppError },
+    Error {
+        id: String,
+        path: String,
+        error: AppError,
+    },
 }
 
 /// Validates local files and allows the webview to stream them from the media server.
@@ -24,15 +35,15 @@ pub enum RegisterOutcome {
 #[tauri::command]
 pub async fn media_register(
     app: AppHandle,
-    paths: Vec<String>,
+    files: Vec<RegisterFile>,
     registry: State<'_, Arc<MediaRegistry>>,
     proxies: State<'_, ProxyJobs>,
 ) -> Result<Vec<RegisterOutcome>, AppError> {
-    let mut outcomes = Vec::with_capacity(paths.len());
-    for raw in paths {
+    let mut outcomes = Vec::with_capacity(files.len());
+    for RegisterFile { id, path: raw } in files {
         let path = PathBuf::from(&raw);
         let outcome = match tokio::fs::metadata(&path).await {
-            Ok(meta) if meta.is_file() => match registry.register(&path, meta.len()) {
+            Ok(meta) if meta.is_file() => match registry.register(&id, &path, meta.len()) {
                 Ok(media) => {
                     proxies.start(
                         app.clone(),
@@ -43,13 +54,19 @@ pub async fn media_register(
                     );
                     RegisterOutcome::Ok { media }
                 }
-                Err(error) => RegisterOutcome::Error { path: raw, error },
+                Err(error) => RegisterOutcome::Error {
+                    id,
+                    path: raw,
+                    error,
+                },
             },
             Ok(_) => RegisterOutcome::Error {
+                id,
                 path: raw.clone(),
                 error: AppError::InvalidInput(format!("Not a file: {raw}")),
             },
             Err(_) => RegisterOutcome::Error {
+                id,
                 path: raw.clone(),
                 error: AppError::NotFound(format!("File not found: {raw}")),
             },
@@ -57,6 +74,19 @@ pub async fn media_register(
         outcomes.push(outcome);
     }
     Ok(outcomes)
+}
+
+/// What a file is, without registering it: how a relink checks the file before it writes.
+#[tauri::command]
+pub async fn media_stat(path: String) -> Result<MediaFile, AppError> {
+    let file = PathBuf::from(&path);
+    let meta = tokio::fs::metadata(&file)
+        .await
+        .map_err(|_| AppError::NotFound(format!("File not found: {path}")))?;
+    if !meta.is_file() {
+        return Err(AppError::InvalidInput(format!("Not a file: {path}")));
+    }
+    describe(&file, meta.len())
 }
 
 /// Base URL the webview streams media from: `<url>/<media id>`.

@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { CommandFailure, defineCommand } from "@/core";
+import { CommandFailure, createId, defineCommand } from "@/core";
 import { isMediaInUse, type MediaAsset, projectRef } from "@/modules/project";
-import { registerFiles } from "./media.service";
+import { registerFiles, statFile } from "./media.service";
 import type { ImportResult } from "./media.types";
 
 /**
@@ -16,7 +16,7 @@ export const importMedia = defineCommand({
   undoable: true,
   input: z.object({ paths: z.array(z.string().min(1)).min(1).max(200) }),
   async run(ctx, { paths }): Promise<ImportResult> {
-    const outcomes = await registerFiles(paths);
+    const outcomes = await registerFiles(paths.map((path) => ({ id: createId("media"), path })));
     const imported: MediaAsset[] = [];
     const failed: ImportResult["failed"] = [];
     for (const outcome of outcomes) {
@@ -67,4 +67,35 @@ export const removeMedia = defineCommand({
   },
 });
 
-export const mediaCommands = [importMedia, removeMedia];
+/**
+ * Points a media item at another file, keeping its clips: for a file that moved. The module
+ * follows the path in the document, so undo and redo move the stream too.
+ */
+export const relinkMedia = defineCommand({
+  id: "media.relink",
+  label: "Locate media",
+  description:
+    'Points a media item at the file at an absolute path, keeping its clips. Use it for media with status "missing". Fails with media.not_found, or media.wrong_kind when audio would replace video or the reverse.',
+  undoable: true,
+  input: z.object({ mediaId: z.string(), path: z.string().min(1) }),
+  async run(ctx, { mediaId, path }) {
+    const { store } = ctx.require(projectRef);
+    const asset = store.getState().media[mediaId];
+    if (!asset) throw new CommandFailure("media.not_found", `No media with id "${mediaId}"`);
+    const file = await statFile(path).catch((error: { message?: string }) => {
+      throw new CommandFailure("media.not_found", error.message ?? `File not found: ${path}`);
+    });
+    if (file.kind !== asset.kind) {
+      throw new CommandFailure(
+        "media.wrong_kind",
+        `${asset.name} is ${asset.kind}, and ${file.name} is ${file.kind}.`,
+      );
+    }
+    ctx.mutate(store, (draft) => {
+      const target = draft.media[mediaId];
+      if (target) Object.assign(target, { path, name: file.name, size: file.size });
+    });
+  },
+});
+
+export const mediaCommands = [importMedia, removeMedia, relinkMedia];

@@ -8,8 +8,9 @@ import { mediaElement } from "./media.element";
 import { mediaMcpTools } from "./media.mcp";
 import { createProbeQueue } from "./media.probe";
 import { mediaRef } from "./media.ref";
+import { createMediaFiles } from "./media.files";
 import { createMediaService } from "./media.service";
-import { createMediaState, isProxySettled } from "./media.store";
+import { createMediaState } from "./media.store";
 import { MediaLibrary } from "./ui";
 
 /** Importing files, reading their metadata, proxies, and the media library panel. */
@@ -24,7 +25,7 @@ export const mediaModule = defineModule({
     contribute(elements, mediaElement);
     const project = require(projectRef).store;
     const state = createMediaState();
-    const { fileDrop, getProbe, setProbe } = state;
+    const { fileDrop, getProbe } = state;
     const service = createMediaService(state);
     await service.init();
     // Each cleanup is registered as soon as its resource exists, so a later failure leaks nothing.
@@ -32,25 +33,8 @@ export const mediaModule = defineModule({
     const probes = createProbeQueue({ state, mediaUrl: service.mediaUrl });
     onDispose(() => probes.dispose());
 
-    // Read metadata of every media item in the project (import, redo, future loading) once
-    // its proxy pipeline has settled.
-    const probeAll = () => {
-      const { media, mediaOrder } = project.getState();
-      for (const id of mediaOrder) {
-        const asset = media[id];
-        if (!asset) continue;
-        const probe = getProbe(id);
-        if (!probe) setProbe(id, { status: "pending" });
-        else if (isProxySettled(probe.proxy)) probes.enqueue(asset);
-      }
-    };
-    probeAll();
-    onDispose(
-      project.subscribe((next, previous) => {
-        if (next.mediaOrder !== previous.mediaOrder) probeAll();
-      }),
-    );
-    onDispose(state.probes.subscribe(probeAll));
+    const files = createMediaFiles({ project, state, probes });
+    onDispose(files.follow());
 
     // Files dropped onto the window from the OS.
     try {
@@ -86,6 +70,7 @@ export const mediaModule = defineModule({
         waitForProbe: state.waitForProbe,
         pictureMeta: state.pictureMeta,
         mediaUrl: service.mediaUrl,
+        restore: files.restore,
       },
     };
   },

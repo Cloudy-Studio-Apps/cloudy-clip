@@ -10,17 +10,19 @@ rail), from which compositions and files are dragged onto the timeline.
 source: "media" }`, labelled with the file name, a filmstrip on video tracks and a waveform on audio)
 - **Points it owns:** `librarySections` (`media.points.ts`): sections above the files (`composition` contributes its own).
 - **API** (`useModule(mediaRef)` / `ctx.require(mediaRef)`): `probes`, `fileDrop`, `getProbe`,
-  `waitForProbe`, `pictureMeta(id)` (size, frame rate, length as soon as ffprobe has read them, rotation included), `mediaUrl`. `mediaHasAudio(probe)` (exported helper) says whether a file has
+  `waitForProbe`, `pictureMeta(id)` (size, frame rate, length as soon as ffprobe has read them, rotation included), `mediaUrl`, `restore(assets)` (registers a saved project's files, marks those not found `missing`, returns them). `useLocateMedia()` asks where a missing file went and looks for the others in that folder. `mediaHasAudio(probe)` (exported helper) says whether a file has
   sound (true unless ffprobe found none). `createFakeMediaModule(probes)` (`media.testing.ts`) stands in for it
   in tests.
 - **Files:**
   - Native side (`src-tauri/src/media`): `media_register` validates paths into an id → path
-    allowlist; a loopback HTTP server streams them with Range support (`media_server_url`).
+    allowlist, under ids TypeScript made, so a saved project keeps them (registering an id again
+    replaces it); `media_stat` says what a file is without registering it; a loopback HTTP server streams them with Range support (`media_server_url`).
   - Proxies: pro/camera formats (ProRes, APV, 10-bit HEVC, high bitrates, 24-bit PCM, …) get a light
     H.264 copy made with the system FFmpeg. Progress arrives as `media://proxy` events and is stored
     in `probe.proxy`, with `hasAudio` once ffprobe has read the streams. Without FFmpeg, files are
     played directly.
   - `media.service.ts`: the native calls and the proxy listener.
+  - `media.files.ts`: keeps the registry and probes in step with the document: probes what comes in, and when an item's path changes (relink, undo, redo) registers the new file and reads it again. `MediaProbe.revision` is in its URL, so media elements reload.
   - `media.probe.ts`: once the proxy state settles, a bounded queue loads each file in a hidden
     media element to read duration, size and a poster (the element is silenced with `volume = 0`,
     not `muted`: WebKitGTK draws a muted video's frames to a canvas as black). Results live in `probes` (per kernel, not
@@ -31,8 +33,9 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
     `MediaThumb`, `media.pick.hook.ts` (the file picker).
 - **Not yet:** search, filters, folders, list view.
 
-| Command        | MCP tool       | Notes                             |
-| -------------- | -------------- | --------------------------------- |
-| `media.import` | `media_import` | Tool waits until metadata is read |
-| `media.remove` | `media_remove` | Refuses while clips use the media |
-| —              | `media_list`   | Media with metadata and status    |
+| Command        | MCP tool       | Notes                               |
+| -------------- | -------------- | ----------------------------------- |
+| `media.import` | `media_import` | Tool waits until metadata is read   |
+| `media.remove` | `media_remove` | Refuses while clips use the media   |
+| `media.relink` | `media_relink` | Keeps its clips. `media.wrong_kind` |
+| —              | `media_list`   | Media with metadata and status      |

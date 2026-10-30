@@ -9,7 +9,7 @@ Two product ideas drive the architecture:
 1. **Agents are first-class editors.** An MCP server is built in and on by default. An agent can do anything a user can do, on the same live project, and the user can undo it. Neither side has powers the other lacks.
 2. **Plugins come later, but the API is designed now.** Built-in modules register through the same surface third-party plugins will use.
 
-**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, text clips with full styling and fonts, junctions with transitions between clips, and stickers in packs). No export, effects, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
+**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, text clips with full styling and fonts, junctions with transitions between clips, and stickers in packs). Projects save and reopen (workspace). No export, effects, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
 
 ## Commands
 
@@ -60,7 +60,7 @@ These are the rules, and they are strict. How things work is described in the `R
 
 14. Every change to the project (and every action an agent can take, like seeking) is a command (`defineCommand`, Zod input, `<module>.<action>` id) run through the bus. UI handlers and MCP tools run commands; they never mutate stores.
 15. Commands change state only with `ctx.mutate(store, draft => …)`, throw `CommandFailure("<module>.<reason>", message)` for expected errors, and validate everything before writing. A gesture sends one command on release, so it is one undo step.
-16. Document state (media, tracks, clips) lives only in the project store (`ctx.require(projectRef).store`): patchable and undoable. Ephemeral state (selection, zoom, viewport, probes, playhead, live gesture values) lives in plain per-kernel Zustand stores and is never in history. Non-undoable commands never mutate the project.
+16. Document state (media, tracks, clips) lives only in the project store (`ctx.require(projectRef).store`): patchable and undoable. Ephemeral state (selection, zoom, viewport, probes, playhead, live gesture values) lives in plain per-kernel Zustand stores and is never in history. Non-undoable commands never mutate the project, except `ctx.replace`, which starts another document.
 17. All times are integer microseconds (`Micros`). Positions in the frame are output pixels. Ids come from `createId()`.
 
 **MCP**
@@ -121,7 +121,8 @@ src/
     transition/ the transition junction kind, the seven presets, the Transitions tab (feature)
     sticker/    packs, topics and variations, the Stickers tab, static and animated art (feature)
     collab/     agents as collaborators: presence, access, pointer, Follow (feature)
-src-tauri/      the Rust side: native media server + proxies (media/), installed fonts (fonts/), MCP server (mcp/)
+    workspace/  the open project: start dialog, save, autosave, open, recent list
+src-tauri/      the Rust side: native media server + proxies (media/), installed fonts (fonts/), MCP server (mcp/), project files (workspace/)
 ```
 
 | Topic                                                  | README                                                                            |

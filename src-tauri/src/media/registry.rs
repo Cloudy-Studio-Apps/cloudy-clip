@@ -10,7 +10,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::Serialize;
 
@@ -35,6 +34,14 @@ pub struct RegisteredMedia {
     pub size: u64,
 }
 
+/// What a file is, without registering it.
+#[derive(Debug, Clone, Serialize)]
+pub struct MediaFile {
+    pub name: String,
+    pub kind: MediaKind,
+    pub size: u64,
+}
+
 struct Entry {
     original: PathBuf,
     proxy: Option<PathBuf>,
@@ -43,27 +50,19 @@ struct Entry {
 #[derive(Default)]
 pub struct MediaRegistry {
     entries: RwLock<HashMap<String, Entry>>,
-    next_id: AtomicU64,
 }
 
 impl MediaRegistry {
-    /// Validates a path and adds it. Registering the same path twice returns a new id; the
-    /// frontend decides whether that is a duplicate.
-    pub fn register(&self, path: &Path, size: u64) -> AppResult<RegisteredMedia> {
-        let kind = kind_of(path).ok_or_else(|| {
-            AppError::InvalidInput(format!("Unsupported file type: {}", path.display()))
-        })?;
-        let id = format!("m{}", self.next_id.fetch_add(1, Ordering::Relaxed) + 1);
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| path.display().to_string());
+    /// Validates a path and adds it under the frontend's id, which a saved project keeps across
+    /// restarts. Registering an id again replaces its entry (and drops its proxy).
+    pub fn register(&self, id: &str, path: &Path, size: u64) -> AppResult<RegisteredMedia> {
+        let MediaFile { name, kind, size } = describe(path, size)?;
 
         self.entries
             .write()
             .map_err(|_| AppError::Unavailable("Media registry is poisoned".into()))?
             .insert(
-                id.clone(),
+                id.to_owned(),
                 Entry {
                     original: path.to_path_buf(),
                     proxy: None,
@@ -71,7 +70,7 @@ impl MediaRegistry {
             );
 
         Ok(RegisteredMedia {
-            id,
+            id: id.to_owned(),
             path: path.display().to_string(),
             name,
             kind,
@@ -99,6 +98,18 @@ impl MediaRegistry {
             entry.proxy = Some(proxy);
         }
     }
+}
+
+/// Validates a path and says what the file is.
+pub fn describe(path: &Path, size: u64) -> AppResult<MediaFile> {
+    let kind = kind_of(path).ok_or_else(|| {
+        AppError::InvalidInput(format!("Unsupported file type: {}", path.display()))
+    })?;
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.display().to_string());
+    Ok(MediaFile { name, kind, size })
 }
 
 fn extension(path: &Path) -> Option<String> {
@@ -139,13 +150,15 @@ mod tests {
     #[test]
     fn rejects_unknown_extensions() {
         let registry = MediaRegistry::default();
-        assert!(registry.register(Path::new("/tmp/a.txt"), 1).is_err());
+        assert!(registry.register("a", Path::new("/tmp/a.txt"), 1).is_err());
     }
 
     #[test]
     fn registers_and_resolves() {
         let registry = MediaRegistry::default();
-        let media = registry.register(Path::new("/tmp/Clip.MP4"), 10).unwrap();
+        let media = registry
+            .register("media_a", Path::new("/tmp/Clip.MP4"), 10)
+            .unwrap();
         assert_eq!(media.kind, MediaKind::Video);
         assert_eq!(media.name, "Clip.MP4");
         assert_eq!(

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { commandTool, defineMcpTool, errorResult, textResult } from "@/core";
 import { projectRef, type MediaAsset } from "@/modules/project";
-import { importMedia, removeMedia } from "./media.commands";
+import { importMedia, relinkMedia, removeMedia } from "./media.commands";
 import { mediaRef } from "./media.ref";
 import type { ImportResult, MediaApi } from "./media.types";
 
@@ -41,7 +41,7 @@ const listTool = defineMcpTool({
   name: "media_list",
   readOnly: true,
   description:
-    "Lists imported media with metadata: kind, duration (microseconds), width/height, status (pending, ready, error), and proxy (state, progress 0..1, message) for files being optimized for editing.",
+    "Lists imported media with metadata: kind, duration (microseconds), width/height, status (pending, ready, error, or missing when the file is not where the project says: fix it with media_relink), and proxy (state, progress 0..1, message) for files being optimized for editing.",
   input: z.object({}),
   handler(_input, { require }) {
     const media = require(mediaRef);
@@ -59,4 +59,5 @@ export const mediaMcpTools = [
   importTool,
   listTool,
   commandTool(removeMedia, { name: "media_remove" }),
+  commandTool(relinkMedia, { name: "media_relink" }),
 ];

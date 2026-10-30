@@ -23,6 +23,7 @@ export function TopBar({ className }: { className?: string }) {
     >
       <div className="flex items-center gap-1">
         <Brand />
+        <TopBarSlot items={items} slot="left" />
       </div>
       <div className="flex items-center gap-1">
         <HistoryControls />

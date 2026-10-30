@@ -64,6 +64,24 @@ export function createCommandBus({
         const change = asInternal(store).produce(recipe);
         if (change) tx.changes.push(change);
       },
+      replace(store, state) {
+        if (tx.closed) {
+          throw new CommandFailure(
+            "timeout",
+            `"${command.id}" tried to change state after timing out`,
+          );
+        }
+        if (command.undoable) {
+          throw new CommandFailure(
+            "store.not_replaceable",
+            `"${command.id}" is undoable, and starting another document can't be undone`,
+          );
+        }
+        const problem = asInternal(store).load(state);
+        if (problem !== null) throw new CommandFailure("store.invalid", problem);
+        tx.changes = [];
+        history.clear();
+      },
       require(ref) {
         try {
           if (!resolveModule) throw new Error("This bus has no modules");

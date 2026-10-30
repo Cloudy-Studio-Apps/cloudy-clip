@@ -5,6 +5,7 @@ mod fonts;
 mod mcp;
 mod media;
 mod webview;
+mod workspace;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -23,9 +24,17 @@ pub fn run() {
             fonts::commands::fonts_system_list,
             media::commands::media_register,
             media::commands::media_server_url,
+            media::commands::media_stat,
             mcp::commands::mcp_register_tools,
             mcp::commands::mcp_respond,
             mcp::commands::mcp_status,
+            workspace::commands::workspace_exists,
+            workspace::commands::workspace_read,
+            workspace::commands::workspace_recents_read,
+            workspace::commands::workspace_recents_write,
+            workspace::commands::workspace_rename,
+            workspace::commands::workspace_unique_path,
+            workspace::commands::workspace_write,
         ])
         .run(tauri::generate_context!());
 

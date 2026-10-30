@@ -150,6 +150,8 @@ export interface Composition {
  * commands, so every change is undoable and visible to agents.
  */
 export interface ProjectState {
+  /** What the project is about, for the people and agents who open it. Missing when not given. */
+  description?: string;
   compositions: Record<CompositionId, Composition>;
   /** Order in the Library. */
   compositionOrder: CompositionId[];
@@ -212,6 +214,8 @@ export interface CompositionView {
   requireOpen(actor: ActorId): Composition;
   /** Format of the composition `actor` has open; the default when there is none. */
   formatFor(actor: ActorId): ProjectFormat;
+  /** Forgets everyone's open composition and the tabs: another document was opened. */
+  reset(): void;
   dispose(): void;
 }
 

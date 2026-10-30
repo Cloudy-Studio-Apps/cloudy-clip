@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { cn } from "../lib/cn";
 
 interface DialogProps {
   title: string;
@@ -7,10 +8,12 @@ interface DialogProps {
   children: ReactNode;
   /** The buttons along the bottom. */
   footer?: ReactNode;
+  /** `wide` for a dialog that lays things out side by side. */
+  size?: "default" | "wide";
 }
 
 /** A modal panel over a dim backdrop. Closes on Escape or a press outside it. */
-export function Dialog({ title, onClose, children, footer }: DialogProps) {
+export function Dialog({ title, onClose, children, footer, size = "default" }: DialogProps) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -30,7 +33,10 @@ export function Dialog({ title, onClose, children, footer }: DialogProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex max-h-[90vh] w-[360px] flex-col rounded-lg border border-border bg-popover shadow-popover"
+        className={cn(
+          "flex max-h-[90vh] flex-col rounded-lg border border-border bg-popover shadow-popover",
+          size === "wide" ? "w-[720px]" : "w-[360px]",
+        )}
       >
         <h2 className="border-b border-border px-3.5 py-2.5 text-sm font-semibold">{title}</h2>
         <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3.5">{children}</div>

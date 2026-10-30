@@ -52,6 +52,11 @@ export function createProbeQueue(deps: {
       queue.push(asset);
       pump();
     },
+    forget(id) {
+      queued.delete(id);
+      const index = queue.findIndex((asset) => asset.id === id);
+      if (index >= 0) queue.splice(index, 1);
+    },
     dispose() {
       disposed = true;
       queue.length = 0;

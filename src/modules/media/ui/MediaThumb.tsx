@@ -6,6 +6,7 @@ import type { MediaProbe } from "../media.types";
 /** Short status shown on the thumbnail while its file is being prepared. */
 function statusOf(probe: MediaProbe | undefined): string | null {
   if (probe?.status === "error") return "Can't play";
+  if (probe?.status === "missing") return "Missing";
   switch (probe?.proxy?.state) {
     case undefined:
     case "analyzing":
@@ -55,7 +56,9 @@ export function MediaThumb({ asset, probe }: MediaThumbProps) {
 
       {status && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/45 px-1 text-center text-2xs font-medium text-white">
-          {probe?.status !== "error" && <SealMark className="size-[22px] animate-bob-fast" />}
+          {probe?.status !== "error" && probe?.status !== "missing" && (
+            <SealMark className="size-[22px] animate-bob-fast" />
+          )}
           {status}
           {encoding && <ProgressBar value={proxy?.progress ?? 0} className="mt-0.5 w-3/5" />}
         </div>

@@ -112,6 +112,43 @@ describe("kernel", () => {
     unregister();
   });
 
+  it("replace swaps the document and clears history, or changes nothing when refused", async () => {
+    const store = createPatchableStore(
+      "picky",
+      { title: "a" },
+      {
+        diff: () => [],
+        repair: () => {},
+        validate: (state) => (state.title === "bad" ? "bad title" : null),
+      },
+    );
+    const open = (undoable: boolean) =>
+      defineCommand({
+        id: `doc.open.${undoable}`,
+        label: "Open",
+        description: "Opens a doc.",
+        undoable,
+        input: z.object({ title: z.string() }),
+        run: (ctx, { title }) => ctx.replace(store, { title }),
+      });
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    await kernel.bus.run(rename, { title: "b" });
+
+    const refused = await kernel.bus.run(open(false), { title: "bad" });
+    expect(refused).toMatchObject({ ok: false, error: { code: "store.invalid" } });
+    expect(store.getState().title).toBe("a");
+    expect(kernel.history.getSnapshot().past).toHaveLength(1);
+
+    const undoable = await kernel.bus.run(open(true), { title: "c" });
+    expect(undoable).toMatchObject({ ok: false, error: { code: "store.not_replaceable" } });
+
+    const opened = await kernel.bus.run(open(false), { title: "c" });
+    expect(opened.ok).toBe(true);
+    expect(store.getState().title).toBe("c");
+    expect(kernel.history.getSnapshot().past).toHaveLength(0);
+  });
+
   it("an observer's deny stops the call before the tool runs", async () => {
     const kernel = await createKernel();
     await kernel.modules.load(docModule);

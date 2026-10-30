@@ -6,7 +6,9 @@
   "permissions": [
     "core:default",
     "opener:default",
+    "core:window:allow-destroy",
     "dialog:allow-open",
+    "dialog:allow-save",
     {
       "identifier": "http:default",
       "allow": [

@@ -29,7 +29,7 @@ Cloudy Clip is built so that **a user, an agent (over MCP), and a future plugin 
 1. Something asks for a change: a button, a shortcut, or an MCP tool call.
 2. It runs a **command** through the bus: `bus.run(splitAt, { at })` (typed) or `bus.execute("timeline.splitAt", input, { origin: "agent" })` (by id).
 3. The bus validates the input with the command's Zod schema and queues the execution, so commands never interleave.
-4. The command reaches the document with `ctx.require(projectRef).store` and changes it only with `ctx.mutate(store, draft => …)`. Immer records patches.
+4. The command reaches the document with `ctx.require(projectRef).store` and changes it only with `ctx.mutate(store, draft => …)`. Immer records patches. Opening another project is the one exception: `ctx.replace` swaps the whole document and clears history.
 5. If it throws, every patch is rolled back. A `CommandFailure` becomes a typed error (`timeline.overlap`, …) and anything else becomes `internal`.
 6. On success, undoable commands push one history entry `{ label, origin, actor, patches }`. Ctrl+Z (or the agent's `history_undo`) reverts the caller's own latest step (see "How a collaborator works next to the user").
 7. Zustand subscribers re-render only what changed. The preview redraws.

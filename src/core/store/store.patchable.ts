@@ -64,6 +64,11 @@ export function createPatchableStore<T extends object>(
     reset(state) {
       api.setState(state, true);
     },
+    load(state) {
+      const problem = policy?.validate(state) ?? null;
+      if (problem === null) api.setState(state, true);
+      return problem;
+    },
   };
   return store;
 }

@@ -29,6 +29,12 @@ export function createMediaState(): MediaState {
     fileDrop,
     getProbe,
     setProbe,
+    replaceProbe(id, probe) {
+      const revision = (getProbe(id)?.revision ?? 0) + 1;
+      probes.setState((state) => ({
+        probes: { ...state.probes, [id]: { ...probe, revision } },
+      }));
+    },
     setProxy(id, proxy) {
       const previous = getProbe(id)?.proxy;
       // Keep the explanation and the sound check from earlier events when later ones omit them.

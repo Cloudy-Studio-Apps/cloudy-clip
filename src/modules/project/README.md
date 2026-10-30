@@ -10,7 +10,7 @@ lives here, so every change is undoable and readable by agents.
 - **API** (`useModule(projectRef)` / `ctx.require(projectRef)`): `store`, a patchable store of
   `ProjectState`. Read it freely; change it only through commands (`ctx.mutate`). Other modules edit
   it with their own commands. `view` says who has which composition open: `openFor(actor)`,
-  `setOpen`, `closeTab`, `requireOpen` (throws `composition.none_open`), `formatFor`. An actor whose
+  `setOpen`, `closeTab`, `requireOpen` (throws `composition.none_open`), `formatFor`, `reset`. An actor whose
   composition is gone falls back to Main, then to none. `useOpenComposition()` and `useOpenFormat()`
   read it for the user.
 - **Files:**
@@ -46,7 +46,7 @@ lives here, so every change is undoable and readable by agents.
 - **Junctions:** `ProjectState.junctions` holds things on the cut between two adjacent clips of one
   track (`Junction`: `kind`, `trackId`, `leftClipId`, `rightClipId`, `duration` = their overlap, `props`).
   Clips on a track overlap only by the `allowedOverlap` of the pair.
-- **Not yet:** a project name, saving and loading.
+- **Saving:** `workspace` owns the file; `view.reset()` is what opening one calls.
 
 | Command | MCP tool            | Notes                                                                          |
 | ------- | ------------------- | ------------------------------------------------------------------------------ |

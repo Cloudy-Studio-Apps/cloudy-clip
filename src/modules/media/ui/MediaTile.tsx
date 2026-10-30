@@ -3,10 +3,11 @@ import { memo } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import type { MediaAsset } from "@/modules/project";
-import { cn } from "@/ui";
+import { Button, cn } from "@/ui";
 import { removeMedia } from "../media.commands";
 import { startMediaDrag } from "../media.drag";
 import { mediaRef } from "../media.ref";
+import { useLocateMedia } from "./media.locate.hook";
 import { MediaThumb } from "./MediaThumb";
 
 /** One item of the library. Drag it onto the timeline to add a clip. */
@@ -16,13 +17,15 @@ export const MediaTile = memo(function MediaTile({ asset }: { asset: MediaAsset 
   const probe = useStore(media.probes, (s) => s.probes[asset.id]);
   // Size and length are all a drop needs; they arrive long before a proxy does.
   const ready = probe?.status === "ready" || media.pictureMeta(asset.id) !== undefined;
-  const failed = probe?.status === "error";
+  const missing = probe?.status === "missing";
+  const failed = probe?.status === "error" || missing;
+  const locate = useLocateMedia();
   const tooltip = [asset.path, probe?.error ?? probe?.proxy?.message].filter(Boolean).join("\n");
 
   return (
     <div
       data-collab-target={`media:${asset.id}`}
-      className={cn("group relative", ready ? "cursor-grab" : "cursor-progress")}
+      className={cn("group relative", ready ? "cursor-grab" : !missing && "cursor-progress")}
       title={tooltip}
       onPointerDown={(e) => {
         if (e.button !== 0 || !ready) return;
@@ -38,8 +41,18 @@ export const MediaTile = memo(function MediaTile({ asset }: { asset: MediaAsset 
       >
         {asset.name}
       </p>
-      {failed && probe.error && (
+      {failed && !missing && probe?.error && (
         <p className="line-clamp-2 text-2xs text-destructive/80">{probe.error}</p>
+      )}
+      {missing && (
+        <Button
+          size="sm"
+          className="mt-1 w-full"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => void locate(asset)}
+        >
+          Locate…
+        </Button>
       )}
       <button
         type="button"

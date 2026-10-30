@@ -21,6 +21,7 @@ import { textModule } from "@/modules/text";
 import { timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
 import { transitionModule } from "@/modules/transition";
+import { workspaceModule } from "@/modules/workspace";
 
 const log = createLogger("app");
 
@@ -40,6 +41,7 @@ const MODULES: AnyModuleDefinition[] = [
   transitionModule,
   stickerModule,
   collabModule,
+  workspaceModule,
 ];
 
 /**

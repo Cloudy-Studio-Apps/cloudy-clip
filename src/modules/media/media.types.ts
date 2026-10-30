@@ -3,8 +3,8 @@ import type { StoreApi } from "zustand/vanilla";
 import type { Micros } from "@/core";
 import type { MediaAsset, MediaId, MediaKind } from "@/modules/project";
 
-/** Progress of reading a file's metadata. */
-export type ProbeStatus = "pending" | "ready" | "error";
+/** Progress of reading a file's metadata. `missing`: the file isn't where the project says. */
+export type ProbeStatus = "pending" | "ready" | "error" | "missing";
 
 /** Where a file is in the native proxy pipeline (mirrors `ProxyState` in Rust). */
 export type ProxyState = "analyzing" | "queued" | "encoding" | "ready" | "skipped" | "error";
@@ -63,6 +63,8 @@ export interface MediaProbe {
   error?: string;
   /** Proxy pipeline state. Metadata is read only once this is settled. */
   proxy?: ProxyInfo;
+  /** Counts how often the item moved to another file, so media elements reload. */
+  revision?: number;
 }
 
 /** State of the probe store. */
@@ -70,13 +72,26 @@ export interface MediaProbeState {
   probes: Record<MediaId, MediaProbe>;
 }
 
-/** What `media_register` returns per path (mirrors `RegisterOutcome` in Rust). */
+/** A file to register, under the id the document knows it by (mirrors `RegisterFile` in Rust). */
+export interface RegisterFile {
+  id: MediaId;
+  path: string;
+}
+
+/** What `media_stat` returns (mirrors `MediaFile` in Rust). */
+export interface MediaFile {
+  name: string;
+  kind: MediaKind;
+  size: number;
+}
+
+/** What `media_register` returns per file (mirrors `RegisterOutcome` in Rust). */
 export type RegisterOutcome =
   | {
       status: "ok";
       media: { id: string; path: string; name: string; kind: MediaKind; size: number };
     }
-  | { status: "error"; path: string; error: { code: string; message: string } };
+  | { status: "error"; id: string; path: string; error: { code: string; message: string } };
 
 /** Result of the `media.import` command. */
 export interface ImportResult {
@@ -118,14 +133,21 @@ export interface MediaApi {
    * support). Changes once a proxy is ready, so media elements reload.
    */
   mediaUrl(id: MediaId): string;
+  /**
+   * Prepares the files of a document about to be opened: registers each under its saved id, and
+   * marks those that can't be found `missing`. Returns those. Never rejects for a missing file.
+   */
+  restore(assets: readonly MediaAsset[]): Promise<MediaAsset[]>;
 }
 
 /** Probe state plus the setters only the media module uses. */
-export interface MediaState extends Omit<MediaApi, "mediaUrl"> {
+export interface MediaState extends Omit<MediaApi, "mediaUrl" | "restore"> {
   /** Sets (or merges into) the probe of one media item. */
   setProbe(id: MediaId, probe: Partial<MediaProbe>): void;
   /** Updates the proxy state of one media item, keeping an earlier explanation. */
   setProxy(id: MediaId, proxy: ProxyInfo): void;
+  /** Forgets what was read about a file and starts over from `probe`, with a new revision. */
+  replaceProbe(id: MediaId, probe: MediaProbe): void;
 }
 
 /** The native media server connection of one kernel. */
@@ -138,6 +160,13 @@ export interface MediaService {
   mediaUrl(id: MediaId): string;
 }
 
+/** Files of the document, in step with the native side. */
+export interface MediaFiles {
+  /** Follows the document: probes what comes in, moves what relinks. Returns a stop function. */
+  follow(): () => void;
+  restore: MediaApi["restore"];
+}
+
 /** Reads file metadata in the background. */
 export interface ProbeQueue {
   /**
@@ -145,6 +174,8 @@ export interface ProbeQueue {
    * pipeline has settled (so pro formats are read from their proxy).
    */
   enqueue(asset: MediaAsset): void;
+  /** Allows a media id to be probed again, now that it is another file. */
+  forget(id: MediaId): void;
   /** Drops queued files and ignores results still in flight. */
   dispose(): void;
 }

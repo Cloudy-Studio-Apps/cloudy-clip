@@ -79,6 +79,8 @@ export interface PatchableStoreInternal<T extends object> extends PatchableStore
   writeFields(writes: readonly FieldWrite[]): string | null;
   /** Whether out-of-order writes are possible. */
   readonly hasPolicy: boolean;
-  /** Replaces the whole state. Only for tests and future project loading. */
+  /** Replaces the whole state. Only for rolling back a step. */
   reset(state: T): void;
+  /** Replaces the whole state if the policy accepts it, or returns why not. */
+  load(state: T): string | null;
 }

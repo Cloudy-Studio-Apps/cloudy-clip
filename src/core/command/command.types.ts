@@ -30,6 +30,12 @@ export interface CommandContext {
    */
   mutate<T extends object>(store: PatchableStore<T>, recipe: (draft: Draft<T>) => void): void;
   /**
+   * Starts another document: replaces a store's whole state and clears the history. Only for
+   * commands with `undoable: false`. Refuses with `store.invalid` when the store's policy rejects
+   * `state`, changing nothing. It is not rolled back if the command throws afterwards.
+   */
+  replace<T extends object>(store: PatchableStore<T>, state: T): void;
+  /**
    * Returns a loaded module's API (its stores and services for this kernel). Throws
    * `CommandFailure("module.not_loaded")` if the module isn't active.
    */

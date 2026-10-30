@@ -21,7 +21,9 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
       contribute(elements, mediaElement);
       const state = createMediaState();
       state.probes.setState({ probes });
-      return { api: { ...state, mediaUrl: (id: string) => `fake://${id}` } };
+      return {
+        api: { ...state, mediaUrl: (id: string) => `fake://${id}`, restore: async () => [] },
+      };
     },
   });
 }

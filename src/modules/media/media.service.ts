@@ -1,10 +1,22 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { MediaService, MediaState, ProxyEvent, RegisterOutcome } from "./media.types";
+import type {
+  MediaFile,
+  MediaService,
+  MediaState,
+  ProxyEvent,
+  RegisterFile,
+  RegisterOutcome,
+} from "./media.types";
 
-/** Asks the native side to validate files and allow streaming them. */
-export function registerFiles(paths: string[]): Promise<RegisterOutcome[]> {
-  return invoke<RegisterOutcome[]>("media_register", { paths });
+/** Asks the native side to validate files and allow streaming them under their ids. */
+export function registerFiles(files: RegisterFile[]): Promise<RegisterOutcome[]> {
+  return invoke<RegisterOutcome[]>("media_register", { files });
+}
+
+/** What a file is, without registering it. Rejects when it is missing or not media. */
+export function statFile(path: string): Promise<MediaFile> {
+  return invoke<MediaFile>("media_stat", { path });
 }
 
 /** Creates the media server connection, writing proxy progress into `state`. */
@@ -22,7 +34,11 @@ export function createMediaService(state: MediaState): MediaService {
     },
     mediaUrl(id) {
       if (!baseUrl) throw new Error("The media server is not ready");
-      const version = state.getProbe(id)?.proxy?.state === "ready" ? "?proxy=1" : "";
+      const probe = state.getProbe(id);
+      const query = new URLSearchParams();
+      if (probe?.proxy?.state === "ready") query.set("proxy", "1");
+      if (probe?.revision) query.set("file", String(probe.revision));
+      const version = query.size > 0 ? `?${query}` : "";
       return `${baseUrl}/${encodeURIComponent(id)}${version}`;
     },
   };

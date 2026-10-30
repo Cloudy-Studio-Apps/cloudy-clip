@@ -27,8 +27,8 @@ export interface LayoutPanel {
 export interface TopBarItem {
   /** Unique id, `<module>.<name>`. */
   id: string;
-  /** `center` sits after undo/redo, `right` at the end of the bar. */
-  slot: "center" | "right";
+  /** `left` follows the brand, `center` sits after undo/redo, `right` at the end of the bar. */
+  slot: "left" | "center" | "right";
   component: ComponentType;
 }
 
