@@ -67,13 +67,13 @@ src/modules/<name>/
   <name>.selectors.ts      pure reads of state
   <name>.layout.ts         UI constants (sizes, thresholds)
   <name>.testing.ts        fakes for other modules' tests (createFakeMediaModule)
-  logic/                   pure, tested functions (geometry, hit tests, snapping); one-word names
+  logic/                   pure functions (geometry, hit tests, snapping); one-word names
   <part>/                  an internal part with its own files (preview/engine/), <part>.types.ts
   ui/                      React only. ui/index.ts lists what module.ts contributes
     <Component>.tsx        one component per file
     <name>.hook.ts         one hook per file
     <name>.gesture.ts      imperative pointer gestures (DOM feedback, one command on release)
-  *.test.ts                next to the file they test
+  *.test.ts                next to the file they test; core parts only (CLAUDE.md, rule 3)
 ```
 
 | Suffix            | Holds                              | React?             |
@@ -240,7 +240,7 @@ Every module's `README.md` follows this shape. Update it in the same change as t
    `defineModule`. TSDoc on each.
 5. State goes in factories in `<name>.store.ts`, created in `setup`; cleanups go to `ctx.onDispose`.
 6. UI goes in `ui/`, one component per file, built from `@/ui`; contribute it through a point.
-7. Pure logic goes in `logic/` with tests. A new kind of clip is an element (see "Declaring an
+7. Pure logic goes in `logic/`. A new kind of clip is an element (see "Declaring an
    element"); its commands that act on clips take `clipIds` and augment `CommandInputs`.
 8. Add the module to `MODULES` in `src/app/bootstrap.ts`.
 9. Write the README in the template, and add the module to the tier table above.

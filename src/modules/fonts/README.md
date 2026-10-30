@@ -17,7 +17,7 @@ installed on the computer, and Google Fonts (downloaded once and cached).
   `missing`). `createFakeFontsModule({ families?, fail? })` (`fonts.testing.ts`) stands in for it in tests and has
   `knownFamilies()` resolved after setup.
 - **Files:**
-  - `fonts.library.ts`: the logic over a `FontService` (tested with a fake). Bundled faces load by
+  - `fonts.library.ts`: the logic over a `FontService`. Bundled faces load by
     their Fontsource name (`Inter Variable`); installed ones by name; Google ones through
     `loadGoogleFace`.
   - `fonts.service.ts`: the native and network side. `fonts_system_list` (Rust, `src-tauri/src/fonts`,

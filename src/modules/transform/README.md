@@ -19,7 +19,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     back to that. Applies only on video tracks (a patch for a clip on an audio track fails with
     `element.invalid_props`). Its section: X/Y row, scale, rotation, Reset (`transform.reset`).
   - `transform.commands.ts`: `transform.reset` (`clipIds`): drops `Clip.transform`, one undo step.
-  - `logic/`: pure, tested parts: `picking.ts` (hit test of rotated pictures), `gestures.ts`
+  - `logic/`: pure parts: `picking.ts` (hit test of rotated pictures), `gestures.ts`
     (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override; each layer's `transform` is
     the live `transform` patch over the saved one, so a panel slider moves the box too; elements
     without the `transform` group are left out, so they can't be picked or dragged, and each layer

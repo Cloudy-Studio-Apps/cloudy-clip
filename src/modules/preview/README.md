@@ -51,7 +51,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     frame. A kind without `mix` (or a kind that isn't registered) draws nothing extra: the clips
     draw in start order, so the right covers the left. Nothing here is transition-specific;
     effects can reuse the hook later. The frame is painted only when both clips' frames are ready
-    (rule 21). Each clip id has its own element (the pool only reuses a _free_ one), so the two
+    (rule 22). Each clip id has its own element (the pool only reuses a _free_ one), so the two
     halves of a split joined by a junction play at once; the right clip is preloaded from
     `start - 1.5 s` like any upcoming clip, and waiting pictures are silenced with volume 0, not
     `muted`, so their frame is drawable when the overlap starts. A split with no junction still
@@ -62,7 +62,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     under the playhead with their `progress` and `elapsed`; `crossfadeGains(progress)`;
     `soundGains(project, time)`), `random.ts` (`seededRandom(seed)`), `drift.ts`
     (`driftSeek(state)`: where to seek a playing element, or `null`).
-  - `preview.controller.ts`: wires clock, engine, project and media (injected, so it is tested in
+  - `preview.controller.ts`: wires clock, engine, project and media (injected, so it runs in
     node). Renders every frame while playing, on demand while paused.
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).
   - `ui/`: `PreviewStage` (frame + overlays, placed imperatively by `stage.layout.hook.ts`;

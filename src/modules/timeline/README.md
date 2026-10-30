@@ -36,7 +36,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     `timeline.track_not_found`, `timeline.kind_mismatch`, `timeline.overlap`; `props` are checked first (`parsePatch`, and their groups against the
     target track's kind: `element.invalid_props` / `element.read_only`) before any track or clip
     is written, then stored through a nested `element.setProps` (minimized).
-  - `logic/`: pure, tested functions: overlap checks, trim clamping, snapping, geometry, links
+  - `logic/`: pure functions: overlap checks, trim clamping, snapping, geometry, links
     (`links.ts`: `selectionSubject`; `partnersOf`/`withPartners` now live in `project`) and linked trims (`trim.ts`).
   - `ui/`: page-virtualized lanes (`TimelinePanel`), `clip.gesture.ts` (DOM feedback while dragging,
     one command on release), the playhead positioned by `playhead.hook.ts` without renders.
