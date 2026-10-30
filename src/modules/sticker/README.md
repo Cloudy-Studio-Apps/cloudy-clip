@@ -5,7 +5,7 @@ cut across packs and optional variations.
 
 - **Tier:** feature
 - **Requires:** `project`, `element`, `preview`, `timeline`, `transform`, `inspector`
-- **Contributes:** panel `sticker.panel` (side); element `sticker`; prop type `sticker-variation`
+- **Contributes:** panel `sticker.panel` (side); element `sticker`; prop type, control and section layout `sticker-variation`
 - **Points it owns** (`sticker.points.ts`): `stickerPacks` (packs, by `id`), `stickerStyles` (an
   option added to an axis of a pack another module owns)
 - **API** (`StickerApi`): `packs`, `topics`, `load`, `isLoaded`, `hasFailed`, `find`, `axes`, `artOf`, `search`,
@@ -26,6 +26,8 @@ cut across packs and optional variations.
   - `ui/`: `StickersPanel` (the tab, its view is local state), `StickerHome` (recently used, pack
     covers), `StickerDrawer` (topics, installed packs), `StickerListView` + `StickerGrid` (a full
     grid; only the rows in view are drawn, `sticker.window.hook.ts`).
+  - `ui/VariationControl.tsx`: one row per axis with two options or more, swatches when they have
+    them. The section is left out for a sticker with nothing to choose.
 
 | Command       | MCP tool             | Notes                                                                                                                                   |
 | ------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
