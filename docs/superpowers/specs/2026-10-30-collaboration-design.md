@@ -119,3 +119,14 @@ Each stage ships on its own, in the order above. The design goes to `docs/superp
   - Undo an agent step from its popover row: it reverts, and the agent's next reply mentions it.
   - The pointer reaches a media card, a clip, an offscreen clip (panel edge) and the inspector.
   - Pause: next call returns `collab.paused`. View only: reads work, edits are refused. Follow moves the preview and stops when the user scrubs.
+
+## Spike result
+
+Run 2026-10-30 with a throwaway `preview_spike_capture` tool.
+
+- `backgroundThrottling` is unsupported on Linux and Windows (`tauri-utils` 2.10 docs), so nothing relies on it.
+- **Linux (WebKitGTK on niri): pass.** A detached `HtmlMediaEngine`, driven by `setTimeout`, captured the exact frame on a window moved to another workspace, including after 45 s hidden: 16 of 16 random frames, each read from the timecode burned into the test video, in 0.3 to 1 s each.
+- The spike found a real bug: seeking before metadata can present frame 0 as the target frame, while the engine reports it settled. Fixed by not seeking until `HAVE_METADATA`; it would have made captures silently wrong.
+- `document.hidden` stayed false while hidden on niri, so nothing may depend on visibility events.
+- niri has no minimize, so "another workspace" stands in for minimized and covered.
+- **Windows (WebView2): not run yet.** It needs the Windows machine.
