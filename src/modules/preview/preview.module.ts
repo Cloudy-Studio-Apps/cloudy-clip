@@ -5,6 +5,7 @@ import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
 import { projectDuration, projectRef } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/engine.html";
+import { createCapture } from "./preview.capture";
 import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
 import { previewCommands, seek, togglePlay } from "./preview.commands";
@@ -33,6 +34,7 @@ export const previewModule = defineModule({
       }),
     );
     const clock = createPlaybackClock(() => duration);
+    const engineOptions = { mediaUrl: media.mediaUrl, elements, junctions };
     const controller = createPreviewController({
       clock,
       getProject: () => project.getState(),
@@ -41,13 +43,22 @@ export const previewModule = defineModule({
       subscribeMedia: (listener) => media.probes.subscribe(listener),
       createEngine: (canvas, onFrameReady) =>
         new HtmlMediaEngine(canvas, {
-          mediaUrl: media.mediaUrl,
+          ...engineOptions,
           ensureFont: (request) => fonts.ensure(request),
-          elements,
-          junctions,
           onFrameReady,
         }),
       requestFrame: (callback) => void requestAnimationFrame(callback),
+      capture: createCapture({
+        getProject: () => project.getState(),
+        ensureFont: (request) => fonts.ensure(request),
+        createEngine: (canvas, ensureFont) =>
+          new HtmlMediaEngine(canvas, {
+            ...engineOptions,
+            ensureFont,
+            onFrameReady: () => undefined,
+            pictureOnly: true,
+          }),
+      }),
     });
     // A font arriving (or failing) changes how text is drawn and measured.
     ctx.onDispose(fonts.onLoaded(() => controller.redraw()));

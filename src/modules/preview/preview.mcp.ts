@@ -12,11 +12,14 @@ const captureFrame = defineMcpTool({
   async handler({ time }, ctx) {
     const preview = ctx.require(previewRef);
     try {
-      const data = await preview.captureFrame(time);
+      const clock = preview.clockFor(ctx.caller.key);
+      if (time !== undefined) clock.seek(time);
+      const at = clock.getTime();
+      const data = await preview.captureAt(at);
       return {
         content: [
           { type: "image", data, mimeType: "image/png" },
-          { type: "text", text: JSON.stringify({ time: preview.playback.getTime() }) },
+          { type: "text", text: JSON.stringify({ time: at }) },
         ],
       };
     } catch (error) {

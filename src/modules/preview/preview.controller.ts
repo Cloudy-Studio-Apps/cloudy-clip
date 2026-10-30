@@ -1,4 +1,4 @@
-import { createLogger, LOCAL_ACTOR, type ActorId, type Micros } from "@/core";
+import { createLogger, LOCAL_ACTOR, type ActorId } from "@/core";
 import type { ClipId, ClipTransform } from "@/modules/project";
 import { createVirtualClock } from "./logic/virtual.clock";
 import type {
@@ -104,26 +104,6 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     return detach;
   }
 
-  async function captureFrame(time?: Micros): Promise<string> {
-    if (!engine) throw new Error("The preview is not visible");
-    if (time !== undefined) {
-      clock.pause();
-      clock.seek(time);
-    }
-    const deadline = performance.now() + 3000;
-    for (;;) {
-      renderNow();
-      if (!engine) throw new Error("The preview was closed");
-      if (engine.isSettled() || performance.now() > deadline) break;
-      await new Promise((resolve) => setTimeout(resolve, 30));
-    }
-    // Let pending seeks land, then draw the final frame.
-    await new Promise<void>((resolve) => deps.requestFrame(resolve));
-    renderNow();
-    if (!engine) throw new Error("The preview was closed");
-    return engine.captureFrame();
-  }
-
   return {
     playback: clock,
     clockFor(actor) {
@@ -141,7 +121,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     },
     attachCanvas,
     redraw: requestRedraw,
-    captureFrame,
+    captureAt: (time) => deps.capture.captureAt(time),
     previewTransform(clipId, transform) {
       if (transform) transforms.set(clipId, transform);
       else transforms.delete(clipId);
@@ -162,6 +142,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     dispose() {
       clock.pause();
       detachCurrent?.();
+      deps.capture.dispose();
       for (const virtual of clocks.values()) virtual.dispose();
       clocks.clear();
     },

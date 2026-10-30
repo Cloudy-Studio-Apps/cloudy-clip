@@ -33,6 +33,8 @@ export function syncSlot(slot: Slot, desired: number, playing: boolean): void {
   }
 
   if (!element.paused) element.pause();
+  // A seek before the metadata can present frame 0 as if it were the target; `loadeddata` redraws.
+  if (element.readyState < HTMLMediaElement.HAVE_METADATA) return;
   // While paused, aim for frame accuracy (half a frame at 60 fps).
   const pendingSeek =
     slot.seekTarget !== null && Math.abs(slot.seekTarget - desired) < MAX_DRIFT_SECONDS;

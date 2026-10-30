@@ -1,6 +1,7 @@
 import type { ActorId, Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
+import type { FontRequest } from "@/modules/fonts";
 import type { ClipId, ClipTransform, Junction, ProjectState } from "@/modules/project";
 
 /** Called on every frame while playing, and once per seek while paused. */
@@ -46,7 +47,7 @@ export interface PreviewEngine {
   /** Whether every visible layer has its frame for the last rendered time. */
   isSettled(): boolean;
   /** The canvas as a base64 PNG (no `data:` prefix). */
-  captureFrame(): string;
+  captureFrame(): Promise<string>;
   dispose(): void;
 }
 
@@ -63,6 +64,25 @@ export interface PreviewControllerDeps {
   createEngine(canvas: HTMLCanvasElement, onFrameReady: () => void): PreviewEngine;
   /** `requestAnimationFrame` in the app; a manual queue in tests. */
   requestFrame(callback: () => void): void;
+  capture: PreviewCapture;
+}
+
+/** What offscreen capture needs from the rest of the app. */
+export interface PreviewCaptureDeps {
+  getProject(): ProjectState;
+  /** Whether a font can be drawn now; when not, it starts loading. */
+  ensureFont(request: FontRequest): boolean;
+  /** A picture-only engine that asks `ensureFont` about fonts. */
+  createEngine(
+    canvas: HTMLCanvasElement,
+    ensureFont: (request: FontRequest) => boolean,
+  ): PreviewEngine;
+}
+
+/** Offscreen capture, owned by the preview controller. */
+export interface PreviewCapture {
+  captureAt(time: Micros): Promise<string>;
+  dispose(): void;
 }
 
 /** The preview module's API for one kernel. */
@@ -81,10 +101,10 @@ export interface PreviewApi {
   /** Redraws on the next frame (e.g. after the canvas was resized). */
   redraw(): void;
   /**
-   * Captures the preview as a base64 PNG, optionally at a given time. Waits (up to 3 s) until
-   * every visible layer has decoded its frame.
+   * The timeline at `time` as a base64 PNG at the project's size. Doesn't touch the user's preview
+   * and works with the window hidden. Rejects if a frame isn't decoded within 3 s.
    */
-  captureFrame(time?: Micros): Promise<string>;
+  captureAt(time: Micros): Promise<string>;
   /**
    * Draws a clip with `transform` instead of its saved one, without changing the project (live
    * feedback while dragging on the canvas). Pass null to go back to the saved transform. The

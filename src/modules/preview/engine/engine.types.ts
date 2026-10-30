@@ -40,6 +40,8 @@ export interface EngineOptions {
   junctions: Pick<JunctionApi, "get" | "resolve">;
   /** Called when a frame becomes available while paused (e.g. a seek finished). */
   onFrameReady(): void;
+  /** Only pictures matter (offscreen capture): sound clips get no element at all. */
+  pictureOnly?: boolean;
 }
 
 /** A track's clips under the playhead, in start order (two during a junction's overlap). */

@@ -13,7 +13,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   wrapper ignores the pointer (`pointer-events-none`); an overlay turns it back on for the parts
   that take input, so overlays stacked later never block the ones below
 - **API** (`PreviewApi`, per kernel): `playback` (the user's clock), `clockFor(actor)` / `dropClock` (each collaborator has a `logic/virtual.clock.ts` playhead: wall-clock time read on demand, no frames, nothing drawn; commands use `clockFor(ctx.actor)` so an agent never moves the user), `attachCanvas`, `redraw`,
-  `captureFrame`, `previewTransform(clipId, transform | null)` (draws a live transform during a
+  `captureAt(time)` (`preview.capture.ts`: its own picture-only engine on a detached canvas, polled with timers because frames stop on a hidden window, disposed after 30 s idle; never touches the user's preview; an undecoded frame is an error, not a stale picture), `previewTransform(clipId, transform | null)` (draws a live transform during a
   canvas gesture without changing the project), `previewProps(clipId, patch | null)`
   (a live patch of any element's values drawn over the saved ones until cleared; groups may be
   partial; a `transform` patch moves any picture, media included), `onPropsOverride(listener)` (fires on set/clear) and `propsOverride(clipId)` (so the

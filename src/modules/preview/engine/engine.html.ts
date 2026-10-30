@@ -46,6 +46,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly elements: EngineOptions["elements"];
   private readonly junctions: EngineOptions["junctions"];
   private readonly mixCanvases: MixCanvases;
+  private readonly pictureOnly: boolean;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -59,6 +60,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.elements = options.elements;
     this.junctions = options.junctions;
     this.mixCanvases = new MixCanvases(canvas);
+    this.pictureOnly = options.pictureOnly ?? false;
   }
 
   render(
@@ -73,6 +75,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     for (const trackId of project.trackOrder) {
       const track = project.tracks[trackId];
       if (!track) continue;
+      if (this.pictureOnly && track.kind !== "video") continue;
       const here: ActiveTrack = { track, clips: [] };
       active.push(here);
       for (const clipId of track.clipIds) {
@@ -135,8 +138,20 @@ export class HtmlMediaEngine implements PreviewEngine {
     return this.settled;
   }
 
-  captureFrame(): string {
-    return this.canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+  captureFrame(): Promise<string> {
+    // `toBlob`, not `toDataURL`: a capture must not stall the user's playback while encoding.
+    return new Promise((resolve, reject) => {
+      this.canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("The frame could not be encoded"));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("The frame could not be read"));
+        reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ""));
+        reader.readAsDataURL(blob);
+      }, "image/png");
+    });
   }
 
   dispose(): void {
