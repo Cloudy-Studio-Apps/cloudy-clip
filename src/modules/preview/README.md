@@ -36,7 +36,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     as above; any other element (text, a plugin's) with its own `draw(ctx, props, env)`, at
     `clipPlacement(format, size(props), transform, fit)`, the same box the canvas tools use. Props
     are the clip's resolved values with the live override merged over them. The transform is the
-    gesture's (`previewTransform`) if any, else `clipTransform(clip, override.transform)`. `env.ensureFont` is
+    gesture's (`previewTransform`) if any, else `clipTransform(clip, override.transform)`. `env.time` is the time since the clip started. A `picture.ready` that says no holds the frame like an undecoded video layer (`logic/readiness.ts`), and clips about to start are asked ahead so their art is loaded in time. `env.ensureFont` is
     `fonts.ensure`; the module redraws on `fonts.onLoaded`; `env.measure` is `canvasTextMeasure`
     (`element`) over the engine's canvas. An element without `picture` is not drawn. Swap engines by
     implementing `PreviewEngine` (`preview.types.ts`).

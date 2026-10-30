@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { z } from "zod";
-import type { ModuleRef, PanelCommandId } from "@/core";
+import type { Micros, ModuleRef, PanelCommandId } from "@/core";
 import type {
   Clip,
   ClipPlacement,
@@ -157,6 +157,8 @@ export interface DrawEnv {
   format: ProjectFormat;
   /** Where the picture lands, from `clipPlacement` with the element's size and fit. */
   placement: ClipPlacement;
+  /** Time since the clip started, for pictures that move. */
+  time: Micros;
   /** Canvas pixels per output pixel. */
   kx: number;
   ky: number;
@@ -184,6 +186,11 @@ export interface PictureDefinition<P> {
   size?(props: P, env: { format: ProjectFormat; measure: TextMeasure }): PictureSize;
   /** Paints the picture. The canvas is in canvas pixels; use `env.placement`, `kx`, `ky`. */
   draw?(ctx: CanvasRenderingContext2D, props: P, env: DrawEnv): void;
+  /**
+   * Whether `draw` can paint this frame; asking may start loading what it needs. The engine holds
+   * the frame while it says no, so it must say yes once loading has failed. Absent means ready.
+   */
+  ready?(props: P, env: { time: Micros }): boolean;
 }
 
 /** A tile that creates this element from a side panel. */

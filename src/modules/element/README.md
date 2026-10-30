@@ -45,6 +45,9 @@ declaration, and one command changes any element's values.
   - **Missing value types:** a `custom` prop whose type isn't in `propTypes` parses as `z.never()`
     ("value type … is not registered"), so no value is accepted, and the registry logs once
     `element "<kind>": value type "<name>" for "<path>" is not registered (is its module loaded?)`.
+  - `picture.ready(props, { time })` (optional): whether `draw` can paint now. The engine holds the
+    frame while it says no, as for a video frame still decoding (rule 22); asking may start loading,
+    and it must say yes once loading has failed. `DrawEnv.time` is the time since the clip started.
   - `DrawEnv.ensureFont` takes a `FaceRequest` (family, source, weight, style), a structural type
     that `fonts`' `FontRequest` fits, so `element` doesn't import `fonts`.
   - `logic/commands.ts`: `checkPanelCommand`, `layoutCommands(element)` (the command ids in its

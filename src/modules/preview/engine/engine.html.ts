@@ -11,6 +11,7 @@ import {
   type Track,
 } from "@/modules/project";
 import { soundGains } from "../logic/junctions";
+import { picturesSettled } from "../logic/readiness";
 import type { PreviewEngine } from "../preview.types";
 import { quietSlot, voiceSlot } from "./engine.audio";
 import { MixCanvases, drawTrack } from "./engine.mix";
@@ -114,8 +115,22 @@ export class HtmlMediaEngine implements PreviewEngine {
           this.settled = false;
       }
     }
+    const pictures = active
+      .filter(({ track }) => track.kind === "video")
+      .flatMap(({ track, clips }) =>
+        clips.filter((clip) => !hasMedia(clip)).map((clip) => ({ clip, hidden: track.hidden })),
+      );
+    const ready = (clip: Clip) =>
+      this.pictureReady(project, clip, time, propsOverrides.get(clip.id));
+    if (!picturesSettled(pictures, ready)) this.settled = false;
+
     for (const { clip, track } of upcoming) {
-      if (!hasMedia(clip) || !project.media[clip.mediaId]) continue;
+      if (!hasMedia(clip)) {
+        // Asked ahead, so its picture is loaded by the time it shows.
+        this.pictureReady(project, clip, clip.start, propsOverrides.get(clip.id));
+        continue;
+      }
+      if (!project.media[clip.mediaId]) continue;
       const slot = this.pool.acquire(clip, track.kind, microsToSeconds(clip.sourceIn));
       if (!slot) continue;
       quietSlot(slot, track);
@@ -174,7 +189,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     const kx = canvas.width / project.format.width;
     const ky = canvas.height / project.format.height;
     const drawClip = (target: CanvasRenderingContext2D, clip: Clip) =>
-      this.drawClip(target, project, clip, transforms, propsOverrides, kx, ky);
+      this.drawClip(target, project, clip, time, transforms, propsOverrides, kx, ky);
 
     // trackOrder is top → bottom; draw bottom first so higher tracks end up on top.
     for (let i = active.length - 1; i >= 0; i--) {
@@ -190,6 +205,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     target: CanvasRenderingContext2D,
     project: ProjectState,
     clip: Clip,
+    time: Micros,
     transforms: ReadonlyMap<ClipId, ClipTransform>,
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
     kx: number,
@@ -206,6 +222,7 @@ export class HtmlMediaEngine implements PreviewEngine {
         picture,
         project,
         clip,
+        time,
         transform,
         propsOverrides.get(clip.id),
         kx,
@@ -235,6 +252,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     picture: PictureDefinition<Record<string, unknown>>,
     project: ProjectState,
     clip: Clip,
+    time: Micros,
     transform: ClipTransform,
     override: Record<string, unknown> | undefined,
     kx: number,
@@ -246,7 +264,29 @@ export class HtmlMediaEngine implements PreviewEngine {
     const measure = canvasTextMeasure(this.ctx);
     const size = picture.size(props, { format: project.format, measure });
     const placement = clipPlacement(project.format, size, transform, picture.fit);
-    const env = { format: project.format, placement, kx, ky, measure, ensureFont: this.ensureFont };
+    const env = {
+      format: project.format,
+      placement,
+      time: time - clip.start,
+      kx,
+      ky,
+      measure,
+      ensureFont: this.ensureFont,
+    };
     picture.draw(target, props, env);
+  }
+
+  /** Whether a clip that paints itself can paint at `time`; asking may start its loading. */
+  private pictureReady(
+    project: ProjectState,
+    clip: Clip,
+    time: Micros,
+    override: Record<string, unknown> | undefined,
+  ): boolean {
+    const picture = this.elements.get(clip.kind)?.definition.picture;
+    if (!picture?.ready) return true;
+    const saved = this.elements.resolve(clip, project.format);
+    const props = override ? mergeProps(saved, override) : saved;
+    return picture.ready(props, { time: time - clip.start });
   }
 }
