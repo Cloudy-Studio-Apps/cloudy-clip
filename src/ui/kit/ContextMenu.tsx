@@ -4,23 +4,26 @@ import { cn } from "../lib/cn";
 import type { MenuItem } from "./kit.types";
 
 interface ContextMenuProps {
-  items: readonly MenuItem[];
+  /** A list, or a function asked when the menu opens. */
+  items: readonly MenuItem[] | (() => readonly MenuItem[]);
   /** The element that is right-clicked. */
   children: ReactElement;
 }
 
 /** A menu at the pointer, opened by a right click on its child. */
 export function ContextMenu({ items, children }: ContextMenuProps) {
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const [open, setOpen] = useState<{ x: number; y: number; items: readonly MenuItem[] } | null>(
+    null,
+  );
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!at) return;
+    if (!open) return;
     const onDown = (event: PointerEvent) => {
-      if (!panel.current?.contains(event.target as Node)) setAt(null);
+      if (!panel.current?.contains(event.target as Node)) setOpen(null);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAt(null);
+      if (event.key === "Escape") setOpen(null);
     };
     document.addEventListener("pointerdown", onDown, true);
     document.addEventListener("keydown", onKey);
@@ -28,7 +31,7 @@ export function ContextMenu({ items, children }: ContextMenuProps) {
       document.removeEventListener("pointerdown", onDown, true);
       document.removeEventListener("keydown", onKey);
     };
-  }, [at]);
+  }, [open]);
 
   return (
     <>
@@ -36,20 +39,22 @@ export function ContextMenu({ items, children }: ContextMenuProps) {
         className="contents"
         onContextMenu={(event) => {
           event.preventDefault();
-          setAt({ x: event.clientX, y: event.clientY });
+          event.stopPropagation();
+          const shown = typeof items === "function" ? items() : items;
+          if (shown.length > 0) setOpen({ x: event.clientX, y: event.clientY, items: shown });
         }}
       >
         {children}
       </div>
-      {at &&
+      {open &&
         createPortal(
           <div
             ref={panel}
             role="menu"
             className="fixed z-50 min-w-40 rounded-md border border-border bg-popover p-1 shadow-popover"
-            style={{ left: at.x, top: at.y }}
+            style={{ left: open.x, top: open.y }}
           >
-            {items.map((item) => (
+            {open.items.map((item) => (
               <button
                 key={item.label}
                 type="button"
@@ -60,7 +65,7 @@ export function ContextMenu({ items, children }: ContextMenuProps) {
                   item.destructive ? "text-destructive" : "text-foreground",
                 )}
                 onClick={() => {
-                  setAt(null);
+                  setOpen(null);
                   item.onSelect();
                 }}
               >

@@ -12,12 +12,17 @@ const captureFrame = defineMcpTool({
   input: z.object({ time: z.number().int().min(0).optional().describe("Microseconds") }),
   async handler({ time }, ctx) {
     const preview = ctx.require(previewRef);
+    let compositionId: string;
+    try {
+      compositionId = ctx.require(projectRef).view.requireOpen(ctx.caller.key).id;
+    } catch (error) {
+      return errorResult(toAppError(error));
+    }
     try {
       const clock = preview.clockFor(ctx.caller.key);
       if (time !== undefined) clock.seek(time);
       const at = clock.getTime();
-      const { id } = ctx.require(projectRef).view.requireOpen(ctx.caller.key);
-      const data = await preview.captureAt(at, id);
+      const data = await preview.captureAt(at, compositionId);
       return {
         content: [
           { type: "image", data, mimeType: "image/png" },

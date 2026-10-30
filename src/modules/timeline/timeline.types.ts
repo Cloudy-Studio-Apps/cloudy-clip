@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { Cut, JunctionKindDefinition } from "@/modules/junction";
 import type { LucideIcon } from "lucide-react";
+import type { MenuItem } from "@/ui";
 import type {
   CompositionId,
   ClipId,
@@ -159,4 +160,11 @@ export interface ClipTrackMove extends ClipMove {
 export interface TimelineTabs {
   id: string;
   component: ComponentType;
+}
+
+/** Entries a module adds to the timeline's right-click menu. */
+export interface TimelineMenuItems {
+  id: string;
+  /** Asked when the menu opens. */
+  items(): MenuItem[];
 }

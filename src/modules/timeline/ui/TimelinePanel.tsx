@@ -9,6 +9,7 @@ import {
   type Micros,
 } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
+import { ContextMenu } from "@/ui";
 import {
   compositionContent,
   projectRef,
@@ -16,7 +17,7 @@ import {
   type Clip,
   type TrackId,
 } from "@/modules/project";
-import { timelineOverlays, timelineTabs } from "../timeline.points";
+import { timelineMenuItems, timelineOverlays, timelineTabs } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { addClip } from "../timeline.commands";
@@ -51,6 +52,7 @@ export function TimelinePanel() {
   const [view, setView] = useState({ page: 0, pageWidth: 1200 });
   const overlays = usePoint(timelineOverlays);
   const tabs = usePoint(timelineTabs);
+  const menus = usePoint(timelineMenuItems);
 
   // Track which page is visible; only page changes cause a render.
   const measure = useCallback(() => {
@@ -149,44 +151,49 @@ export function TimelinePanel() {
           <Tabs />
         </ErrorBoundary>
       ))}
-      <div
-        ref={scrollRef}
-        data-scroll="wide"
-        className="relative min-h-0 flex-1 overflow-auto bg-lane"
-      >
-        <div className="relative" style={{ width: HEADER_WIDTH + contentWidth, minHeight: "100%" }}>
-          <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
-          {lanes.map(({ track, clips }) => (
-            <div key={track.id} className="flex">
-              <TrackHeader track={track} />
-              <div style={{ width: contentWidth }}>
-                <TrackLane
-                  track={track}
-                  clips={clips}
-                  pxPerSecond={pxPerSecond}
-                  from={from}
-                  to={to}
-                  rootRef={scrollRef}
-                />
+      <ContextMenu items={() => menus.flatMap((menu) => menu.items())}>
+        <div
+          ref={scrollRef}
+          data-scroll="wide"
+          className="relative min-h-0 flex-1 overflow-auto bg-lane"
+        >
+          <div
+            className="relative"
+            style={{ width: HEADER_WIDTH + contentWidth, minHeight: "100%" }}
+          >
+            <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
+            {lanes.map(({ track, clips }) => (
+              <div key={track.id} className="flex">
+                <TrackHeader track={track} />
+                <div style={{ width: contentWidth }}>
+                  <TrackLane
+                    track={track}
+                    clips={clips}
+                    pxPerSecond={pxPerSecond}
+                    from={from}
+                    to={to}
+                    rootRef={scrollRef}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          {open && content === 0 && (
-            <p
-              className="pointer-events-none absolute text-sm text-subtle-foreground"
-              style={{ left: HEADER_WIDTH + 16, top: 120 }}
-            >
-              Drag media from the library onto a track to start editing.
-            </p>
-          )}
-          <Playhead scrollRef={scrollRef} />
-          {overlays.map(({ id, component: Overlay }) => (
-            <ErrorBoundary key={id} name={id}>
-              <Overlay />
-            </ErrorBoundary>
-          ))}
+            ))}
+            {open && content === 0 && (
+              <p
+                className="pointer-events-none absolute text-sm text-subtle-foreground"
+                style={{ left: HEADER_WIDTH + 16, top: 120 }}
+              >
+                Drag media from the library onto a track to start editing.
+              </p>
+            )}
+            <Playhead scrollRef={scrollRef} />
+            {overlays.map(({ id, component: Overlay }) => (
+              <ErrorBoundary key={id} name={id}>
+                <Overlay />
+              </ErrorBoundary>
+            ))}
+          </div>
         </div>
-      </div>
+      </ContextMenu>
     </section>
   );
 }

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useStore } from "zustand";
-import { useModule } from "@/core";
+import { LOCAL_ACTOR, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
+import { projectRef } from "@/modules/project";
 import { HEADER_WIDTH, timelineRef, timeToPx } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { collabRef } from "../collab.ref";
@@ -9,6 +10,8 @@ import type { Collaborator } from "../collab.types";
 
 /** One agent's dashed playhead, placed from its clock without React renders. */
 function AgentPlayhead({ who }: { who: Collaborator }) {
+  const { view } = useModule(projectRef);
+  const here = useStore(view.store, () => view.openFor(who.id) === view.openFor(LOCAL_ACTOR));
   const preview = useModule(previewRef);
   const timeline = useModule(timelineRef);
   const ref = useRef<HTMLDivElement>(null);
@@ -32,7 +35,7 @@ function AgentPlayhead({ who }: { who: Collaborator }) {
       ref={ref}
       className={cn(
         "pointer-events-none absolute top-0 bottom-0 left-0 z-[14] w-0 border-l-2 border-dashed transition-[transform,opacity] duration-700 ease-out",
-        who.resting && "opacity-0",
+        (who.resting || !here) && "opacity-0",
       )}
       style={{ borderColor: who.color }}
     />

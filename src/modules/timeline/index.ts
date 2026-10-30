@@ -23,7 +23,7 @@ export {
  */
 export { findOverlap, freeTrack } from "./logic/placement";
 /** Layers over the lanes; contribute with `ctx.contribute(timelineOverlays, …)`. */
-export { timelineOverlays, timelineTabs } from "./timeline.points";
+export { timelineMenuItems, timelineOverlays, timelineTabs } from "./timeline.points";
 /** Width of the track headers, where time 0 starts in a timeline overlay. */
 export { HEADER_WIDTH } from "./timeline.layout";
 /** Pixels from time 0 to a time at a zoom level. */

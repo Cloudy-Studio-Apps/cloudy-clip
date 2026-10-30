@@ -4,14 +4,14 @@ What a timeline is. A composition is a size, a frame rate, a background, a lengt
 
 - **Tier:** core
 - **Requires:** `project`, `media`, `timeline`
-- **Contributes:** `librarySections` (`CompositionSection`), `timelineTabs` (`CompositionTabs`), `timelineOverlays` (`EmptyStart`), `appOverlays` (`CompositionDialogHost`)
+- **Contributes:** `librarySections` (`CompositionSection`), `timelineTabs` (`CompositionTabs`), `timelineOverlays` (`EmptyStart`, `EndMarker`), `timelineMenuItems` (Composition Settings, Extend to fit), `appOverlays` (`CompositionDialogHost`)
 - **Points it owns:** —
 - **API** (`CompositionApi`): `ui` (open dialog and selected tile, not in history), `openNew`, `openSettings(id)`, `closeDialog`, `select(id)`.
 - **Files:**
   - `composition.commands.ts`: the commands below. `composition.guards.ts`: `requireComposition`, `checkFormat`, `formatInput`.
   - `composition.presets.ts`: `COMPOSITION_PRESETS`, `FPS_OPTIONS`.
   - `composition.store.ts`: `createCompositionUi()`. `logic/timecode.ts`: `formatLength`, `parseLength` (`mm:ss:ff`).
-  - `ui/`: `CompositionDialog` (New Composition and Composition Settings share one form), `CompositionTile`, `CompositionSection`, `CompositionTabs`, `EmptyStart`.
+  - `ui/`: `CompositionDialog` (New Composition and Composition Settings share one form), `CompositionTile`, `CompositionSection`, `CompositionTabs`, `EmptyStart`, `EndMarker` with `end.gesture.ts` (moves through the DOM, one `setSettings` on release).
   - `logic/clone.ts`: `cloneComposition(draft, id, name)`: new ids, links remapped, placed compositions stay shared.
 - **Not yet:** placing.
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useStore } from "zustand";
-import { useModule } from "@/core";
+import { LOCAL_ACTOR, useModule } from "@/core";
+import { projectRef } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { locate } from "../logic/locate";
@@ -10,14 +11,22 @@ import type { Collaborator } from "../collab.types";
 /** One agent's arrow, moved with `transform` so nothing re-renders as it travels. */
 function Pointer({ who }: { who: Collaborator }) {
   const timeline = useModule(timelineRef);
+  const { store: project, view } = useModule(projectRef);
   const ref = useRef<HTMLDivElement>(null);
   const { target } = who;
 
   useEffect(() => {
     if (!target) return;
+    /** The composition a clip sits in, when it isn't the one the user sees. */
+    const elsewhere = (clipId: string) => {
+      const state = project.getState();
+      const clip = state.clips[clipId];
+      const home = clip && state.tracks[clip.trackId]?.compositionId;
+      return home && home !== view.openFor(LOCAL_ACTOR) ? home : null;
+    };
     const place = () => {
       const element = ref.current;
-      const spot = locate(target, timeline);
+      const spot = locate(target, timeline, elsewhere);
       if (!element) return;
       element.style.opacity = spot ? "" : "0";
       if (spot) element.style.transform = `translate(${spot.x}px, ${spot.y}px)`;
@@ -32,7 +41,7 @@ function Pointer({ who }: { who: Collaborator }) {
       offZoom();
       observer.disconnect();
     };
-  }, [target, timeline]);
+  }, [project, target, timeline, view]);
 
   if (!target) return null;
   return (
