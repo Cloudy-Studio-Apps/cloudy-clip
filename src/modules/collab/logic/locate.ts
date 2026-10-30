@@ -1,6 +1,11 @@
 import type { ScreenBox, TimelineApi } from "@/modules/timeline";
 import type { CollabTarget, PointerSpot } from "../collab.types";
 
+/** Room kept at the timeline's edges: the arrow and its label hang to the right of its tip. */
+const EDGE_LEFT = 8;
+const EDGE_RIGHT = 240;
+const EDGE_Y = 36;
+
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 /** Where a marked element is. A `contents` wrapper has no box of its own: its child does. */
@@ -34,7 +39,10 @@ export function locate(target: CollabTarget, timeline: TimelineApi): PointerSpot
     const panel = timeline.panelBox();
     if (box && panel) {
       const { x, y } = centerOf(box);
-      return { x: clamp(x, panel.left, panel.right), y: clamp(y, panel.top, panel.bottom) };
+      return {
+        x: clamp(x, panel.left + EDGE_LEFT, panel.right - EDGE_RIGHT),
+        y: clamp(y, panel.top, panel.bottom - EDGE_Y),
+      };
     }
   }
   const box = boxOf(target) ?? boxOf(fallback(target));

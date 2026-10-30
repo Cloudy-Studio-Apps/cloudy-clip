@@ -118,3 +118,11 @@ All times are integer microseconds.
 ## Deferred
 
 Project save/load and autosave, export (engine and licensing), filmstrip thumbnails and waveforms, effects, text animations, mobile builds, the external plugin loader.
+
+## How a collaborator works next to the user
+
+An agent is an actor, like the user. Rust gives each MCP client a stable key (`src-tauri/src/mcp/actors.rs`), and every call carries it through the bridge, which hands tools a bus that runs as that caller. So `ctx.actor` is known in every command.
+
+- **Undo:** one log, tagged by actor (`core/history`). A step can be reverted past others' newer steps, by writing the field values its store's `StorePolicy` recorded, unless someone touched the same field or the project's `validate` refuses the result. The `collab` module turns on `scopeUndo`; without it, Ctrl+Z reaches every step.
+- **Playhead:** `preview.clockFor(actor)` gives everyone but the user a virtual clock, and `captureAt` renders on its own hidden engine. Neither depends on frames, so an agent works the same with the window hidden.
+- **Presence:** `collab` watches calls through `McpObserver`, which can also refuse them. Core knows nothing about collaborators; it only offers that hook, the shell points and `ctx.actor`.
