@@ -1,9 +1,14 @@
 import { definePoint } from "../module/points";
-import type { Keybinding, KeyPress, LayoutPanel } from "./shell.types";
+import type { Keybinding, KeyPress, LayoutPanel, TopBarItem } from "./shell.types";
 
 /** Panels of the editor layout. The app shell places them by slot. */
 export const layoutPanels = definePoint<LayoutPanel>("shell.layoutPanels", {
   keyOf: (panel) => panel.id,
+});
+
+/** Pieces of the top bar. The app shell places them by slot. */
+export const topBarItems = definePoint<TopBarItem>("shell.topBarItems", {
+  keyOf: (item) => item.id,
 });
 
 /** Keyboard shortcuts. The app shell's keybinding host reads them. */

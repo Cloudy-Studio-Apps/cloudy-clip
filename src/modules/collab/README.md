@@ -4,7 +4,7 @@ Connected agents as collaborators, shaped so people can join later (`Collaborato
 
 - **Tier:** feature
 - **Requires:** `preview` (`clockFor`, `dropClock`), `timeline` (selection for `collab_get_user_context`)
-- **Contributes:** the command and tool below; `ctx.mcp.observe`; `history.scopeUndo` (from here on Ctrl+Z means the user's own steps) and `history.nameActors`.
+- **Contributes:** `topBarItems` (`collab.status`, `collab.avatars`), the commands and tool below; `ctx.mcp.observe`; `history.scopeUndo` (from here on Ctrl+Z means the user's own steps) and `history.nameActors`.
 - **API:** `CollabApi`: `store` (`CollabState`: `collaborators`, `blocked`, `followed`).
 - **Commands:** `collab.setAccess { actor, access }`, `collab.setPaused { actor, paused }`, `collab.setBlocked { actor, blocked }`. Not MCP tools: only the user decides these.
 - **Tools:** `collab_get_user_context`: the user's playhead, whether they are playing, their selection.
@@ -13,6 +13,7 @@ Connected agents as collaborators, shaped so people can join later (`Collaborato
   - `collab.presence.ts`: tells an agent when the user undid its step (sent with its next reply), and retires agents every 5 s: idle after 2 min, gone after 15 min, when their steps pass to the user and their playhead is dropped.
   - `collab.notes.ts`: messages owed to agents.
   - `logic/identify.ts`, `logic/activity.ts`, `logic/prune.ts`: name and color of a client; a sentence for a tool; who has been quiet too long.
+  - `ui/`: `CollabAvatars` (top bar, right; opens `CollabPanel`), `AgentStatusStrip` (top bar, center, while an agent works), `AgentControls`, `CollabAvatar`, `ClaudeMark`, `collab.status.ts`.
 - **Rules:**
   - Stop and Pause can't interrupt: the running call finishes, later ones are refused.
   - Disconnect refuses calls until the user reconnects or the app restarts. `blocked` is apart from `collaborators` so it outlives them. It doesn't close the MCP session.

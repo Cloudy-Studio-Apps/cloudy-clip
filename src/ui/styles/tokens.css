@@ -47,6 +47,7 @@
   --muted: oklch(0.255 0.017 256);
   --muted-foreground: oklch(0.7 0.014 252);
   --subtle-foreground: oklch(0.56 0.016 252);
+  --online: oklch(0.72 0.15 155);
   --hover: oklch(0.27 0.018 256);
   --border: oklch(0.3 0.018 256);
   --border-strong: oklch(0.37 0.02 256);
@@ -77,6 +78,7 @@
   --muted: oklch(0.94 0.007 250);
   --muted-foreground: oklch(0.48 0.018 254);
   --subtle-foreground: oklch(0.6 0.016 252);
+  --online: oklch(0.62 0.15 155);
   --hover: oklch(0.94 0.008 250);
   --border: oklch(0.9 0.009 250);
   --border-strong: oklch(0.83 0.012 250);

@@ -54,7 +54,7 @@ These are the rules, and they are strict. How things work is described in the `R
 10. A feature owns its whole surface: its commands, MCP tools, UI and contributions live in its folder, even when the data it edits lives in `project`. Don't add a feature's command to another module.
 11. `<name>.module.ts` is wiring only: `defineModule`, `ctx.contribute`, creating stores and services. No logic.
 12. **No module-level singletons** for state or services. `setup(ctx)` runs once per kernel and creates them (store factories in `<name>.store.ts`), registering each cleanup with `ctx.onDispose` right after acquiring it.
-13. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels` and `keybindings`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls` and `sectionLayouts`.
+13. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels`, `keybindings`, `topBarItems` and `appOverlays`; the timeline reads `timelineOverlays`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls` and `sectionLayouts`.
 
 **Commands and state**
 
@@ -94,7 +94,7 @@ These are the rules, and they are strict. How things work is described in the `R
 
 33. Reuse before writing: the kit in `@/ui` (`Button`, `IconButton`, `SegmentedControl`, `ToolbarButton`, `EmptyState`, `ProgressBar`, `Waveform`, `Kbd`, `SealMark`, `cn`). A piece a second module needs moves to `@/ui` instead of being copied. Icons come from `lucide-react`.
 34. Components use semantic tokens only (`bg-surface`, `text-muted-foreground`, `border-border`, `bg-primary`, `bg-clip-video`, …). Tailwind's default palette is reset, so `bg-neutral-900` doesn't exist; palette scales (`ice`, `seal`, `blush`, `sand`) are for brand art and media badges only.
-35. Sharp shapes: `rounded-xs` (2px) to `rounded-lg` (8px), nothing above 8px, no pills. Type scale is `text-2xs`…`text-base` (10–13px). Fonts are Inter and JetBrains Mono (Fontsource, offline). The look follows Cloudy Canvas and `docs/prototype/`.
+35. Sharp shapes: `rounded-xs` (2px) to `rounded-lg` (8px), nothing above 8px, no pills (avatars are the one exception: they are round). Type scale is `text-2xs`…`text-base` (10–13px). Fonts are Inter and JetBrains Mono (Fontsource, offline). The look follows Cloudy Canvas and `docs/prototype/`.
 36. The seal (`SealMark`) appears in light touches only: the logo, empty states, waiting. Never as clutter.
 
 ## Where to look

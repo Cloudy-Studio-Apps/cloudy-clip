@@ -23,6 +23,15 @@ export interface LayoutPanel {
   component: ComponentType;
 }
 
+/** A piece a module adds to the top bar. */
+export interface TopBarItem {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  /** `center` sits after undo/redo, `right` at the end of the bar. */
+  slot: "center" | "right";
+  component: ComponentType;
+}
+
 /** The parts of a `KeyboardEvent` keybindings match on. */
 export interface KeyPress {
   key: string;
