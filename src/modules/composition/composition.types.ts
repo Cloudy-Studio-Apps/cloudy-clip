@@ -1,5 +1,13 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { CompositionId, ProjectFormat } from "@/modules/project";
+import type { Micros } from "@/core";
+import type {
+  Clip,
+  ClipId,
+  CompositionId,
+  JunctionId,
+  ProjectFormat,
+  TrackId,
+} from "@/modules/project";
 import type { TimelineDrop } from "@/modules/timeline";
 
 /** Named formats offered in the dialog. */
@@ -12,6 +20,18 @@ export interface CompositionPreset {
   hint: string;
   format: ProjectFormat;
 }
+
+/** What grouping clips means, or the clip in the way. */
+export type GroupPlan =
+  | {
+      homeId: CompositionId;
+      span: { start: Micros; end: Micros };
+      videoTrack: TrackId | null;
+      audioTrack: TrackId | null;
+      clips: ClipId[];
+      droppedJunctions: JunctionId[];
+    }
+  | { blocked: Clip };
 
 /** Which composition dialog is open. */
 export type CompositionDialogState =

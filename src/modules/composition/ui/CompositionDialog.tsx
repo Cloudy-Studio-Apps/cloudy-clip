@@ -11,6 +11,11 @@ import { formatLength, parseLength } from "../logic/timecode";
 const MAX_SIDE = 8192;
 const CUSTOM = "custom";
 
+const RESIZE_OPTIONS = [
+  { value: "keep", label: "Keep positions" },
+  { value: "scale", label: "Scale to the new frame" },
+];
+
 const PRESET_OPTIONS = [
   ...COMPOSITION_PRESETS.map((preset) => ({
     value: preset.id,
@@ -36,6 +41,10 @@ function Form({ composition, onClose }: { composition: Composition | null; onClo
     formatLength(composition?.duration ?? 10_000_000, format.fps),
   );
   const [ratioLocked, setRatioLocked] = useState(false);
+  const [resize, setResize] = useState<"keep" | "scale">("keep");
+  const resized =
+    composition !== null &&
+    (composition.format.width !== format.width || composition.format.height !== format.height);
 
   const duration = parseLength(length, format.fps);
   const preset =
@@ -61,7 +70,7 @@ function Form({ composition, onClose }: { composition: Composition | null; onClo
       extendToFit,
     };
     const run = composition
-      ? bus.run(setSettings, { compositionId: composition.id, ...settings })
+      ? bus.run(setSettings, { compositionId: composition.id, ...settings, resize })
       : bus.run(createComposition, settings);
     void run.then((result) => {
       if (!result.ok) return;
@@ -127,6 +136,17 @@ function Form({ composition, onClose }: { composition: Composition | null; onClo
           onChange={(value) => setSide("height", value)}
         />
       </Row>
+      {resized && (
+        <Row label="Content">
+          <SelectField
+            label="Content"
+            className="flex-1"
+            value={resize}
+            options={RESIZE_OPTIONS}
+            onChange={(value) => setResize(value as "keep" | "scale")}
+          />
+        </Row>
+      )}
       <ToggleRow label="Keep ratio" checked={ratioLocked} onChange={setRatioLocked} />
       <Row label="Frame rate">
         <SelectField

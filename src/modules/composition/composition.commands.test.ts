@@ -8,6 +8,7 @@ import { previewModule } from "@/modules/preview";
 import {
   createProjectModule,
   orderedTracks,
+  placementsOf,
   projectRef,
   type Clip,
   type ProjectState,
@@ -26,6 +27,8 @@ import { createCompositionDrop } from "./composition.drop";
 import { compositionModule } from "./composition.module";
 import { placeComposition } from "./composition.place.command";
 import { compositionRef } from "./composition.ref";
+import { makeUnique } from "./composition.unique.command";
+import { groupClips } from "./composition.group.command";
 
 const S = 1_000_000;
 const AGENT = "agent-1";
@@ -390,5 +393,133 @@ describe("composition commands", () => {
       expect(pictures).toHaveLength(4);
       expect(pictures.map((c) => c.sourceIn).sort((a, b) => a - b)).toEqual([0, 0, 2 * S, 2 * S]);
     });
+  });
+
+  describe("making a placement unique", () => {
+    /** `main` plays `intro` twice, and `intro` plays `logo`. */
+    async function nested() {
+      const logo = await ok(createComposition, { name: "Logo" });
+      const intro = await ok(createComposition, { name: "Intro" });
+      await ok(placeComposition, logo);
+      await ok(createComposition, { name: "Main" });
+      const first = (await ok(placeComposition, intro)) as unknown as { clips: string[] };
+      const second = (await ok(placeComposition, intro)) as unknown as { clips: string[] };
+      return { logo, intro, first: first.clips, second: second.clips };
+    }
+
+    it("points one placement and its sound at a copy, leaving the others", async () => {
+      const { intro, first, second } = await nested();
+      const { compositionId } = await ok(makeUnique, { clipId: first[0] });
+      expect(state().clips[first[0]!]!.compositionRef).toBe(compositionId);
+      expect(state().clips[first[1]!]!.compositionRef).toBe(compositionId);
+      expect(state().clips[second[0]!]!.compositionRef).toBe(intro.compositionId);
+      expect(state().compositions[compositionId]!.name).toBe("Intro copy");
+    });
+
+    it("keeps inner compositions shared", async () => {
+      const { logo, first } = await nested();
+      await ok(makeUnique, { clipId: first[0] });
+      expect(placementsOf(state(), logo.compositionId)).toHaveLength(4);
+    });
+
+    it("refuses a clip that is not a placement", async () => {
+      const { compositionId } = await ok(createComposition, {});
+      addTo(compositionId, text("t", "", 0));
+      expect(await failure(makeUnique, { clipId: "t" })).toBe("composition.not_placed");
+    });
+
+    it("undoes in one step", async () => {
+      const { intro, first } = await nested();
+      const before = Object.keys(state().compositions).length;
+      await ok(makeUnique, { clipId: first[0] });
+      kernel.history.undo(LOCAL_ACTOR);
+      expect(state().clips[first[0]!]!.compositionRef).toBe(intro.compositionId);
+      expect(Object.keys(state().compositions)).toHaveLength(before);
+    });
+  });
+
+  describe("grouping", () => {
+    async function twoClips() {
+      const { compositionId } = await ok(createComposition, {});
+      const [v] = state().compositions[compositionId]!.trackOrder as [string, string];
+      write((draft) => {
+        draft.clips.a = text("a", v, 2 * S, { duration: 2 * S });
+        draft.clips.b = text("b", v, 6 * S, { duration: 2 * S });
+        draft.tracks[v]!.clipIds = ["a", "b"];
+      });
+      return { compositionId, v };
+    }
+
+    it("groups in one undo step, with Extend to fit off and times from 0", async () => {
+      const { v } = await twoClips();
+      const { compositionId } = await ok(groupClips, { clipIds: ["a", "b"] });
+      expect(state().compositions[compositionId]).toMatchObject({
+        extendToFit: false,
+        duration: 6 * S,
+      });
+      expect(state().clips.a!.start).toBe(0);
+      expect(state().clips.b!.start).toBe(4 * S);
+      const placed = placementsOf(state(), compositionId);
+      expect(placed).toHaveLength(2);
+      expect(placed.find((c) => c.trackId === v)).toMatchObject({ start: 2 * S, duration: 6 * S });
+      kernel.history.undo(LOCAL_ACTOR);
+      expect(state().clips.a!.start).toBe(2 * S);
+      expect(state().tracks[v]!.clipIds).toEqual(["a", "b"]);
+    });
+
+    it("refuses with composition.group_blocked, changing nothing", async () => {
+      const { v } = await twoClips();
+      write((draft) => {
+        draft.clips.c = text("c", v, 4.5 * S);
+        draft.tracks[v]!.clipIds = ["a", "c", "b"];
+      });
+      const before = state();
+      expect(await failure(groupClips, { clipIds: ["a", "b"] })).toBe("composition.group_blocked");
+      expect(state()).toBe(before);
+    });
+
+    it("gives an audio-only selection both clips", async () => {
+      const { compositionId } = await ok(createComposition, {});
+      const a = state().compositions[compositionId]!.trackOrder[1]!;
+      write((draft) => {
+        draft.clips.s = text("s", a, 0);
+        draft.tracks[a]!.clipIds = ["s"];
+      });
+      const grouped = (await ok(groupClips, { clipIds: ["s"] })) as unknown as { clips: string[] };
+      expect(grouped.clips).toHaveLength(2);
+    });
+
+    it("refuses clips of two compositions", async () => {
+      await twoClips();
+      const other = await ok(createComposition, {});
+      addTo(other.compositionId, text("z", "", 0));
+      expect(await failure(groupClips, { clipIds: ["a", "z"] })).toBe("composition.group_blocked");
+    });
+  });
+
+  it("scales what sits in a composition when asked, in one step with the size", async () => {
+    const { compositionId } = await ok(createComposition, {
+      format: { width: 1080, height: 1920, fps: 30 },
+    });
+    addTo(compositionId, {
+      ...text("t", "", 0, { transform: { x: 0, y: 600, scale: 1, rotation: 0 } }),
+      kind: "media",
+    });
+    await ok(setSettings, {
+      compositionId,
+      format: { width: 1920, height: 1080, fps: 30 },
+      resize: "scale",
+    });
+    expect(state().clips.t!.transform!.y).toBeCloseTo(600 * (1080 / 1920));
+    kernel.history.undo(LOCAL_ACTOR);
+    expect(state().clips.t!.transform!.y).toBe(600);
+    expect(state().compositions[compositionId]!.format.width).toBe(1080);
+  });
+
+  it("keeps positions by default", async () => {
+    const { compositionId } = await ok(createComposition, {});
+    addTo(compositionId, text("t", "", 0, { transform: { x: 0, y: 600, scale: 1, rotation: 0 } }));
+    await ok(setSettings, { compositionId, format: { width: 1920, height: 1080, fps: 30 } });
+    expect(state().clips.t!.transform!.y).toBe(600);
   });
 });

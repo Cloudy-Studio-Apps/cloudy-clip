@@ -57,3 +57,13 @@ export function cloneComposition(
   draft.compositionOrder.push(id);
   return id;
 }
+
+/** The next free "<name> copy" name. */
+export function copyName(state: ProjectState, name: string): string {
+  const taken = new Set(Object.values(state.compositions).map((c) => c.name));
+  const first = `${name} copy`;
+  if (!taken.has(first)) return first;
+  let n = 2;
+  while (taken.has(`${first} ${n}`)) n++;
+  return `${first} ${n}`;
+}

@@ -12,10 +12,12 @@ import {
 } from "@/modules/timeline";
 import { compositionCommands, extendToFitOnce, openComposition } from "./composition.commands";
 import { createCompositionDrop } from "./composition.drop";
+import { groupClips } from "./composition.group.command";
 import { compositionElement } from "./composition.element";
 import { compositionMcpTools } from "./composition.mcp";
 import { compositionRef } from "./composition.ref";
 import { createCompositionUi } from "./composition.store";
+import { makeUnique } from "./composition.unique.command";
 import type { CompositionApi } from "./composition.types";
 import {
   CompositionDialogHost,
@@ -70,6 +72,24 @@ export const compositionModule = defineModule({
         if (compositionRef === undefined) return false;
         void ctx.bus.run(openComposition, { compositionId: compositionRef });
         return true;
+      },
+      items(clip) {
+        const { selection } = timeline.view.getState();
+        const clipIds = selection.includes(clip.id) ? selection : [clip.id];
+        return [
+          {
+            label: "Group into composition",
+            onSelect: () => void ctx.bus.run(groupClips, { clipIds }),
+          },
+          ...(clip.compositionRef === undefined
+            ? []
+            : [
+                {
+                  label: "Make unique",
+                  onSelect: () => void ctx.bus.run(makeUnique, { clipId: clip.id }),
+                },
+              ]),
+        ];
       },
     });
     ctx.contribute(timelineMenuItems, {

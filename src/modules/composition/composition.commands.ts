@@ -1,20 +1,25 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, LOCAL_ACTOR } from "@/core";
+import { elementRef } from "@/modules/element";
 import { mediaRef } from "@/modules/media";
 import {
+  compositionClips,
   compositionContent,
   DEFAULT_FORMAT,
   frameDuration,
+  IDENTITY_TRANSFORM,
   placementsOf,
   projectRef,
   type Clip,
-  type ProjectState,
   type TrackKind,
 } from "@/modules/project";
 import { addClip } from "@/modules/timeline";
 import { checkFormat, formatInput, requireComposition } from "./composition.guards";
+import { groupClips } from "./composition.group.command";
 import { placeComposition } from "./composition.place.command";
-import { cloneComposition } from "./logic/clone";
+import { makeUnique } from "./composition.unique.command";
+import { cloneComposition, copyName } from "./logic/clone";
+import { scaleTransform } from "./logic/resize";
 
 const DEFAULT_DURATION = 10_000_000;
 const DEFAULT_BACKGROUND = "#000000";
@@ -120,14 +125,35 @@ export const setSettings = defineCommand({
   id: "composition.setSettings",
   label: "Composition settings",
   description:
-    "Changes a composition's settings: name, format ({ width, height, fps }), background, duration (microseconds) and extendToFit. A duration without extendToFit turns Extend to fit off, so the length you set holds. Clips keep their positions in the frame. Returns the composition.",
+    "Changes a composition's settings: name, format ({ width, height, fps }), background, duration (microseconds) and extendToFit. A duration without extendToFit turns Extend to fit off, so the length you set holds. When the size changes clips keep their positions, unless resize is scale, which keeps each in the same proportion of the frame. Returns the composition.",
   undoable: true,
-  input: z.object({ compositionId, ...settings }),
-  run(ctx, { compositionId: id, ...input }) {
+  input: z.object({
+    compositionId,
+    ...settings,
+    resize: z
+      .enum(["keep", "scale"])
+      .optional()
+      .describe("When the size changes: keep clips' positions (default), or scale them with it"),
+  }),
+  run(ctx, { compositionId: id, resize, ...input }) {
     const { store } = ctx.require(projectRef);
-    requireComposition(store.getState(), id);
+    const elements = ctx.require(elementRef);
+    const state = store.getState();
+    const before = requireComposition(state, id).format;
     if (input.format) checkFormat(input.format);
+    const clips = input.format && resize === "scale" ? compositionClips(state, id) : [];
     ctx.mutate(store, (draft) => {
+      for (const { id: clipId, kind, transform } of clips) {
+        const definition = elements.get(kind)?.definition;
+        const fit = definition?.picture?.fit;
+        if (!fit || !definition.supports?.transform) continue;
+        draft.clips[clipId]!.transform = scaleTransform(
+          transform ?? IDENTITY_TRANSFORM,
+          fit,
+          before,
+          input.format!,
+        );
+      }
       const composition = draft.compositions[id]!;
       if (input.name !== undefined) composition.name = input.name;
       if (input.format !== undefined) composition.format = input.format;
@@ -158,16 +184,6 @@ export const setMain = defineCommand({
     });
   },
 });
-
-/** The next free "<name> copy" name. */
-export function copyName(state: ProjectState, name: string): string {
-  const taken = new Set(Object.values(state.compositions).map((c) => c.name));
-  const first = `${name} copy`;
-  if (!taken.has(first)) return first;
-  let n = 2;
-  while (taken.has(`${first} ${n}`)) n++;
-  return `${first} ${n}`;
-}
 
 /** Copies a composition. Compositions placed inside it stay shared. */
 export const duplicateComposition = defineCommand({
@@ -277,6 +293,8 @@ export const closeTab = defineCommand({
 
 export const compositionCommands = [
   placeComposition,
+  makeUnique,
+  groupClips,
   createComposition,
   createFromMedia,
   setSettings,

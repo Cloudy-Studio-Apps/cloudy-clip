@@ -17,6 +17,9 @@ export {
 } from "./composition.commands";
 /** Places a composition on a timeline, as a live mirror. */
 export { placeComposition } from "./composition.place.command";
+/** Gives a placement its own copy; puts clips into a new composition. */
+export { makeUnique } from "./composition.unique.command";
+export { groupClips } from "./composition.group.command";
 /** Formats and frame rates offered in the dialog. */
 export { COMPOSITION_PRESETS, FPS_OPTIONS } from "./composition.presets";
 export type { CompositionApi, CompositionPreset, CompositionPresetId } from "./composition.types";
