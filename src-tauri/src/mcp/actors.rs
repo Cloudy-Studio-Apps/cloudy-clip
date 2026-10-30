@@ -3,8 +3,8 @@
 //! Sessions come and go (rmcp drops an idle one after 300 s), but history, clocks and presence need
 //! one identity per agent, so the webview only ever sees the key this map hands out.
 //!
-//! Clients on the stateless protocol (2026-07-28, which is what Claude Code speaks) send no session
-//! id and nothing else that tells two instances apart, so each client name is one actor.
+//! The server doesn't offer the stateless protocol (`SUPPORTED_VERSIONS` in `server.rs`), but a
+//! client without a session id still gets a stable key: one per client name.
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};

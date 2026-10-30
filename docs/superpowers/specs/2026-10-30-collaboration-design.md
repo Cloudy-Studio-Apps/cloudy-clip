@@ -133,4 +133,4 @@ Run 2026-10-30 with a throwaway `preview_spike_capture` tool.
 
 ## Found in live use
 
-Claude Code speaks the stateless `2026-07-28` protocol: no session id, and nothing in its headers or `_meta` identifies an instance (`claudecode/toolUseId` is per call). So each client name without a session is one actor, and two Claude Code instances on one machine share an avatar, a playhead and undo steps.
+Claude Code speaks the stateless `2026-07-28` protocol when offered it: no session id, and nothing in its headers or `_meta` identifies an instance (`claudecode/toolUseId` is per call). Each call then looked like a new or returning agent. So the server offers versions only up to `2025-11-25`, which makes clients use `initialize` and hold a real session. Two Claude Code instances are two collaborators. A client without a session id still gets one stable key per name.

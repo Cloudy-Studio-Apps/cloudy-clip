@@ -4,12 +4,13 @@
 //! browser `Origin` header is rejected, so web pages cannot drive the editor. Agents (CLIs,
 //! desktop apps) do not send `Origin`.
 
+use std::borrow::Cow;
 use std::sync::{Arc, RwLock};
 
 use axum::http::request::Parts;
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, Implementation, InitializeResult,
-    ListToolsResult, PaginatedRequestParams, ServerCapabilities, ServerConfig,
+    ListToolsResult, PaginatedRequestParams, ProtocolVersion, ServerCapabilities, ServerConfig,
 };
 use rmcp::service::{NotificationContext, RequestContext};
 use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
@@ -22,6 +23,13 @@ use super::bridge::McpBridge;
 
 /// Default port. Override with the `CLOUDY_CLIP_MCP_PORT` environment variable.
 pub const DEFAULT_PORT: u16 = 7420;
+
+/// Protocol versions the server speaks, newest first.
+const SUPPORTED_VERSIONS: [ProtocolVersion; 3] = [
+    ProtocolVersion::V_2025_11_25,
+    ProtocolVersion::V_2025_06_18,
+    ProtocolVersion::V_2025_03_26,
+];
 
 const INSTRUCTIONS: &str = "\
 Cloudy Clip is a video editor. You edit the same live project the user sees, side by side with \
@@ -82,6 +90,12 @@ impl ServerHandler for CloudyMcp {
         info.server_info.title = Some("Cloudy Clip".into());
         info.server_info.version = env!("CARGO_PKG_VERSION").into();
         info
+    }
+
+    /// Stops at the last version with `initialize`. `2026-07-28` has no sessions, and nothing else
+    /// in a request tells two instances of a client apart, so they would be one collaborator.
+    fn supported_protocol_versions(&self) -> Cow<'static, [ProtocolVersion]> {
+        Cow::Borrowed(&SUPPORTED_VERSIONS)
     }
 
     async fn list_tools(
