@@ -21,6 +21,7 @@ use crate::error::{AppError, AppResult};
 pub enum MediaKind {
     Video,
     Audio,
+    Image,
 }
 
 /// A file accepted into the registry.
@@ -45,6 +46,8 @@ pub struct MediaFile {
 struct Entry {
     original: PathBuf,
     proxy: Option<PathBuf>,
+    /// Folder of an animated image's frames, `00000.png` onwards.
+    frames: Option<PathBuf>,
 }
 
 #[derive(Default)]
@@ -66,6 +69,7 @@ impl MediaRegistry {
                 Entry {
                     original: path.to_path_buf(),
                     proxy: None,
+                    frames: None,
                 },
             );
 
@@ -98,6 +102,22 @@ impl MediaRegistry {
             entry.proxy = Some(proxy);
         }
     }
+
+    /// Attaches the folder of an animated image's frames to an id.
+    pub fn set_frames(&self, id: &str, frames: PathBuf) {
+        if let Ok(mut entries) = self.entries.write()
+            && let Some(entry) = entries.get_mut(id)
+        {
+            entry.frames = Some(frames);
+        }
+    }
+
+    /// The file of frame `n` of an id, if it has frames. It may not exist past the last frame.
+    pub fn frame_path_of(&self, id: &str, n: u32) -> Option<PathBuf> {
+        let entries = self.entries.read().ok()?;
+        let frames = entries.get(id)?.frames.as_ref()?;
+        Some(frames.join(format!("{n:05}.png")))
+    }
 }
 
 /// Validates a path and says what the file is.
@@ -128,6 +148,9 @@ pub fn kind_of(path: &Path) -> Option<MediaKind> {
         | "wma" | "ac3" | "eac3" | "dts" | "caf" | "amr" | "m4b" | "mka" | "ape" | "wv" | "au" => {
             Some(MediaKind::Audio)
         }
+        "png" | "jpg" | "jpeg" | "jfif" | "webp" | "bmp" | "svg" | "gif" | "apng" | "avif"
+        | "heic" | "heif" | "tif" | "tiff" | "tga" | "dds" | "psd" | "exr" | "hdr" | "dpx"
+        | "jxl" => Some(MediaKind::Image),
         _ => None,
     }
 }
@@ -168,6 +191,18 @@ pub fn always_converted(path: &Path) -> bool {
                 | "ape"
                 | "wv"
                 | "au"
+                | "avif"
+                | "heic"
+                | "heif"
+                | "tif"
+                | "tiff"
+                | "tga"
+                | "dds"
+                | "psd"
+                | "exr"
+                | "hdr"
+                | "dpx"
+                | "jxl"
         )
     )
 }
@@ -185,6 +220,13 @@ pub fn mime_of(path: &Path) -> &'static str {
         Some("ogg" | "oga") => "audio/ogg",
         Some("flac") => "audio/flac",
         Some("opus") => "audio/opus",
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg" | "jfif") => "image/jpeg",
+        Some("webp") => "image/webp",
+        Some("bmp") => "image/bmp",
+        Some("svg") => "image/svg+xml",
+        Some("gif") => "image/gif",
+        Some("apng") => "image/apng",
         _ => "application/octet-stream",
     }
 }
@@ -199,6 +241,22 @@ mod tests {
         assert_eq!(kind_of(Path::new("/a/b.aiff")), Some(MediaKind::Audio));
         assert!(always_converted(Path::new("/a/b.mts")));
         assert!(!always_converted(Path::new("/a/b.mp4")));
+    }
+
+    #[test]
+    fn images_are_media_and_frames_resolve_by_number() {
+        assert_eq!(kind_of(Path::new("/a/b.GIF")), Some(MediaKind::Image));
+        assert_eq!(kind_of(Path::new("/a/b.heic")), Some(MediaKind::Image));
+        assert!(always_converted(Path::new("/a/b.tiff")));
+        assert!(!always_converted(Path::new("/a/b.png")));
+        let registry = MediaRegistry::default();
+        registry.register("m", Path::new("/a/b.gif"), 1).unwrap();
+        assert_eq!(registry.frame_path_of("m", 3), None);
+        registry.set_frames("m", PathBuf::from("/cache/x.frames"));
+        assert_eq!(
+            registry.frame_path_of("m", 3),
+            Some(PathBuf::from("/cache/x.frames/00003.png"))
+        );
     }
 
     #[test]

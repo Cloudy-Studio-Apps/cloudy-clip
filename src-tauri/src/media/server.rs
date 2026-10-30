@@ -53,6 +53,7 @@ pub async fn start(registry: Arc<MediaRegistry>) -> AppResult<MediaServer> {
     };
     let router = axum::Router::new()
         .route("/media/{token}/{id}", any(handle))
+        .route("/media/{token}/{id}/frames/{n}", any(handle_frame))
         .with_state(state);
     tauri::async_runtime::spawn(async move {
         if let Err(e) = axum::serve(listener, router).await {
@@ -72,26 +73,39 @@ fn random_token() -> AppResult<String> {
     Ok(bytes.iter().map(|b| format!("{b:02x}")).collect())
 }
 
+/// What the guards answer instead of the file, if they refuse or the request is a preflight.
+fn turned_away(
+    state: &ServerState,
+    token: &str,
+    method: &Method,
+    headers: &HeaderMap,
+) -> Option<Response<Body>> {
+    if !is_loopback_host(headers) {
+        return Some(error(StatusCode::FORBIDDEN, "Forbidden host"));
+    }
+    if token != &*state.token {
+        return Some(error(StatusCode::NOT_FOUND, "Not found"));
+    }
+    if method == Method::OPTIONS {
+        return Some(respond(
+            with_cors(Response::builder().status(StatusCode::NO_CONTENT)),
+            Vec::new(),
+        ));
+    }
+    if method != Method::GET && method != Method::HEAD {
+        return Some(error(StatusCode::METHOD_NOT_ALLOWED, "Method not allowed"));
+    }
+    None
+}
+
 async fn handle(
     State(state): State<ServerState>,
     UrlPath((token, id)): UrlPath<(String, String)>,
     method: Method,
     headers: HeaderMap,
 ) -> Response<Body> {
-    if !is_loopback_host(&headers) {
-        return error(StatusCode::FORBIDDEN, "Forbidden host");
-    }
-    if token != *state.token {
-        return error(StatusCode::NOT_FOUND, "Not found");
-    }
-    if method == Method::OPTIONS {
-        return respond(
-            with_cors(Response::builder().status(StatusCode::NO_CONTENT)),
-            Vec::new(),
-        );
-    }
-    if method != Method::GET && method != Method::HEAD {
-        return error(StatusCode::METHOD_NOT_ALLOWED, "Method not allowed");
+    if let Some(response) = turned_away(&state, &token, &method, &headers) {
+        return response;
     }
     let Some(path) = state.registry.playback_path_of(&id) else {
         return error(StatusCode::NOT_FOUND, "Unknown media id");
@@ -100,6 +114,29 @@ async fn handle(
     let range = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
     match read_range(&path, range, method == Method::HEAD).await {
         Ok(response) => response,
+        Err(e) => error(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
+    }
+}
+
+/// One frame of an animated image, by number: the webview never names a path here either.
+async fn handle_frame(
+    State(state): State<ServerState>,
+    UrlPath((token, id, n)): UrlPath<(String, String, u32)>,
+    method: Method,
+    headers: HeaderMap,
+) -> Response<Body> {
+    if let Some(response) = turned_away(&state, &token, &method, &headers) {
+        return response;
+    }
+    let Some(path) = state.registry.frame_path_of(&id, n) else {
+        return error(StatusCode::NOT_FOUND, "No such frame");
+    };
+    let range = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
+    match read_range(&path, range, method == Method::HEAD).await {
+        Ok(response) => response,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            error(StatusCode::NOT_FOUND, "No such frame")
+        }
         Err(e) => error(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
     }
 }

@@ -25,13 +25,18 @@ export interface ProxyInfo {
   meta?: ProbeMeta;
 }
 
-/** What ffprobe says about a video, before any proxy exists (mirrors `ProbeMeta` in Rust). */
+/**
+ * What ffprobe says about a video, before any proxy exists, or about an animated image, once its
+ * frames are ready (mirrors `ProbeMeta` in Rust).
+ */
 export interface ProbeMeta {
   width: number;
   height: number;
   /** Missing when ffprobe can't tell. */
   fps?: number;
   duration: Micros;
+  /** How many frames an animated image has. Only animated images have it. */
+  frames?: number;
 }
 
 /** What a composition takes from a video. */

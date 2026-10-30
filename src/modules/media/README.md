@@ -23,6 +23,11 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
     in `probe.proxy`, with `hasAudio` once ffprobe has read the streams. Without FFmpeg, files are
     played directly.
   - `media.service.ts`: the native calls and the proxy listener.
+  - Images (`src-tauri/src/media/image.rs`): in the proxy pipeline, under its encoder and cache. PNG, JPG, WebP, BMP, SVG and GIF
+    are served as they are up to 3840 on the long side; the rest (HEIC, TIFF, PSD, AVIF, …) and larger ones become one PNG. A file
+    with several frames is animated whatever its extension says, and ffprobe has to count them: animated WebP and APNG report no
+    length. Its frames go into a cache folder as PNGs at a steady rate (at most 30 fps, 1280 on the long side), which keeps
+    transparency everywhere, and are served by number at `<url>/<id>/frames/<n>`. Only animated images send `meta`, with `frames`. Without FFmpeg, a GIF shows its first frame.
   - `media.files.ts`: keeps the registry and probes in step with the document: probes what comes in, and when an item's path changes (relink, undo, redo) registers the new file and reads it again. `MediaProbe.revision` is in its URL, so media elements reload.
   - `media.probe.ts`: once the proxy state settles, a bounded queue loads each file in a hidden
     media element to read duration, size and a poster (the element is silenced with `volume = 0`,

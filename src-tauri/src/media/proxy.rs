@@ -26,6 +26,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Semaphore;
 
+use super::image;
 use super::registry::{MediaKind, MediaRegistry, always_converted};
 
 /// Event carrying [`ProxyEvent`] payloads.
@@ -75,7 +76,7 @@ pub struct ProxyEvent {
     pub meta: Option<ProbeMeta>,
 }
 
-/// A video's size (as shown, after rotation), frame rate and length.
+/// A picture's size (as shown, after rotation), frame rate and length.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct ProbeMeta {
     pub width: u64,
@@ -84,11 +85,14 @@ pub struct ProbeMeta {
     pub fps: Option<f64>,
     /// Microseconds.
     pub duration: u64,
+    /// How many frames an animated image has; only animated images send it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frames: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
-struct Tools {
-    ffmpeg: PathBuf,
+pub(super) struct Tools {
+    pub(super) ffmpeg: PathBuf,
     ffprobe: PathBuf,
 }
 
@@ -147,7 +151,20 @@ impl ProxyJobs {
                 return;
             };
 
-            let probe = match ffprobe(&tools, &path).await {
+            if kind == MediaKind::Image {
+                let job = image::ImageJob {
+                    tools: &tools,
+                    cache_dir: &cache_dir,
+                    encoder: &encoder,
+                    registry: &registry,
+                    id: &id,
+                    path: &path,
+                };
+                image::prepare(job, emit).await;
+                return;
+            }
+
+            let probe = match ffprobe(&tools, &path, false).await {
                 Ok(probe) => probe,
                 Err(message) => {
                     report(ProxyState::Error, None, Some(message));
@@ -164,7 +181,12 @@ impl ProxyJobs {
                 return;
             };
 
-            let target = match cache_path(&cache_dir, &path, kind).await {
+            let extension = if kind == MediaKind::Audio {
+                "m4a"
+            } else {
+                "mp4"
+            };
+            let target = match cache_path(&cache_dir, &path, extension).await {
                 Ok(target) => target,
                 Err(message) => {
                     report(ProxyState::Error, None, Some(message));
@@ -198,31 +220,43 @@ impl ProxyJobs {
 
 /// What `ffprobe` says about a file.
 #[derive(Debug, Default)]
-struct Probe {
+pub(super) struct Probe {
     video_codec: Option<String>,
     pix_fmt: Option<String>,
     width: u64,
     height: u64,
     audio_codec: Option<String>,
     bit_rate: u64,
-    duration_us: Option<u64>,
-    fps: Option<f64>,
+    pub(super) duration_us: Option<u64>,
+    pub(super) fps: Option<f64>,
+    /// Frames ffprobe counted, when asked to.
+    pub(super) frames: Option<u64>,
     /// Degrees the player turns the picture.
     rotation: i64,
 }
 
 impl Probe {
+    /// Size of the picture as shown, after rotation.
+    pub(super) fn shown_size(&self) -> (u64, u64) {
+        if self.rotation.rem_euclid(180) == 90 {
+            (self.height, self.width)
+        } else {
+            (self.width, self.height)
+        }
+    }
+
     /// What a composition needs from a video; `None` for a file without a picture or a length.
     fn meta(&self) -> Option<ProbeMeta> {
         if self.video_codec.is_none() || self.width == 0 || self.height == 0 {
             return None;
         }
-        let turned = self.rotation.rem_euclid(180) == 90;
+        let (width, height) = self.shown_size();
         Some(ProbeMeta {
-            width: if turned { self.height } else { self.width },
-            height: if turned { self.width } else { self.height },
+            width,
+            height,
             fps: self.fps,
             duration: self.duration_us?,
+            frames: None,
         })
     }
 }
@@ -262,7 +296,7 @@ fn find_tools() -> Option<Tools> {
         .clone()
 }
 
-fn command(program: &Path) -> Command {
+pub(super) fn command(program: &Path) -> Command {
     let mut command = Command::new(program);
     command.stdin(Stdio::null()).kill_on_drop(true);
     #[cfg(windows)]
@@ -273,7 +307,13 @@ fn command(program: &Path) -> Command {
     command
 }
 
-async fn ffprobe(tools: &Tools, path: &Path) -> Result<Probe, String> {
+/// Reads what a file holds. `count_frames` decodes all of it, so it's for images only: animated
+/// ones report no length, and the frame count is what tells them from stills.
+pub(super) async fn ffprobe(
+    tools: &Tools,
+    path: &Path,
+    count_frames: bool,
+) -> Result<Probe, String> {
     let output = command(&tools.ffprobe)
         .args([
             "-v",
@@ -283,6 +323,7 @@ async fn ffprobe(tools: &Tools, path: &Path) -> Result<Probe, String> {
             "-show_streams",
             "-show_format",
         ])
+        .args(count_frames.then_some("-count_frames"))
         .arg(path)
         .output()
         .await
@@ -335,6 +376,7 @@ fn parse_probe(json: &Value) -> Probe {
                         .iter()
                         .find_map(|key| stream[*key].as_str().and_then(parse_rate));
                     probe.rotation = rotation_of(stream);
+                    probe.frames = number(&stream["nb_read_frames"]);
                 }
             }
             Some("audio") if probe.audio_codec.is_none() => probe.audio_codec = codec,
@@ -416,8 +458,12 @@ fn pretty(codec: &str) -> String {
 /// Bump when the proxy recipe changes, so proxies made by an older recipe are not reused.
 const PROXY_RECIPE: u32 = 2;
 
-/// Stable cache file name for a source file version (FNV-1a over recipe, path, size, mtime).
-async fn cache_path(cache_dir: &Path, path: &Path, kind: MediaKind) -> Result<PathBuf, String> {
+/// Stable cache name for a source file version (FNV-1a over recipe, path, size, mtime).
+pub(super) async fn cache_path(
+    cache_dir: &Path,
+    path: &Path,
+    extension: &str,
+) -> Result<PathBuf, String> {
     let meta = tokio::fs::metadata(path)
         .await
         .map_err(|e| format!("Could not read the file: {e}"))?;
@@ -440,11 +486,6 @@ async fn cache_path(cache_dir: &Path, path: &Path, kind: MediaKind) -> Result<Pa
     tokio::fs::create_dir_all(cache_dir)
         .await
         .map_err(|e| format!("Could not create the proxy folder: {e}"))?;
-    let extension = if kind == MediaKind::Audio {
-        "m4a"
-    } else {
-        "mp4"
-    };
     Ok(cache_dir.join(format!("{hash:016x}.{extension}")))
 }
 
@@ -482,17 +523,28 @@ async fn encode(
         cmd.arg("-vn");
     }
     cmd.args(["-map", "0:a:0?", "-c:a", "aac", "-b:a", "192k", "-ac", "2"]);
-    cmd.args([
-        "-movflags",
-        "+faststart",
-        "-progress",
-        "pipe:1",
-        "-f",
-        "mp4",
-    ])
-    .arg(&partial)
-    .stdout(Stdio::piped())
-    .stderr(Stdio::piped());
+    cmd.args(["-movflags", "+faststart", "-f", "mp4"])
+        .arg(&partial);
+
+    if let Err(detail) = run_encoder(cmd, duration_us, on_progress).await {
+        let _ = tokio::fs::remove_file(&partial).await;
+        return Err(format!("Could not make a proxy: {detail}"));
+    }
+    tokio::fs::rename(&partial, target)
+        .await
+        .map_err(|e| format!("Could not save the proxy: {e}"))
+}
+
+/// Runs an `ffmpeg` command to the end, reporting progress against `duration_us`. The error is
+/// what FFmpeg said.
+pub(super) async fn run_encoder(
+    mut cmd: Command,
+    duration_us: Option<u64>,
+    on_progress: impl Fn(f32),
+) -> Result<(), String> {
+    cmd.args(["-progress", "pipe:1"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     let mut child = cmd
         .spawn()
@@ -520,14 +572,10 @@ async fn encode(
         .await
         .map_err(|e| format!("ffmpeg failed: {e}"))?;
     if !output.status.success() {
-        let _ = tokio::fs::remove_file(&partial).await;
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let detail = stderr.lines().last().unwrap_or("unknown error");
-        return Err(format!("Could not make a proxy: {detail}"));
+        return Err(stderr.lines().last().unwrap_or("unknown error").to_owned());
     }
-    tokio::fs::rename(&partial, target)
-        .await
-        .map_err(|e| format!("Could not save the proxy: {e}"))
+    Ok(())
 }
 
 #[cfg(test)]
