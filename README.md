@@ -57,3 +57,10 @@ See [docs/architecture.md](docs/architecture.md). Each module documents its comm
 Copyright © 2026 DarkRedgm.
 
 Cloudy Clip is free software, licensed under the [GNU Affero General Public License v3.0](LICENSE). You may use, study, change and share it. If you distribute a modified version, or run one as a service others use over a network, you must publish its source under the same license.
+
+### Third-party content
+
+- Emoji stickers: [Fluent Emoji](https://github.com/microsoft/fluentui-emoji), © Microsoft Corporation, licensed under the [MIT License](src/modules/sticker/packs/fluent/LICENSE).
+- The [Inter](https://rsms.me/inter/) typeface by Rasmus Andersson and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the [SIL Open Font License 1.1](https://openfontlicense.org).
+- Icons from [Lucide](https://lucide.dev) (ISC).
+- Other dependencies keep their own licenses, listed in `package.json` and `src-tauri/Cargo.toml`.

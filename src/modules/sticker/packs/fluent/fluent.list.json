@@ -1,0 +1,1736 @@
+[
+  {
+    "id": "alien",
+    "label": "Alien",
+    "keywords": [
+      "alien",
+      "creature",
+      "extraterrestrial",
+      "face",
+      "fantasy",
+      "ufo"
+    ]
+  },
+  {
+    "id": "alien-monster",
+    "label": "Alien monster",
+    "keywords": [
+      "alien",
+      "creature",
+      "extraterrestrial",
+      "face",
+      "monster",
+      "ufo"
+    ]
+  },
+  {
+    "id": "anger-symbol",
+    "label": "Anger symbol",
+    "keywords": [
+      "anger symbol",
+      "angry",
+      "comic",
+      "mad"
+    ]
+  },
+  {
+    "id": "angry-face",
+    "label": "Angry face",
+    "keywords": [
+      "anger",
+      "angry",
+      "face",
+      "mad"
+    ]
+  },
+  {
+    "id": "angry-face-with-horns",
+    "label": "Angry face with horns",
+    "keywords": [
+      "angry face with horns",
+      "demon",
+      "devil",
+      "face",
+      "fantasy",
+      "imp"
+    ]
+  },
+  {
+    "id": "anguished-face",
+    "label": "Anguished face",
+    "keywords": [
+      "anguished",
+      "face"
+    ]
+  },
+  {
+    "id": "anxious-face-with-sweat",
+    "label": "Anxious face with sweat",
+    "keywords": [
+      "anxious face with sweat",
+      "blue",
+      "cold",
+      "face",
+      "rushed",
+      "sweat"
+    ]
+  },
+  {
+    "id": "astonished-face",
+    "label": "Astonished face",
+    "keywords": [
+      "astonished",
+      "face",
+      "shocked",
+      "totally"
+    ]
+  },
+  {
+    "id": "beaming-face-with-smiling-eyes",
+    "label": "Beaming face with smiling eyes",
+    "keywords": [
+      "beaming face with smiling eyes",
+      "eye",
+      "face",
+      "grin",
+      "smile"
+    ]
+  },
+  {
+    "id": "beating-heart",
+    "label": "Beating heart",
+    "keywords": [
+      "beating",
+      "beating heart",
+      "heartbeat",
+      "pulsating"
+    ]
+  },
+  {
+    "id": "black-heart",
+    "label": "Black heart",
+    "keywords": [
+      "black",
+      "black heart",
+      "evil",
+      "wicked"
+    ]
+  },
+  {
+    "id": "blue-heart",
+    "label": "Blue heart",
+    "keywords": [
+      "blue",
+      "blue heart"
+    ]
+  },
+  {
+    "id": "bomb",
+    "label": "Bomb",
+    "keywords": [
+      "bomb",
+      "comic"
+    ]
+  },
+  {
+    "id": "broken-heart",
+    "label": "Broken heart",
+    "keywords": [
+      "break",
+      "broken",
+      "broken heart"
+    ]
+  },
+  {
+    "id": "brown-heart",
+    "label": "Brown heart",
+    "keywords": [
+      "brown",
+      "heart"
+    ]
+  },
+  {
+    "id": "cat-with-tears-of-joy",
+    "label": "Cat with tears of joy",
+    "keywords": [
+      "cat",
+      "cat with tears of joy",
+      "face",
+      "joy",
+      "tear"
+    ]
+  },
+  {
+    "id": "cat-with-wry-smile",
+    "label": "Cat with wry smile",
+    "keywords": [
+      "cat",
+      "cat with wry smile",
+      "face",
+      "ironic",
+      "smile",
+      "wry"
+    ]
+  },
+  {
+    "id": "clown-face",
+    "label": "Clown face",
+    "keywords": [
+      "clown",
+      "face"
+    ]
+  },
+  {
+    "id": "cold-face",
+    "label": "Cold face",
+    "keywords": [
+      "blue-faced",
+      "cold",
+      "cold face",
+      "freezing",
+      "frostbite",
+      "icicles"
+    ]
+  },
+  {
+    "id": "collision",
+    "label": "Collision",
+    "keywords": [
+      "boom",
+      "collision",
+      "comic"
+    ]
+  },
+  {
+    "id": "confounded-face",
+    "label": "Confounded face",
+    "keywords": [
+      "confounded",
+      "face"
+    ]
+  },
+  {
+    "id": "confused-face",
+    "label": "Confused face",
+    "keywords": [
+      "confused",
+      "face",
+      "meh"
+    ]
+  },
+  {
+    "id": "cowboy-hat-face",
+    "label": "Cowboy hat face",
+    "keywords": [
+      "cowboy",
+      "cowgirl",
+      "face",
+      "hat"
+    ]
+  },
+  {
+    "id": "crying-cat",
+    "label": "Crying cat",
+    "keywords": [
+      "cat",
+      "cry",
+      "crying cat",
+      "face",
+      "sad",
+      "tear"
+    ]
+  },
+  {
+    "id": "crying-face",
+    "label": "Crying face",
+    "keywords": [
+      "cry",
+      "crying face",
+      "face",
+      "sad",
+      "tear"
+    ]
+  },
+  {
+    "id": "dashing-away",
+    "label": "Dashing away",
+    "keywords": [
+      "comic",
+      "dash",
+      "dashing away",
+      "running"
+    ]
+  },
+  {
+    "id": "disappointed-face",
+    "label": "Disappointed face",
+    "keywords": [
+      "disappointed",
+      "face"
+    ]
+  },
+  {
+    "id": "disguised-face",
+    "label": "Disguised face",
+    "keywords": [
+      "disguise",
+      "disguised face",
+      "face",
+      "glasses",
+      "incognito",
+      "nose"
+    ]
+  },
+  {
+    "id": "dizzy",
+    "label": "Dizzy",
+    "keywords": [
+      "comic",
+      "dizzy",
+      "star"
+    ]
+  },
+  {
+    "id": "dotted-line-face",
+    "label": "Dotted line face",
+    "keywords": [
+      "depressed",
+      "disappear",
+      "dotted line face",
+      "hide",
+      "introvert",
+      "invisible"
+    ]
+  },
+  {
+    "id": "downcast-face-with-sweat",
+    "label": "Downcast face with sweat",
+    "keywords": [
+      "cold",
+      "downcast face with sweat",
+      "face",
+      "sweat"
+    ]
+  },
+  {
+    "id": "drooling-face",
+    "label": "Drooling face",
+    "keywords": [
+      "drooling",
+      "face"
+    ]
+  },
+  {
+    "id": "exploding-head",
+    "label": "Exploding head",
+    "keywords": [
+      "exploding head",
+      "mind blown",
+      "shocked"
+    ]
+  },
+  {
+    "id": "expressionless-face",
+    "label": "Expressionless face",
+    "keywords": [
+      "expressionless",
+      "face",
+      "inexpressive",
+      "meh",
+      "unexpressive"
+    ]
+  },
+  {
+    "id": "eye-in-speech-bubble",
+    "label": "Eye in speech bubble",
+    "keywords": [
+      "eye",
+      "eye in speech bubble",
+      "speech bubble",
+      "witness"
+    ]
+  },
+  {
+    "id": "face-blowing-a-kiss",
+    "label": "Face blowing a kiss",
+    "keywords": [
+      "face",
+      "face blowing a kiss",
+      "kiss"
+    ]
+  },
+  {
+    "id": "face-exhaling",
+    "label": "Face exhaling",
+    "keywords": [
+      "exhale",
+      "face exhaling",
+      "gasp",
+      "groan",
+      "relief",
+      "whisper",
+      "whistle"
+    ]
+  },
+  {
+    "id": "face-holding-back-tears",
+    "label": "Face holding back tears",
+    "keywords": [
+      "angry",
+      "cry",
+      "face holding back tears",
+      "proud",
+      "resist",
+      "sad"
+    ]
+  },
+  {
+    "id": "face-in-clouds",
+    "label": "Face in clouds",
+    "keywords": [
+      "absentminded",
+      "face in clouds",
+      "face in the fog",
+      "head in clouds"
+    ]
+  },
+  {
+    "id": "face-savoring-food",
+    "label": "Face savoring food",
+    "keywords": [
+      "delicious",
+      "face",
+      "face savoring food",
+      "savouring",
+      "smile",
+      "yum"
+    ]
+  },
+  {
+    "id": "face-screaming-in-fear",
+    "label": "Face screaming in fear",
+    "keywords": [
+      "face",
+      "face screaming in fear",
+      "fear",
+      "munch",
+      "scared",
+      "scream"
+    ]
+  },
+  {
+    "id": "face-vomiting",
+    "label": "Face vomiting",
+    "keywords": [
+      "face vomiting",
+      "puke",
+      "sick",
+      "vomit"
+    ]
+  },
+  {
+    "id": "face-with-diagonal-mouth",
+    "label": "Face with diagonal mouth",
+    "keywords": [
+      "disappointed",
+      "face with diagonal mouth",
+      "meh",
+      "skeptical",
+      "unsure"
+    ]
+  },
+  {
+    "id": "face-with-hand-over-mouth",
+    "label": "Face with hand over mouth",
+    "keywords": [
+      "face with hand over mouth",
+      "whoops"
+    ]
+  },
+  {
+    "id": "face-with-head-bandage",
+    "label": "Face with head-bandage",
+    "keywords": [
+      "bandage",
+      "face",
+      "face with head-bandage",
+      "hurt",
+      "injury"
+    ]
+  },
+  {
+    "id": "face-with-medical-mask",
+    "label": "Face with medical mask",
+    "keywords": [
+      "cold",
+      "doctor",
+      "face",
+      "face with medical mask",
+      "mask",
+      "sick"
+    ]
+  },
+  {
+    "id": "face-with-monocle",
+    "label": "Face with monocle",
+    "keywords": [
+      "face with monocle",
+      "stuffy"
+    ]
+  },
+  {
+    "id": "face-with-open-eyes-and-hand-over-mouth",
+    "label": "Face with open eyes and hand over mouth",
+    "keywords": [
+      "amazement",
+      "awe",
+      "disbelief",
+      "embarrass",
+      "face with open eyes and hand over mouth",
+      "scared",
+      "surprise"
+    ]
+  },
+  {
+    "id": "face-with-open-mouth",
+    "label": "Face with open mouth",
+    "keywords": [
+      "face",
+      "face with open mouth",
+      "mouth",
+      "open",
+      "sympathy"
+    ]
+  },
+  {
+    "id": "face-with-peeking-eye",
+    "label": "Face with peeking eye",
+    "keywords": [
+      "captivated",
+      "face with peeking eye",
+      "peep",
+      "stare"
+    ]
+  },
+  {
+    "id": "face-with-raised-eyebrow",
+    "label": "Face with raised eyebrow",
+    "keywords": [
+      "distrust",
+      "face with raised eyebrow",
+      "skeptic"
+    ]
+  },
+  {
+    "id": "face-with-rolling-eyes",
+    "label": "Face with rolling eyes",
+    "keywords": [
+      "eyeroll",
+      "eyes",
+      "face",
+      "face with rolling eyes",
+      "rolling"
+    ]
+  },
+  {
+    "id": "face-with-spiral-eyes",
+    "label": "Face with spiral eyes",
+    "keywords": [
+      "dizzy",
+      "face with spiral eyes",
+      "hypnotized",
+      "spiral",
+      "trouble",
+      "whoa"
+    ]
+  },
+  {
+    "id": "face-with-steam-from-nose",
+    "label": "Face with steam from nose",
+    "keywords": [
+      "face",
+      "face with steam from nose",
+      "triumph",
+      "won"
+    ]
+  },
+  {
+    "id": "face-with-symbols-on-mouth",
+    "label": "Face with symbols on mouth",
+    "keywords": [
+      "face with symbols on mouth",
+      "swearing"
+    ]
+  },
+  {
+    "id": "face-with-tears-of-joy",
+    "label": "Face with tears of joy",
+    "keywords": [
+      "face",
+      "face with tears of joy",
+      "joy",
+      "laugh",
+      "tear"
+    ]
+  },
+  {
+    "id": "face-with-thermometer",
+    "label": "Face with thermometer",
+    "keywords": [
+      "face",
+      "face with thermometer",
+      "ill",
+      "sick",
+      "thermometer"
+    ]
+  },
+  {
+    "id": "face-with-tongue",
+    "label": "Face with tongue",
+    "keywords": [
+      "face",
+      "face with tongue",
+      "tongue"
+    ]
+  },
+  {
+    "id": "face-without-mouth",
+    "label": "Face without mouth",
+    "keywords": [
+      "face",
+      "face without mouth",
+      "mouth",
+      "quiet",
+      "silent"
+    ]
+  },
+  {
+    "id": "fearful-face",
+    "label": "Fearful face",
+    "keywords": [
+      "face",
+      "fear",
+      "fearful",
+      "scared"
+    ]
+  },
+  {
+    "id": "flushed-face",
+    "label": "Flushed face",
+    "keywords": [
+      "dazed",
+      "face",
+      "flushed"
+    ]
+  },
+  {
+    "id": "frowning-face",
+    "label": "Frowning face",
+    "keywords": [
+      "face",
+      "frown",
+      "frowning face"
+    ]
+  },
+  {
+    "id": "frowning-face-with-open-mouth",
+    "label": "Frowning face with open mouth",
+    "keywords": [
+      "face",
+      "frown",
+      "frowning face with open mouth",
+      "mouth",
+      "open"
+    ]
+  },
+  {
+    "id": "ghost",
+    "label": "Ghost",
+    "keywords": [
+      "creature",
+      "face",
+      "fairy tale",
+      "fantasy",
+      "ghost",
+      "monster"
+    ]
+  },
+  {
+    "id": "goblin",
+    "label": "Goblin",
+    "keywords": [
+      "creature",
+      "face",
+      "fairy tale",
+      "fantasy",
+      "goblin",
+      "monster"
+    ]
+  },
+  {
+    "id": "green-heart",
+    "label": "Green heart",
+    "keywords": [
+      "green",
+      "green heart"
+    ]
+  },
+  {
+    "id": "grey-heart",
+    "label": "Grey heart",
+    "keywords": [
+      "gray",
+      "grey heart",
+      "heart",
+      "silver",
+      "slate"
+    ]
+  },
+  {
+    "id": "grimacing-face",
+    "label": "Grimacing face",
+    "keywords": [
+      "face",
+      "grimace",
+      "grimacing face"
+    ]
+  },
+  {
+    "id": "grinning-cat",
+    "label": "Grinning cat",
+    "keywords": [
+      "cat",
+      "face",
+      "grinning",
+      "mouth",
+      "open",
+      "smile"
+    ]
+  },
+  {
+    "id": "grinning-cat-with-smiling-eyes",
+    "label": "Grinning cat with smiling eyes",
+    "keywords": [
+      "cat",
+      "eye",
+      "face",
+      "grin",
+      "grinning cat with smiling eyes",
+      "smile"
+    ]
+  },
+  {
+    "id": "grinning-face",
+    "label": "Grinning face",
+    "keywords": [
+      "face",
+      "grin",
+      "grinning face"
+    ]
+  },
+  {
+    "id": "grinning-face-with-big-eyes",
+    "label": "Grinning face with big eyes",
+    "keywords": [
+      "face",
+      "grinning face with big eyes",
+      "mouth",
+      "open",
+      "smile"
+    ]
+  },
+  {
+    "id": "grinning-face-with-smiling-eyes",
+    "label": "Grinning face with smiling eyes",
+    "keywords": [
+      "eye",
+      "face",
+      "grinning face with smiling eyes",
+      "mouth",
+      "open",
+      "smile"
+    ]
+  },
+  {
+    "id": "grinning-face-with-sweat",
+    "label": "Grinning face with sweat",
+    "keywords": [
+      "cold",
+      "face",
+      "grinning face with sweat",
+      "open",
+      "smile",
+      "sweat"
+    ]
+  },
+  {
+    "id": "grinning-squinting-face",
+    "label": "Grinning squinting face",
+    "keywords": [
+      "face",
+      "grinning squinting face",
+      "laugh",
+      "mouth",
+      "satisfied",
+      "smile"
+    ]
+  },
+  {
+    "id": "growing-heart",
+    "label": "Growing heart",
+    "keywords": [
+      "excited",
+      "growing",
+      "growing heart",
+      "nervous",
+      "pulse"
+    ]
+  },
+  {
+    "id": "head-shaking-horizontally",
+    "label": "Head shaking horizontally",
+    "keywords": [
+      "head shaking horizontally",
+      "no",
+      "shake"
+    ]
+  },
+  {
+    "id": "head-shaking-vertically",
+    "label": "Head shaking vertically",
+    "keywords": [
+      "head shaking vertically",
+      "nod",
+      "yes"
+    ]
+  },
+  {
+    "id": "hear-no-evil-monkey",
+    "label": "Hear-no-evil monkey",
+    "keywords": [
+      "evil",
+      "face",
+      "forbidden",
+      "hear",
+      "hear-no-evil monkey",
+      "monkey"
+    ]
+  },
+  {
+    "id": "heart-decoration",
+    "label": "Heart decoration",
+    "keywords": [
+      "heart",
+      "heart decoration"
+    ]
+  },
+  {
+    "id": "heart-exclamation",
+    "label": "Heart exclamation",
+    "keywords": [
+      "exclamation",
+      "heart exclamation",
+      "mark",
+      "punctuation"
+    ]
+  },
+  {
+    "id": "heart-on-fire",
+    "label": "Heart on fire",
+    "keywords": [
+      "burn",
+      "heart",
+      "heart on fire",
+      "love",
+      "lust",
+      "sacred heart"
+    ]
+  },
+  {
+    "id": "heart-with-arrow",
+    "label": "Heart with arrow",
+    "keywords": [
+      "arrow",
+      "cupid",
+      "heart with arrow"
+    ]
+  },
+  {
+    "id": "heart-with-ribbon",
+    "label": "Heart with ribbon",
+    "keywords": [
+      "heart with ribbon",
+      "ribbon",
+      "valentine"
+    ]
+  },
+  {
+    "id": "hole",
+    "label": "Hole",
+    "keywords": [
+      "hole"
+    ]
+  },
+  {
+    "id": "hot-face",
+    "label": "Hot face",
+    "keywords": [
+      "feverish",
+      "heat stroke",
+      "hot",
+      "hot face",
+      "red-faced",
+      "sweating"
+    ]
+  },
+  {
+    "id": "hugging-face",
+    "label": "Hugging face",
+    "keywords": [
+      "face",
+      "hug",
+      "hugging",
+      "open hands",
+      "smiling face",
+      "smiling face with open hands"
+    ]
+  },
+  {
+    "id": "hundred-points",
+    "label": "Hundred points",
+    "keywords": [
+      "100",
+      "full",
+      "hundred",
+      "hundred points",
+      "score"
+    ]
+  },
+  {
+    "id": "hushed-face",
+    "label": "Hushed face",
+    "keywords": [
+      "face",
+      "hushed",
+      "stunned",
+      "surprised"
+    ]
+  },
+  {
+    "id": "kiss-mark",
+    "label": "Kiss mark",
+    "keywords": [
+      "kiss",
+      "kiss mark",
+      "lips"
+    ]
+  },
+  {
+    "id": "kissing-cat",
+    "label": "Kissing cat",
+    "keywords": [
+      "cat",
+      "eye",
+      "face",
+      "kiss",
+      "kissing cat"
+    ]
+  },
+  {
+    "id": "kissing-face",
+    "label": "Kissing face",
+    "keywords": [
+      "face",
+      "kiss",
+      "kissing face"
+    ]
+  },
+  {
+    "id": "kissing-face-with-closed-eyes",
+    "label": "Kissing face with closed eyes",
+    "keywords": [
+      "closed",
+      "eye",
+      "face",
+      "kiss",
+      "kissing face with closed eyes"
+    ]
+  },
+  {
+    "id": "kissing-face-with-smiling-eyes",
+    "label": "Kissing face with smiling eyes",
+    "keywords": [
+      "eye",
+      "face",
+      "kiss",
+      "kissing face with smiling eyes",
+      "smile"
+    ]
+  },
+  {
+    "id": "knocked-out-face",
+    "label": "Knocked-out face",
+    "keywords": [
+      "crossed-out eyes",
+      "dead",
+      "face",
+      "face with crossed-out eyes",
+      "knocked out"
+    ]
+  },
+  {
+    "id": "left-speech-bubble",
+    "label": "Left speech bubble",
+    "keywords": [
+      "dialog",
+      "left speech bubble",
+      "speech"
+    ]
+  },
+  {
+    "id": "light-blue-heart",
+    "label": "Light blue heart",
+    "keywords": [
+      "cyan",
+      "heart",
+      "light blue",
+      "light blue heart",
+      "teal"
+    ]
+  },
+  {
+    "id": "loudly-crying-face",
+    "label": "Loudly crying face",
+    "keywords": [
+      "cry",
+      "face",
+      "loudly crying face",
+      "sad",
+      "sob",
+      "tear"
+    ]
+  },
+  {
+    "id": "love-letter",
+    "label": "Love letter",
+    "keywords": [
+      "heart",
+      "letter",
+      "love",
+      "mail"
+    ]
+  },
+  {
+    "id": "lying-face",
+    "label": "Lying face",
+    "keywords": [
+      "face",
+      "lie",
+      "lying face",
+      "pinocchio"
+    ]
+  },
+  {
+    "id": "melting-face",
+    "label": "Melting face",
+    "keywords": [
+      "disappear",
+      "dissolve",
+      "liquid",
+      "melt",
+      "melting face"
+    ]
+  },
+  {
+    "id": "mending-heart",
+    "label": "Mending heart",
+    "keywords": [
+      "healthier",
+      "improving",
+      "mending",
+      "mending heart",
+      "recovering",
+      "recuperating",
+      "well"
+    ]
+  },
+  {
+    "id": "money-mouth-face",
+    "label": "Money-mouth face",
+    "keywords": [
+      "face",
+      "money",
+      "money-mouth face",
+      "mouth"
+    ]
+  },
+  {
+    "id": "nauseated-face",
+    "label": "Nauseated face",
+    "keywords": [
+      "face",
+      "nauseated",
+      "vomit"
+    ]
+  },
+  {
+    "id": "nerd-face",
+    "label": "Nerd face",
+    "keywords": [
+      "face",
+      "geek",
+      "nerd"
+    ]
+  },
+  {
+    "id": "neutral-face",
+    "label": "Neutral face",
+    "keywords": [
+      "deadpan",
+      "face",
+      "meh",
+      "neutral"
+    ]
+  },
+  {
+    "id": "ogre",
+    "label": "Ogre",
+    "keywords": [
+      "creature",
+      "face",
+      "fairy tale",
+      "fantasy",
+      "monster",
+      "ogre"
+    ]
+  },
+  {
+    "id": "orange-heart",
+    "label": "Orange heart",
+    "keywords": [
+      "orange",
+      "orange heart"
+    ]
+  },
+  {
+    "id": "partying-face",
+    "label": "Partying face",
+    "keywords": [
+      "celebration",
+      "hat",
+      "horn",
+      "party",
+      "partying face"
+    ]
+  },
+  {
+    "id": "pensive-face",
+    "label": "Pensive face",
+    "keywords": [
+      "dejected",
+      "face",
+      "pensive"
+    ]
+  },
+  {
+    "id": "persevering-face",
+    "label": "Persevering face",
+    "keywords": [
+      "face",
+      "persevere",
+      "persevering face"
+    ]
+  },
+  {
+    "id": "pile-of-poo",
+    "label": "Pile of poo",
+    "keywords": [
+      "dung",
+      "face",
+      "monster",
+      "pile of poo",
+      "poo",
+      "poop"
+    ]
+  },
+  {
+    "id": "pink-heart",
+    "label": "Pink heart",
+    "keywords": [
+      "cute",
+      "heart",
+      "like",
+      "love",
+      "pink"
+    ]
+  },
+  {
+    "id": "pleading-face",
+    "label": "Pleading face",
+    "keywords": [
+      "begging",
+      "mercy",
+      "pleading face",
+      "puppy eyes"
+    ]
+  },
+  {
+    "id": "pouting-cat",
+    "label": "Pouting cat",
+    "keywords": [
+      "cat",
+      "face",
+      "pouting"
+    ]
+  },
+  {
+    "id": "pouting-face",
+    "label": "Pouting face",
+    "keywords": [
+      "angry",
+      "face",
+      "mad",
+      "pouting",
+      "rage",
+      "red"
+    ]
+  },
+  {
+    "id": "purple-heart",
+    "label": "Purple heart",
+    "keywords": [
+      "purple",
+      "purple heart"
+    ]
+  },
+  {
+    "id": "red-heart",
+    "label": "Red heart",
+    "keywords": [
+      "heart",
+      "red heart"
+    ]
+  },
+  {
+    "id": "relieved-face",
+    "label": "Relieved face",
+    "keywords": [
+      "face",
+      "relieved"
+    ]
+  },
+  {
+    "id": "revolving-hearts",
+    "label": "Revolving hearts",
+    "keywords": [
+      "revolving",
+      "revolving hearts"
+    ]
+  },
+  {
+    "id": "right-anger-bubble",
+    "label": "Right anger bubble",
+    "keywords": [
+      "angry",
+      "balloon",
+      "bubble",
+      "mad",
+      "right anger bubble"
+    ]
+  },
+  {
+    "id": "robot",
+    "label": "Robot",
+    "keywords": [
+      "face",
+      "monster",
+      "robot"
+    ]
+  },
+  {
+    "id": "rolling-on-the-floor-laughing",
+    "label": "Rolling on the floor laughing",
+    "keywords": [
+      "face",
+      "floor",
+      "laugh",
+      "rofl",
+      "rolling",
+      "rolling on the floor laughing",
+      "rotfl"
+    ]
+  },
+  {
+    "id": "sad-but-relieved-face",
+    "label": "Sad but relieved face",
+    "keywords": [
+      "disappointed",
+      "face",
+      "relieved",
+      "sad but relieved face",
+      "whew"
+    ]
+  },
+  {
+    "id": "saluting-face",
+    "label": "Saluting face",
+    "keywords": [
+      "OK",
+      "salute",
+      "saluting face",
+      "sunny",
+      "troops",
+      "yes"
+    ]
+  },
+  {
+    "id": "see-no-evil-monkey",
+    "label": "See-no-evil monkey",
+    "keywords": [
+      "evil",
+      "face",
+      "forbidden",
+      "monkey",
+      "see",
+      "see-no-evil monkey"
+    ]
+  },
+  {
+    "id": "shaking-face",
+    "label": "Shaking face",
+    "keywords": [
+      "earthquake",
+      "face",
+      "shaking",
+      "shock",
+      "vibrate"
+    ]
+  },
+  {
+    "id": "shushing-face",
+    "label": "Shushing face",
+    "keywords": [
+      "quiet",
+      "shush",
+      "shushing face"
+    ]
+  },
+  {
+    "id": "skull",
+    "label": "Skull",
+    "keywords": [
+      "death",
+      "face",
+      "fairy tale",
+      "monster",
+      "skull"
+    ]
+  },
+  {
+    "id": "skull-and-crossbones",
+    "label": "Skull and crossbones",
+    "keywords": [
+      "crossbones",
+      "death",
+      "face",
+      "monster",
+      "skull",
+      "skull and crossbones"
+    ]
+  },
+  {
+    "id": "sleeping-face",
+    "label": "Sleeping face",
+    "keywords": [
+      "face",
+      "sleep",
+      "sleeping face",
+      "zzz"
+    ]
+  },
+  {
+    "id": "sleepy-face",
+    "label": "Sleepy face",
+    "keywords": [
+      "face",
+      "sleep",
+      "sleepy face"
+    ]
+  },
+  {
+    "id": "slightly-frowning-face",
+    "label": "Slightly frowning face",
+    "keywords": [
+      "face",
+      "frown",
+      "slightly frowning face"
+    ]
+  },
+  {
+    "id": "slightly-smiling-face",
+    "label": "Slightly smiling face",
+    "keywords": [
+      "face",
+      "slightly smiling face",
+      "smile"
+    ]
+  },
+  {
+    "id": "smiling-cat-with-heart-eyes",
+    "label": "Smiling cat with heart-eyes",
+    "keywords": [
+      "cat",
+      "eye",
+      "face",
+      "heart",
+      "love",
+      "smile",
+      "smiling cat with heart-eyes"
+    ]
+  },
+  {
+    "id": "smiling-face",
+    "label": "Smiling face",
+    "keywords": [
+      "face",
+      "outlined",
+      "relaxed",
+      "smile",
+      "smiling face"
+    ]
+  },
+  {
+    "id": "smiling-face-with-halo",
+    "label": "Smiling face with halo",
+    "keywords": [
+      "angel",
+      "face",
+      "fantasy",
+      "halo",
+      "innocent",
+      "smiling face with halo"
+    ]
+  },
+  {
+    "id": "smiling-face-with-heart-eyes",
+    "label": "Smiling face with heart-eyes",
+    "keywords": [
+      "eye",
+      "face",
+      "love",
+      "smile",
+      "smiling face with heart-eyes"
+    ]
+  },
+  {
+    "id": "smiling-face-with-hearts",
+    "label": "Smiling face with hearts",
+    "keywords": [
+      "adore",
+      "crush",
+      "hearts",
+      "in love",
+      "smiling face with hearts"
+    ]
+  },
+  {
+    "id": "smiling-face-with-horns",
+    "label": "Smiling face with horns",
+    "keywords": [
+      "face",
+      "fairy tale",
+      "fantasy",
+      "horns",
+      "smile",
+      "smiling face with horns"
+    ]
+  },
+  {
+    "id": "smiling-face-with-smiling-eyes",
+    "label": "Smiling face with smiling eyes",
+    "keywords": [
+      "blush",
+      "eye",
+      "face",
+      "smile",
+      "smiling face with smiling eyes"
+    ]
+  },
+  {
+    "id": "smiling-face-with-sunglasses",
+    "label": "Smiling face with sunglasses",
+    "keywords": [
+      "bright",
+      "cool",
+      "face",
+      "smiling face with sunglasses",
+      "sun",
+      "sunglasses"
+    ]
+  },
+  {
+    "id": "smiling-face-with-tear",
+    "label": "Smiling face with tear",
+    "keywords": [
+      "grateful",
+      "proud",
+      "relieved",
+      "smiling",
+      "smiling face with tear",
+      "tear",
+      "touched"
+    ]
+  },
+  {
+    "id": "smirking-face",
+    "label": "Smirking face",
+    "keywords": [
+      "face",
+      "smirk",
+      "smirking face"
+    ]
+  },
+  {
+    "id": "sneezing-face",
+    "label": "Sneezing face",
+    "keywords": [
+      "face",
+      "gesundheit",
+      "sneeze",
+      "sneezing face"
+    ]
+  },
+  {
+    "id": "sparkling-heart",
+    "label": "Sparkling heart",
+    "keywords": [
+      "excited",
+      "sparkle",
+      "sparkling heart"
+    ]
+  },
+  {
+    "id": "speak-no-evil-monkey",
+    "label": "Speak-no-evil monkey",
+    "keywords": [
+      "evil",
+      "face",
+      "forbidden",
+      "monkey",
+      "speak",
+      "speak-no-evil monkey"
+    ]
+  },
+  {
+    "id": "speech-balloon",
+    "label": "Speech balloon",
+    "keywords": [
+      "balloon",
+      "bubble",
+      "comic",
+      "dialog",
+      "speech"
+    ]
+  },
+  {
+    "id": "squinting-face-with-tongue",
+    "label": "Squinting face with tongue",
+    "keywords": [
+      "eye",
+      "face",
+      "horrible",
+      "squinting face with tongue",
+      "taste",
+      "tongue"
+    ]
+  },
+  {
+    "id": "star-struck",
+    "label": "Star-struck",
+    "keywords": [
+      "eyes",
+      "face",
+      "grinning",
+      "star",
+      "star-struck"
+    ]
+  },
+  {
+    "id": "sweat-droplets",
+    "label": "Sweat droplets",
+    "keywords": [
+      "comic",
+      "splashing",
+      "sweat",
+      "sweat droplets"
+    ]
+  },
+  {
+    "id": "thinking-face",
+    "label": "Thinking face",
+    "keywords": [
+      "face",
+      "thinking"
+    ]
+  },
+  {
+    "id": "thought-balloon",
+    "label": "Thought balloon",
+    "keywords": [
+      "balloon",
+      "bubble",
+      "comic",
+      "thought"
+    ]
+  },
+  {
+    "id": "tired-face",
+    "label": "Tired face",
+    "keywords": [
+      "face",
+      "tired"
+    ]
+  },
+  {
+    "id": "two-hearts",
+    "label": "Two hearts",
+    "keywords": [
+      "love",
+      "two hearts"
+    ]
+  },
+  {
+    "id": "unamused-face",
+    "label": "Unamused face",
+    "keywords": [
+      "face",
+      "unamused",
+      "unhappy"
+    ]
+  },
+  {
+    "id": "upside-down-face",
+    "label": "Upside-down face",
+    "keywords": [
+      "face",
+      "upside-down"
+    ]
+  },
+  {
+    "id": "weary-cat",
+    "label": "Weary cat",
+    "keywords": [
+      "cat",
+      "face",
+      "oh",
+      "surprised",
+      "weary"
+    ]
+  },
+  {
+    "id": "weary-face",
+    "label": "Weary face",
+    "keywords": [
+      "face",
+      "tired",
+      "weary"
+    ]
+  },
+  {
+    "id": "white-heart",
+    "label": "White heart",
+    "keywords": [
+      "heart",
+      "white"
+    ]
+  },
+  {
+    "id": "winking-face",
+    "label": "Winking face",
+    "keywords": [
+      "face",
+      "wink",
+      "winking face"
+    ]
+  },
+  {
+    "id": "winking-face-with-tongue",
+    "label": "Winking face with tongue",
+    "keywords": [
+      "eye",
+      "face",
+      "joke",
+      "tongue",
+      "wink",
+      "winking face with tongue"
+    ]
+  },
+  {
+    "id": "woozy-face",
+    "label": "Woozy face",
+    "keywords": [
+      "dizzy",
+      "intoxicated",
+      "tipsy",
+      "uneven eyes",
+      "wavy mouth",
+      "woozy face"
+    ]
+  },
+  {
+    "id": "worried-face",
+    "label": "Worried face",
+    "keywords": [
+      "face",
+      "worried"
+    ]
+  },
+  {
+    "id": "yawning-face",
+    "label": "Yawning face",
+    "keywords": [
+      "bored",
+      "tired",
+      "yawn",
+      "yawning face"
+    ]
+  },
+  {
+    "id": "yellow-heart",
+    "label": "Yellow heart",
+    "keywords": [
+      "yellow",
+      "yellow heart"
+    ]
+  },
+  {
+    "id": "zany-face",
+    "label": "Zany face",
+    "keywords": [
+      "eye",
+      "goofy",
+      "large",
+      "small",
+      "zany face"
+    ]
+  },
+  {
+    "id": "zipper-mouth-face",
+    "label": "Zipper-mouth face",
+    "keywords": [
+      "face",
+      "mouth",
+      "zipper",
+      "zipper-mouth face"
+    ]
+  },
+  {
+    "id": "zzz",
+    "label": "Zzz",
+    "keywords": [
+      "comic",
+      "sleep",
+      "zzz"
+    ]
+  }
+]

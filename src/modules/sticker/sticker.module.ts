@@ -2,6 +2,7 @@ import { defineModule } from "@/core";
 import { elements, propTypes } from "@/modules/element";
 import { previewRef } from "@/modules/preview";
 import { editingPack } from "./packs/editing/editing.pack";
+import { fluentPack } from "./packs/fluent/fluent.pack";
 import { sealPack } from "./packs/seal/seal.pack";
 import { createStickerArtCache } from "./sticker.art";
 import { stickerCommands } from "./sticker.commands";
@@ -30,7 +31,7 @@ export const stickerModule = defineModule({
     onDispose(library.onLoaded(() => preview.redraw()));
     contribute(propTypes, stickerVariationType);
     contribute(elements, createStickerElement(library, art));
-    contribute(stickerPacks, sealPack, editingPack);
+    contribute(stickerPacks, sealPack, editingPack, fluentPack);
     return { api: { ...library, recents } };
   },
 });

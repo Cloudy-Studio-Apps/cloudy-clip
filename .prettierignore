@@ -5,3 +5,4 @@ pnpm-lock.yaml
 .mcp.json
 .claude
 docs/prototype
+src/modules/sticker/packs/fluent
