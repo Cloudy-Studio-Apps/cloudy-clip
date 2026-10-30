@@ -19,6 +19,7 @@ export const MediaTile = memo(function MediaTile({ asset }: { asset: MediaAsset 
 
   return (
     <div
+      data-collab-target={`media:${asset.id}`}
       className={cn("group relative", ready ? "cursor-grab" : "cursor-progress")}
       title={tooltip}
       onPointerDown={(e) => {

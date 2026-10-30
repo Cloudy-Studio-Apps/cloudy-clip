@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { layoutPanels, usePoint, type LayoutSlot } from "@/core";
+import { appOverlays, ErrorBoundary, layoutPanels, usePoint, type LayoutSlot } from "@/core";
 import { TopBar } from "../top-bar/TopBar";
 import type { ResizableArea } from "./layout.types";
 import { LayoutRegion } from "./LayoutRegion";
@@ -17,6 +17,7 @@ import { SidePanels } from "./SidePanels";
 export function LayoutHost() {
   const gridRef = useRef<HTMLDivElement>(null);
   const panels = usePoint(layoutPanels);
+  const overlays = usePoint(appOverlays);
   const bySlot = useMemo(() => {
     const sorted = [...panels].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const of = (slot: LayoutSlot) => sorted.filter((panel) => panel.slot === slot);
@@ -63,6 +64,13 @@ export function LayoutHost() {
       >
         <PanelSlot panels={bySlot.bottom} />
       </LayoutRegion>
+      <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+        {overlays.map(({ id, component: Overlay }) => (
+          <ErrorBoundary key={id} name={id}>
+            <Overlay />
+          </ErrorBoundary>
+        ))}
+      </div>
     </div>
   );
 }

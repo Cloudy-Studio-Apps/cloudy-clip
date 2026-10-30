@@ -21,6 +21,7 @@ export function SideRail({ panels, activeId, onSelect }: SideRailProps) {
             key={id}
             type="button"
             aria-current={active ? "page" : undefined}
+            data-collab-target={`panel:${id}`}
             className={cn(
               "relative flex cursor-pointer flex-col items-center gap-1 rounded-sm pb-1.5 pt-2 text-2xs font-medium",
               active

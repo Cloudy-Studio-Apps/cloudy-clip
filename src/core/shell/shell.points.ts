@@ -1,5 +1,5 @@
 import { definePoint } from "../module/points";
-import type { Keybinding, KeyPress, LayoutPanel, TopBarItem } from "./shell.types";
+import type { AppOverlay, Keybinding, KeyPress, LayoutPanel, TopBarItem } from "./shell.types";
 
 /** Panels of the editor layout. The app shell places them by slot. */
 export const layoutPanels = definePoint<LayoutPanel>("shell.layoutPanels", {
@@ -9,6 +9,11 @@ export const layoutPanels = definePoint<LayoutPanel>("shell.layoutPanels", {
 /** Pieces of the top bar. The app shell places them by slot. */
 export const topBarItems = definePoint<TopBarItem>("shell.topBarItems", {
   keyOf: (item) => item.id,
+});
+
+/** Layers over the whole window that never take the pointer. The app shell draws them. */
+export const appOverlays = definePoint<AppOverlay>("shell.appOverlays", {
+  keyOf: (overlay) => overlay.id,
 });
 
 /** Keyboard shortcuts. The app shell's keybinding host reads them. */

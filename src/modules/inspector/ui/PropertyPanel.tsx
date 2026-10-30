@@ -112,15 +112,16 @@ export function PropertyPanel({
         );
       }
       return (
-        <Layout
-          key={section.key}
-          section={section}
-          clip={subject}
-          values={values}
-          live={live}
-          renderItem={renderItem}
-          enabled={enabled}
-        />
+        <div key={section.key} className="contents" data-collab-target={`inspector:${section.key}`}>
+          <Layout
+            section={section}
+            clip={subject}
+            values={values}
+            live={live}
+            renderItem={renderItem}
+            enabled={enabled}
+          />
+        </div>
       );
     });
 }

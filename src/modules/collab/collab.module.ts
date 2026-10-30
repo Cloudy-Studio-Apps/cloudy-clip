@@ -1,6 +1,6 @@
-import { defineModule, topBarItems } from "@/core";
+import { appOverlays, defineModule, topBarItems } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { timelineOverlays } from "@/modules/timeline";
+import { timelineOverlays, timelineRef } from "@/modules/timeline";
 import { collabCommands } from "./collab.commands";
 import { collabMcpTools } from "./collab.mcp";
 import { createCollabNotes } from "./collab.notes";
@@ -8,7 +8,7 @@ import { createCollabObserver } from "./collab.observer";
 import { startPresence } from "./collab.presence";
 import { collabRef } from "./collab.ref";
 import { createCollabStore } from "./collab.store";
-import { AgentPlayheads, AgentStatusStrip, CollabAvatars } from "./ui";
+import { AgentPlayheads, AgentPointers, AgentStatusStrip, CollabAvatars } from "./ui";
 
 /** Connected agents as collaborators: presence, access, and their place in the app. */
 export const collabModule = defineModule({
@@ -29,6 +29,7 @@ export const collabModule = defineModule({
         bus: ctx.bus,
         history: ctx.history,
         preview: ctx.require(previewRef),
+        timeline: ctx.require(timelineRef),
       }),
     );
     ctx.contribute(
@@ -36,6 +37,7 @@ export const collabModule = defineModule({
       { id: "collab.status", slot: "center", component: AgentStatusStrip },
       { id: "collab.avatars", slot: "right", component: CollabAvatars },
     );
+    ctx.contribute(appOverlays, { id: "collab.pointers", component: AgentPointers });
     ctx.contribute(timelineOverlays, { id: "collab.playheads", component: AgentPlayheads });
     return { api: { store } };
   },

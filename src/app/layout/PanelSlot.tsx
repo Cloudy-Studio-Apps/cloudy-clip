@@ -5,9 +5,11 @@ export function PanelSlot({ panels }: { panels: readonly LayoutPanel[] }) {
   return (
     <>
       {panels.map(({ id, title, component: Panel }) => (
-        <ErrorBoundary key={id} name={title}>
-          <Panel />
-        </ErrorBoundary>
+        <div key={id} className="contents" data-collab-target={`panel:${id}`}>
+          <ErrorBoundary name={title}>
+            <Panel />
+          </ErrorBoundary>
+        </div>
       ))}
     </>
   );

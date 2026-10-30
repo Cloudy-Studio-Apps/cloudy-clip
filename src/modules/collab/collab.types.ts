@@ -37,6 +37,12 @@ export interface Collaborator {
   target: CollabTarget | null;
 }
 
+/** A point on screen, in pixels from the window's top left. */
+export interface PointerSpot {
+  x: number;
+  y: number;
+}
+
 /** Everyone here. View state: never in the project, never in history. */
 export interface CollabState {
   collaborators: Record<ActorId, Collaborator>;

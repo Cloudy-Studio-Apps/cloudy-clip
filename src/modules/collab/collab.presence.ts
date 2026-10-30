@@ -1,7 +1,9 @@
 import { LOCAL_ACTOR, type CommandBus, type History } from "@/core";
 import type { PreviewApi } from "@/modules/preview";
+import type { TimelineApi } from "@/modules/timeline";
 import type { StoreApi } from "zustand/vanilla";
 import { prune } from "./logic/prune";
+import { changesTarget } from "./logic/targets";
 import type { CollabNotes, CollabState } from "./collab.types";
 
 /** How often quiet agents are looked for. */
@@ -11,12 +13,19 @@ const PRUNE_MS = 5000;
 export function startPresence(
   store: StoreApi<CollabState>,
   notes: CollabNotes,
-  deps: { bus: CommandBus; history: History; preview: PreviewApi },
+  deps: { bus: CommandBus; history: History; preview: PreviewApi; timeline: TimelineApi },
 ): () => void {
-  const offExecuted = deps.bus.onExecuted(({ commandId, result }) => {
-    if (commandId !== "history.undoFor" || !result.ok) return;
-    const { undone, actor } = result.value as { undone: string; actor: string };
-    notes.add(actor, `The user undid your step "${undone}".`);
+  const offExecuted = deps.bus.onExecuted(({ commandId, result, actor, changes }) => {
+    if (commandId === "history.undoFor" && result.ok) {
+      const { undone, actor: owner } = result.value as { undone: string; actor: string };
+      notes.add(owner, `The user undid your step "${undone}".`);
+    }
+    const target = changesTarget(changes, deps.timeline.view.getState().selection);
+    const who = store.getState().collaborators[actor];
+    if (!target || !who || actor === LOCAL_ACTOR) return;
+    store.setState((state) => ({
+      collaborators: { ...state.collaborators, [actor]: { ...who, target } },
+    }));
   });
 
   const timer = setInterval(() => {

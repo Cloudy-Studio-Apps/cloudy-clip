@@ -32,6 +32,13 @@ export interface TopBarItem {
   component: ComponentType;
 }
 
+/** A layer over the whole window, such as a collaborator's pointer. */
+export interface AppOverlay {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  component: ComponentType;
+}
+
 /** The parts of a `KeyboardEvent` keybindings match on. */
 export interface KeyPress {
   key: string;

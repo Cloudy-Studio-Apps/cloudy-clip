@@ -2,6 +2,7 @@ import { notify, type ActorId, type AppError, type McpCaller, type McpObserver }
 import type { StoreApi } from "zustand/vanilla";
 import { activityLabel } from "./logic/activity";
 import { identify } from "./logic/identify";
+import { toolTarget } from "./logic/targets";
 import type { CollabNotes, CollabState, Collaborator } from "./collab.types";
 
 /** Why a call is refused, or nothing. */
@@ -70,6 +71,7 @@ export function createCollabObserver(
         lastSeen: Date.now(),
         idle: false,
         activity: { label: activityLabel(tool.name, "running"), status: "running" },
+        target: toolTarget(tool.name) ?? who.target,
       });
       return { label: activityLabel(tool.name, "done") };
     },

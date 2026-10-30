@@ -28,7 +28,7 @@ export type { History, HistoryEntry, HistorySnapshot } from "./history/history.t
 
 // Document stores
 export { createPatchableStore } from "./store/store.patchable";
-export type { FieldChange, StorePolicy, PatchableStore } from "./store/store.types";
+export type { FieldChange, PatchableStore, StoreChange, StorePolicy } from "./store/store.types";
 
 // Modules
 export { defineModule, defineModuleRef } from "./module/module.define";
@@ -47,8 +47,15 @@ export { createPointRegistry, definePoint } from "./module/points";
 export type { Point, PointOptions, PointReader, PointRegistry } from "./module/points.types";
 
 // Shell points (panels, keybindings)
-export { keybindings, layoutPanels, matchKeybinding, topBarItems } from "./shell/shell.points";
+export {
+  appOverlays,
+  keybindings,
+  layoutPanels,
+  matchKeybinding,
+  topBarItems,
+} from "./shell/shell.points";
 export type {
+  AppOverlay,
   Keybinding,
   KeybindingAction,
   KeyPress,
