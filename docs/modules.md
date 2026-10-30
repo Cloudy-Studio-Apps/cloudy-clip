@@ -27,20 +27,21 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `core`    | The app can't exist without it. Loaded first.                                                  | core modules only     |
 | `feature` | Optional. Written only against public APIs (`index.ts`), exactly as a plugin would be written. | core and feature ones |
 
-| Module       | Tier    | Requires                                                                       | Owns                                                                              |
-| ------------ | ------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| `project`    | core    | —                                                                              | the document (format, media, tracks, clips), placement                            |
-| `element`    | core    | `project`                                                                      | element declarations, shared groups, prop types, `element.setProps`               |
-| `junction`   | core    | `project`, `element`                                                           | junction kinds (what sits on a cut between two clips), registry                   |
-| `fonts`      | core    | `element`                                                                      | font families (bundled, installed, Google), face loading                          |
-| `media`      | core    | `project`, `element`                                                           | import, probes, proxies, library panel, the `media` element                       |
-| `preview`    | core    | `project`, `element`, `junction`, `media`, `fonts`                             | playback clock, engine, viewer, preview panel, overlays                           |
-| `timeline`   | core    | `project`, `element`, `junction`, `media`, `preview`                           | track and clip commands, `addElement`, create tiles, timeline panel               |
-| `inspector`  | feature | `project`, `element`, `preview`, `timeline`, `junction`                        | the right column, generated element panels, controls                              |
-| `transform`  | feature | `project`, `element`, `media`, `fonts`, `preview`, `timeline`                  | the `transform` shared group, `transform.reset`, canvas tools                     |
-| `text`       | feature | `project`, `element`, `preview`, `timeline`, `transform`, `fonts`, `inspector` | the `text` element, Text tab, presets, font controls, in-place editing            |
-| `transition` | feature | `project`, `element`, `junction`, `timeline`, `inspector`                      | the `transition` junction kind, the `transitionPresets` point, `transition.apply` |
-| `collab`     | feature | `preview`, `timeline`                                                          | presence, access, the agent pointer and playhead, Follow                          |
+| Module       | Tier    | Requires                                                                       | Owns                                                                                   |
+| ------------ | ------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `project`    | core    | —                                                                              | the document (format, media, tracks, clips), placement                                 |
+| `element`    | core    | `project`                                                                      | element declarations, shared groups, prop types, `element.setProps`                    |
+| `junction`   | core    | `project`, `element`                                                           | junction kinds (what sits on a cut between two clips), registry                        |
+| `fonts`      | core    | `element`                                                                      | font families (bundled, installed, Google), face loading                               |
+| `media`      | core    | `project`, `element`                                                           | import, probes, proxies, library panel, the `media` element                            |
+| `preview`    | core    | `project`, `element`, `junction`, `media`, `fonts`                             | playback clock, engine, viewer, preview panel, overlays                                |
+| `timeline`   | core    | `project`, `element`, `junction`, `media`, `preview`                           | track and clip commands, `addElement`, create tiles, timeline panel                    |
+| `inspector`  | feature | `project`, `element`, `preview`, `timeline`, `junction`                        | the right column, generated element panels, controls                                   |
+| `transform`  | feature | `project`, `element`, `media`, `fonts`, `preview`, `timeline`                  | the `transform` shared group, `transform.reset`, canvas tools                          |
+| `text`       | feature | `project`, `element`, `preview`, `timeline`, `transform`, `fonts`, `inspector` | the `text` element, Text tab, presets, font controls, in-place editing                 |
+| `transition` | feature | `project`, `element`, `junction`, `timeline`, `inspector`                      | the `transition` junction kind, the `transitionPresets` point, `transition.apply`      |
+| `sticker`    | feature | `project`, `element`, `preview`, `timeline`, `transform`, `inspector`          | the `sticker` element, Stickers tab, `stickerPacks` and `stickerStyles`, `sticker.add` |
+| `collab`     | feature | `preview`, `timeline`                                                          | presence, access, the agent pointer and playhead, Follow                               |
 
 The built-in `history` module (undo/redo) lives in `src/core/history`.
 

@@ -15,6 +15,7 @@ import { junctionModule } from "@/modules/junction";
 import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
+import { stickerModule } from "@/modules/sticker";
 import { textModule } from "@/modules/text";
 import { timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
@@ -35,6 +36,7 @@ const MODULES: AnyModuleDefinition[] = [
   transformModule,
   textModule,
   transitionModule,
+  stickerModule,
   collabModule,
 ];
 
