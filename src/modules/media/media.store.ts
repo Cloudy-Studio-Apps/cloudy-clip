@@ -47,6 +47,12 @@ export function createMediaState(): MediaState {
         },
       });
     },
+    animation(id) {
+      const proxy = getProbe(id)?.proxy;
+      if (proxy?.state !== "ready" || !proxy.meta?.frames || proxy.meta.frames < 2)
+        return undefined;
+      return { frames: proxy.meta.frames, fps: proxy.meta.fps ?? UNKNOWN_FPS };
+    },
     pictureMeta(id) {
       const probe = getProbe(id);
       const meta = probe?.proxy?.meta;

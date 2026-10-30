@@ -12,7 +12,7 @@ export const importMedia = defineCommand({
   id: "media.import",
   label: "Import media",
   description:
-    "Imports local video or audio files by absolute path. Returns the imported media (with ids) and the files that failed.",
+    "Imports local video, audio or image files by absolute path. Returns the imported media (with ids) and the files that failed.",
   undoable: true,
   input: z.object({ paths: z.array(z.string().min(1)).min(1).max(200) }),
   async run(ctx, { paths }): Promise<ImportResult> {
@@ -75,7 +75,7 @@ export const relinkMedia = defineCommand({
   id: "media.relink",
   label: "Locate media",
   description:
-    'Points a media item at the file at an absolute path, keeping its clips. Use it for media with status "missing". Fails with media.not_found, or media.wrong_kind when audio would replace video or the reverse.',
+    'Points a media item at the file at an absolute path, keeping its clips. Use it for media with status "missing". Fails with media.not_found, or media.wrong_kind when the new file is a different kind (audio for video, an image for either).',
   undoable: true,
   input: z.object({ mediaId: z.string(), path: z.string().min(1) }),
   async run(ctx, { mediaId, path }) {

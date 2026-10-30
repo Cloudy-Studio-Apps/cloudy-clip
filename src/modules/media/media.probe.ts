@@ -1,6 +1,6 @@
-import { createLogger, secondsToMicros } from "@/core";
+import { createLogger, secondsToMicros, type Micros } from "@/core";
 import type { MediaAsset } from "@/modules/project";
-import type { MediaState, ProbeQueue } from "./media.types";
+import type { MediaFrames, MediaState, ProbeQueue } from "./media.types";
 
 const log = createLogger("media.probe");
 
@@ -8,11 +8,16 @@ const log = createLogger("media.probe");
 const CONCURRENCY = 2;
 const LOAD_TIMEOUT_MS = 15_000;
 const POSTER_WIDTH = 192;
+/** Length a still lands at on the timeline. */
+const STILL_DURATION: Micros = 5_000_000;
+/** Size of an SVG that doesn't say. */
+const UNSIZED_IMAGE = 1024;
 
 /** Creates the probe queue of one kernel, reading from `mediaUrl` and writing into `state`. */
 export function createProbeQueue(deps: {
   state: MediaState;
   mediaUrl(id: string): string;
+  frameUrl: MediaFrames;
 }): ProbeQueue {
   const { state } = deps;
   const queue: MediaAsset[] = [];
@@ -24,7 +29,9 @@ export function createProbeQueue(deps: {
     while (!disposed && running < CONCURRENCY && queue.length > 0) {
       const asset = queue.shift()!;
       running++;
-      void probe(asset, deps.mediaUrl(asset.id))
+      const reading =
+        asset.kind === "image" ? probeImage(asset, deps) : probe(asset, deps.mediaUrl(asset.id));
+      void reading
         .then((probe) => {
           if (!disposed) state.setProbe(asset.id, { ...probe, status: "ready" });
         })
@@ -64,6 +71,38 @@ export function createProbeQueue(deps: {
   };
 }
 
+/** Reads an image's size and poster from a plain `Image`: it has no decoder to hold. */
+async function probeImage(asset: MediaAsset, deps: Parameters<typeof createProbeQueue>[0]) {
+  const animation = deps.state.animation(asset.id);
+  const url = animation ? deps.frameUrl(asset.id, 0) : deps.mediaUrl(asset.id);
+  const image = await loadImage(url);
+  const meta = animation ? deps.state.getProbe(asset.id)?.proxy?.meta : undefined;
+  const width = meta?.width ?? (image.naturalWidth || UNSIZED_IMAGE);
+  const height = meta?.height ?? (image.naturalHeight || UNSIZED_IMAGE);
+  const posterUrl = await drawPoster(image, width / height, "image/png").catch(() => undefined);
+  return { duration: meta?.duration ?? STILL_DURATION, width, height, posterUrl };
+}
+
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const timer = setTimeout(
+      () => reject(new Error("Timed out reading the file")),
+      LOAD_TIMEOUT_MS,
+    );
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      clearTimeout(timer);
+      resolve(image);
+    };
+    image.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error("This image can't be read"));
+    };
+    image.src = url;
+  });
+}
+
 async function probe(asset: MediaAsset, url: string) {
   const element = document.createElement(asset.kind === "video" ? "video" : "audio");
   element.preload = "metadata";
@@ -95,15 +134,22 @@ async function capturePoster(video: HTMLVideoElement): Promise<string> {
   video.currentTime = Math.min(1, video.duration * 0.1);
   await waitFor(video, "seeked");
   await waitForDecodedFrame(video);
+  return drawPoster(video, video.videoWidth / video.videoHeight, "image/jpeg");
+}
+
+/** Encodes a small copy of a picture. Images use PNG, so a transparent one doesn't turn black. */
+async function drawPoster(
+  picture: CanvasImageSource,
+  aspect: number,
+  type: "image/jpeg" | "image/png",
+): Promise<string> {
   const canvas = document.createElement("canvas");
   canvas.width = POSTER_WIDTH;
-  canvas.height = Math.max(1, Math.round((POSTER_WIDTH * video.videoHeight) / video.videoWidth));
+  canvas.height = Math.max(1, Math.round(POSTER_WIDTH / aspect));
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No 2D context");
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/jpeg", 0.8),
-  );
+  ctx.drawImage(picture, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.8));
   if (!blob) throw new Error("Could not encode poster");
   return URL.createObjectURL(blob);
 }

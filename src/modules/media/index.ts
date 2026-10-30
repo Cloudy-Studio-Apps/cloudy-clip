@@ -11,6 +11,7 @@ export { createFakeMediaModule } from "./media.testing";
 /** Sections of the Library, above the files; contribute with `ctx.contribute(librarySections, …)`. */
 export { librarySections } from "./media.points";
 export type {
+  ImageAnimation,
   ImportResult,
   MediaApi,
   LibraryItem,

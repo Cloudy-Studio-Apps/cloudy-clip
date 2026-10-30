@@ -14,6 +14,7 @@ function describe(media: MediaApi, asset: MediaAsset) {
     duration: probe?.duration,
     width: probe?.width,
     height: probe?.height,
+    frames: probe?.proxy?.meta?.frames,
     error: probe?.error,
     proxy: probe?.proxy,
   };
@@ -22,7 +23,7 @@ function describe(media: MediaApi, asset: MediaAsset) {
 const importTool = defineMcpTool({
   name: "media_import",
   description:
-    'Imports local video/audio files by absolute path and waits (up to 15 s) until their metadata (duration in microseconds, size) is read. Pro formats (ProRes, APV, 10-bit HEVC...) first get an editing proxy, which can take longer: if status is still "pending", poll media_list until it is "ready". Returns each imported item with its id, plus files that failed.',
+    'Imports local video, audio or image files by absolute path and waits (up to 15 s) until their metadata (duration in microseconds, size) is read. An image reports the length it lands at (5 s, or one loop for an animated image, which also reports frames). Pro formats (ProRes, APV, 10-bit HEVC...) and containers like AVI first get an editing proxy, and images may need converting, which can take longer: if status is still "pending", poll media_list until it is "ready". Returns each imported item with its id, plus files that failed.',
   input: importMedia.input,
   async handler(input, { bus, require }) {
     const media = require(mediaRef);
@@ -41,7 +42,7 @@ const listTool = defineMcpTool({
   name: "media_list",
   readOnly: true,
   description:
-    "Lists imported media with metadata: kind, duration (microseconds), width/height, status (pending, ready, error, or missing when the file is not where the project says: fix it with media_relink), and proxy (state, progress 0..1, message) for files being optimized for editing.",
+    "Lists imported media with metadata: kind (video, audio or image), duration (microseconds), width/height, frames (animated images only), status (pending, ready, error, or missing when the file is not where the project says: fix it with media_relink), and proxy (state, progress 0..1, message) for files being optimized for editing.",
   input: z.object({}),
   handler(_input, { require }) {
     const media = require(mediaRef);

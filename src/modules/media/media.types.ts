@@ -39,12 +39,18 @@ export interface ProbeMeta {
   frames?: number;
 }
 
-/** What a composition takes from a video. */
+/** What a composition takes from a picture. */
 export interface PictureMeta {
   width: number;
   height: number;
   fps: number;
   duration: Micros;
+}
+
+/** The frames of an animated image, at a steady rate. */
+export interface ImageAnimation {
+  frames: number;
+  fps: number;
 }
 
 /** Payload of the `media://proxy` event. */
@@ -129,8 +135,9 @@ export interface MediaApi {
    */
   waitForProbe(id: MediaId, timeoutMs?: number): Promise<MediaProbe | undefined>;
   /**
-   * A video's size, frame rate (30 when unknown) and length, once known: from ffprobe at the start
-   * of import, so it doesn't wait for a proxy. Undefined for audio and for files still being read.
+   * A picture's size, frame rate (30 when unknown) and length, once known: for a video from ffprobe
+   * at the start of import, so it doesn't wait for a proxy. An image's length is the one it lands
+   * at. Undefined for audio and for files still being read.
    */
   pictureMeta(id: MediaId): PictureMeta | undefined;
   /**
@@ -138,6 +145,13 @@ export interface MediaApi {
    * support). Changes once a proxy is ready, so media elements reload.
    */
   mediaUrl(id: MediaId): string;
+  /** The frames of an animated image, once they are ready; undefined for anything else. */
+  animation(id: MediaId): ImageAnimation | undefined;
+  /**
+   * URLs of an image's picture `elapsed` after its clip starts, followed by those of the frames up
+   * to `ahead` later, looped, each once. A still has the one URL.
+   */
+  imageFrames(id: MediaId, elapsed: Micros, ahead: Micros): string[];
   /**
    * Prepares the files of a document about to be opened: registers each under its saved id, and
    * marks those that can't be found `missing`. Returns those. Never rejects for a missing file.
@@ -146,7 +160,7 @@ export interface MediaApi {
 }
 
 /** Probe state plus the setters only the media module uses. */
-export interface MediaState extends Omit<MediaApi, "mediaUrl" | "restore"> {
+export interface MediaState extends Omit<MediaApi, "mediaUrl" | "imageFrames" | "restore"> {
   /** Sets (or merges into) the probe of one media item. */
   setProbe(id: MediaId, probe: Partial<MediaProbe>): void;
   /** Updates the proxy state of one media item, keeping an earlier explanation. */
@@ -163,6 +177,8 @@ export interface MediaService {
   listenToProxies(): Promise<() => void>;
   /** Streaming URL of a registered file; changes once its proxy is ready. */
   mediaUrl(id: MediaId): string;
+  /** URL of one frame of an animated image. */
+  frameUrl(id: MediaId, index: number): string;
 }
 
 /** Files of the document, in step with the native side. */
@@ -171,6 +187,9 @@ export interface MediaFiles {
   follow(): () => void;
   restore: MediaApi["restore"];
 }
+
+/** URL of one frame of an animated image. */
+export type MediaFrames = MediaService["frameUrl"];
 
 /** Reads file metadata in the background. */
 export interface ProbeQueue {

@@ -1,8 +1,8 @@
-import { AudioLines, Film } from "lucide-react";
+import { AudioLines, Film, Image } from "lucide-react";
 import { defineElement } from "@/modules/element";
 
 /**
- * A piece of an imported file on the timeline: a picture on a video track (fitted in the frame,
+ * A piece of an imported file on the timeline: a picture on a video track (video or image, fitted in the frame,
  * placed with the transform tools) or sound on an audio track. Decoded by the preview engine.
  */
 export const mediaElement = defineElement({
@@ -15,11 +15,11 @@ export const mediaElement = defineElement({
   defaults: () => ({}),
   display(clip, { project, track }) {
     const video = track?.kind !== "audio";
-    const name = clip.mediaId ? project.media[clip.mediaId]?.name : undefined;
+    const asset = clip.mediaId ? project.media[clip.mediaId] : undefined;
     return {
-      icon: video ? Film : AudioLines,
+      icon: asset?.kind === "image" ? Image : video ? Film : AudioLines,
       color: video ? "clip-video" : "clip-audio",
-      label: name ?? "Missing media",
+      label: asset?.name ?? "Missing media",
       body: video ? "poster" : "waveform",
     };
   },

@@ -32,6 +32,12 @@ export function createMediaService(state: MediaState): MediaService {
         state.setProxy(mediaId, proxy);
       });
     },
+    frameUrl(id, index) {
+      if (!baseUrl) throw new Error("The media server is not ready");
+      const revision = state.getProbe(id)?.revision;
+      const version = revision ? `?file=${revision}` : "";
+      return `${baseUrl}/${encodeURIComponent(id)}/frames/${index}${version}`;
+    },
     mediaUrl(id) {
       if (!baseUrl) throw new Error("The media server is not ready");
       const probe = state.getProbe(id);
@@ -95,5 +101,30 @@ export const AUDIO_EXTENSIONS = [
   "au",
 ];
 
+/** Image file extensions (must match `kind_of` in Rust). */
+export const IMAGE_EXTENSIONS = [
+  "png",
+  "jpg",
+  "jpeg",
+  "jfif",
+  "webp",
+  "bmp",
+  "svg",
+  "gif",
+  "apng",
+  "avif",
+  "heic",
+  "heif",
+  "tif",
+  "tiff",
+  "tga",
+  "dds",
+  "psd",
+  "exr",
+  "hdr",
+  "dpx",
+  "jxl",
+];
+
 /** File extensions accepted by the importer. */
-export const ACCEPTED_EXTENSIONS = [...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS];
+export const ACCEPTED_EXTENSIONS = [...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS, ...IMAGE_EXTENSIONS];

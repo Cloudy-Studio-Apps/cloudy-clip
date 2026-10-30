@@ -29,6 +29,8 @@ export function MediaThumb({ asset, probe }: MediaThumbProps) {
   const status = statusOf(probe);
   const proxy = probe?.proxy;
   const encoding = proxy?.state === "encoding" || proxy?.state === "queued";
+  const animated = proxy?.meta?.frames !== undefined;
+  const still = asset.kind === "image" && !animated;
 
   return (
     <div className="relative aspect-[16/10] overflow-hidden border border-border bg-surface-sunken outline-2 -outline-offset-1 outline-transparent transition-[outline-color] duration-150 group-hover:outline-ring">
@@ -40,15 +42,22 @@ export function MediaThumb({ asset, probe }: MediaThumbProps) {
         )
       )}
 
-      {proxy?.state === "ready" && (
-        <span
-          className="absolute left-1 top-1 bg-black/60 px-1 text-2xs font-semibold tracking-[0.04em] text-ice-300"
-          title={proxy.message}
-        >
-          PROXY
+      {animated ? (
+        <span className="absolute left-1 top-1 bg-black/60 px-1 text-2xs font-semibold tracking-[0.04em] text-ice-300">
+          GIF
         </span>
+      ) : (
+        proxy?.state === "ready" &&
+        asset.kind !== "image" && (
+          <span
+            className="absolute left-1 top-1 bg-black/60 px-1 text-2xs font-semibold tracking-[0.04em] text-ice-300"
+            title={proxy.message}
+          >
+            PROXY
+          </span>
+        )
       )}
-      {probe?.duration !== undefined && (
+      {probe?.duration !== undefined && !still && (
         <span className="absolute bottom-1 right-1 bg-black/60 px-1 font-mono text-2xs text-white">
           {formatTimecode(probe.duration)}
         </span>

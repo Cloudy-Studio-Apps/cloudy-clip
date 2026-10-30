@@ -4,6 +4,7 @@ import { defineModule, layoutPanels } from "@/core";
 import { elements } from "@/modules/element";
 import { projectRef } from "@/modules/project";
 import { importMedia, mediaCommands } from "./media.commands";
+import { frameIndexesAt } from "./logic/animation";
 import { mediaElement } from "./media.element";
 import { mediaMcpTools } from "./media.mcp";
 import { createProbeQueue } from "./media.probe";
@@ -30,7 +31,11 @@ export const mediaModule = defineModule({
     await service.init();
     // Each cleanup is registered as soon as its resource exists, so a later failure leaks nothing.
     onDispose(await service.listenToProxies());
-    const probes = createProbeQueue({ state, mediaUrl: service.mediaUrl });
+    const probes = createProbeQueue({
+      state,
+      mediaUrl: service.mediaUrl,
+      frameUrl: service.frameUrl,
+    });
     onDispose(() => probes.dispose());
 
     const files = createMediaFiles({ project, state, probes });
@@ -70,6 +75,12 @@ export const mediaModule = defineModule({
         waitForProbe: state.waitForProbe,
         pictureMeta: state.pictureMeta,
         mediaUrl: service.mediaUrl,
+        animation: state.animation,
+        imageFrames(id, elapsed, ahead) {
+          const animation = state.animation(id);
+          if (!animation) return [service.mediaUrl(id)];
+          return frameIndexesAt(animation, elapsed, ahead).map((n) => service.frameUrl(id, n));
+        },
         restore: files.restore,
       },
     };

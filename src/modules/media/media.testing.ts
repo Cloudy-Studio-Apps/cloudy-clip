@@ -22,7 +22,12 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
       const state = createMediaState();
       state.probes.setState({ probes });
       return {
-        api: { ...state, mediaUrl: (id: string) => `fake://${id}`, restore: async () => [] },
+        api: {
+          ...state,
+          mediaUrl: (id: string) => `fake://${id}`,
+          imageFrames: (id: string) => [`fake://${id}`],
+          restore: async () => [],
+        },
       };
     },
   });

@@ -7,10 +7,10 @@ rail), from which compositions and files are dragged onto the timeline.
 - **Requires:** `project`, `element`
 - **Contributes:** panel `media.library` (side, icon `SquarePlay`); element `media`
   (`media.element.ts`: no own properties, supports `transform`, `picture: { fit: "contain",
-source: "media" }`, labelled with the file name, a filmstrip on video tracks and a waveform on audio)
+source: "media" }`, labelled with the file name, a filmstrip on video tracks and a waveform on audio; image clips are the same element, drawn by the preview's image cache)
 - **Points it owns:** `librarySections` (`media.points.ts`): sections above the files (`composition` contributes its own).
 - **API** (`useModule(mediaRef)` / `ctx.require(mediaRef)`): `probes`, `fileDrop`, `getProbe`,
-  `waitForProbe`, `pictureMeta(id)` (size, frame rate, length as soon as ffprobe has read them, rotation included), `mediaUrl`, `restore(assets)` (registers a saved project's files, marks those not found `missing`, returns them). `useLocateMedia()` asks where a missing file went and looks for the others in that folder. `mediaHasAudio(probe)` (exported helper) says whether a file has
+  `waitForProbe`, `pictureMeta(id)` (size, frame rate, length as soon as ffprobe has read them, rotation included), `mediaUrl`, `animation(id)` (frames and rate of an animated image), `imageFrames(id, elapsed, ahead)` (the URLs of an image's picture at a moment and those after it, looped), `restore(assets)` (registers a saved project's files, marks those not found `missing`, returns them). `useLocateMedia()` asks where a missing file went and looks for the others in that folder. `mediaHasAudio(probe)` (exported helper) says whether a file has
   sound (true unless ffprobe found none). `createFakeMediaModule(probes)` (`media.testing.ts`) stands in for it
   in tests.
 - **Files:**
@@ -29,7 +29,7 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
     length. Its frames go into a cache folder as PNGs at a steady rate (at most 30 fps, 1280 on the long side), which keeps
     transparency everywhere, and are served by number at `<url>/<id>/frames/<n>`. Only animated images send `meta`, with `frames`. Without FFmpeg, a GIF shows its first frame.
   - `media.files.ts`: keeps the registry and probes in step with the document: probes what comes in, and when an item's path changes (relink, undo, redo) registers the new file and reads it again. `MediaProbe.revision` is in its URL, so media elements reload.
-  - `media.probe.ts`: once the proxy state settles, a bounded queue loads each file in a hidden
+  - `media.probe.ts`: once the proxy state settles, a bounded queue reads each file. Images load in a plain `Image` (size, a PNG poster that keeps transparency, and the length they land at: 5 s for a still, one loop when animated). Others load in a hidden
     media element to read duration, size and a poster (the element is silenced with `volume = 0`,
     not `muted`: WebKitGTK draws a muted video's frames to a canvas as black). Results live in `probes` (per kernel, not
     undoable). A file that can't be decoded gets `status: "error"` with a reason; it never throws.
