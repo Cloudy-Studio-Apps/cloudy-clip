@@ -11,15 +11,19 @@ export {
   stickerPacks,
   stickerStyles,
 } from "./sticker.points";
+/** Puts a sticker on the timeline. */
+export { addSticker } from "./sticker.commands";
 export type {
   StickerApi,
   StickerArt,
+  StickerArtCache,
   StickerAxis,
   StickerDefinition,
   StickerHit,
   StickerLibrary,
   StickerOption,
   StickerPackDefinition,
+  StickerProps,
   StickerQuery,
   StickerRecent,
   StickerRecents,

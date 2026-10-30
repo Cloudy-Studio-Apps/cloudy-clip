@@ -111,6 +111,8 @@ export interface StickerLibrary {
   /** A pack's stickers, loading them once. An unknown pack has none. */
   load(pack: string): Promise<readonly StickerDefinition[]>;
   isLoaded(pack: string): boolean;
+  /** Whether the last try at loading a pack failed. `load` tries again. */
+  hasFailed(pack: string): boolean;
   /** A sticker of a loaded pack. */
   find(pack: string, sticker: string): StickerDefinition | undefined;
   /** The axes a sticker has, with the options styles add to them. */
@@ -126,4 +128,64 @@ export interface StickerLibrary {
 /** What the sticker module offers other modules and plugins. */
 export interface StickerApi extends StickerLibrary {
   recents: StickerRecents;
+}
+
+/** One seal expression: the parts drawn on top of the shared head. */
+export interface SealFace {
+  /** Eyes (and brows). */
+  eyes: string;
+  /** Drawn under the muzzle; the muzzle alone reads as a calm ω. */
+  mouth?: string;
+  /** Drawn behind the head (raised flippers). */
+  back?: string;
+  /** Drawn over everything (props, hearts, tears). */
+  front?: string;
+  /** Opacity of the blush on the cheeks (0.75 by default). */
+  blush?: number;
+}
+
+/** One sticker of the Editing pack: its markup for a color and its outline. */
+export interface EditingShape {
+  id: string;
+  label: string;
+  topic: "arrows" | "marks" | "bubbles";
+  keywords: string[];
+  /** Height of its 128-wide grid, 128 by default. */
+  height?: number;
+  draw(color: string, outline: string): string;
+}
+
+/** A sticker clip's stored values: references to the art, never the art itself. */
+export interface StickerProps {
+  pack: string;
+  sticker: string;
+  variation: StickerVariation;
+}
+
+/** Decoded art of one kernel: loaded on first use, drawn without reloading. */
+export interface StickerArtCache {
+  /** Whether `draw` can paint this art; starts loading it. True once loading has failed. */
+  ready(art: StickerArt): boolean;
+  /**
+   * Paints the art centered on the origin, `box` in the context's units, at `seconds` for moving
+   * art. `rasterWidth` is its width in canvas pixels. False when there is nothing to paint.
+   */
+  draw(
+    ctx: CanvasRenderingContext2D,
+    art: StickerArt,
+    seconds: number,
+    box: { width: number; height: number },
+    rasterWidth: number,
+  ): boolean;
+  dispose(): void;
+}
+
+declare module "@/modules/element" {
+  interface CustomProps {
+    /** `prop.custom("sticker-variation", {})`: the chosen option of each of a sticker's axes. */
+    "sticker-variation": Record<string, never>;
+  }
+  interface CustomValues {
+    "sticker-variation": StickerVariation;
+  }
 }

@@ -8,6 +8,7 @@ import type { StickerDefinition, StickerLibrary, StickerPackDefinition } from ".
 export function createStickerLibrary(points: PointReader, log: Logger): StickerLibrary {
   const loaded = new Map<string, readonly StickerDefinition[]>();
   const loading = new Map<string, Promise<readonly StickerDefinition[]>>();
+  const failed = new Set<string>();
   const listeners = new Set<() => void>();
 
   const packOf = (id: string) => points.find(stickerPacks, id);
@@ -35,10 +36,12 @@ export function createStickerLibrary(points: PointReader, log: Logger): StickerL
     const { stickers } = pack;
     if (typeof stickers !== "function") return Promise.resolve(settle(id, stickers));
 
+    failed.delete(id);
     const run = stickers()
       .then((list) => settle(id, list))
       .catch((error: unknown) => {
-        // Not kept, so the next look tries again.
+        // The list isn't kept, so the next `load` tries again.
+        failed.add(id);
         log.error(`Sticker pack "${id}" failed to load`, error);
         notify("error", `The ${pack.name} stickers failed to load.`);
         return [] as readonly StickerDefinition[];
@@ -60,6 +63,7 @@ export function createStickerLibrary(points: PointReader, log: Logger): StickerL
     },
     load,
     isLoaded: (pack) => loaded.has(pack),
+    hasFailed: (pack) => failed.has(pack),
     find,
     axes(pack, sticker) {
       const definition = packOf(pack);
