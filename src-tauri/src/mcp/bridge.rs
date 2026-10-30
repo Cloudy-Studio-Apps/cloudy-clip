@@ -9,7 +9,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use rmcp::model::Tool;
 use serde::Serialize;
@@ -17,18 +17,30 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::oneshot;
 
+use super::actors::ActorMap;
 use crate::error::{AppError, AppResult};
 
 /// How long a tool call may take in the webview before the agent gets an error.
 const CALL_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub const CALL_EVENT: &str = "mcp://call";
+pub const CONNECTED_EVENT: &str = "mcp://connected";
+
+/// Who is calling: the stable key the webview tells agents apart by.
+#[derive(Serialize, Clone)]
+pub struct McpClient {
+    pub key: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+}
 
 #[derive(Serialize, Clone)]
 struct CallPayload<'a> {
     id: String,
     name: &'a str,
     arguments: Value,
+    caller: &'a McpClient,
 }
 
 pub struct McpBridge {
@@ -36,6 +48,7 @@ pub struct McpBridge {
     tools: RwLock<Vec<Tool>>,
     pending: Mutex<HashMap<String, oneshot::Sender<Value>>>,
     next_id: AtomicU64,
+    actors: Mutex<ActorMap>,
 }
 
 impl McpBridge {
@@ -45,6 +58,7 @@ impl McpBridge {
             tools: RwLock::new(Vec::new()),
             pending: Mutex::new(HashMap::new()),
             next_id: AtomicU64::new(0),
+            actors: Mutex::new(ActorMap::default()),
         }
     }
 
@@ -65,8 +79,30 @@ impl McpBridge {
             .unwrap_or(false)
     }
 
+    /// Who a client is, given what it told us.
+    pub fn client(
+        &self,
+        session: Option<&str>,
+        name: String,
+        version: Option<String>,
+    ) -> AppResult<McpClient> {
+        let key =
+            self.actors
+                .lock()
+                .map_err(|_| poisoned())?
+                .resolve(session, &name, Instant::now());
+        Ok(McpClient { key, name, version })
+    }
+
+    /// Tells the webview a client connected.
+    pub fn announce(&self, client: &McpClient) {
+        if let Err(e) = self.app.emit(CONNECTED_EVENT, client) {
+            eprintln!("[mcp] could not announce a client: {e}");
+        }
+    }
+
     /// Forwards a call to the webview and waits for its result (a `CallToolResult` as JSON).
-    pub async fn call(&self, name: &str, arguments: Value) -> AppResult<Value> {
+    pub async fn call(&self, name: &str, arguments: Value, caller: &McpClient) -> AppResult<Value> {
         let id = format!("c{}", self.next_id.fetch_add(1, Ordering::Relaxed) + 1);
         let (tx, rx) = oneshot::channel();
         self.pending
@@ -78,6 +114,7 @@ impl McpBridge {
             id: id.clone(),
             name,
             arguments,
+            caller,
         };
         if let Err(e) = self.app.emit(CALL_EVENT, payload) {
             self.forget(&id);

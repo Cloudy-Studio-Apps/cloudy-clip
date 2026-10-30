@@ -1,5 +1,6 @@
 //! MCP module: the built-in MCP server that lets agents drive the editor.
 
+pub mod actors;
 pub mod bridge;
 pub mod commands;
 pub mod server;

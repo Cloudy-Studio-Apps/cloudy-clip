@@ -6,11 +6,12 @@
 
 use std::sync::{Arc, RwLock};
 
+use axum::http::request::Parts;
 use rmcp::model::{
-    CallToolRequestParams, CallToolResponse, CallToolResult, InitializeResult, ListToolsResult,
-    PaginatedRequestParams, ServerCapabilities, ServerConfig,
+    CallToolRequestParams, CallToolResponse, CallToolResult, Implementation, InitializeResult,
+    ListToolsResult, PaginatedRequestParams, ServerCapabilities, ServerConfig,
 };
-use rmcp::service::RequestContext;
+use rmcp::service::{NotificationContext, RequestContext};
 use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
 use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
 use rmcp::{ErrorData as McpError, RoleServer, ServerHandler};
@@ -23,11 +24,15 @@ use super::bridge::McpBridge;
 pub const DEFAULT_PORT: u16 = 7420;
 
 const INSTRUCTIONS: &str = "\
-Cloudy Clip is a video editor. You edit the same live project the user sees, and every change \
-you make goes into the shared undo history (the user can undo it).
+Cloudy Clip is a video editor. You edit the same live project the user sees, side by side with \
+them. The user sees you as a collaborator and can undo your steps.
 - Start with `project_get_state` to see media, tracks and clips.
 - All times are integer microseconds (1 s = 1000000).
-- Use `preview_capture_frame` to look at the result.
+- You have your own playhead: the `preview_*` tools move only yours, never the user's. \
+`collab_get_user_context` tells you where the user is and what they selected.
+- Use `preview_capture_frame` to look at the result. It works while the user does other things.
+- `history_undo` and `history_redo` act only on your own steps. They are refused when someone \
+changed the same thing afterwards.
 - Tools return errors as JSON with a `code` and a `message`; read the message and adjust.";
 
 /// Current state of the server, readable from the UI.
@@ -45,6 +50,28 @@ pub struct McpStatusState(pub RwLock<McpStatus>);
 #[derive(Clone)]
 struct CloudyMcp {
     bridge: Arc<McpBridge>,
+}
+
+/// The session id of a request, when its protocol version has sessions.
+fn session_id(parts: Option<&Parts>) -> Option<&str> {
+    parts?.headers.get("mcp-session-id")?.to_str().ok()
+}
+
+/// A client's name and version. Stateless requests get rmcp's own placeholder from `peer_info`,
+/// so the request's `_meta` comes next, then the User-Agent.
+fn client_identity(
+    peer: Option<Implementation>,
+    meta: Option<Implementation>,
+    parts: Option<&Parts>,
+) -> (String, Option<String>) {
+    let placeholder = Implementation::default().name;
+    if let Some(info) = peer.filter(|info| info.name != placeholder).or(meta) {
+        return (info.name, Some(info.version));
+    }
+    let agent = parts
+        .and_then(|p| p.headers.get("user-agent"))
+        .and_then(|v| v.to_str().ok());
+    (agent.unwrap_or("Agent").to_owned(), None)
 }
 
 impl ServerHandler for CloudyMcp {
@@ -66,10 +93,20 @@ impl ServerHandler for CloudyMcp {
             .map_err(|e| McpError::internal_error(format!("Could not list tools: {e}"), None))
     }
 
+    async fn on_initialized(&self, context: NotificationContext<RoleServer>) {
+        let parts = context.extensions.get::<Parts>();
+        let peer = context.peer.peer_info().map(|i| i.client_info.clone());
+        let (name, version) = client_identity(peer, None, parts);
+        match self.bridge.client(session_id(parts), name, version) {
+            Ok(client) => self.bridge.announce(&client),
+            Err(e) => eprintln!("[mcp] {e}"),
+        }
+    }
+
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, McpError> {
         if !self.bridge.has_tool(&request.name) {
             return Err(McpError::invalid_params(
@@ -81,7 +118,14 @@ impl ServerHandler for CloudyMcp {
             .arguments
             .map(Value::Object)
             .unwrap_or_else(|| json!({}));
-        let result = match self.bridge.call(&request.name, arguments).await {
+        let parts = context.extensions.get::<Parts>();
+        let peer = context.peer.peer_info().map(|i| i.client_info.clone());
+        let (name, version) = client_identity(peer, context.meta.client_info(), parts);
+        let caller = self
+            .bridge
+            .client(session_id(parts), name, version)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+        let result = match self.bridge.call(&request.name, arguments, &caller).await {
             Ok(value) => serde_json::from_value::<CallToolResult>(value).map_err(|e| {
                 McpError::internal_error(format!("Invalid tool result from the editor: {e}"), None)
             })?,
