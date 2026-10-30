@@ -1,5 +1,10 @@
 import { definePoint } from "@/core";
-import type { TimelineMenuItems, TimelineOverlay, TimelineTabs } from "./timeline.types";
+import type {
+  TimelineDropHandler,
+  TimelineMenuItems,
+  TimelineOverlay,
+  TimelineTabs,
+} from "./timeline.types";
 
 /** Layers over the lanes (collaborators' playheads). The timeline panel reads them. */
 export const timelineOverlays = definePoint<TimelineOverlay>("timeline.overlays", {
@@ -14,4 +19,9 @@ export const timelineTabs = definePoint<TimelineTabs>("timeline.tabs", {
 /** Entries of the timeline's right-click menu. The timeline panel reads them. */
 export const timelineMenuItems = definePoint<TimelineMenuItems>("timeline.menuItems", {
   keyOf: (entry) => entry.id,
+});
+
+/** Who gets a drop before the timeline, in order. The timeline's `drop` reads them. */
+export const timelineDropHandlers = definePoint<TimelineDropHandler>("timeline.dropHandlers", {
+  keyOf: (handler) => handler.id,
 });

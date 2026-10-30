@@ -12,8 +12,10 @@ import { MediaThumb } from "./MediaThumb";
 /** One item of the library. Drag it onto the timeline to add a clip. */
 export const MediaTile = memo(function MediaTile({ asset }: { asset: MediaAsset }) {
   const { bus } = useKernel();
-  const probe = useStore(useModule(mediaRef).probes, (s) => s.probes[asset.id]);
-  const ready = probe?.status === "ready";
+  const media = useModule(mediaRef);
+  const probe = useStore(media.probes, (s) => s.probes[asset.id]);
+  // Size and length are all a drop needs; they arrive long before a proxy does.
+  const ready = probe?.status === "ready" || media.pictureMeta(asset.id) !== undefined;
   const failed = probe?.status === "error";
   const tooltip = [asset.path, probe?.error ?? probe?.proxy?.message].filter(Boolean).join("\n");
 
@@ -24,7 +26,7 @@ export const MediaTile = memo(function MediaTile({ asset }: { asset: MediaAsset 
       title={tooltip}
       onPointerDown={(e) => {
         if (e.button !== 0 || !ready) return;
-        startMediaDrag(asset.id, asset.name, e.nativeEvent);
+        startMediaDrag({ type: "media", id: asset.id }, asset.name, e.nativeEvent);
       }}
     >
       <MediaThumb asset={asset} probe={probe} />

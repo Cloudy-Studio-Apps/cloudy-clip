@@ -7,6 +7,7 @@
 export {
   closeTab,
   createComposition,
+  createFromMedia,
   deleteComposition,
   duplicateComposition,
   extendToFitOnce,

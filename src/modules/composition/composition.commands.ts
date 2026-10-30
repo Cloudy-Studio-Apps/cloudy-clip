@@ -1,14 +1,17 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, LOCAL_ACTOR } from "@/core";
+import { mediaRef } from "@/modules/media";
 import {
   compositionContent,
   DEFAULT_FORMAT,
   frameDuration,
   placementsOf,
   projectRef,
+  type Clip,
   type ProjectState,
   type TrackKind,
 } from "@/modules/project";
+import { addClip } from "@/modules/timeline";
 import { checkFormat, formatInput, requireComposition } from "./composition.guards";
 import { cloneComposition } from "./logic/clone";
 
@@ -64,6 +67,50 @@ export const createComposition = defineCommand({
     // Someone with nothing open should see what an agent just started.
     if (view.openFor(LOCAL_ACTOR) === null) view.setOpen(LOCAL_ACTOR, id);
     return { compositionId: id };
+  },
+});
+
+/** Starts a composition from files: their size, frame rate and length, and the files on it. */
+export const createFromMedia = defineCommand({
+  id: "composition.createFromMedia",
+  label: "New composition",
+  description:
+    "Creates a composition from imported files, in one undo step: named after the first file with a picture, at its size and frame rate, with Extend to fit on and the files placed one after another from 0. Fails with media.not_ready while a file is still being read, and with composition.no_picture when none has a picture. Returns { compositionId, clips }.",
+  undoable: true,
+  input: z.object({ mediaIds: z.array(z.string()).min(1) }),
+  async run(ctx, { mediaIds }) {
+    const { store } = ctx.require(projectRef);
+    const media = ctx.require(mediaRef);
+    const { media: files } = store.getState();
+    for (const id of mediaIds) {
+      const file = files[id];
+      if (!file) throw new CommandFailure("media.not_found", `No media with id "${id}"`);
+      if (file.kind === "video" && !media.pictureMeta(id)) {
+        throw new CommandFailure("media.not_ready", `${file.name} is still being read.`);
+      }
+    }
+    const first = mediaIds.find((id) => files[id]!.kind === "video");
+    if (first === undefined) {
+      throw new CommandFailure(
+        "composition.no_picture",
+        "These files have no picture to take a size from. Create the composition with a size instead.",
+      );
+    }
+    const { width, height, fps, duration: length } = media.pictureMeta(first)!;
+    const { compositionId: id } = await ctx.execute(createComposition, {
+      name: files[first]!.name.replace(/\.[^.]+$/, ""),
+      format: { width, height, fps },
+      duration: length,
+      extendToFit: true,
+    });
+    const clips: Clip[] = [];
+    let start = 0;
+    for (const mediaId of mediaIds) {
+      const added = await ctx.execute(addClip, { mediaId, start });
+      clips.push(...added.clips);
+      start += added.clips[0]!.duration;
+    }
+    return { compositionId: id, clips };
   },
 });
 
@@ -229,6 +276,7 @@ export const closeTab = defineCommand({
 
 export const compositionCommands = [
   createComposition,
+  createFromMedia,
   setSettings,
   setMain,
   duplicateComposition,

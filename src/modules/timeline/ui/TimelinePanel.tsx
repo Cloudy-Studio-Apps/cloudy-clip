@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
-import {
-  ErrorBoundary,
-  MICROS_PER_SECOND,
-  useKernel,
-  useModule,
-  usePoint,
-  type Micros,
-} from "@/core";
+import { ErrorBoundary, MICROS_PER_SECOND, useModule, usePoint, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { ContextMenu } from "@/ui";
 import {
@@ -20,7 +13,6 @@ import {
 import { timelineMenuItems, timelineOverlays, timelineTabs } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
-import { addClip } from "../timeline.commands";
 import { HEADER_WIDTH, TAIL_SECONDS } from "../timeline.layout";
 import { Playhead } from "./Playhead";
 import { Ruler } from "./Ruler";
@@ -40,7 +32,6 @@ const NO_TRACKS: readonly TrackId[] = [];
 export function TimelinePanel() {
   const project = useModule(projectRef).store;
   const timeline = useModule(timelineRef);
-  const { bus } = useKernel();
   const scrollRef = useRef<HTMLDivElement>(null);
   const pxPerSecond = useStore(timeline.view, (s) => s.pxPerSecond);
   const open = useOpenComposition();
@@ -109,15 +100,15 @@ export function TimelinePanel() {
     const scroller = scrollRef.current;
     if (!scroller) return;
     const onDrop = (event: Event) => {
-      const { mediaId, clientX } = (event as CustomEvent<MediaDragDetail>).detail;
+      const { item, clientX } = (event as CustomEvent<MediaDragDetail>).detail;
       const x =
         clientX - scroller.getBoundingClientRect().left - HEADER_WIDTH + scroller.scrollLeft;
       const pps = timeline.view.getState().pxPerSecond;
-      void bus.run(addClip, { mediaId, start: Math.max(0, pxToTime(x, pps)) });
+      timeline.drop({ item, start: Math.max(0, pxToTime(x, pps)) });
     };
     scroller.addEventListener(MEDIA_DROP, onDrop);
     return () => scroller.removeEventListener(MEDIA_DROP, onDrop);
-  }, [bus, timeline.view]);
+  }, [timeline]);
 
   const from: Micros = Math.max(0, pxToTime((view.page - 1) * view.pageWidth, pxPerSecond));
   const to: Micros = pxToTime((view.page + 2) * view.pageWidth, pxPerSecond);

@@ -4,13 +4,14 @@
  */
 export { mediaHasAudio } from "./media.audio";
 export { importMedia, removeMedia } from "./media.commands";
-export { MEDIA_DRAG_END, MEDIA_DRAG_MOVE, MEDIA_DROP } from "./media.drag";
+export { MEDIA_DRAG_END, MEDIA_DRAG_MOVE, MEDIA_DROP, startMediaDrag } from "./media.drag";
 export { createFakeMediaModule } from "./media.testing";
 /** Sections of the Library, above the files; contribute with `ctx.contribute(librarySections, …)`. */
 export { librarySections } from "./media.points";
 export type {
   ImportResult,
   MediaApi,
+  LibraryItem,
   MediaDragDetail,
   MediaProbe,
   ProbeStatus,

@@ -1,5 +1,6 @@
 import type { StoreApi } from "zustand/vanilla";
 import type { CompositionId, ProjectFormat } from "@/modules/project";
+import type { TimelineDrop } from "@/modules/timeline";
 
 /** Named formats offered in the dialog. */
 export type CompositionPresetId = "9:16" | "16:9" | "1:1" | "4:5" | "4k-16:9" | "4k-9:16";
@@ -21,6 +22,10 @@ export interface CompositionUiState {
   dialog: CompositionDialogState | null;
   /** The tile selected in the Library. */
   selected: CompositionId | null;
+  /** The dropped file being read, by name. */
+  waiting: string | null;
+  /** What lands once the dialog is confirmed. */
+  pendingDrop: TimelineDrop | null;
 }
 
 /** The composition module's API for one kernel. */
@@ -33,4 +38,8 @@ export interface CompositionApi {
   closeDialog(): void;
   /** Selects a tile in the Library. */
   select(compositionId: CompositionId | null): void;
+  /** Drops the file being waited for. */
+  cancelWaiting(): void;
+  /** Lands what the dialog was opened for, now that a composition exists. */
+  landPending(): void;
 }

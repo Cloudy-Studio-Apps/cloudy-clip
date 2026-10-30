@@ -2,6 +2,7 @@ import type { Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { Cut, JunctionKindDefinition } from "@/modules/junction";
+import type { LibraryItem } from "@/modules/media";
 import type { LucideIcon } from "lucide-react";
 import type { MenuItem } from "@/ui";
 import type {
@@ -113,6 +114,8 @@ export interface TimelineApi {
   attachScroller(element: HTMLElement): () => void;
   /** Keeps `from`'s zoom and scroll, restores `to`'s, and clears the selection. */
   switchComposition(from: CompositionId | null, to: CompositionId | null): void;
+  /** Puts something on the timeline: the handlers first, then the usual placement. */
+  drop(drop: TimelineDrop): void;
 }
 
 /** A junction chip as the lane draws it. */
@@ -167,4 +170,21 @@ export interface TimelineMenuItems {
   id: string;
   /** Asked when the menu opens. */
   items(): MenuItem[];
+}
+
+/** Something landing on the timeline. A tile's click is a drop without a place. */
+export interface TimelineDrop {
+  item:
+    | LibraryItem
+    | { type: "element"; kind: string; props: Record<string, unknown> }
+    | { type: "action"; label: string; place(at: { start?: Micros; trackId?: TrackId }): void };
+  start?: Micros;
+  trackId?: TrackId;
+}
+
+/** Takes a drop before the timeline does. */
+export interface TimelineDropHandler {
+  id: string;
+  /** True when it took care of the drop. */
+  handle(drop: TimelineDrop): boolean;
 }

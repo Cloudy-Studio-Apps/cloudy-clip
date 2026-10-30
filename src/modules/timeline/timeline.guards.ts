@@ -53,7 +53,8 @@ export function mediaDuration(media: MediaApi, mediaId: string): Micros {
   if (probe?.status === "error") {
     throw new CommandFailure("media.unsupported", probe.error ?? "This media cannot be played");
   }
-  if (probe?.status !== "ready" || probe.duration === undefined) {
+  const known = media.pictureMeta(mediaId)?.duration ?? probe?.duration;
+  if (known === undefined) {
     const proxy = probe?.proxy;
     const preparing =
       proxy && (proxy.state === "queued" || proxy.state === "encoding")
@@ -64,7 +65,7 @@ export function mediaDuration(media: MediaApi, mediaId: string): Micros {
       `This media is still loading.${preparing} Try again shortly.`,
     );
   }
-  return probe.duration;
+  return known;
 }
 
 /** The failure for a spot that overlaps `other`, with where it is. */

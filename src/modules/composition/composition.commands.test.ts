@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createKernel, LOCAL_ACTOR, type CommandDefinition, type Kernel } from "@/core";
 import { elementModule } from "@/modules/element";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
-import { createFakeMediaModule, removeMedia } from "@/modules/media";
+import { createFakeMediaModule, mediaRef, removeMedia, type MediaProbe } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import {
   createProjectModule,
@@ -15,13 +15,16 @@ import {
 import { timelineModule } from "@/modules/timeline";
 import {
   createComposition,
+  createFromMedia,
   deleteComposition,
   duplicateComposition,
   extendToFitOnce,
   setMain,
   setSettings,
 } from "./composition.commands";
+import { createCompositionDrop } from "./composition.drop";
 import { compositionModule } from "./composition.module";
+import { compositionRef } from "./composition.ref";
 
 const S = 1_000_000;
 const AGENT = "agent-1";
@@ -221,6 +224,112 @@ describe("composition commands", () => {
     expect(state().compositions[compositionId]).toMatchObject({
       duration: 3 * S,
       extendToFit: false,
+    });
+  });
+
+  describe("the automatic start", () => {
+    const ready = (media: Record<string, MediaProbe>) =>
+      kernel.modules.require(mediaRef).probes.setState({ probes: media });
+    const addFile = (id: string, name: string, kind: "video" | "audio") =>
+      write((draft) => {
+        draft.media[id] = { id, name, path: `/${name}`, kind, size: 1 };
+        draft.mediaOrder.push(id);
+      });
+    const meta = { width: 3840, height: 2160, fps: 30_000 / 1001, duration: 12 * S };
+    const drop = () =>
+      createCompositionDrop({
+        bus: kernel.bus,
+        project: project(),
+        media: kernel.modules.require(mediaRef),
+        api: kernel.modules.require(compositionRef),
+      });
+
+    beforeEach(() => {
+      addFile("v", "beach.mp4", "video");
+      addFile("a", "song.wav", "audio");
+      ready({
+        v: { status: "pending", proxy: { state: "encoding", hasAudio: true, meta } },
+        a: { status: "ready", duration: 5 * S },
+        p: { status: "pending" },
+      });
+    });
+
+    it("makes a composition matching the file, in one undo step", async () => {
+      const { compositionId } = await ok(createFromMedia, { mediaIds: ["v"] });
+      expect(state().compositions[compositionId]).toMatchObject({
+        name: "beach",
+        format: { width: 3840, height: 2160, fps: 30_000 / 1001 },
+        extendToFit: true,
+        duration: 12 * S,
+      });
+      expect(state().mainCompositionId).toBe(compositionId);
+      kernel.history.undo(LOCAL_ACTOR);
+      expect(state().compositions).toEqual({});
+      expect(state().clips).toEqual({});
+    });
+
+    it("takes settings from the first item with a picture, placing in order", async () => {
+      const { compositionId } = await ok(createFromMedia, { mediaIds: ["a", "v"] });
+      expect(state().compositions[compositionId]!.format.width).toBe(3840);
+      expect(Object.values(state().clips).map((clip) => clip.start)).toContain(5 * S);
+    });
+
+    it("refuses a file still being read", async () => {
+      addFile("p", "camera.mov", "video");
+      expect(await failure(createFromMedia, { mediaIds: ["p"] })).toBe("media.not_ready");
+    });
+
+    it("refuses audio alone", async () => {
+      expect(await failure(createFromMedia, { mediaIds: ["a"] })).toBe("composition.no_picture");
+    });
+
+    it("waits for a file's size, then creates the composition", async () => {
+      addFile("p", "camera.mov", "video");
+      const { handler } = drop();
+      expect(handler.handle({ item: { type: "media", id: "p" } })).toBe(true);
+      expect(kernel.modules.require(compositionRef).ui.getState().waiting).toBe("camera.mov");
+      expect(state().compositions).toEqual({});
+      kernel.modules.require(mediaRef).probes.setState((s) => ({
+        probes: { ...s.probes, p: { status: "pending", proxy: { state: "encoding", meta } } },
+      }));
+      await vi.waitFor(() => expect(Object.keys(state().compositions)).toHaveLength(1));
+      expect(kernel.modules.require(compositionRef).ui.getState().waiting).toBeNull();
+    });
+
+    it("opens the dialog for what has no size, and lands it on confirm", async () => {
+      const { handler, dropPending } = drop();
+      const element = { type: "element" as const, kind: "text", props: {} };
+      expect(handler.handle({ item: element })).toBe(true);
+      const { ui } = kernel.modules.require(compositionRef);
+      expect(ui.getState().dialog).toEqual({ mode: "new" });
+      expect(ui.getState().pendingDrop?.item).toEqual(element);
+      await ok(createComposition, {});
+      expect(dropPending()).toEqual({ item: element });
+      expect(ui.getState().pendingDrop).toBeNull();
+    });
+
+    it("drops nothing when the dialog is cancelled", () => {
+      const { handler } = drop();
+      handler.handle({ item: { type: "media", id: "a" } });
+      const api = kernel.modules.require(compositionRef);
+      api.closeDialog();
+      expect(api.ui.getState().pendingDrop).toBeNull();
+    });
+
+    it("opens Main for a drop when compositions exist and none is open", async () => {
+      const main = await ok(createComposition, {});
+      view().setOpen(LOCAL_ACTOR, null);
+      expect(drop().handler.handle({ item: { type: "media", id: "a" } })).toBe(false);
+      expect(view().openFor(LOCAL_ACTOR)).toBe(main.compositionId);
+      expect(Object.keys(state().compositions)).toHaveLength(1);
+    });
+
+    it("just opens a composition dragged onto an empty timeline", async () => {
+      const main = await ok(createComposition, {});
+      view().setOpen(LOCAL_ACTOR, null);
+      const item = { type: "composition" as const, id: main.compositionId };
+      expect(drop().handler.handle({ item })).toBe(true);
+      await vi.waitFor(() => expect(view().openFor(LOCAL_ACTOR)).toBe(main.compositionId));
     });
   });
 });

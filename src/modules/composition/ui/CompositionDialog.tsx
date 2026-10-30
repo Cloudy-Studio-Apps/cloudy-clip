@@ -27,6 +27,7 @@ const FPS_CHOICES = [
 /** New Composition, or Composition Settings of an existing one. */
 function Form({ composition, onClose }: { composition: Composition | null; onClose(): void }) {
   const { bus } = useKernel();
+  const api = useModule(compositionRef);
   const [name, setName] = useState(composition?.name ?? "");
   const [format, setFormat] = useState(composition?.format ?? DEFAULT_FORMAT);
   const [background, setBackground] = useState(composition?.background ?? "#000000");
@@ -63,7 +64,9 @@ function Form({ composition, onClose }: { composition: Composition | null; onClo
       ? bus.run(setSettings, { compositionId: composition.id, ...settings })
       : bus.run(createComposition, settings);
     void run.then((result) => {
-      if (result.ok) onClose();
+      if (!result.ok) return;
+      api.landPending();
+      onClose();
     });
   };
 

@@ -1,17 +1,26 @@
 import { appOverlays, defineModule, LOCAL_ACTOR } from "@/core";
-import { librarySections } from "@/modules/media";
+import { librarySections, mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
-import { timelineMenuItems, timelineOverlays, timelineTabs } from "@/modules/timeline";
+import {
+  timelineDropHandlers,
+  timelineMenuItems,
+  timelineOverlays,
+  timelineRef,
+  timelineTabs,
+} from "@/modules/timeline";
 import { compositionCommands, extendToFitOnce } from "./composition.commands";
+import { createCompositionDrop } from "./composition.drop";
 import { compositionMcpTools } from "./composition.mcp";
 import { compositionRef } from "./composition.ref";
 import { createCompositionUi } from "./composition.store";
+import type { CompositionApi } from "./composition.types";
 import {
   CompositionDialogHost,
   CompositionSection,
   CompositionTabs,
   EmptyStart,
   EndMarker,
+  WaitingDrop,
 } from "./ui";
 
 /** Compositions: their commands and tools, the dialog, the Library section and the tabs. */
@@ -29,9 +38,28 @@ export const compositionModule = defineModule({
       timelineOverlays,
       { id: "composition.empty", component: EmptyStart },
       { id: "composition.end", component: EndMarker },
+      { id: "composition.waiting", component: WaitingDrop },
     );
-    const api = createCompositionUi();
-    const { view } = ctx.require(projectRef);
+    const project = ctx.require(projectRef);
+    const { view } = project;
+    const timeline = ctx.require(timelineRef);
+    const ui = createCompositionUi();
+    const { handler, cancelWaiting, dropPending } = createCompositionDrop({
+      bus: ctx.bus,
+      project,
+      media: ctx.require(mediaRef),
+      api: ui,
+    });
+    ctx.onDispose(cancelWaiting);
+    ctx.contribute(timelineDropHandlers, handler);
+    const api: CompositionApi = {
+      ...ui,
+      cancelWaiting,
+      landPending() {
+        const drop = dropPending();
+        if (drop) timeline.drop(drop);
+      },
+    };
     ctx.contribute(timelineMenuItems, {
       id: "composition.menu",
       items() {

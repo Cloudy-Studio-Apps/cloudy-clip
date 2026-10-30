@@ -19,17 +19,25 @@ export function useStickerPress(): (event: PointerEvent, hit: StickerHit) => voi
 
   return useCallback(
     (event, { pack, sticker }) => {
-      const add = async (at: { start?: number; trackId?: string }) => {
-        const result = await bus.run(addSticker, { pack, sticker: sticker.id, ...at });
-        if (result.ok) stickers.recents.push({ pack, sticker: sticker.id });
-      };
+      const add = (at: { start?: number; trackId?: string }) =>
+        timeline.drop({
+          item: {
+            type: "action",
+            label: sticker.label,
+            async place(where) {
+              const result = await bus.run(addSticker, { pack, sticker: sticker.id, ...where });
+              if (result.ok) stickers.recents.push({ pack, sticker: sticker.id });
+            },
+          },
+          ...at,
+        });
       startCreateDrag(event, sticker.label, {
-        onClick: () => void add({}),
+        onClick: () => add({}),
         onDrop(x, y) {
           const target = timeline.dropTarget(x, y);
           if (!target) return;
           const fits = project.getState().tracks[target.trackId]?.kind === "video";
-          void add({ start: target.time, ...(fits && { trackId: target.trackId }) });
+          add({ start: target.time, ...(fits && { trackId: target.trackId }) });
         },
       });
     },

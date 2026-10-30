@@ -29,6 +29,7 @@ export function createTimelineView(
   const places = new Map<CompositionId, { pxPerSecond: number; scrollLeft: number }>();
   return {
     view,
+    drop: () => {},
     switchComposition(from, to) {
       if (from !== null) {
         const { pxPerSecond } = view.getState();

@@ -2,8 +2,9 @@ import { defineModule, keybindings, layoutPanels, LOCAL_ACTOR } from "@/core";
 import { removeJunction } from "@/modules/junction";
 import { partnersOf, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
-import { deleteClips, splitAt, timelineCommands } from "./timeline.commands";
+import { addClip, addElement, deleteClips, splitAt, timelineCommands } from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
+import { timelineDropHandlers } from "./timeline.points";
 import { timelineRef } from "./timeline.ref";
 import { createTimelineView } from "./timeline.store";
 import { TimelinePanel } from "./ui";
@@ -25,6 +26,17 @@ export const timelineModule = defineModule({
       () => project.getState(),
     );
     const { view } = timeline;
+    timeline.drop = (drop) => {
+      if (ctx.points.get(timelineDropHandlers).some((handler) => handler.handle(drop))) return;
+      const { item, start, trackId } = drop;
+      const at = { ...(start !== undefined && { start }), ...(trackId && { trackId }) };
+      if (item.type === "action") item.place(at);
+      else if (item.type === "element") {
+        void ctx.bus.run(addElement, { kind: item.kind, props: item.props, ...at });
+      } else if (item.type === "media") {
+        void ctx.bus.run(addClip, { mediaId: item.id, ...at });
+      }
+    };
     let shown = compositions.openFor(LOCAL_ACTOR);
     const followOpen = () => {
       const next = compositions.openFor(LOCAL_ACTOR);

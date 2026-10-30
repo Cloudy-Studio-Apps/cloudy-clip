@@ -1,5 +1,4 @@
-import type { MediaId } from "@/modules/project";
-import type { MediaDragDetail } from "./media.types";
+import type { LibraryItem, MediaDragDetail } from "./media.types";
 
 /** Fired on `window` while media is dragged. */
 export const MEDIA_DRAG_MOVE = "cloudy:media-drag-move";
@@ -15,13 +14,13 @@ const DRAG_THRESHOLD = 4;
  * Starts tracking a possible drag of a library item. Uses plain DOM for the ghost so dragging
  * never re-renders React. Drop targets listen for {@link MEDIA_DROP}.
  */
-export function startMediaDrag(mediaId: MediaId, label: string, down: PointerEvent): void {
+export function startMediaDrag(item: LibraryItem, label: string, down: PointerEvent): void {
   const originX = down.clientX;
   const originY = down.clientY;
   let ghost: HTMLDivElement | null = null;
 
   const detail = (e: PointerEvent): MediaDragDetail => ({
-    mediaId,
+    item,
     clientX: e.clientX,
     clientY: e.clientY,
   });

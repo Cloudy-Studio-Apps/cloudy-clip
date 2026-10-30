@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-import { useKernel, useModule, usePoint } from "@/core";
+import { useModule, usePoint } from "@/core";
 import { elements, type AnyElement, type CreateEntry } from "@/modules/element";
 import { projectRef, useOpenFormat } from "@/modules/project";
-import { addElement } from "../timeline.element.command";
 import { timelineRef } from "../timeline.ref";
 import { startCreateDrag } from "./create.gesture";
 
@@ -12,7 +11,6 @@ import { startCreateDrag } from "./create.gesture";
  * element may sit there, else the time is kept and the track picked for it).
  */
 export function CreateTiles({ panel }: { panel: string }) {
-  const { bus } = useKernel();
   const timeline = useModule(timelineRef);
   const project = useModule(projectRef).store;
   const format = useOpenFormat();
@@ -28,9 +26,8 @@ export function CreateTiles({ panel }: { panel: string }) {
   );
 
   const add = (element: AnyElement, entry: CreateEntry, at: { start?: number; trackId?: string }) =>
-    void bus.run(addElement, {
-      kind: element.kind,
-      props: entry.props?.(format) ?? {},
+    timeline.drop({
+      item: { type: "element", kind: element.kind, props: entry.props?.(format) ?? {} },
       ...at,
     });
 

@@ -90,7 +90,7 @@ export interface ImportResult {
  * platforms when native file drop is enabled).
  */
 export interface MediaDragDetail {
-  mediaId: MediaId;
+  item: LibraryItem;
   clientX: number;
   clientY: number;
 }
@@ -147,6 +147,12 @@ export interface ProbeQueue {
   enqueue(asset: MediaAsset): void;
   /** Drops queued files and ignores results still in flight. */
   dispose(): void;
+}
+
+/** What is dragged from the Library. */
+export interface LibraryItem {
+  type: "media" | "composition";
+  id: string;
 }
 
 /** A section of the Library, above the files. */
