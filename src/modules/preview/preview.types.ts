@@ -1,4 +1,4 @@
-import type { Micros } from "@/core";
+import type { ActorId, Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ClipId, ClipTransform, Junction, ProjectState } from "@/modules/project";
@@ -69,6 +69,13 @@ export interface PreviewControllerDeps {
 export interface PreviewApi {
   /** The playhead. The timeline and the preview both follow it. */
   readonly playback: PlaybackClock;
+  /**
+   * The playhead of an actor: `playback` for the local user; anyone else gets their own, starting
+   * where the user is, that nothing follows. Commands use this so an agent never moves the user.
+   */
+  clockFor(actor: ActorId): PlaybackClock;
+  /** Forgets a collaborator's playhead. */
+  dropClock(actor: ActorId): void;
   /** Attaches the preview canvas. Returns a detach function. */
   attachCanvas(canvas: HTMLCanvasElement): () => void;
   /** Redraws on the next frame (e.g. after the canvas was resized). */

@@ -7,7 +7,7 @@ const captureFrame = defineMcpTool({
   name: "preview_capture_frame",
   readOnly: true,
   description:
-    "Returns a PNG of the preview, so you can see the result. Pass `time` (microseconds) to look at a specific moment (playback pauses); otherwise the current playhead is used.",
+    "Returns a PNG of the preview, so you can see the result. Pass `time` (microseconds) to look at a specific moment; otherwise your playhead is used. The user's preview doesn't move.",
   input: z.object({ time: z.number().int().min(0).optional().describe("Microseconds") }),
   async handler({ time }, ctx) {
     const preview = ctx.require(previewRef);

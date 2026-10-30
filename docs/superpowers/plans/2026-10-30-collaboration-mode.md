@@ -60,10 +60,12 @@ Each is pinned by a test in the task named.
 ### Task 2: Stable actor keys in Rust
 
 **Files:**
+
 - Create: `src-tauri/src/mcp/actors.rs`
 - Modify: `src-tauri/src/mcp/server.rs`, `src-tauri/src/mcp/bridge.rs`, `src-tauri/src/mcp/mod.rs`
 
 **Interfaces:**
+
 - Produces: `struct McpClient { key: String, name: String, version: Option<String> }` (serde camelCase). `bridge.call(name, arguments, &client)`. The `mcp://call` payload gains `caller: McpClient`. New event `mcp://connected` with an `McpClient` payload.
 
 - [ ] **Step 1: Write the failing test in `actors.rs`**
@@ -107,10 +109,12 @@ fn clients_without_a_session_share_a_key_by_name() {
 ### Task 3: Actors through the bridge and the bus
 
 **Files:**
+
 - Modify: `src/core/command/command.types.ts`, `command.bus.ts`, `src/core/mcp/mcp.types.ts`, `mcp.bridge.ts`, `mcp.tool.ts`, `mcp.registry.ts`, `mcp.transport.tauri.ts`, `src/core/history/history.types.ts`, `history.ts`, `src/core/index.ts`, `src/modules/media/media.mcp.ts`, every hand-written tool
 - Test: `src/core/kernel.test.ts`
 
 **Interfaces:**
+
 - Consumes: the `caller` payload from Task 2.
 - Produces:
 
@@ -145,7 +149,10 @@ McpTransport { onConnected(handler: (caller: McpCaller) => void): Promise<() => 
 ```ts
 it("records the calling agent on the step", async () => {
   // Bridge with a commandTool; handle({ ..., caller: { key: "agent-1", name: "Claude Code" } })
-  expect(kernel.history.getSnapshot().past.at(-1)).toMatchObject({ actor: "agent-1", origin: "agent" });
+  expect(kernel.history.getSnapshot().past.at(-1)).toMatchObject({
+    actor: "agent-1",
+    origin: "agent",
+  });
 });
 
 it("a hand-written tool using ctx.bus runs as its caller", async () => {
@@ -183,11 +190,13 @@ it("a user command defaults to the local actor", async () => {
 ### Task 4: Field changes and the project's policy
 
 **Files:**
+
 - Modify: `src/core/store/store.types.ts`, `store.patchable.ts`, `src/core/index.ts`, `src/modules/project/project.store.ts`
 - Create: `src/modules/project/logic/fields.ts`
 - Test: `src/modules/project/logic/fields.test.ts`, `src/core/kernel.test.ts`
 
 **Interfaces:**
+
 - Produces:
 
 ```ts
@@ -218,7 +227,9 @@ export const projectPolicy: StorePolicy<ProjectState>;
 ```ts
 it("sees one field in a whole-record replace", () => {
   const after = { ...before, clips: { ...before.clips, c1: { ...before.clips.c1!, start: 5 } } };
-  expect(projectPolicy.diff(before, after)).toEqual([{ path: ["clips", "c1", "start"], before: 0, after: 5 }]);
+  expect(projectPolicy.diff(before, after)).toEqual([
+    { path: ["clips", "c1", "start"], before: 0, after: 5 },
+  ]);
 });
 
 it("ignores a replaced record with equal values", () => {
@@ -270,10 +281,12 @@ it.each([
 ### Task 5: The per-actor log
 
 **Files:**
+
 - Modify: `src/core/history/history.ts`, `history.types.ts`
 - Create: `src/core/history/history.test.ts`
 
 **Interfaces:**
+
 - Consumes: `StorePolicy`, `FieldChange`, `writeFields` (Task 4).
 - Produces:
 
@@ -297,7 +310,8 @@ History {
 - [ ] **Step 1: Write the failing tests in `history.test.ts`** using a real kernel, the project store and `timeline`-free commands that mutate clips directly.
 
 ```ts
-it("undoes an agent's older step past the user's newer one", () => { /* agent sets c1.start; user sets c2.start; undo("agent-1") */
+it("undoes an agent's older step past the user's newer one", () => {
+  /* agent sets c1.start; user sets c2.start; undo("agent-1") */
   expect(state().clips.c1!.start).toBe(0);
   expect(state().clips.c2!.start).toBe(50);
 });
@@ -307,7 +321,9 @@ it("refuses when someone changed the same field afterwards, and changes nothing"
   expect(state()).toBe(snapshotBefore);
 });
 
-it("a created clip clashes with a later edit of it", () => { /* prefix overlap both ways */ });
+it("a created clip clashes with a later edit of it", () => {
+  /* prefix overlap both ways */
+});
 
 it("refuses an undo that leaves a bad document, and rolls back", () => {
   // agent adds track; user moves a clip onto it (only clip.trackId changes); undo("agent-1")
@@ -315,7 +331,9 @@ it("refuses an undo that leaves a bad document, and rolls back", () => {
   expect(state().tracks[newTrackId]).toBeDefined();
 });
 
-it("a blocked step blocks that actor's older steps", () => { /* no skipping */ });
+it("a blocked step blocks that actor's older steps", () => {
+  /* no skipping */
+});
 
 it("uses field writes after an out-of-order undo, not stale patches", () => {
   // Review Focus 1. Track with clips [a, b, c] added by user, agent, user.
@@ -328,7 +346,9 @@ it("an undo with one actor restores order exactly (latest-step path)", () => {
   expect(state().trackOrder).toEqual(["t1", "t2", "t3"]);
 });
 
-it("refuses a redo when the field changed since", () => { /* Review Focus 2 */ });
+it("refuses a redo when the field changed since", () => {
+  /* Review Focus 2 */
+});
 
 it("a step on a store with no policy can't go out of order", () => {
   // Review Focus 3
@@ -364,21 +384,27 @@ A `validate` refusal reads `Can't undo: <reason>`. Refusals name the actor throu
 ### Task 6: History commands and scoping
 
 **Files:**
+
 - Modify: `src/core/history/history.commands.ts`, `history.module.ts`, `src/app/bootstrap.ts`, `src/core/README.md`
 - Test: `src/core/kernel.test.ts`
 
 **Interfaces:**
+
 - Consumes: `History` (Task 5).
 - Produces: `history.undo`, `history.redo` act for `ctx.actor`. New command `history.undoFor { actor: string }` returning `{ undone, actor }`, with no MCP tool, refusing any caller that isn't `LOCAL_ACTOR`.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-it("without scoping, Ctrl+Z reaches an agent's step", async () => { /* Review Focus 5 */ });
+it("without scoping, Ctrl+Z reaches an agent's step", async () => {
+  /* Review Focus 5 */
+});
 it("with scoping, the user's undo skips an agent's step", async () => {});
 it("history_undo reverts only the calling agent's steps", async () => {});
 it("undoFor reverts another actor's step for the user, and refuses an agent", async () => {});
-it("reassign gives a gone agent's steps to the user and drops its redo", () => { /* Review Focus 4 */ });
+it("reassign gives a gone agent's steps to the user and drops its redo", () => {
+  /* Review Focus 4 */
+});
 ```
 
 - [ ] **Step 2: Run them.** Expected: FAIL.
@@ -394,10 +420,12 @@ it("reassign gives a gone agent's steps to the user and drops its redo", () => {
 ### Task 7: A clock per actor
 
 **Files:**
+
 - Create: `src/modules/preview/logic/virtual.clock.ts`
 - Modify: `preview.controller.ts`, `preview.commands.ts`, `preview.types.ts`, `preview.module.ts`, `preview.mcp.ts`, `src/modules/preview/README.md`, `src/modules/timeline/timeline.element.command.ts`
 
 **Interfaces:**
+
 - Consumes: `ctx.actor` (Task 3).
 - Produces: `createVirtualClock(getDuration: () => Micros, startAt: Micros): PlaybackClock`. `PreviewApi.clockFor(actor: ActorId): PlaybackClock` returns `playback` for `LOCAL_ACTOR`, else a virtual clock created on first use, starting at the user's time. `PreviewApi.dropClock(actor: ActorId): void`.
 
@@ -416,10 +444,12 @@ it("reassign gives a gone agent's steps to the user and drops its redo", () => {
 Depends on the Task 1 gate.
 
 **Files:**
+
 - Create: `src/modules/preview/preview.capture.ts`
 - Modify: `engine/engine.html.ts`, `engine/engine.types.ts`, `preview.types.ts`, `preview.controller.ts`, `preview.module.ts`, `preview.mcp.ts`, `src/modules/preview/README.md`
 
 **Interfaces:**
+
 - Consumes: `clockFor` (Task 7).
 - Produces: `PreviewApi.captureAt(time: Micros): Promise<string>`, replacing `captureFrame`. `PreviewEngine.captureFrame(): Promise<string>`. `EngineOptions.pictureOnly?: boolean`.
 
@@ -440,10 +470,12 @@ Depends on the Task 1 gate.
 ### Task 9: Presence, access and context
 
 **Files:**
+
 - Create: `src/modules/collab/{index.ts,collab.ref.ts,collab.module.ts,collab.types.ts,collab.store.ts,collab.observer.ts,collab.commands.ts,collab.mcp.ts,README.md}`, `logic/identify.ts`, `logic/activity.ts`, `logic/prune.ts`
 - Modify: `src/app/bootstrap.ts`, `docs/architecture.md`, `CLAUDE.md` (Where to look)
 
 **Interfaces:**
+
 - Consumes: `McpObserver`, `ctx.mcp.observe`, `history.scopeUndo`, `nameActors`, `reassign`, `preview.dropClock`, `TimelineApi.view`.
 - Produces:
 
@@ -451,14 +483,24 @@ Depends on the Task 1 gate.
 type CollaboratorKind = "local" | "agent" | "human";
 type CollabAccess = "edit" | "view";
 interface Collaborator {
-  id: ActorId; kind: CollaboratorKind; name: string; color: string; avatar: string;
-  access: CollabAccess; paused: boolean;
-  lastSeen: number; running: number; idle: boolean;
+  id: ActorId;
+  kind: CollaboratorKind;
+  name: string;
+  color: string;
+  avatar: string;
+  access: CollabAccess;
+  paused: boolean;
+  lastSeen: number;
+  running: number;
+  idle: boolean;
   activity: { label: string; status: "running" | "done" | "error" } | null;
   target: CollabTarget | null;
 }
-type CollabTarget = `clip:${string}` | `media:${string}` | `panel:${string}` | `inspector:${string}`;
-interface CollabApi { readonly store: StoreApi<CollabState> }  // { collaborators: Record<ActorId, Collaborator>; blocked: ActorId[]; followed: ActorId | null }
+type CollabTarget =
+  `clip:${string}` | `media:${string}` | `panel:${string}` | `inspector:${string}`;
+interface CollabApi {
+  readonly store: StoreApi<CollabState>;
+} // { collaborators: Record<ActorId, Collaborator>; blocked: ActorId[]; followed: ActorId | null }
 ```
 
 Commands (non-undoable, no MCP tools): `collab.setAccess { actor, access }`, `collab.setPaused { actor, paused }`, `collab.setBlocked { actor, blocked }`. Tool: `collab_get_user_context` → `{ time, playing, selection }` (read-only).
@@ -482,10 +524,12 @@ Commands (non-undoable, no MCP tools): `collab.setAccess { actor, access }`, `co
 ### Task 10: Top bar UI
 
 **Files:**
+
 - Modify: `src/core/shell/shell.points.ts`, `shell.types.ts`, `src/core/index.ts`, `src/app/top-bar/TopBar.tsx`, `src/ui/styles/*` (avatar shape), `CLAUDE.md` (who reads which point; avatars are round)
 - Create: `src/modules/collab/ui/{CollabAvatars,CollabPopover,AgentStatusStrip,CollaboratorRow}.tsx`, `src/modules/collab/ui/index.ts`
 
 **Interfaces:**
+
 - Produces: `topBarItems = definePoint<TopBarItem>("shell.topBarItems")`, with `TopBarItem { id: string; slot: "center" | "right"; component: ComponentType }`.
 
 - [ ] **Step 1: Add the point** and read it in `TopBar.tsx` with `usePoint`: each item in an `ErrorBoundary`, `center` after `HistoryControls`, `right` in the empty cell.
@@ -503,10 +547,12 @@ Commands (non-undoable, no MCP tools): `collab.setAccess { actor, access }`, `co
 ### Task 11: Agent playhead on the timeline
 
 **Files:**
+
 - Create: `src/modules/timeline/timeline.points.ts`, `src/modules/collab/ui/AgentPlayhead.tsx`
 - Modify: `src/modules/timeline/ui/TimelinePanel.tsx`, `timeline.store.ts`, `timeline.types.ts`, `timeline/index.ts`, `src/modules/timeline/README.md`
 
 **Interfaces:**
+
 - Consumes: `preview.clockFor`, `CollabApi.store`.
 - Produces: `timelineOverlays` point, items `{ id: string; component: ComponentType }`. `TimelineApi` additions:
 
@@ -532,10 +578,12 @@ attachScroller(element: HTMLElement): () => void;
 ### Task 12: Arrow pointer
 
 **Files:**
+
 - Create: `src/modules/collab/logic/targets.ts`, `src/modules/collab/ui/AgentPointer.tsx`, `src/modules/collab/ui/pointer.locate.ts`
 - Modify: `src/core/shell/shell.points.ts`, `shell.types.ts`, `src/app/layout/LayoutHost.tsx`, `CLAUDE.md`; clip, media card, panel and inspector section elements
 
 **Interfaces:**
+
 - Consumes: `CommandExecutedEvent.changes`, `TimelineApi.clipBox`, `panelBox`, `onScroll`.
 - Produces: `appOverlays` point, items `{ id: string; component: ComponentType }`, rendered in a fixed full-window layer with `pointer-events: none`. Attribute `data-collab-target`.
 
@@ -552,10 +600,12 @@ attachScroller(element: HTMLElement): () => void;
 ### Task 13: Follow
 
 **Files:**
+
 - Modify: `src/modules/collab/collab.commands.ts`, `collab.module.ts`, `ui/CollabPopover.tsx`, `README.md`
 - Create: `src/modules/collab/collab.follow.ts`
 
 **Interfaces:**
+
 - Consumes: `preview.playback`, `preview.clockFor`, `TimelineApi.scrollToTime`.
 - Produces: command `collab.follow { actor: string | null }`, non-undoable, no MCP tool.
 

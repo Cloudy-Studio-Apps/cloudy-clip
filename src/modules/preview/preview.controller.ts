@@ -1,6 +1,12 @@
-import { createLogger, type Micros } from "@/core";
+import { createLogger, LOCAL_ACTOR, type ActorId, type Micros } from "@/core";
 import type { ClipId, ClipTransform } from "@/modules/project";
-import type { PreviewController, PreviewControllerDeps, PreviewEngine } from "./preview.types";
+import { createVirtualClock } from "./logic/virtual.clock";
+import type {
+  PlaybackClock,
+  PreviewController,
+  PreviewControllerDeps,
+  PreviewEngine,
+} from "./preview.types";
 import { createViewport } from "./preview.viewport";
 
 const log = createLogger("preview");
@@ -25,6 +31,9 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   const propsOverrides = new Map<ClipId, Record<string, unknown>>();
 
   const overrideListeners = new Set<(clipId: ClipId) => void>();
+
+  /** Collaborators' playheads, made when first used. */
+  const clocks = new Map<ActorId, PlaybackClock>();
 
   function renderNow(): void {
     redrawQueued = false;
@@ -117,6 +126,19 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
 
   return {
     playback: clock,
+    clockFor(actor) {
+      if (actor === LOCAL_ACTOR) return clock;
+      let virtual = clocks.get(actor);
+      if (!virtual) {
+        virtual = createVirtualClock(deps.getDuration, clock.getTime());
+        clocks.set(actor, virtual);
+      }
+      return virtual;
+    },
+    dropClock(actor) {
+      clocks.get(actor)?.dispose();
+      clocks.delete(actor);
+    },
     attachCanvas,
     redraw: requestRedraw,
     captureFrame,
@@ -140,6 +162,8 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     dispose() {
       clock.pause();
       detachCurrent?.();
+      for (const virtual of clocks.values()) virtual.dispose();
+      clocks.clear();
     },
   };
 }
