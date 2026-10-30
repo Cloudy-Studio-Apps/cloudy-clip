@@ -19,4 +19,5 @@ Connected agents as collaborators, shaped so people can join later (`Collaborato
 - **Rules:**
   - Stop and Pause can't interrupt: the running call finishes, later ones are refused.
   - Disconnect refuses calls until the user reconnects or the app restarts. `blocked` is apart from `collaborators` so it outlives them. It doesn't close the MCP session.
+  - An agent joins on `mcp://connected`. Clients on the stateless protocol send no such event, so they join on their first call.
   - The actor key comes from Rust (`src-tauri/src/mcp/actors.rs`), which keeps it stable across reconnects. A second agent with the same client name that has been silent for 300 s can be mistaken for a reconnect.

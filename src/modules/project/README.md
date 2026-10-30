@@ -16,6 +16,7 @@ lives here, so every change is undoable and readable by agents.
     and stores only the values that differ from the element's defaults in `props`; `mediaId` is
     set for clips that play a file; shared group values (`transform`) live under their own key.
   - `project.store.ts`: `FORMAT_PRESETS`, `createEmptyProject()`.
+  - `logic/fields.ts`: `projectPolicy`, the store's `StorePolicy`: what lets a step be undone past others' newer steps. `diff` lists changes by field (one level into plain objects; a created or deleted entity is one change), `repair` rebuilds `clipIds`, `trackOrder` and `mediaOrder`, and `validate` refuses missing tracks or media, overlaps, stale junctions and two junctions on a cut.
   - `project.selectors.ts`: `projectDuration`, `orderedTracks`, `trackClips`, `clipEnd`,
     `isMediaInUse`, `formatPreset`.
   - `project.geometry.ts`: `clipPlacement(format, sourceSize, transform)`, the one place a clip's

@@ -2,7 +2,7 @@ import { LOCAL_ACTOR } from "../command/command.actor";
 import type { ActorId } from "../command/command.types";
 import { CommandFailure } from "../errors/result";
 import { asInternal } from "../store/store.patchable";
-import type { FieldChange } from "../store/store.types";
+import type { FieldChange, FieldWrite, StoreChange } from "../store/store.types";
 import type {
   History,
   HistoryEntry,
@@ -105,19 +105,35 @@ export function createHistory(limit = DEFAULT_LIMIT): History {
     }
   }
 
-  /** Writes a step's `before` or `after` values, whatever else changed around them. */
+  /**
+   * Writes a step's `before` or `after` values, whatever else changed around them. All of a step
+   * or none: one write per store, judged by where it ends, and earlier stores are put back if a
+   * later one refuses.
+   */
   function writeFields(entry: HistoryEntry, side: "before" | "after", verb: string): void {
     const changes = side === "before" ? [...entry.changes].reverse() : entry.changes;
+    const refuse = (reason: string) => {
+      throw new CommandFailure("history.conflict", `Can't ${verb}: ${reason}`);
+    };
     if (changes.some((change) => !asInternal(change.store).hasPolicy)) {
-      throw new CommandFailure("history.conflict", `Can't ${verb}: later steps depend on this one`);
+      refuse("it can't be reverted past later steps");
     }
+    const byStore = new Map<StoreChange["store"], FieldWrite[]>();
     for (const change of changes) {
       const fields = side === "before" ? [...(change.fields ?? [])].reverse() : change.fields;
       const writes = (fields ?? []).map((field) => ({ path: field.path, value: field[side] }));
-      const problem = asInternal(change.store).writeFields(writes);
+      byStore.set(change.store, [...(byStore.get(change.store) ?? []), ...writes]);
+    }
+    const written: Array<() => void> = [];
+    for (const [store, writes] of byStore) {
+      const internal = asInternal(store);
+      const previous = internal.getState();
+      const problem = internal.writeFields(writes);
       if (problem !== null) {
-        throw new CommandFailure("history.conflict", `Can't ${verb}: ${problem}`);
+        written.reverse().forEach((putBack) => putBack());
+        refuse(problem);
       }
+      written.push(() => internal.reset(previous));
     }
     reshapedAt = ++seq;
     rewound = [];

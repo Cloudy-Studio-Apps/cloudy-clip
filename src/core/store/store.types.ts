@@ -28,6 +28,12 @@ export interface FieldChange {
   after: unknown;
 }
 
+/** A value to put at a path. `undefined` deletes what is there. */
+export interface FieldWrite {
+  path: readonly string[];
+  value: unknown;
+}
+
 /**
  * What lets a store's steps be undone out of order, past other people's later steps. Patches can't
  * do it: they address arrays by index and may replace whole records. So a store with a policy
@@ -64,7 +70,7 @@ export interface PatchableStoreInternal<T extends object> extends PatchableStore
    * Writes values at paths (`undefined` deletes), repairs and validates. Commits, or changes
    * nothing and returns why the result is invalid. Only for stores with a policy.
    */
-  writeFields(writes: ReadonlyArray<{ path: readonly string[]; value: unknown }>): string | null;
+  writeFields(writes: readonly FieldWrite[]): string | null;
   /** Whether out-of-order writes are possible. */
   readonly hasPolicy: boolean;
   /** Replaces the whole state. Only for tests and future project loading. */

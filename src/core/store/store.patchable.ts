@@ -13,8 +13,9 @@ function writePath(draft: object, path: readonly string[], value: unknown): void
     target = next as Record<string, unknown>;
   }
   const last = path.at(-1)!;
+  // A copy: the recorded value is frozen, and `repair` may write into it.
   if (value === undefined) delete target[last];
-  else target[last] = value;
+  else target[last] = structuredClone(value);
 }
 
 /** Creates a {@link PatchableStore} with the given initial state. */

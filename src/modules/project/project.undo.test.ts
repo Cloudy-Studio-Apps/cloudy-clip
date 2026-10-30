@@ -48,12 +48,38 @@ async function setup() {
     const result = await kernel.bus.run(step, { n: recipes.length - 1 }, { actor, label });
     expect(result.ok).toBe(true);
   };
+  /** One step made of several `mutate` calls, like a command running nested commands. */
+  const parts = defineCommand({
+    id: "test.parts",
+    label: "Parts",
+    description: "Runs recipes as one step.",
+    undoable: true,
+    input: z.object({ from: z.number(), count: z.number() }),
+    run(ctx, { from, count }) {
+      for (let i = from; i < from + count; i++) ctx.mutate(store, recipes[i]!);
+    },
+  });
+  kernel.bus.register(parts);
+  const editParts = async (actor: string, ...steps: Array<(draft: ProjectState) => void>) => {
+    const from = recipes.length;
+    recipes.push(...steps);
+    const result = await kernel.bus.run(parts, { from, count: steps.length }, { actor });
+    expect(result.ok).toBe(true);
+  };
   const addClip = (actor: string, c: Clip) =>
     edit(actor, (d) => {
       d.clips[c.id] = c;
       d.tracks[c.trackId]!.clipIds.push(c.id);
     });
-  return { kernel, store, edit, addClip, history: kernel.history, state: () => store.getState() };
+  return {
+    kernel,
+    store,
+    edit,
+    editParts,
+    addClip,
+    history: kernel.history,
+    state: () => store.getState(),
+  };
 }
 
 describe("per-actor undo", () => {
@@ -123,6 +149,57 @@ describe("per-actor undo", () => {
     const before = t.state();
     expect(() => t.history.undo(AGENT)).toThrow(/Can't undo: a clip would be left without/);
     expect(t.state()).toBe(before);
+  });
+
+  const addTrack4 = (d: ProjectState) => {
+    d.tracks.t4 = { id: "t4", kind: "video", name: "4", clipIds: [], muted: false, hidden: false };
+    d.trackOrder.push("t4");
+  };
+
+  it("refuses a step of several parts whole, changing nothing", async () => {
+    await t.editParts(AGENT, addTrack4, (d) => {
+      d.clips.b = clip("b", 20, "t4");
+      d.tracks.t4!.clipIds.push("b");
+    });
+    await t.edit(LOCAL_ACTOR, (d) => {
+      d.clips.c = clip("c", 60, "t4");
+      d.tracks.t4!.clipIds.push("c");
+    });
+    const before = t.state();
+    expect(() => t.history.undo(AGENT)).toThrow(/Can't undo/);
+    expect(t.state()).toBe(before);
+    expect(t.history.undoLabelOf(AGENT)).toBe("Parts");
+  });
+
+  it("judges a step of several parts by where it ends, not half-way", async () => {
+    await t.addClip(LOCAL_ACTOR, clip("x", 40));
+    await t.editParts(AGENT, addTrack4, (d) => {
+      d.clips.b = clip("b", 20, "t4");
+      d.tracks.t4!.clipIds.push("b");
+    });
+    await t.edit(LOCAL_ACTOR, (d) => void (d.clips.x!.start = 50));
+    t.history.undo(AGENT);
+    expect(t.state().tracks.t4).toBeUndefined();
+    expect(t.state().clips.b).toBeUndefined();
+  });
+
+  it("restores a deleted track past a later step", async () => {
+    await t.edit(AGENT, (d) => {
+      delete d.tracks.t2;
+      d.trackOrder = ["t1", "t3"];
+    });
+    await t.edit(LOCAL_ACTOR, (d) => void (d.clips.a!.start = 5));
+    t.history.undo(AGENT);
+    expect(t.state().tracks.t2).toMatchObject({ id: "t2", clipIds: [] });
+    expect(t.state().trackOrder).toEqual(["t1", "t3", "t2"]);
+  });
+
+  it("redoes a created track past a later step", async () => {
+    await t.edit(AGENT, addTrack4);
+    t.history.undo(AGENT);
+    await t.edit(LOCAL_ACTOR, (d) => void (d.clips.a!.start = 5));
+    t.history.redo(AGENT);
+    expect(t.state().tracks.t4).toMatchObject({ id: "t4", clipIds: [] });
   });
 
   it("a blocked step blocks that actor's older steps", async () => {
