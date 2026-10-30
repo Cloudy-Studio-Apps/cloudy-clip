@@ -130,3 +130,7 @@ Run 2026-10-30 with a throwaway `preview_spike_capture` tool.
 - `document.hidden` stayed false while hidden on niri, so nothing may depend on visibility events.
 - niri has no minimize, so "another workspace" stands in for minimized and covered.
 - **Windows (WebView2): not run yet.** It needs the Windows machine.
+
+## Found in live use
+
+Claude Code speaks the stateless `2026-07-28` protocol: no session id, and nothing in its headers or `_meta` identifies an instance (`claudecode/toolUseId` is per call). So each client name without a session is one actor, and two Claude Code instances on one machine share an avatar, a playhead and undo steps.

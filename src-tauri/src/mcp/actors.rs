@@ -1,8 +1,10 @@
 //! Stable actor keys for connected MCP clients.
 //!
-//! Sessions come and go (rmcp drops an idle one after 300 s, and newer protocol versions have
-//! none), but history, clocks and presence need one identity per agent. So the webview only ever
-//! sees the key this map hands out.
+//! Sessions come and go (rmcp drops an idle one after 300 s), but history, clocks and presence need
+//! one identity per agent, so the webview only ever sees the key this map hands out.
+//!
+//! Clients on the stateless protocol (2026-07-28, which is what Claude Code speaks) send no session
+//! id and nothing else that tells two instances apart, so each client name is one actor.
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -19,47 +21,58 @@ struct Actor {
 /// Maps sessions and client names to actor keys.
 #[derive(Default)]
 pub struct ActorMap {
+    /// Actors with sessions. Clients without one are never among them.
     actors: Vec<Actor>,
     sessions: HashMap<String, String>,
+    /// The one key of each client name that keeps no session.
+    stateless: HashMap<String, String>,
+    minted: usize,
 }
 
 impl ActorMap {
-    /// The key of the client behind `session` (or of `name`, for clients that keep no session).
-    /// A new session takes over the longest-silent key of the same client, else gets a new key.
+    /// The key of the client behind `session`, or of `name` for clients that keep no session. A
+    /// new session takes over the longest-silent session key of the same client, else gets a new
+    /// key.
     pub fn resolve(&mut self, session: Option<&str>, name: &str, now: Instant) -> String {
-        let known = match session {
-            Some(session) => self.sessions.get(session).cloned(),
-            None => self.by_name(name, Duration::ZERO, now),
+        let Some(session) = session else {
+            if let Some(key) = self.stateless.get(name) {
+                return key.clone();
+            }
+            let key = self.mint();
+            self.stateless.insert(name.to_owned(), key.clone());
+            return key;
         };
-        let key = known
-            .or_else(|| self.by_name(name, SESSION_EXPIRY, now))
-            .unwrap_or_else(|| self.mint(name, now));
-        if let Some(session) = session {
-            self.sessions.insert(session.to_owned(), key.clone());
-        }
+        let key = match self.sessions.get(session) {
+            Some(key) => key.clone(),
+            None => self.takeover(name, now).unwrap_or_else(|| {
+                let key = self.mint();
+                self.actors.push(Actor {
+                    key: key.clone(),
+                    name: name.to_owned(),
+                    last_seen: now,
+                });
+                key
+            }),
+        };
+        self.sessions.insert(session.to_owned(), key.clone());
         if let Some(actor) = self.actors.iter_mut().find(|a| a.key == key) {
             actor.last_seen = now;
         }
         key
     }
 
-    /// The longest-silent key of a client, among those silent for at least `silent`.
-    fn by_name(&self, name: &str, silent: Duration, now: Instant) -> Option<String> {
+    /// The longest-silent key of a client, among those silent long enough to have expired.
+    fn takeover(&self, name: &str, now: Instant) -> Option<String> {
         self.actors
             .iter()
-            .filter(|a| a.name == name && now.duration_since(a.last_seen) >= silent)
+            .filter(|a| a.name == name && now.duration_since(a.last_seen) >= SESSION_EXPIRY)
             .min_by_key(|a| a.last_seen)
             .map(|a| a.key.clone())
     }
 
-    fn mint(&mut self, name: &str, now: Instant) -> String {
-        let key = format!("agent-{}", self.actors.len() + 1);
-        self.actors.push(Actor {
-            key: key.clone(),
-            name: name.to_owned(),
-            last_seen: now,
-        });
-        key
+    fn mint(&mut self) -> String {
+        self.minted += 1;
+        format!("agent-{}", self.minted)
     }
 }
 
@@ -81,6 +94,29 @@ mod tests {
         assert_ne!(a, b, "a second live client is a new actor");
         let c = actors.resolve(Some("s3"), "Claude Code", t0 + secs(400));
         assert_eq!(c, a, "a reconnect takes over the longest-silent key");
+    }
+
+    #[test]
+    fn a_client_without_a_session_keeps_one_key_beside_session_keys() {
+        let mut actors = ActorMap::default();
+        let t0 = Instant::now();
+        let a = actors.resolve(Some("s1"), "Claude Code", t0);
+        let b = actors.resolve(Some("s2"), "Claude Code", t0 + secs(1));
+        let first = actors.resolve(None, "Claude Code", t0 + secs(2));
+        for n in 3..8 {
+            assert_eq!(actors.resolve(None, "Claude Code", t0 + secs(n)), first);
+        }
+        assert_ne!(first, a);
+        assert_ne!(first, b);
+    }
+
+    #[test]
+    fn a_new_session_never_takes_a_key_without_a_session() {
+        let mut actors = ActorMap::default();
+        let t0 = Instant::now();
+        let stateless = actors.resolve(None, "Claude Code", t0);
+        let session = actors.resolve(Some("s1"), "Claude Code", t0 + secs(400));
+        assert_ne!(session, stateless);
     }
 
     #[test]
