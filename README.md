@@ -51,3 +51,9 @@ See [docs/architecture.md](docs/architecture.md). Each module documents its comm
 | Ctrl+Z / Ctrl+Shift+Z | Undo / redo                                                   |
 | Home                  | Go to start                                                   |
 | Ctrl + wheel          | Zoom the timeline                                             |
+
+## License
+
+Copyright © 2026 DarkRedgm.
+
+Cloudy Clip is free software, licensed under the [GNU Affero General Public License v3.0](LICENSE). You may use, study, change and share it. If you distribute a modified version, or run one as a service others use over a network, you must publish its source under the same license.

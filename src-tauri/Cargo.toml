@@ -3,6 +3,7 @@ name = "cloudy-clip"
 version = "0.1.0"
 description = "Cloudy Clip: an open-source, agent-friendly video editor"
 authors = ["Cloudy Studio"]
+license = "AGPL-3.0-only"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
