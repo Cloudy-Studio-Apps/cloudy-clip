@@ -1,6 +1,7 @@
-import { defineModule, type ActorId } from "@/core";
+import { defineModule, keybindings, type ActorId } from "@/core";
 import { projectRef } from "@/modules/project";
-import { keyAction } from "./ui";
+import { clipActions, timelineDocks, timelineTools } from "@/modules/timeline";
+import { ClipBadge, KeyPanel, keyAction, ModeSwitch } from "./ui";
 import { keyframeCommands } from "./keyframe.commands";
 import { createKeyframeApi, elementTarget } from "./keyframe.fields";
 import { fieldActions } from "@/modules/inspector";
@@ -8,6 +9,7 @@ import { keyTargets } from "./keyframe.points";
 import { keyframeMcpTools } from "./keyframe.mcp";
 import { keyframeRef } from "./keyframe.ref";
 import type { CopiedKeys, KeyframeClipboard } from "./keyframe.types";
+import { toggleMode } from "./keyframe.view.commands";
 import { createKeyframeView, pruneSelection } from "./keyframe.view.store";
 
 /** Keys on a clip's values over time: commands and tools to add, move and remove them. */
@@ -15,7 +17,7 @@ export const keyframeModule = defineModule({
   ref: keyframeRef,
   name: "Keyframes",
   tier: "feature",
-  requires: ["project", "element", "preview", "inspector"],
+  requires: ["project", "element", "preview", "inspector", "timeline"],
   commands: keyframeCommands,
   mcpTools: keyframeMcpTools,
   setup(ctx) {
@@ -33,6 +35,14 @@ export const keyframeModule = defineModule({
     );
     ctx.contribute(keyTargets, elementTarget(ctx));
     ctx.contribute(fieldActions, keyAction);
+    ctx.contribute(timelineTools, { id: "keyframe.mode", order: 0, component: ModeSwitch });
+    ctx.contribute(timelineDocks, { id: "keyframe.panel", component: KeyPanel });
+    ctx.contribute(clipActions, { id: "keyframe.badge", badge: ClipBadge });
+    ctx.contribute(keybindings, {
+      id: "keyframe.toggle-mode",
+      key: "k",
+      resolve: () => ({ command: toggleMode.id, input: {} }),
+    });
     return { api: createKeyframeApi(ctx, view, clipboard) };
   },
 });

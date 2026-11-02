@@ -1,6 +1,6 @@
 import type { StoreApi } from "zustand";
 import type { ActorId, CommandContext, Micros } from "@/core";
-import type { Clip, ClipId, KeyEase, KeyTrack, KeyValue, Track } from "@/modules/project";
+import type { Clip, ClipId, KeyEase, Keyframe, KeyTrack, KeyValue, Track } from "@/modules/project";
 
 /** One key of one track of one clip. */
 export interface KeyRef {
@@ -81,4 +81,25 @@ export interface KeyframeViewState {
   panelHeight: number;
   /** The last click was in the panel. */
   focused: boolean;
+}
+
+/** A clip the panel lists, with the fields that have keys. */
+export interface PanelClip {
+  clip: Clip;
+  fields: readonly KeyField[];
+}
+
+/** What the panel draws of the timeline: its scale and the time span of the pages around the view. */
+export interface PanelWindow {
+  pxPerSecond: number;
+  from: Micros;
+  to: Micros;
+}
+
+/** One key as the panel draws it: where it sits on the timeline, and whether the clip covers it. */
+export interface WindowKey {
+  key: Keyframe;
+  time: Micros;
+  /** False past the clip's ends. */
+  inside: boolean;
 }

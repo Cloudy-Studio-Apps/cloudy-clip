@@ -148,6 +148,7 @@ beforeEach(async () => {
     elementModule,
     stub("preview"),
     stub("inspector"),
+    stub("timeline"),
     fixtures,
     keyframeModule,
   ]);

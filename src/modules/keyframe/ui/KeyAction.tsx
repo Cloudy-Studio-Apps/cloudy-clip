@@ -13,13 +13,23 @@ import { keyframeRef } from "../keyframe.ref";
 /** Whether the keyed paths have keys: none, some, or one on the playhead's frame. */
 type KeyState = "off" | "animated" | "on-key";
 
-/** The diamond and the two arrows at the end of a row: add or remove keys at the playhead, jump between keys. */
-function KeyActionView({ clip: subject, paths, disabled }: FieldActionProps) {
+/** What the controls act on: a clip and the paths of one row. */
+interface KeyControlsProps {
+  clipId: string;
+  paths: readonly string[];
+  disabled?: boolean;
+}
+
+/**
+ * The diamond and the two arrows at the end of a row: add or remove keys at the playhead, jump
+ * between keys. The inspector's rows and the keyframe panel's rows both draw it.
+ */
+export function KeyControls({ clipId, paths, disabled = false }: KeyControlsProps) {
   const { bus } = useKernel();
   const { playback } = useModule(previewRef);
   const keyframes = useModule(keyframeRef);
   const project = useModule(projectRef).store;
-  const clip = useStore(project.api, (s) => s.clips[subject.id]);
+  const clip = useStore(project.api, (s) => s.clips[clipId]);
   const keyed = useMemo(() => {
     if (!clip) return [];
     const keyable = new Set(keyframes.fieldsOf(clip).map((f) => f.path));
@@ -114,6 +124,11 @@ function KeyActionView({ clip: subject, paths, disabled }: FieldActionProps) {
       </IconButton>
     </div>
   );
+}
+
+/** The inspector's field action: the controls of the row's clip and paths. */
+function KeyActionView({ clip, paths, disabled }: FieldActionProps) {
+  return <KeyControls clipId={clip.id} paths={paths} disabled={disabled} />;
 }
 
 /** The keyframe field action: shows for every field that can hold keys. */
