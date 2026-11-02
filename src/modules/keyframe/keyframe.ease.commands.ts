@@ -152,8 +152,15 @@ export const scaleKeys = defineCommand({
         const moved = moveTrackKeys(track, moves, tolerance);
         if (input.factor < 0) {
           const order = moved.keys.filter((k) => ids.has(k.id));
+          // Picked keys side by side in the track: their segments flip with them. Otherwise a
+          // segment may reach a key that wasn't picked, so each key keeps its own ease, mirrored.
+          const at = picked.map((k) => track.keys.findIndex((x) => x.id === k.id));
+          const together = at.every((n, i) => i === 0 || n === at[i - 1]! + 1);
           const eases = new Map<string, KeyEase | undefined>(
             order.map((k, i) => {
+              if (!together) {
+                return [k.id, mirrorEase(picked.find((p) => p.id === k.id)?.ease)];
+              }
               const old = picked[picked.length - 2 - i];
               return [k.id, i === order.length - 1 ? undefined : mirrorEase(old?.ease)];
             }),

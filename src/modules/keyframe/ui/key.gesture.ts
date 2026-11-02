@@ -1,6 +1,7 @@
 import { MICROS_PER_SECOND } from "@/core";
 import { clampDelta } from "../logic/moves";
 import { refId } from "../logic/picking";
+import { snapMove } from "../logic/snap";
 import type { KeyDragOptions } from "../keyframe.types";
 
 /** How far the pointer goes before a press is a drag, in px. */
@@ -8,13 +9,15 @@ const DRAG_THRESHOLD = 3;
 
 /**
  * Drags the selected keys: on move, the diamonds (found once, at the start) slide by the clamped
- * delta straight in the DOM; on release one `onDrop` with the delta. A press that moves less than the threshold is a click: `onClick`. Escape cancels.
+ * delta straight in the DOM; on release one `onDrop` with the delta. The delta snaps to the
+ * playhead, clip ends and other keys (Ctrl turns that off) and to whole frames. A press that moves less than the threshold is a click: `onClick`. Escape cancels.
  */
 export function startKeyDrag({
   event,
   root,
   pxPerSecond,
   keys,
+  snap,
   onDrop,
   onClick,
 }: KeyDragOptions): void {
@@ -40,7 +43,10 @@ export function startKeyDrag({
     if (!dragging && Math.abs(e.clientX - startX) < DRAG_THRESHOLD) return;
     dragging = true;
     const wantedDelta = Math.round(((e.clientX - startX) / pxPerSecond) * MICROS_PER_SECOND);
-    delta = clampDelta(moved, wantedDelta);
+    const { targets, frame } = snap(e.ctrlKey || e.metaKey);
+    const times = moved.map((m) => m.time);
+    const snapped = snapMove(clampDelta(moved, wantedDelta), times, targets, pxPerSecond, frame);
+    delta = clampDelta(moved, snapped);
     show((delta / MICROS_PER_SECOND) * pxPerSecond);
   }
   function up() {

@@ -1,6 +1,7 @@
 import { MICROS_PER_SECOND } from "@/core";
 import { clampDelta } from "../logic/moves";
 import { refId } from "../logic/picking";
+import { snapMove } from "../logic/snap";
 import type { CurveDragOptions, CurveDragState } from "../keyframe.types";
 
 /** How far the pointer goes before a press is a drag, in px. */
@@ -8,13 +9,14 @@ const DRAG_THRESHOLD = 3;
 
 /**
  * Drags the selected keys of the graph in time and value, each by its own scale. Shift keeps the
- * axis with the larger movement. The state is handed to `onPreview` once per animation frame and
+ * axis with the larger movement. Time snaps like `startKeyDrag` (Ctrl turns targets off). The state is handed to `onPreview` once per animation frame and
  * to `onDrop` on release; nothing is written here. Escape cancels.
  */
 export function startCurveDrag({
   event,
   pxPerSecond,
   keys,
+  snap,
   onPreview,
   onDrop,
   onClick,
@@ -43,7 +45,13 @@ export function startCurveDrag({
       if (Math.abs(dx) >= Math.abs(dy)) dy = 0;
       else dx = 0;
     }
-    const delta = clampDelta(moved, Math.round((dx / pxPerSecond) * MICROS_PER_SECOND));
+    let delta = 0;
+    if (dx !== 0) {
+      const { targets, frame } = snap(e.ctrlKey || e.metaKey);
+      const wanted = clampDelta(moved, Math.round((dx / pxPerSecond) * MICROS_PER_SECOND));
+      const times = moved.map((m) => m.time);
+      delta = clampDelta(moved, snapMove(wanted, times, targets, pxPerSecond, frame));
+    }
     const values = new Map<string, number>();
     if (dy !== 0) {
       for (const k of keys) {

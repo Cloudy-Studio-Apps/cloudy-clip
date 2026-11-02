@@ -13,6 +13,7 @@ import { startBoxSelect } from "./box.gesture";
 import { startCurveDrag } from "./curve.gesture";
 import { startHandleDrag } from "./handle.gesture";
 import { report } from "./panel.actions.hook";
+import { useKeySnap } from "./snap.hook";
 
 /** How near a press must be to a key to take it, in px. */
 const PICK_RADIUS = CURVE_KEY_RADIUS + 3;
@@ -35,6 +36,7 @@ export function useCurvePointer(
   const { bus } = useKernel();
   const { view } = useModule(keyframeRef);
   const timeline = useModule(timelineRef);
+  const snapFor = useKeySnap();
 
   useEffect(() => {
     const element = canvas.current;
@@ -56,6 +58,7 @@ export function useCurvePointer(
         event,
         pxPerSecond: timeline.view.getState().pxPerSecond,
         keys,
+        snap: snapFor(list),
         onPreview: (s) => {
           state.current = {
             ...state.current,
@@ -179,5 +182,5 @@ export function useCurvePointer(
 
     element.addEventListener("pointerdown", onDown);
     return () => element.removeEventListener("pointerdown", onDown);
-  }, [bus, view, timeline, canvas, root, state, current, schedule]);
+  }, [bus, view, timeline, canvas, root, state, current, schedule, snapFor]);
 }

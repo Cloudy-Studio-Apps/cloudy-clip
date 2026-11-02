@@ -1,6 +1,7 @@
 import type { StoreApi } from "zustand";
 import type { ActorId, CommandContext, Micros } from "@/core";
 import type { ScreenBox } from "@/modules/timeline";
+import type { MenuItem } from "@/ui";
 import type {
   Clip,
   ClipId,
@@ -101,6 +102,20 @@ export interface PanelClip {
   fields: readonly KeyField[];
 }
 
+/** What a drag of keys snaps to, in timeline time. */
+export interface KeySnap {
+  /** Times that pull a moving key: the playhead, clip ends, other keys. Empty with Ctrl held. */
+  targets: readonly Micros[];
+  /** One frame of the clip's format; moved keys land on whole frames. */
+  frame: Micros;
+}
+
+/** A stretch of timeline time. */
+export interface KeySpan {
+  start: Micros;
+  end: Micros;
+}
+
 /** What the panel draws of the timeline: its scale and the time span of the pages around the view. */
 export interface PanelWindow {
   pxPerSecond: number;
@@ -138,6 +153,8 @@ export interface KeyDragOptions {
   pxPerSecond: number;
   /** The keys that move, with their limits. */
   keys: readonly { ref: KeyRef; moved: MovedKey }[];
+  /** Snapping, asked at each move; `targets` is empty while Ctrl is held. */
+  snap(ctrl: boolean): KeySnap;
   /** Called on release with the clamped delta (never 0). */
   onDrop(delta: Micros): void;
   /** Called on release when the pointer never left the press (a click, not a drag). */
@@ -210,6 +227,8 @@ export interface CurveDragOptions {
   event: PointerEvent;
   pxPerSecond: number;
   keys: readonly CurveDragKey[];
+  /** Snapping, asked at each move; `targets` is empty while Ctrl is held. */
+  snap(ctrl: boolean): KeySnap;
   /** On the next frame after the pointer moved; `undefined` when the drag is cancelled. */
   onPreview(state: CurveDragState | undefined): void;
   /** On release, when something changed. */
@@ -316,4 +335,26 @@ export interface MotionDragOptions {
   at: FramePoint;
   /** On release with the move in output pixels (never 0, 0). */
   onDrop(delta: FramePoint): void;
+}
+
+/** What a right click offers: on selected keys, and on a row. */
+export interface KeyMenus {
+  /** Reverse keys, Copy, Delete and the presets, for the selected keys. */
+  selection(): readonly MenuItem[];
+  /** What the row does after its last key, and Remove animation. */
+  row(clip: Clip, field: KeyField): readonly MenuItem[];
+}
+
+/** What a stretch of the selected keys needs. Times are timeline times. */
+export interface StretchOptions {
+  event: PointerEvent;
+  pxPerSecond: number;
+  /** The end that stays. */
+  anchor: Micros;
+  /** The end the pointer holds. */
+  grabbed: Micros;
+  /** On each move with the factor; `undefined` when it ends or is cancelled. */
+  onPreview(factor: number | undefined): void;
+  /** On release, when the factor isn't 1. */
+  onDrop(factor: number): void;
 }

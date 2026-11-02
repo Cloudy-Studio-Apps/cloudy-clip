@@ -291,6 +291,16 @@ describe("keyframe.scale", () => {
     expect(after[1]!.ease).toBeUndefined();
   });
 
+  it("keeps each key's own mirrored ease when the picked keys are not side by side", async () => {
+    await run(bus().run(setEase, { changes: [{ key: k("k1"), ease: eased }] }));
+    // k1 and k3 flip around timeline 4s (content 2s) and swap places, k2 stays between them.
+    await run(bus().run(scaleKeys, { keys: [k("k1"), k("k3")], pivot: 4 * S, factor: -1 }));
+    const after = trackOf("a", "transform.x").keys;
+    expect(after.map((x) => x.id)).toEqual(["k3", "k2", "k1"]);
+    expect(after[2]!.ease).toEqual(mirrorEase(eased));
+    expect(after[0]!.ease).toBeUndefined();
+  });
+
   it("refuses a stretch that puts keys on one time", async () => {
     expect(
       await code(bus().run(scaleKeys, { keys: [k("k1"), k("k2")], pivot: 0, factor: 1e-9 })),

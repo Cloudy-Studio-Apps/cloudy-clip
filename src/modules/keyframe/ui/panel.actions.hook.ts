@@ -8,13 +8,15 @@ import {
   type Result,
 } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { clipEnd } from "@/modules/project";
+import { clipEnd, projectRef, type EasePresetId } from "@/modules/project";
 import { timelineRef, timeToPx } from "@/modules/timeline";
 import { copyKeys, pasteKeys } from "../keyframe.clipboard.commands";
+import { setEase, scaleKeys } from "../keyframe.ease.commands";
 import { removeKeys } from "../keyframe.edit.commands";
 import { PANEL_HEADER_WIDTH } from "../keyframe.layout";
 import { keyframeRef } from "../keyframe.ref";
 import type { KeyRef, PanelClip } from "../keyframe.types";
+import { selectionSpan } from "../logic/stretch";
 
 /** Room left around the clips when Fit zooms to them, in px. */
 const FIT_MARGIN = 24;
@@ -24,13 +26,55 @@ export function report(result: Result<unknown, AppError>): void {
   if (!result.ok) notify("error", result.error.message);
 }
 
-/** What the panel's buttons and keys do to the key selection. Each reports a failure with `notify`. */
-export interface PanelActions {
+/** What the panel's buttons, keys and menus do to the selected keys. Each reports a failure with `notify`. */
+export interface KeyActions {
   copy(): void;
-  paste(): void;
   remove(): void;
+  /** Flips the selection around its middle, reversing its curves. */
+  reverse(): void;
+  /** Gives every selected key a preset curve. */
+  ease(id: EasePresetId): void;
+}
+
+/** What the panel's buttons and keys do to the key selection. Each reports a failure with `notify`. */
+export interface PanelActions extends KeyActions {
+  paste(): void;
   selectAll(): void;
   fit(): void;
+}
+
+/** The actions on the selected keys, for the panel and the menus. Commands run on the bus. */
+export function useKeyActions(): KeyActions {
+  const { bus } = useKernel();
+  const { view } = useModule(keyframeRef);
+  const project = useModule(projectRef).store;
+
+  return useMemo(() => {
+    const selected = () => view.getState().selection;
+    return {
+      copy() {
+        const keys = selected();
+        if (keys.length > 0) void bus.run(copyKeys, { keys }).then(report);
+      },
+      remove() {
+        const keys = selected();
+        if (keys.length > 0) void bus.run(removeKeys, { keys }).then(report);
+      },
+      reverse() {
+        const keys = selected();
+        const span = selectionSpan(project.getState().clips, keys);
+        if (!span) return;
+        const pivot = Math.round((span.start + span.end) / 2);
+        void bus.run(scaleKeys, { keys, pivot, factor: -1 }).then(report);
+      },
+      ease(id) {
+        const keys = selected();
+        if (keys.length > 0) {
+          void bus.run(setEase, { changes: keys.map((key) => ({ key, ease: id })) }).then(report);
+        }
+      },
+    };
+  }, [bus, view, project]);
 }
 
 /** The panel's actions over the keys it lists. Commands run on the bus; the view only selects. */
@@ -42,22 +86,15 @@ export function usePanelActions(
   const { view } = useModule(keyframeRef);
   const { playback } = useModule(previewRef);
   const timeline = useModule(timelineRef);
+  const keyActions = useKeyActions();
 
   return useMemo(() => {
-    const selected = () => view.getState().selection;
     return {
-      copy() {
-        const keys = selected();
-        if (keys.length > 0) void bus.run(copyKeys, { keys }).then(report);
-      },
+      ...keyActions,
       paste() {
         const clipIds = timeline.view.getState().selection;
         if (clipIds.length === 0) return notify("info", "Select a clip to paste the keys onto.");
         void bus.run(pasteKeys, { at: playback.getTime(), clipIds }).then(report);
-      },
-      remove() {
-        const keys = selected();
-        if (keys.length > 0) void bus.run(removeKeys, { keys }).then(report);
       },
       selectAll() {
         const all: KeyRef[] = rows.flatMap(({ clip, fields }) =>
@@ -83,5 +120,5 @@ export function usePanelActions(
         timeline.setScrollLeft(Math.max(0, timeToPx(start, zoom) - FIT_MARGIN));
       },
     };
-  }, [bus, view, playback, timeline, rows, root]);
+  }, [bus, view, playback, timeline, rows, root, keyActions]);
 }

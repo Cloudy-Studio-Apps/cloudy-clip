@@ -9,6 +9,7 @@ import { keysAtTime, keysInBox, parseRef, refId, toggled } from "../logic/pickin
 import { startBoxSelect } from "./box.gesture";
 import { startKeyDrag } from "./key.gesture";
 import { report, type PanelActions } from "./panel.actions.hook";
+import { useKeySnap } from "./snap.hook";
 
 /** Whether a key press belongs to a text field (the same rule as the app's keybindings). */
 function isTyping(target: EventTarget | null): boolean {
@@ -28,6 +29,7 @@ export function usePanelKeys(root: RefObject<HTMLElement | null>, actions: Panel
   const { view } = useModule(keyframeRef);
   const project = useModule(projectRef).store;
   const timeline = useModule(timelineRef);
+  const snapFor = useKeySnap();
 
   useEffect(() => {
     const panel = root.current;
@@ -56,6 +58,7 @@ export function usePanelKeys(root: RefObject<HTMLElement | null>, actions: Panel
         root: panel,
         pxPerSecond: timeline.view.getState().pxPerSecond,
         keys,
+        snap: snapFor(refs),
         onDrop: (delta) => void bus.run(moveKeys, { keys: refs.slice(), delta }).then(report),
         onClick: onClick ? () => view.setState({ selection: refs.slice() }) : undefined,
       });
@@ -144,5 +147,5 @@ export function usePanelKeys(root: RefObject<HTMLElement | null>, actions: Panel
       window.removeEventListener("pointerdown", onAnyDown, true);
       window.removeEventListener("keydown", onKey, true);
     };
-  }, [root, bus, view, project, timeline, actions]);
+  }, [root, bus, view, project, timeline, actions, snapFor]);
 }

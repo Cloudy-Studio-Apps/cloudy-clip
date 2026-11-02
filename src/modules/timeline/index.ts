@@ -51,8 +51,11 @@ export {
   timelineTabs,
   timelineTools,
 } from "./timeline.points";
-/** `HEADER_WIDTH` is the default width of the track headers; `RULER_HEIGHT` is the ruler's height. */
-export { HEADER_WIDTH, RULER_HEIGHT } from "./timeline.layout";
+/**
+ * `HEADER_WIDTH` is the default width of the track headers; `RULER_HEIGHT` is the ruler's height;
+ * `SNAP_PX` is how near, in px, a drag must come to a target to snap to it.
+ */
+export { HEADER_WIDTH, RULER_HEIGHT, SNAP_PX } from "./timeline.layout";
 /**
  * The width of the track header column in px, as a hook: where time 0 starts in the timeline's
  * content. A timeline overlay positions itself with it, not with `HEADER_WIDTH`, which is only

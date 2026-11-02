@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
-import { cn } from "@/ui";
+import { cn, ContextMenu } from "@/ui";
 import { MIN_PANEL_HEIGHT, PANEL_HEADER_WIDTH } from "../keyframe.layout";
 import { keyframeRef } from "../keyframe.ref";
 import { ClipGroup } from "./ClipGroup";
@@ -9,6 +9,8 @@ import { CurveGraph } from "./CurveGraph";
 import { PanelPlayhead } from "./PanelPlayhead";
 import { PanelToolbar } from "./PanelToolbar";
 import { PresetStrip } from "./PresetStrip";
+import { StretchBracket } from "./StretchBracket";
+import { useKeyMenus } from "./key.menu.hook";
 import { usePanelActions } from "./panel.actions.hook";
 import { usePanelKeys } from "./panel.keys.hook";
 import { usePanelRows } from "./panel.rows.hook";
@@ -31,6 +33,7 @@ function OpenPanel() {
   const scope = useStore(view, (s) => s.scope);
   const curves = useStore(view, (s) => s.mode) === "curves";
   const selection = useStore(view, (s) => s.selection);
+  const menus = useKeyMenus();
   const rows = usePanelRows();
   const scale = usePanelWindow(root);
   usePanelScroll(root);
@@ -124,11 +127,16 @@ function OpenPanel() {
                 style={{ left: PANEL_HEADER_WIDTH }}
               >
                 <PanelPlayhead />
+                <StretchBracket pxPerSecond={scale.pxPerSecond} root={root} />
               </div>
             )}
           </div>
         </div>
-        {curves && <CurveGraph rows={rows} />}
+        {curves && (
+          <ContextMenu items={() => (selection.length > 0 ? menus.selection() : [])}>
+            <CurveGraph rows={rows} />
+          </ContextMenu>
+        )}
       </div>
       <PresetStrip />
     </div>
