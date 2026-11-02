@@ -5,8 +5,13 @@ import {
   clipTransform,
   formatOf,
   type Clip,
+  dbToLinear,
+  fadeLevel,
+  pitchShift,
+  soundOf,
   type ClipId,
   type ClipPlacement,
+  type ClipSound,
   type ClipTransform,
   type Composition,
   type MediaAsset,
@@ -19,13 +24,20 @@ import { soundGains } from "../logic/junctions";
 import { picturesSettled } from "../logic/readiness";
 import type { PreviewEngine } from "../preview.types";
 import { quietSlot, voiceSlot } from "./engine.audio";
+import { createSoundGraph, PITCH_LEAD_SECONDS } from "./engine.audiograph";
 import { ImageCache } from "./engine.images";
 import { LevelCorrection } from "./engine.levels";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { MediaSlotPool } from "./engine.slots";
 import { syncSlot } from "./engine.sync";
-import type { CachedPicture, EngineOptions, PlacementTarget, ResolvedFrame } from "./engine.types";
+import type {
+  CachedPicture,
+  EngineOptions,
+  PlacementTarget,
+  ResolvedFrame,
+  SoundGraph,
+} from "./engine.types";
 
 /** Whether a clip plays a file (media clips). */
 function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
@@ -79,6 +91,8 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly mixCanvases: MixCanvases;
   private readonly nested = new NestedCanvases();
   private readonly pictureOnly: boolean;
+  /** Web Audio for clips with sound settings; a picture-only engine has no sound. */
+  private readonly sound: SoundGraph | null;
   private readonly levels: LevelCorrection | null;
 
   constructor(
@@ -96,6 +110,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.junctions = options.junctions;
     this.mixCanvases = new MixCanvases(canvas);
     this.pictureOnly = options.pictureOnly ?? false;
+    this.sound = this.pictureOnly ? null : createSoundGraph();
     this.levels = options.videoLevels ? new LevelCorrection(options.videoLevels) : null;
   }
 
@@ -147,7 +162,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       const seconds = microsToSeconds(clip.sourceIn + at - clip.start);
       const slot = this.pool.acquire(path, clip, track.kind, seconds);
       if (!slot) continue;
-      quietSlot(slot, track);
+      quietSlot(slot, track, this.sound);
       syncSlot(slot, seconds, false);
     }
 
@@ -177,7 +192,13 @@ export class HtmlMediaEngine implements PreviewEngine {
       // During a junction's overlap both clips are here, each on its own element (one per path),
       // and both frames must be ready before anything is painted.
       for (const { clip, path, inner } of clips) {
-        const own = gain * (gains.get(clip.id) ?? 1);
+        const sound = (propsOverrides.get(clip.id)?.sound as ClipSound) ?? soundOf(clip);
+        const crossfade = gains.get(clip.id) ?? 1;
+        // The longer of a crossfade and the clip's own fade wins, as in export: a smaller share.
+        const own =
+          track.kind === "audio"
+            ? gain * Math.min(crossfade, fadeLevel(sound, clip, time)) * dbToLinear(sound.volumeDb)
+            : gain * crossfade;
         if (inner) {
           this.prepare(project, inner, playing, propsOverrides, own, silenced || track.muted);
           continue;
@@ -196,8 +217,9 @@ export class HtmlMediaEngine implements PreviewEngine {
         // from audio tracks (a video file's sound plays through an <audio> on the same URL).
         const slot = this.pool.acquire(path, clip, track.kind, desired);
         if (!slot) continue;
-        voiceSlot(slot, track, own, silenced);
-        syncSlot(slot, desired, playing);
+        voiceSlot(slot, track, own, silenced, sound, this.sound);
+        const pitched = playing && track.kind === "audio" && pitchShift(sound) !== 0;
+        syncSlot(slot, pitched ? desired + PITCH_LEAD_SECONDS : desired, playing);
         if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) {
           this.settled = false;
         }
@@ -254,6 +276,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   dispose(): void {
     this.pool.dispose();
+    this.sound?.dispose();
     this.images.dispose();
     this.mixCanvases.dispose();
     this.nested.dispose();

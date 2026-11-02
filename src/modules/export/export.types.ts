@@ -2,7 +2,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { Logger, Micros } from "@/core";
 import type { MediaApi } from "@/modules/media";
 import type { PreviewApi } from "@/modules/preview";
-import type { CompositionId, ProjectFormat, ProjectState } from "@/modules/project";
+import type { CompositionId, EqBand, ProjectFormat, ProjectState } from "@/modules/project";
 
 /** The part of a composition's timeline that gets exported. */
 export interface ExportRange {
@@ -20,6 +20,14 @@ export interface SoundSegment {
   duration: Micros;
   fadeIn: Micros;
   fadeOut: Micros;
+  /** Linear level. Missing is 1. */
+  gain?: number;
+  /** -1 (left) to 1 (right). Missing is centre. */
+  pan?: number;
+  /** The bands that change the sound. */
+  eq?: EqFilter[];
+  /** Shift in semitones, keeping the length. */
+  pitch?: number;
 }
 
 /** What a file holds (mirrors `Format` in Rust). */
@@ -179,4 +187,12 @@ export interface ExportApi {
   /** What can be exported here; null until known. */
   readonly capabilities: StoreApi<{ value: ExportCapabilities | null }>;
   readonly runner: ExportRunner;
+}
+
+/** One band of a clip's equalizer that changes the sound (mirrors `EqFilter` in Rust). */
+export interface EqFilter {
+  kind: EqBand["shape"];
+  hz: number;
+  db: number;
+  q: number;
 }

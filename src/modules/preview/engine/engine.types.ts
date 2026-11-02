@@ -7,6 +7,7 @@ import type { Micros } from "@/core";
 import type { VideoLevels } from "../preview.types";
 import type {
   Clip,
+  ClipSound,
   Composition,
   MediaId,
   ProjectFormat,
@@ -36,6 +37,21 @@ export interface Slot {
    * `seeked` before that, so drawing at `seeked` can paint black.
    */
   presented: boolean;
+}
+
+/** The Web Audio chain of one sound element. */
+export interface SoundChain {
+  /** Sets the sound, and the level as a factor: volume, fades, crossfade and mute together. */
+  apply(sound: ClipSound, gain: number): void;
+}
+
+/** Web Audio for one engine. An element takes one `MediaElementSource`, ever. */
+export interface SoundGraph {
+  /** Connects a sound element once; it stays connected for the element's life. */
+  attach(element: HTMLMediaElement): SoundChain | undefined;
+  /** The element's chain, if it has one. */
+  chainOf(element: HTMLMediaElement): SoundChain | undefined;
+  dispose(): void;
 }
 
 /** A decoded picture and its size, ready to draw. */

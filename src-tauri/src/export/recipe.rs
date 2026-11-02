@@ -56,6 +56,41 @@ pub struct SoundSegment {
     /// One channel, played on both sides at full level as the preview does.
     #[serde(default)]
     pub mono: bool,
+    /// Linear level, the clip's volume.
+    #[serde(default = "one")]
+    pub gain: f64,
+    /// -1 (left) to 1 (right).
+    #[serde(default)]
+    pub pan: f64,
+    #[serde(default)]
+    pub eq: Vec<EqFilter>,
+    /// Shift in semitones, keeping the length.
+    #[serde(default)]
+    pub pitch: f64,
+}
+
+fn one() -> f64 {
+    1.0
+}
+
+/// The shape of an equalizer band.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum EqKind {
+    Bell,
+    LowShelf,
+    HighShelf,
+    LowCut,
+    HighCut,
+}
+
+/// One band of a clip's equalizer that changes the sound.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct EqFilter {
+    pub kind: EqKind,
+    pub hz: f64,
+    pub db: f64,
+    pub q: f64,
 }
 
 /// One export, as the frontend describes it.
@@ -83,6 +118,59 @@ fn seconds(micros: u64) -> String {
     format!("{:.6}", micros as f64 / 1_000_000.0)
 }
 
+/// `atempo` steps that make up a factor, each within its 0.5 to 2 range.
+fn tempo_steps(mut factor: f64) -> String {
+    let mut steps = String::new();
+    while factor < 0.5 {
+        steps.push_str(",atempo=0.500000");
+        factor /= 0.5;
+    }
+    while factor > 2.0 {
+        steps.push_str(",atempo=2.000000");
+        factor /= 2.0;
+    }
+    steps.push_str(&format!(",atempo={factor:.6}"));
+    steps
+}
+
+/// A pan as `StereoPannerNode` does it for stereo sound, so export sounds like the preview.
+fn pan_filter(pan: f64) -> String {
+    use std::f64::consts::FRAC_PI_2;
+    if pan <= 0.0 {
+        let angle = (pan + 1.0) * FRAC_PI_2;
+        let (send, keep) = (angle.cos().abs(), angle.sin());
+        format!(",pan=stereo|c0=c0+{send:.6}*c1|c1={keep:.6}*c1")
+    } else {
+        let angle = pan * FRAC_PI_2;
+        let (keep, send) = (angle.cos().abs(), angle.sin());
+        format!(",pan=stereo|c0={keep:.6}*c0|c1=c1+{send:.6}*c0")
+    }
+}
+
+/// What a clip's sound settings add, in the preview's order. Empty at the defaults.
+fn effects(segment: &SoundSegment) -> String {
+    let mut chain = String::new();
+    if segment.pitch != 0.0 {
+        let ratio = 2f64.powf(segment.pitch / 12.0);
+        let rate = f64::from(SAMPLE_RATE) * ratio;
+        chain.push_str(&format!(",asetrate={rate:.3},aresample={SAMPLE_RATE}"));
+        chain.push_str(&tempo_steps(1.0 / ratio));
+    }
+    for EqFilter { kind, hz, db, q } in &segment.eq {
+        chain.push_str(&match kind {
+            EqKind::Bell => format!(",equalizer=f={hz:.2}:t=q:w={q:.2}:g={db:.2}"),
+            EqKind::LowShelf => format!(",bass=g={db:.2}:f={hz:.2}:t=s:w=1"),
+            EqKind::HighShelf => format!(",treble=g={db:.2}:f={hz:.2}:t=s:w=1"),
+            EqKind::LowCut => format!(",highpass=f={hz:.2}"),
+            EqKind::HighCut => format!(",lowpass=f={hz:.2}"),
+        });
+    }
+    if segment.pan != 0.0 {
+        chain.push_str(&pan_filter(segment.pan));
+    }
+    chain
+}
+
 /// The mixed sound as a filter graph, whose output is `[mixed]`.
 fn sound_graph(sound: &[SoundSegment], first_input: usize, total: u64) -> String {
     let mut graph = String::new();
@@ -96,6 +184,10 @@ fn sound_graph(sound: &[SoundSegment], first_input: usize, total: u64) -> String
         };
         let mut chain =
             format!("[{input}:a]aresample={SAMPLE_RATE},aformat=sample_fmts=fltp,{layout}");
+        chain.push_str(&effects(segment));
+        if segment.gain != 1.0 {
+            chain.push_str(&format!(",volume={:.6}", segment.gain));
+        }
         // `qsin` is the equal-power curve the preview's crossfade uses.
         if segment.fade_in > 0 {
             let length = seconds(segment.fade_in);
@@ -267,4 +359,104 @@ pub fn arguments(spec: &ExportSpec, partial: &Path, hardware: Option<&str>) -> V
     push(&["-t", &seconds(spec.duration)]);
     args.push(partial.as_os_str().to_owned());
     args
+}
+
+#[cfg(test)]
+mod sound_tests {
+    use super::*;
+
+    fn segment() -> SoundSegment {
+        SoundSegment {
+            path: "/a.wav".into(),
+            at: 0,
+            from: 0,
+            duration: 1_000_000,
+            fade_in: 0,
+            fade_out: 0,
+            mono: false,
+            gain: 1.0,
+            pan: 0.0,
+            eq: Vec::new(),
+            pitch: 0.0,
+        }
+    }
+
+    fn band(kind: EqKind, hz: f64, db: f64) -> EqFilter {
+        EqFilter {
+            kind,
+            hz,
+            db,
+            q: 1.0,
+        }
+    }
+
+    #[test]
+    fn a_default_segment_adds_no_filter() {
+        assert_eq!(
+            sound_graph(&[segment()], 0, 1_000_000),
+            "[0:a]aresample=48000,aformat=sample_fmts=fltp,aformat=channel_layouts=stereo,adelay=0:all=1[s0];[s0]amix=inputs=1:normalize=0:dropout_transition=0,apad=whole_dur=1.000000,atrim=0:1.000000[mixed]"
+        );
+    }
+
+    #[test]
+    fn gain_adds_volume() {
+        let graph = sound_graph(
+            &[SoundSegment {
+                gain: 0.5,
+                ..segment()
+            }],
+            0,
+            1_000_000,
+        );
+        assert!(graph.contains(",volume=0.500000,"), "{graph}");
+    }
+
+    #[test]
+    fn pan_matches_the_preview_at_hard_left_and_right() {
+        let left = effects(&SoundSegment {
+            pan: -1.0,
+            ..segment()
+        });
+        assert_eq!(left, ",pan=stereo|c0=c0+1.000000*c1|c1=0.000000*c1");
+        let right = effects(&SoundSegment {
+            pan: 1.0,
+            ..segment()
+        });
+        assert_eq!(right, ",pan=stereo|c0=0.000000*c0|c1=c1+1.000000*c0");
+    }
+
+    #[test]
+    fn equalizer_filters_by_shape() {
+        let chain = effects(&SoundSegment {
+            eq: vec![
+                band(EqKind::LowCut, 80.0, 0.0),
+                band(EqKind::LowShelf, 120.0, 3.0),
+                band(EqKind::Bell, 500.0, -2.0),
+                band(EqKind::HighShelf, 8000.0, 1.5),
+                band(EqKind::HighCut, 16000.0, 0.0),
+            ],
+            ..segment()
+        });
+        assert_eq!(
+            chain,
+            ",highpass=f=80.00,bass=g=3.00:f=120.00:t=s:w=1,equalizer=f=500.00:t=q:w=1.00:g=-2.00,treble=g=1.50:f=8000.00:t=s:w=1,lowpass=f=16000.00"
+        );
+    }
+
+    #[test]
+    fn pitch_keeps_the_length() {
+        let chain = effects(&SoundSegment {
+            pitch: 12.0,
+            ..segment()
+        });
+        assert_eq!(chain, ",asetrate=96000.000,aresample=48000,atempo=0.500000");
+        let far = effects(&SoundSegment {
+            pitch: 24.0,
+            ..segment()
+        });
+        assert_eq!(
+            far,
+            ",asetrate=192000.000,aresample=48000,atempo=0.500000,atempo=0.500000"
+        );
+    }
 }

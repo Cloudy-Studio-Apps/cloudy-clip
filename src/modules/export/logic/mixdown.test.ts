@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedProject, type Clip, type MediaAsset, type ProjectState } from "@/modules/project";
+import { DEFAULT_SOUND } from "@/modules/project";
 import { mixdown } from "./mixdown";
 
 const media = (id: string): MediaAsset => ({
@@ -56,6 +57,13 @@ describe("mixdown", () => {
         fadeOut: 0,
       },
     ]);
+  });
+
+  it("a clip at -6 dB exports at half gain with its own fades", () => {
+    const sound = { ...DEFAULT_SOUND, volumeDb: -6, fadeIn: 500_000, fadeOut: 250_000 };
+    const [segment] = mixdown(project([clip("a", "a1", { sound })]), "c1", everything, sounds);
+    expect(segment!.gain).toBeCloseTo(0.501, 3);
+    expect(segment).toMatchObject({ fadeIn: 500_000, fadeOut: 250_000 });
   });
 
   it("leaves out muted tracks, at any depth", () => {
