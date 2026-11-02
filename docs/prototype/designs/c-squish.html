@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cloudy Clip · Option C · Squish</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=DM+Mono:wght@400;500&family=Rubik:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* The foca watona itself: fat, soft, pressed by hands. Cobalt so the pale seal pops, and
+         everything you press gives way like the plush does. */
+      :root {
+        --cobalt: #2438e0;
+        --cobalt-2: #1c2cc0;
+        --cobalt-3: #3347f0;
+        --night: #111a86;
+        --line: #4256f2;
+        --mist: #dfe3f6;
+        --periwinkle: #aab4f2;
+        --milk: #fbfaff;
+        --blush: #ffa3b5;
+        --butter: #ffd64d;
+        --mint: #86e6cc;
+        --ink: #0d1466;
+        --fat: "Bagel Fat One", sans-serif;
+        --body: "Rubik", sans-serif;
+        --mono: "DM Mono", monospace;
+        --head: 72px;
+        --spring: cubic-bezier(0.3, 1.7, 0.5, 1);
+      }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--cobalt); color: var(--milk); font: 400 13px/1.35 var(--body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+      button, input { font: inherit; color: inherit; }
+      button { background: none; border: 0; cursor: pointer; }
+      :focus-visible { outline: 3px solid var(--butter); outline-offset: 1px; }
+      .ico { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+      /* The signature motion: a press flattens it, a release springs back */
+      .squish { transition: transform 0.28s var(--spring), background-color 0.12s; transform-origin: 50% 100%; }
+      .squish:active { transform: scale(1.09, 0.82); transition-duration: 0.07s; }
+      .squish.is-active { animation: settle 0.42s var(--spring); }
+      @keyframes settle { 0% { transform: scale(1.1, 0.8); } 55% { transform: scale(0.96, 1.07); } 100% { transform: none; } }
+
+      .app { height: 100%; display: grid; grid-template-rows: 56px 1fr; }
+      .top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 14px; }
+      .brand { display: flex; align-items: center; gap: 8px; }
+      .brand .seal-use { width: 44px; height: 37px; }
+      .word { font: 400 24px/1 var(--fat); letter-spacing: 0.005em; }
+      .project { margin-left: 12px; color: var(--periwinkle); }
+
+      .pages { display: flex; gap: 2px; padding: 4px; background: var(--cobalt-2); border-radius: 16px; }
+      .pg { height: 36px; padding: 0 18px; border-radius: 12px; font: 400 16px/1 var(--fat); color: var(--periwinkle); }
+      .pg:hover { color: var(--milk); }
+      .pg.is-active { background: var(--milk); color: var(--cobalt); }
+
+      .right { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+      .icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; color: var(--periwinkle); }
+      .icon:hover { color: var(--milk); background: var(--cobalt-3); }
+      .av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--body); background: var(--blush); color: var(--ink); }
+      .av.claude { background: #f4efe6; color: #c15f3c; font-size: 16px; margin: 0 -5px 0 8px; box-shadow: 0 0 0 3px var(--cobalt); position: relative; z-index: 1; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; padding: 0 16px; border-radius: 13px; font: 400 16px/1 var(--fat); }
+      .btn-primary { background: var(--blush); color: var(--ink); }
+      .btn-primary:hover { background: #ffb8c6; }
+      .top .btn-primary { margin-left: 10px; }
+      .btn-sm { height: 34px; padding: 0 12px; font-size: 14.5px; border-radius: 12px; }
+      .btn-wide { width: 100%; }
+
+      .page { min-height: 0; padding: 0 8px 8px; }
+      .edit { height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) 54px 270px; gap: 6px; }
+      .upper { min-height: 0; display: grid; grid-template-columns: 292px minmax(0, 1fr) 292px; gap: 6px; }
+      .pillow { background: var(--cobalt-2); border-radius: 18px; min-height: 0; overflow: auto; }
+
+      .pane-head { display: flex; gap: 6px; padding: 10px; }
+      .search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 11px; background: var(--night); border-radius: 12px; color: var(--periwinkle); }
+      .search .ico { width: 15px; height: 15px; }
+      .search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--milk); }
+      .search input::placeholder { color: var(--periwinkle); }
+
+      .bin { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; padding: 0 10px 14px; }
+      .bin-item { margin: 0; }
+      .thumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--night); border-radius: 11px; }
+      .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .dur { position: absolute; right: 4px; bottom: 4px; padding: 1px 5px; border-radius: 6px; font: 500 10px var(--mono); background: var(--night); }
+      .bin-item figcaption { margin: 4px 0 0 3px; font-size: 12px; color: var(--mist); }
+      .bin-item.is-used .thumb { box-shadow: 0 0 0 3px var(--butter); }
+
+      .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; padding: 0 10px 14px; }
+      .preset { display: flex; flex-direction: column; gap: 4px; text-align: left; font-size: 12px; color: var(--mist); padding: 0; }
+      .preset-art { height: 64px; display: grid; place-items: center; border-radius: 12px; background: var(--night); color: var(--milk); font: 400 26px var(--fat); transition: transform 0.28s var(--spring); }
+      .preset:active .preset-art { transform: scale(1.06, 0.84); }
+      .pv-caption .preset-art { font: 600 15px var(--body); }
+      .pv-lower .preset-art { font: 600 14px var(--body); place-items: end start; padding: 8px 10px; }
+      .pv-meme .preset-art { color: var(--butter); }
+      .pv-outline .preset-art { color: transparent; -webkit-text-stroke: 1.2px var(--milk); }
+      .pv-note .preset-art { font: 400 15px var(--mono); color: var(--periwinkle); }
+
+      .group-title { margin: 0; padding: 0 12px 8px; font: 400 15px var(--fat); }
+      .stickers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 10px 14px; }
+      .sticker { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 2px 7px; background: var(--night); border-radius: 12px; font-size: 11px; color: var(--mist); }
+      .sticker .seal-use { width: 58px; height: 48px; overflow: visible; transition: transform 0.28s var(--spring); }
+      .st-squish { transform: scale(1.14, 0.72); } .st-tall { transform: scale(0.72, 1.14); } .st-tilt { transform: rotate(-16deg); } .st-side { transform: rotate(90deg) scale(0.86); } .st-flip { transform: rotate(180deg); }
+
+      .trans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; padding: 10px; }
+      .tr-card { text-align: left; font-size: 12px; color: var(--mist); display: flex; flex-direction: column; gap: 4px; padding: 0; }
+      .tr-art { display: flex; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 11px; }
+      .tr-art img { width: 50%; object-fit: cover; }
+      .tr-card.is-used .tr-art { box-shadow: 0 0 0 3px var(--butter); }
+
+      .stage { min-width: 0; min-height: 0; background: var(--night); border-radius: 18px; display: grid; place-items: center; padding: 14px; container-type: size; }
+      .frame { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; }
+      .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .caption { position: absolute; inset: auto 0 11% 0; text-align: center; font: 400 clamp(16px, 3.8cqw, 38px)/1 var(--fat); color: #fff; text-shadow: 0 2px 0 #000, 0 0 6px #000; }
+
+      .itabs { display: flex; gap: 2px; margin: 0 10px; padding: 3px; background: var(--night); border-radius: 13px; }
+      .itab { flex: 1; height: 30px; border-radius: 10px; color: var(--periwinkle); font-weight: 500; font-size: 12.5px; }
+      .itab:hover { color: var(--milk); }
+      .itab.is-active { background: var(--milk); color: var(--cobalt); }
+      .insp-title { padding: 12px 14px 9px; font: 400 21px/1 var(--fat); }
+      .sect { padding: 13px 14px; }
+      .sect + .sect { padding-top: 0; }
+      .sect h4 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; font: 400 15px var(--fat); }
+      .sect-reset { padding: 0; color: var(--periwinkle); }
+      .sect-reset .ico { width: 14px; height: 14px; }
+      .prop { display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 8px; min-height: 31px; color: var(--mist); }
+      .prop:not(.has-slider) .val { grid-column: 3; }
+      .val { font: 500 12px var(--mono); padding: 3px 8px; background: var(--night); border-radius: 8px; min-width: 62px; text-align: right; }
+      .val small { font-size: 10px; color: var(--periwinkle); margin-left: 2px; }
+      .prop.is-changed .val { background: var(--blush); color: var(--ink); }
+      .prop.is-changed .val small { color: var(--ink); }
+      .slider { height: 7px; background: var(--night); border-radius: 4px; position: relative; }
+      .slider i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--periwinkle); }
+      .slider i::after { content: ""; position: absolute; right: -7px; top: -4px; width: 15px; height: 15px; border-radius: 50%; background: var(--milk); }
+      .seg { display: flex; gap: 2px; padding: 3px; background: var(--night); border-radius: 13px; }
+      .seg button { flex: 1; height: 28px; border-radius: 10px; color: var(--periwinkle); font-weight: 500; }
+      .seg .is-active { background: var(--milk); color: var(--cobalt); }
+      .kv { display: flex; justify-content: space-between; min-height: 28px; align-items: center; color: var(--mist); }
+      .kv b { font-weight: 500; color: var(--milk); }
+
+      /* One dock for what you add and how you play, in reach of the thumb on the Android build */
+      .dock { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 8px; background: var(--cobalt-2); border-radius: 18px; }
+      .tools { display: flex; gap: 2px; }
+      .tool { display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 13px; border-radius: 13px; color: var(--periwinkle); font-weight: 500; }
+      .tool:hover { color: var(--milk); background: var(--cobalt-3); }
+      .tool.is-active { background: var(--milk); color: var(--cobalt); }
+      .transport { display: flex; align-items: center; gap: 4px; }
+      .tc { min-width: 118px; text-align: right; padding-right: 8px; font: 500 15px var(--mono); }
+      .tc span { display: none; }
+      .tp-play { width: 44px; height: 44px; display: grid; place-items: center; background: var(--butter); color: var(--ink); border-radius: 16px; }
+      .tp-play .ico { fill: currentColor; }
+      .tp-len { min-width: 118px; padding-left: 8px; font: 400 13px var(--mono); color: var(--periwinkle); }
+      .dock-right { display: flex; justify-content: flex-end; gap: 2px; }
+
+      /* Timeline */
+      .tl { position: relative; background: var(--cobalt-2); border-radius: 18px; overflow: hidden; }
+      #timeline { position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+      .tl-row { display: grid; grid-template-columns: var(--head) 1fr; flex: 1; min-height: 0; }
+      .tl-row.is-main { flex: 1.8; }
+      .tl-ruler { flex: none; height: 42px; }
+      .tl-head { display: flex; align-items: center; justify-content: center; color: var(--periwinkle); }
+      .tl-id { display: flex; align-items: center; gap: 4px; font: 500 12px var(--mono); }
+      .tl-id .ico { width: 14px; height: 14px; }
+      .tl-btns { display: none; }
+      .ruler, .lane { position: relative; }
+      .lane { overflow: hidden; margin-right: 4px; }
+      .tick { position: absolute; bottom: 5px; width: 3px; height: 3px; margin-left: -1px; border-radius: 50%; background: var(--line); }
+      .tick.is-major { background: var(--periwinkle); width: 5px; height: 5px; }
+      .tick b { position: absolute; left: 8px; bottom: -3px; font: 400 11px var(--mono); color: var(--periwinkle); }
+
+      .clip { position: absolute; top: 3px; bottom: 3px; overflow: hidden; display: flex; align-items: center; border-radius: 12px; margin-right: 2px; color: var(--ink); }
+      .film { position: absolute; inset: 0; background-size: auto 100%; background-repeat: repeat-x; }
+      .clip-name { position: relative; padding: 0 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+      .k-video { border-radius: 16px; width: auto; }
+      .k-video .clip-name { align-self: flex-end; margin: 0 0 5px 6px; padding: 2px 8px; color: var(--milk); background: var(--night); border-radius: 8px; font-size: 11.5px; }
+      .k-text { background: var(--butter); }
+      .k-sticker { background: var(--mint); }
+      .k-audio { background: var(--blush); }
+      .wave { position: absolute; inset: 14% 8px; width: calc(100% - 16px); height: 72%; fill: #c43e62; }
+      .k-audio .clip-name { display: none; }
+      .clip.is-sel::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 3px var(--butter); }
+      .cut { position: absolute; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -11px; border-radius: 50%; background: var(--cobalt-2); box-shadow: inset 0 0 0 2px var(--periwinkle); z-index: 2; }
+      .cut.is-on { background: var(--butter); box-shadow: 0 0 0 3px var(--cobalt-2); }
+
+      /* The seal rides the playhead */
+      .playhead { position: absolute; top: 0; bottom: 0; left: calc(var(--head) + (100% - var(--head) - 4px) * var(--at)); width: 3px; margin-left: -1.5px; background: var(--milk); border-radius: 2px; z-index: 5; pointer-events: none; }
+      .rider { position: absolute; left: 50%; top: 2px; width: 50px; height: 42px; margin-left: -25px; transform-origin: 50% 100%; animation: breathe 3.4s ease-in-out infinite; }
+      @keyframes breathe { 0%, 100% { transform: none; } 50% { transform: scale(1.04, 0.95); } }
+
+      /* Other pages */
+      .sheet { height: 100%; overflow: auto; padding: 22px 26px; background: var(--cobalt-2); border-radius: 18px; }
+      .sheet h1 { margin: 0 0 18px; font: 400 34px/1 var(--fat); }
+      .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px 14px; }
+      .lib-card { margin: 0; }
+      .lib-card figcaption { display: flex; flex-direction: column; margin: 6px 0 0 3px; }
+      .lib-card b { font-weight: 500; }
+      .lib-card figcaption span { font: 400 11px var(--mono); color: var(--periwinkle); }
+      .queue { list-style: none; padding: 0; margin: 0; max-width: 820px; display: grid; gap: 8px; }
+      .job { display: grid; grid-template-columns: 112px 1fr auto; gap: 14px; align-items: center; padding: 10px 16px 10px 10px; background: var(--night); border-radius: 16px; }
+      .job img { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; display: block; border-radius: 10px; }
+      .job-text { display: flex; flex-direction: column; gap: 2px; }
+      .job-text b { font: 400 17px var(--fat); }
+      .job-text span { font: 400 11.5px var(--mono); color: var(--periwinkle); }
+      .bar { height: 7px; margin-top: 6px; border-radius: 4px; background: var(--cobalt-2); overflow: hidden; }
+      .bar i { display: block; height: 100%; border-radius: 4px; background: var(--butter); }
+      .is-done .bar i { background: var(--mint); }
+      .job-state { font: 500 12px var(--mono); }
+
+      .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; background: var(--cobalt-2); border-radius: 18px; }
+      .empty .seal-use { width: 240px; height: 200px; margin-bottom: 10px; transform-origin: 50% 100%; animation: squeeze 2.6s ease-in-out infinite; }
+      @keyframes squeeze { 0%, 62%, 100% { transform: none; } 72% { transform: scale(1.12, 0.8); } 84% { transform: scale(0.96, 1.05); } }
+      .empty h1 { margin: 0; font: 400 34px/1 var(--fat); }
+      .empty p { margin: 0; max-width: 40ch; color: var(--mist); font-size: 14px; }
+      @media (max-width: 1100px) { .upper { grid-template-columns: 240px minmax(0, 1fr); } .insp { display: none; } .tool { padding: 0 9px; } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+    </style>
+  </head>
+  <body>
+    <!-- The seal flat and fat, spots and blush, the same deadpan eyes as the plush. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="seal" viewBox="0 0 120 100">
+        <path d="M60 4c32 0 57 21 57 51 0 27-26 41-57 41S3 82 3 55C3 25 28 4 60 4z" fill="#0d1466" />
+        <path d="M60 8c30 0 53 20 53 47 0 24-24 37-53 37S7 79 7 55C7 28 30 8 60 8z" fill="#dfe3f6" />
+        <g fill="#a3acd2">
+          <ellipse cx="38" cy="20" rx="6" ry="4" transform="rotate(-24 38 20)" /><ellipse cx="55" cy="15" rx="3.6" ry="2.6" /><ellipse cx="73" cy="17" rx="6" ry="3.6" transform="rotate(12 73 17)" /><ellipse cx="89" cy="27" rx="4.6" ry="3.2" transform="rotate(30 89 27)" /><ellipse cx="23" cy="35" rx="4" ry="3" transform="rotate(-40 23 35)" /><ellipse cx="60" cy="30" rx="3" ry="2" /><ellipse cx="98" cy="42" rx="3.6" ry="2.6" /><ellipse cx="16" cy="56" rx="2.6" ry="3.6" /><ellipse cx="102" cy="62" rx="3" ry="4" /><ellipse cx="29" cy="79" rx="4" ry="2.6" transform="rotate(24 29 79)" /><ellipse cx="90" cy="79" rx="4" ry="2.6" transform="rotate(-24 90 79)" />
+        </g>
+        <ellipse cx="28" cy="62" rx="8" ry="5" fill="#ffa3b5" /><ellipse cx="92" cy="62" rx="8" ry="5" fill="#ffa3b5" />
+        <ellipse cx="40" cy="50" rx="7" ry="5.4" transform="rotate(8 40 50)" fill="#0d1466" />
+        <ellipse cx="80" cy="50" rx="7" ry="5.4" transform="rotate(-8 80 50)" fill="#0d1466" />
+        <circle cx="42.4" cy="48" r="1.5" fill="#fff" /><circle cx="82.4" cy="48" r="1.5" fill="#fff" />
+        <ellipse cx="50" cy="69" rx="12" ry="9" fill="#fbfaff" /><ellipse cx="70" cy="69" rx="12" ry="9" fill="#fbfaff" />
+        <path d="M54 58h12l-6 6.5z" fill="#0d1466" stroke="#0d1466" stroke-width="2.4" stroke-linejoin="round" />
+      </symbol>
+    </svg>
+
+    <div class="app">
+      <header class="top">
+        <div class="brand">
+          <svg class="seal-use" viewBox="0 0 120 100" aria-hidden="true"><use href="#seal" /></svg>
+          <span class="word">cloudy clip</span>
+          <span class="project">Focas saltando por el mundo</span>
+        </div>
+        <nav class="pages" role="tablist" aria-label="Pages">
+          <button class="pg squish" data-go="page:edit">Edit</button>
+          <button class="pg squish" data-go="page:media">Media</button>
+          <button class="pg squish" data-go="page:sound">Sound</button>
+          <button class="pg squish" data-go="page:export">Export</button>
+        </nav>
+        <div class="right">
+          <button class="icon squish" data-i="undo" title="Undo"></button>
+          <button class="icon squish" data-i="redo" title="Redo"></button>
+          <span class="av claude" title="Claude Code">✳</span><span class="av" title="You">M</span>
+          <button class="btn btn-primary squish" data-i="export">Export</button>
+        </div>
+      </header>
+
+      <main class="page" data-show="page:edit">
+        <div class="edit">
+          <div class="upper">
+            <aside class="pillow">
+              <div data-show="tool:media" data-fill="media"></div>
+              <div data-show="tool:text" data-fill="text"></div>
+              <div data-show="tool:stickers" data-fill="stickers"></div>
+              <div data-show="tool:transitions" data-fill="transitions"></div>
+            </aside>
+            <section class="stage">
+              <div class="frame"><img src="footage/highway.jpg" alt="Seals on a highway" /><div class="caption">they have left the beach</div></div>
+            </section>
+            <aside class="pillow insp">
+              <div class="insp-title">Highway</div>
+              <nav class="itabs" role="tablist" aria-label="Clip">
+                <button class="itab squish" data-go="insp:video">Video</button>
+                <button class="itab squish" data-go="insp:audio">Audio</button>
+                <button class="itab squish" data-go="insp:cut">Transition</button>
+                <button class="itab squish" data-go="insp:file">File</button>
+              </nav>
+              <div data-show="insp:video" data-fill="inspVideo"></div>
+              <div data-show="insp:audio" data-fill="inspAudio"></div>
+              <div data-show="insp:cut" data-fill="inspTransition"></div>
+              <div data-show="insp:file" data-fill="inspFile"></div>
+            </aside>
+          </div>
+
+          <div class="dock">
+            <nav class="tools" role="tablist" aria-label="Library">
+              <button class="tool squish" data-go="tool:media" data-i="media">Media</button>
+              <button class="tool squish" data-go="tool:text" data-i="text">Text</button>
+              <button class="tool squish" data-go="tool:stickers" data-i="sticker">Stickers</button>
+              <button class="tool squish" data-go="tool:transitions" data-i="trans">Transitions</button>
+            </nav>
+            <div class="transport">
+              <div class="tc">0:04.9</div>
+              <button class="icon squish" data-i="prev" title="Previous cut"></button>
+              <button class="tp-play squish" data-i="play" title="Play"></button>
+              <button class="icon squish" data-i="next" title="Next cut"></button>
+              <div class="tp-len">0:18.0</div>
+            </div>
+            <div class="dock-right">
+              <button class="icon squish" data-i="split" title="Split at playhead"></button>
+              <button class="icon squish" data-i="cut" title="Ripple delete"></button>
+              <button class="icon squish" data-i="trash" title="Delete"></button>
+            </div>
+          </div>
+
+          <section class="tl"><div id="timeline"></div></section>
+        </div>
+      </main>
+
+      <main class="page" data-show="page:media"><div class="sheet"><h1>Media</h1><div data-fill="library"></div></div></main>
+      <main class="page" data-show="page:sound">
+        <div class="empty">
+          <svg class="seal-use" viewBox="0 0 120 100" aria-hidden="true"><use href="#seal" /></svg>
+          <h1>Sound is on the way</h1>
+          <p>Mixing lands here later. Audio clips keep working on the Edit timeline.</p>
+        </div>
+      </main>
+      <main class="page" data-show="page:export"><div class="sheet"><h1>Export queue</h1><div data-fill="queue"></div></div></main>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+      boot({
+        playhead: `<svg class="rider" viewBox="0 0 120 100" aria-hidden="true"><use href="#seal" /></svg>`,
+      });
+    </script>
+  </body>
+</html>

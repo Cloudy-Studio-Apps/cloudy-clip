@@ -1,4 +1,4 @@
-/* Page defaults and scrollbars: thin, square, on-theme. */
+/* Page defaults and scrollbars: a thin pencil stroke that firms up under the pointer. */
 
 html,
 body,
@@ -15,7 +15,6 @@ body {
   font-size: 13px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "cv11", "ss01";
   user-select: none;
 }
 
@@ -24,30 +23,26 @@ body {
   outline-offset: 1px;
 }
 
-:root {
-  --scroll-thumb: color-mix(in oklch, var(--foreground) 22%, transparent);
-  --scroll-thumb-hover: color-mix(in oklch, var(--foreground) 38%, transparent);
-}
-
 /* Chromium / WebKit (the Tauri webviews): full control over the shape. */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--scroll-thumb);
-  border: 2px solid transparent;
+  background: var(--border-strong);
   background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--scroll-thumb-hover);
+  background-color: var(--subtle-foreground);
 }
 ::-webkit-scrollbar-thumb:active {
-  background-color: var(--primary);
+  background-color: var(--muted-foreground);
 }
 ::-webkit-scrollbar-button {
   display: none;
@@ -55,8 +50,8 @@ body {
 
 /* A slightly wider bar where the mouse scrubs a lot (the timeline). */
 [data-scroll="wide"]::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 [data-scroll="wide"]::-webkit-scrollbar-track {
   background: var(--surface);
@@ -71,7 +66,7 @@ body {
 @supports not selector(::-webkit-scrollbar) {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--scroll-thumb) transparent;
+    scrollbar-color: var(--border-strong) transparent;
   }
 }
 

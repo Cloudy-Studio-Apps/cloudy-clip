@@ -14,10 +14,16 @@ Import it only through `@/ui` (enforced by ESLint).
   the timeline).
 - `src/index.css` maps them to Tailwind. Tailwind's default colors and radii are reset, so only
   design-system values exist: `bg-surface`, `text-muted-foreground`, `border-border`,
-  `rounded-xs` … `rounded-lg` (2–8px), `text-2xs` … `text-base` (10–13px), `shadow-frame`.
+  `rounded-xs` … `rounded-lg` (2–8px), `text-2xs` … `text-md` (10–14px), `text-display`, `shadow-frame`.
 
-Shape is sharp by design: nothing above 8px. Fonts are Inter and JetBrains Mono (bundled with
-Fontsource, so they work offline). Icons come from `lucide-react`.
+Shape is sharp by design: nothing above 8px, and only avatars, switch thumbs and EQ points are round.
+Type scale is `text-2xs`…`text-md` (10–14px), plus `text-display` for the wordmark. UI fonts are Shantell
+Sans (`font-hand`, for titles, tabs and buttons), Atkinson Hyperlegible and Courier Prime (bundled with
+Fontsource, so they work offline). Inter and JetBrains Mono stay bundled for text clips. The look follows
+`docs/prototype/designs/b-mesa-de-noche.html`. Icons come from `lucide-react`.
+
+Red (`mark`) marks what you touched: the playhead, the selected clip, active tabs, changed values.
+Anything merely on uses `on`, blue pencil.
 
 ## Components
 

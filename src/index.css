@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/shantell-sans";
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
+@import "@fontsource/courier-prime/400.css";
+@import "@fontsource/courier-prime/700.css";
 @import "./ui/styles/tokens.css";
 @import "./ui/styles/base.css";
 
@@ -18,8 +23,10 @@
   --radius-md: 6px;
   --radius-lg: 8px;
 
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  /* UI fonts. Inter and JetBrains Mono stay imported above because text clips draw with them. */
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Courier Prime", ui-monospace, monospace;
+  --font-hand: "Shantell Sans Variable", "Atkinson Hyperlegible", sans-serif;
 
   /* Editor type scale (13px base). */
   --text-2xs: 10px;
@@ -30,6 +37,10 @@
   --text-sm--line-height: 16px;
   --text-base: 13px;
   --text-base--line-height: 18px;
+  --text-md: 14px;
+  --text-md--line-height: 18px;
+  --text-display: 19px;
+  --text-display--line-height: 24px;
 
   --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
 
@@ -66,6 +77,10 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-soft: var(--primary-soft);
   --color-primary-soft-foreground: var(--primary-soft-foreground);
+  --color-mark: var(--mark);
+  --color-mark-hover: var(--mark-hover);
+  --color-mark-foreground: var(--mark-foreground);
+  --color-on: var(--on);
   --color-accent-soft: var(--accent-soft);
   --color-accent-soft-foreground: var(--accent-soft-foreground);
   --color-destructive: var(--destructive);

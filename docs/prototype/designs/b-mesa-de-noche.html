@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cloudy Clip · Option B dark · Mesa de noche</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Courier+Prime:wght@400;700&family=Shantell+Sans:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* The light table after hours. Black animation paper on a dark desk, roughs in non-photo blue,
+         final lines in white pencil, corrections in red pencil. */
+      :root {
+        --table: #14171b;
+        --table-2: #0e1013;
+        --paper: #202327;
+        --paper-2: #2a2e33;
+        --rule: #33383f;
+        --rule-2: #4b5a68;
+        --blue: #6fb7e6;
+        --ink: #eceff1;
+        --ink-2: #a9b3bb;
+        --ink-3: #7b8690;
+        --red: #ff5f52;
+        --hand: "Shantell Sans", sans-serif;
+        --body: "Atkinson Hyperlegible", sans-serif;
+        --mono: "Courier Prime", monospace;
+        --head: 66px;
+      }
+      * { box-sizing: border-box; }
+
+      /* Scrollbars: a thin pencil stroke that only firms up under the pointer */
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--rule-2); background-clip: padding-box; border: 3px solid transparent; border-radius: 5px; }
+      ::-webkit-scrollbar-thumb:hover { background-color: var(--ink-3); }
+      ::-webkit-scrollbar-thumb:active { background-color: var(--ink-2); }
+      @supports not selector(::-webkit-scrollbar) { * { scrollbar-width: thin; scrollbar-color: var(--rule-2) transparent; } }
+
+      [hidden] { display: none !important; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--table); color: var(--ink); font: 400 13px/1.35 var(--body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+      button, input { font: inherit; color: inherit; }
+      button { background: none; border: 0; cursor: pointer; }
+      :focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+      .ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+      .app { height: 100%; display: grid; grid-template-rows: 48px 1fr; }
+
+      .top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; padding: 0 12px; background: var(--table-2); }
+      .brand { align-self: center; display: flex; align-items: center; gap: 8px; }
+      .brand .seal-use { width: 36px; height: 30px; }
+      .word { font: 800 19px/1 var(--hand); letter-spacing: -0.01em; }
+      .project { margin-left: 12px; color: var(--ink-2); font: 400 13px var(--mono); }
+
+      /* Index tabs: a tab is the edge of the sheet below it, so the active one joins its sheet */
+      .pages { display: flex; gap: 3px; align-items: flex-end; }
+      .pg { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 16px 0 13px; color: var(--ink-2); font: 700 14px/1 var(--hand); background: var(--table); border-radius: 4px 4px 0 0; }
+      .pg:hover { color: var(--ink); }
+      .pg.is-active { height: 38px; color: var(--ink); background: var(--paper); box-shadow: inset 0 2px 0 var(--red); }
+      .right { align-self: center; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+      .icon { width: 30px; height: 30px; display: grid; place-items: center; color: var(--ink-2); border-radius: 3px; }
+      .icon:hover { color: var(--ink); background: rgb(255 255 255 / 0.08); }
+      .av { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 700 11px var(--body); background: var(--ink); color: var(--paper); }
+      .av.claude { background: #f4efe6; color: #c15f3c; font-size: 14px; margin-left: 8px; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 3px; font: 700 13.5px/1 var(--hand); }
+      .btn-primary { background: var(--ink); color: var(--paper); }
+      .btn-primary:hover { background: #fff; }
+      .btn-sm { height: 28px; padding: 0 9px; }
+      .btn-wide { width: 100%; }
+
+      .page { min-height: 0; background: var(--paper); }
+      .edit { height: 100%; display: grid; grid-template-columns: 350px minmax(0, 1fr) 290px; grid-template-rows: minmax(0, 1fr) 300px; background: var(--table); gap: 0; }
+
+      /* Library sheet */
+      .lib { background: var(--paper); border-right: 1px solid var(--rule-2); display: flex; min-height: 0; }
+      /* Side rail: the same index tabs turned 90 degrees, so the active one still joins its sheet */
+      .ltabs { flex: none; width: 78px; display: flex; flex-direction: column; gap: 2px; padding-top: 8px; background: var(--paper-2); border-right: 1px solid var(--rule-2); }
+      .ltab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 56px; padding: 0; font: 700 11.5px/1 var(--hand); color: var(--ink-2); }
+      .ltab:hover { color: var(--ink); }
+      .ltab.is-active { background: var(--paper); color: var(--ink); margin-right: -1px; box-shadow: inset 2px 0 0 var(--red); }
+      .pane { flex: 1; min-width: 0; min-height: 0; overflow: auto; }
+      .pane-head { display: flex; gap: 6px; padding: 10px; }
+      .search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 2px; border-bottom: 1.5px solid var(--ink-3); color: var(--ink-3); }
+      .search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--ink); }
+      .search:focus-within { border-color: var(--blue); }
+
+      .bin { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; padding: 0 10px 14px; }
+      .bin-item { margin: 0; }
+      .thumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--ink); box-shadow: 0 0 0 1px var(--rule-2); }
+      .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .dur { position: absolute; right: 0; bottom: 0; padding: 0 3px; font: 700 10.5px var(--mono); background: var(--paper); }
+      .bin-item figcaption { margin-top: 4px; font-size: 12px; color: var(--ink-2); }
+      .bin-item.is-used figcaption { color: var(--red); font-weight: 700; }
+      .bin-item.is-used .thumb { box-shadow: 0 0 0 2px var(--red); }
+
+      .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; padding: 0 10px 14px; }
+      .preset { display: flex; flex-direction: column; gap: 3px; text-align: left; font-size: 12px; color: var(--ink-2); padding: 0; }
+      .preset-art { height: 62px; display: grid; place-items: center; background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--rule); color: var(--ink); font: 800 24px var(--hand); }
+      .preset:hover .preset-art { box-shadow: inset 0 0 0 1.5px var(--blue); }
+      .pv-caption .preset-art { font: 700 15px var(--body); }
+      .pv-lower .preset-art { font: 700 15px var(--body); place-items: end start; padding: 8px; }
+      .pv-meme .preset-art { font: 700 24px var(--mono); }
+      .pv-outline .preset-art { color: transparent; -webkit-text-stroke: 1px var(--ink); }
+      .pv-note .preset-art { font: 500 16px var(--hand); color: var(--blue); }
+
+      .group-title { margin: 0; padding: 2px 10px 8px; font: 700 13px var(--hand); }
+      .stickers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0 10px 14px; }
+      .sticker { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 2px 6px; font-size: 11px; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--rule); }
+      .sticker:hover { box-shadow: inset 0 0 0 1.5px var(--blue); }
+      .sticker .seal-use { width: 56px; height: 47px; overflow: visible; }
+      .st-squish { transform: scale(1.14, 0.72); } .st-tall { transform: scale(0.72, 1.14); } .st-tilt { transform: rotate(-16deg); } .st-side { transform: rotate(90deg) scale(0.86); } .st-flip { transform: rotate(180deg); }
+
+      .trans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; padding: 10px; }
+      .tr-card { text-align: left; font-size: 12px; color: var(--ink-2); display: flex; flex-direction: column; gap: 4px; padding: 0; }
+      .tr-art { display: flex; aspect-ratio: 16 / 9; overflow: hidden; box-shadow: 0 0 0 1px var(--rule-2); }
+      .tr-art img { width: 50%; object-fit: cover; }
+      .tr-card.is-used { color: var(--red); font-weight: 700; }
+      .tr-card.is-used .tr-art { box-shadow: 0 0 0 2px var(--red); }
+
+      /* Stage: footage sits on the lit table inside a field guide, the animator's frame chart */
+      .stage { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) 44px; }
+      .frame-wrap { position: relative; min-height: 0; display: grid; place-items: center; padding: 26px; container-type: size;
+        background: linear-gradient(var(--rule-2), var(--rule-2)) center / 100% 1px no-repeat, linear-gradient(var(--rule-2), var(--rule-2)) center / 1px 100% no-repeat; }
+      .frame { position: relative; width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; background: #000; box-shadow: 0 0 0 1px var(--rule-2); }
+      .frame > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .frame::before, .frame::after { content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none; }
+      .frame::before { left: -9px; top: -9px; border-left: 1.5px solid var(--red); border-top: 1.5px solid var(--red); }
+      .frame::after { right: -9px; bottom: -9px; border-right: 1.5px solid var(--red); border-bottom: 1.5px solid var(--red); }
+      .caption { position: absolute; inset: auto 0 11% 0; text-align: center; font: 700 clamp(16px, 3.4cqw, 34px)/1 var(--body); color: #fff; text-shadow: 0 2px 0 #000, 0 0 6px #000; }
+      .transport { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 12px; background: var(--paper); border-top: 1px solid var(--rule-2); }
+      .tc { font: 700 17px var(--mono); }
+      .tc span { color: var(--ink-3); font-size: 13px; font-weight: 400; }
+      .tp-btns { display: flex; align-items: center; gap: 2px; }
+      .tp-play { width: 34px; height: 34px; display: grid; place-items: center; background: var(--ink); color: var(--paper); border-radius: 50%; margin: 0 6px; }
+      .tp-play .ico { fill: currentColor; }
+      .tp-right { justify-self: end; color: var(--ink-2); font: 400 12.5px var(--mono); }
+
+      /* Inspector sheet */
+      .insp { background: var(--paper); border-left: 1px solid var(--rule-2); min-height: 0; overflow: auto; }
+      .itabs { display: flex; gap: 2px; padding: 8px 12px 0; border-bottom: 1px solid var(--rule-2); }
+      .itab { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; height: 42px; padding: 0; color: var(--ink-2); font: 700 13px/1 var(--hand); }
+      .itab:hover { color: var(--ink); }
+      .itab.is-active { color: var(--ink); box-shadow: inset 0 -2px 0 var(--red); }
+      .sect { padding: 12px; border-bottom: 1px dashed var(--rule-2); }
+      .sect h4 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; font: 700 13.5px var(--hand); }
+      .sect-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; padding: 0; font: inherit; text-align: left; }
+      .sect-toggle:hover { color: var(--blue); }
+      .sect-toggle .ico { width: 14px; height: 14px; margin-left: -2px; transition: transform 0.15s ease-out; }
+      .sect.is-closed .sect-toggle .ico { transform: rotate(-90deg); }
+      .sect.is-closed { padding-bottom: 12px; }
+      .sect.is-closed h4 { margin-bottom: 0; }
+      .sect.is-closed > :not(h4) { display: none; }
+      .sect-reset { padding: 0; color: var(--ink-3); }
+      .sect-reset .ico { width: 13px; height: 13px; }
+      .prop { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 8px; min-height: 28px; color: var(--ink-2); }
+      .prop:not(.has-slider) .val { grid-column: 3; }
+      .val { font: 700 13px var(--mono); color: var(--ink); min-width: 58px; text-align: right; border-bottom: 1px solid var(--rule-2); padding: 2px 0; }
+      .val small { font-size: 11px; font-weight: 400; color: var(--ink-3); margin-left: 2px; }
+      .prop.is-changed .val { color: var(--red); border-color: var(--red); }
+      .slider { height: 1.5px; background: var(--rule-2); position: relative; }
+      .slider i { position: absolute; inset: 0 auto 0 0; background: var(--ink); }
+      .slider i::after { content: ""; position: absolute; right: -5px; top: -4.5px; width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink); }
+      .seg { display: flex; gap: 14px; }
+      .seg button { padding: 3px 0; color: var(--ink-2); font: 700 13px var(--hand); }
+      .seg .is-active { color: var(--ink); box-shadow: inset 0 -2px 0 var(--red); }
+      .kv { display: flex; justify-content: space-between; min-height: 26px; align-items: center; color: var(--ink-2); }
+      .kv b { font-weight: 700; color: var(--ink); }
+
+      /* Bin picker in Edit's Media tab */
+      .bin-pick { display: flex; align-items: center; gap: 6px; margin: 0 10px 10px; padding: 0 6px; height: 28px; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--rule-2); border-radius: 3px; }
+      .bin-pick:focus-within { box-shadow: inset 0 0 0 1px var(--blue); }
+      .bin-pick .ico { width: 14px; height: 14px; }
+      .bin-pick select { flex: 1; min-width: 0; height: 100%; color: var(--ink); background: none; border: 0; outline: 0; font: 400 13px var(--body); }
+      .bin-pick option, .bin-pick optgroup { color: var(--ink); background: var(--paper-2); }
+      .thumb.is-audio { display: grid; place-items: center; background: var(--paper-2); }
+      .thumb.is-audio .wave { position: static; width: 86%; height: 56%; fill: var(--ink-2); }
+
+      /* Media page: find it on disk, sort it into bins, check it before you edit */
+      .mpage { height: 100%; display: grid; grid-template-columns: 262px minmax(0, 1fr) 330px; background: var(--paper); }
+      .mside { display: flex; flex-direction: column; min-height: 0; background: var(--paper-2); border-right: 1px solid var(--rule-2); }
+      .mblock { display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid var(--rule-2); }
+      .mblock.is-disks { flex: 0 0 30%; }
+      .mblock.is-bins { flex: 1; }
+      .mblock.is-smart { flex: none; border-bottom: 0; }
+      .mblock h2 { flex: none; display: flex; align-items: center; justify-content: space-between; height: 32px; margin: 0; padding: 0 6px 0 12px; font: 700 13.5px var(--hand); }
+      .mblock h2 .icon { width: 24px; height: 24px; }
+      .mblock h2 .ico { width: 14px; height: 14px; }
+      .tree { flex: 1; min-height: 0; overflow: auto; padding-bottom: 6px; }
+      .tree-row { display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 0 12px 0 calc(12px + var(--depth, 0) * 16px); color: var(--ink-2); text-align: left; }
+      .tree-row:hover { color: var(--ink); background: rgb(255 255 255 / 0.05); }
+      .tree-row .ico { width: 14px; height: 14px; }
+      .tree-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .tree-row small { font: 400 11.5px var(--mono); color: var(--ink-3); }
+      .tree-row.is-active { color: var(--ink); background: var(--paper); box-shadow: inset 2px 0 0 var(--red); }
+      .mmain { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+      .mbar { flex: none; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-bottom: 1px solid var(--rule-2); }
+      .crumb { flex: 1; min-width: 0; font: 400 13px var(--mono); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .crumb b { color: var(--ink); }
+      .mbar .search { flex: 0 1 190px; }
+      .mviews { display: flex; gap: 2px; }
+      .mviews .icon.is-active { color: var(--ink); box-shadow: inset 0 -2px 0 var(--red); border-radius: 0; }
+      .mscroll { flex: 1; min-height: 0; overflow: auto; padding: 14px; }
+      .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px 12px; }
+      .lib-card { margin: 0; }
+      .lib-card figcaption { display: flex; flex-direction: column; margin-top: 5px; }
+      .lib-card b { font-weight: 400; font-size: 12.5px; }
+      .lib-card figcaption span { font: 400 11.5px var(--mono); color: var(--ink-3); }
+      .lib-card.is-used .thumb { box-shadow: 0 0 0 2px var(--red); }
+      .lib-card.is-used b { color: var(--red); font-weight: 700; }
+      .lib-grid.is-list { display: flex; flex-direction: column; gap: 0; }
+      .is-list .lib-card { display: flex; align-items: center; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--rule); }
+      .is-list .thumb { flex: none; width: 72px; }
+      .is-list .dur { display: none; }
+      .is-list figcaption { flex: 1; flex-direction: row; justify-content: space-between; margin: 0; }
+      .lib-note { margin: 16px 0 0; color: var(--ink-3); }
+      .lib-empty { margin: 40px 0; text-align: center; color: var(--ink-2); }
+      .mright { display: flex; flex-direction: column; min-height: 0; background: var(--paper); border-left: 1px solid var(--rule-2); }
+      .mviewer { flex: none; padding: 12px 12px 6px; border-bottom: 1px solid var(--rule-2); }
+      .mviewer img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; box-shadow: 0 0 0 1px var(--rule-2); }
+      .mscrub { position: relative; height: 2px; margin: 12px 0 4px; background: var(--rule-2); }
+      .mscrub i { position: absolute; left: 42%; top: -5px; width: 2px; height: 12px; background: var(--red); }
+      .mtransport { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+      .mtransport .tc { font-size: 14px; }
+      .mtransport .tc-end { justify-self: end; font: 400 12.5px var(--mono); color: var(--ink-3); }
+      .mtransport .tp-play { width: 30px; height: 30px; margin: 0 2px; }
+      .mmeta { flex: 1; min-height: 0; overflow: auto; }
+
+      /* Export page: settings, the picture you'll get with what it costs, then the queue */
+      .xpage { height: 100%; display: grid; grid-template-columns: 392px minmax(0, 1fr) 300px; background: var(--table); }
+      .xform, .xqueue { display: flex; flex-direction: column; min-height: 0; background: var(--paper); }
+      .xform { border-right: 1px solid var(--rule-2); }
+      .xqueue { border-left: 1px solid var(--rule-2); }
+      .xscroll { flex: 1; min-height: 0; overflow: auto; }
+      .xfoot { flex: none; padding: 10px 12px; border-top: 1px solid var(--rule-2); }
+      .xfoot .btn { width: 100%; height: 34px; font-size: 14.5px; }
+      .xfoot .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+      .xqueue .xfoot { margin-top: auto; }
+      .xqueue .xfoot .btn-primary { background: var(--red); color: var(--paper); }
+      .xqueue .xfoot .btn-primary:hover:not(:disabled) { background: #ff7a6f; }
+      .xform .field { grid-template-columns: 146px minmax(0, 1fr); }
+      .field select { width: 100%; min-width: 0; height: 26px; padding: 2px 20px 2px 4px; color: var(--ink); border: 0; border-bottom: 1px solid var(--rule-2); border-radius: 0; outline: 0; font: 400 13px var(--body); appearance: none;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a9b3bb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 2px center / 14px no-repeat; }
+      .field select:focus { border-color: var(--blue); }
+      .field select option { color: var(--ink); background: var(--paper-2); }
+      .path-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: 32px; }
+      .path-row input { min-width: 0; height: 26px; padding: 2px 4px; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--rule-2); outline: 0; font: 400 12.5px var(--mono); }
+      .path-row input:focus { border-color: var(--blue); }
+      .btn-ghost { box-shadow: inset 0 0 0 1px var(--rule-2); }
+      .btn-ghost:hover { background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--ink-3); }
+      .kinds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .kind { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 4px 6px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--rule); color: var(--ink-2); font: 700 12.5px/1.2 var(--hand); }
+      .kind:hover { box-shadow: inset 0 0 0 1px var(--ink-3); }
+      .kind img, .kind-art { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: grid; place-items: center; margin-bottom: 3px; color: var(--ink-3); }
+      .kind small { font: 400 11px var(--mono); color: var(--ink-3); }
+      .kind.is-active { color: var(--ink); box-shadow: inset 0 0 0 2px var(--red); }
+      .kind.is-active small { color: var(--red); }
+      .q-row { display: grid; grid-template-columns: minmax(0, 1fr) 46px; gap: 12px; align-items: center; min-height: 30px; }
+      .q-val { font: 700 13px var(--mono); text-align: right; border-bottom: 1px solid var(--rule-2); padding: 2px 0; }
+      .q-hints { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-3); }
+      .range { width: 100%; height: 16px; margin: 0; background: none; appearance: none; cursor: pointer; }
+      .range::-webkit-slider-runnable-track { height: 2px; background: linear-gradient(90deg, var(--ink) var(--v), var(--rule-2) var(--v)); }
+      .range::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; margin-top: -5px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink); }
+      .range::-moz-range-track { height: 2px; background: var(--rule-2); }
+      .range::-moz-range-progress { height: 2px; background: var(--ink); }
+      .range::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink); }
+      .locked { position: relative; display: block; }
+      .locked .ico { position: absolute; right: 2px; top: 6px; width: 13px; height: 13px; color: var(--ink-3); }
+      :is(.field, h4) input.switch { width: 30px; height: 16px; padding: 0; margin: 0; justify-self: start; border: 0; border-radius: 8px; background: var(--rule-2); appearance: none; position: relative; cursor: pointer; transition: background-color 0.12s; }
+      :is(.field, h4) input.switch::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); transition: transform 0.12s ease-out; }
+      :is(.field, h4) input.switch:checked { background: var(--red); }
+      :is(.field, h4) input.switch:checked::after { transform: translateX(14px); }
+      :is(.field, h4) input.switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+      .xstage { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; }
+      .xstats { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--paper); border-top: 1px solid var(--rule-2); }
+      .xstat { padding: 9px 14px 10px; }
+      .xstat + .xstat { border-left: 1px solid var(--rule); }
+      .xstat b { display: block; font: 700 18px/1.1 var(--mono); }
+      .xstat span { font-size: 12px; color: var(--ink-3); }
+      .xqueue h2 { flex: none; margin: 0; padding: 12px 12px 8px; font: 700 14px var(--hand); }
+      .qlist { flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 0 12px; list-style: none; }
+      .qitem { display: grid; grid-template-columns: 64px minmax(0, 1fr) 24px; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+      .qitem img { width: 64px; aspect-ratio: 16 / 9; object-fit: cover; display: block; box-shadow: 0 0 0 1px var(--rule-2); }
+      .qitem b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 13px var(--hand); }
+      .qitem small { display: block; font: 400 11.5px var(--mono); color: var(--ink-3); }
+      .qitem .icon { width: 24px; height: 24px; }
+      .qitem .ico { width: 14px; height: 14px; }
+      .qitem .bar { grid-column: 1 / -1; height: 2px; background: var(--rule); }
+      .qitem .bar i { display: block; height: 100%; background: var(--ink-2); }
+      .qitem.is-running small { color: var(--red); }
+      .qitem.is-running .bar i { background: var(--red); }
+      .qempty { margin: 0 12px; padding: 22px 16px; text-align: center; color: var(--ink-2); border: 1px dashed var(--rule-2); }
+
+      /* Audio tab: sections you can bypass, and the equalizer */
+      .sect h4 input.switch { flex: none; margin-right: 8px; }
+      .sect.is-off .sect-toggle { color: var(--ink-3); }
+      .sect.is-off > :not(h4) { opacity: 0.4; pointer-events: none; }
+      .aprop { display: grid; grid-template-columns: 68px minmax(0, 1fr) 44px 14px 14px; align-items: center; gap: 6px; min-height: 28px; color: var(--ink-2); }
+      .aprop .val { min-width: 0; }
+      .aprop.is-changed .val { color: var(--red); border-color: var(--red); }
+      .key { width: 14px; height: 14px; padding: 0; display: grid; place-items: center; }
+      .key::before { content: ""; width: 8px; height: 8px; transform: rotate(45deg); box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+      .key:hover::before { box-shadow: inset 0 0 0 1.5px var(--ink); }
+      .key.is-active::before { background: var(--red); box-shadow: none; }
+      .row-reset { width: 14px; height: 14px; padding: 0; color: var(--ink-3); }
+      .row-reset:hover { color: var(--ink); }
+      .row-reset .ico { width: 12px; height: 12px; }
+      .eq { display: block; width: 100%; touch-action: none; background: var(--table); }
+      .eq-line { stroke: var(--rule); stroke-width: 1; }
+      .eq-line.is-zero { stroke: var(--rule-2); }
+      .eq-label { font: 400 8.5px var(--mono); fill: var(--ink-3); }
+      .eq-fill { fill: var(--blue); opacity: 0.16; }
+      .eq-curve { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
+      .eq-node { cursor: grab; }
+      .eq-node:active { cursor: grabbing; }
+      .eq-node circle { fill: var(--paper); stroke: var(--red); stroke-width: 1.5; }
+      .eq-node text { font: 700 9px var(--mono); fill: var(--ink); pointer-events: none; user-select: none; }
+      .bands { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 8px; }
+      .band { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+      .band-on { width: 100%; height: 20px; padding: 0; border-radius: 3px; color: var(--ink-3); font: 700 11px var(--mono); box-shadow: inset 0 0 0 1px var(--rule-2); }
+      .band-on.is-active { color: var(--ink); }
+      .band-type { width: 100%; height: 22px; padding: 0 5px; border-radius: 3px; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--rule); }
+      .band-type:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink-3); }
+      .band-type svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+      .band b { font: 700 11.5px var(--mono); }
+      .band small { font: 400 10.5px var(--mono); color: var(--ink-3); }
+
+      /* Solid colors: a library item with no file behind it */
+      .thumb.is-solid { box-shadow: 0 0 0 1px var(--rule-2); }
+      .pane-head .icon.btn-ghost { flex: none; width: 28px; height: 28px; }
+      .icon.btn-ghost .ico { width: 13px; height: 13px; }
+      .solid-dialog { width: 340px; padding: 0; color: var(--ink); background: var(--paper); border: 1px solid var(--rule-2); border-radius: 4px; }
+      .solid-dialog::backdrop { background: rgb(8 10 12 / 0.6); }
+      .solid-dialog form { padding: 14px; }
+      .solid-dialog h2 { margin: 0 0 10px; font: 800 17px var(--hand); }
+      .solid-preview { height: 86px; margin-bottom: 10px; box-shadow: inset 0 0 0 1px var(--rule-2); }
+      .solid-note { margin: 10px 0 0; font-size: 12px; color: var(--ink-3); }
+      .solid-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 14px; }
+      .color-row { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; align-items: center; }
+      .field input[type="color"] { height: 24px; padding: 0; border: 0; cursor: pointer; appearance: none; }
+      input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+      input[type="color"]::-webkit-color-swatch { border: 1px solid var(--rule-2); border-radius: 2px; }
+      input[type="color"]::-moz-color-swatch { border: 1px solid var(--rule-2); border-radius: 2px; }
+      #solid-hex { font-family: var(--mono); }
+      #solid-swatches .swatch { --size: 16px; }
+
+      /* File tab: what the file is, then what you note about it */
+      .file-dur { font: 700 12.5px var(--mono); color: var(--ink-2); }
+      .file-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 10px 8px; margin: 2px 0 4px; }
+      .file-grid div { min-width: 0; }
+      .file-grid span { display: block; font-size: 11.5px; color: var(--ink-3); }
+      .file-grid b { display: block; font-weight: 700; font-size: 12.5px; }
+      .file-open { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 30px; margin-top: 8px; border-radius: 3px; color: var(--ink); font: 700 13px/1 var(--hand); box-shadow: inset 0 0 0 1px var(--rule-2); }
+      .file-open:hover { background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--ink-3); }
+      .field { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 6px; align-items: center; min-height: 30px; color: var(--ink-2); }
+      .field.is-top { align-items: start; padding-top: 6px; }
+      .field input, .field textarea { width: 100%; min-width: 0; height: 26px; padding: 2px 4px; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--rule-2); border-radius: 0; outline: 0; font: 400 13px var(--body); }
+      .field textarea { height: 58px; resize: vertical; border: 1px solid var(--rule-2); }
+      .field input:focus, .field textarea:focus { border-color: var(--blue); }
+      .field input:read-only { color: var(--ink-3); border-bottom-style: dashed; font-family: var(--mono); }
+      .field.is-stack { grid-template-columns: 1fr; gap: 3px; padding: 4px 0 2px; }
+      .field .seg { gap: 18px; white-space: nowrap; }
+      .swatches { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px 0; justify-items: center; align-items: center; }
+      .swatch { width: 16px; height: 16px; padding: 0; display: grid; place-items: center; border-radius: 50%; color: var(--ink-3); }
+      .swatch:not(.is-none) { background: var(--c); }
+      .swatch:hover { box-shadow: 0 0 0 1.5px var(--ink-3); }
+      .swatch.is-active { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--ink); }
+      .swatch.is-none .ico { width: 13px; height: 13px; }
+      .next-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--rule-2); color: var(--ink-3); font-size: 12px; }
+      .next-row label { display: flex; align-items: center; gap: 6px; }
+      .next-row input { margin: 0; accent-color: var(--red); }
+      .next-row button { flex: none; height: 26px; padding: 0 9px; border-radius: 3px; color: var(--ink-3); font: 700 12px var(--hand); box-shadow: inset 0 0 0 1px var(--rule-2); cursor: not-allowed; }
+
+      /* Timeline: the exposure sheet, held by a peg bar */
+      .tl { grid-column: 1 / -1; position: relative; display: flex; flex-direction: column; min-height: 0; background: var(--paper); border-top: 1px solid var(--rule-2); }
+      .tl-tools { position: relative; height: 34px; flex: none; display: flex; align-items: center; gap: 2px; padding: 0 8px; background: var(--paper-2); border-bottom: 1px solid var(--rule-2); }
+      .tl-tools .grow { flex: 1; }
+      .tl-tools .note { font: 400 12.5px var(--mono); color: var(--ink-2); }
+      .pegs { position: absolute; left: 50%; top: 9px; transform: translateX(-50%); display: flex; gap: 120px; align-items: center; }
+      .pegs i { display: block; width: 34px; height: 13px; border-radius: 7px; background: var(--table-2); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.6); }
+      .pegs i:nth-child(2) { width: 15px; height: 15px; border-radius: 50%; }
+      #timeline { position: relative; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+        background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px calc((100% - var(--head)) / 20)) var(--head) 0 / 100% 100% no-repeat; }
+      .tl-row { display: grid; grid-template-columns: var(--head) 1fr; flex: 1; border-bottom: 1px solid var(--rule); min-height: 0; }
+      .tl-row.is-main { flex: 1.7; }
+      .tl-ruler { flex: none; height: 24px; border-bottom: 1.5px solid var(--ink-3); }
+      .tl-corner, .tl-head { background: var(--paper-2); border-right: 1.5px solid var(--ink-3); }
+      .tl-head { display: flex; align-items: center; justify-content: center; color: var(--ink-2); }
+      .tl-id { font: 700 14px var(--mono); }
+      .tl-id .ico, .tl-btns { display: none; }
+      .ruler, .lane { position: relative; overflow: hidden; }
+      .tick { position: absolute; bottom: 0; width: 1px; height: 5px; background: var(--ink-3); }
+      .tick.is-major { height: 100%; background: var(--ink-3); }
+      .tick b { position: absolute; left: 4px; bottom: 4px; font: 700 12px var(--mono); }
+
+      .clip { position: absolute; top: 3px; bottom: 3px; overflow: hidden; display: flex; align-items: center; color: var(--ink); box-shadow: inset 0 0 0 1px var(--rule-2); }
+      .film { position: absolute; inset: 0; background-size: auto 100%; background-repeat: repeat-x; }
+      .clip-name { position: relative; padding: 0 6px; font-size: 12px; white-space: nowrap; }
+      .k-video .clip-name { align-self: flex-end; background: var(--paper); padding: 0 5px; font: 700 12px var(--mono); border-top: 1px solid var(--rule-2); border-right: 1px solid var(--rule-2); }
+      .k-text { background: #4d4119; color: #ffe9a8; box-shadow: inset 0 0 0 1px #c9a94a; font-weight: 700; }
+      .k-sticker { background: #1f3f55; color: #cfe6f5; box-shadow: inset 0 0 0 1px var(--blue); }
+      .k-audio { background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--rule-2); }
+      .wave { position: absolute; inset: 20% 0 8%; width: 100%; height: 72%; fill: var(--ink-2); }
+      .k-audio .clip-name { align-self: flex-start; font: 400 11.5px var(--mono); margin-top: 1px; background: var(--paper-2); }
+      .k-video.is-sel { overflow: visible; z-index: 3; }
+      .pencil { position: absolute; inset: -4px -5px; width: calc(100% + 10px); height: calc(100% + 8px); fill: none; stroke: var(--red); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+      .pencil path { vector-effect: non-scaling-stroke; }
+      /* A dissolve on film stock is marked with a long pencil X across the join */
+      .cut { position: absolute; top: 3px; bottom: 3px; width: 44px; margin-left: -22px; z-index: 4;
+        background: linear-gradient(to top right, transparent 48.4%, var(--red) 48.4%, var(--red) 51.6%, transparent 51.6%), linear-gradient(to bottom right, transparent 48.4%, var(--red) 48.4%, var(--red) 51.6%, transparent 51.6%); }
+
+      .playhead { position: absolute; top: 0; bottom: 0; left: calc(var(--head) + (100% - var(--head)) * var(--at)); width: 2px; margin-left: -1px; background: var(--red); z-index: 5; pointer-events: none; }
+      .playhead::before { content: ""; position: absolute; top: 0; left: -5px; border: 6px solid transparent; border-top: 9px solid var(--red); }
+
+      /* Other pages */
+      .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; background: var(--paper); }
+      .empty h1 { margin: 0; font: 800 30px/1 var(--hand); }
+      .empty p { margin: 0; max-width: 40ch; color: var(--ink-2); font-size: 14px; }
+      .rough { width: 300px; height: 250px; margin-bottom: 8px; overflow: visible; }
+      .rough .bluep { stroke: var(--blue); stroke-width: 0.5; fill: none; opacity: 0.75; }
+      .rough .graph { stroke: var(--ink); stroke-width: 1.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .rough .spots { fill: #22272e; opacity: 0.32; }
+      .rough .graph, .rough .bluep { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 0.9s ease-out forwards; }
+      .rough .graph { animation-delay: 0.7s; animation-duration: 1.1s; }
+      .rough .spots, .rough .fillin { opacity: 0; animation: appear 0.4s 1.7s forwards; }
+      @keyframes draw { to { stroke-dashoffset: 0; } }
+      @keyframes appear { to { opacity: 1; } }
+      .rough .spots { animation-name: appear-soft; }
+      @keyframes appear-soft { to { opacity: 0.32; } }
+      @media (max-width: 1100px) { .edit { grid-template-columns: 300px minmax(0, 1fr); } .insp { display: none; } }
+      @media (prefers-reduced-motion: reduce) { .rough * { animation: none !important; stroke-dashoffset: 0 !important; opacity: 1 !important; } }
+    </style>
+  </head>
+  <body>
+    <!-- The seal as a rough: a blue construction sphere, then graphite on top. It's a circle first, which is the joke. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="seal" viewBox="0 0 120 100">
+        <g fill="none" stroke="#6fb7e6" stroke-width="0.9" opacity="0.8">
+          <circle cx="60" cy="50" r="46" />
+          <path d="M6 50c20 8 88 8 108 0M60 2c-8 30-8 66 0 96" />
+        </g>
+        <path d="M60 6c30 0 54 20 54 49 0 25-24 39-54 39S6 80 6 55C6 26 30 6 60 6z" fill="#dfe5e9" stroke="#eceff1" stroke-width="2.2" />
+        <g fill="#22272e" opacity="0.28">
+          <ellipse cx="38" cy="19" rx="5" ry="3.2" transform="rotate(-24 38 19)" /><ellipse cx="53" cy="13" rx="3.2" ry="2.2" /><ellipse cx="70" cy="15" rx="5.2" ry="3" /><ellipse cx="86" cy="23" rx="4.2" ry="2.8" transform="rotate(30 86 23)" /><ellipse cx="24" cy="33" rx="3.6" ry="2.6" /><ellipse cx="97" cy="36" rx="3.8" ry="2.6" /><ellipse cx="22" cy="68" rx="3.8" ry="2.6" /><ellipse cx="96" cy="70" rx="4" ry="2.6" />
+        </g>
+        <ellipse cx="40" cy="49" rx="6.4" ry="4.4" transform="rotate(10 40 49)" fill="#22272e" />
+        <ellipse cx="80" cy="49" rx="6.4" ry="4.4" transform="rotate(-10 80 49)" fill="#22272e" />
+        <path d="M60 58c-7-1-16 1-16 8 0 6 10 9 16 4 6 5 16 2 16-4 0-7-9-9-16-8z" fill="#f7f9fa" stroke="#22272e" stroke-width="1.9" />
+        <path d="M55.5 56.5h9l-4.5 5z" fill="#22272e" stroke="#22272e" stroke-width="1.6" stroke-linejoin="round" />
+      </symbol>
+    </svg>
+
+    <div class="app">
+      <header class="top">
+        <div class="brand">
+          <svg class="seal-use" viewBox="0 0 120 100" aria-hidden="true"><use href="#seal" /></svg>
+          <span class="word">cloudy clip</span>
+          <span class="project">focas_saltando_por_el_mundo</span>
+        </div>
+        <nav class="pages" role="tablist" aria-label="Pages">
+          <button class="pg" data-go="page:media" data-i="folder">Media</button>
+          <button class="pg" data-go="page:edit" data-i="edit">Edit</button>
+          <button class="pg" data-go="page:sound" data-i="sound">Sound</button>
+          <button class="pg" data-go="page:export" data-i="export">Export</button>
+        </nav>
+        <div class="right">
+          <button class="icon" data-i="undo" title="Undo"></button>
+          <button class="icon" data-i="redo" title="Redo"></button>
+          <span class="av claude" title="Claude Code">✳</span><span class="av" title="You">M</span>
+        </div>
+      </header>
+
+      <main class="page" data-show="page:edit">
+        <div class="edit">
+          <aside class="lib">
+            <nav class="ltabs" role="tablist" aria-orientation="vertical" aria-label="Library">
+              <button class="ltab" data-go="tool:media" data-i="media">Media</button>
+              <button class="ltab" data-go="tool:text" data-i="text">Text</button>
+              <button class="ltab" data-go="tool:stickers" data-i="sticker">Stickers</button>
+              <button class="ltab" data-go="tool:transitions" data-i="trans">Transitions</button>
+            </nav>
+            <div class="pane">
+              <div data-show="tool:media" data-fill="media"></div>
+              <div data-show="tool:text" data-fill="text"></div>
+              <div data-show="tool:stickers" data-fill="stickers"></div>
+              <div data-show="tool:transitions" data-fill="transitions"></div>
+            </div>
+          </aside>
+          <section class="stage">
+            <div class="frame-wrap">
+              <div class="frame"><img src="footage/highway.jpg" alt="Seals on a highway" /><div class="caption">they have left the beach</div></div>
+            </div>
+            <div class="transport">
+              <div class="tc">0:04.9 <span>/ 0:18.0</span></div>
+              <div class="tp-btns">
+                <button class="icon" data-i="prev" title="Previous cut"></button>
+                <button class="tp-play" data-i="play" title="Play"></button>
+                <button class="icon" data-i="next" title="Next cut"></button>
+              </div>
+              <div class="tp-right">1920×1080 100%</div>
+            </div>
+          </section>
+          <aside class="insp">
+            <nav class="itabs" role="tablist" aria-label="Clip">
+              <button class="itab" data-go="insp:video" data-i="video">Video</button>
+              <button class="itab" data-go="insp:audio" data-i="sound">Audio</button>
+              <button class="itab" data-go="insp:cut" data-i="trans">Transition</button>
+              <button class="itab" data-go="insp:file" data-i="file">File</button>
+            </nav>
+            <div data-show="insp:video" data-fill="inspVideo"></div>
+            <div data-show="insp:audio" data-fill="inspAudio"></div>
+            <div data-show="insp:cut" data-fill="inspTransition"></div>
+            <div data-show="insp:file" data-fill="inspFile"></div>
+          </aside>
+          <section class="tl">
+            <div class="tl-tools">
+              <button class="icon" data-i="split" title="Split at playhead"></button>
+              <button class="icon" data-i="cut" title="Ripple delete"></button>
+              <button class="icon" data-i="trash" title="Delete"></button>
+              <div class="pegs" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="grow"></span>
+              <span class="note">7 clips, 18.0 s</span>
+            </div>
+            <div id="timeline"></div>
+          </section>
+        </div>
+      </main>
+
+      <main class="page" data-show="page:media">
+        <div class="mpage">
+          <aside class="mside">
+            <section class="mblock is-disks">
+              <h2>Disks</h2>
+              <div class="tree" data-fill="disks"></div>
+            </section>
+            <section class="mblock is-bins">
+              <h2>Bins<button class="icon" data-i="plus" title="New bin" aria-label="New bin"></button></h2>
+              <div class="tree" data-fill="bins"></div>
+            </section>
+            <section class="mblock is-smart">
+              <h2>Smart bins<button class="icon" data-i="plus" title="New smart bin" aria-label="New smart bin"></button></h2>
+              <div class="tree" data-fill="smartBins"></div>
+            </section>
+          </aside>
+          <section class="mmain">
+            <div class="mbar">
+              <div class="crumb" id="crumb"></div>
+              <label class="search"><span data-i="search"></span><input placeholder="Search this bin" aria-label="Search this bin" /></label>
+              <div class="mviews" role="group" aria-label="View">
+                <button class="icon is-active" data-view="grid" data-i="grid" title="Thumbnails" aria-label="Thumbnails"></button>
+                <button class="icon" data-view="list" data-i="list" title="List" aria-label="List"></button>
+              </div>
+              <button class="btn btn-sm btn-ghost" data-new-solid data-i="solid">Solid color</button>
+              <button class="btn btn-primary btn-sm" data-i="plus">Import</button>
+            </div>
+            <div class="mscroll">
+              <div data-fill="library"></div>
+              <p class="lib-empty" id="lib-empty" hidden>Nothing in this bin yet. Drag media here from the grid or from Disks.</p>
+              <p class="lib-note">Drag files here from Disks or your file manager to import them.</p>
+            </div>
+          </section>
+          <aside class="mright">
+            <div class="mviewer">
+              <img src="footage/highway.jpg" alt="Highway clip" />
+              <div class="mscrub"><i></i></div>
+              <div class="mtransport">
+                <div class="tc">0:01.4</div>
+                <div class="tp-btns">
+                  <button class="icon" data-i="prev" title="Back to start"></button>
+                  <button class="tp-play" data-i="play" title="Play"></button>
+                  <button class="icon" data-i="next" title="Go to end"></button>
+                </div>
+                <div class="tc-end">0:03.2</div>
+              </div>
+            </div>
+            <div class="mmeta" data-fill="inspFile"></div>
+          </aside>
+        </div>
+      </main>
+      <main class="page" data-show="page:sound">
+        <div class="empty">
+          <svg class="rough" viewBox="0 0 120 100" aria-hidden="true">
+            <circle class="bluep" pathLength="1" cx="60" cy="50" r="46" />
+            <path class="bluep" pathLength="1" d="M6 50c20 8 88 8 108 0" />
+            <path class="bluep" pathLength="1" d="M60 2c-8 30-8 66 0 96" />
+            <path class="fillin" fill="#dfe5e9" d="M60 6c30 0 54 20 54 49 0 25-24 39-54 39S6 80 6 55C6 26 30 6 60 6z" />
+            <path class="graph" pathLength="1" d="M60 6c30 0 54 20 54 49 0 25-24 39-54 39S6 80 6 55C6 26 30 6 60 6z" />
+            <g class="spots"><ellipse cx="38" cy="19" rx="5" ry="3.2" transform="rotate(-24 38 19)" /><ellipse cx="53" cy="13" rx="3.2" ry="2.2" /><ellipse cx="70" cy="15" rx="5.2" ry="3" /><ellipse cx="86" cy="23" rx="4.2" ry="2.8" /><ellipse cx="24" cy="33" rx="3.6" ry="2.6" /><ellipse cx="97" cy="36" rx="3.8" ry="2.6" /><ellipse cx="22" cy="68" rx="3.8" ry="2.6" /><ellipse cx="96" cy="70" rx="4" ry="2.6" /></g>
+            <g class="fillin" fill="#22272e"><path d="M60 58c-7-1-16 1-16 8 0 6 10 9 16 4 6 5 16 2 16-4 0-7-9-9-16-8z" fill="#f7f9fa" stroke="#22272e" stroke-width="1.9" /><ellipse cx="40" cy="49" rx="6.4" ry="4.4" transform="rotate(10 40 49)" /><ellipse cx="80" cy="49" rx="6.4" ry="4.4" transform="rotate(-10 80 49)" /><path d="M55.5 56.5h9l-4.5 5z" stroke="#22272e" stroke-width="1.6" stroke-linejoin="round" /></g>
+            
+          </svg>
+          <h1>Sound isn't inked yet</h1>
+          <p>Mixing lands here later. Audio clips keep working on the Edit timeline.</p>
+        </div>
+      </main>
+      <main class="page" data-show="page:export">
+        <div class="xpage">
+          <aside class="xform">
+            <div class="xscroll">
+              <section class="sect"><h4>Save to</h4>
+                <label class="field"><span>Name</span><input id="x-name" value="Focas saltando por el mundo" aria-label="Name" /></label>
+                <div class="path-row"><input value="/home/mcris112/Videos" aria-label="Folder" /><button class="btn btn-sm btn-ghost">Browse</button></div>
+              </section>
+              <section class="sect"><h4>What to export</h4>
+                <label class="field"><span>Composition</span><select aria-label="Composition"><option>Main</option><option>Vertical cut</option></select></label>
+              </section>
+              <section class="sect"><h4>Kind of export</h4>
+                <div class="kinds" role="group" aria-label="Kind of export">
+                  <button class="kind is-active" data-q="70"><img src="footage/plaza.jpg" alt="" />Default<small>12 MB</small></button>
+                  <button class="kind" data-q="35"><img src="footage/plaza.jpg" alt="" />Small<small>3 MB</small></button>
+                  <button class="kind" data-q="95"><img src="footage/plaza.jpg" alt="" />Best<small>32 MB</small></button>
+                  <button class="kind" id="x-custom"><span class="kind-art" data-i="sliders"></span>Custom<small>Your pick</small></button>
+                </div>
+              </section>
+              <section class="sect"><h4>Quality</h4>
+                <div class="q-row"><input class="range" id="x-quality" type="range" min="10" max="100" value="70" aria-label="Quality" /><b class="q-val" id="x-quality-val">70</b></div>
+                <div class="q-hints"><span>Smaller file</span><span>Sharper picture</span></div>
+              </section>
+              <section class="sect"><h4>Settings</h4>
+                <label class="field"><span>Size</span><span class="locked" data-i="lock"><input class="x-lockable" value="1920 × 1080" aria-label="Size" readonly /></span></label>
+                <label class="field"><span>Frame rate</span><span class="locked" data-i="lock"><input class="x-lockable" value="29.97 fps" aria-label="Frame rate" readonly /></span></label>
+                <label class="field"><span>Format</span><select aria-label="Format"><option>MP4 (H.264), plays everywhere</option><option>MP4 (H.265), smaller</option><option>WebM (VP9), for websites</option><option>MOV (ProRes), for other editors</option></select></label>
+                <label class="field"><span>Export</span><select aria-label="Export"><option>Whole timeline</option><option>Only a part</option></select></label>
+                <label class="field"><span>Encoding</span><select aria-label="Encoding"><option>Fast</option><option selected>Balanced</option><option>Slow, smaller file</option></select></label>
+                <label class="field"><span>Include sound</span><input class="switch" type="checkbox" checked aria-label="Include sound" /></label>
+                <label class="field"><span>Use the graphics card</span><input class="switch" type="checkbox" checked aria-label="Use the graphics card" /></label>
+              </section>
+              <section class="sect"><h4>When saving</h4>
+                <label class="field"><span>If the file exists</span><select aria-label="If the file exists"><option>Add a number</option><option>Replace it</option><option>Ask me</option></select></label>
+                <label class="field"><span>Open the folder after</span><input class="switch" type="checkbox" checked aria-label="Open the folder after" /></label>
+              </section>
+            </div>
+            <div class="xfoot"><button class="btn btn-primary" id="x-add">Add to queue</button></div>
+          </aside>
+          <section class="xstage">
+            <div class="frame-wrap"><div class="frame"><img src="footage/plaza.jpg" alt="First frame of the composition" /></div></div>
+            <div class="xstats">
+              <div class="xstat"><b id="x-size">~12 MB</b><span>Estimated file size</span></div>
+              <div class="xstat"><b>~0:45</b><span>Estimated export time</span></div>
+              <div class="xstat"><b>0:18</b><span>Video length</span></div>
+              <div class="xstat"><b>6.2 GB</b><span>Free on this disk</span></div>
+            </div>
+          </section>
+          <aside class="xqueue">
+            <h2>Queue</h2>
+            <ul class="qlist" id="x-queue"></ul>
+            <p class="qempty" id="x-empty" hidden>Nothing here yet. Choose your settings and press Add to queue.</p>
+            <div class="xfoot"><button class="btn btn-primary" id="x-start" data-i="export">Export</button></div>
+          </aside>
+        </div>
+      </main>
+    </div>
+
+    <dialog class="solid-dialog" id="solid-dialog" aria-labelledby="solid-title">
+      <form method="dialog">
+        <h2 id="solid-title">New solid color</h2>
+        <div class="solid-preview" id="solid-preview"></div>
+        <label class="field"><span>Name</span><input id="solid-name" aria-label="Name" /></label>
+        <div class="field"><span>Color</span><div class="color-row">
+          <input type="color" id="solid-color" value="#2f6fb0" aria-label="Pick a color" />
+          <input id="solid-hex" value="#2f6fb0" aria-label="Hex color" spellcheck="false" />
+        </div></div>
+        <div class="field is-top"><span>Quick colors</span><div class="swatches" id="solid-swatches" role="group" aria-label="Quick colors"></div></div>
+        <label class="field"><span>Size</span><select aria-label="Size"><option>Same as Main (1920 × 1080)</option><option>1080 × 1920</option><option>3840 × 2160</option></select></label>
+        <p class="solid-note">Goes in your Solids bin. Stretch it to any length on the timeline.</p>
+        <div class="solid-actions">
+          <button class="btn btn-sm btn-ghost" value="cancel">Cancel</button>
+          <button class="btn btn-sm btn-primary" id="solid-create" value="create">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="shared.js"></script>
+    <script src="audio-tab.js"></script>
+    <script>
+      const LAND = ["plaza", "highway", "wheat", "meadow", "tractor"];
+      const MEDIA = [
+        ...SCENES.map((s) => ({ ...s, kind: "video", bins: ["master", "footage", LAND.includes(s.id) ? "land" : "sky", "videos", "today"] })),
+        { id: "seal-slide", name: "Seal slide", dur: 18, kind: "audio", bins: ["master", "music", "audio", "today"] },
+        { id: "solid-1", name: "Black", kind: "solid", color: "#000000", bins: ["master", "solids", "colors", "today"] },
+      ];
+      const BINS = [
+        { id: "master", name: "Master", path: "Master", depth: 0 },
+        { id: "footage", name: "Footage", path: "Master / Footage", depth: 1 },
+        { id: "land", name: "Land", path: "Master / Footage / Land", depth: 2 },
+        { id: "sky", name: "Sky", path: "Master / Footage / Sky", depth: 2 },
+        { id: "music", name: "Music", path: "Master / Music", depth: 1 },
+        { id: "solids", name: "Solids", path: "Master / Solids", depth: 1 },
+      ];
+      const SMART_BINS = [
+        { id: "videos", name: "Videos", path: "Smart bins / Videos" },
+        { id: "audio", name: "Audio", path: "Smart bins / Audio" },
+        { id: "images", name: "Images", path: "Smart bins / Images" },
+        { id: "colors", name: "Solid colors", path: "Smart bins / Solid colors" },
+        { id: "today", name: "Imported today", path: "Smart bins / Imported today" },
+      ];
+      const inBin = (id) => MEDIA.filter((m) => m.bins.includes(id)).length;
+      const binRow = (b, ico) =>
+        `<button class="tree-row" data-bin="${b.id}" style="--depth:${b.depth ?? 0}">${icon(ico)}<span>${b.name}</span><small>${inBin(b.id)}</small></button>`;
+      const mediaThumb = (m) => {
+        if (m.kind === "solid") return `<div class="thumb is-solid" style="background:${m.color}"><span class="dur">Solid</span></div>`;
+        if (m.kind === "audio") return `<div class="thumb is-audio">${wave(7, 44)}<span class="dur">${clock(m.dur)}</span></div>`;
+        return `<div class="thumb"><img src="footage/${m.id}.jpg" alt=""/><span class="dur">${clock(m.dur)}</span></div>`;
+      };
+      const mediaDetail = (m) => ({ audio: "48 kHz · Stereo", solid: `1920 × 1080 · ${m.color}` })[m.kind] ?? "1920 × 1080 · 29.97 fps";
+      const libCard = (m) =>
+        `<figure class="lib-card ${m.id === "highway" ? "is-used" : ""}" data-bins="${m.bins.join(" ")}">${mediaThumb(m)}
+          <figcaption><b>${m.name}</b><span>${mediaDetail(m)}</span></figcaption></figure>`;
+      const binItem = (m) =>
+        `<figure class="bin-item ${m.id === "highway" ? "is-used" : ""}" data-bins="${m.bins.join(" ")}">${mediaThumb(m)}<figcaption>${m.name}</figcaption></figure>`;
+
+      FILL.disks = () =>
+        ["/home/mcris112/Videos", "/home/mcris112/Desktop", "/home/mcris112/Storage"]
+          .map((path) => `<button class="tree-row" title="${path}">${icon("drive")}<span>${path}</span></button>`)
+          .join("");
+      FILL.bins = () => BINS.map((b) => binRow(b, "folder")).join("");
+      FILL.smartBins = () => SMART_BINS.map((b) => binRow(b, "smart")).join("");
+
+      FILL.library = () => `<div class="lib-grid" id="lib-grid">${MEDIA.map(libCard).join("")}</div>`;
+
+      FILL.media = () => {
+        const opt = (b) => `<option value="${b.id}">${"\u2003".repeat(b.depth ?? 0)}${b.name}</option>`;
+        return `<div class="pane-head"><label class="search">${icon("search")}<input placeholder="Search media" aria-label="Search media"/></label>
+          <button class="icon btn-ghost" data-new-solid title="New solid color" aria-label="New solid color">${icon("solid")}</button>
+          <button class="btn btn-primary btn-sm">${icon("plus")}Import</button></div>
+          <label class="bin-pick">${icon("folder")}<select id="bin-select" aria-label="Bin">
+            <optgroup label="Bins">${BINS.map(opt).join("")}</optgroup>
+            <optgroup label="Smart bins">${SMART_BINS.map(opt).join("")}</optgroup>
+          </select></label>
+          <div class="bin">${MEDIA.map(binItem).join("")}</div>`;
+      };
+
+      const CLIP_COLORS = ["#e8772e", "#f0a43a", "#e3bd2f", "#b7c936", "#6f9a3a", "#3f9b6e", "#2aa5a0", "#2f6fb0", "#5f9fd6", "#8f7ac8", "#d4488f", "#e88fb5", "#c9b79a", "#d9a77e", "#a8722a", "#8a5a3c"];
+      const field = (name, value = "", readOnly = false) =>
+        `<label class="field"><span>${name}</span><input value="${value}" aria-label="${name}" ${readOnly ? "readonly" : ""}/></label>`;
+      const fact = (name, value) => `<div><span>${name}</span><b>${value}</b></div>`;
+
+      FILL.inspFile = () => `
+        <section class="sect"><h4>Highway.mp4<span class="file-dur">00:00:12:18</span></h4>
+          <div class="file-grid">
+            ${fact("Video codec", "H.264")}${fact("Frame rate", "29.97")}${fact("Resolution", "1920 × 1080")}
+            ${fact("Audio codec", "AAC")}${fact("Sample rate", "48000")}${fact("Audio format", "Stereo")}
+          </div>
+          <div class="kv"><span>Proxy</span><b>Ready</b></div>
+          <button class="file-open" title="Show Highway.mp4 in your file manager">${icon("folderOpen")}Open file location</button>
+        </section>
+        <section class="sect"><h4>Metadata</h4>
+          ${field("Timecode", "00:00:00:00", true)}
+          ${field("Date created", "2026-10-27", true)}
+          ${["Camera", "Reel", "Scene", "Shot", "Take"].map((n) => field(n)).join("")}
+          <div class="field is-stack"><span>Tag</span><div class="seg" role="group" aria-label="Tag"><button>Good take</button><button class="is-active">Untagged</button><button>Rejected</button></div></div>
+          <div class="field is-top"><span>Clip color</span><div class="swatches" role="group" aria-label="Clip color">
+            <button class="swatch is-none is-active" title="No color" aria-label="No color">${icon("close")}</button>
+            ${CLIP_COLORS.map((c, i) => `<button class="swatch" style="--c:${c}" aria-label="Color ${i + 1}"></button>`).join("")}
+          </div></div>
+          ${field("Name", "Highway.mp4")}
+          <label class="field is-top"><span>Comments</span><textarea aria-label="Comments"></textarea></label>
+          <div class="next-row"><label><input type="checkbox"/>Auto-select next unsorted clip</label><button disabled>Next clip</button></div>
+        </section>`;
+
+      boot({
+        clip: (c) =>
+          c.id === "highway"
+            ? `<svg class="pencil" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M-2 3.5 Q50 1.5 103 3M98 -4 Q99.5 50 97 106M104 97 Q50 99.5 -3 96.5M2.5 105 Q1 50 3 -5"/></svg>`
+            : "",
+      });
+
+      // An empty project opens on Media to import; this one has clips, so it opens on Edit.
+      if (!location.hash.includes("page:")) activate("page", "edit");
+
+      // New solid color: same dialog from the Media page and Edit's Media tab.
+      const solid = {
+        dialog: document.getElementById("solid-dialog"),
+        name: document.getElementById("solid-name"),
+        color: document.getElementById("solid-color"),
+        hex: document.getElementById("solid-hex"),
+        preview: document.getElementById("solid-preview"),
+        swatches: document.getElementById("solid-swatches"),
+      };
+      const paintSolid = (hex) => {
+        solid.color.value = hex;
+        solid.hex.value = hex;
+        solid.preview.style.background = hex;
+        solid.swatches.querySelectorAll(".swatch").forEach((s) => s.classList.toggle("is-active", s.dataset.color === hex));
+      };
+      solid.swatches.innerHTML = ["#000000", "#ffffff", ...CLIP_COLORS]
+        .map((c) => `<button type="button" class="swatch" data-color="${c}" style="--c:${c}" aria-label="${c}"></button>`)
+        .join("");
+      solid.swatches.addEventListener("click", (event) => {
+        const swatch = event.target.closest(".swatch");
+        if (swatch) paintSolid(swatch.dataset.color);
+      });
+      solid.color.addEventListener("input", () => paintSolid(solid.color.value));
+      solid.hex.addEventListener("input", () => {
+        if (/^#[0-9a-f]{6}$/i.test(solid.hex.value)) paintSolid(solid.hex.value.toLowerCase());
+      });
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest("[data-new-solid]")) return;
+        solid.name.value = `Solid ${inBin("solids") + 1}`;
+        paintSolid("#2f6fb0");
+        solid.dialog.showModal();
+      });
+      solid.dialog.addEventListener("click", (event) => {
+        if (event.target === solid.dialog) solid.dialog.close("cancel");
+      });
+      solid.dialog.addEventListener("close", () => {
+        if (solid.dialog.returnValue !== "create") return;
+        const item = {
+          id: `solid-${MEDIA.length}`,
+          name: solid.name.value.trim().replace(/</g, "&lt;") || "Solid",
+          kind: "solid",
+          color: solid.hex.value,
+          bins: ["master", "solids", "colors", "today"],
+        };
+        MEDIA.push(item);
+        document.getElementById("lib-grid").insertAdjacentHTML("beforeend", libCard(item));
+        document.querySelector(".bin").insertAdjacentHTML("beforeend", binItem(item));
+        document.querySelectorAll("[data-bin]").forEach((row) => {
+          row.querySelector("small").textContent = inBin(row.dataset.bin);
+        });
+        showBin("solids");
+      });
+
+      // Export: the preset drives quality and the estimate; Custom unlocks size and frame rate.
+      const quality = document.getElementById("x-quality");
+      const paintQuality = () => {
+        const q = Number(quality.value);
+        quality.style.setProperty("--v", `${((q - 10) / 90) * 100}%`);
+        document.getElementById("x-quality-val").textContent = q;
+        document.getElementById("x-size").textContent = `~${Math.round(3 * Math.exp(0.0396 * (q - 35)))} MB`;
+      };
+      const pickKind = (kind) => {
+        document.querySelectorAll(".kind").forEach((k) => k.classList.toggle("is-active", k === kind));
+        const custom = kind.id === "x-custom";
+        document.querySelectorAll(".x-lockable").forEach((input) => (input.readOnly = !custom));
+        document.querySelectorAll(".locked .ico").forEach((lock) => (lock.style.display = custom ? "none" : ""));
+        if (kind.dataset.q) quality.value = kind.dataset.q;
+        paintQuality();
+      };
+      document.querySelectorAll(".kind").forEach((kind) => kind.addEventListener("click", () => pickKind(kind)));
+      quality.addEventListener("input", () => pickKind(document.getElementById("x-custom")));
+      paintQuality();
+
+      const queue = [
+        { name: "Main", meta: "Done", still: "plaza", progress: 100 },
+        { name: "Vertical cut", meta: "Exporting · 64%", still: "meadow", progress: 64, running: true },
+        { name: "Highway only", meta: "Waiting", still: "highway", progress: 0 },
+      ];
+      function paintQueue() {
+        document.getElementById("x-queue").innerHTML = queue
+          .map(
+            (job, i) => `<li class="qitem ${job.running ? "is-running" : ""}"><img src="footage/${job.still}.jpg" alt=""/>
+              <div><b>${job.name}</b><small>${job.meta}</small></div>
+              <button class="icon" data-remove="${i}" title="${job.running ? "Cancel" : "Remove"}" aria-label="${job.running ? "Cancel" : "Remove"} ${job.name}">${icon("close")}</button>
+              <div class="bar"><i style="width:${job.progress}%"></i></div></li>`,
+          )
+          .join("");
+        document.getElementById("x-empty").hidden = queue.length > 0;
+        document.getElementById("x-queue").hidden = queue.length === 0;
+        document.getElementById("x-start").disabled = !queue.some((job) => job.meta === "Waiting");
+      }
+      document.getElementById("x-queue").addEventListener("click", (event) => {
+        const remove = event.target.closest("[data-remove]");
+        if (!remove) return;
+        queue.splice(Number(remove.dataset.remove), 1);
+        paintQueue();
+      });
+      document.getElementById("x-add").addEventListener("click", () => {
+        queue.push({ name: document.getElementById("x-name").value, meta: "Waiting", still: "plaza", progress: 0 });
+        paintQueue();
+      });
+      paintQueue();
+
+      // Tag and clip color pick one of their options.
+      document.addEventListener("click", (event) => {
+        const choice = event.target.closest(".seg button, .swatch");
+        if (!choice) return;
+        choice.parentElement.querySelectorAll("button").forEach((b) => b.classList.toggle("is-active", b === choice));
+      });
+
+      // One open bin, shared by the Media page and Edit's Media tab.
+      function showBin(id) {
+        const bin = [...BINS, ...SMART_BINS].find((b) => b.id === id);
+        document.querySelectorAll("[data-bin]").forEach((row) => row.classList.toggle("is-active", row.dataset.bin === id));
+        document.querySelectorAll("[data-bins]").forEach((item) => {
+          item.hidden = !item.dataset.bins.split(" ").includes(id);
+        });
+        document.getElementById("bin-select").value = id;
+        const parts = bin.path.split(" / ");
+        const last = parts.pop();
+        document.getElementById("crumb").innerHTML = `${parts.map((p) => `${p} / `).join("")}<b>${last}</b>`;
+        document.getElementById("lib-empty").hidden = inBin(id) > 0;
+      }
+      document.querySelectorAll("[data-bin]").forEach((row) => row.addEventListener("click", () => showBin(row.dataset.bin)));
+      document.getElementById("bin-select").addEventListener("change", (event) => showBin(event.target.value));
+      showBin("master");
+
+      document.querySelectorAll("[data-view]").forEach((button) =>
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-view]").forEach((b) => b.classList.toggle("is-active", b === button));
+          document.getElementById("lib-grid").classList.toggle("is-list", button.dataset.view === "list");
+        }),
+      );
+
+      // Each inspector section folds from its header. Reset stays its own button.
+      document.querySelectorAll(".sect").forEach((sect) => {
+        const head = sect.querySelector("h4");
+        const toggle = document.createElement("button");
+        toggle.className = "sect-toggle";
+        toggle.setAttribute("aria-expanded", "true");
+        toggle.innerHTML = icon("chevron");
+        const title = [...head.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+        title.replaceWith(toggle);
+        toggle.append(title);
+        toggle.addEventListener("click", () => {
+          const closed = sect.classList.toggle("is-closed");
+          toggle.setAttribute("aria-expanded", String(!closed));
+        });
+        if ("closed" in sect.dataset) toggle.click();
+      });
+
+      wireAudioTab();
+    </script>
+  </body>
+</html>

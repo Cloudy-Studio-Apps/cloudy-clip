@@ -1,6 +1,9 @@
 /*
- * Cloudy Clip design tokens. Palette and semantic tokens follow Cloudy Canvas
- * (src/shared/ui/styles/tokens.css, the Cloudy Light / Cloudy Dark themes).
+ * Cloudy Clip design tokens. Cloudy Dark is Mesa de noche, the animator's desk at night:
+ * black paper, blue roughs, white pencil, red corrections
+ * (docs/prototype/designs/b-mesa-de-noche.html). The palette scales come from Cloudy Canvas.
+ * Red marks what you touched; what is merely on uses --on, blue pencil. To make switches and
+ * bars red instead, set --on to var(--mark).
  * Shape: sharp by design, nothing above 8px. Mapped to Tailwind in src/index.css.
  */
 
@@ -37,35 +40,39 @@
   --clip-composition: oklch(0.5 0.1 300);
 }
 
-/* ── Cloudy Dark (default for the editor) ───────────────────────────── */
+/* ── Cloudy Dark: Mesa de noche (default for the editor) ───────────────────────────── */
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: oklch(0.18 0.014 256);
-  --foreground: oklch(0.93 0.006 250);
-  --surface: oklch(0.215 0.016 256);
-  --surface-sunken: oklch(0.165 0.013 256);
-  --muted: oklch(0.255 0.017 256);
-  --muted-foreground: oklch(0.7 0.014 252);
-  --subtle-foreground: oklch(0.56 0.016 252);
+  --background: #14171b;
+  --foreground: #eceff1;
+  --surface: #202327;
+  --surface-sunken: #0e1013;
+  --muted: #2a2e33;
+  --muted-foreground: #a9b3bb;
+  --subtle-foreground: #7b8690;
   --online: oklch(0.72 0.15 155);
-  --hover: oklch(0.27 0.018 256);
-  --border: oklch(0.3 0.018 256);
-  --border-strong: oklch(0.37 0.02 256);
-  --ring: var(--ice-400);
-  --primary: var(--ice-500);
-  --primary-hover: var(--ice-400);
-  --primary-foreground: oklch(1 0 0);
-  --primary-soft: oklch(0.3 0.06 250);
-  --primary-soft-foreground: var(--ice-200);
+  --hover: #2a2e33;
+  --border: #33383f;
+  --border-strong: #4b5a68;
+  --ring: #6fb7e6;
+  --primary: #6fb7e6;
+  --primary-hover: #8cc7ec;
+  --primary-foreground: #14171b;
+  --primary-soft: #263744;
+  --primary-soft-foreground: #bfe0f5;
+  --mark: #ff5f52;
+  --mark-hover: #ff7a6f;
+  --mark-foreground: #202327;
+  --on: var(--primary);
   --accent-soft: oklch(0.3 0.05 32);
   --accent-soft-foreground: var(--blush-200);
   --destructive: oklch(0.66 0.19 25);
   --destructive-soft: oklch(0.3 0.08 25);
   --destructive-soft-foreground: oklch(0.88 0.06 25);
-  --stage: oklch(0.145 0.012 256);
-  --popover: oklch(0.24 0.017 256);
-  --lane: oklch(0.19 0.014 256);
+  --stage: #0e1013;
+  --popover: #2a2e33;
+  --lane: #14171b;
   --shadow-color: 256 40% 3%;
 }
 
@@ -89,6 +96,10 @@
   --primary-foreground: oklch(1 0 0);
   --primary-soft: oklch(0.95 0.025 245);
   --primary-soft-foreground: var(--ice-700);
+  --mark: oklch(0.58 0.2 25);
+  --mark-hover: oklch(0.52 0.2 25);
+  --mark-foreground: oklch(1 0 0);
+  --on: var(--primary);
   --accent-soft: var(--blush-200);
   --accent-soft-foreground: oklch(0.5 0.13 31);
   --destructive: oklch(0.58 0.2 25);

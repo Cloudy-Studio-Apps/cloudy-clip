@@ -19,5 +19,7 @@ folders in Media · Ctrl+G and "Make composition", then double-click it · "Agen
 click the Claude Code avatar · drag the title in the preview · Export.
 
 `designs/` holds three look options for the mascot-led redesign, each a page you can open on its own
-(`a-estacion.html`, `b-mesa-de-luz.html`, `c-squish.html`). Only the tabs work. They share the content
-in `designs/shared.js` and the stills in `designs/footage/`, and load their fonts from Google Fonts.
+(`a-estacion.html`, `b-mesa-de-luz.html`, its dark version `b-mesa-de-noche.html`, `c-squish.html`).
+`b-mesa-de-noche.html` is the chosen direction and the visual reference for the app; a hash reaches a state,
+for example `#page:export,insp:audio`. They share the content in `designs/shared.js` (the dark B also loads
+`designs/audio-tab.js`) and the stills in `designs/footage/`, and load their fonts from Google Fonts.
