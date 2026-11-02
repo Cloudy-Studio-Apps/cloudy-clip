@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { useKernel, useModule } from "@/core";
 import { mediaRef } from "@/modules/media";
-import { useOpenFormat } from "@/modules/project";
-import { Button, ColorField, Dialog, NumberField } from "@/ui";
-import { createSolid } from "../solid.commands";
+import { DEFAULT_GRADIENT, gradientCss } from "@/modules/element";
+import { useOpenFormat, type Gradient, type Solid } from "@/modules/project";
+import {
+  Button,
+  ColorField,
+  Dialog,
+  GradientField,
+  NumberField,
+  SegmentedControl,
+  Switch,
+} from "@/ui";
+import { createSolid, updateSolid } from "../solid.commands";
 
 const QUICK_COLORS = [
   "#000000",
@@ -26,25 +35,41 @@ const QUICK_COLORS = [
   "#8a5a3c",
 ];
 
-/** Name, colour and size of a new solid. It starts at the open composition's size. */
-export function SolidDialog({ onClose }: { onClose(): void }) {
+const FILLS = [
+  { value: "color", label: "Color" },
+  { value: "gradient", label: "Gradient" },
+] as const;
+
+/** Name, fill and size of a new solid, or of `solid`. A new one matches the frame. */
+export function SolidDialog({ solid, onClose }: { solid?: Solid; onClose(): void }) {
   const { bus } = useKernel();
   const media = useModule(mediaRef);
   const format = useOpenFormat();
-  const [name, setName] = useState("Solid color");
-  const [color, setColor] = useState("#2f6fb0");
-  const [width, setWidth] = useState(format.width);
-  const [height, setHeight] = useState(format.height);
+  const [name, setName] = useState(solid?.name ?? "Solid color");
+  const [color, setColor] = useState(solid?.color ?? "#2f6fb0");
+  const [fillType, setFillType] = useState(solid?.fillType ?? "color");
+  const [gradient, setGradient] = useState<Gradient>(solid?.gradient ?? { ...DEFAULT_GRADIENT });
+  const [matchFrame, setMatchFrame] = useState(solid ? solid.width === undefined : true);
+  const [width, setWidth] = useState(solid?.width ?? format.width);
+  const [height, setHeight] = useState(solid?.height ?? format.height);
 
-  const create = async () => {
+  const save = async () => {
+    const values = { name, color, fillType, gradient };
+    if (solid) {
+      const size = matchFrame ? { width: null, height: null } : { width, height };
+      const result = await bus.run(updateSolid, { solidId: solid.id, ...values, ...size });
+      if (result.ok) onClose();
+      return;
+    }
     const { place } = media.view.getState();
     const binId = place.kind === "bin" ? (place.binId ?? undefined) : undefined;
-    const result = await bus.run(createSolid, { name, color, width, height, binId });
+    const size = matchFrame ? {} : { width, height };
+    const result = await bus.run(createSolid, { ...values, ...size, binId });
     if (result.ok) onClose();
   };
   return (
     <Dialog
-      title="New solid color"
+      title={solid ? "Edit solid color" : "New solid color"}
       onClose={onClose}
       footer={
         <>
@@ -55,16 +80,16 @@ export function SolidDialog({ onClose }: { onClose(): void }) {
             size="sm"
             variant="primary"
             disabled={name.trim() === ""}
-            onClick={() => void create()}
+            onClick={() => void save()}
           >
-            Create
+            {solid ? "Save" : "Create"}
           </Button>
         </>
       }
     >
       <div
         className="h-16 shadow-[0_0_0_1px_var(--border-strong)]"
-        style={{ backgroundColor: color }}
+        style={{ background: fillType === "gradient" ? gradientCss(gradient) : color }}
       />
       <label className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-2 text-sm text-muted-foreground">
         Name
@@ -76,31 +101,54 @@ export function SolidDialog({ onClose }: { onClose(): void }) {
           className="h-[26px] min-w-0 border-b border-border-strong bg-transparent px-1 text-[13px] text-foreground outline-none focus:border-ring"
         />
       </label>
-      <ColorField
-        label="Color"
-        color={color}
-        swatches={QUICK_COLORS}
-        onChange={(next) => setColor(next)}
+      <SegmentedControl
+        label="Fill"
+        options={FILLS}
+        value={fillType}
+        onChange={(next) => setFillType(next)}
       />
-      <div className="grid grid-cols-[64px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 text-sm text-muted-foreground">
-        Size
-        <NumberField
-          label="Width"
-          prefix="W"
-          value={width}
-          min={1}
-          max={16384}
-          onChange={setWidth}
+      {fillType === "color" ? (
+        <ColorField
+          label="Color"
+          color={color}
+          swatches={QUICK_COLORS}
+          onChange={(next) => setColor(next)}
         />
-        <NumberField
-          label="Height"
-          prefix="H"
-          value={height}
-          min={1}
-          max={16384}
-          onChange={setHeight}
+      ) : (
+        <GradientField
+          label="Gradient"
+          value={gradient}
+          swatches={QUICK_COLORS}
+          onChange={(next, info) => {
+            if (info.done) setGradient(next);
+          }}
         />
+      )}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        Match frame
+        <Switch label="Match frame" checked={matchFrame} onChange={setMatchFrame} />
       </div>
+      {!matchFrame && (
+        <div className="grid grid-cols-[64px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 text-sm text-muted-foreground">
+          Size
+          <NumberField
+            label="Width"
+            prefix="W"
+            value={width}
+            min={1}
+            max={16384}
+            onChange={setWidth}
+          />
+          <NumberField
+            label="Height"
+            prefix="H"
+            value={height}
+            min={1}
+            max={16384}
+            onChange={setHeight}
+          />
+        </div>
+      )}
     </Dialog>
   );
 }

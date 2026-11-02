@@ -55,8 +55,12 @@ export interface Solid {
   id: SolidId;
   name: string;
   color: string;
-  width: number;
-  height: number;
+  /** Its own size; missing means it matches the frame of whatever it's placed in. */
+  width?: number;
+  height?: number;
+  /** What it paints; missing means `color`. */
+  fillType?: "color" | "gradient";
+  gradient?: Gradient;
   /** The bin it sits in; missing means Master. */
   binId?: BinId;
 }

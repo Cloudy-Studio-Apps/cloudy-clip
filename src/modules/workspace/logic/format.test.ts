@@ -29,6 +29,15 @@ describe("project file", () => {
     expect(decodeProject(encodeProject(document, "1.0.0", new Date(0)))).toEqual(document);
   });
 
+  it("opens a library solid with no size, and keeps one that has a size", () => {
+    const solids = {
+      a: { id: "a", name: "Match", color: "#000000" },
+      b: { id: "b", name: "Own", color: "#000000", width: 10, height: 20 },
+    };
+    const text = file((json) => Object.assign(json.document as object, { solids }));
+    expect(decodeProject(text).solids).toEqual(solids);
+  });
+
   it("opens a version 1 file with no bins", () => {
     const old = file((json) => {
       json.version = 1;

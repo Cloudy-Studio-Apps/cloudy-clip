@@ -58,8 +58,8 @@ const documentSchema = z.looseObject({
         id: z.string(),
         name: z.string(),
         color: z.string(),
-        width: z.number(),
-        height: z.number(),
+        width: z.number().optional(),
+        height: z.number().optional(),
       }),
     )
     .default({}),

@@ -9,7 +9,7 @@ import { previewModule } from "@/modules/preview";
 import { createProjectModule, projectRef, seedProject } from "@/modules/project";
 import { addElement, timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
-import { createSolid, removeSolid } from "./solid.commands";
+import { createSolid, removeSolid, updateSolid } from "./solid.commands";
 import { solidModule } from "./solid.module";
 
 let kernel: Kernel;
@@ -61,6 +61,35 @@ describe("a solid on the timeline", () => {
     const clip = doc().clips[id]!;
     expect(clip.props.width).toBe(500);
     expect(clip.transform?.scale).not.toBe(1);
+  });
+});
+
+describe("library solids", () => {
+  it("match the frame with no size, and store colors lowercase", async () => {
+    const made = await kernel.bus.run(createSolid, { name: "Night", color: "#AABBCC" });
+    if (!made.ok) throw new Error(made.error.code);
+    const solid = doc().solids[made.value.solidId]!;
+    expect(solid.width).toBeUndefined();
+    expect(solid.color).toBe("#aabbcc");
+  });
+
+  it("refuse one side without the other", async () => {
+    const made = await kernel.bus.run(createSolid, { name: "N", color: "#000000", width: 10 });
+    expect(made.ok ? "" : made.error.code).toBe("solid.invalid_size");
+  });
+
+  it("go back to matching the frame when an update clears their size", async () => {
+    const made = await kernel.bus.run(createSolid, {
+      name: "N",
+      color: "#000000",
+      width: 10,
+      height: 20,
+    });
+    if (!made.ok) throw new Error(made.error.code);
+    const { solidId } = made.value;
+    await kernel.bus.run(updateSolid, { solidId, width: null, height: null });
+    expect(doc().solids[solidId]!.width).toBeUndefined();
+    expect(doc().solids[solidId]!.height).toBeUndefined();
   });
 });
 
