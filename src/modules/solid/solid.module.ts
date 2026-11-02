@@ -6,7 +6,7 @@ import { solidCommands } from "./solid.commands";
 import { solidElement } from "./solid.element";
 import { solidMcpTools } from "./solid.mcp";
 import { solidRef } from "./solid.ref";
-import { SolidButton, SolidTile, useSolidEntries } from "./ui";
+import { SolidButton, SolidTile } from "./ui";
 
 /** Solid colors: the element, library items with their own smart bin, and the dialog. */
 export const solidModule = defineModule({
@@ -22,7 +22,7 @@ export const solidModule = defineModule({
       type: "solid",
       label: "Solid colors",
       icon: Square,
-      useEntries: useSolidEntries,
+      entries: (state) => state.solidOrder.flatMap((id) => state.solids[id] ?? []),
       Tile: SolidTile,
       CreateButton: SolidButton,
     });

@@ -7,6 +7,9 @@ import { relinkMedia } from "../media.commands";
 import { mediaRef } from "../media.ref";
 import { ACCEPTED_EXTENSIONS, statFile } from "../media.service";
 
+/** The file's own name: the library's can be another. */
+const fileNameOf = (path: string) => path.split(/[\\/]/).pop() ?? path;
+
 /**
  * Asks where a missing file went and points the media at it. The other missing files are looked
  * for in the same folder, as files usually move together.
@@ -29,7 +32,7 @@ export function useLocateMedia(): (asset: MediaAsset) => Promise<void> {
       const folder = await dirname(path);
       for (const other of Object.values(store.getState().media)) {
         if (other.id === asset.id || media.getProbe(other.id)?.status !== "missing") continue;
-        const candidate = await join(folder, other.name);
+        const candidate = await join(folder, fileNameOf(other.path));
         const found = await statFile(candidate).catch(() => null);
         if (found) await bus.run(relinkMedia, { mediaId: other.id, path: candidate });
       }

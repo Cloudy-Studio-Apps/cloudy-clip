@@ -8,6 +8,10 @@ export { createBin, deleteBin, moveToBin, renameBin } from "./media.bin.commands
 export { renameMedia, setInfo } from "./media.info.commands";
 /** Asks where a missing file went and points the media at it. */
 export { useLocateMedia } from "./ui";
+/** What a file is: name, length, codecs, proxy and where it lives. */
+export { FileFactsSection } from "./ui";
+/** What you note about a file, editable; shared by all its clips. */
+export { MetadataSection } from "./ui";
 export { MEDIA_DRAG_END, MEDIA_DRAG_MOVE, MEDIA_DROP, startMediaDrag } from "./media.drag";
 export { createFakeMediaModule } from "./media.testing";
 /** Sections of the Library, above the files; contribute with `ctx.contribute(librarySections, …)`. */

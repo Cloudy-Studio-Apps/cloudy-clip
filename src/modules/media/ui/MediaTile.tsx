@@ -11,7 +11,14 @@ import { useLocateMedia } from "./media.locate.hook";
 import { MediaThumb } from "./MediaThumb";
 
 /** One item of the library. Drag it onto the timeline to add a clip. */
-export const MediaTile = memo(function MediaTile({ asset }: { asset: MediaAsset }) {
+export const MediaTile = memo(function MediaTile({
+  asset,
+  used = false,
+}: {
+  asset: MediaAsset;
+  /** Marks it in red pencil: it's on a timeline. */
+  used?: boolean;
+}) {
   const { bus } = useKernel();
   const media = useModule(mediaRef);
   const probe = useStore(media.probes, (s) => s.probes[asset.id]);
@@ -32,11 +39,11 @@ export const MediaTile = memo(function MediaTile({ asset }: { asset: MediaAsset 
         startMediaDrag({ type: "media", id: asset.id }, asset.name, e.nativeEvent);
       }}
     >
-      <MediaThumb asset={asset} probe={probe} />
+      <MediaThumb asset={asset} probe={probe} used={used} />
       <p
         className={cn(
-          "mt-1 truncate text-xs",
-          failed ? "text-destructive" : "text-muted-foreground",
+          "mt-1 truncate text-sm",
+          failed ? "text-destructive" : used ? "font-bold text-mark" : "text-muted-foreground",
         )}
       >
         {asset.name}

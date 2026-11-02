@@ -1,7 +1,15 @@
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { Micros, PanelIcon } from "@/core";
-import type { Bin, BinId, CompositionId, MediaAsset, MediaId, MediaKind } from "@/modules/project";
+import type {
+  Bin,
+  BinId,
+  CompositionId,
+  MediaAsset,
+  MediaId,
+  MediaKind,
+  ProjectState,
+} from "@/modules/project";
 
 /** Progress of reading a file's metadata. `missing`: the file isn't where the project says. */
 export type ProbeStatus = "pending" | "ready" | "error" | "missing";
@@ -271,8 +279,8 @@ export interface LibraryKind {
   /** Name of its smart bin, such as "Solid colors". */
   label: string;
   icon: PanelIcon;
-  /** A hook: what the library holds of this kind. */
-  useEntries(): readonly LibraryEntry[];
+  /** What the document holds of this kind. */
+  entries(state: ProjectState): readonly LibraryEntry[];
   Tile: ComponentType<{ id: string }>;
   CreateButton?: ComponentType;
 }

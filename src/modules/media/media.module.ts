@@ -30,6 +30,7 @@ export const mediaModule = defineModule({
     contribute(elements, mediaElement);
     const project = require(projectRef).store;
     const state = createMediaState();
+    const view = createLibraryView();
     const { fileDrop, getProbe } = state;
     const service = createMediaService(state);
     await service.init();
@@ -54,7 +55,9 @@ export const mediaModule = defineModule({
         } else {
           fileDrop.setState({ active: false });
           if (payload.type === "drop" && payload.paths.length > 0) {
-            void bus.run(importMedia, { paths: payload.paths });
+            const { place } = view.getState();
+            const binId = place.kind === "bin" ? (place.binId ?? undefined) : undefined;
+            void bus.run(importMedia, { paths: payload.paths, binId });
           }
         }
       });
@@ -98,7 +101,7 @@ export const mediaModule = defineModule({
         fileFacts: readFileFacts,
         listDisks,
         revealFile,
-        view: createLibraryView(),
+        view,
       },
     };
   },

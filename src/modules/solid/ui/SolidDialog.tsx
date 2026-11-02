@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useKernel } from "@/core";
+import { useKernel, useModule } from "@/core";
+import { mediaRef } from "@/modules/media";
 import { useOpenFormat } from "@/modules/project";
 import { Button, ColorField, Dialog, NumberField } from "@/ui";
 import { createSolid } from "../solid.commands";
@@ -28,6 +29,7 @@ const QUICK_COLORS = [
 /** Name, colour and size of a new solid. It starts at the open composition's size. */
 export function SolidDialog({ onClose }: { onClose(): void }) {
   const { bus } = useKernel();
+  const media = useModule(mediaRef);
   const format = useOpenFormat();
   const [name, setName] = useState("Solid color");
   const [color, setColor] = useState("#2f6fb0");
@@ -35,7 +37,9 @@ export function SolidDialog({ onClose }: { onClose(): void }) {
   const [height, setHeight] = useState(format.height);
 
   const create = async () => {
-    const result = await bus.run(createSolid, { name, color, width, height });
+    const { place } = media.view.getState();
+    const binId = place.kind === "bin" ? (place.binId ?? undefined) : undefined;
+    const result = await bus.run(createSolid, { name, color, width, height, binId });
     if (result.ok) onClose();
   };
   return (

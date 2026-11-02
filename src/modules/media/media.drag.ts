@@ -31,7 +31,7 @@ export function startMediaDrag(item: LibraryItem, label: string, down: PointerEv
       ghost = document.createElement("div");
       ghost.textContent = label;
       ghost.className =
-        "pointer-events-none fixed left-0 top-0 z-50 max-w-48 truncate rounded-sm bg-primary px-2 py-1 text-sm font-medium text-primary-foreground shadow-popover";
+        "pointer-events-none fixed left-0 top-0 z-50 max-w-48 truncate rounded-[3px] bg-primary px-2 py-1 text-sm font-bold text-primary-foreground shadow-popover";
       document.body.appendChild(ghost);
       document.body.style.cursor = "grabbing";
     }

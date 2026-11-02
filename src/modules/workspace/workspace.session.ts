@@ -38,6 +38,9 @@ const PROJECTS_FOLDER = "Cloudy Clip";
 /** Where the thumbnail is taken from, at most: past any fade in. */
 const THUMBNAIL_TIME = 1_000_000;
 
+/** The file's own name: the library's can be another. */
+const fileNameOf = (path: string) => path.split(/[\\/]/).pop() ?? path;
+
 function mainOf(state: ProjectState): Composition | undefined {
   return state.mainCompositionId === null ? undefined : state.compositions[state.mainCompositionId];
 }
@@ -171,7 +174,7 @@ export function createWorkspace({ project, media, preview, nameOf }: WorkspaceDe
       // A folder moved as a whole: the files sit next to the project.
       const found = await existing(assets.map((asset) => asset.path));
       const lost = assets.filter((_, index) => !found[index]);
-      const nearby = lost.map((asset) => siblingPath(path, asset.name));
+      const nearby = lost.map((asset) => siblingPath(path, fileNameOf(asset.path)));
       const here = await existing(nearby);
       lost.forEach((asset, index) => {
         if (here[index]) asset.path = nearby[index]!;
