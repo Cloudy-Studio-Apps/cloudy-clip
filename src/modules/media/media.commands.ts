@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { CommandFailure, createId, defineCommand } from "@/core";
+import { CommandFailure, createId, defineCommand, showPage } from "@/core";
 import { isMediaInUse, type MediaAsset, projectRef } from "@/modules/project";
+import { MEDIA_PAGE, mediaRef } from "./media.ref";
 import { registerFiles, statFile } from "./media.service";
 import type { ImportResult } from "./media.types";
 
@@ -110,4 +111,23 @@ export const relinkMedia = defineCommand({
   },
 });
 
-export const mediaCommands = [importMedia, removeMedia, relinkMedia];
+/** Shows a file on the Media page, in its bin and selected. Moves the user's view, so no tool. */
+export const revealMedia = defineCommand({
+  id: "media.reveal",
+  label: "Show in Library",
+  description: "Opens the Media page on the file's bin, with the file selected.",
+  undoable: false,
+  input: z.object({ mediaId: z.string() }),
+  async run(ctx, { mediaId }) {
+    const asset = ctx.require(projectRef).store.getState().media[mediaId];
+    if (!asset) throw new CommandFailure("media.not_found", `No media with id "${mediaId}"`);
+    ctx.require(mediaRef).view.setState({
+      place: { kind: "bin", binId: asset.binId ?? null },
+      search: "",
+      selection: [mediaId],
+    });
+    await ctx.execute(showPage, { page: MEDIA_PAGE });
+  },
+});
+
+export const mediaCommands = [importMedia, removeMedia, relinkMedia, revealMedia];

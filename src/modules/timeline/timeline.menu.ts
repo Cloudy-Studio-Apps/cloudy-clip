@@ -1,9 +1,18 @@
-import { ArrowLeftToLine, EyeOff, Link, SquareSplitHorizontal, Trash2, Unlink } from "lucide-react";
+import {
+  ArrowLeftToLine,
+  EyeOff,
+  FolderSearch,
+  Link,
+  SquareSplitHorizontal,
+  Trash2,
+  Unlink,
+} from "lucide-react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ModuleContext } from "@/core";
+import { revealMedia } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
-import { linkPair, sameTiming } from "./logic/links";
+import { linkPair, sameTiming, selectionSubject } from "./logic/links";
 import {
   deleteClips,
   linkClips,
@@ -40,7 +49,8 @@ export function clipMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>):
           onSelect: () => void ctx.bus.run(unlinkClips, { clipIds }),
         });
       }
-      const pair = linkPair(ctx.require(projectRef).store.getState(), clipIds);
+      const state = ctx.require(projectRef).store.getState();
+      const pair = linkPair(state, clipIds);
       if (pair) {
         entries.push({
           group: "edit",
@@ -49,6 +59,15 @@ export function clipMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>):
           label: "Link audio",
           disabled: !sameTiming(pair),
           onSelect: () => void ctx.bus.run(linkClips, { clipIds }),
+        });
+      }
+      const { mediaId } = clip;
+      if (mediaId !== undefined && selectionSubject(state, clipIds) !== undefined) {
+        entries.push({
+          group: "library",
+          icon: FolderSearch,
+          label: "Show in Library",
+          onSelect: () => void ctx.bus.run(revealMedia, { mediaId }),
         });
       }
       entries.push(

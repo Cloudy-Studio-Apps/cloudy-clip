@@ -46,15 +46,16 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
 
 Native side: `src-tauri/src/media/facts.rs` (`media_file_facts`: ffprobe on the original; without ffprobe every field is missing) and `disks.rs` (`media_list_disks`: mounted disks, no pseudo filesystems).
 
-| Command           | MCP tool            | Notes                                                               |
-| ----------------- | ------------------- | ------------------------------------------------------------------- |
-| `media.import`    | `media_import`      | Tool waits until metadata is read                                   |
-| `media.remove`    | `media_remove`      | Refuses while clips use the media                                   |
-| `media.relink`    | `media_relink`      | Keeps its clips. `media.wrong_kind`                                 |
-| `media.setInfo`   | `media_set_info`    | Metadata of the file; `null` clears a field                         |
-| `media.rename`    | `media_rename`      | The name in the library, not on disk                                |
-| `media.createBin` | `media_create_bin`  | In Master or inside `parentId`. `media.no_bin`                      |
-| `media.renameBin` | `media_rename_bin`  | `media.no_bin`                                                      |
-| `media.deleteBin` | `media_delete_bin`  | What it holds moves to its parent; nothing is lost                  |
-| `media.moveToBin` | `media_move_to_bin` | Files and bins, into a bin or to Master (`null`). `media.bin_cycle` |
-| —                 | `media_list`        | Media with metadata and status                                      |
+| Command           | MCP tool            | Notes                                                                                     |
+| ----------------- | ------------------- | ----------------------------------------------------------------------------------------- |
+| `media.import`    | `media_import`      | Tool waits until metadata is read                                                         |
+| `media.remove`    | `media_remove`      | Refuses while clips use the media                                                         |
+| `media.relink`    | `media_relink`      | Keeps its clips. `media.wrong_kind`                                                       |
+| `media.setInfo`   | `media_set_info`    | Metadata of the file; `null` clears a field                                               |
+| `media.rename`    | `media_rename`      | The name in the library, not on disk                                                      |
+| `media.createBin` | `media_create_bin`  | In Master or inside `parentId`. `media.no_bin`                                            |
+| `media.renameBin` | `media_rename_bin`  | `media.no_bin`                                                                            |
+| `media.deleteBin` | `media_delete_bin`  | What it holds moves to its parent; nothing is lost                                        |
+| `media.moveToBin` | `media_move_to_bin` | Files and bins, into a bin or to Master (`null`). `media.bin_cycle`                       |
+| `media.reveal`    | none                | Opens the Media page on the file. It moves the user's view, so no tool. `media.not_found` |
+| —                 | `media_list`        | Media with metadata and status                                                            |

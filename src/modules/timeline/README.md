@@ -6,11 +6,11 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
 - **Tier:** core
 - **Requires:** `project`, `element` (clip labels, colors, bodies), `junction` (kind limits when
   clip edits change joined clips), `media`, `preview`
-- **Contributes:** panel `timeline.panel` (bottom); keybindings `timeline.split` (S),
+- **Contributes:** panel `timeline.panel` (bottom); clip menu entries (`timeline.menu.ts`, `timeline.clipboard.menu.ts`); keybindings `timeline.cut`, `.copy`, `.paste`, `.duplicate` (Ctrl+X/C/V/D, nothing off the Edit page), `timeline.split` (S),
   `timeline.delete` (Delete), `timeline.delete-backspace` (Backspace); with a junction selected
   they run `junction.remove` instead of deleting clips
-- **Points it owns** (`timeline.points.ts`): `timelineTabs` (between the toolbar and the ruler; `composition` contributes its tabs), `timelineMenuItems` (the right-click menu), `clipActions` (a clip's double-click and right-click), `timelineDropHandlers` (who gets a drop first; `timeline.drop(drop)` asks them, then places it), `timelineOverlays` (id `timeline.overlays`, keyed by `id`): layers in the scrolling content, beside the playhead and outside the virtualized pages.
-- **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history), `switchComposition(from, to)` (keeps zoom and scroll per composition, clears the selection), `drop(drop)` (puts something on the timeline: `timelineDropHandlers`, then the usual placement), `clipBox(id)` and `panelBox()` (screen boxes; `clipBox` works for clips no page has rendered), `onScroll`, `scrollToTime`, `attachScroller`,
+- **Points it owns** (`timeline.points.ts`): `timelineTabs` (between the toolbar and the ruler; `composition` contributes its tabs), `timelineMenuItems` (the right-click menu; `items(at)` gets the lane and time under the click, or null), `clipActions` (a clip's double-click and right-click: `ClipMenuEntry`s with a `group` and an `order`, drawn clipboard, timing, edit, reset, composition, library, delete by `logic/menu.ts`; a right click selects the clip first, so entries act on the selection), `timelineDropHandlers` (who gets a drop first; `timeline.drop(drop)` asks them, then places it), `timelineOverlays` (id `timeline.overlays`, keyed by `id`): layers in the scrolling content, beside the playhead and outside the virtualized pages.
+- **API** (`useModule(timelineRef)`): `view` (zoom and selection, per kernel, not in history), `clipboard` (`get(actor)`/`set(actor, entry)`, per actor, never in history), `switchComposition(from, to)` (keeps zoom and scroll per composition, clears the selection), `drop(drop)` (puts something on the timeline: `timelineDropHandlers`, then the usual placement), `clipBox(id)` and `panelBox()` (screen boxes; `clipBox` works for clips no page has rendered), `onScroll`, `scrollToTime`, `attachScroller`,
   `setZoom`, `selectClip` (selecting a clip selects its linked partners and clears the junction
   selection), `selectJunction(id | null)` (selecting a junction clears the clip selection;
   `view.junctionSelection`), `cutTarget(clientX, clientY)` (the cut near a point, within `CUT_SNAP_PX`, for
@@ -26,6 +26,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     `timeline.move.commands.ts` (move, trim), `timeline.split.commands.ts` (split, delete), shared
     checks in `timeline.guards.ts` (`checkLayout`: the whole layout through `project`'s
     `findLayoutConflict`); `timeline.commands.ts` lists them.
+  - `timeline.ripple.command.ts`, `timeline.link.command.ts`, `timeline.enable.command.ts`, `timeline.clipboard.commands.ts`; pure parts in `logic/ripple.ts` (`rippleDeleteMoves`) and `logic/paste.ts` (`clipboardEntry`, `pastePlan`).
   - `timeline.junctions.ts`: what the clip commands share to keep junctions valid: `moveClips`,
     `followMove`, `rippleTrim`, `fitJunctions`, `junctionsOverlapping`, and `commitState` (writes
     a state worked out with `project`'s pure helpers as one undo step).
@@ -96,21 +97,32 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     because their pictures are joined (remove the junction first); nothing changes.
   - A junction whose kind isn't registered is kept where the rules allow and its limits are not
     checked.
-- **Not yet:** markers, groups, ripple and other Pro tools, magnetic main track.
+  - **Ripple delete:** closes the time the deleted clips freed on each track that lost a clip: their spans minus what other clips there still cover, so a junction's overlap isn't closed twice and gaps already there stay. A linked group moves by the smallest shift among its clips on those tracks. Anything landing on another clip fails with `timeline.overlap`.
+- **Clipboard:** copies keep everything set on a clip. Each copied track stays together, on its track when free, else the first free one of its kind, else a new one (same undo step). Junctions aren't copied, so clips that overlapped under one land one after the other. Fails `timeline.clipboard_empty`, `timeline.clipboard_stale`, `composition.cycle`.
+- **Disabled clips:** `Clip.disabled` keeps a clip's place but leaves it out of frames, sound, export and canvas picking; a transition beside it doesn't play.
+- **Link:** `timeline.linkClips` undoes an unlink only: one picture and one sound of the same file, time and length, else `timeline.link_mismatch`.
+- **Not yet:** markers, groups, magnetic main track.
 
-| Command                   | MCP tool                    |
-| ------------------------- | --------------------------- |
-| `timeline.addTrack`       | `timeline_add_track`        |
-| `timeline.removeTrack`    | `timeline_remove_track`     |
-| `timeline.addClip`        | `timeline_add_clip`         |
-| `timeline.addElement`     | `timeline_add_element`      |
-| `timeline.moveClip`       | `timeline_move_clip`        |
-| `timeline.trimClip`       | `timeline_trim_clip`        |
-| `timeline.splitAt`        | `timeline_split`            |
-| `timeline.deleteClips`    | `timeline_delete_clips`     |
-| `timeline.unlinkClips`    | `timeline_unlink_clips`     |
-| `timeline.setTrackMuted`  | `timeline_set_track_muted`  |
-| `timeline.setTrackHidden` | `timeline_set_track_hidden` |
+| Command                     | MCP tool                      |
+| --------------------------- | ----------------------------- |
+| `timeline.addTrack`         | `timeline_add_track`          |
+| `timeline.removeTrack`      | `timeline_remove_track`       |
+| `timeline.addClip`          | `timeline_add_clip`           |
+| `timeline.addElement`       | `timeline_add_element`        |
+| `timeline.moveClip`         | `timeline_move_clip`          |
+| `timeline.trimClip`         | `timeline_trim_clip`          |
+| `timeline.splitAt`          | `timeline_split`              |
+| `timeline.deleteClips`      | `timeline_delete_clips`       |
+| `timeline.unlinkClips`      | `timeline_unlink_clips`       |
+| `timeline.linkClips`        | `timeline_link_clips`         |
+| `timeline.rippleDelete`     | `timeline_ripple_delete`      |
+| `timeline.setClipsDisabled` | `timeline_set_clips_disabled` |
+| `timeline.copyClips`        | `timeline_copy_clips`         |
+| `timeline.cutClips`         | `timeline_cut_clips`          |
+| `timeline.pasteClips`       | `timeline_paste_clips`        |
+| `timeline.duplicateClips`   | `timeline_duplicate_clips`    |
+| `timeline.setTrackMuted`    | `timeline_set_track_muted`    |
+| `timeline.setTrackHidden`   | `timeline_set_track_hidden`   |
 
 The panel is an animator's exposure sheet: a peg bar in the toolbar (`ui/PegBar.tsx`, decoration), and rows as a repeating background on each lane, so no page gains elements. The selected clip is a red pencil outline (`outline`, not a shadow), and a junction a long red X.
 

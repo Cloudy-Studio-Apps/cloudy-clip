@@ -3,8 +3,8 @@
 How a clip sounds: volume, pan, fades, equalizer and pitch, in preview and in export. The value is `Clip.sound` in `project`, since core modules read it; this module owns the commands, tools and the inspector's Audio tab.
 
 - **Tier:** feature
-- **Requires:** `project`, `inspector`, `preview`
-- **Contributes:** `inspectorSections` on tab `audio`: Volume, Pan, Fades, Pitch, Equalizer. The inspector's own Sound section (track, mute) stays below them.
+- **Requires:** `project`, `inspector`, `preview`, `timeline` (the clip menu)
+- **Contributes:** Reset sound in a clip's menu (`audio.menu.ts`); `inspectorSections` on tab `audio`: Volume, Pan, Fades, Pitch, Equalizer. The inspector's own Sound section (track, mute) stays below them.
 - **Points it owns:** —
 - **API:** none
 - **Files:**

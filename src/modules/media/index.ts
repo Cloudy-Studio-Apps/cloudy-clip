@@ -3,7 +3,7 @@
  * @module media
  */
 export { mediaHasAudio } from "./media.audio";
-export { importMedia, relinkMedia, removeMedia } from "./media.commands";
+export { importMedia, relinkMedia, removeMedia, revealMedia } from "./media.commands";
 export { createBin, deleteBin, moveToBin, renameBin } from "./media.bin.commands";
 export { renameMedia, setInfo } from "./media.info.commands";
 /** Asks where a missing file went and points the media at it. */

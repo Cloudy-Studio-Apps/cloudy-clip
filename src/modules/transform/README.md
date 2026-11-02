@@ -7,7 +7,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
 
 - **Tier:** feature
 - **Requires:** `project`, `element` (picture sizes and fits), `media` (picture sizes), `fonts` (re-measure text when a font loads), `preview`, `timeline` (the selection)
-- **Contributes:** shared group `transform` (`sharedGroups`, its section in every element's panel
+- **Contributes:** Reset transform in a clip's menu (`transform.menu.ts`); shared group `transform` (`sharedGroups`, its section in every element's panel
   on video tracks); preview overlay `transform.overlay`
 - **Points it owns:** —
 - **API:** none beyond its exported command and group (`TransformApi` is empty)
