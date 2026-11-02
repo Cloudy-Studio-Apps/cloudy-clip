@@ -1,6 +1,7 @@
 //! Cloudy Clip native side. `lib.rs` only wires modules; each module lives in its own folder.
 
 mod error;
+mod export;
 mod fonts;
 mod mcp;
 mod media;
@@ -16,11 +17,18 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             media::setup(app);
+            export::setup(app);
             mcp::setup(app);
             webview::setup(app);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            export::commands::export_begin,
+            export::commands::export_cancel,
+            export::commands::export_capabilities,
+            export::commands::export_finish,
+            export::commands::export_free_space,
+            export::commands::export_unique_path,
             fonts::commands::fonts_system_list,
             media::commands::media_register,
             media::commands::media_server_url,

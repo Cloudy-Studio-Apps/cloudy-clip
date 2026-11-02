@@ -66,7 +66,7 @@ pub async fn start(registry: Arc<MediaRegistry>) -> AppResult<MediaServer> {
     })
 }
 
-fn random_token() -> AppResult<String> {
+pub(crate) fn random_token() -> AppResult<String> {
     let mut bytes = [0u8; 16];
     getrandom::fill(&mut bytes)
         .map_err(|e| AppError::Unavailable(format!("No randomness available: {e}")))?;
@@ -142,7 +142,7 @@ async fn handle_frame(
 }
 
 /// DNS-rebinding guard: only `127.0.0.1` / `localhost` hosts.
-fn is_loopback_host(headers: &HeaderMap) -> bool {
+pub(crate) fn is_loopback_host(headers: &HeaderMap) -> bool {
     let Some(host) = headers.get(header::HOST).and_then(|h| h.to_str().ok()) else {
         return false;
     };

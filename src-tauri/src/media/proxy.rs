@@ -91,8 +91,8 @@ pub struct ProbeMeta {
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct Tools {
-    pub(super) ffmpeg: PathBuf,
+pub(crate) struct Tools {
+    pub(crate) ffmpeg: PathBuf,
     ffprobe: PathBuf,
 }
 
@@ -268,7 +268,7 @@ impl Probe {
 }
 
 /// Finds `ffmpeg`/`ffprobe` once per run.
-fn find_tools() -> Option<Tools> {
+pub(crate) fn find_tools() -> Option<Tools> {
     static TOOLS: OnceLock<Option<Tools>> = OnceLock::new();
     TOOLS
         .get_or_init(|| {
@@ -302,7 +302,7 @@ fn find_tools() -> Option<Tools> {
         .clone()
 }
 
-pub(super) fn command(program: &Path) -> Command {
+pub(crate) fn command(program: &Path) -> Command {
     let mut command = Command::new(program);
     command.stdin(Stdio::null()).kill_on_drop(true);
     #[cfg(windows)]
