@@ -31,6 +31,11 @@ export async function measureVideoLevels(url: string): Promise<VideoLevels> {
       setTimeout(resolve, FRAME_FALLBACK_MS);
       video.requestVideoFrameCallback?.(() => resolve());
     });
+    const deadline = performance.now() + LOAD_LIMIT_MS;
+    while (video.seeking || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      if (performance.now() > deadline) throw new Error("The levels clip did not decode");
+      await new Promise((resolve) => setTimeout(resolve, FRAME_FALLBACK_MS));
+    }
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;

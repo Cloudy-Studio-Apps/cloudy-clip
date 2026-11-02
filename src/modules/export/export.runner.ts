@@ -1,6 +1,5 @@
-import { notify, type Logger } from "@/core";
-import type { MediaApi } from "@/modules/media";
-import type { PreviewApi, VideoLevels } from "@/modules/preview";
+import { notify } from "@/core";
+import type { VideoLevels } from "@/modules/preview";
 import { usedMedia } from "./logic/sources";
 import { frameCount, frameTime } from "./logic/timing";
 import { formatInfo } from "./logic/presets";
@@ -12,16 +11,7 @@ import {
   revealFile,
   sendFrame,
 } from "./export.service";
-import type { ExportJob, ExportQueueState, ExportRunner, ExportStatus } from "./export.types";
-import type { StoreApi } from "zustand/vanilla";
-
-/** What the runner needs from the rest of the app. */
-interface RunnerDeps {
-  queue: StoreApi<ExportQueueState>;
-  preview: Pick<PreviewApi, "createRenderer" | "measureVideoLevels">;
-  media: Pick<MediaApi, "prepareMaster" | "masterUrl" | "getProbe">;
-  log: Logger;
-}
+import type { ExportJob, ExportRunner, ExportStatus, RunnerDeps } from "./export.types";
 
 /** A webview this close to black 0 and white 255 draws video as it should. */
 const LEVELS_TOLERANCE = 6;
@@ -37,9 +27,12 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
   let active: { id: string; nativeId: string | null } | null = null;
   let levels: Promise<VideoLevels | null> | null = null;
 
+  // A cancelled job stays cancelled, whatever was under way when it happened.
   const update = (id: string, patch: Partial<ExportJob>) =>
     queue.setState(({ jobs }) => ({
-      jobs: jobs.map((job) => (job.id === id ? { ...job, ...patch } : job)),
+      jobs: jobs.map((job) =>
+        job.id === id && job.status !== "cancelled" ? { ...job, ...patch } : job,
+      ),
     }));
   const jobOf = (id: string) => queue.getState().jobs.find((job) => job.id === id);
   const stopped = (id: string) => disposed || jobOf(id)?.status === "cancelled";
@@ -52,12 +45,16 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
       .then((id) => preview.measureVideoLevels(media.masterUrl(id)))
       .then(({ black, white }) => {
         log.info(`Video draws from ${black} to ${white}`);
+        // A frame that wasn't decoded reads as nonsense, which would wreck every video layer.
+        if (black > 64 || white < 192) throw new Error(`Unlikely levels: ${black} to ${white}`);
         return black <= LEVELS_TOLERANCE && white >= 255 - LEVELS_TOLERANCE
           ? null
           : { black, white };
       })
       .catch((error: unknown) => {
         log.warn("Could not measure video levels", error);
+        notify("info", "Colors of this export may look a little flat.");
+        levels = null;
         return null;
       });
     return levels;
@@ -108,10 +105,12 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
       if (stopped(job.id)) throw new Cancelled();
       const { jobId, frameUrl } = await beginExport(job.spec);
       active.nativeId = jobId;
+      if (stopped(job.id)) throw new Cancelled();
       if (formatInfo(job.spec.format).picture) {
         enter(job.id, "rendering");
         await renderFrames(job, frameUrl);
       }
+      if (stopped(job.id)) throw new Cancelled();
       enter(job.id, "finishing");
       const path = await finishExport(jobId);
       active.nativeId = null;

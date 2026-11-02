@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { createId, CommandFailure, defineCommand, type CommandContext } from "@/core";
+import { createId, CommandFailure, defineCommand } from "@/core";
 import { mediaHasAudio, mediaRef } from "@/modules/media";
-import { projectRef, type Composition } from "@/modules/project";
+import { projectRef } from "@/modules/project";
 import { estimateBytes } from "./logic/estimate";
 import { mixdown } from "./logic/mixdown";
 import {
@@ -11,16 +11,14 @@ import {
   EXPORT_KINDS,
   encoderValues,
   formatInfo,
-  joinPath,
   kindOf,
-  numberedName,
   validName,
 } from "./logic/presets";
-import { usedMedia } from "./logic/sources";
 import { saveFolder } from "./export.store";
 import { exportRef } from "./export.ref";
-import { readCapabilities, uniquePath } from "./export.service";
-import type { ExportJob, ExportRange } from "./export.types";
+import { checkSources, outputPath, rangeOf } from "./export.guards";
+import { readCapabilities } from "./export.service";
+import type { ExportJob } from "./export.types";
 
 const FORMAT = z.enum(["h264", "h265", "webm", "prores", "gif", "mp3"]);
 const EFFORT = z.enum(["fast", "balanced", "small"]);
@@ -47,58 +45,6 @@ const ENQUEUE_INPUT = z.object({
     .describe("What to do when the file is already there"),
   reveal: z.boolean().default(false).describe("Show the file when it's done"),
 });
-
-/** The stretch to export, or why it can't be. */
-function rangeOf(composition: Composition, range: ExportRange | undefined): ExportRange {
-  const wanted = range ?? { start: 0, duration: composition.duration };
-  const end = Math.min(wanted.start + wanted.duration, composition.duration);
-  if (end <= wanted.start) {
-    throw new CommandFailure("export.emptyRange", "There's nothing to export in that part");
-  }
-  return { start: wanted.start, duration: end - wanted.start };
-}
-
-/** Refuses files that are gone or still being converted. */
-function checkSources(ctx: CommandContext, composition: Composition, range: ExportRange): void {
-  const { store } = ctx.require(projectRef);
-  const media = ctx.require(mediaRef);
-  const project = store.getState();
-  for (const id of usedMedia(project, composition.id, range)) {
-    const name = project.media[id]?.name ?? id;
-    const probe = media.getProbe(id);
-    if (!project.media[id] || probe?.status === "missing") {
-      throw new CommandFailure("export.missingMedia", `${name} can't be found. Locate it first.`);
-    }
-    if (probe?.proxy && ["analyzing", "queued", "encoding"].includes(probe.proxy.state)) {
-      throw new CommandFailure("export.mediaNotReady", `${name} is still being prepared.`);
-    }
-  }
-}
-
-/** Where the file goes, as `ifExists` says, keeping clear of what's queued. */
-async function outputPath(
-  folder: string,
-  name: string,
-  extension: string,
-  ifExists: "number" | "replace" | "fail",
-  queued: readonly ExportJob[],
-): Promise<string> {
-  const wanted = joinPath(folder, `${name}.${extension}`);
-  const taken = (path: string) =>
-    queued.some(
-      (job) => job.path === path && job.status !== "cancelled" && job.status !== "failed",
-    );
-  const free = await uniquePath(wanted);
-  if (ifExists === "fail" && free !== wanted) {
-    throw new CommandFailure("export.fileExists", `${name}.${extension} already exists`);
-  }
-  if (ifExists === "replace" && !taken(wanted)) return wanted;
-  if (!taken(free)) return free;
-  for (let n = 2; ; n++) {
-    const next = await uniquePath(joinPath(folder, numberedName(name, extension, n)));
-    if (!taken(next)) return next;
-  }
-}
 
 /** Adds an export to the queue. The document is kept as it is now. */
 export const enqueue = defineCommand({

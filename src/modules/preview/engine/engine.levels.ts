@@ -9,6 +9,7 @@ export class LevelCorrection {
   private readonly canvas = document.createElement("canvas");
   private readonly ctx: CanvasRenderingContext2D;
 
+  /** `white` must be above `black`. */
   constructor({ black, white }: VideoLevels) {
     const ctx = this.canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("2D canvas is not available");

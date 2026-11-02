@@ -1,6 +1,8 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { Micros } from "@/core";
-import type { CompositionId, ProjectState } from "@/modules/project";
+import type { Logger, Micros } from "@/core";
+import type { MediaApi } from "@/modules/media";
+import type { PreviewApi } from "@/modules/preview";
+import type { CompositionId, ProjectFormat, ProjectState } from "@/modules/project";
 
 /** The part of a composition's timeline that gets exported. */
 export interface ExportRange {
@@ -123,6 +125,39 @@ export interface ExportFormState {
   hardware: boolean;
   ifExists: ExportIfExists | "ask";
   reveal: boolean;
+}
+
+/** A stretch of one composition's clock and where it lands on the export's clock. */
+export interface MixWindow {
+  from: Micros;
+  to: Micros;
+  /** Add to a time of this composition to get the export's time. */
+  shift: Micros;
+}
+
+/** Fades a placement passes down to what starts or ends with it. */
+export interface MixEdges {
+  fadeIn: Micros;
+  fadeOut: Micros;
+}
+
+/** What an export needs for its estimates. */
+export interface EstimateInput {
+  format: ProjectFormat;
+  info: ExportFormatInfo;
+  quality: number;
+  duration: Micros;
+  sound: boolean;
+  effort: ExportEffort;
+  hardware: boolean;
+}
+
+/** What the runner needs from the rest of the app. */
+export interface RunnerDeps {
+  queue: StoreApi<ExportQueueState>;
+  preview: Pick<PreviewApi, "createRenderer" | "measureVideoLevels">;
+  media: Pick<MediaApi, "prepareMaster" | "masterUrl" | "getProbe">;
+  log: Logger;
 }
 
 /** Runs the queue. */

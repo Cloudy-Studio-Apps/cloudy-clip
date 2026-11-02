@@ -7,21 +7,7 @@ import {
   type ProjectState,
   type Track,
 } from "@/modules/project";
-import type { ExportRange, SoundSegment } from "../export.types";
-
-/** A stretch of one composition's clock and where it lands on the export's clock. */
-interface Window {
-  from: Micros;
-  to: Micros;
-  /** Add to a time of this composition to get the export's time. */
-  shift: Micros;
-}
-
-/** Fades a placement passes down to what starts or ends with it. */
-interface Edges {
-  fadeIn: Micros;
-  fadeOut: Micros;
-}
+import type { ExportRange, MixEdges, MixWindow, SoundSegment } from "../export.types";
 
 /** The overlap a junction allows between two neighbours of a track; 0 for plain neighbours. */
 function overlapOf(project: ProjectState, left: Clip | undefined, right: Clip | undefined): Micros {
@@ -33,8 +19,8 @@ function overlapOf(project: ProjectState, left: Clip | undefined, right: Clip | 
 function walk(
   project: ProjectState,
   compositionId: CompositionId,
-  { from, to, shift }: Window,
-  edges: Edges,
+  { from, to, shift }: MixWindow,
+  edges: MixEdges,
   hasSound: (id: MediaId) => boolean,
   out: SoundSegment[],
 ): void {

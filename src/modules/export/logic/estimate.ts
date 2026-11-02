@@ -1,6 +1,5 @@
-import { microsToSeconds, type Micros } from "@/core";
-import type { ProjectFormat } from "@/modules/project";
-import type { ExportEffort, ExportFormatInfo, ExportJob } from "../export.types";
+import { microsToSeconds } from "@/core";
+import type { EstimateInput, ExportEffort, ExportJob } from "../export.types";
 
 /** Pixels of a 1080p frame. */
 const FULL_HD = 2_073_600;
@@ -9,17 +8,6 @@ const DRAW_SECONDS_PER_FRAME = 0.08;
 
 const EFFORT_SIZE: Record<ExportEffort, number> = { fast: 1.15, balanced: 1, small: 0.85 };
 const EFFORT_TIME: Record<ExportEffort, number> = { fast: 0.5, balanced: 1, small: 2.2 };
-
-/** What an export needs for its estimates. */
-interface EstimateInput {
-  format: ProjectFormat;
-  info: ExportFormatInfo;
-  quality: number;
-  duration: Micros;
-  sound: boolean;
-  effort: ExportEffort;
-  hardware: boolean;
-}
 
 /** Roughly how many bytes the file takes. */
 export function estimateBytes(input: EstimateInput): number {
