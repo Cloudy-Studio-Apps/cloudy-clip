@@ -2,6 +2,7 @@ import { Scissors } from "lucide-react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
 import { elementModule, prop } from "@/modules/element";
+import { inspectorModule } from "@/modules/inspector";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { addJunction, defineJunctionKind, junctionKinds, junctionModule } from "@/modules/junction";
 import { createFakeMediaModule } from "@/modules/media";
@@ -102,6 +103,7 @@ async function load(change?: (state: ProjectState) => void) {
     createFakeFontsModule(),
     previewModule,
     timelineModule,
+    inspectorModule,
     speedModule,
   ]);
 }

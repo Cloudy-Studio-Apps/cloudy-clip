@@ -49,6 +49,14 @@ export interface EyeDropperLike {
   open(): Promise<{ sRGBHex: string }>;
 }
 
+/** A box on screen, in pixels from the window's top left. */
+export interface PanelAnchor {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
 /** Where a menu was opened, in pixels from the window's top left. */
 export interface MenuPoint {
   clientX: number;

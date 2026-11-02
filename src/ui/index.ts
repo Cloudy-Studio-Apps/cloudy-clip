@@ -40,6 +40,8 @@ export { ContextMenu } from "./kit/ContextMenu";
 export { MenuList } from "./kit/MenuList";
 /** A floating panel anchored to a trigger: portal, outside-press and Escape close, focus returns. */
 export { Popover } from "./kit/Popover";
+/** A floating panel above a box on screen, such as a clip: it follows the box and closes on an outside press or Escape. */
+export { FloatingPanel } from "./kit/FloatingPanel";
 /** Saturation/brightness area, hue and opacity sliders, hex, eyedropper, swatches and recents. */
 export { ColorPicker } from "./kit/ColorPicker";
 /** A labelled swatch button that opens a `ColorPicker`, with hex and opacity % boxes. */
@@ -68,4 +70,5 @@ export type {
   InfoRow,
   MenuItem,
   MenuPoint,
+  PanelAnchor,
 } from "./kit/kit.types";

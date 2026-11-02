@@ -5,7 +5,7 @@ import { useKernel, useModule, usePoint } from "@/core";
 import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
 import { elementRef, type ElementDisplay } from "@/modules/element";
-import { type Clip, type ProjectState, partnersOf, projectRef } from "@/modules/project";
+import { type Clip, type ProjectState, partnersOf, projectRef, speedOf } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
 import { cn, ContextMenu } from "@/ui";
 import { clipActions } from "../timeline.points";
@@ -58,6 +58,7 @@ export const TimelineClip = memo(function TimelineClip({
   );
   const linked = useStore(project.api, (s) => partnersOf(s, clip.id).length > 0);
   const actions = usePoint(clipActions);
+  const { rate } = speedOf(clip);
 
   return (
     <ContextMenu
@@ -110,6 +111,7 @@ export const TimelineClip = memo(function TimelineClip({
         <div className="pointer-events-none absolute left-0 top-0 flex h-[17px] max-w-full items-center gap-1 border-b border-r border-border-strong bg-surface px-[5px] font-mono text-xs font-bold">
           {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
           <span className="min-w-0 truncate">{label}</span>
+          {rate !== 1 && rate > 0 && <span className="shrink-0 text-mark">{rate.toFixed(2)}x</span>}
         </div>
         {/* Trim handles: brackets on hover. */}
         <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-foreground" />
