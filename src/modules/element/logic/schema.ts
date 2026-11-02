@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { PropertyTree, PropSpec, SchemaEnv } from "../element.types";
+import { gradientSchema } from "./gradient";
 
 /** The Zod schema of one value. */
 function valueSchema(spec: PropSpec, env: SchemaEnv): z.ZodType {
@@ -29,6 +30,8 @@ function valueSchema(spec: PropSpec, env: SchemaEnv): z.ZodType {
         .string()
         .regex(/^#[0-9a-f]{6}$/i, "Use #rrggbb")
         .transform((value) => value.toLowerCase());
+    case "gradient":
+      return gradientSchema;
     case "enum":
       return z.enum((spec.values ?? []) as [string, ...string[]]);
     case "group":

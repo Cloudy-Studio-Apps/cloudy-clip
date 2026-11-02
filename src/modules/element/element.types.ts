@@ -14,7 +14,8 @@ import type {
 } from "@/modules/project";
 
 /** The kind of value a property holds. */
-export type PropKind = "string" | "number" | "boolean" | "color" | "enum" | "group" | "custom";
+export type PropKind =
+  "string" | "number" | "boolean" | "color" | "gradient" | "enum" | "group" | "custom";
 
 /** A condition on the element's values: a path to a boolean (`"outline.enabled"`) or a function. */
 export type PropCondition = string | ((props: Record<string, unknown>) => boolean);

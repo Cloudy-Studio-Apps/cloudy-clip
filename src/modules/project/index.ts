@@ -51,6 +51,8 @@ export type {
   ClipId,
   ClipPlacement,
   BlendMode,
+  Gradient,
+  GradientStop,
   ClipComposite,
   ClipTransform,
   Composition,

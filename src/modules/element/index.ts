@@ -15,6 +15,14 @@ export { elements, propTypes, sharedGroups } from "./element.points";
 export { defineElement, definePropType, defineSharedGroup } from "./logic/define";
 /** Builders of declared properties, and the control a property uses by default. */
 export { defaultControl, prop } from "./logic/props";
+/** Gradient values: their schema, a default, and how to draw and show them. */
+export {
+  DEFAULT_GRADIENT,
+  gradientCss,
+  gradientLine,
+  gradientPaint,
+  gradientSchema,
+} from "./logic/gradient";
 /** An element's panel with every path checked and every control and label picked. */
 export { resolveLayout } from "./logic/layout";
 /** Every field of a property tree by path (`outline`, `outline.width`), for `resolveLayout`. */

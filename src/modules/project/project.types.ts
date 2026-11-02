@@ -124,6 +124,20 @@ export interface Clip extends Partial<SharedGroupValues> {
   animationOrigin?: Micros;
 }
 
+/** One color of a gradient. `at` is its place along the gradient and `opacity` its alpha, each 0–1. */
+export interface GradientStop {
+  at: number;
+  color: string;
+  opacity: number;
+}
+
+/** A linear or radial fill. `angle` is clockwise in degrees, 0 left to right; radial ignores it. */
+export interface Gradient {
+  type: "linear" | "radial";
+  angle: number;
+  stops: GradientStop[];
+}
+
 /** A value a key can hold. */
 export type KeyValue = number | string | boolean;
 

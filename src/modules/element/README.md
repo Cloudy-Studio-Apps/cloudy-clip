@@ -19,10 +19,11 @@ declaration, and one command changes any element's values.
   - `element.types.ts`: `ElementDefinition`, `PropSpec`, `SharedGroup`, `PropType`, layout items,
     `CustomProps`/`CustomValues` (custom prop types extend them with `declare module`).
   - `logic/props.ts`: the `prop.*` builders and `defaultControl` (string → text/textarea, number →
-    number, boolean → toggle, color → color, enum → segmented up to 4 values else select, custom →
+    number, boolean → toggle, color → color, gradient → gradient, enum → segmented up to 4 values else select, custom →
     its type's control; a spec's own `control` wins).
   - `logic/schema.ts`: `patchSchema`: every field optional, groups partial, unknown keys refused,
     colors `#rrggbb` lowercased, `trim` strings trimmed before `min`; shared groups under their key.
+  - `logic/gradient.ts`: the `gradient` kind of value (`prop.gradient()`): `gradientSchema` (2 to 8 stops, always written whole), `DEFAULT_GRADIENT`, `gradientLine` (clockwise from left to right, ends reaching the corners), `gradientPaint` (a canvas paint for a box centered on the origin), `gradientCss`. It can't be keyed.
   - `logic/values.ts`: `mergeProps` (one level deep), `resolveProps`, `minimizeProps` (only what
     differs from the defaults; empty groups dropped), `getPath`, `deepEqual`.
   - `logic/groups.ts`: `narrowGroup`. An element's `"<key>.<field>"` property narrows a shared

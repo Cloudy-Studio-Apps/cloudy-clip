@@ -1,3 +1,4 @@
+import type { Gradient } from "@/modules/project";
 import type {
   CustomProps,
   CustomValues,
@@ -25,6 +26,10 @@ export const prop = {
   /** A `#rrggbb` color; `opacity` names a sibling 0–1 number edited by the same field. */
   color(o: PropUi & { opacity?: string } = {}) {
     return { ...o, kind: "color" } as PropSpec<string>;
+  },
+  /** A linear or radial gradient, always written whole. */
+  gradient(o: PropUi = {}) {
+    return { ...o, kind: "gradient" } as PropSpec<Gradient>;
   },
   /** One of a fixed set of strings. */
   enum<const V extends readonly [string, ...string[]]>(
@@ -62,6 +67,8 @@ export function defaultControl(spec: PropSpec, propType?: PropType): string {
       return "toggle";
     case "color":
       return "color";
+    case "gradient":
+      return "gradient";
     case "enum":
       return (spec.values?.length ?? 0) <= 4 ? "segmented" : "select";
     case "custom":
