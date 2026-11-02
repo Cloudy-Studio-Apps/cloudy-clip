@@ -15,6 +15,7 @@ export function createKeyframeView(): StoreApi<KeyframeViewState> {
     primary: null,
     panelHeight: 240,
     focused: false,
+    motionPath: true,
   }));
 }
 

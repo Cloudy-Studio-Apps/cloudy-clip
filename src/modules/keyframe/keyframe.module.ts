@@ -1,7 +1,8 @@
 import { defineModule, keybindings, type ActorId } from "@/core";
+import { previewOverlays } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { clipActions, timelineDocks, timelineTools } from "@/modules/timeline";
-import { ClipBadge, KeyPanel, keyAction, ModeSwitch } from "./ui";
+import { ClipBadge, KeyPanel, keyAction, ModeSwitch, MotionPath } from "./ui";
 import { setEase } from "./keyframe.ease.commands";
 import { keyframeCommands } from "./keyframe.commands";
 import { createKeyframeApi, elementTarget } from "./keyframe.fields";
@@ -39,6 +40,7 @@ export const keyframeModule = defineModule({
     ctx.contribute(timelineTools, { id: "keyframe.mode", order: 0, component: ModeSwitch });
     ctx.contribute(timelineDocks, { id: "keyframe.panel", component: KeyPanel });
     ctx.contribute(clipActions, { id: "keyframe.badge", badge: ClipBadge });
+    ctx.contribute(previewOverlays, { id: "keyframe.motionPath", component: MotionPath });
     ctx.contribute(keybindings, {
       id: "keyframe.toggle-mode",
       key: "k",

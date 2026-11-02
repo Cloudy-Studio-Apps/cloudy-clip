@@ -91,6 +91,8 @@ export interface KeyframeViewState {
   panelHeight: number;
   /** The last click was in the panel. */
   focused: boolean;
+  /** Draw the selected clip's position path on the canvas. */
+  motionPath: boolean;
 }
 
 /** A clip the panel lists, with the fields that have keys. */
@@ -287,4 +289,31 @@ export interface HandleDragOptions {
   onPreview(state: HandleState | undefined): void;
   /** On release, when the pointer moved. */
   onDrop(state: HandleState): void;
+}
+
+/** A place in the frame, in output pixels. */
+export interface FramePoint {
+  x: number;
+  y: number;
+}
+
+/** A clip's position over time: sampled points, and where each key time sits with its keys. */
+export interface MotionPathShape {
+  points: FramePoint[];
+  /** One per distinct key time of `transform.x` and `transform.y`: the keys there and the position. */
+  keys: { ref: KeyRef[]; at: FramePoint }[];
+}
+
+/** What a drag of a path diamond needs. */
+export interface MotionDragOptions {
+  event: PointerEvent;
+  /** The element the overlay fills; output pixels are found from its box. */
+  frame: HTMLElement;
+  /** The frame size in output pixels. */
+  size: { width: number; height: number };
+  /** The diamond that moves, and where it starts. */
+  diamond: HTMLElement;
+  at: FramePoint;
+  /** On release with the move in output pixels (never 0, 0). */
+  onDrop(delta: FramePoint): void;
 }

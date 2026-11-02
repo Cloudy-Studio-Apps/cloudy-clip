@@ -6,6 +6,7 @@ import {
   Maximize2,
   Minimize2,
   MousePointerSquareDashed,
+  Route,
   ScanSearch,
   Spline,
 } from "lucide-react";
@@ -46,6 +47,7 @@ export function PanelToolbar({
   const scope = useStore(view, (s) => s.scope);
   const primary = useStore(view, (s) => s.primary);
   const maximized = useStore(view, (s) => s.maximized);
+  const motionPath = useStore(view, (s) => s.motionPath);
   const selectedCount = useStore(view, (s) => s.selection.length);
   const target = targetRow(rows, primary);
   const project = useModule(projectRef).store;
@@ -127,6 +129,15 @@ export function PanelToolbar({
         onClick={actions.fit}
       >
         Fit
+      </ToolbarButton>
+      <ToolbarButton
+        icon={<Route />}
+        title="Draw the selected clip's position path on the canvas, with its keys to drag"
+        aria-pressed={motionPath}
+        className={motionPath ? "text-on" : undefined}
+        onClick={() => view.setState({ motionPath: !motionPath })}
+      >
+        Motion path
       </ToolbarButton>
       <div className="min-w-3 flex-1" />
       <ToolbarButton
