@@ -79,7 +79,7 @@
   }
 }
 
-/* Theme tokens: values change with `data-theme`, so they are read at runtime. */
+/* Theme tokens: the theme module changes their values, so they are read at runtime. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -114,6 +114,14 @@
   --color-clip-audio: var(--clip-audio);
   --color-clip-type: var(--clip-type);
   --color-clip-composition: var(--clip-composition);
+  --color-clip-foreground: var(--clip-foreground);
+  --color-ink-hover: var(--ink-hover);
+
+  --spacing-control-sm: var(--control-h-sm);
+  --spacing-control: var(--control-h);
+  --spacing-control-lg: var(--control-h-lg);
+  --spacing-control-x: var(--control-px);
+  --spacing-row: var(--row-h);
 
   --color-ice-200: var(--ice-200);
   --color-ice-300: var(--ice-300);

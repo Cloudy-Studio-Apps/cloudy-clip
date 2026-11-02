@@ -9,7 +9,7 @@ export function ProgressBar({ value, className }: { value: number; className?: s
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={percent}
-      className={cn("h-[3px] bg-white/25", className)}
+      className={cn("h-[3px] bg-foreground/25", className)}
     >
       <div
         className="h-full bg-ice-400 transition-[width] duration-300"

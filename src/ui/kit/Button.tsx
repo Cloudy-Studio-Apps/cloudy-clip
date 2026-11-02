@@ -8,7 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS = {
-  primary: "bg-foreground text-surface enabled:hover:bg-white",
+  primary: "bg-foreground text-surface enabled:hover:bg-ink-hover",
   secondary: "border-border-strong enabled:hover:border-subtle-foreground enabled:hover:bg-muted",
   mark: "bg-mark text-mark-foreground enabled:hover:bg-mark-hover",
 } as const;

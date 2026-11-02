@@ -1,5 +1,7 @@
 /*
- * Cloudy Clip design tokens. Cloudy Dark is Mesa de noche, the animator's desk at night:
+ * Cloudy Clip design tokens, and the default theme. Other themes are data in the theme module
+ * (`src/modules/theme/presets/`), which writes over these values at runtime, so this file alone
+ * must paint the app. Cloudy Dark is Mesa de noche, the animator's desk at night:
  * black paper, blue roughs, white pencil, red corrections
  * (docs/prototype/designs/b-mesa-de-noche.html). The palette scales come from Cloudy Canvas.
  * Red marks what you touched; what is merely on uses --on, blue pencil. To make switches and
@@ -32,17 +34,10 @@
   --sand-200: oklch(0.92 0.07 87);
   --sand-300: oklch(0.88 0.1 86);
   --sand-400: oklch(0.83 0.12 84);
-
-  /* Clip fills on the timeline, the same in both themes. */
-  --clip-video: #24384a;
-  --clip-audio: #2a3a33;
-  --clip-type: #4d4119;
-  --clip-composition: #3a2f52;
 }
 
-/* ── Cloudy Dark: Mesa de noche (default for the editor) ───────────────────────────── */
-:root,
-:root[data-theme="dark"] {
+/* ── Cloudy Dark: Mesa de noche ─────────────────────────────────────── */
+:root {
   color-scheme: dark;
   --background: #14171b;
   --foreground: #eceff1;
@@ -73,40 +68,20 @@
   --stage: #0e1013;
   --popover: #2a2e33;
   --lane: #14171b;
+  --ink-hover: #ffffff;
+  --clip-video: #24384a;
+  --clip-audio: #2a3a33;
+  --clip-type: #4d4119;
+  --clip-composition: #3a2f52;
+  --clip-foreground: var(--foreground);
   --shadow-color: 256 40% 3%;
-}
 
-/* ── Cloudy Light ───────────────────────────────────────────────────── */
-:root[data-theme="light"] {
-  color-scheme: light;
-  --background: oklch(0.975 0.004 250);
-  --foreground: var(--seal-900);
-  --surface: oklch(1 0 0);
-  --surface-sunken: oklch(0.955 0.006 250);
-  --muted: oklch(0.94 0.007 250);
-  --muted-foreground: oklch(0.48 0.018 254);
-  --subtle-foreground: oklch(0.6 0.016 252);
-  --online: oklch(0.62 0.15 155);
-  --hover: oklch(0.94 0.008 250);
-  --border: oklch(0.9 0.009 250);
-  --border-strong: oklch(0.83 0.012 250);
-  --ring: var(--ice-500);
-  --primary: var(--ice-600);
-  --primary-hover: var(--ice-700);
-  --primary-foreground: oklch(1 0 0);
-  --primary-soft: oklch(0.95 0.025 245);
-  --primary-soft-foreground: var(--ice-700);
-  --mark: oklch(0.58 0.2 25);
-  --mark-hover: oklch(0.52 0.2 25);
-  --mark-foreground: oklch(1 0 0);
-  --on: var(--primary);
-  --accent-soft: var(--blush-200);
-  --accent-soft-foreground: oklch(0.5 0.13 31);
-  --destructive: oklch(0.58 0.2 25);
-  --destructive-soft: oklch(0.94 0.04 25);
-  --destructive-soft-foreground: oklch(0.45 0.16 25);
-  --stage: oklch(0.93 0.008 250);
-  --popover: oklch(1 0 0);
-  --lane: oklch(0.965 0.005 250);
-  --shadow-color: 254 30% 20%;
+  /* Density: these are Default. The theme module changes them (logic/density.ts). */
+  --control-h-sm: 28px;
+  --control-h: 30px;
+  --control-h-lg: 34px;
+  --control-px: 12px;
+  --row-h: 26px;
+  --track-h-video: 64px;
+  --track-h-audio: 44px;
 }

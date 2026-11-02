@@ -20,7 +20,7 @@ export const topBarItems = definePoint<TopBarItem>("shell.topBarItems", {
   keyOf: (item) => item.id,
 });
 
-/** Layers over the whole window that never take the pointer. The app shell draws them. */
+/** Layers over the whole window, such as dialogs and pointers. The app shell draws them. */
 export const appOverlays = definePoint<AppOverlay>("shell.appOverlays", {
   keyOf: (overlay) => overlay.id,
 });

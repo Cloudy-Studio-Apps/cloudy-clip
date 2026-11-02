@@ -1,12 +1,8 @@
 import type { SampleColors } from "../transition.types";
 
-/** Colors from the design tokens (`--clip-video`, `--clip-type`), with plain fallbacks. */
+/** Colors of the sample pictures. Fixed, so a thumbnail needs no redraw when the theme changes. */
 export function sampleColors(): SampleColors {
-  const style = getComputedStyle(document.documentElement);
-  return {
-    a: style.getPropertyValue("--clip-video").trim() || "#2f5f9a",
-    b: style.getPropertyValue("--clip-type").trim() || "#a85a3c",
-  };
+  return { a: "#24384a", b: "#4d4119" };
 }
 
 /** Draws a sample picture (a diagonal gradient with a circle or a square) over the whole canvas. */
