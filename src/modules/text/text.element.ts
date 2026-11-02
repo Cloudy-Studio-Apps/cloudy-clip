@@ -7,7 +7,7 @@ import { presetStyle, presetTransform } from "./logic/presets";
 import { snapStyleToFamily } from "./logic/snap";
 import { drawText } from "./text.draw";
 import { textPanelLayout } from "./text.panel";
-import type { TextProps } from "./text.types";
+import type { TextFill, TextProps } from "./text.types";
 
 const opacity = (o: { label?: string } = {}) =>
   prop.number({
@@ -18,6 +18,8 @@ const opacity = (o: { label?: string } = {}) =>
     display: { scale: 100, unit: "%" },
     control: "slider",
   });
+
+const fillType = (values: Record<string, unknown>) => (values.fill as TextFill).type;
 
 /** A text clip's declared values: words, font and the look of fill, outline, background, shadow. */
 export const textProperties = {
@@ -54,7 +56,15 @@ export const textProperties = {
   uppercase: prop.boolean({ control: "icon-toggle", icon: "CaseUpper" }),
   fill: prop.group(
     { label: "Fill" },
-    { color: prop.color({ opacity: "opacity" }), opacity: opacity({ label: "Opacity" }) },
+    {
+      type: prop.enum(["color", "gradient"], {
+        label: "Fill",
+        labels: { color: "Color", gradient: "Gradient" },
+      }),
+      color: prop.color({ opacity: "opacity", visibleWhen: (v) => fillType(v) === "color" }),
+      opacity: opacity({ label: "Opacity" }),
+      gradient: prop.gradient({ visibleWhen: (v) => fillType(v) === "gradient" }),
+    },
   ),
   outline: prop.group(
     { label: "Outline", toggle: "enabled" },

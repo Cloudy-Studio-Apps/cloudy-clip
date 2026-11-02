@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useKernel, useModule } from "@/core";
+import { gradientCss } from "@/modules/element";
 import { previewRef } from "@/modules/preview";
 import {
   animatedClip,
@@ -135,9 +136,16 @@ export function TextEditor({ clip, onDone }: TextEditorProps) {
             textTransform: style.uppercase ? "uppercase" : "none",
             padding: `${textPadding(style)}px`,
             whiteSpace: "pre",
-            color: style.fill.color,
             opacity: style.fill.opacity,
-            caretColor: style.fill.color,
+            ...(style.fill.type === "gradient"
+              ? {
+                  background: gradientCss(style.fill.gradient),
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  color: "transparent",
+                  caretColor: style.fill.gradient.stops[0]!.color,
+                }
+              : { color: style.fill.color, caretColor: style.fill.color }),
           }}
         />
       </div>

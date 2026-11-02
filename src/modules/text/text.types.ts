@@ -1,5 +1,5 @@
 import type { FontRef, FontWeight } from "@/modules/fonts";
-import type { PictureSize } from "@/modules/project";
+import type { Gradient, PictureSize } from "@/modules/project";
 
 /** The text module's API. Empty: its element, commands and controls are its whole surface. */
 export type TextApi = Record<string, never>;
@@ -12,8 +12,12 @@ export type TextAlign = "left" | "center" | "right";
 
 /** Color of the letters (`#rrggbb`) and its opacity (0-1). */
 export type TextFill = {
+  /** What the letters are filled with. */
+  type: "color" | "gradient";
   color: string;
   opacity: number;
+  /** Spans the text box; `opacity` multiplies it. */
+  gradient: Gradient;
 };
 
 /** Stroke around the letters; `width` in output pixels. */

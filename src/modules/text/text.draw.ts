@@ -1,4 +1,4 @@
-import type { DrawEnv } from "@/modules/element";
+import { gradientPaint, type DrawEnv } from "@/modules/element";
 import { textLayout } from "./logic/layout";
 import type { TextProps, TextStyle } from "./text.types";
 
@@ -96,6 +96,10 @@ export function drawText(ctx: CanvasRenderingContext2D, props: TextProps, env: D
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
   };
+  const fillPaint =
+    fill.type === "gradient"
+      ? gradientPaint(ctx, fill.gradient, layout.box.width, layout.box.height)
+      : fill.color;
   for (const line of layout.lines) {
     if (line.text === "") continue;
     let shadowed = !shadow.enabled;
@@ -110,7 +114,7 @@ export function drawText(ctx: CanvasRenderingContext2D, props: TextProps, env: D
     }
     if (!shadowed) shadowPass();
     ctx.globalAlpha = fill.opacity;
-    ctx.fillStyle = fill.color;
+    ctx.fillStyle = fillPaint;
     paintLine(ctx, native, false, line.text, line.x, line.y, used.letterSpacing);
     noShadow();
   }

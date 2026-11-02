@@ -11,7 +11,7 @@ export function presetStyle(id: TextPresetId, format: ProjectFormat): TextStyleP
       return {
         size: px(0.09),
         weight: "900",
-        fill: { color: "#ffffff", opacity: 1 },
+        fill: { type: "color", color: "#ffffff", opacity: 1 },
         outline: { enabled: false },
         background: { enabled: false },
         shadow: { enabled: true },
@@ -20,7 +20,7 @@ export function presetStyle(id: TextPresetId, format: ProjectFormat): TextStyleP
       return {
         size: px(0.06),
         weight: "600",
-        fill: { color: "#1f2430", opacity: 1 },
+        fill: { type: "color", color: "#1f2430", opacity: 1 },
         background: {
           enabled: true,
           color: "#f2a385",
@@ -33,7 +33,7 @@ export function presetStyle(id: TextPresetId, format: ProjectFormat): TextStyleP
       return {
         size: px(0.067),
         weight: "900",
-        fill: { color: "#ffffff", opacity: 1 },
+        fill: { type: "color", color: "#ffffff", opacity: 1 },
         outline: { enabled: true, color: "#000000", width: px(0.008) },
         shadow: { enabled: false },
       };
@@ -42,7 +42,7 @@ export function presetStyle(id: TextPresetId, format: ProjectFormat): TextStyleP
         size: px(0.074),
         weight: "700",
         italic: true,
-        fill: { color: "#8cc4f0", opacity: 1 },
+        fill: { type: "color", color: "#8cc4f0", opacity: 1 },
         shadow: { enabled: true },
       };
     case "lower-third":

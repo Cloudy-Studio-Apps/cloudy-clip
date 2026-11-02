@@ -1,3 +1,4 @@
+import { DEFAULT_GRADIENT } from "@/modules/element";
 import { cssFontFamily } from "@/modules/fonts";
 import type { Clip, PictureSize, ProjectFormat } from "@/modules/project";
 import type { TextMeasure } from "@/modules/element";
@@ -29,7 +30,7 @@ export function defaultTextStyle(format: ProjectFormat): TextStyle {
     lineHeight: 1.25,
     align: "center",
     uppercase: false,
-    fill: { color: "#ffffff", opacity: 1 },
+    fill: { type: "color", color: "#ffffff", opacity: 1, gradient: { ...DEFAULT_GRADIENT } },
     outline: { enabled: false, color: "#000000", width: size * 0.08 },
     background: {
       enabled: false,
