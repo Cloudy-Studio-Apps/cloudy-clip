@@ -3,6 +3,7 @@ import { ButtonControl } from "./ButtonControl";
 import { ChoiceControl } from "./ChoiceControl";
 import { ChoicesControl } from "./ChoicesControl";
 import { ColorControl } from "./ColorControl";
+import { GradientControl } from "./GradientControl";
 import { IconToggleControl } from "./IconToggleControl";
 import { NumberControl } from "./NumberControl";
 import { SelectControl } from "./SelectControl";
@@ -21,6 +22,7 @@ export const builtinControls: PropertyControl[] = [
   { id: "toggle", for: "field", component: ToggleControl },
   { id: "icon-toggle", for: "field", component: IconToggleControl },
   { id: "color", for: "field", component: ColorControl },
+  { id: "gradient", for: "field", component: GradientControl },
   { id: "segmented", for: "field", component: ChoiceControl },
   { id: "select", for: "field", component: SelectControl },
   { id: "button", for: "command", component: ButtonControl },

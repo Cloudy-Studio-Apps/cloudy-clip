@@ -24,6 +24,20 @@ export interface ColorChangeInfo {
   done: boolean;
 }
 
+/** One color of a `GradientField`: `at` and `opacity` are 0–1, `color` is `#rrggbb`. */
+export interface GradientValueStop {
+  at: number;
+  color: string;
+  opacity: number;
+}
+
+/** What a `GradientField` edits. */
+export interface GradientValue {
+  type: "linear" | "radial";
+  angle: number;
+  stops: GradientValueStop[];
+}
+
 /** A pointer position inside an element, each axis 0–1. */
 export interface DragPosition {
   x: number;

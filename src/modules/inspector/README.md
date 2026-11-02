@@ -20,7 +20,7 @@ panel, without tabs.
 "command", component }` gets `CommandControlProps` (`clipIds`, `commandId`, `field?`, `label`,
     `icon?`, `run(input)`). Built in (`ui/controls/`): `text`, `textarea`, `number`, `slider`,
     `dial` (a number box for now), `toggle`, `icon-toggle`, `color` (with the sibling opacity the
-    spec names), `segmented`, `select`; for commands `button` and `choices` (one button per enum
+    spec names), `gradient` (`GradientField`), `segmented`, `select`; for commands `button` and `choices` (one button per enum
     value).
   - `sectionLayouts` (keyed by `id`): `{ id, component }` gets `SectionLayoutProps` (`section`,
     `clip`, `values`, `live`, `renderItem`, `enabled(path)`). Built in: `section`
