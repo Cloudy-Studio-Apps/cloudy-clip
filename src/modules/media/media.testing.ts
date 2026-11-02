@@ -25,6 +25,8 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
         api: {
           ...state,
           mediaUrl: (id: string) => `fake://${id}`,
+          prepareMaster: async () => false,
+          masterUrl: (id: string) => `fake://${id}`,
           imageFrames: (id: string) => [`fake://${id}`],
           restore: async () => [],
         },

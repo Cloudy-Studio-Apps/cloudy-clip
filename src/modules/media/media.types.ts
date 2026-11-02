@@ -167,7 +167,10 @@ export interface MediaApi {
 }
 
 /** Probe state plus the setters only the media module uses. */
-export interface MediaState extends Omit<MediaApi, "mediaUrl" | "imageFrames" | "restore"> {
+export interface MediaState extends Omit<
+  MediaApi,
+  "mediaUrl" | "prepareMaster" | "masterUrl" | "imageFrames" | "restore"
+> {
   /** Sets (or merges into) the probe of one media item. */
   setProbe(id: MediaId, probe: Partial<MediaProbe>): void;
   /** Updates the proxy state of one media item, keeping an earlier explanation. */
