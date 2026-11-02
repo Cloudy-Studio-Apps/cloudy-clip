@@ -1,4 +1,4 @@
-import { keybindings, matchKeybinding, type Kernel } from "@/core";
+import { EDITOR_PAGE, keybindings, matchKeybinding, pagesRef, type Kernel } from "@/core";
 
 function isTyping(target: EventTarget | null): boolean {
   return (
@@ -15,6 +15,9 @@ export function installKeybindings(kernel: Kernel): () => void {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.repeat || isTyping(e.target)) return;
     const binding = matchKeybinding(kernel.points.get(keybindings), e);
+    // Plain keys edit the timeline, which a page covers.
+    const { active } = kernel.modules.require(pagesRef).store.getState();
+    if (binding && !binding.mod && active !== EDITOR_PAGE) return;
     const action = binding?.resolve();
     if (!action) return;
     e.preventDefault();

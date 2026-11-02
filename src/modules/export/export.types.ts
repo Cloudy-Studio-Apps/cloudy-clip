@@ -125,7 +125,7 @@ export interface ExportFormState {
   reveal: boolean;
 }
 
-/** All the files and queue actions behind the page, as one service. */
+/** Runs the queue. */
 export interface ExportRunner {
   /** Starts the queue, if it isn't running. */
   start(): void;

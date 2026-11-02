@@ -1,6 +1,6 @@
 import { microsToSeconds, type Micros } from "@/core";
 import type { ProjectFormat } from "@/modules/project";
-import type { ExportEffort, ExportFormatInfo } from "../export.types";
+import type { ExportEffort, ExportFormatInfo, ExportJob } from "../export.types";
 
 /** Pixels of a 1080p frame. */
 const FULL_HD = 2_073_600;
@@ -41,4 +41,37 @@ export function estimateSeconds(input: EstimateInput): number {
   const pixels = (format.width * format.height) / FULL_HD;
   const encode = 0.02 * pixels * info.timeFactor * EFFORT_TIME[effort] * (hardware ? 0.3 : 1);
   return Math.max(1, frames * (DRAW_SECONDS_PER_FRAME * Math.max(1, pixels / 2) + encode));
+}
+
+/** Bytes for people. */
+export function formatSize(bytes: number): string {
+  if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+  return `${Math.max(1, Math.round(bytes / 1e6))} MB`;
+}
+
+/** Seconds as `m:ss`. */
+export function formatDuration(seconds: number): string {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+
+/** Where a job is, for people. */
+export function statusText({ status, progress, message }: ExportJob): string {
+  const percent = `${Math.round(progress * 100)}%`;
+  switch (status) {
+    case "waiting":
+      return "Waiting";
+    case "preparing":
+      return `Preparing ${percent}`;
+    case "rendering":
+      return percent;
+    case "finishing":
+      return "Finishing";
+    case "done":
+      return "Finished";
+    case "cancelled":
+      return "Cancelled";
+    case "failed":
+      return message ?? "Failed";
+  }
 }

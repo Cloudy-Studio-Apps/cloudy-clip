@@ -47,8 +47,10 @@ export { createPointRegistry, definePoint } from "./module/points";
 export type { Point, PointOptions, PointReader, PointRegistry } from "./module/points.types";
 
 // Shell points (panels, keybindings)
+export { EDITOR_PAGE, pagesRef, showPage } from "./shell/shell.pages";
 export {
   appOverlays,
+  appPages,
   keybindings,
   layoutPanels,
   matchKeybinding,
@@ -56,11 +58,14 @@ export {
 } from "./shell/shell.points";
 export type {
   AppOverlay,
+  AppPage,
   Keybinding,
   KeybindingAction,
   KeyPress,
   LayoutPanel,
   LayoutSlot,
+  PagesApi,
+  PagesState,
   PanelIcon,
   TopBarItem,
 } from "./shell/shell.types";

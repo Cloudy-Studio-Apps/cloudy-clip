@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { StoreApi } from "zustand/vanilla";
 
 /**
  * Where a panel sits in the editor layout. `side` panels become tabs of the left rail, `main`
@@ -30,6 +31,29 @@ export interface TopBarItem {
   /** `left` follows the brand, `center` sits after undo/redo, `right` at the end of the bar. */
   slot: "left" | "center" | "right";
   component: ComponentType;
+}
+
+/** A page that takes the place of the editor below the top bar, with a tab of its own. */
+export interface AppPage {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  /** Label of its tab. */
+  label: string;
+  /** Lower comes first, after Edit. Defaults to 0. */
+  order?: number;
+  component: ComponentType;
+}
+
+/** Which page shows. */
+export interface PagesState {
+  /** Id of an `AppPage`, or `EDITOR_PAGE`. */
+  active: string;
+}
+
+/** The pages of one kernel. */
+export interface PagesApi {
+  /** Read with `useStore(pages.store, selector)`. Changed by the `pages.show` command. */
+  readonly store: StoreApi<PagesState>;
 }
 
 /** A layer over the whole window, such as a collaborator's pointer. */

@@ -2,6 +2,7 @@ import { ErrorBoundary, topBarItems, usePoint, type TopBarItem } from "@/core";
 import { cn } from "@/ui";
 import { Brand } from "./Brand";
 import { HistoryControls } from "./HistoryControls";
+import { PageTabs } from "./PageTabs";
 
 /** The items of one slot; each fails on its own. */
 function TopBarSlot({ items, slot }: { items: readonly TopBarItem[]; slot: TopBarItem["slot"] }) {
@@ -14,7 +15,7 @@ function TopBarSlot({ items, slot }: { items: readonly TopBarItem[]; slot: TopBa
     ));
 }
 
-/** The bar across the top: the brand on the left, undo/redo in the middle, modules' items. */
+/** The bar across the top: the brand on the left, the page tabs and undo/redo in the middle, modules' items. */
 export function TopBar({ className }: { className?: string }) {
   const items = usePoint(topBarItems);
   return (
@@ -26,6 +27,7 @@ export function TopBar({ className }: { className?: string }) {
         <TopBarSlot items={items} slot="left" />
       </div>
       <div className="flex items-center gap-1">
+        <PageTabs />
         <HistoryControls />
         <TopBarSlot items={items} slot="center" />
       </div>

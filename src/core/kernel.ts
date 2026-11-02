@@ -4,10 +4,12 @@ import { createHistoryModule } from "./history/history.module";
 import { createMcpRegistry } from "./mcp/mcp.registry";
 import { createModuleRegistry } from "./module/module.registry";
 import { createPointRegistry } from "./module/points";
+import { pagesModule } from "./shell/shell.pages";
 import type { Kernel } from "./kernel.types";
 
 /**
- * Creates a kernel and loads the built-in `history` module (undo/redo commands and tools).
+ * Creates a kernel and loads the built-in modules: `history` (undo/redo commands and tools) and
+ * `pages` (which page shows).
  * Each kernel has its own modules, state and services; tests create their own.
  */
 export async function createKernel(): Promise<Kernel> {
@@ -20,6 +22,7 @@ export async function createKernel(): Promise<Kernel> {
   const modules = createModuleRegistry({ bus, history, mcp, points });
 
   await modules.load(createHistoryModule(history));
+  await modules.load(pagesModule);
 
   return { bus, history, mcp, modules, points };
 }

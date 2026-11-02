@@ -1,5 +1,16 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { appOverlays, ErrorBoundary, layoutPanels, usePoint, type LayoutSlot } from "@/core";
+import { useStore } from "zustand";
+import {
+  appOverlays,
+  appPages,
+  ErrorBoundary,
+  layoutPanels,
+  pagesRef,
+  useModule,
+  usePoint,
+  type LayoutSlot,
+} from "@/core";
+import { cn } from "@/ui";
 import { TopBar } from "../top-bar/TopBar";
 import type { ResizableArea } from "./layout.types";
 import { LayoutRegion } from "./LayoutRegion";
@@ -18,6 +29,11 @@ export function LayoutHost() {
   const gridRef = useRef<HTMLDivElement>(null);
   const panels = usePoint(layoutPanels);
   const overlays = usePoint(appOverlays);
+  const pages = usePoint(appPages);
+  const active = useStore(useModule(pagesRef).store, (state) => state.active);
+  const page = pages.find(({ id }) => id === active);
+  // Hidden, not unmounted: the editor is exactly as it was when you come back.
+  const behind = page ? "invisible" : undefined;
   const bySlot = useMemo(() => {
     const sorted = [...panels].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const of = (slot: LayoutSlot) => sorted.filter((panel) => panel.slot === slot);
@@ -43,27 +59,39 @@ export function LayoutHost() {
     // Explicit track sizes (not content-based) so no panel's content can squeeze another.
     <div
       ref={gridRef}
-      className="grid h-screen grid-cols-[var(--side-w,340px)_minmax(0,1fr)_var(--inspector-w,300px)] grid-rows-[44px_minmax(0,1fr)_var(--timeline-h,38vh)] gap-px bg-border text-foreground"
+      className="relative grid h-screen grid-cols-[var(--side-w,340px)_minmax(0,1fr)_var(--inspector-w,300px)] grid-rows-[44px_minmax(0,1fr)_var(--timeline-h,38vh)] gap-px bg-border text-foreground"
     >
       <TopBar className="col-span-3" />
       <LayoutRegion
+        className={behind}
         contentClassName="flex"
         handle={<ResizeHandle area="side" edge="right" gridRef={gridRef} />}
       >
         <SidePanels panels={bySlot.side} />
       </LayoutRegion>
-      <LayoutRegion>
+      <LayoutRegion className={behind}>
         <PanelSlot panels={bySlot.main} />
       </LayoutRegion>
-      <LayoutRegion handle={<ResizeHandle area="inspector" edge="left" gridRef={gridRef} />}>
+      <LayoutRegion
+        className={behind}
+        handle={<ResizeHandle area="inspector" edge="left" gridRef={gridRef} />}
+      >
         <PanelSlot panels={bySlot.inspector} />
       </LayoutRegion>
       <LayoutRegion
-        className="col-span-3"
+        className={cn("col-span-3", behind)}
         handle={<ResizeHandle area="timeline" edge="top" gridRef={gridRef} />}
       >
         <PanelSlot panels={bySlot.bottom} />
       </LayoutRegion>
+      {page && (
+        // Out of the grid's flow, over the editor, which stays mounted underneath.
+        <div className="absolute inset-0 z-30 col-span-3 row-start-2 row-end-4 min-h-0 bg-background">
+          <ErrorBoundary name={page.id}>
+            <page.component />
+          </ErrorBoundary>
+        </div>
+      )}
       <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
         {overlays.map(({ id, component: Overlay }) => (
           <ErrorBoundary key={id} name={id}>
