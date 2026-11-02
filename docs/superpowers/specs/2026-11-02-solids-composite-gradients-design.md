@@ -56,7 +56,7 @@ lands Normal for the overlap, so a small jump is expected there.
 **Inside a composition.** A clip blends with what's inside that composition. To blend with what's under the
 placement, set the mode on the composition clip.
 
-**Known limit, Linux preview.** WebKitGTK squeezes video to black 15, white 236, and only export corrects it
+**Known limit, Linux preview.** (The check found no haze in captures or export; see `2026-11-02-blend-preview-check.md`. The live window is unmeasured.) WebKitGTK squeezes video to black 15, white 236, and only export corrects it
 (`preview` README). Screen and Add over video look slightly hazy in the live preview and not in the export.
 Reading frames back is too slow to fix this while playing. The real-app check measures it, and the preview
 README records it.

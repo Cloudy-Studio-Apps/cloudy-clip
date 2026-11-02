@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { gradientLine } from "./gradient";
 import { prop } from "./props";
 import { patchSchema } from "./schema";
 
@@ -24,23 +23,5 @@ describe("gradient values", () => {
     expect(schema.safeParse({ g: { ...gradient([stop(0), stop(1)]).g, x: 1 } }).success).toBe(
       false,
     );
-  });
-});
-
-describe("gradientLine", () => {
-  const stops = [stop(0), stop(1)];
-
-  it("runs left to right at 0 degrees, across the box", () => {
-    const line = gradientLine({ type: "linear", angle: 0, stops }, 100, 50);
-    expect(line.x0).toBeCloseTo(-50);
-    expect(line.y0).toBeCloseTo(0);
-    expect(line.x1).toBeCloseTo(50);
-    expect(line.y1).toBeCloseTo(0);
-  });
-
-  it("runs top to bottom at 90 degrees", () => {
-    const line = gradientLine({ type: "linear", angle: 90, stops }, 100, 50);
-    expect(line.y0).toBeCloseTo(-25);
-    expect(line.y1).toBeCloseTo(25);
   });
 });

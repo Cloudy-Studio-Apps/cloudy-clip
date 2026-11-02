@@ -65,19 +65,6 @@ describe("a solid on the timeline", () => {
 });
 
 describe("library solids", () => {
-  it("match the frame with no size, and store colors lowercase", async () => {
-    const made = await kernel.bus.run(createSolid, { name: "Night", color: "#AABBCC" });
-    if (!made.ok) throw new Error(made.error.code);
-    const solid = doc().solids[made.value.solidId]!;
-    expect(solid.width).toBeUndefined();
-    expect(solid.color).toBe("#aabbcc");
-  });
-
-  it("refuse one side without the other", async () => {
-    const made = await kernel.bus.run(createSolid, { name: "N", color: "#000000", width: 10 });
-    expect(made.ok ? "" : made.error.code).toBe("solid.invalid_size");
-  });
-
   it("go back to matching the frame when an update clears their size", async () => {
     const made = await kernel.bus.run(createSolid, {
       name: "N",

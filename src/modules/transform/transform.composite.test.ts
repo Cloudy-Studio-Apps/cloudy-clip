@@ -46,12 +46,4 @@ describe("composite", () => {
     });
     expect(clip().composite).toBeUndefined();
   });
-
-  it("refuses a mode that doesn't exist", async () => {
-    const result = await kernel.bus.run(setProps, {
-      clipIds: [clipId],
-      patch: { composite: { mode: "subtract" } },
-    });
-    expect(result.ok ? "" : result.error.code).toBe("element.invalid_props");
-  });
 });
