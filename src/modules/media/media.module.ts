@@ -3,6 +3,7 @@ import { Images, SquarePlay } from "lucide-react";
 import { appPages, defineModule, layoutPanels } from "@/core";
 import { elements } from "@/modules/element";
 import { projectRef } from "@/modules/project";
+import { mediaBinCommands } from "./media.bin.commands";
 import { importMedia, mediaCommands } from "./media.commands";
 import { frameIndexesAt } from "./logic/animation";
 import { mediaElement } from "./media.element";
@@ -21,7 +22,7 @@ export const mediaModule = defineModule({
   name: "Media",
   tier: "core",
   requires: ["project", "element"],
-  commands: mediaCommands,
+  commands: [...mediaCommands, ...mediaBinCommands],
   mcpTools: mediaMcpTools,
   async setup({ bus, log, contribute, require, onDispose }) {
     contribute(elements, mediaElement);

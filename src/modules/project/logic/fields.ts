@@ -5,7 +5,7 @@ import { contains, settleCompositions } from "./compositions";
 import { findLayoutConflict, staleJunctions } from "./junctions";
 
 /** Collections of records compared field by field. */
-const RECORDS = ["compositions", "clips", "tracks", "junctions"] as const;
+const RECORDS = ["compositions", "clips", "tracks", "junctions", "bins", "solids"] as const;
 
 /** Derived from `clip.trackId`, `clip.start` and `track.compositionId`, so never fields of their own. */
 const DERIVED_FIELDS = new Set(["clipIds", "trackOrder"]);
@@ -94,9 +94,31 @@ function repair(draft: Draft<ProjectState>): void {
     new Set(Object.keys(draft.compositions)),
   );
   draft.mediaOrder = reconcile(draft.mediaOrder, new Set(Object.keys(draft.media)));
+  draft.binOrder = reconcile(draft.binOrder, new Set(Object.keys(draft.bins)));
+  draft.solidOrder = reconcile(draft.solidOrder, new Set(Object.keys(draft.solids)));
+}
+
+/** What's wrong with the bins, if anything: an item or bin pointing nowhere, or a bin in itself. */
+function binProblem(state: ProjectState): string | null {
+  for (const item of [...Object.values(state.media), ...Object.values(state.solids)]) {
+    if (item.binId !== undefined && !state.bins[item.binId]) {
+      return "an item would be left without its bin";
+    }
+  }
+  for (const bin of Object.values(state.bins)) {
+    const seen = new Set([bin.id]);
+    for (let at = bin.parentId; at !== null; at = state.bins[at]!.parentId) {
+      if (!state.bins[at]) return "a bin would be left without its parent";
+      if (seen.has(at)) return "a bin would be inside itself";
+      seen.add(at);
+    }
+  }
+  return null;
 }
 
 function validate(state: ProjectState): string | null {
+  const bins = binProblem(state);
+  if (bins) return bins;
   const main = state.mainCompositionId;
   const empty = Object.keys(state.compositions).length === 0;
   if (empty ? main !== null : main === null || !state.compositions[main]) {

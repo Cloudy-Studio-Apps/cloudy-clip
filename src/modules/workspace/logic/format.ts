@@ -5,7 +5,7 @@ import type { ProjectEnvelope } from "../workspace.types";
 
 const FORMAT = "cloudy-clip-project";
 /** Bump when the document changes shape, and teach `decodeProject` to upgrade the older one. */
-const VERSION = 1;
+const VERSION = 2;
 
 const envelope = z.object({
   format: z.literal(FORMAT),
@@ -43,6 +43,27 @@ const documentSchema = z.looseObject({
     }),
   ),
   mediaOrder: z.array(z.string()),
+  // Version 1 had no bins or solids: such a file opens with none.
+  bins: z
+    .record(
+      z.string(),
+      z.looseObject({ id: z.string(), name: z.string(), parentId: z.string().nullable() }),
+    )
+    .default({}),
+  binOrder: z.array(z.string()).default([]),
+  solids: z
+    .record(
+      z.string(),
+      z.looseObject({
+        id: z.string(),
+        name: z.string(),
+        color: z.string(),
+        width: z.number(),
+        height: z.number(),
+      }),
+    )
+    .default({}),
+  solidOrder: z.array(z.string()).default([]),
   tracks: z.record(
     z.string(),
     z.looseObject({

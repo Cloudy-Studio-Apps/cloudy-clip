@@ -40,6 +40,10 @@ const before: ProjectState = {
     c1: clip("c1", 0, { props: { text: "a", size: 10 } }),
     c2: clip("c2", 20),
   },
+  bins: {},
+  binOrder: [],
+  solids: {},
+  solidOrder: [],
   junctions: {},
 };
 

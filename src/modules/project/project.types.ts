@@ -5,6 +5,8 @@ export type MediaId = string;
 export type TrackId = string;
 export type ClipId = string;
 export type CompositionId = string;
+export type BinId = string;
+export type SolidId = string;
 
 /** What a file contains. Decided from its extension at import. Whether an image moves is read later, from the file. */
 export type MediaKind = "video" | "audio" | "image";
@@ -17,6 +19,29 @@ export interface MediaAsset {
   kind: MediaKind;
   /** Size in bytes. */
   size: number;
+  /** The bin it sits in; missing means Master. */
+  binId?: BinId;
+  /** When it was imported, in ms since the epoch. Missing on older projects. */
+  importedAt?: number;
+}
+
+/** A folder of the media library. Master isn't one: what has no bin sits there. */
+export interface Bin {
+  id: BinId;
+  name: string;
+  /** Null sits directly in Master. */
+  parentId: BinId | null;
+}
+
+/** A colour in the library. A clip made from it keeps its own copy, so removing this breaks nothing. */
+export interface Solid {
+  id: SolidId;
+  name: string;
+  color: string;
+  width: number;
+  height: number;
+  /** The bin it sits in; missing means Master. */
+  binId?: BinId;
 }
 
 /**
@@ -160,6 +185,12 @@ export interface ProjectState {
   media: Record<MediaId, MediaAsset>;
   /** Import order. */
   mediaOrder: MediaId[];
+  bins: Record<BinId, Bin>;
+  /** Order in the library. */
+  binOrder: BinId[];
+  solids: Record<SolidId, Solid>;
+  /** Order in the library. */
+  solidOrder: SolidId[];
   tracks: Record<TrackId, Track>;
   clips: Record<ClipId, Clip>;
   /** Things on the cut between two adjacent clips of one track (transitions). */

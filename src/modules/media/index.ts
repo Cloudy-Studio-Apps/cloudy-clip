@@ -4,6 +4,7 @@
  */
 export { mediaHasAudio } from "./media.audio";
 export { importMedia, relinkMedia, removeMedia } from "./media.commands";
+export { createBin, deleteBin, moveToBin, renameBin } from "./media.bin.commands";
 /** Asks where a missing file went and points the media at it. */
 export { useLocateMedia } from "./ui";
 export { MEDIA_DRAG_END, MEDIA_DRAG_MOVE, MEDIA_DROP, startMediaDrag } from "./media.drag";

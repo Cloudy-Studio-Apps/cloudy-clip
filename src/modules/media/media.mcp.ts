@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { commandTool, defineMcpTool, errorResult, textResult } from "@/core";
 import { projectRef, type MediaAsset } from "@/modules/project";
+import { createBin, deleteBin, moveToBin, renameBin } from "./media.bin.commands";
 import { importMedia, relinkMedia, removeMedia } from "./media.commands";
 import { mediaRef } from "./media.ref";
 import type { ImportResult, MediaApi } from "./media.types";
@@ -23,7 +24,7 @@ function describe(media: MediaApi, asset: MediaAsset) {
 const importTool = defineMcpTool({
   name: "media_import",
   description:
-    'Imports local video, audio or image files by absolute path and waits (up to 15 s) until their metadata (duration in microseconds, size) is read. An image reports the length it lands at (5 s, or one loop for an animated image, which also reports frames). Pro formats (ProRes, APV, 10-bit HEVC...) and containers like AVI first get an editing proxy, and images may need converting, which can take longer: if status is still "pending", poll media_list until it is "ready". Returns each imported item with its id, plus files that failed.',
+    'Imports local video, audio or image files by absolute path, into binId or Master, and waits (up to 15 s) until their metadata (duration in microseconds, size) is read. An image reports the length it lands at (5 s, or one loop for an animated image, which also reports frames). Pro formats (ProRes, APV, 10-bit HEVC...) and containers like AVI first get an editing proxy, and images may need converting, which can take longer: if status is still "pending", poll media_list until it is "ready". Returns each imported item with its id, plus files that failed.',
   input: importMedia.input,
   async handler(input, { bus, require }) {
     const media = require(mediaRef);
@@ -61,4 +62,8 @@ export const mediaMcpTools = [
   listTool,
   commandTool(removeMedia, { name: "media_remove" }),
   commandTool(relinkMedia, { name: "media_relink" }),
+  commandTool(createBin, { name: "media_create_bin" }),
+  commandTool(renameBin, { name: "media_rename_bin" }),
+  commandTool(deleteBin, { name: "media_delete_bin" }),
+  commandTool(moveToBin, { name: "media_move_to_bin" }),
 ];

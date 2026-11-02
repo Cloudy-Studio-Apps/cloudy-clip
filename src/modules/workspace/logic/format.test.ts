@@ -29,6 +29,22 @@ describe("project file", () => {
     expect(decodeProject(encodeProject(document, "1.0.0", new Date(0)))).toEqual(document);
   });
 
+  it("opens a version 1 file with no bins", () => {
+    const old = file((json) => {
+      json.version = 1;
+      for (const key of ["bins", "binOrder", "solids", "solidOrder"]) {
+        delete (json.document as Record<string, unknown>)[key];
+      }
+    });
+    expect(decodeProject(old)).toEqual(document);
+    expect(decodeProject(old).bins).toEqual({});
+    expect(decodeProject(old).binOrder).toEqual([]);
+  });
+
+  it("saves version 2", () => {
+    expect(JSON.parse(encodeProject(document, "1.0.0", new Date(0))).version).toBe(2);
+  });
+
   it("refuses what it can't trust", () => {
     expect(codeOf("not json")).toBe("workspace.not_a_project");
     expect(codeOf(file((json) => (json.format = "other")))).toBe("workspace.not_a_project");

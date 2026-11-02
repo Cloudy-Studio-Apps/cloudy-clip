@@ -133,6 +133,10 @@ describe("placements", () => {
         p2: place("p2", "v", "intro", 20 * S, length, "k2"),
         s2: place("s2", "a", "intro", 20 * S, length, "k2"),
       },
+      bins: {},
+      binOrder: [],
+      solids: {},
+      solidOrder: [],
       junctions: {},
     };
   }

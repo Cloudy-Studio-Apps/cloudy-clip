@@ -48,6 +48,10 @@ export function seedProject(seed: ProjectSeed = {}): ProjectState {
     mediaOrder: seed.mediaOrder ?? Object.keys(seed.media ?? {}),
     tracks,
     clips: seed.clips ?? {},
+    bins: {},
+    binOrder: [],
+    solids: {},
+    solidOrder: [],
     junctions: seed.junctions ?? {},
   };
 }

@@ -82,6 +82,10 @@ function project(
       ix: track("ix", "inner", [innerClip.id]),
     },
     clips: { ...Object.fromEntries(clips.map((c) => [c.id, c])), [innerClip.id]: innerClip },
+    bins: {},
+    binOrder: [],
+    solids: {},
+    solidOrder: [],
     junctions: {},
   };
 }

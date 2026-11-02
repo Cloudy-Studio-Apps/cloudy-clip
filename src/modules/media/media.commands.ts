@@ -12,19 +12,31 @@ export const importMedia = defineCommand({
   id: "media.import",
   label: "Import media",
   description:
-    "Imports local video, audio or image files by absolute path. Returns the imported media (with ids) and the files that failed.",
+    "Imports local video, audio or image files by absolute path, into binId or Master. Returns the imported media (with ids) and the files that failed. Fails with media.no_bin.",
   undoable: true,
-  input: z.object({ paths: z.array(z.string().min(1)).min(1).max(200) }),
-  async run(ctx, { paths }): Promise<ImportResult> {
+  input: z.object({
+    paths: z.array(z.string().min(1)).min(1).max(200),
+    binId: z.string().optional(),
+  }),
+  async run(ctx, { paths, binId }): Promise<ImportResult> {
+    const { store } = ctx.require(projectRef);
+    if (binId !== undefined && !store.getState().bins[binId]) {
+      throw new CommandFailure("media.no_bin", `No bin with id "${binId}"`);
+    }
     const outcomes = await registerFiles(paths.map((path) => ({ id: createId("media"), path })));
     const imported: MediaAsset[] = [];
     const failed: ImportResult["failed"] = [];
     for (const outcome of outcomes) {
-      if (outcome.status === "ok") imported.push(outcome.media);
-      else failed.push({ path: outcome.path, reason: outcome.error.message });
+      if (outcome.status === "ok") {
+        imported.push({
+          ...outcome.media,
+          importedAt: Date.now(),
+          ...(binId === undefined ? {} : { binId }),
+        });
+      } else failed.push({ path: outcome.path, reason: outcome.error.message });
     }
     if (imported.length > 0) {
-      ctx.mutate(ctx.require(projectRef).store, (draft) => {
+      ctx.mutate(store, (draft) => {
         for (const asset of imported) {
           draft.media[asset.id] = asset;
           draft.mediaOrder.push(asset.id);

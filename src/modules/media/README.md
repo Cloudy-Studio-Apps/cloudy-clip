@@ -43,9 +43,13 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
     `MediaThumb`, `media.pick.hook.ts` (the file picker).
 - **Not yet:** search, filters, folders, list view.
 
-| Command        | MCP tool       | Notes                               |
-| -------------- | -------------- | ----------------------------------- |
-| `media.import` | `media_import` | Tool waits until metadata is read   |
-| `media.remove` | `media_remove` | Refuses while clips use the media   |
-| `media.relink` | `media_relink` | Keeps its clips. `media.wrong_kind` |
-| —              | `media_list`   | Media with metadata and status      |
+| Command           | MCP tool            | Notes                                                               |
+| ----------------- | ------------------- | ------------------------------------------------------------------- |
+| `media.import`    | `media_import`      | Tool waits until metadata is read                                   |
+| `media.remove`    | `media_remove`      | Refuses while clips use the media                                   |
+| `media.relink`    | `media_relink`      | Keeps its clips. `media.wrong_kind`                                 |
+| `media.createBin` | `media_create_bin`  | In Master or inside `parentId`. `media.no_bin`                      |
+| `media.renameBin` | `media_rename_bin`  | `media.no_bin`                                                      |
+| `media.deleteBin` | `media_delete_bin`  | What it holds moves to its parent; nothing is lost                  |
+| `media.moveToBin` | `media_move_to_bin` | Files and bins, into a bin or to Master (`null`). `media.bin_cycle` |
+| —                 | `media_list`        | Media with metadata and status                                      |

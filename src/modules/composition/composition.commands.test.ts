@@ -75,6 +75,10 @@ beforeEach(async () => {
     mediaOrder: ["m"],
     tracks: {},
     clips: {},
+    bins: {},
+    binOrder: [],
+    solids: {},
+    solidOrder: [],
     junctions: {},
   };
   await kernel.modules.loadAll([
