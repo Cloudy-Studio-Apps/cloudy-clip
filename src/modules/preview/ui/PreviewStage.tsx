@@ -31,7 +31,10 @@ export function PreviewStage() {
       {/* Absolutely positioned and sized from the stage, so it can never resize the stage
           (which would feed back into the ResizeObserver). */}
       <div ref={frameRef} className="absolute left-1/2 top-1/2 will-change-transform">
-        <canvas ref={canvasRef} className="block size-full bg-black shadow-frame" />
+        <canvas
+          ref={canvasRef}
+          className="block size-full bg-black shadow-[0_0_0_1px_var(--border-strong)]"
+        />
         {overlays.map(({ id, component: Overlay }) => (
           <div key={id} className="pointer-events-none absolute inset-0">
             <ErrorBoundary name={id}>

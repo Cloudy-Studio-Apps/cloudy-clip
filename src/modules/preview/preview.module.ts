@@ -21,7 +21,8 @@ import { previewCommands, seek, togglePlay } from "./preview.commands";
 import { previewMcpTools } from "./preview.mcp";
 import { previewRef } from "./preview.ref";
 import type { PreviewCaptureDeps } from "./preview.types";
-import { PreviewPanel } from "./ui";
+import { previewOverlays } from "./preview.points";
+import { FieldGuide, PreviewPanel } from "./ui";
 
 /** The playback clock, the preview engine and the preview panel. */
 export const previewModule = defineModule({
@@ -112,6 +113,7 @@ export const previewModule = defineModule({
       clock.dispose();
     });
 
+    ctx.contribute(previewOverlays, { id: "preview.fieldGuide", component: FieldGuide });
     ctx.contribute(layoutPanels, {
       id: "preview.panel",
       title: "Preview",

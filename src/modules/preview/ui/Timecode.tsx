@@ -18,9 +18,12 @@ export function Timecode() {
   );
 
   return (
-    <span className="font-mono text-sm tabular-nums">
+    <span className="font-mono text-[17px] font-bold tabular-nums">
       <span ref={timeRef}>{formatTimecode(playback.getTime())}</span>
-      <span className="text-muted-foreground"> / {formatTimecode(duration)}</span>
+      <span className="text-[13px] font-normal text-subtle-foreground">
+        {" "}
+        / {formatTimecode(duration)}
+      </span>
     </span>
   );
 }

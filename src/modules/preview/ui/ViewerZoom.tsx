@@ -26,7 +26,7 @@ export function ViewerZoom() {
       <button
         type="button"
         title="Fit the frame in the panel"
-        className="h-7 min-w-12 cursor-pointer rounded-sm px-1 font-mono text-xs text-muted-foreground hover:bg-hover hover:text-foreground"
+        className="h-7 min-w-12 cursor-pointer rounded-[3px] px-1 font-mono text-[12.5px] text-muted-foreground hover:bg-hover hover:text-foreground"
         onClick={() => viewport.fit()}
       >
         {fitted ? "Fit" : `${Math.round(zoom * 100)}%`}
