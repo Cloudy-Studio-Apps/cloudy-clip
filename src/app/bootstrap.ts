@@ -15,6 +15,7 @@ import { exportModule } from "@/modules/export";
 import { fontsModule } from "@/modules/fonts";
 import { inspectorModule } from "@/modules/inspector";
 import { junctionModule } from "@/modules/junction";
+import { keyframeModule } from "@/modules/keyframe";
 import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
@@ -49,6 +50,7 @@ const MODULES: AnyModuleDefinition[] = [
   solidModule,
   audioModule,
   speedModule,
+  keyframeModule,
   collabModule,
   tintModule,
   soundModule,
