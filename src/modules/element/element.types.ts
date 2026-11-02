@@ -210,7 +210,7 @@ export interface CreateEntry {
 export type LayoutItem =
   | string
   | { path: string; control?: string; label?: string }
-  | { row: LayoutItem[] }
+  | { row: LayoutItem[]; label?: string }
   | { title: string; items: LayoutItem[] }
   | { group: string; items: string[] }
   | { command: PanelCommandId; control?: string; label?: string; icon?: string };
@@ -222,6 +222,8 @@ export interface LayoutSection {
   order?: number;
   /** Section layout id from the inspector's `sectionLayouts`; `"section"` by default. */
   layout?: string;
+  /** Id of the inspector tab it shows in (from `inspectorTabs`); the Video tab by default. */
+  tab?: string;
   items: LayoutItem[];
 }
 
@@ -304,6 +306,8 @@ export interface ElementApi {
    * under its key (`transform`). Empty for an unknown kind.
    */
   resolve(clip: Clip, format: ProjectFormat): Record<string, unknown>;
+  /** What `resolve` gives for a clip of this kind that stores nothing. Empty for an unknown kind. */
+  defaults(kind: string, format: ProjectFormat): Record<string, unknown>;
   /** Logs a warning about a declaration once per kernel, however often it is met. */
   warn(message: string): void;
 }
@@ -322,7 +326,7 @@ declare module "@/core" {
 /** An item of a resolved panel section. */
 export type ResolvedItem =
   | { type: "field"; path: string; control: string; label: string }
-  | { type: "row"; items: ResolvedItem[] }
+  | { type: "row"; label?: string; items: ResolvedItem[] }
   | { type: "sub"; title: string; header?: string; items: ResolvedItem[] }
   | { type: "command"; id: string; control?: string; label?: string; icon?: string };
 
@@ -333,6 +337,8 @@ export interface ResolvedSection {
   order: number;
   /** Section layout id (`"section"` by default). */
   layout: string;
+  /** Id of the inspector tab it shows in, when its layout names one. */
+  tab?: string;
   /** Path of the boolean shown in the header (a group's toggle). */
   header?: string;
   items: ResolvedItem[];

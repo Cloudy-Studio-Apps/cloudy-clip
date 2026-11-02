@@ -84,6 +84,13 @@ export function createElementApi(
       }
       return values;
     },
+    defaults(kind: string, format: ProjectFormat) {
+      const resolved = get(kind);
+      if (!resolved) return {};
+      const values: Record<string, unknown> = { ...resolved.definition.defaults(format) };
+      for (const group of resolved.groups) values[group.key] = group.defaults(format);
+      return values;
+    },
     warn,
     dispose: unsubscribe,
   };

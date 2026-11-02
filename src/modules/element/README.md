@@ -52,6 +52,9 @@ declaration, and one command changes any element's values.
     that `fonts`' `FontRequest` fits, so `element` doesn't import `fonts`.
   - `logic/commands.ts`: `checkPanelCommand`, `layoutCommands(element)` (the command ids in its
     layout and its groups' sections, once each).
+  - A section's `tab` names the inspector tab it shows in and is passed through as is. A `row` item's
+    `label` names the whole row. `ElementApi.defaults(kind, format)`: what `resolve` gives for a clip
+    that stores nothing, shared groups included.
   - `logic/layout.ts`: `resolveLayout(source, controlOf)` (source: a `LayoutSource`, so other property trees like a junction kind's use it too; fields from `indexFields`, `logic/fields.ts`) → sections + issues. Without a
     `layout`: "General" (top-level fields, order 0), then one section per group (order 10, 20, …,
     its toggle in the header), then each supported shared group's own section (its `layout` with

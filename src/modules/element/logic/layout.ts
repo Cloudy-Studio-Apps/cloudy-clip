@@ -101,7 +101,9 @@ export function resolveLayout(
       return [field(prefix + entry.path, entry, inRow)].flatMap((i) => i ?? []);
     }
     if ("row" in entry) {
-      return [{ type: "row", items: entry.row.flatMap((e) => item(e, prefix, depth + 1, true)) }];
+      const items = entry.row.flatMap((e) => item(e, prefix, depth + 1, true));
+      const label = entry.label !== undefined && { label: entry.label };
+      return [{ type: "row", ...label, items }];
     }
     if ("command" in entry) return [{ type: "command", id: entry.command, ...pick(entry) }];
     if ("group" in entry) {
@@ -130,7 +132,12 @@ export function resolveLayout(
     order: number,
   ): ResolvedSection => {
     where = `, section "${s.title ?? key}"`;
-    const base = { key, order: s.order ?? order, layout: s.layout ?? "section" };
+    const base = {
+      key,
+      order: s.order ?? order,
+      layout: s.layout ?? "section",
+      ...(s.tab !== undefined && { tab: s.tab }),
+    };
     const only = s.items.length === 1 && typeof s.items[0] === "string" ? s.items[0] : undefined;
     const spec = only !== undefined ? groupSpec(prefix + only) : undefined;
     if (only !== undefined && spec) {
