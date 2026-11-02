@@ -96,12 +96,14 @@ export interface Clip extends Partial<SharedGroupValues> {
   start: Micros;
   /** Where in the source file the clip begins (0 for elements without a source file). */
   sourceIn: Micros;
-  /** Length on the timeline (and in the source; no speed changes in v1). */
+  /** Length on the timeline. The part of the file it plays is this at `speed` (`sourceSpan`). */
   duration: Micros;
   /** The element's own values (only those that differ from its defaults). */
   props: Record<string, unknown>;
   /** How it sounds, on clips of audio tracks. Missing means as the file does. */
   sound?: ClipSound;
+  /** How fast it plays its file. Missing means normally (`DEFAULT_SPEED`). */
+  speed?: ClipSpeed;
   /** The file it plays (media clips). */
   mediaId?: MediaId;
   /** The composition it plays (composition clips); a live mirror of that composition. */
@@ -176,6 +178,16 @@ export interface ClipSound {
   pitch: { on: boolean; semitones: number; cents: number };
   /** Always six bands. */
   eq: { on: boolean; bands: EqBand[] };
+}
+
+/** How a clip plays its file. Missing means normally (`DEFAULT_SPEED`). */
+export interface ClipSpeed {
+  /** 0.1 to 10; 0 holds one frame (Freeze frame). */
+  rate: number;
+  /** Keeps voices at their pitch; off, the sound rises and falls with the rate. */
+  pitchCorrection: boolean;
+  /** Plays its part of the file backwards. */
+  reversed: boolean;
 }
 
 /** Pixel size of a picture. */

@@ -66,11 +66,22 @@ export type {
   SolidId,
   SharedGroupValues,
   ClipSound,
+  ClipSpeed,
   EqBand,
   Track,
   TrackId,
   TrackKind,
 } from "./project.types";
+
+/** A clip's speed, and the one place a timeline time becomes a time in its file. */
+export {
+  DEFAULT_SPEED,
+  canChangeSpeed,
+  sameSpeed,
+  sourceSpan,
+  sourceTimeAt,
+  speedOf,
+} from "./logic/speed";
 
 /** A clip's sound: defaults, reading it, and the levels preview and export share. */
 export {

@@ -6,6 +6,7 @@ import {
   defineCommand,
   formatTimecode,
   type CommandContext,
+  type Micros,
 } from "@/core";
 import {
   type Clip,
@@ -16,6 +17,7 @@ import {
   followsFileTime,
   formatOf,
   projectRef,
+  sourceTimeAt,
   withPartners,
 } from "@/modules/project";
 import { minClipDuration, sortClipIds } from "./logic/placement";
@@ -26,6 +28,63 @@ import {
   junctionKindOf,
   junctionsOverlapping,
 } from "./timeline.junctions";
+import type { JunctionKindOf } from "./timeline.types";
+
+/** `state` with the clips split at a time: the right halves stay linked, junctions are kept. */
+export function splitClips(
+  state: ProjectState,
+  at: Micros,
+  targets: readonly Clip[],
+  kindOf: JunctionKindOf,
+): { next: ProjectState; created: ClipId[] } {
+  // Right halves of one linked pair share a new link.
+  const rightLinks = new Map<string, string>();
+  const created: string[] = [];
+  const split = produce(state, (draft) => {
+    for (const target of targets) {
+      const left = draft.clips[target.id]!;
+      const offset = at - left.start;
+      let linkId: string | undefined;
+      if (left.linkId) {
+        linkId = rightLinks.get(left.linkId) ?? createId("link");
+        rightLinks.set(left.linkId, linkId);
+      }
+      const base = {
+        id: createId("clip"),
+        trackId: left.trackId,
+        start: at,
+        duration: left.duration - offset,
+        ...(left.transform && { transform: { ...left.transform } }),
+        ...(left.speed && { speed: { ...left.speed } }),
+        ...(left.disabled && { disabled: true as const }),
+        // A fade stays on the outer edge of its piece.
+        ...(left.sound && { sound: { ...structuredClone(target.sound!), fadeIn: 0 } }),
+        ...(linkId && { linkId }),
+      };
+      // Text and images have no time of their own, so their `sourceIn` stays 0.
+      const right: Clip = {
+        ...base,
+        kind: left.kind,
+        props: structuredClone(target.props),
+        ...(left.mediaId !== undefined && { mediaId: left.mediaId }),
+        ...(left.compositionRef !== undefined && { compositionRef: left.compositionRef }),
+        sourceIn: followsFileTime(draft, left) ? sourceTimeAt(left, at) : 0,
+      };
+      left.duration = offset;
+      if (left.sound) left.sound.fadeOut = 0;
+      draft.clips[right.id] = right;
+      const track = draft.tracks[left.trackId]!;
+      track.clipIds = sortClipIds([...track.clipIds, right.id], draft.clips);
+      // The cut at the clip's end now follows its right half.
+      for (const junction of Object.values(draft.junctions)) {
+        if (junction.leftClipId === left.id) junction.leftClipId = right.id;
+      }
+      created.push(right.id);
+    }
+  });
+  const next = fitJunctions(split, [...targets.map((t) => t.id), ...created], kindOf);
+  return { next, created };
+}
 
 /**
  * Splits clips in two at a time. A junction on a split clip's right edge moves to its right
@@ -71,52 +130,8 @@ export const splitAt = defineCommand({
       );
     }
 
-    // Right halves of one linked pair share a new link.
-    const rightLinks = new Map<string, string>();
-    const created: string[] = [];
-    const split = produce(state, (draft) => {
-      for (const target of targets) {
-        const left = draft.clips[target.id]!;
-        const offset = at - left.start;
-        let linkId: string | undefined;
-        if (left.linkId) {
-          linkId = rightLinks.get(left.linkId) ?? createId("link");
-          rightLinks.set(left.linkId, linkId);
-        }
-        const base = {
-          id: createId("clip"),
-          trackId: left.trackId,
-          start: at,
-          duration: left.duration - offset,
-          ...(left.transform && { transform: { ...left.transform } }),
-          // A fade stays on the outer edge of its piece.
-          ...(left.sound && { sound: { ...structuredClone(target.sound!), fadeIn: 0 } }),
-          ...(linkId && { linkId }),
-        };
-        // Text and images have no time of their own, so their `sourceIn` stays 0.
-        const right: Clip = {
-          ...base,
-          kind: left.kind,
-          props: structuredClone(target.props),
-          ...(left.mediaId !== undefined && { mediaId: left.mediaId }),
-          ...(left.compositionRef !== undefined && { compositionRef: left.compositionRef }),
-          sourceIn: followsFileTime(draft, left) ? left.sourceIn + offset : 0,
-        };
-        left.duration = offset;
-        if (left.sound) left.sound.fadeOut = 0;
-        draft.clips[right.id] = right;
-        const track = draft.tracks[left.trackId]!;
-        track.clipIds = sortClipIds([...track.clipIds, right.id], draft.clips);
-        // The cut at the clip's end now follows its right half.
-        for (const junction of Object.values(draft.junctions)) {
-          if (junction.leftClipId === left.id) junction.leftClipId = right.id;
-        }
-        created.push(right.id);
-      }
-    });
-    const splitIds = [...targets.map((t) => t.id), ...created];
-    const next = fitJunctions(split, splitIds, junctionKindOf(ctx));
-    checkLayout(next, new Set(splitIds));
+    const { next, created } = splitClips(state, at, targets, junctionKindOf(ctx));
+    checkLayout(next, new Set([...targets.map((t) => t.id), ...created]));
     commitState(ctx, state, next);
     return { created };
   },

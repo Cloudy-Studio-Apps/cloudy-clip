@@ -1,4 +1,10 @@
-import { withPartners, type Clip, type ClipId, type ProjectState } from "@/modules/project";
+import {
+  sameSpeed,
+  withPartners,
+  type Clip,
+  type ClipId,
+  type ProjectState,
+} from "@/modules/project";
 
 /**
  * The one clip a selection is about: the only selected clip, or the first one when the
@@ -37,6 +43,7 @@ export function sameTiming([a, b]: [Clip, Clip]): boolean {
     a.mediaId === b.mediaId &&
     a.start === b.start &&
     a.duration === b.duration &&
-    a.sourceIn === b.sourceIn
+    a.sourceIn === b.sourceIn &&
+    sameSpeed(a, b)
   );
 }

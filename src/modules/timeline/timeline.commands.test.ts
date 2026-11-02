@@ -478,6 +478,19 @@ describe("image clips", () => {
   });
 });
 
+describe("splitting at a speed", () => {
+  it("moves the right half's sourceIn by the offset times the rate", async () => {
+    const clip = await place({ mediaId: "ma", duration: 4 * S });
+    const speed = { rate: 2, pitchCorrection: true, reversed: false };
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: { ...s.clips, [clip.id]: { ...clip, speed } },
+    }));
+    const { created } = await run(kernel.bus.run(splitAt, { at: S, clipIds: [clip.id] }));
+    expect(doc().clips[created[0]!]).toMatchObject({ sourceIn: 2 * S, speed });
+    expect(doc().clips[clip.id]!.speed).toEqual(speed);
+  });
+});
+
 describe("ripple delete", () => {
   /** Sound-only clips on one track, as [start, duration] in seconds. */
   async function sounds(...spans: [number, number][]) {

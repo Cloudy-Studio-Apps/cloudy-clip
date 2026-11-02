@@ -14,6 +14,7 @@ import {
   type ProjectState,
   type TrackId,
   type TrackKind,
+  speedOf,
 } from "@/modules/project";
 import type { JunctionKindOf, TrimEdge, TrimLimits } from "../timeline.types";
 import { overlapAccepted } from "./joined";
@@ -144,24 +145,26 @@ function joined(state: ProjectState, left: Clip, right: Clip): boolean {
  * keeps a minimum length, and never overlaps its neighbours. Returns the new clip timing.
  */
 export function clampTrim(
-  clip: Pick<Clip, "start" | "sourceIn" | "duration">,
+  clip: Pick<Clip, "start" | "sourceIn" | "duration" | "speed">,
   edge: "start" | "end",
   time: Micros,
   limits: TrimLimits,
 ): Pick<Clip, "start" | "sourceIn" | "duration"> {
   const end = clip.start + clip.duration;
+  const { rate } = speedOf(clip);
   if (edge === "start") {
-    const sourceStart = limits.sourceless ? 0 : clip.start - clip.sourceIn;
+    const sourceStart = limits.sourceless ? 0 : clip.start - Math.floor(clip.sourceIn / rate);
     const earliest = Math.max(limits.prevEnd, sourceStart, 0);
     const latest = end - limits.minDuration;
     const start = Math.min(Math.max(time, earliest), latest);
     const delta = start - clip.start;
-    const sourceIn = limits.sourceless ? clip.sourceIn : clip.sourceIn + delta;
+    const moved = clip.sourceIn + Math.round(delta * rate);
+    const sourceIn = limits.sourceless ? clip.sourceIn : Math.max(0, moved);
     return { start, sourceIn, duration: clip.duration - delta };
   }
   const sourceEnd = limits.sourceless
     ? Number.POSITIVE_INFINITY
-    : clip.start - clip.sourceIn + limits.mediaDuration;
+    : clip.start + Math.floor((limits.mediaDuration - clip.sourceIn) / rate);
   const latest = Math.min(limits.nextStart, sourceEnd);
   const earliest = clip.start + limits.minDuration;
   const newEnd = Math.min(Math.max(time, earliest), latest);

@@ -18,6 +18,7 @@ import {
   type MediaId,
   type ProjectFormat,
   type ProjectState,
+  sourceTimeAt,
 } from "@/modules/project";
 import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
@@ -159,7 +160,7 @@ export class HtmlMediaEngine implements PreviewEngine {
         this.wantImage(media, 0);
         continue;
       }
-      const seconds = microsToSeconds(clip.sourceIn + at - clip.start);
+      const seconds = microsToSeconds(sourceTimeAt(clip, at));
       const slot = this.pool.acquire(path, clip, track.kind, seconds);
       if (!slot) continue;
       quietSlot(slot, track, this.sound);
@@ -212,7 +213,7 @@ export class HtmlMediaEngine implements PreviewEngine {
           if (!track.hidden && !this.images.ready(current)) this.settled = false;
           continue;
         }
-        const desired = microsToSeconds(clip.sourceIn + time - clip.start);
+        const desired = microsToSeconds(sourceTimeAt(clip, time));
         // The track decides the element: pictures come from video tracks (always silent), sound
         // from audio tracks (a video file's sound plays through an <audio> on the same URL).
         const slot = this.pool.acquire(path, clip, track.kind, desired);

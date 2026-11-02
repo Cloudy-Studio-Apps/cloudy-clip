@@ -130,6 +130,30 @@ describe("junction-aware placement", () => {
   });
 });
 
+describe("clampTrim at a rate", () => {
+  const speed = { rate: 2, pitchCorrection: true, reversed: false };
+  const limits = { mediaDuration: 10 * S, minDuration: 100_000, prevEnd: 0, nextStart: 100 * S };
+
+  it("stops an end trim where the file ends at 2x", () => {
+    const clip = { start: 0, sourceIn: 0, duration: 2 * S, speed };
+    expect(clampTrim(clip, "end", 9 * S, limits).duration).toBe(5 * S);
+  });
+
+  it("moves sourceIn by the time times the rate on a start trim", () => {
+    const clip = { start: 0, sourceIn: 0, duration: 4 * S, speed };
+    expect(clampTrim(clip, "start", S, limits)).toEqual({
+      start: S,
+      sourceIn: 2 * S,
+      duration: 3 * S,
+    });
+  });
+
+  it("lets a start trim go back as far as the file allows at 2x", () => {
+    const clip = { start: 5 * S, sourceIn: 2 * S, duration: S, speed };
+    expect(clampTrim(clip, "start", 0, limits)).toMatchObject({ start: 4 * S, sourceIn: 0 });
+  });
+});
+
 describe("clampTrim", () => {
   const limits = { mediaDuration: 10 * S, minDuration: 100_000, prevEnd: 0, nextStart: Infinity };
 
