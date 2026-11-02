@@ -19,17 +19,17 @@ export function CompositionTabs() {
   return (
     <div
       role="tablist"
-      className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-border px-1 pt-1"
+      className="flex shrink-0 items-end gap-[3px] overflow-x-auto border-b border-border-strong bg-muted px-2 pt-1"
     >
       {tabs.map((id) => (
         <div
           key={id}
           data-collab-target={`composition:${id}`}
           className={cn(
-            "group flex max-w-44 items-center rounded-t-sm text-xs",
+            "group flex max-w-44 items-center rounded-t-[3px] font-hand text-[13px] font-bold",
             id === current
-              ? "bg-primary text-primary-foreground"
-              : "bg-surface-sunken text-muted-foreground hover:text-foreground",
+              ? "bg-surface text-foreground shadow-[inset_0_2px_0_var(--mark)]"
+              : "bg-background text-muted-foreground hover:text-foreground",
           )}
         >
           <button

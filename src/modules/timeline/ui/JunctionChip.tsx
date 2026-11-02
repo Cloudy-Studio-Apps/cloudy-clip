@@ -14,14 +14,14 @@ interface JunctionChipProps {
   pxPerSecond: number;
 }
 
-/** The glass chip on a cut: icon and name. Click selects, the edges drag the duration. */
+/** A long pencil X across a cut, as on film stock. Click selects, the edges drag the duration. */
 export const JunctionChip = memo(function JunctionChip({ chip, pxPerSecond }: JunctionChipProps) {
   const project = useModule(projectRef).store;
   const junctions = useModule(junctionRef);
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const ref = useRef<HTMLDivElement>(null);
-  const { junction, icon: Icon } = chip;
+  const { junction } = chip;
   const selected = useStore(timeline.view, (s) => s.junctionSelection.includes(junction.id));
   const shift = useStore(timeline.view, (s) => s.cutPreview?.shifts[junction.leftClipId] ?? 0);
   const box = chipBox(chip.leftEnd, junction.duration, pxPerSecond);
@@ -53,10 +53,11 @@ export const JunctionChip = memo(function JunctionChip({ chip, pxPerSecond }: Ju
     <div
       ref={ref}
       data-junction-id={junction.id}
+      title={chip.label}
       className={cn(
-        "absolute bottom-[3px] top-[3px] z-20 flex items-center justify-center gap-1 overflow-hidden rounded-md border bg-foreground/10 px-1 text-2xs font-medium backdrop-blur-sm select-none",
-        selected ? "border-foreground" : "border-foreground/30",
-        chip.missing ? "text-muted-foreground" : "text-foreground",
+        "absolute bottom-[3px] top-[3px] z-20 select-none bg-[linear-gradient(to_top_right,transparent_48.4%,var(--x)_48.4%,var(--x)_51.6%,transparent_51.6%),linear-gradient(to_bottom_right,transparent_48.4%,var(--x)_48.4%,var(--x)_51.6%,transparent_51.6%)]",
+        chip.missing ? "[--x:var(--subtle-foreground)]" : "[--x:var(--mark)]",
+        selected && "outline-2 outline-mark",
       )}
       style={{ left: box.left + timeToPx(shift, pxPerSecond), width: box.width }}
       onPointerDown={(e) => {
@@ -65,8 +66,7 @@ export const JunctionChip = memo(function JunctionChip({ chip, pxPerSecond }: Ju
         timeline.selectJunction(junction.id);
       }}
     >
-      <Icon className="size-3 shrink-0" aria-hidden />
-      <span className="min-w-0 truncate">{chip.label}</span>
+      <span className="sr-only">{chip.label}</span>
       {draggable && (
         <>
           <div

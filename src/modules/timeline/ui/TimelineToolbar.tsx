@@ -6,6 +6,7 @@ import { partnersOf, projectRef } from "@/modules/project";
 import { ToolbarButton, ToolbarSeparator } from "@/ui";
 import { timelineRef } from "../timeline.ref";
 import { addTrack, deleteClips, splitAt, unlinkClips } from "../timeline.commands";
+import { PegBar } from "./PegBar";
 import { ZoomSlider } from "./ZoomSlider";
 
 /** Edit actions and zoom. Every button runs a command, exactly like shortcuts and agents. */
@@ -19,7 +20,8 @@ export function TimelineToolbar() {
   );
 
   return (
-    <div className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-2 [scrollbar-width:none]">
+    <div className="relative flex h-[34px] shrink-0 items-center gap-1 overflow-x-auto border-b border-border-strong bg-muted px-2 [scrollbar-width:none]">
+      <PegBar />
       <div className="flex shrink-0 items-center gap-0.5">
         <ToolbarButton
           icon={<Scissors />}

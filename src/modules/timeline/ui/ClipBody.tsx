@@ -13,12 +13,15 @@ export function ClipBody({ body, poster }: ClipBodyProps) {
   if (body === "none") return null;
   if (body === "waveform") {
     return (
-      <Waveform tileWidth={120} className="absolute inset-x-0 bottom-1 top-[21px] text-white/60" />
+      <Waveform
+        tileWidth={120}
+        className="absolute inset-x-0 bottom-1 top-[20px] text-muted-foreground"
+      />
     );
   }
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 bottom-0 top-[17px] bg-repeat-x"
+      className="pointer-events-none absolute inset-0 bg-repeat-x"
       style={{
         backgroundImage: [
           // Frame separators every 64px.

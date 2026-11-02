@@ -65,8 +65,8 @@ export const TimelineClip = memo(function TimelineClip({
         data-clip-id={clip.id}
         data-collab-target={`clip:${clip.id}`}
         className={cn(
-          "group absolute bottom-[3px] top-[3px] overflow-hidden rounded-xs border text-white select-none data-[invalid=true]:!border-destructive data-[invalid=true]:!bg-destructive",
-          selected ? "border-white shadow-[inset_0_0_0_1px_white]" : "border-black/30",
+          "group absolute bottom-[3px] top-[3px] overflow-hidden text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] select-none data-[invalid=true]:!bg-destructive data-[invalid=true]:!outline-destructive",
+          selected && "z-10 outline-2 outline-offset-1 outline-mark",
           shift !== 0 && "transition-transform duration-100",
         )}
         style={{
@@ -99,14 +99,14 @@ export const TimelineClip = memo(function TimelineClip({
           });
         }}
       >
-        <div className="pointer-events-none flex h-[17px] items-center gap-1 bg-black/25 px-1.5 text-xs font-medium">
-          {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
-          <span className="min-w-0 flex-1 truncate">{label}</span>
-        </div>
         <ClipBody body={body} poster={poster} />
+        <div className="pointer-events-none absolute left-0 top-0 flex h-[17px] max-w-full items-center gap-1 border-b border-r border-border-strong bg-surface px-[5px] font-mono text-xs font-bold">
+          {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
+          <span className="min-w-0 truncate">{label}</span>
+        </div>
         {/* Trim handles: brackets on hover. */}
-        <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-white" />
-        <div className="pointer-events-none absolute inset-y-0 -right-px w-[7px] group-hover:border-r-[3px] group-hover:border-white" />
+        <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-foreground" />
+        <div className="pointer-events-none absolute inset-y-0 -right-px w-[7px] group-hover:border-r-[3px] group-hover:border-foreground" />
       </div>
     </ContextMenu>
   );

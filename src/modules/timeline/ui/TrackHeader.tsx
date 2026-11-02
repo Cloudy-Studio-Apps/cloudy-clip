@@ -13,11 +13,13 @@ export const TrackHeader = memo(function TrackHeader({ track }: { track: Track }
 
   return (
     <div
-      className="sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-b border-r border-border bg-surface pl-2.5 pr-1.5"
+      className="sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-b border-r-[1.5px] border-b-border border-r-subtle-foreground bg-muted pl-2.5 pr-1.5"
       style={{ width: HEADER_WIDTH, height: trackHeight(track.kind) }}
     >
       <KindIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{track.name}</span>
+      <span className="min-w-0 flex-1 truncate font-mono text-[13px] font-bold text-muted-foreground">
+        {track.name}
+      </span>
       <div className="flex gap-0.5">
         {/* Video tracks are pictures only; sound is muted on its audio track. */}
         {track.kind === "audio" && (

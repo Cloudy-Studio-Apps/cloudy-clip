@@ -20,14 +20,14 @@ export function CutPreviewMark({ preview, pxPerSecond }: CutPreviewMarkProps) {
     <div className="pointer-events-none absolute inset-0 z-30">
       <div
         className={cn(
-          "absolute bottom-[3px] top-[3px] rounded-md border-2",
+          "absolute bottom-[3px] top-[3px] border-2",
           fits ? "border-primary bg-primary-soft" : "border-destructive bg-destructive-soft",
         )}
         style={{ left: box.left, width: box.width }}
       />
       <div
         className={cn(
-          "absolute top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-xs px-1.5 py-0.5 text-2xs font-medium whitespace-nowrap shadow-popover",
+          "absolute top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-[3px] px-1.5 py-0.5 font-mono text-xs font-bold whitespace-nowrap shadow-popover",
           fits ? "bg-primary text-primary-foreground" : "bg-destructive text-primary-foreground",
         )}
         style={{ left: box.left + box.width / 2 }}

@@ -28,7 +28,7 @@ export function Playhead({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElem
   return (
     <div
       ref={ref}
-      className="pointer-events-none absolute bottom-0 left-0 top-0 z-[15] w-0 border-l border-primary will-change-transform"
+      className="pointer-events-none absolute bottom-0 left-0 top-0 z-[15] w-0 border-l-2 border-mark will-change-transform"
     />
   );
 }
@@ -40,9 +40,9 @@ export function PlayheadHead() {
   return (
     <i
       ref={ref}
-      className="pointer-events-none absolute left-0 top-0 z-10 h-full w-0 border-l border-primary will-change-transform"
+      className="pointer-events-none absolute left-0 top-0 z-10 h-full w-0 border-l-2 border-mark will-change-transform"
     >
-      <b className="absolute -left-[7px] top-0 h-[15px] w-[13px] bg-primary [clip-path:polygon(0_0,100%_0,100%_55%,50%_100%,0_55%)]" />
+      <b className="absolute -left-[7px] top-0 h-[15px] w-[13px] bg-mark [clip-path:polygon(0_0,100%_0,100%_55%,50%_100%,0_55%)]" />
     </i>
   );
 }

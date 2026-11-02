@@ -34,11 +34,11 @@ export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: Ruler
   return (
     <div className="sticky top-0 z-30 flex" style={{ height: RULER_HEIGHT }}>
       <div
-        className="sticky left-0 z-40 shrink-0 border-b border-r border-border bg-surface"
+        className="sticky left-0 z-40 shrink-0 border-b-[1.5px] border-r-[1.5px] border-subtle-foreground bg-muted"
         style={{ width: HEADER_WIDTH }}
       />
       <div
-        className="relative cursor-col-resize border-b border-border bg-surface"
+        className="relative cursor-col-resize border-b-[1.5px] border-subtle-foreground bg-surface"
         style={{ width }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
@@ -62,12 +62,12 @@ export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: Ruler
             <div
               key={t}
               className={`pointer-events-none absolute bottom-0 w-px ${
-                major ? "h-2.5 bg-subtle-foreground" : "h-1 bg-border-strong"
+                major ? "h-full bg-subtle-foreground" : "h-[5px] bg-subtle-foreground"
               }`}
               style={{ left: timeToPx(t, pxPerSecond) }}
             >
               {major && (
-                <span className="absolute bottom-[9px] left-1 whitespace-nowrap font-mono text-2xs text-subtle-foreground">
+                <span className="absolute bottom-1 left-1 whitespace-nowrap font-mono text-xs font-bold">
                   {formatTimecode(t)}
                 </span>
               )}

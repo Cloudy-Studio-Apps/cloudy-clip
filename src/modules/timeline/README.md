@@ -111,3 +111,5 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
 | `timeline.unlinkClips`    | `timeline_unlink_clips`     |
 | `timeline.setTrackMuted`  | `timeline_set_track_muted`  |
 | `timeline.setTrackHidden` | `timeline_set_track_hidden` |
+
+The panel is an animator's exposure sheet: a peg bar in the toolbar (`ui/PegBar.tsx`, decoration), and rows as a repeating background on each lane, so no page gains elements. The selected clip is a red pencil outline (`outline`, not a shadow), and a junction a long red X.
