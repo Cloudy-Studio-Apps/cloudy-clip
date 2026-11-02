@@ -2,7 +2,7 @@
 
 Turns a composition into a file. The Export page, the last tab of the top bar, sets what to make; exports wait in a queue and run one at a time while you keep editing.
 
-The settings sections fold, one by one, and which are open lasts only as long as the page.
+The settings sections fold one by one, and all open again when you come back to the page.
 
 - **Tier:** feature
 - **Requires:** `project`, `media`, `preview`, `workspace` (the default file name)

@@ -20,7 +20,7 @@ const MAX_BLUR = 3.5;
 export function ExportPage() {
   const form = useExportForm();
   const { values, composition, capabilities, info } = form;
-  // All open at first; lasts as long as the page, which stays mounted.
+  // All open at first, and again each time you come back to the page.
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const fold = (title: string) => ({
     title,
