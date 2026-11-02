@@ -10,6 +10,7 @@ import {
 import { collabModule } from "@/modules/collab";
 import { compositionModule } from "@/modules/composition";
 import { elementModule } from "@/modules/element";
+import { exportModule } from "@/modules/export";
 import { fontsModule } from "@/modules/fonts";
 import { inspectorModule } from "@/modules/inspector";
 import { junctionModule } from "@/modules/junction";
@@ -41,6 +42,7 @@ const MODULES: AnyModuleDefinition[] = [
   transitionModule,
   stickerModule,
   collabModule,
+  exportModule,
   workspaceModule,
 ];
 

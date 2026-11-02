@@ -79,6 +79,7 @@ export interface PreviewControllerDeps {
   requestFrame(callback: () => void): void;
   capture: PreviewCapture;
   createRenderer(options: FrameRendererOptions): FrameRenderer;
+  measureVideoLevels(url: string): Promise<VideoLevels>;
 }
 
 /** What offscreen capture needs from the rest of the app. */
@@ -87,12 +88,18 @@ export interface PreviewCaptureDeps {
   getComposition(id: CompositionId): Composition | null;
   /** Whether a font can be drawn now; when not, it starts loading. */
   ensureFont(request: FontRequest): boolean;
-  /** A picture-only engine that asks `ensureFont` about fonts, streaming `mediaUrl` if given. */
+  /** A picture-only engine that asks `ensureFont` about fonts. */
   createEngine(
     canvas: HTMLCanvasElement,
     ensureFont: (request: FontRequest) => boolean,
-    mediaUrl?: (id: MediaId) => string,
+    options?: Pick<FrameRendererOptions, "mediaUrl" | "videoLevels">,
   ): PreviewEngine;
+}
+
+/** What a webview's canvas holds for video black and white (0–255). */
+export interface VideoLevels {
+  black: number;
+  white: number;
 }
 
 /** What a hidden renderer draws. */
@@ -102,6 +109,8 @@ export interface FrameRendererOptions {
   compositionId: CompositionId;
   /** Where the pictures come from, when not from the files the preview plays. */
   mediaUrl?(id: MediaId): string;
+  /** Corrects video layers drawn at these levels. Other layers are right as they are. */
+  videoLevels?: VideoLevels;
 }
 
 /** Draws frames of one composition at its full size, on an engine of its own. */
@@ -143,6 +152,11 @@ export interface PreviewApi {
    * draws it. Doesn't touch the user's preview. Dispose it when done.
    */
   createRenderer(options: FrameRendererOptions): FrameRenderer;
+  /**
+   * How this webview draws video to a canvas, measured on a clip whose left half is video black
+   * and right half video white. Some webviews squeeze the range (WebKitGTK: black at 15).
+   */
+  measureVideoLevels(url: string): Promise<VideoLevels>;
   /**
    * Draws a clip with `transform` instead of its saved one, without changing the project (live
    * feedback while dragging on the canvas). Pass null to go back to the saved transform. The

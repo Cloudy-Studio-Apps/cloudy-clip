@@ -9,6 +9,7 @@ import { rememberPlayheads } from "./logic/playheads";
 import { createCapture, createFrameRenderer } from "./preview.capture";
 import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
+import { measureVideoLevels } from "./preview.levels";
 import { previewCommands, seek, togglePlay } from "./preview.commands";
 import { previewMcpTools } from "./preview.mcp";
 import { previewRef } from "./preview.ref";
@@ -44,10 +45,10 @@ export const previewModule = defineModule({
       getProject: () => project.getState(),
       getComposition: (id) => project.getState().compositions[id] ?? null,
       ensureFont: (request) => fonts.ensure(request),
-      createEngine: (canvas, ensureFont, mediaUrl) =>
+      createEngine: (canvas, ensureFont, options) =>
         new HtmlMediaEngine(canvas, {
           ...engineOptions,
-          ...(mediaUrl && { mediaUrl }),
+          ...options,
           ensureFont,
           onFrameReady: () => undefined,
           pictureOnly: true,
@@ -76,6 +77,7 @@ export const previewModule = defineModule({
       requestFrame: (callback) => void requestAnimationFrame(callback),
       capture: createCapture(captureDeps),
       createRenderer: (options) => createFrameRenderer(captureDeps, options),
+      measureVideoLevels,
     });
     // Each composition keeps its playhead: a switch stops playback and goes where this one was.
     const playheads = rememberPlayheads();

@@ -1,5 +1,6 @@
 //! Tauri commands of the export module.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -11,7 +12,8 @@ use super::job::Job;
 use super::recipe::{ExportSpec, Format};
 use super::{FrameUrl, Jobs, PartialNotes};
 use crate::error::{AppError, AppResult};
-use crate::media::proxy::find_tools;
+use crate::media::MediaRegistry;
+use crate::media::proxy::{Tools, command, ffprobe, find_tools};
 use crate::media::server::random_token;
 
 /// Where a started export takes its frames.
@@ -41,10 +43,61 @@ async fn card_for(spec: &ExportSpec) -> Option<String> {
     }
 }
 
+/// Marks the sounds of one-channel files.
+async fn find_mono(tools: &Tools, spec: &mut ExportSpec) {
+    let mut known: HashMap<String, bool> = HashMap::new();
+    for segment in &mut spec.sound {
+        if let Some(mono) = known.get(&segment.path) {
+            segment.mono = *mono;
+            continue;
+        }
+        let probe = ffprobe(tools, Path::new(&segment.path), false).await;
+        let mono = probe.is_ok_and(|probe| probe.audio_channels == Some(1));
+        known.insert(segment.path.clone(), mono);
+        segment.mono = mono;
+    }
+}
+
+/// A tiny clip of black and white, for measuring how the webview draws video levels. Registered
+/// like media, so it reaches a media element the same way. Returns its media id.
+#[tauri::command]
+pub async fn export_levels_clip(
+    notes: State<'_, PartialNotes>,
+    registry: State<'_, Arc<MediaRegistry>>,
+) -> AppResult<String> {
+    const ID: &str = "export-levels";
+    let tools =
+        find_tools().ok_or_else(|| AppError::Unavailable("FFmpeg was not found".to_owned()))?;
+    let folder = notes.0.parent().unwrap_or(&notes.0);
+    tokio::fs::create_dir_all(folder).await?;
+    let clip = folder.join("levels.mp4");
+    if !tokio::fs::try_exists(&clip).await.unwrap_or(false) {
+        let status = command(&tools.ffmpeg)
+            .args(["-hide_banner", "-loglevel", "error", "-y"])
+            .args(["-f", "lavfi", "-i", "color=black:s=64x64:r=30:d=0.5"])
+            .args(["-f", "lavfi", "-i", "color=white:s=64x64:r=30:d=0.5"])
+            .args(["-filter_complex", "hstack,format=yuv420p"])
+            .args(["-colorspace", "bt709", "-color_primaries", "bt709"])
+            .args(["-color_trc", "bt709", "-color_range", "tv"])
+            .args(["-c:v", "libx264", "-crf", "1", "-movflags", "+faststart"])
+            .arg(&clip)
+            .status()
+            .await?;
+        if !status.success() {
+            return Err(AppError::Unavailable(
+                "Could not make the levels clip".into(),
+            ));
+        }
+    }
+    let size = tokio::fs::metadata(&clip).await?.len();
+    registry.register(ID, &clip, size)?;
+    Ok(ID.to_owned())
+}
+
 /// Starts FFmpeg. Frames go to the returned URL, one POST each, then `export_finish`.
 #[tauri::command]
 pub async fn export_begin(
-    spec: ExportSpec,
+    mut spec: ExportSpec,
     jobs: State<'_, Arc<Jobs>>,
     frame_url: State<'_, FrameUrl>,
     notes: State<'_, PartialNotes>,
@@ -63,6 +116,7 @@ pub async fn export_begin(
     if let Some(folder) = Path::new(&spec.output).parent() {
         tokio::fs::create_dir_all(folder).await?;
     }
+    find_mono(&tools, &mut spec).await;
     let card = card_for(&spec).await;
     let job = Job::start(&tools, &spec, card.as_deref()).map_err(AppError::Unavailable)?;
     let job_id = random_token()?;

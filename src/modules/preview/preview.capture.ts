@@ -111,7 +111,7 @@ export function createCapture(deps: PreviewCaptureDeps): PreviewCapture {
 /** A hidden engine for going through one composition, frame by frame. */
 export function createFrameRenderer(
   deps: PreviewCaptureDeps,
-  { project, compositionId, mediaUrl }: FrameRendererOptions,
+  { project, compositionId, ...options }: FrameRendererOptions,
 ): FrameRenderer {
   const composition = project.compositions[compositionId];
   if (!composition) throw new Error("That composition no longer exists");
@@ -124,7 +124,7 @@ export function createFrameRenderer(
   const canvas = document.createElement("canvas");
   canvas.width = composition.format.width;
   canvas.height = composition.format.height;
-  const engine = deps.createEngine(canvas, ensureFont, mediaUrl);
+  const engine = deps.createEngine(canvas, ensureFont, options);
   return {
     async frameAt(time) {
       await settle(

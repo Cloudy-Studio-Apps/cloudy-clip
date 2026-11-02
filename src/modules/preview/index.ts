@@ -15,6 +15,7 @@ export type {
   PreviewEngine,
   PreviewOverlay,
   TimeListener,
+  VideoLevels,
   ViewportApi,
   ViewportState,
 } from "./preview.types";

@@ -53,6 +53,9 @@ pub struct SoundSegment {
     pub duration: u64,
     pub fade_in: u64,
     pub fade_out: u64,
+    /// One channel, played on both sides at full level as the preview does.
+    #[serde(default)]
+    pub mono: bool,
 }
 
 /// One export, as the frontend describes it.
@@ -86,9 +89,13 @@ fn sound_graph(sound: &[SoundSegment], first_input: usize, total: u64) -> String
     let mut labels = String::new();
     for (i, segment) in sound.iter().enumerate() {
         let input = first_input + i;
-        let mut chain = format!(
-            "[{input}:a]aresample={SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=stereo"
-        );
+        let layout = if segment.mono {
+            "pan=stereo|c0=c0|c1=c0"
+        } else {
+            "aformat=channel_layouts=stereo"
+        };
+        let mut chain =
+            format!("[{input}:a]aresample={SAMPLE_RATE},aformat=sample_fmts=fltp,{layout}");
         // `qsin` is the equal-power curve the preview's crossfade uses.
         if segment.fade_in > 0 {
             let length = seconds(segment.fade_in);

@@ -4,6 +4,7 @@ import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
 import type { MediaApi } from "@/modules/media";
 import type { Micros } from "@/core";
+import type { VideoLevels } from "../preview.types";
 import type {
   Clip,
   Composition,
@@ -63,6 +64,8 @@ export interface EngineOptions {
   onFrameReady(): void;
   /** Only pictures matter (offscreen capture): sound clips get no element at all. */
   pictureOnly?: boolean;
+  /** How this webview draws video, when it needs correcting. Costs a read of every video frame. */
+  videoLevels?: VideoLevels;
 }
 
 /** A track's clips under the playhead, in start order (two during a junction's overlap). */

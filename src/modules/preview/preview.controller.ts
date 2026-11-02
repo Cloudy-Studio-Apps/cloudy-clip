@@ -129,6 +129,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     redraw: requestRedraw,
     captureAt: (time, compositionId) => deps.capture.captureAt(time, compositionId),
     createRenderer: (options) => deps.createRenderer(options),
+    measureVideoLevels: (url) => deps.measureVideoLevels(url),
     previewTransform(clipId, transform) {
       if (transform) transforms.set(clipId, transform);
       else transforms.delete(clipId);

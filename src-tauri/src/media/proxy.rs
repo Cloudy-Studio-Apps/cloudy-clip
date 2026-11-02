@@ -259,12 +259,14 @@ impl ProxyJobs {
 
 /// What `ffprobe` says about a file.
 #[derive(Debug, Default)]
-pub(super) struct Probe {
+pub(crate) struct Probe {
     video_codec: Option<String>,
     pix_fmt: Option<String>,
     width: u64,
     height: u64,
     audio_codec: Option<String>,
+    /// Channels of the first sound stream.
+    pub(crate) audio_channels: Option<u64>,
     bit_rate: u64,
     pub(super) duration_us: Option<u64>,
     pub(super) fps: Option<f64>,
@@ -348,7 +350,7 @@ pub(crate) fn command(program: &Path) -> Command {
 
 /// Reads what a file holds. `count_frames` decodes all of it, so it's for images only: animated
 /// ones report no length, and the frame count is what tells them from stills.
-pub(super) async fn ffprobe(
+pub(crate) async fn ffprobe(
     tools: &Tools,
     path: &Path,
     count_frames: bool,
@@ -418,7 +420,10 @@ fn parse_probe(json: &Value) -> Probe {
                     probe.frames = number(&stream["nb_read_frames"]);
                 }
             }
-            Some("audio") if probe.audio_codec.is_none() => probe.audio_codec = codec,
+            Some("audio") if probe.audio_codec.is_none() => {
+                probe.audio_codec = codec;
+                probe.audio_channels = stream["channels"].as_u64();
+            }
             _ => {}
         }
     }

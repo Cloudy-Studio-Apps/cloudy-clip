@@ -1,0 +1,46 @@
+import { defineModule } from "@/core";
+import { mediaRef } from "@/modules/media";
+import { previewRef } from "@/modules/preview";
+import { exportCommands } from "./export.commands";
+import { exportMcpTools } from "./export.mcp";
+import { exportRef } from "./export.ref";
+import { createExportRunner } from "./export.runner";
+import { defaultFolder, readCapabilities } from "./export.service";
+import {
+  createCapabilitiesStore,
+  createFormStore,
+  createQueueStore,
+  savedFolder,
+} from "./export.store";
+
+/** Turns compositions into files: the Export page and its queue. */
+export const exportModule = defineModule({
+  ref: exportRef,
+  name: "Export",
+  tier: "feature",
+  requires: ["project", "media", "preview"],
+  commands: exportCommands,
+  mcpTools: exportMcpTools,
+  setup({ require, onDispose, log }) {
+    const queue = createQueueStore();
+    const form = createFormStore();
+    const capabilities = createCapabilitiesStore();
+    const runner = createExportRunner({
+      queue,
+      preview: require(previewRef),
+      media: require(mediaRef),
+      log,
+    });
+    onDispose(runner.dispose);
+
+    form.setState({ folder: savedFolder() ?? "" });
+    if (!form.getState().folder) {
+      void defaultFolder().then((folder) => form.setState({ folder }));
+    }
+    readCapabilities()
+      .then((value) => capabilities.setState({ value }))
+      .catch((error: unknown) => log.warn("Could not read what FFmpeg can do", error));
+
+    return { api: { queue, form, capabilities, runner } };
+  },
+});

@@ -28,6 +28,7 @@ pub fn run() {
             export::commands::export_capabilities,
             export::commands::export_finish,
             export::commands::export_free_space,
+            export::commands::export_levels_clip,
             export::commands::export_unique_path,
             fonts::commands::fonts_system_list,
             media::commands::media_prepare_master,

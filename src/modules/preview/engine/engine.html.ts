@@ -20,6 +20,7 @@ import { picturesSettled } from "../logic/readiness";
 import type { PreviewEngine } from "../preview.types";
 import { quietSlot, voiceSlot } from "./engine.audio";
 import { ImageCache } from "./engine.images";
+import { LevelCorrection } from "./engine.levels";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { MediaSlotPool } from "./engine.slots";
@@ -78,6 +79,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly mixCanvases: MixCanvases;
   private readonly nested = new NestedCanvases();
   private readonly pictureOnly: boolean;
+  private readonly levels: LevelCorrection | null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -94,6 +96,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.junctions = options.junctions;
     this.mixCanvases = new MixCanvases(canvas);
     this.pictureOnly = options.pictureOnly ?? false;
+    this.levels = options.videoLevels ? new LevelCorrection(options.videoLevels) : null;
   }
 
   render(
@@ -390,7 +393,8 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) return;
 
     const size = { width: element.videoWidth, height: element.videoHeight };
-    land(target, element, clipPlacement(format, size, transform), kx, ky);
+    const frame = this.levels?.correct(element, size.width, size.height) ?? element;
+    land(target, frame, clipPlacement(format, size, transform), kx, ky);
   }
 
   /** Draws an element that paints itself (text, a plugin's), at its placement. */
