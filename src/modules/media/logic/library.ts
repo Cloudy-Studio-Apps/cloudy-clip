@@ -15,8 +15,8 @@ function binOf(place: LibraryPlace & { kind: "bin" }, input: LibraryInput): BinI
 }
 
 /**
- * What the library shows at a place, in order. A bin lists what's directly in it; Master is what
- * has no bin. A smart bin lists across all bins. Search looks at names and notes, ignoring case.
+ * What the library shows at a place, in order. A bin lists its sub-bins, then what's directly in
+ * it; Master is the top bins and what has no bin. A smart bin lists across all bins. Search looks at names and notes, ignoring case.
  */
 export function libraryRows(input: LibraryInput): LibraryRow[] {
   const { place, media, mediaOrder, compositions, kinds, dayStart } = input;
@@ -29,7 +29,11 @@ export function libraryRows(input: LibraryInput): LibraryRow[] {
   if (place.kind === "bin") {
     const binId = binOf(place, input);
     const here = (item: { binId?: BinId }) => (item.binId ?? null) === binId;
+    const bins = input.binOrder.flatMap((id) => input.bins[id] ?? []);
     return [
+      ...bins
+        .filter((bin) => bin.parentId === binId && named(bin))
+        .map(({ id, name }) => ({ type: "bin", id, name })),
       ...assets.filter((asset) => here(asset) && fits(asset)).map(fileRow),
       ...kinds.flatMap(({ type, entries }) =>
         entries

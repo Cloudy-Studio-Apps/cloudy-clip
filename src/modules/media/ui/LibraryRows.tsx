@@ -1,5 +1,5 @@
 import { Clapperboard } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { formatTimecode, useModule, usePoint } from "@/core";
 import { projectRef } from "@/modules/project";
@@ -8,6 +8,7 @@ import { startMediaDrag } from "../media.drag";
 import { libraryKinds } from "../media.points";
 import { mediaRef } from "../media.ref";
 import type { LibraryRow } from "../media.types";
+import { BinTile } from "./BinTile";
 import { useUsedMedia } from "./library.rows.hook";
 import { LibraryListRow } from "./LibraryListRow";
 import { MediaTile } from "./MediaTile";
@@ -39,10 +40,12 @@ interface LibraryRowsProps {
   rows: readonly LibraryRow[];
   /** Tiles as narrow as the side panel's. */
   compact?: boolean;
+  /** Drawn before the rows. */
+  leading?: ReactNode;
 }
 
 /** The items of the open place, as tiles or a list. A click selects, a drag places on a timeline. */
-export function LibraryRows({ rows, compact }: LibraryRowsProps) {
+export function LibraryRows({ rows, compact, leading }: LibraryRowsProps) {
   const { view } = useModule(mediaRef);
   const layout = useStore(view, (s) => s.layout);
   const selection = useStore(view, (s) => s.selection);
@@ -62,6 +65,7 @@ export function LibraryRows({ rows, compact }: LibraryRowsProps) {
             : "grid auto-rows-min grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-x-3 gap-y-3.5",
       )}
     >
+      {leading}
       {rows.map((row) => {
         const Tile = tiles.get(row.type);
         const asset = media[row.id];
@@ -76,7 +80,9 @@ export function LibraryRows({ rows, compact }: LibraryRowsProps) {
             )}
             onClick={() => view.setState({ selection: [row.id] })}
           >
-            {row.type === "composition" ? (
+            {row.type === "bin" ? (
+              <BinTile id={row.id} name={row.name} list={list} />
+            ) : row.type === "composition" ? (
               <CompositionRow row={row} />
             ) : Tile ? (
               <Tile id={row.id} />

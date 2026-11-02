@@ -16,6 +16,7 @@ export function useLibrarySource(): Omit<LibraryInput, "place" | "search"> {
       media: state.media,
       mediaOrder: state.mediaOrder,
       bins: state.bins,
+      binOrder: state.binOrder,
       compositions: state.compositionOrder.flatMap((id) => state.compositions[id] ?? []),
       kinds: kinds.map(({ type, entries }) => ({ type, entries: entries(state) })),
       dayStart: new Date().setHours(0, 0, 0, 0),

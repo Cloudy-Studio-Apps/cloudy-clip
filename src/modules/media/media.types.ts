@@ -303,7 +303,7 @@ export interface LibraryView {
   autoNext: boolean;
 }
 
-/** One line of the library. `type` is `media`, `composition`, or a `LibraryKind` type. */
+/** One line of the library. `type` is `bin`, `media`, `composition`, or a `LibraryKind` type. */
 export interface LibraryRow {
   type: string;
   id: string;
@@ -317,6 +317,7 @@ export interface LibraryInput {
   media: Record<MediaId, MediaAsset>;
   mediaOrder: readonly MediaId[];
   bins: Record<BinId, Bin>;
+  binOrder: readonly BinId[];
   compositions: readonly { id: CompositionId; name: string }[];
   kinds: readonly { type: string; entries: readonly LibraryEntry[] }[];
   /** Where today starts, in ms since the epoch, for "Imported today". */

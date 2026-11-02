@@ -1,12 +1,11 @@
 import { Folder } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useKernel, useModule } from "@/core";
 import type { BinId } from "@/modules/project";
 import { ContextMenu } from "@/ui";
-import { deleteBin, moveToBin, renameBin } from "../media.bin.commands";
-import { MEDIA_DROP } from "../media.drag";
+import { deleteBin, renameBin } from "../media.bin.commands";
 import { mediaRef } from "../media.ref";
-import type { MediaDragDetail } from "../media.types";
+import { useBinDrop } from "./bin.drop.hook";
 import { BinNameField } from "./BinNameField";
 import { TreeRow } from "./TreeRow";
 
@@ -23,21 +22,8 @@ interface BinRowProps {
 export function BinRow({ binId, label, count, active, depth }: BinRowProps) {
   const { bus } = useKernel();
   const { view } = useModule(mediaRef);
-  const row = useRef<HTMLDivElement>(null);
+  const row = useBinDrop(binId);
   const [renaming, setRenaming] = useState(false);
-
-  useEffect(() => {
-    const target = row.current;
-    if (!target) return;
-    const onDrop = (event: Event) => {
-      const { item } = (event as CustomEvent<MediaDragDetail>).detail;
-      if (item.type !== "media") return;
-      event.stopPropagation();
-      void bus.run(moveToBin, { mediaIds: [item.id], binId });
-    };
-    target.addEventListener(MEDIA_DROP, onDrop);
-    return () => target.removeEventListener(MEDIA_DROP, onDrop);
-  }, [bus, binId]);
 
   const tree = (
     <TreeRow

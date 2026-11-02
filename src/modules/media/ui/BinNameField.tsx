@@ -1,13 +1,14 @@
 import { useRef } from "react";
 
 interface BinNameFieldProps {
-  depth: number;
+  /** Indent in the tree. Left out among tiles. */
+  depth?: number;
   initial: string;
   /** The name, or null when it was cancelled or left empty. */
   onDone(name: string | null): void;
 }
 
-/** Names a bin in place, in the tree. Enter or leaving it confirms, Escape cancels. */
+/** Names a bin in place. Enter or leaving it confirms, Escape cancels. */
 export function BinNameField({ depth, initial, onDone }: BinNameFieldProps) {
   const cancelled = useRef(false);
   return (
@@ -16,8 +17,8 @@ export function BinNameField({ depth, initial, onDone }: BinNameFieldProps) {
       defaultValue={initial}
       aria-label="Bin name"
       spellCheck={false}
-      style={{ marginLeft: 12 + depth * 16 }}
-      className="h-7 min-w-0 flex-none border-b border-ring bg-transparent text-foreground outline-none"
+      style={depth === undefined ? undefined : { marginLeft: 12 + depth * 16 }}
+      className="h-7 w-full min-w-0 flex-none border-b border-ring bg-transparent text-foreground outline-none"
       onFocus={(event) => event.target.select()}
       onKeyDown={(event) => {
         if (event.key === "Enter") event.currentTarget.blur();
