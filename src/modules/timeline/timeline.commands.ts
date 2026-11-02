@@ -1,6 +1,7 @@
 import { addClip, unlinkClips } from "./timeline.clip.commands";
 import { moveClip, trimClip } from "./timeline.move.commands";
 import { deleteClips, splitAt } from "./timeline.split.commands";
+import { copyClips, cutClips, duplicateClips, pasteClips } from "./timeline.clipboard.commands";
 import { addElement } from "./timeline.element.command";
 import { setClipsDisabled } from "./timeline.enable.command";
 import { linkClips } from "./timeline.link.command";
@@ -11,6 +12,7 @@ export { addClip, unlinkClips } from "./timeline.clip.commands";
 export { moveClip, trimClip } from "./timeline.move.commands";
 export { deleteClips, splitAt } from "./timeline.split.commands";
 export { addTrack, removeTrack, setTrackHidden, setTrackMuted } from "./timeline.track.commands";
+export { copyClips, cutClips, duplicateClips, pasteClips } from "./timeline.clipboard.commands";
 export { addElement } from "./timeline.element.command";
 export { setClipsDisabled } from "./timeline.enable.command";
 export { linkClips } from "./timeline.link.command";
@@ -30,6 +32,10 @@ export const timelineCommands = [
   splitAt,
   deleteClips,
   rippleDelete,
+  copyClips,
+  cutClips,
+  pasteClips,
+  duplicateClips,
   unlinkClips,
   linkClips,
   setClipsDisabled,

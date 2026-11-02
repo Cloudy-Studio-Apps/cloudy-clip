@@ -1,4 +1,4 @@
-import type { Micros } from "@/core";
+import type { ActorId, Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { Cut, JunctionKindDefinition } from "@/modules/junction";
@@ -14,6 +14,7 @@ import type {
   JunctionId,
   ProjectState,
   TrackId,
+  TrackKind,
 } from "@/modules/project";
 
 /** Ephemeral view state of the timeline. Not part of the undo history. */
@@ -117,6 +118,8 @@ export interface TimelineApi {
   switchComposition(from: CompositionId | null, to: CompositionId | null): void;
   /** Puts something on the timeline: the handlers first, then the usual placement. */
   drop(drop: TimelineDrop): void;
+  /** What each actor copied. */
+  readonly clipboard: TimelineClipboard;
 }
 
 /** A junction chip as the lane draws it. */
@@ -158,6 +161,30 @@ export interface JunctionEdit {
 /** A clip moved to a start time on a track (its own or another of the same kind). */
 export interface ClipTrackMove extends ClipMove {
   trackId: TrackId;
+}
+
+/** What an actor copied. Copies, so later edits of the originals don't change them. */
+export interface ClipboardEntry {
+  /** The clips and their partners. */
+  clips: readonly Clip[];
+  /** Earliest start among them. */
+  origin: Micros;
+  /** The kind of the tracks they came from, which may be gone by the paste. */
+  trackKinds: Readonly<Record<TrackId, TrackKind>>;
+}
+
+/** Per actor, so an agent's copy doesn't replace the user's. Never in history. */
+export interface TimelineClipboard {
+  get(actor: ActorId): ClipboardEntry | undefined;
+  set(actor: ActorId, entry: ClipboardEntry): void;
+}
+
+/** One track's worth of a paste. */
+export interface PastePlacement {
+  kind: TrackKind;
+  /** Null when no track has room, so a new one is needed. */
+  trackId: TrackId | null;
+  clips: Clip[];
 }
 
 /** A strip between the toolbar and the ruler. */

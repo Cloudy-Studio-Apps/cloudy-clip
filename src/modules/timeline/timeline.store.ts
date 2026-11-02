@@ -1,10 +1,11 @@
 import { createStore } from "zustand/vanilla";
+import type { ActorId } from "@/core";
 import type { ClipId, CompositionId, ProjectState } from "@/modules/project";
 import { cutAtX } from "./logic/cut";
 import { laneDropTarget } from "./logic/drop";
 import { timeToPx } from "./logic/geometry";
 import { CUT_SNAP_PX } from "./timeline.layout";
-import type { LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
+import type { ClipboardEntry, LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
 
 export const MIN_PX_PER_SECOND = 2;
 export const MAX_PX_PER_SECOND = 400;
@@ -27,8 +28,13 @@ export function createTimelineView(
   let scroller: HTMLElement | null = null;
   const scrollListeners = new Set<() => void>();
   const places = new Map<CompositionId, { pxPerSecond: number; scrollLeft: number }>();
+  const copied = new Map<ActorId, ClipboardEntry>();
   return {
     view,
+    clipboard: {
+      get: (actor) => copied.get(actor),
+      set: (actor, entry) => void copied.set(actor, entry),
+    },
     drop: () => {},
     switchComposition(from, to) {
       if (from !== null) {

@@ -7,9 +7,13 @@ export {
   addClip,
   addElement,
   addTrack,
+  copyClips,
+  cutClips,
   deleteClips,
+  duplicateClips,
   linkClips,
   moveClip,
+  pasteClips,
   removeTrack,
   rippleDelete,
   setClipsDisabled,
@@ -46,6 +50,7 @@ export { overlapError } from "./timeline.guards";
 export { selectionSubject } from "./logic/links";
 export type {
   ClipActions,
+  ClipboardEntry,
   ClipMenuEntry,
   ClipMenuGroup,
   ScreenBox,

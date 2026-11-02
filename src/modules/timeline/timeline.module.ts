@@ -11,8 +11,14 @@ import {
   timelineCommands,
 } from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
+import {
+  clipboardKeys,
+  clipboardMenu,
+  clipboardMenuItems,
+  pasteMenu,
+} from "./timeline.clipboard.menu";
 import { clipMenu } from "./timeline.menu";
-import { clipActions, timelineDropHandlers } from "./timeline.points";
+import { clipActions, timelineDropHandlers, timelineMenuItems } from "./timeline.points";
 import { timelineRef } from "./timeline.ref";
 import { createTimelineView } from "./timeline.store";
 import { TimelinePanel } from "./ui";
@@ -62,7 +68,10 @@ export const timelineModule = defineModule({
       component: TimelinePanel,
     });
 
-    ctx.contribute(clipActions, clipMenu(ctx, view));
+    ctx.contribute(clipActions, clipMenu(ctx, view), clipboardMenu(ctx, timeline));
+    ctx.contribute(timelineMenuItems, pasteMenu(ctx, timeline));
+    ctx.contribute(keybindings, ...clipboardKeys(ctx, view));
+    ctx.contribute(appMenuItems, ...clipboardMenuItems());
 
     const deleteSelection = () => {
       const { selection: clipIds, junctionSelection: junctionIds } = view.getState();
