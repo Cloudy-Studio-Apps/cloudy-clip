@@ -20,6 +20,7 @@ import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
 import { solidModule } from "@/modules/solid";
 import { soundModule } from "@/modules/sound";
+import { speedModule } from "@/modules/speed";
 import { stickerModule } from "@/modules/sticker";
 import { textModule } from "@/modules/text";
 import { tintModule } from "@/modules/tint";
@@ -47,6 +48,7 @@ const MODULES: AnyModuleDefinition[] = [
   stickerModule,
   solidModule,
   audioModule,
+  speedModule,
   collabModule,
   tintModule,
   soundModule,

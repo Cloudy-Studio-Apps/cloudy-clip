@@ -28,7 +28,19 @@ export {
  * overlapping a span on a track, the first track of a kind with room for a span, and the
  * `timeline.overlap` failure that explains a clash.
  */
-export { findOverlap, freeTrack, minClipDuration, sortClipIds, trackEnd } from "./logic/placement";
+export {
+  findOverlap,
+  freeTrack,
+  minClipDuration,
+  neighbourBounds,
+  sortClipIds,
+  trackEnd,
+} from "./logic/placement";
+/**
+ * What commands that change clips share: writing a worked-out state as one undo step, the
+ * layout check, and shrinking junctions that no longer fit, for modules with their own clip edits.
+ */
+export { commitState, fitJunctions, junctionKindOf } from "./timeline.junctions";
 /** Layers over the lanes; contribute with `ctx.contribute(timelineOverlays, …)`. */
 export {
   clipActions,
@@ -42,7 +54,7 @@ export { HEADER_WIDTH, RULER_HEIGHT } from "./timeline.layout";
 /** Pixels from time 0 to a time at a zoom level. */
 export { timeToPx } from "./logic/geometry";
 /** The `timeline.overlap` failure for a spot taken by another clip, with where it is. */
-export { overlapError } from "./timeline.guards";
+export { checkLayout, overlapError } from "./timeline.guards";
 /**
  * The one clip a selection is about: the only selected clip, or the clicked one when the
  * selection is exactly one linked group (a video's picture and sound). Otherwise undefined.
@@ -59,6 +71,7 @@ export type {
   TimelineOverlay,
   CutPreview,
   DropTarget,
+  JunctionKindOf,
   TimelineApi,
   TimelineViewState,
   TrimEdge,
