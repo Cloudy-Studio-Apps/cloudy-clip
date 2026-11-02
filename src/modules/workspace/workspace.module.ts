@@ -1,10 +1,11 @@
-import { appOverlays, defineModule, keybindings, notify, topBarItems } from "@/core";
+import { appMenuItems, appOverlays, defineModule, keybindings, notify, topBarItems } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { createPickers } from "./workspace.ask";
 import {
   askOpen,
+  openProject,
   askSaveAs,
   saveProject,
   showStart,
@@ -72,6 +73,36 @@ export const workspaceModule = defineModule({
       key("save-as", "s", askSaveAs.id, true),
       key("open", "o", askOpen.id),
       key("home", "n", showStart.id),
+    );
+    const entry = (id: string, label: string, order: number) => ({
+      id: `workspace.${id}`,
+      menu: "File",
+      label,
+      order,
+      keybinding: `workspace.${id === "new" ? "home" : id}`,
+    });
+    contribute(
+      appMenuItems,
+      entry("new", "New project…", 10),
+      entry("open", "Open…", 20),
+      {
+        id: "workspace.recent",
+        menu: "File",
+        label: "Open recent",
+        order: 30,
+        items: () => {
+          const { items, gone } = core.recents.store.getState();
+          return items
+            .filter(({ path }) => !gone.includes(path))
+            .slice(0, 10)
+            .map(({ name, path }) => ({
+              label: name,
+              onSelect: () => void bus.run(openProject, { path }),
+            }));
+        },
+      },
+      entry("save", "Save", 40),
+      entry("save-as", "Save As…", 50),
     );
     return { api };
   },

@@ -1,6 +1,7 @@
 import {
   defineModule,
   EDITOR_PAGE,
+  appMenuItems,
   keybindings,
   layoutPanels,
   LOCAL_ACTOR,
@@ -114,6 +115,23 @@ export const previewModule = defineModule({
     });
 
     ctx.contribute(previewOverlays, { id: "preview.fieldGuide", component: FieldGuide });
+    ctx.contribute(
+      appMenuItems,
+      {
+        id: "preview.play",
+        menu: "Playback",
+        label: "Play or pause",
+        order: 10,
+        keybinding: "preview.toggle-play",
+      },
+      {
+        id: "preview.start",
+        menu: "Playback",
+        label: "Back to start",
+        order: 20,
+        keybinding: "preview.seek-start",
+      },
+    );
     ctx.contribute(layoutPanels, {
       id: "preview.panel",
       title: "Preview",

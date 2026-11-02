@@ -69,6 +69,24 @@ export interface PagesApi {
   readonly store: StoreApi<PagesState>;
 }
 
+/** An entry of the app's menu, behind the logo. */
+export interface AppMenuItem {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  /** The submenu it sits in, such as `File`. */
+  menu: string;
+  label: string;
+  /** Lower comes first within the submenu. Defaults to 0. */
+  order?: number;
+  /** Id of a keybinding: shows its shortcut, and is what runs without `run`. */
+  keybinding?: string;
+  run?(): void;
+  /** Asked when the menu opens. Defaults to on. */
+  enabled?(): boolean;
+  /** Makes it open a submenu of these, asked when the menu opens. */
+  items?(): readonly { label: string; onSelect(): void }[];
+}
+
 /** A layer over the whole window, such as a collaborator's pointer. */
 export interface AppOverlay {
   /** Unique id, `<module>.<name>`. */

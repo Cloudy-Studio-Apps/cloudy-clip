@@ -52,8 +52,13 @@ export interface EyeDropperLike {
 /** One entry of a context menu. */
 export interface MenuItem {
   label: string;
-  onSelect(): void;
+  /** Left out on an entry that opens `items`. */
+  onSelect?(): void;
   disabled?: boolean;
+  /** Its keyboard shortcut, to read. */
+  shortcut?: string;
+  /** Makes it open a submenu. */
+  items?: readonly MenuItem[];
   /** Shown in the destructive colour. */
   destructive?: boolean;
 }

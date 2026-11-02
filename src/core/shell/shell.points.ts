@@ -1,5 +1,6 @@
 import { definePoint } from "../module/points";
 import type {
+  AppMenuItem,
   AppOverlay,
   AppPage,
   AppPageGroup,
@@ -52,6 +53,11 @@ export function groupPages(
     .map((id) => pages.filter((page) => groupOf(page) === id).sort(byOrder))
     .filter((list) => list.length > 0);
 }
+
+/** Entries of the app's menu, behind the logo. The app shell groups them by `menu`. */
+export const appMenuItems = definePoint<AppMenuItem>("shell.appMenuItems", {
+  keyOf: (item) => item.id,
+});
 
 /** Keyboard shortcuts. The app shell's keybinding host reads them. */
 export const keybindings = definePoint<Keybinding>("shell.keybindings", {

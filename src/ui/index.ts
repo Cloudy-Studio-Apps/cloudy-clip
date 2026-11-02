@@ -36,6 +36,8 @@ export { Kbd } from "./kit/Kbd";
 export { Dialog } from "./kit/Dialog";
 /** A menu at the pointer, opened by a right click. */
 export { ContextMenu } from "./kit/ContextMenu";
+/** The entries of a menu, with shortcuts and submenus. */
+export { MenuList } from "./kit/MenuList";
 /** A floating panel anchored to a trigger: portal, outside-press and Escape close, focus returns. */
 export { Popover } from "./kit/Popover";
 /** Saturation/brightness area, hue and opacity sliders, hex, eyedropper, swatches and recents. */

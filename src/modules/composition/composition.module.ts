@@ -1,4 +1,4 @@
-import { appOverlays, defineModule, LOCAL_ACTOR } from "@/core";
+import { appMenuItems, appOverlays, defineModule, LOCAL_ACTOR } from "@/core";
 import { elements } from "@/modules/element";
 import { librarySections, mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
@@ -66,6 +66,27 @@ export const compositionModule = defineModule({
         if (drop) timeline.drop(drop);
       },
     };
+    ctx.contribute(
+      appMenuItems,
+      {
+        id: "composition.new",
+        menu: "Composition",
+        label: "New composition…",
+        order: 10,
+        run: ui.openNew,
+      },
+      {
+        id: "composition.settings",
+        menu: "Composition",
+        label: "Composition settings…",
+        order: 20,
+        enabled: () => view.openFor(LOCAL_ACTOR) !== null,
+        run: () => {
+          const id = view.openFor(LOCAL_ACTOR);
+          if (id !== null) ui.openSettings(id);
+        },
+      },
+    );
     ctx.contribute(clipActions, {
       id: "composition.clip",
       doubleClick({ compositionRef }) {

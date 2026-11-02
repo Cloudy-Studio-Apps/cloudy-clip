@@ -1,6 +1,6 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { Images, SquarePlay } from "lucide-react";
-import { appPages, defineModule, layoutPanels } from "@/core";
+import { appMenuItems, appPages, defineModule, layoutPanels } from "@/core";
 import { elements } from "@/modules/element";
 import { projectRef } from "@/modules/project";
 import { mediaBinCommands } from "./media.bin.commands";
@@ -17,6 +17,7 @@ import { createMediaState } from "./media.store";
 import { createLibraryView } from "./media.view.store";
 import { MEDIA_PAGE } from "./media.ref";
 import { MediaLibrary, MediaPage } from "./ui";
+import { pickMedia } from "./ui/media.pick";
 
 /** Importing files, reading their metadata, proxies, and the media library panel. */
 export const mediaModule = defineModule({
@@ -81,6 +82,13 @@ export const mediaModule = defineModule({
       slot: "side",
       icon: SquarePlay,
       component: MediaLibrary,
+    });
+    contribute(appMenuItems, {
+      id: "media.import",
+      menu: "File",
+      label: "Import media…",
+      order: 60,
+      run: () => void pickMedia(bus, view),
     });
     contribute(appPages, {
       id: MEDIA_PAGE,

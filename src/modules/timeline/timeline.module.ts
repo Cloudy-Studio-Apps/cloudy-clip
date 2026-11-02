@@ -1,8 +1,15 @@
-import { defineModule, keybindings, layoutPanels, LOCAL_ACTOR } from "@/core";
+import { appMenuItems, defineModule, keybindings, layoutPanels, LOCAL_ACTOR } from "@/core";
 import { removeJunction } from "@/modules/junction";
 import { partnersOf, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
-import { addClip, addElement, deleteClips, splitAt, timelineCommands } from "./timeline.commands";
+import {
+  addClip,
+  addElement,
+  addTrack,
+  deleteClips,
+  splitAt,
+  timelineCommands,
+} from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
 import { timelineDropHandlers } from "./timeline.points";
 import { timelineRef } from "./timeline.ref";
@@ -77,6 +84,33 @@ export const timelineModule = defineModule({
       },
       { id: "timeline.delete", key: "delete", resolve: deleteSelection },
       { id: "timeline.delete-backspace", key: "backspace", resolve: deleteSelection },
+    );
+    const addTrackEntry = (kind: "video" | "audio", label: string, order: number) => ({
+      id: `timeline.add-${kind}`,
+      menu: "Tracks",
+      label,
+      order,
+      enabled: () => compositions.openFor(LOCAL_ACTOR) !== null,
+      run: () => void ctx.bus.run(addTrack, { kind }),
+    });
+    ctx.contribute(
+      appMenuItems,
+      {
+        id: "timeline.split",
+        menu: "Edit",
+        label: "Split",
+        order: 30,
+        keybinding: "timeline.split",
+      },
+      {
+        id: "timeline.delete",
+        menu: "Edit",
+        label: "Delete",
+        order: 40,
+        keybinding: "timeline.delete",
+      },
+      addTrackEntry("video", "Add video track", 10),
+      addTrackEntry("audio", "Add audio track", 20),
     );
 
     // Drop selected clips and junctions that no longer exist (deleted, undone, removed by an agent).

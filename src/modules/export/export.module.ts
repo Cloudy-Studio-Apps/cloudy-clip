@@ -1,5 +1,5 @@
 import { Upload } from "lucide-react";
-import { appPages, defineModule, PAGE_GROUP_DELIVER } from "@/core";
+import { appMenuItems, appPages, defineModule, PAGE_GROUP_DELIVER, showPage } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { exportCommands } from "./export.commands";
@@ -24,7 +24,7 @@ export const exportModule = defineModule({
   requires: ["project", "media", "preview", "workspace"],
   commands: exportCommands,
   mcpTools: exportMcpTools,
-  setup({ contribute, require, onDispose, log }) {
+  setup({ bus, contribute, require, onDispose, log }) {
     const queue = createQueueStore();
     const form = createFormStore();
     const capabilities = createCapabilitiesStore();
@@ -44,6 +44,13 @@ export const exportModule = defineModule({
       .then((value) => capabilities.setState({ value }))
       .catch((error: unknown) => log.warn("Could not read what FFmpeg can do", error));
 
+    contribute(appMenuItems, {
+      id: "export.open",
+      menu: "File",
+      label: "Export…",
+      order: 70,
+      run: () => void bus.run(showPage, { page: "export.page" }),
+    });
     contribute(appPages, {
       id: "export.page",
       label: "Export",

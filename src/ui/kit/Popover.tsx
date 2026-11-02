@@ -90,7 +90,7 @@ export function Popover({ trigger, open, onOpenChange, side = "bottom", children
           <div
             ref={panel}
             role="dialog"
-            className="fixed z-50 rounded-md border border-border bg-popover p-2 text-foreground shadow-popover"
+            className="fixed z-50 rounded-sm border border-border-strong bg-popover p-1.5 text-foreground shadow-popover"
             style={{ left: 0, top: 0 }}
           >
             {children}

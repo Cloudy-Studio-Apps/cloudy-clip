@@ -2,7 +2,7 @@ import { z } from "zod";
 import { commandTool, defineMcpTool, textResult } from "../mcp/mcp.tool";
 import { defineModule, defineModuleRef } from "../module/module.define";
 import type { ModuleDefinition } from "../module/module.types";
-import { keybindings } from "../shell/shell.points";
+import { appMenuItems, keybindings } from "../shell/shell.points";
 import { createHistoryCommands } from "./history.commands";
 import type { History } from "./history.types";
 
@@ -39,6 +39,25 @@ export function createHistoryModule(history: History): ModuleDefinition {
         { id: "history.undo", key: "z", mod: true, resolve: run(undo.id) },
         { id: "history.redo", key: "z", mod: true, shift: true, resolve: run(redo.id) },
         { id: "history.redo-y", key: "y", mod: true, resolve: run(redo.id) },
+      );
+      ctx.contribute(
+        appMenuItems,
+        {
+          id: "history.undo",
+          menu: "Edit",
+          label: "Undo",
+          order: 10,
+          keybinding: "history.undo",
+          enabled: () => history.getSnapshot().canUndo,
+        },
+        {
+          id: "history.redo",
+          menu: "Edit",
+          label: "Redo",
+          order: 20,
+          keybinding: "history.redo",
+          enabled: () => history.getSnapshot().canRedo,
+        },
       );
       return {};
     },

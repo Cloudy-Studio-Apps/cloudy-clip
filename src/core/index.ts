@@ -58,12 +58,14 @@ export {
   keybindings,
   layoutPanels,
   matchKeybinding,
+  appMenuItems,
   topBarItems,
 } from "./shell/shell.points";
 export type {
   AppOverlay,
   AppPage,
   AppPageGroup,
+  AppMenuItem,
   Keybinding,
   KeybindingAction,
   KeyPress,
