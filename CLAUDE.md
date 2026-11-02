@@ -9,7 +9,7 @@ Two product ideas drive the architecture:
 1. **Agents are first-class editors.** An MCP server is built in and on by default. An agent can do anything a user can do, on the same live project, and the user can undo it. Neither side has powers the other lacks.
 2. **Plugins come later, but the API is designed now.** Built-in modules register through the same surface third-party plugins will use.
 
-**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, text clips with full styling and fonts, junctions with transitions between clips, and stickers in packs). Projects save and reopen (workspace). No export, effects, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
+**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, text clips with full styling and fonts, junctions with transitions between clips, and stickers in packs). Projects save and reopen (workspace), and compositions export to files (export). No effects, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
 
 ## Commands
 
@@ -54,7 +54,7 @@ These are the rules, and they are strict. How things work is described in the `R
 10. A feature owns its whole surface: its commands, MCP tools, UI and contributions live in its folder, even when the data it edits lives in `project`. Don't add a feature's command to another module.
 11. `<name>.module.ts` is wiring only: `defineModule`, `ctx.contribute`, creating stores and services. No logic.
 12. **No module-level singletons** for state or services. `setup(ctx)` runs once per kernel and creates them (store factories in `<name>.store.ts`), registering each cleanup with `ctx.onDispose` right after acquiring it.
-13. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels`, `keybindings`, `topBarItems` and `appOverlays`; the timeline reads `timelineOverlays` and `timelineTabs`; `media` reads `librarySections`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls` and `sectionLayouts`; `sticker` reads `stickerPacks` and `stickerStyles`.
+13. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels`, `keybindings`, `topBarItems`, `appOverlays` and `appPages`; the timeline reads `timelineOverlays` and `timelineTabs`; `media` reads `librarySections`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls` and `sectionLayouts`; `sticker` reads `stickerPacks` and `stickerStyles`.
 
 **Commands and state**
 
@@ -71,7 +71,7 @@ These are the rules, and they are strict. How things work is described in the `R
 **Media and preview** (hard-won; see `src/modules/media/README.md` and `src/modules/preview/README.md`)
 
 20. Media is streamed by the loopback HTTP server, never a custom URI scheme (WebKitGTK's GStreamer can't read those). Media elements use `crossOrigin = "anonymous"`.
-21. Proxies contain one video and one audio stream with no timecode/data tracks (`-dn -write_tmcd 0 -map_metadata -1`), or WebKitGTK shows no frames. Bump `PROXY_RECIPE` whenever the recipe changes. FFmpeg is the external system binary.
+21. Proxies contain one video and one audio stream with no timecode/data tracks (`-dn -write_tmcd 0 -map_metadata -1`), or WebKitGTK shows no frames. Bump `PROXY_RECIPE` whenever the recipe changes. FFmpeg is the external system binary. Export never draws from a proxy: a file with one gets a full-size master under the same rules.
 22. Never draw a video frame on `seeked`: wait for `requestVideoFrameCallback` (with the timeout fallback). The engine paints only when every visible layer has its frame.
 23. Where a clip's picture sits is computed only by `clipPlacement()` (`project`) with its element's picture size and fit, so the engine and the canvas tools always agree. Every kind of clip is an element (`defineElement`, see `docs/modules.md`); never branch on `clip.kind` outside the module that owns the element.
 
@@ -121,8 +121,9 @@ src/
     transition/ the transition junction kind, the seven presets, the Transitions tab (feature)
     sticker/    packs, topics and variations, the Stickers tab, static and animated art (feature)
     collab/     agents as collaborators: presence, access, pointer, Follow (feature)
+    export/     the Export page and queue: frames from the preview engine, sound mixed by FFmpeg (feature)
     workspace/  the open project: start dialog, save, autosave, open, recent list
-src-tauri/      the Rust side: native media server + proxies (media/), installed fonts (fonts/), MCP server (mcp/), project files (workspace/)
+src-tauri/      the Rust side: native media server + proxies (media/), export through FFmpeg (export/), installed fonts (fonts/), MCP server (mcp/), project files (workspace/)
 ```
 
 | Topic                                                  | README                                                                            |

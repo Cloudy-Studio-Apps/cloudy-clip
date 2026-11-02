@@ -1,6 +1,6 @@
 # Release checklist: 0.1.0
 
-What Cloudy Clip needs before it goes to friends for testing and into real work. Written on 2026-10-30 from reading the code; the app was not run and nothing was tested on Windows.
+What Cloudy Clip needs before it goes to friends for testing and into real work. Written on 2026-10-30 from reading the code; the app was not run and nothing was tested on Windows. Items 1 to 5 and 7 have been done since.
 
 ## Recommended order
 
@@ -45,10 +45,10 @@ Projects store only file paths, so a moved file or a project opened on another P
 
 ### 5. Export
 
-Export is its own project and likely the hardest item here. The preview runs in the webview, while the final video has to match it.
+Done on 2026-11-02 on Linux, see `src/modules/export/README.md`. Not yet tried on Windows.
 
-- [ ] Decide how export renders frames
-- [ ] Match the preview for text, stickers, transitions and nested compositions
+- [x] Decide how export renders frames
+- [x] Match the preview for text, stickers, transitions and nested compositions
 
 ### 6. Installers friends can use
 
