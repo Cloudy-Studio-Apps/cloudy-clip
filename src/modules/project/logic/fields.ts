@@ -116,6 +116,16 @@ function binProblem(state: ProjectState): string | null {
   return null;
 }
 
+/** A fade never outlasts its clip, whatever trimmed it. */
+function clampFades(draft: Draft<ProjectState>): void {
+  for (const clip of Object.values(draft.clips)) {
+    const sound = clip.sound;
+    if (!sound) continue;
+    if (sound.fadeIn > clip.duration) sound.fadeIn = clip.duration;
+    if (sound.fadeOut > clip.duration) sound.fadeOut = clip.duration;
+  }
+}
+
 function validate(state: ProjectState): string | null {
   const bins = binProblem(state);
   if (bins) return bins;
@@ -179,5 +189,8 @@ export const projectPolicy: StorePolicy<ProjectState> = {
   },
   repair,
   validate,
-  settle: settleCompositions,
+  settle(draft) {
+    settleCompositions(draft);
+    clampFades(draft);
+  },
 };

@@ -65,10 +65,22 @@ export type {
   Solid,
   SolidId,
   SharedGroupValues,
+  ClipSound,
+  EqBand,
   Track,
   TrackId,
   TrackKind,
 } from "./project.types";
+
+/** A clip's sound: defaults, reading it, and the levels preview and export share. */
+export {
+  DEFAULT_SOUND,
+  bandActive,
+  dbToLinear,
+  fadeLevel,
+  pitchShift,
+  soundOf,
+} from "./logic/sound";
 
 export { seedProject } from "./project.testing";
 export type { ProjectSeed } from "./project.testing";

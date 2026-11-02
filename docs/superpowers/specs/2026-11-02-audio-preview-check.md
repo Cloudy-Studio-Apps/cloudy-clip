@@ -5,13 +5,13 @@ The page and the media had different origins, and the media server sent `Access-
 with Range support, as `src-tauri/src/media/server.rs` does. The tone was a 440 Hz sine in an MP4 and an MP3.
 Levels were read from `AnalyserNode`s after a muted gain, so nothing played aloud.
 
-| Check                                                     | Result                                        |
-| --------------------------------------------------------- | --------------------------------------------- |
-| `MediaElementSource` from `<video>` and `<audio>`         | Passes real samples (not silent, not tainted) |
-| `StereoPannerNode` at -1                                  | Right channel exactly 0                       |
-| `BiquadFilterNode`, high-pass at 8 kHz                    | 440 Hz falls from 0.06 to 0.00015             |
-| `AudioWorklet` with `@soundtouchjs/audio-worklet`, +3 st  | Peak moves to 522 Hz (expected 523)           |
-| Worklet latency                                           | About 125 ms (205 ms to first sound, 80 ms without it) |
+| Check                                                    | Result                                                 |
+| -------------------------------------------------------- | ------------------------------------------------------ |
+| `MediaElementSource` from `<video>` and `<audio>`        | Passes real samples (not silent, not tainted)          |
+| `StereoPannerNode` at -1                                 | Right channel exactly 0                                |
+| `BiquadFilterNode`, high-pass at 8 kHz                   | 440 Hz falls from 0.06 to 0.00015                      |
+| `AudioWorklet` with `@soundtouchjs/audio-worklet`, +3 st | Peak moves to 522 Hz (expected 523)                    |
+| Worklet latency                                          | About 125 ms (205 ms to first sound, 80 ms without it) |
 
 `AudioContext.resume()` on an idle context never settles. Call it without waiting, and start the element:
 the context runs as soon as media plays.

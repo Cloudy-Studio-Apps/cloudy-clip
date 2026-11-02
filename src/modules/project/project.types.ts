@@ -100,6 +100,8 @@ export interface Clip extends Partial<SharedGroupValues> {
   duration: Micros;
   /** The element's own values (only those that differ from its defaults). */
   props: Record<string, unknown>;
+  /** How it sounds, on clips of audio tracks. Missing means as the file does. */
+  sound?: ClipSound;
   /** The file it plays (media clips). */
   mediaId?: MediaId;
   /** The composition it plays (composition clips); a live mirror of that composition. */
@@ -150,6 +152,28 @@ export interface ClipPlacement {
  */
 export interface SharedGroupValues {
   transform: ClipTransform;
+}
+
+/** One band of a clip's equalizer. */
+export interface EqBand {
+  on: boolean;
+  shape: "bell" | "lowShelf" | "highShelf" | "lowCut" | "highCut";
+  hz: number;
+  db: number;
+  q: number;
+}
+
+/** How a clip sounds. Missing means as the file does (`DEFAULT_SOUND`). */
+export interface ClipSound {
+  /** -60 to 12. */
+  volumeDb: number;
+  /** -1 (left) to 1 (right). */
+  pan: number;
+  fadeIn: Micros;
+  fadeOut: Micros;
+  pitch: { on: boolean; semitones: number; cents: number };
+  /** Always six bands. */
+  eq: { on: boolean; bands: EqBand[] };
 }
 
 /** Pixel size of a picture. */

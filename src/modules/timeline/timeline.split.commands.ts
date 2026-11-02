@@ -80,6 +80,8 @@ export const splitAt = defineCommand({
           start: at,
           duration: left.duration - offset,
           ...(left.transform && { transform: { ...left.transform } }),
+          // A fade stays on the outer edge of its piece.
+          ...(left.sound && { sound: { ...structuredClone(target.sound!), fadeIn: 0 } }),
           ...(linkId && { linkId }),
         };
         // Text and images have no time of their own, so their `sourceIn` stays 0.
@@ -92,6 +94,7 @@ export const splitAt = defineCommand({
           sourceIn: followsFileTime(draft, left) ? left.sourceIn + offset : 0,
         };
         left.duration = offset;
+        if (left.sound) left.sound.fadeOut = 0;
         draft.clips[right.id] = right;
         const track = draft.tracks[left.trackId]!;
         track.clipIds = sortClipIds([...track.clipIds, right.id], draft.clips);

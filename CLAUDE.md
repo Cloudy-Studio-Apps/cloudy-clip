@@ -9,7 +9,7 @@ Two product ideas drive the architecture:
 1. **Agents are first-class editors.** An MCP server is built in and on by default. An agent can do anything a user can do, on the same live project, and the user can undo it. Neither side has powers the other lacks.
 2. **Plugins come later, but the API is designed now.** Built-in modules register through the same surface third-party plugins will use.
 
-**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, text clips with full styling and fonts, junctions with transitions between clips, and stickers in packs). Projects save and reopen (workspace), and compositions export to files (export). No effects, audio mixing or AI features yet. Do not scaffold modules beyond this unless asked.
+**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, clip sound controls, text clips with full styling and fonts, junctions with transitions between clips, and stickers in packs). Projects save and reopen (workspace), and compositions export to files (export). No picture effects or AI features yet. Do not scaffold modules beyond this unless asked.
 
 ## Commands
 
@@ -120,6 +120,7 @@ src/
     text/       text clips: the Text tab, styling, in-place editing (feature)
     transition/ the transition junction kind, the seven presets, the Transitions tab (feature)
     sticker/    packs, topics and variations, the Stickers tab, static and animated art (feature)
+    audio/      how a clip sounds: volume, pan, fades, EQ, pitch, the inspector's Audio tab (feature)
     solid/      solid colors: the element, library items, the dialog (feature)
     collab/     agents as collaborators: presence, access, pointer, Follow (feature)
     sound/      the Sound page, empty for now (feature)

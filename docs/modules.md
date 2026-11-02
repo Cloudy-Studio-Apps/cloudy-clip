@@ -43,6 +43,7 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `transition`  | feature | `project`, `element`, `junction`, `timeline`, `inspector`                       | the `transition` junction kind, the `transitionPresets` point, `transition.apply`                 |
 | `sticker`     | feature | `project`, `element`, `preview`, `timeline`, `transform`, `inspector`           | the `sticker` element, Stickers tab, `stickerPacks` and `stickerStyles`, `sticker.add`            |
 | `collab`      | feature | `project`, `preview`, `timeline`                                                | presence, access, the agent pointer and playhead, Follow                                          |
+| `audio`       | feature | `project`, `inspector`, `preview`, `timeline`                                   | how a clip sounds: volume, pan, fades, EQ, pitch, and the Audio tab                               |
 | `solid`       | feature | `project`, `element`, `media`, `transform`                                      | solid colors: the element, library items with their smart bin, the dialog                         |
 | `sound`       | feature | —                                                                               | the Sound page, empty for now                                                                     |
 | `export`      | feature | `project`, `media`, `preview`, `workspace`                                      | the Export page and queue, turning a composition into a file                                      |

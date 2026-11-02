@@ -7,6 +7,7 @@ import {
   type Kernel,
   type AnyModuleDefinition,
 } from "@/core";
+import { audioModule } from "@/modules/audio";
 import { collabModule } from "@/modules/collab";
 import { compositionModule } from "@/modules/composition";
 import { elementModule } from "@/modules/element";
@@ -44,6 +45,7 @@ const MODULES: AnyModuleDefinition[] = [
   transitionModule,
   stickerModule,
   solidModule,
+  audioModule,
   collabModule,
   soundModule,
   exportModule,

@@ -52,3 +52,5 @@ lives here, so every change is undoable and readable by agents.
 | Command | MCP tool            | Notes                                                                          |
 | ------- | ------------------- | ------------------------------------------------------------------------------ |
 | —       | `project_get_state` | Whole document: each composition with its tracks, clips and `junctions` inline |
+
+**Sound:** `Clip.sound` (`ClipSound`) says how a clip on an audio track sounds; missing means as the file does. `logic/sound.ts` holds `DEFAULT_SOUND`, `soundOf`, `dbToLinear`, `fadeLevel` and `pitchShift`, which preview and export share. The store policy keeps fades within their clip on every change. The `audio` module owns the commands.

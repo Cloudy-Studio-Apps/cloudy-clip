@@ -40,6 +40,8 @@ export { usePropsLive } from "./ui/props.live.hook";
 export { FieldRow } from "./ui/controls/FieldRow";
 /** A collapsible group of fields, for custom section layouts. */
 export { InspectorSection } from "./ui/InspectorSection";
+/** The member of a clip that carries sound, when one does. */
+export { soundMember } from "./ui/SoundSection";
 /** Builds a patch that sets a value at a dotted path. */
 export { pathPatch } from "./logic/paths";
 /** Module definition, loaded by the app shell. */
