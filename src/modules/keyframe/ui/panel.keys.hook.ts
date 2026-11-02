@@ -8,7 +8,7 @@ import type { KeyBox, KeyRef } from "../keyframe.types";
 import { keysAtTime, keysInBox, parseRef, refId } from "../logic/picking";
 import { startBoxSelect } from "./box.gesture";
 import { startKeyDrag } from "./key.gesture";
-import type { PanelActions } from "./panel.actions.hook";
+import { report, type PanelActions } from "./panel.actions.hook";
 
 /** Whether a key press belongs to a text field (the same rule as the app's keybindings). */
 function isTyping(target: EventTarget | null): boolean {
@@ -42,7 +42,7 @@ export function usePanelKeys(root: RefObject<HTMLElement | null>, actions: Panel
     const panel = root.current;
     if (!panel) return;
 
-    const drag = (event: PointerEvent, refs: readonly KeyRef[]) => {
+    const drag = (event: PointerEvent, refs: readonly KeyRef[], onClick = false) => {
       const state = project.getState();
       const keys = refs.flatMap((ref) => {
         const clip = state.clips[ref.clipId];
@@ -65,7 +65,8 @@ export function usePanelKeys(root: RefObject<HTMLElement | null>, actions: Panel
         root: panel,
         pxPerSecond: timeline.view.getState().pxPerSecond,
         keys,
-        onDrop: (delta) => void bus.run(moveKeys, { keys: refs.slice(), delta }),
+        onDrop: (delta) => void bus.run(moveKeys, { keys: refs.slice(), delta }).then(report),
+        onClick: onClick ? () => view.setState({ selection: refs.slice() }) : undefined,
       });
     };
 
@@ -79,7 +80,7 @@ export function usePanelKeys(root: RefObject<HTMLElement | null>, actions: Panel
       const held = refs.every((r) => current.some((s) => refId(s) === refId(r)));
       const next = held ? current : refs.slice();
       if (!held) view.setState({ selection: next });
-      drag(event, next);
+      drag(event, next, held && refs.length === 1 && current.length > 1);
     };
 
     const onDown = (e: PointerEvent) => {

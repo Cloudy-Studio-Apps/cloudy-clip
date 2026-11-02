@@ -19,6 +19,11 @@ import type { KeyRef, PanelClip } from "../keyframe.types";
 /** Room left around the clips when Fit zooms to them, in px. */
 const FIT_MARGIN = 24;
 
+/** Tells the user when a command failed (rule 32). */
+export function report(result: Result<unknown, AppError>): void {
+  if (!result.ok) notify("error", result.error.message);
+}
+
 /** What the panel's buttons and keys do to the key selection. Each reports a failure with `notify`. */
 export interface PanelActions {
   copy(): void;
@@ -39,9 +44,6 @@ export function usePanelActions(
   const timeline = useModule(timelineRef);
 
   return useMemo(() => {
-    const report = (result: Result<unknown, AppError>) => {
-      if (!result.ok) notify("error", result.error.message);
-    };
     const selected = () => view.getState().selection;
     return {
       copy() {

@@ -129,6 +129,8 @@ export interface KeyDragOptions {
   keys: readonly { ref: KeyRef; moved: MovedKey }[];
   /** Called on release with the clamped delta (never 0). */
   onDrop(delta: Micros): void;
+  /** Called on release when the pointer never left the press (a click, not a drag). */
+  onClick?(): void;
 }
 
 /** What a rubber band needs. */
