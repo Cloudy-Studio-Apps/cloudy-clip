@@ -1,28 +1,13 @@
-import { type CompositionId, type MediaId, type ProjectState } from "@/modules/project";
+import { type Clip, type CompositionId, type MediaId, type ProjectState } from "@/modules/project";
 import type { ExportRange } from "../export.types";
 
-/** The files of a stretch that some clip plays backwards. */
-export function reversedMedia(
+/** Every clip a stretch of a composition shows or plays, at any depth. */
+function playedClips(
   project: ProjectState,
   compositionId: CompositionId,
   range: ExportRange,
-): Set<MediaId> {
-  const used = usedMedia(project, compositionId, range);
-  const reversed = Object.values(project.clips).flatMap((clip) =>
-    clip.speed?.reversed && clip.mediaId !== undefined && used.has(clip.mediaId)
-      ? [clip.mediaId]
-      : [],
-  );
-  return new Set(reversed);
-}
-
-/** Every file a stretch of a composition shows or plays, at any depth. */
-export function usedMedia(
-  project: ProjectState,
-  compositionId: CompositionId,
-  range: ExportRange,
-): Set<MediaId> {
-  const used = new Set<MediaId>();
+): Clip[] {
+  const played: Clip[] = [];
   const walk = (id: CompositionId, from: number, to: number) => {
     const composition = project.compositions[id];
     if (!composition) return;
@@ -33,7 +18,7 @@ export function usedMedia(
         const start = Math.max(from, clip.start);
         const stop = Math.min(to, clip.start + clip.duration);
         if (stop <= start) continue;
-        if (clip.mediaId !== undefined) used.add(clip.mediaId);
+        played.push(clip);
         if (clip.compositionRef !== undefined) {
           const local = clip.sourceIn - clip.start;
           walk(clip.compositionRef, start + local, stop + local);
@@ -42,5 +27,27 @@ export function usedMedia(
     }
   };
   walk(compositionId, range.start, range.start + range.duration);
-  return used;
+  return played;
+}
+
+/** Every file a stretch of a composition shows or plays, at any depth. */
+export function usedMedia(
+  project: ProjectState,
+  compositionId: CompositionId,
+  range: ExportRange,
+): Set<MediaId> {
+  const ids = playedClips(project, compositionId, range).flatMap((clip) => clip.mediaId ?? []);
+  return new Set(ids);
+}
+
+/** The files a stretch shows backwards. Sound needs no copy: export reverses that itself. */
+export function reversedMedia(
+  project: ProjectState,
+  compositionId: CompositionId,
+  range: ExportRange,
+): Set<MediaId> {
+  const shown = playedClips(project, compositionId, range).filter(
+    (clip) => clip.speed?.reversed && project.tracks[clip.trackId]?.kind === "video",
+  );
+  return new Set(shown.flatMap((clip) => clip.mediaId ?? []));
 }

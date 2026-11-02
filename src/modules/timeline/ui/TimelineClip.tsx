@@ -1,4 +1,4 @@
-import { Link } from "lucide-react";
+import { Link, Rewind, Snowflake } from "lucide-react";
 import { memo, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule, usePoint } from "@/core";
@@ -58,7 +58,7 @@ export const TimelineClip = memo(function TimelineClip({
   );
   const linked = useStore(project.api, (s) => partnersOf(s, clip.id).length > 0);
   const actions = usePoint(clipActions);
-  const { rate } = speedOf(clip);
+  const { rate, reversed } = speedOf(clip);
 
   return (
     <ContextMenu
@@ -112,6 +112,10 @@ export const TimelineClip = memo(function TimelineClip({
           {linked && <Link aria-label="Linked" className="size-3 shrink-0" />}
           <span className="min-w-0 truncate">{label}</span>
           {rate !== 1 && rate > 0 && <span className="shrink-0 text-mark">{rate.toFixed(2)}x</span>}
+          {reversed && <Rewind aria-label="Reversed" className="size-3 shrink-0 text-mark" />}
+          {rate === 0 && (
+            <Snowflake aria-label="Held frame" className="size-3 shrink-0 text-mark" />
+          )}
         </div>
         {/* Trim handles: brackets on hover. */}
         <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-foreground" />

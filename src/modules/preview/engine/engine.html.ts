@@ -21,6 +21,7 @@ import {
   speedOf,
   type ClipSpeed,
   elementTimeAt,
+  sourceTimeAt,
 } from "@/modules/project";
 import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
@@ -252,11 +253,17 @@ export class HtmlMediaEngine implements PreviewEngine {
         // from audio tracks (a video file's sound plays through an <audio> on the same URL).
         const slot = this.pool.acquire(path, clip, track.kind, desired, url);
         if (!slot) continue;
+        // A copy can differ from the file by a frame, so its own length is the mirror.
+        const { duration: copyLength } = slot.element;
+        const exact =
+          speed.reversed && Number.isFinite(copyLength)
+            ? copyLength - microsToSeconds(sourceTimeAt({ ...clip, speed }, time))
+            : desired;
         const heard = this.soundAtSpeed(sound, speed);
         voiceSlot(slot, track, own, silenced, heard, this.sound);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
         const lead = pitched ? PITCH_LEAD_SECONDS * speed.rate : 0;
-        syncSlot(slot, desired + lead, playing && speed.rate > 0, speed.rate);
+        syncSlot(slot, exact + lead, playing && speed.rate > 0, speed.rate);
         if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) {
           this.settled = false;
         }

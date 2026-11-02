@@ -19,7 +19,7 @@ import type { ExportRange, MixEdges, MixWindow, SoundSegment } from "../export.t
 
 /** The overlap a junction allows between two neighbours of a track; 0 for plain neighbours. */
 function overlapOf(project: ProjectState, left: Clip | undefined, right: Clip | undefined): Micros {
-  if (!left || !right) return 0;
+  if (!left || !right || left.disabled || right.disabled) return 0;
   const overlap = left.start + left.duration - right.start;
   return overlap > 0 && allowedOverlap(project, left, right) > 0 ? overlap : 0;
 }

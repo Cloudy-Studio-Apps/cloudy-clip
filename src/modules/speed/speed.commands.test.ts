@@ -11,6 +11,7 @@ import {
   createProjectModule,
   projectRef,
   seedProject,
+  sourceSpan,
   staleJunctions,
   type Clip,
   type ProjectState,
@@ -218,6 +219,15 @@ describe("speed.set", () => {
     const result = await kernel.bus.run(setSpeed, { clipIds: ["B"], rate: 8, ripple: false });
     expect(result).toMatchObject({ ok: false, error: { code: "speed.joined" } });
     expect(staleJunctions(doc())).toEqual([]);
+  });
+
+  it("keeps a clip's part of the file when one frame is all that's left", async () => {
+    await load((s) => {
+      for (const id of ["C", "sC"]) s.clips[id]!.duration = 50_000;
+    });
+    const { clips } = await run(kernel.bus.run(setSpeed, { clipIds: ["C"], rate: 3 }));
+    expect(clips[0]!.rate).toBeLessThan(3);
+    expect(sourceSpan(clipOf("C"))).toBeLessThanOrEqual(50_000);
   });
 
   it("refuses clips without a file's time", async () => {

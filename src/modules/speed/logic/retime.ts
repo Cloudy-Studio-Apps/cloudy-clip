@@ -95,7 +95,10 @@ export function retime(
   ripple: boolean,
   kindOf: JunctionKindOf,
 ): { state: ProjectState; rate: number } {
-  const rate = ripple ? wanted : rateWithoutRipple(state, group, wanted);
+  const shortest = Math.min(...group.map((clip) => minClipDuration(formatOf(state, clip))));
+  const limit = Math.max(...group.map(sourceSpan)) / shortest;
+  const wantedOrLimit = Math.min(wanted, Math.max(limit, 1));
+  const rate = ripple ? wantedOrLimit : rateWithoutRipple(state, group, wantedOrLimit);
   const before = group[0]!;
   const lengthOf = (clip: Clip) =>
     Math.max(minClipDuration(formatOf(state, clip)), Math.floor(sourceSpan(clip) / rate));

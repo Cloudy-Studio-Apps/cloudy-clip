@@ -269,11 +269,11 @@ impl ProxyJobs {
 /// What `ffprobe` says about a file.
 #[derive(Debug, Default)]
 pub(crate) struct Probe {
-    video_codec: Option<String>,
+    pub(super) video_codec: Option<String>,
     pix_fmt: Option<String>,
     width: u64,
     height: u64,
-    audio_codec: Option<String>,
+    pub(super) audio_codec: Option<String>,
     /// Channels of the first sound stream.
     pub(crate) audio_channels: Option<u64>,
     bit_rate: u64,

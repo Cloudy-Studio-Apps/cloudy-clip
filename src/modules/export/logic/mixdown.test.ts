@@ -126,6 +126,22 @@ describe("mixdown", () => {
     ]);
   });
 
+  it("doesn't fade a clip into a disabled neighbour, as the preview doesn't", () => {
+    const left = clip("l", "a1", { disabled: true });
+    const right = clip("r", "a1", { start: 3_000_000 });
+    const state = project([left, right]);
+    state.junctions.j = {
+      id: "j",
+      kind: "dissolve",
+      trackId: "a1",
+      leftClipId: "l",
+      rightClipId: "r",
+      duration: 1_000_000,
+      props: {},
+    };
+    expect(mixdown(state, "c1", everything, sounds)).toMatchObject([{ fadeIn: 0 }]);
+  });
+
   it("gives clips under a junction an equal-power crossfade", () => {
     const left = clip("l", "a1");
     const right = clip("r", "a1", { start: 3_000_000 });

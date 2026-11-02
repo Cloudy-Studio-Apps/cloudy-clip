@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
 import { notify, useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
@@ -27,6 +27,9 @@ export function useSpeedEdit(clipId: ClipId) {
   const joined = useStore(project.api, (s) =>
     junctionsOfClip(s, clipId).some((j) => j.leftClipId === clipId),
   );
+
+  // Counts refusals, so the fields can go back from the value that was dragged.
+  const [refused, setRefused] = useState(0);
 
   const edit = useMemo(() => {
     const group = () => {
@@ -59,7 +62,9 @@ export function useSpeedEdit(clipId: ClipId) {
           ripple: view.getState().ripple,
         });
         clear();
-        if (!result.ok) notify("error", result.error.message);
+        if (result.ok) return;
+        notify("error", result.error.message);
+        setRefused((count) => count + 1);
       },
       async reset() {
         const result = await bus.run(resetSpeed, {
@@ -77,5 +82,5 @@ export function useSpeedEdit(clipId: ClipId) {
   // Escape mid-drag closes the box with no release, so nothing else would clear it.
   useEffect(() => edit.clear, [edit]);
 
-  return { clip, ripple, joined, ...edit };
+  return { clip, ripple, joined, refused, ...edit };
 }

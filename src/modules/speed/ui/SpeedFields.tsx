@@ -10,7 +10,7 @@ const RED =
 
 /** The fields of a clip's speed, the same in the box and the inspector, so both always agree. */
 export function SpeedFields({ clipId, bare }: { clipId: ClipId; bare?: boolean }) {
-  const { clip, ripple, joined, live, commit, setRipple } = useSpeedEdit(clipId);
+  const { clip, ripple, joined, refused, live, commit, setRipple } = useSpeedEdit(clipId);
   if (!clip) return null;
   const { rate, pitchCorrection } = speedOf(clip);
   const changed = rate !== DEFAULT_SPEED.rate ? "" : undefined;
@@ -19,6 +19,7 @@ export function SpeedFields({ clipId, bare }: { clipId: ClipId; bare?: boolean }
     <div className="flex w-full min-w-0 flex-col gap-1.5">
       <div data-changed={changed} className={RED}>
         <SliderField
+          key={refused}
           label="Speed"
           value={rate}
           min={0.1}
