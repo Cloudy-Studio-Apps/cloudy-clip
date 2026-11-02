@@ -94,7 +94,7 @@ These are the rules, and they are strict. How things work is described in the `R
 
 33. Reuse before writing: the kit in `@/ui` (`Button`, `IconButton`, `SegmentedControl`, `ToolbarButton`, `EmptyState`, `ProgressBar`, `Waveform`, `Kbd`, `SealMark`, `cn`). A piece a second module needs moves to `@/ui` instead of being copied. Icons come from `lucide-react`.
 34. Components use semantic tokens only (`bg-surface`, `text-muted-foreground`, `border-border`, `bg-primary`, `bg-clip-video`, …). Tailwind's default palette is reset, so `bg-neutral-900` doesn't exist; palette scales (`ice`, `seal`, `blush`, `sand`) are for brand art and media badges only.
-35. Sharp shapes: `rounded-xs` (2px) to `rounded-lg` (8px), nothing above 8px, no pills (only avatars, switch thumbs and EQ points are round). Type scale is `text-2xs`…`text-md` (10–14px), plus `text-display` for the wordmark. UI fonts are Shantell Sans (`font-hand`, for titles, tabs and buttons), Atkinson Hyperlegible and Courier Prime (Fontsource, offline). Inter and JetBrains Mono stay bundled for text clips. The look follows `docs/prototype/designs/b-mesa-de-noche.html`.
+35. Sharp shapes: `rounded-xs` (2px) to `rounded-lg` (8px), nothing above 8px, no pills (only avatars, switch and slider thumbs and EQ points are round). Type scale is `text-2xs`…`text-md` (10–14px), plus `text-display` for the wordmark. UI fonts are Shantell Sans (`font-hand`, for titles, tabs and buttons), Atkinson Hyperlegible and Courier Prime (Fontsource, offline). Inter and JetBrains Mono stay bundled for text clips. The look follows `docs/prototype/designs/b-mesa-de-noche.html`.
 36. The seal (`SealMark`) appears in light touches only: the logo, empty states, waiting. Never as clutter.
 
 ## Where to look

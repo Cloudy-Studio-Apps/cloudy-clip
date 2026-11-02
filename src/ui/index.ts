@@ -11,7 +11,7 @@ export { cn } from "./lib/cn";
 /** The seal mark of the Cloudy Studio family, for the logo, empty states and waiting. */
 export { SealMark } from "./brand/SealMark";
 
-/** A text button, `primary` or `secondary`, `sm` or `md`. */
+/** A text button: `primary`, `secondary` or `mark`, `sm` or `md`. */
 export { Button } from "./kit/Button";
 /** A square icon-only button with a tooltip; `active` for toggles, `solid` for play. */
 export { IconButton } from "./kit/IconButton";
@@ -45,6 +45,8 @@ export { NumberField } from "./kit/NumberField";
 export { Switch } from "./kit/Switch";
 /** A labelled switch that shows its sub-fields while on. */
 export { ToggleRow } from "./kit/ToggleRow";
+/** A pencilled title with a chevron that folds the fields under it. */
+export { FoldSection } from "./kit/FoldSection";
 /** A native select styled as the other fields. */
 export { SelectField } from "./kit/SelectField";
 /** Label/value pairs in two columns; values in mono. */

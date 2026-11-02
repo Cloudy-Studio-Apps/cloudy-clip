@@ -26,17 +26,13 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn(
-        "inline-flex h-7 rounded-sm border border-border bg-surface-sunken p-0.5",
-        disabled && "opacity-50",
-        className,
-      )}
+      className={cn("inline-flex h-7 items-stretch gap-3.5", disabled && "opacity-50", className)}
     >
       {options.map((option) => {
         const selected = option.value === value;
         return (
           <Fragment key={option.value}>
-            {option.divided && <span aria-hidden className="mx-1 my-0.5 w-px bg-border" />}
+            {option.divided && <span aria-hidden className="my-1 w-px bg-border-strong" />}
             <button
               type="button"
               role="radio"
@@ -44,9 +40,9 @@ export function SegmentedControl<T extends string>({
               disabled={disabled}
               title={option.hint}
               className={cn(
-                "inline-flex min-w-10 cursor-pointer items-center justify-center gap-1.5 rounded-xs px-2 font-mono text-xs disabled:cursor-default",
+                "inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap font-hand text-[13px] font-bold disabled:cursor-default",
                 selected
-                  ? "bg-muted text-foreground shadow-soft"
+                  ? "text-foreground shadow-[inset_0_-2px_0_var(--mark)]"
                   : "text-muted-foreground enabled:hover:text-foreground",
               )}
               onClick={() => onChange(option.value)}

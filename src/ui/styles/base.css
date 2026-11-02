@@ -70,6 +70,42 @@ body {
   }
 }
 
+/* Ranges: a pencil line, drawn up to the value by `--v`, with a small open ring. */
+input[type="range"] {
+  height: 16px;
+  margin: 0;
+  background: none;
+  appearance: none;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(90deg, var(--on) var(--v, 0%), var(--border-strong) var(--v, 0%));
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border: 1.5px solid var(--foreground);
+  border-radius: 50%;
+  background: var(--surface);
+}
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--border-strong);
+}
+input[type="range"]::-moz-range-progress {
+  height: 2px;
+  background: var(--on);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--foreground);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
 /* While a panel edge is dragged: keep its cursor everywhere and stop text selection. */
 body[data-resizing="x"],
 body[data-resizing="x"] * {

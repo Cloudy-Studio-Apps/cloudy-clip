@@ -39,14 +39,20 @@ export function SliderField({
   const box = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
+  const fill = (next: number) =>
+    range.current?.style.setProperty("--v", `${((next - min) / (max - min)) * 100}%`);
+
   // Follow the saved value whenever the user isn't dragging.
   useEffect(() => {
-    if (!dragging.current && range.current) range.current.value = String(value);
-  }, [value]);
+    if (dragging.current || !range.current) return;
+    range.current.value = String(value);
+    fill(value);
+  });
 
   const show = (next: number) => {
     const input = box.current?.querySelector("input");
     if (input) input.value = String(next);
+    fill(next);
   };
   const finish = (next: number) => {
     if (!dragging.current) return;
@@ -57,7 +63,7 @@ export function SliderField({
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      {!bare && <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>}
+      {!bare && <span className="w-16 shrink-0 text-sm text-muted-foreground">{label}</span>}
       <input
         ref={range}
         type="range"
@@ -80,7 +86,7 @@ export function SliderField({
         onPointerUp={(event) => finish(Number(event.currentTarget.value))}
         onPointerCancel={(event) => finish(Number(event.currentTarget.value))}
         onBlur={(event) => finish(Number(event.currentTarget.value))}
-        className="h-1 min-w-0 flex-1 cursor-pointer accent-primary disabled:cursor-default disabled:opacity-50"
+        className="min-w-0 flex-1 cursor-pointer disabled:cursor-default disabled:opacity-50"
       />
       <div ref={box} className="contents">
         <NumberField
@@ -93,6 +99,7 @@ export function SliderField({
           disabled={disabled}
           onChange={(next) => {
             if (range.current) range.current.value = String(next);
+            fill(next);
             onInput(next);
             onCommit(next);
           }}

@@ -26,7 +26,7 @@ export function SelectField({
       disabled={disabled}
       onChange={(event) => onChange(event.target.value)}
       className={cn(
-        "h-7 min-w-0 cursor-pointer rounded-sm border border-border bg-surface-sunken px-2 text-xs text-foreground outline-none focus:border-ring disabled:cursor-default disabled:opacity-50",
+        "h-7 min-w-0 cursor-pointer border-b border-border-strong bg-transparent px-1 text-[13px] text-foreground outline-none focus:border-ring disabled:cursor-default disabled:opacity-50 [&_option]:bg-popover",
         className,
       )}
     >

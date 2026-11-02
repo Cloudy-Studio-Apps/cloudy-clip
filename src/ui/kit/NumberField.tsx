@@ -53,7 +53,7 @@ export function NumberField({
   return (
     <label
       className={cn(
-        "flex h-7 items-center gap-1 rounded-sm border border-border bg-surface-sunken px-2 focus-within:border-ring",
+        "flex h-7 items-center gap-1 border-b border-border-strong px-0.5 focus-within:border-ring",
         disabled && "opacity-50",
         className,
       )}
@@ -90,7 +90,7 @@ export function NumberField({
             commit(String(Math.round((Number(text) + delta) / step) * step));
           }
         }}
-        className="min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none"
+        className="min-w-0 flex-1 bg-transparent text-right font-mono text-[13px] font-bold text-foreground outline-none"
       />
       {unit && <span className="text-2xs text-muted-foreground">{unit}</span>}
     </label>

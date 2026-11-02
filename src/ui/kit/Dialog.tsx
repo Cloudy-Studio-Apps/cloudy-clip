@@ -34,11 +34,13 @@ export function Dialog({ title, onClose, children, footer, size = "default" }: D
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "flex max-h-[90vh] flex-col rounded-lg border border-border bg-popover shadow-popover",
+          "flex max-h-[90vh] flex-col rounded-sm border border-border-strong bg-popover shadow-popover",
           size === "wide" ? "w-[720px]" : "w-[360px]",
         )}
       >
-        <h2 className="border-b border-border px-3.5 py-2.5 text-sm font-semibold">{title}</h2>
+        <h2 className="border-b border-border px-3.5 py-2.5 font-hand text-md font-bold">
+          {title}
+        </h2>
         <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3.5">{children}</div>
         {footer && (
           <div className="flex justify-end gap-2 border-t border-border px-3.5 py-2.5">

@@ -19,14 +19,14 @@ export function Switch({ label, checked, disabled, onChange }: SwitchProps) {
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-4 w-7 shrink-0 cursor-pointer rounded-sm border border-border transition-colors disabled:cursor-default disabled:opacity-50",
-        checked ? "bg-primary" : "bg-surface-sunken",
+        "relative h-4 w-[30px] shrink-0 cursor-pointer rounded-lg transition-colors duration-100 disabled:cursor-default disabled:opacity-50",
+        checked ? "bg-on" : "bg-border-strong",
       )}
     >
       <span
         className={cn(
-          "absolute top-0.5 size-2.5 rounded-xs transition-all",
-          checked ? "left-3.5 bg-primary-foreground" : "left-0.5 bg-muted-foreground",
+          "absolute left-0.5 top-0.5 size-3 rounded-full bg-foreground transition-transform duration-100 ease-out",
+          checked && "translate-x-3.5",
         )}
       />
     </button>
