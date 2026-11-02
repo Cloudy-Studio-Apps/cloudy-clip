@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { Micros, PanelIcon } from "@/core";
-import type { BinId, MediaAsset, MediaId, MediaKind } from "@/modules/project";
+import type { Bin, BinId, CompositionId, MediaAsset, MediaId, MediaKind } from "@/modules/project";
 
 /** Progress of reading a file's metadata. `missing`: the file isn't where the project says. */
 export type ProbeStatus = "pending" | "ready" | "error" | "missing";
@@ -190,6 +190,8 @@ export interface MediaApi {
   listDisks(): Promise<DiskInfo[]>;
   /** Opens the file manager at a file. */
   revealFile(path: string): Promise<void>;
+  /** What's open in the library. */
+  readonly view: StoreApi<LibraryView>;
 }
 
 /** Probe state plus the setters only the media module uses. */
@@ -203,6 +205,7 @@ export interface MediaState extends Omit<
   | "fileFacts"
   | "listDisks"
   | "revealFile"
+  | "view"
 > {
   /** Sets (or merges into) the probe of one media item. */
   setProbe(id: MediaId, probe: Partial<MediaProbe>): void;
@@ -272,6 +275,44 @@ export interface LibraryKind {
   useEntries(): readonly LibraryEntry[];
   Tile: ComponentType<{ id: string }>;
   CreateButton?: ComponentType;
+}
+
+/** Where the library is looking. */
+export type LibraryPlace =
+  /** A bin; null is Master. */
+  | { kind: "bin"; binId: BinId | null }
+  /** `videos`, `audio`, `images`, `compositions`, `today`, or a `LibraryKind` type. */
+  | { kind: "smart"; id: string };
+
+/** What's open in the library, shared by the Media page and Edit's Media tab. */
+export interface LibraryView {
+  place: LibraryPlace;
+  search: string;
+  layout: "grid" | "list";
+  /** Row ids, the first being the one the viewer shows. */
+  selection: readonly string[];
+  /** Tagging a file moves on to the next one without a tag. */
+  autoNext: boolean;
+}
+
+/** One line of the library. `type` is `media`, `composition`, or a `LibraryKind` type. */
+export interface LibraryRow {
+  type: string;
+  id: string;
+  name: string;
+}
+
+/** What `libraryRows` reads. */
+export interface LibraryInput {
+  place: LibraryPlace;
+  search: string;
+  media: Record<MediaId, MediaAsset>;
+  mediaOrder: readonly MediaId[];
+  bins: Record<BinId, Bin>;
+  compositions: readonly { id: CompositionId; name: string }[];
+  kinds: readonly { type: string; entries: readonly LibraryEntry[] }[];
+  /** Where today starts, in ms since the epoch, for "Imported today". */
+  dayStart: number;
 }
 
 /** A section of the Library, above the files. */

@@ -3,6 +3,7 @@ import { elements } from "@/modules/element";
 import { mediaElement } from "./media.element";
 import { mediaRef } from "./media.ref";
 import { createMediaState } from "./media.store";
+import { createLibraryView } from "./media.view.store";
 import type { MediaProbe } from "./media.types";
 
 /**
@@ -32,6 +33,7 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
           fileFacts: async () => ({}),
           listDisks: async () => [],
           revealFile: async () => undefined,
+          view: createLibraryView(),
         },
       };
     },
