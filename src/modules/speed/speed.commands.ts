@@ -1,21 +1,26 @@
 import { produce } from "immer";
 import { z } from "zod";
-import { CommandFailure, defineCommand, type CommandContext } from "@/core";
+import { CommandFailure, createId, defineCommand, type CommandContext } from "@/core";
+import { previewRef } from "@/modules/preview";
 import {
   DEFAULT_SPEED,
+  applyMoves,
   canChangeSpeed,
   partnersOf,
   projectRef,
+  rippleMoves,
   sourceSpan,
+  sourceTimeAt,
   speedOf,
   type Clip,
   type ProjectState,
 } from "@/modules/project";
-import { checkLayout, commitState, junctionKindOf } from "@/modules/timeline";
+import { checkLayout, commitState, junctionKindOf, sortClipIds, splitAt } from "@/modules/timeline";
 import { retime, writeSpeed } from "./logic/retime";
 import type { RetimedClip } from "./speed.types";
 
 const RATE = { min: 0.1, max: 10 };
+const FREEZE_LENGTH = 3_000_000;
 
 /** The clips as linked groups, earliest first. Fails unless all of them can change speed. */
 function groupsOf(state: ProjectState, clipIds: readonly string[]): Clip[][] {
@@ -147,5 +152,51 @@ export const resetSpeed = defineCommand({
   },
 });
 
+/** Stops a picture on one frame for a while, moving what follows later. */
+export const freezeFrame = defineCommand({
+  id: "speed.freezeFrame",
+  label: "Freeze frame",
+  description:
+    "Splits a clip on a video track at `at` (default your playhead) and puts in a 3 second hold of that frame, moving what follows on the track later, with linked clips, so a linked sound gets a gap of that length. The hold trims to any length and has no sound. Fails with speed.unsupported, and with what timeline.splitAt refuses. Returns { hold: id }.",
+  undoable: true,
+  input: z.object({ clipId: z.string(), at: z.number().int().min(0).optional() }),
+  async run(ctx, { clipId, at }) {
+    const { store } = ctx.require(projectRef);
+    const before = store.getState();
+    const clip = before.clips[clipId];
+    if (!clip) throw new CommandFailure("speed.clip_not_found", `No clip with id "${clipId}"`);
+    if (!canChangeSpeed(before, clip) || before.tracks[clip.trackId]?.kind !== "video") {
+      throw new CommandFailure("speed.unsupported", "Only a video's picture can be frozen.", {
+        clipId,
+      });
+    }
+    const time = at ?? ctx.require(previewRef).clockFor(ctx.actor).getTime();
+    const { created } = await ctx.execute(splitAt, { at: time, clipIds: [clipId] });
+    const split = store.getState();
+    const right = created.find((id) => split.clips[id]?.trackId === clip.trackId)!;
+    const hold: Clip = {
+      id: createId("clip"),
+      kind: clip.kind,
+      trackId: clip.trackId,
+      start: time,
+      sourceIn: sourceTimeAt(clip, time),
+      duration: FREEZE_LENGTH,
+      props: structuredClone(clip.props),
+      speed: { ...DEFAULT_SPEED, rate: 0 },
+      ...(clip.mediaId !== undefined && { mediaId: clip.mediaId }),
+      ...(clip.transform && { transform: { ...clip.transform } }),
+    };
+    const moved = applyMoves(split, rippleMoves(split, right, FREEZE_LENGTH));
+    const next = produce(moved, (draft) => {
+      draft.clips[hold.id] = hold;
+      const track = draft.tracks[hold.trackId]!;
+      track.clipIds = sortClipIds([...track.clipIds, hold.id], draft.clips);
+    });
+    checkLayout(next, new Set([hold.id, right]));
+    commitState(ctx, split, next);
+    return { hold: hold.id };
+  },
+});
+
 /** Commands of the speed module. */
-export const speedCommands = [setSpeed, resetSpeed];
+export const speedCommands = [setSpeed, resetSpeed, freezeFrame];

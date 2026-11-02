@@ -226,7 +226,7 @@ export class HtmlMediaEngine implements PreviewEngine {
         voiceSlot(slot, track, own, silenced, heard, this.sound);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
         const lead = pitched ? PITCH_LEAD_SECONDS * speed.rate : 0;
-        syncSlot(slot, desired + lead, playing, speed.rate);
+        syncSlot(slot, desired + lead, playing && speed.rate > 0, speed.rate);
         if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) {
           this.settled = false;
         }

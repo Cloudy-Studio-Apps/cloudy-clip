@@ -68,7 +68,8 @@ export function splitClips(
         props: structuredClone(target.props),
         ...(left.mediaId !== undefined && { mediaId: left.mediaId }),
         ...(left.compositionRef !== undefined && { compositionRef: left.compositionRef }),
-        sourceIn: followsFileTime(draft, left) ? sourceTimeAt(left, at) : 0,
+        sourceIn:
+          followsFileTime(draft, left) || left.speed?.rate === 0 ? sourceTimeAt(left, at) : 0,
       };
       left.duration = offset;
       if (left.sound) left.sound.fadeOut = 0;

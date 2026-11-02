@@ -15,8 +15,8 @@ import {
   type Clip,
   type ProjectState,
 } from "@/modules/project";
-import { timelineModule } from "@/modules/timeline";
-import { resetSpeed, setSpeed } from "./speed.commands";
+import { splitAt, timelineModule, trimClip } from "@/modules/timeline";
+import { freezeFrame, resetSpeed, setSpeed } from "./speed.commands";
 import { speedModule } from "./speed.module";
 
 const S = 1_000_000;
@@ -254,6 +254,58 @@ describe("speed.set", () => {
     await run(kernel.bus.run(setSpeed, { clipIds: ["C"], rate: 1 }));
     expect(clipOf("C").duration).toBeLessThanOrEqual(3_333_337);
     expect(clipOf("C").duration).toBeGreaterThan(3_333_337 - 4);
+  });
+});
+
+describe("speed.freezeFrame", () => {
+  const freeze = (at = S) => run(kernel.bus.run(freezeFrame, { clipId: "A", at }));
+  const afterSplit = (id: string) =>
+    Object.values(doc().clips).find((c) => c.trackId === clipOf(id).trackId && c.start === 4 * S)!;
+
+  it("splits at the time and puts a 3 s hold in, moving what follows", async () => {
+    const { hold } = await freeze();
+    expect(clipOf("A").duration).toBe(S);
+    expect(clipOf(hold)).toMatchObject({ start: S, duration: 3 * S, trackId: clipOf("A").trackId });
+    expect(afterSplit("A").sourceIn).toBe(S);
+    expect(clipOf("B").start).toBe(7 * S);
+  });
+
+  it("leaves linked sound a gap of the same length", async () => {
+    await freeze();
+    const sounds = Object.values(doc().clips).filter((c) => c.trackId === clipOf("sA").trackId);
+    expect(
+      sounds
+        .map((c) => c.start)
+        .sort((a, b) => a - b)
+        .slice(0, 2),
+    ).toEqual([0, 4 * S]);
+  });
+
+  it("holds the frame at that time, at any speed", async () => {
+    await run(kernel.bus.run(setSpeed, { clipIds: ["A"], rate: 2 }));
+    const { hold } = await freeze();
+    expect(clipOf(hold).sourceIn).toBe(2 * S);
+  });
+
+  it("makes a hold that trims to any length and keeps its frame when split", async () => {
+    const { hold } = await freeze();
+    await run(kernel.bus.run(trimClip, { clipId: hold, edge: "end", time: 3.5 * S }));
+    expect(clipOf(hold).duration).toBe(2.5 * S);
+    const { created } = await run(kernel.bus.run(splitAt, { at: 2 * S, clipIds: [hold] }));
+    expect(clipOf(created[0]!).sourceIn).toBe(clipOf(hold).sourceIn);
+  });
+
+  it("refuses to change a hold's speed", async () => {
+    const { hold } = await freeze();
+    const result = await kernel.bus.run(setSpeed, { clipIds: [hold], rate: 2 });
+    expect(result).toMatchObject({ ok: false, error: { code: "speed.unsupported" } });
+  });
+
+  it("is undone in one step", async () => {
+    const before = doc();
+    await freeze();
+    kernel.history.undo();
+    expect(doc().clips).toEqual(before.clips);
   });
 });
 
