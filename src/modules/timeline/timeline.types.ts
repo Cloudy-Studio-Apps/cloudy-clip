@@ -27,6 +27,10 @@ export interface TimelineViewState {
   junctionSelection: JunctionId[];
   /** What a drag from another panel would put on a cut, while it hovers one. */
   cutPreview: CutPreview | null;
+  /** Width of the track header column, in px. `HEADER_WIDTH` unless a module widened it. */
+  headerWidth: number;
+  /** Only the ruler shows: the tracks are folded away, zoom and scroll stay. */
+  tracksHidden: boolean;
 }
 
 /** A junction not placed yet, shown on the cut it would land on. */
@@ -71,7 +75,8 @@ export interface ScreenBox {
 
 /**
  * Something drawn over the lanes, such as a collaborator's playhead. It sits in the scrolling
- * content, outside the virtualized pages: `left` is `HEADER_WIDTH + timeToPx(time)`.
+ * content, outside the virtualized pages: `left` is the header width (`useHeaderWidth()`) plus
+ * `timeToPx(time)`.
  */
 export interface TimelineOverlay {
   /** Unique id, `<module>.<name>`. */
@@ -120,6 +125,18 @@ export interface TimelineApi {
   switchComposition(from: CompositionId | null, to: CompositionId | null): void;
   /** Puts something on the timeline: the handlers first, then the usual placement. */
   drop(drop: TimelineDrop): void;
+  /** Sets the header column's width in px; null goes back to `HEADER_WIDTH`. */
+  setHeaderWidth(px: number | null): void;
+  /** Folds the tracks away, leaving the ruler (true), or shows them again (false). */
+  setTracksHidden(hidden: boolean): void;
+  /** How far the timeline is scrolled sideways, in px (0 when it isn't shown). */
+  scrollLeft(): number;
+  /** Scrolls the timeline sideways to a position in px. */
+  setScrollLeft(px: number): void;
+  /**
+   * Zooms to `pxPerSecond` (clamped like `setZoom`) keeping the time under a screen x where it is.
+   */
+  zoomAt(clientX: number, pxPerSecond: number): void;
   /** What each actor copied. */
   readonly clipboard: TimelineClipboard;
 }
@@ -198,6 +215,21 @@ export interface TimelineTabs {
   component: ComponentType;
 }
 
+/** A tool in the timeline's toolbar, drawn before Split, lowest `order` first. */
+export interface TimelineTool {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  order: number;
+  component: ComponentType;
+}
+
+/** A strip under the tracks, inside the timeline panel. */
+export interface TimelineDock {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  component: ComponentType;
+}
+
 /** Entries a module adds to the timeline's right-click menu. */
 export interface TimelineMenuItems {
   id: string;
@@ -228,6 +260,11 @@ export interface ClipActions {
   doubleClick?(clip: Clip): boolean;
   /** Entries of the clip's right-click menu. The clip is selected by then: act on the selection. */
   items?(clip: Clip): ClipMenuEntry[];
+  /**
+   * Drawn over the clip, in a layer that takes no pointer; a child may turn pointer events back
+   * on for itself.
+   */
+  badge?: ComponentType<{ clip: Clip; selected: boolean }>;
 }
 
 /** Where an entry of a clip's menu sits. The menu shows them in this order, top to bottom. */

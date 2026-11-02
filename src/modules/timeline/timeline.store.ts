@@ -3,8 +3,8 @@ import type { ActorId } from "@/core";
 import type { ClipId, CompositionId, ProjectState } from "@/modules/project";
 import { cutAtX } from "./logic/cut";
 import { laneDropTarget } from "./logic/drop";
-import { timeToPx } from "./logic/geometry";
-import { CUT_SNAP_PX } from "./timeline.layout";
+import { pxToTime, timeToPx } from "./logic/geometry";
+import { CUT_SNAP_PX, HEADER_WIDTH } from "./timeline.layout";
 import type { ClipboardEntry, LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
 
 export const MIN_PX_PER_SECOND = 2;
@@ -24,11 +24,17 @@ export function createTimelineView(
     selection: [],
     junctionSelection: [],
     cutPreview: null,
+    headerWidth: HEADER_WIDTH,
+    tracksHidden: false,
   }));
   let scroller: HTMLElement | null = null;
   const scrollListeners = new Set<() => void>();
   const places = new Map<CompositionId, { pxPerSecond: number; scrollLeft: number }>();
   const copied = new Map<ActorId, ClipboardEntry>();
+  const setZoom = (pxPerSecond: number) => {
+    const clamped = Math.min(MAX_PX_PER_SECOND, Math.max(MIN_PX_PER_SECOND, pxPerSecond));
+    view.setState({ pxPerSecond: clamped });
+  };
   return {
     view,
     clipboard: {
@@ -97,9 +103,29 @@ export function createTimelineView(
         if (scroller === element) scroller = null;
       };
     },
-    setZoom(pxPerSecond) {
-      const clamped = Math.min(MAX_PX_PER_SECOND, Math.max(MIN_PX_PER_SECOND, pxPerSecond));
-      view.setState({ pxPerSecond: clamped });
+    setZoom,
+    setHeaderWidth(px) {
+      const width = px ?? HEADER_WIDTH;
+      if (view.getState().headerWidth !== width) view.setState({ headerWidth: width });
+    },
+    setTracksHidden(hidden) {
+      if (view.getState().tracksHidden !== hidden) view.setState({ tracksHidden: hidden });
+    },
+    scrollLeft: () => scroller?.scrollLeft ?? 0,
+    setScrollLeft(px) {
+      if (scroller) scroller.scrollLeft = Math.max(0, px);
+    },
+    zoomAt(clientX, pxPerSecond) {
+      if (!scroller) {
+        setZoom(pxPerSecond);
+        return;
+      }
+      const { pxPerSecond: before, headerWidth } = view.getState();
+      const pointerX = clientX - scroller.getBoundingClientRect().left - headerWidth;
+      const anchor = pxToTime(scroller.scrollLeft + pointerX, before);
+      setZoom(pxPerSecond);
+      const after = view.getState().pxPerSecond;
+      scroller.scrollLeft = Math.max(0, timeToPx(anchor, after) - pointerX);
     },
     dropTarget(clientX, clientY) {
       return laneDropTarget(lanes(), clientX, clientY, view.getState().pxPerSecond);

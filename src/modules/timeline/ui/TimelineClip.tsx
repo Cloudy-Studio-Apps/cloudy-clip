@@ -1,7 +1,7 @@
 import { Link, Rewind, Snowflake } from "lucide-react";
 import { memo, useMemo, useRef } from "react";
 import { useStore } from "zustand";
-import { useKernel, useModule, usePoint } from "@/core";
+import { ErrorBoundary, useKernel, useModule, usePoint } from "@/core";
 import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
 import { elementRef, type ElementDisplay } from "@/modules/element";
@@ -59,6 +59,10 @@ export const TimelineClip = memo(function TimelineClip({
   const linked = useStore(project.api, (s) => partnersOf(s, clip.id).length > 0);
   const actions = usePoint(clipActions);
   const { rate, reversed } = speedOf(clip);
+  const badges = useMemo(
+    () => actions.flatMap((a) => (a.badge ? [{ id: a.id, Badge: a.badge }] : [])),
+    [actions],
+  );
 
   return (
     <ContextMenu
@@ -117,6 +121,15 @@ export const TimelineClip = memo(function TimelineClip({
             <Snowflake aria-label="Held frame" className="size-3 shrink-0 text-mark" />
           )}
         </div>
+        {badges.length > 0 && (
+          <div className="pointer-events-none absolute inset-0">
+            {badges.map(({ id, Badge }) => (
+              <ErrorBoundary key={id} name={id}>
+                <Badge clip={clip} selected={selected} />
+              </ErrorBoundary>
+            ))}
+          </div>
+        )}
         {/* Trim handles: brackets on hover. */}
         <div className="pointer-events-none absolute inset-y-0 -left-px w-[7px] group-hover:border-l-[3px] group-hover:border-foreground" />
         <div className="pointer-events-none absolute inset-y-0 -right-px w-[7px] group-hover:border-r-[3px] group-hover:border-foreground" />

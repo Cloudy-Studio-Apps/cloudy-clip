@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { HEADER_WIDTH } from "../timeline.layout";
+import { useHeaderWidth } from "./header.width.hook";
 import { usePlayheadX } from "./playhead.hook";
 
 /**
@@ -11,19 +11,20 @@ import { usePlayheadX } from "./playhead.hook";
 export function Playhead({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElement | null> }) {
   const { playback } = useModule(previewRef);
   const ref = useRef<HTMLDivElement>(null);
+  const headerWidth = useHeaderWidth();
 
   const follow = useCallback(
     (x: number) => {
       const scroller = scrollRef.current;
       if (!scroller || !playback.isPlaying()) return;
-      const visible = scroller.clientWidth - HEADER_WIDTH;
+      const visible = scroller.clientWidth - headerWidth;
       if (x < scroller.scrollLeft || x > scroller.scrollLeft + visible - 40) {
         scroller.scrollLeft = Math.max(0, x - 40);
       }
     },
-    [playback, scrollRef],
+    [playback, scrollRef, headerWidth],
   );
-  usePlayheadX(ref, HEADER_WIDTH, follow);
+  usePlayheadX(ref, headerWidth, follow);
 
   return (
     <div

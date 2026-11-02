@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule, type Micros } from "@/core";
 import { frameDuration, useOpenComposition } from "@/modules/project";
-import { HEADER_WIDTH, RULER_HEIGHT, timelineRef, timeToPx } from "@/modules/timeline";
+import { RULER_HEIGHT, timelineRef, timeToPx, useHeaderWidth } from "@/modules/timeline";
 import { setSettings } from "../composition.commands";
 import { startEndDrag } from "./end.gesture";
 
@@ -12,17 +12,18 @@ export function EndMarker() {
   const timeline = useModule(timelineRef);
   const composition = useOpenComposition();
   const pxPerSecond = useStore(timeline.view, (s) => s.pxPerSecond);
+  const headerWidth = useHeaderWidth();
   const line = useRef<HTMLDivElement>(null);
   const dim = useRef<HTMLDivElement>(null);
   const duration = composition?.duration;
 
   const place = useCallback(
     (time: Micros) => {
-      const left = `${HEADER_WIDTH + timeToPx(time, pxPerSecond)}px`;
+      const left = `${headerWidth + timeToPx(time, pxPerSecond)}px`;
       if (line.current) line.current.style.left = left;
       if (dim.current) dim.current.style.left = left;
     },
-    [pxPerSecond],
+    [pxPerSecond, headerWidth],
   );
 
   useEffect(() => {

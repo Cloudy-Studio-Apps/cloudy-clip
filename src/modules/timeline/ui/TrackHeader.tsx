@@ -3,18 +3,20 @@ import { memo } from "react";
 import { useKernel } from "@/core";
 import type { Track } from "@/modules/project";
 import { removeTrack, setTrackHidden, setTrackMuted } from "../timeline.commands";
-import { HEADER_WIDTH, trackHeight } from "../timeline.layout";
+import { trackHeight } from "../timeline.layout";
+import { useHeaderWidth } from "./header.width.hook";
 import { TrackButton } from "./TrackButton";
 
 /** Name and controls of a track. Sticks to the left while scrolling horizontally. */
 export const TrackHeader = memo(function TrackHeader({ track }: { track: Track }) {
   const { bus } = useKernel();
+  const headerWidth = useHeaderWidth();
   const KindIcon = track.kind === "video" ? Film : AudioLines;
 
   return (
     <div
       className="sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-b border-r-[1.5px] border-b-border border-r-subtle-foreground bg-muted pl-2.5 pr-1.5"
-      style={{ width: HEADER_WIDTH, height: trackHeight(track.kind) }}
+      style={{ width: headerWidth, height: trackHeight(track.kind) }}
     >
       <KindIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate font-mono text-[13px] font-bold text-muted-foreground">

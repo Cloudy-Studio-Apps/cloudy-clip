@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useStore } from "zustand";
 import { ErrorBoundary, MICROS_PER_SECOND, useModule, usePoint, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
-import { ContextMenu } from "@/ui";
+import { cn, ContextMenu } from "@/ui";
 import {
   compositionContent,
   projectRef,
@@ -10,16 +10,25 @@ import {
   type Clip,
   type TrackId,
 } from "@/modules/project";
-import { timelineMenuItems, timelineOverlays, timelineTabs } from "../timeline.points";
+import {
+  timelineDocks,
+  timelineMenuItems,
+  timelineOverlays,
+  timelineTabs,
+} from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
-import { HEADER_WIDTH, TAIL_SECONDS } from "../timeline.layout";
+import { RULER_HEIGHT, TAIL_SECONDS } from "../timeline.layout";
+import { useHeaderWidth } from "./header.width.hook";
 import { Playhead } from "./Playhead";
 import { Ruler } from "./Ruler";
 import { TimelineToolbar } from "./TimelineToolbar";
 import { TrackHeader } from "./TrackHeader";
 import { TrackInsert } from "./TrackInsert";
 import { TrackLane } from "./TrackLane";
+
+/** Room kept under the ruler for the horizontal scrollbar when the tracks are folded away. */
+const SCROLLBAR_HEIGHT = 12;
 
 const NO_TRACKS: readonly TrackId[] = [];
 
@@ -35,6 +44,8 @@ export function TimelinePanel() {
   const timeline = useModule(timelineRef);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pxPerSecond = useStore(timeline.view, (s) => s.pxPerSecond);
+  const headerWidth = useHeaderWidth();
+  const tracksHidden = useStore(timeline.view, (s) => s.tracksHidden);
   const open = useOpenComposition();
   const trackOrder = open?.trackOrder ?? NO_TRACKS;
   const tracksById = useStore(project.api, (s) => s.tracks);
@@ -45,15 +56,16 @@ export function TimelinePanel() {
   const overlays = usePoint(timelineOverlays);
   const tabs = usePoint(timelineTabs);
   const menus = usePoint(timelineMenuItems);
+  const docks = usePoint(timelineDocks);
 
   // Track which page is visible; only page changes cause a render.
   const measure = useCallback(() => {
     const scroller = scrollRef.current;
     if (!scroller) return;
-    const pageWidth = Math.max(200, scroller.clientWidth - HEADER_WIDTH);
+    const pageWidth = Math.max(200, scroller.clientWidth - timeline.view.getState().headerWidth);
     const page = Math.floor(scroller.scrollLeft / pageWidth);
     setView((v) => (v.page === page && v.pageWidth === pageWidth ? v : { page, pageWidth }));
-  }, []);
+  }, [timeline]);
 
   useEffect(() => {
     const scroller = scrollRef.current;
@@ -76,7 +88,7 @@ export function TimelinePanel() {
     };
   }, [measure, timeline]);
 
-  useEffect(measure, [pxPerSecond, measure]);
+  useEffect(measure, [pxPerSecond, headerWidth, measure]);
 
   // Ctrl/Cmd + wheel zooms around the pointer.
   useEffect(() => {
@@ -86,11 +98,7 @@ export function TimelinePanel() {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       const before = timeline.view.getState().pxPerSecond;
-      const pointerX = e.clientX - scroller.getBoundingClientRect().left - HEADER_WIDTH;
-      const anchor = pxToTime(scroller.scrollLeft + pointerX, before);
-      timeline.setZoom(before * Math.exp(-e.deltaY * 0.002));
-      const after = timeline.view.getState().pxPerSecond;
-      scroller.scrollLeft = Math.max(0, timeToPx(anchor, after) - pointerX);
+      timeline.zoomAt(e.clientX, before * Math.exp(-e.deltaY * 0.002));
     };
     scroller.addEventListener("wheel", onWheel, { passive: false });
     return () => scroller.removeEventListener("wheel", onWheel);
@@ -103,7 +111,10 @@ export function TimelinePanel() {
     const onDrop = (event: Event) => {
       const { item, clientX } = (event as CustomEvent<MediaDragDetail>).detail;
       const x =
-        clientX - scroller.getBoundingClientRect().left - HEADER_WIDTH + scroller.scrollLeft;
+        clientX -
+        scroller.getBoundingClientRect().left -
+        timeline.view.getState().headerWidth +
+        scroller.scrollLeft;
       const pps = timeline.view.getState().pxPerSecond;
       timeline.drop({ item, start: Math.max(0, pxToTime(x, pps)) });
     };
@@ -152,11 +163,15 @@ export function TimelinePanel() {
         <div
           ref={scrollRef}
           data-scroll="wide"
-          className="relative min-h-0 flex-1 overflow-auto bg-lane"
+          className={cn(
+            "relative bg-lane",
+            tracksHidden ? "overflow-x-auto overflow-y-hidden" : "min-h-0 flex-1 overflow-auto",
+          )}
+          style={tracksHidden ? { height: RULER_HEIGHT + SCROLLBAR_HEIGHT } : undefined}
         >
           <div
             className="relative"
-            style={{ width: HEADER_WIDTH + contentWidth, minHeight: "100%" }}
+            style={{ width: headerWidth + contentWidth, minHeight: "100%" }}
           >
             <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
             {lanes.map(({ track, clips }, index) => (
@@ -187,7 +202,7 @@ export function TimelinePanel() {
             {open && content === 0 && (
               <p
                 className="pointer-events-none absolute text-sm text-subtle-foreground"
-                style={{ left: HEADER_WIDTH + 16, top: 120 }}
+                style={{ left: headerWidth + 16, top: 120 }}
               >
                 Drag media from the library onto a track to start editing.
               </p>
@@ -201,6 +216,11 @@ export function TimelinePanel() {
           </div>
         </div>
       </ContextMenu>
+      {docks.map(({ id, component: Dock }) => (
+        <ErrorBoundary key={id} name={id}>
+          <Dock />
+        </ErrorBoundary>
+      ))}
     </section>
   );
 }

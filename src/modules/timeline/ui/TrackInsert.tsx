@@ -5,7 +5,7 @@ import type { TrackKind } from "@/modules/project";
 import { cn } from "@/ui";
 import { insertKinds } from "../logic/placement";
 import { addTrack } from "../timeline.commands";
-import { HEADER_WIDTH } from "../timeline.layout";
+import { useHeaderWidth } from "./header.width.hook";
 
 function AddButton({
   label,
@@ -41,10 +41,11 @@ interface TrackInsertProps {
 /** A gap in the track headers. Hovering it offers a new track of the kinds that belong there. */
 export function TrackInsert({ index, above, below }: TrackInsertProps) {
   const { bus } = useKernel();
+  const headerWidth = useHeaderWidth();
   const kinds = insertKinds(above, below);
   const add = (kind: TrackKind) => void bus.run(addTrack, { kind, index });
   return (
-    <div className="sticky left-0 z-[25] h-0" style={{ width: HEADER_WIDTH }}>
+    <div className="sticky left-0 z-[25] h-0" style={{ width: headerWidth }}>
       <div
         className={cn(
           "group absolute inset-x-0 flex h-3 items-center justify-center gap-1",

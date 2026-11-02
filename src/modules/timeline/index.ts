@@ -46,11 +46,19 @@ export {
   clipActions,
   timelineDropHandlers,
   timelineMenuItems,
+  timelineDocks,
   timelineOverlays,
   timelineTabs,
+  timelineTools,
 } from "./timeline.points";
-/** Width of the track headers, where time 0 starts in a timeline overlay. */
+/** `HEADER_WIDTH` is the default width of the track headers; `RULER_HEIGHT` is the ruler's height. */
 export { HEADER_WIDTH, RULER_HEIGHT } from "./timeline.layout";
+/**
+ * The width of the track header column in px, as a hook: where time 0 starts in the timeline's
+ * content. A timeline overlay positions itself with it, not with `HEADER_WIDTH`, which is only
+ * the default.
+ */
+export { useHeaderWidth } from "./ui/header.width.hook";
 /** Pixels from time 0 to a time at a zoom level. */
 export { timeToPx } from "./logic/geometry";
 /** The `timeline.overlap` failure for a spot taken by another clip, with where it is. */
@@ -67,8 +75,10 @@ export type {
   ClipMenuGroup,
   ScreenBox,
   TimelineDrop,
+  TimelineDock,
   TimelineDropHandler,
   TimelineOverlay,
+  TimelineTool,
   CutPreview,
   DropTarget,
   JunctionKindOf,

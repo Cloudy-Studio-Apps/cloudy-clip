@@ -3,8 +3,10 @@ import type {
   ClipActions,
   TimelineDropHandler,
   TimelineMenuItems,
+  TimelineDock,
   TimelineOverlay,
   TimelineTabs,
+  TimelineTool,
 } from "./timeline.types";
 
 /** Layers over the lanes (collaborators' playheads). The timeline panel reads them. */
@@ -30,4 +32,14 @@ export const timelineDropHandlers = definePoint<TimelineDropHandler>("timeline.d
 /** What modules do with a clip: double-click and right-click. Each clip reads them. */
 export const clipActions = definePoint<ClipActions>("timeline.clipActions", {
   keyOf: (actions) => actions.id,
+});
+
+/** Tools at the left of the timeline's toolbar, by `order`. The toolbar reads them. */
+export const timelineTools = definePoint<TimelineTool>("timeline.tools", {
+  keyOf: (tool) => tool.id,
+});
+
+/** Strips under the tracks. The timeline panel reads them. */
+export const timelineDocks = definePoint<TimelineDock>("timeline.docks", {
+  keyOf: (dock) => dock.id,
 });

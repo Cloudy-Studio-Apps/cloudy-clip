@@ -2,7 +2,8 @@ import { memo } from "react";
 import { formatTimecode, MICROS_PER_SECOND, type Micros, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { pxToTime, rulerStep, timeToPx } from "../logic/geometry";
-import { HEADER_WIDTH, RULER_HEIGHT } from "../timeline.layout";
+import { RULER_HEIGHT } from "../timeline.layout";
+import { useHeaderWidth } from "./header.width.hook";
 import { PlayheadHead } from "./Playhead";
 
 /** Minor ticks drawn between two labelled ones. */
@@ -19,6 +20,7 @@ interface RulerProps {
 /** Time ruler. Press and drag on it to scrub. Sticks to the top while scrolling. */
 export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: RulerProps) {
   const { playback } = useModule(previewRef);
+  const headerWidth = useHeaderWidth();
   const stepMicros = rulerStep(pxPerSecond) * MICROS_PER_SECOND;
   const minorMicros = stepMicros / MINOR_PER_STEP;
   const ticks: Micros[] = [];
@@ -35,7 +37,7 @@ export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: Ruler
     <div className="sticky top-0 z-30 flex" style={{ height: RULER_HEIGHT }}>
       <div
         className="sticky left-0 z-40 shrink-0 border-b-[1.5px] border-r-[1.5px] border-subtle-foreground bg-muted"
-        style={{ width: HEADER_WIDTH }}
+        style={{ width: headerWidth }}
       />
       <div
         className="relative cursor-col-resize border-b-[1.5px] border-subtle-foreground bg-surface"

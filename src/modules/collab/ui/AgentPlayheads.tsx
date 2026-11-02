@@ -3,7 +3,7 @@ import { useStore } from "zustand";
 import { LOCAL_ACTOR, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
-import { HEADER_WIDTH, timelineRef, timeToPx } from "@/modules/timeline";
+import { timelineRef, timeToPx, useHeaderWidth } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { collabRef } from "../collab.ref";
 import type { Collaborator } from "../collab.types";
@@ -15,20 +15,22 @@ function AgentPlayhead({ who }: { who: Collaborator }) {
   const preview = useModule(previewRef);
   const timeline = useModule(timelineRef);
   const ref = useRef<HTMLDivElement>(null);
+  const headerWidth = useHeaderWidth();
 
   useEffect(() => {
     const clock = preview.clockFor(who.id);
     const update = () => {
       const x = timeToPx(clock.getTime(), timeline.view.getState().pxPerSecond);
-      if (ref.current) ref.current.style.transform = `translateX(${HEADER_WIDTH + x}px)`;
+      if (ref.current) ref.current.style.transform = `translateX(${headerWidth + x}px)`;
     };
+    update();
     const offTime = clock.onTime(update);
     const offZoom = timeline.view.subscribe(update);
     return () => {
       offTime();
       offZoom();
     };
-  }, [preview, timeline.view, who.id]);
+  }, [preview, timeline.view, who.id, headerWidth]);
 
   return (
     <div
