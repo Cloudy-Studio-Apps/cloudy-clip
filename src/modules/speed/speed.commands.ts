@@ -4,8 +4,10 @@ import { CommandFailure, createId, defineCommand, type CommandContext } from "@/
 import { previewRef } from "@/modules/preview";
 import {
   DEFAULT_SPEED,
+  animatedClip,
   applyMoves,
   canChangeSpeed,
+  clipTransform,
   partnersOf,
   projectRef,
   rippleMoves,
@@ -16,14 +18,15 @@ import {
   type ProjectState,
 } from "@/modules/project";
 import { checkLayout, commitState, junctionKindOf, sortClipIds, splitAt } from "@/modules/timeline";
-import { retime, writeSpeed } from "./logic/retime";
+import { retime, settleRamp, writeSpeed } from "./logic/retime";
 import type { RetimedClip, SpeedChange } from "./speed.types";
 
-const RATE = { min: 0.1, max: 10 };
+/** How slow and how fast a clip can play. */
+export const RATE = { min: 0.1, max: 10 };
 const FREEZE_LENGTH = 3_000_000;
 
 /** The clips as linked groups, earliest first. Fails unless all of them can change speed. */
-function groupsOf(state: ProjectState, clipIds: readonly string[]): Clip[][] {
+export function groupsOf(state: ProjectState, clipIds: readonly string[]): Clip[][] {
   const seen = new Set<string>();
   const groups: Clip[][] = [];
   for (const id of clipIds) {
@@ -67,6 +70,7 @@ function change(ctx: CommandContext, clipIds: readonly string[], input: SpeedCha
   const clips: RetimedClip[] = [];
   for (const group of groups) {
     const ids = group.map((clip) => clip.id);
+    next = settleRamp(next, group, input);
     if (input.pitchCorrection !== undefined || input.reversed !== undefined) {
       next = produce(next, (draft) => {
         for (const id of ids) {
@@ -102,7 +106,7 @@ export const setSpeed = defineCommand({
   id: "speed.set",
   label: "Change speed",
   description:
-    "Changes how clips play their file: rate (0.1 to 10, 1 is normal) or duration (a new length in microseconds, turned into a rate), pitchCorrection (keeps voices at their pitch) and reversed. Linked clips take the same speed. A clip keeps its start and its part of the file, so its length changes. ripple (default true) moves what follows on the track with it, and junctions shrink as for a trim; false leaves everything else in place, so a slower clip stops at the next one and the rate returned is the one applied. Fails with speed.unsupported (only video and sound files have a speed), speed.out_of_range, speed.joined (ripple off with a junction on the clip's end) or timeline.overlap. Returns { clips: [{ id, rate, duration }] }.",
+    "Changes how clips play their file: rate (0.1 to 10, 1 is normal) or duration (a new length in microseconds, turned into a rate), pitchCorrection (keeps voices at their pitch) and reversed. Linked clips take the same speed. A clip keeps its start and its part of the file, so its length changes. ripple (default true) moves what follows on the track with it, and junctions shrink as for a trim; false leaves everything else in place, so a slower clip stops at the next one and the rate returned is the one applied. Fails with speed.unsupported (only video and sound files have a speed), speed.out_of_range, speed.joined (ripple off with a junction on the clip's end), speed.ramped (rate or duration on a clip with keys on speed.rate: remove them with keyframe_clear first), speed.reversed_ramp (reversing a clip with such keys) or timeline.overlap. Returns { clips: [{ id, rate, duration }] }.",
   undoable: true,
   input: z
     .object({
@@ -132,12 +136,13 @@ export const resetSpeed = defineCommand({
   id: "speed.reset",
   label: "Reset speed",
   description:
-    "Puts clips and their linked clips back to normal speed, forwards and with pitch correction on, so they play their part of the file at its own length. ripple works as in speed.set. Returns { clips: [{ id, rate, duration }] }.",
+    "Puts clips and their linked clips back to normal speed, forwards and with pitch correction on, so they play their part of the file at its own length. Removes a speed ramp too. ripple works as in speed.set. Returns { clips: [{ id, rate, duration }] }.",
   undoable: true,
   input: z.object({ clipIds, ripple }),
   run(ctx, { clipIds, ripple }) {
     return change(ctx, clipIds, {
       ripple,
+      dropRamp: true,
       rate: () => DEFAULT_SPEED.rate,
       pitchCorrection: DEFAULT_SPEED.pitchCorrection,
       reversed: DEFAULT_SPEED.reversed,
@@ -150,7 +155,7 @@ export const freezeFrame = defineCommand({
   id: "speed.freezeFrame",
   label: "Freeze frame",
   description:
-    "Splits a clip on a video track at `at` (default your playhead) and puts in a 3 second hold of that frame, moving what follows on the track later, with linked clips, so a linked sound gets a gap of that length. The hold trims to any length and has no sound. Fails with speed.unsupported, and with what timeline.splitAt refuses. Returns { hold: id }.",
+    "Splits a clip on a video track at `at` (default your playhead) and puts in a 3 second hold of that frame, with the values keys give at that time and no keys of its own, moving what follows on the track later, with linked clips, so a linked sound gets a gap of that length. The hold trims to any length and has no sound. Fails with speed.unsupported, and with what timeline.splitAt refuses. Returns { hold: id }.",
   undoable: true,
   input: z.object({ clipId: z.string(), at: z.number().int().min(0).optional() }),
   async run(ctx, { clipId, at }) {
@@ -167,6 +172,8 @@ export const freezeFrame = defineCommand({
     const { created } = await ctx.execute(splitAt, { at: time, clipIds: [clipId] });
     const split = store.getState();
     const right = created.find((id) => split.clips[id]?.trackId === clip.trackId)!;
+    // Keys bake into the hold, so the picture doesn't jump when it ends.
+    const baked = animatedClip(clip, time);
     const hold: Clip = {
       id: createId("clip"),
       kind: clip.kind,
@@ -174,10 +181,10 @@ export const freezeFrame = defineCommand({
       start: time,
       sourceIn: sourceTimeAt(clip, time),
       duration: FREEZE_LENGTH,
-      props: structuredClone(clip.props),
+      props: structuredClone(baked.props),
       speed: { ...DEFAULT_SPEED, rate: 0 },
       ...(clip.mediaId !== undefined && { mediaId: clip.mediaId }),
-      ...(clip.transform && { transform: { ...clip.transform } }),
+      ...(baked.transform && { transform: { ...clipTransform(baked) } }),
     };
     const moved = applyMoves(split, rippleMoves(split, right, FREEZE_LENGTH));
     const next = produce(moved, (draft) => {

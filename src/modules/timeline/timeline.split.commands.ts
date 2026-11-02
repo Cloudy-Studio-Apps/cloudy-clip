@@ -75,7 +75,7 @@ export function splitClips(
         ...(left.mediaId !== undefined && { mediaId: left.mediaId }),
         ...(left.compositionRef !== undefined && { compositionRef: left.compositionRef }),
         sourceIn:
-          followsFileTime(draft, left) || left.speed?.rate === 0 ? sourceTimeAt(left, at) : 0,
+          followsFileTime(draft, left) || left.speed?.rate === 0 ? sourceTimeAt(target, at) : 0,
       };
       if (left.speed?.reversed) {
         // Played backwards, the left half is the later part of the file.

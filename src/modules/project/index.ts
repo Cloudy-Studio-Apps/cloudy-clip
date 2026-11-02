@@ -83,6 +83,7 @@ export {
   DEFAULT_SPEED,
   canChangeSpeed,
   elementTimeAt,
+  filePlayed,
   sameSpeed,
   sourceSpan,
   sourceTimeAt,
@@ -103,7 +104,9 @@ export {
 export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";
 export { animatedClip, trackValue } from "./logic/animate";
 export { mirrorEase, moveTrackKeys, withoutKeys, withoutTracks, writeKey } from "./logic/keys";
-export { clampToClip, contentTime, timeOfContent } from "./logic/content";
+export { clampToClip, contentTime, rateAt, timeOfContent } from "./logic/content";
+/** A speed ramp: the track's path, and the time a clip's content takes through it. */
+export { RAMP_PATH, rampContentAt, rampOf, rampTimeAt } from "./logic/ramp";
 
 export { seedProject } from "./project.testing";
 export type { ProjectSeed } from "./project.testing";

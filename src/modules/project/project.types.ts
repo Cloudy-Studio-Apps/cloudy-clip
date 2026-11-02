@@ -102,7 +102,7 @@ export interface Clip extends Partial<SharedGroupValues> {
   props: Record<string, unknown>;
   /** How it sounds, on clips of audio tracks. Missing means as the file does. */
   sound?: ClipSound;
-  /** How fast it plays its file. Missing means normally (`DEFAULT_SPEED`). */
+  /** How fast it plays its file. Missing means normally (`DEFAULT_SPEED`). A `speed.rate` track overrides `rate`. */
   speed?: ClipSpeed;
   /** The file it plays (media clips). */
   mediaId?: MediaId;
@@ -245,6 +245,15 @@ export interface ClipSpeed {
   pitchCorrection: boolean;
   /** Plays its part of the file backwards. */
   reversed: boolean;
+}
+
+/** A speed ramp measured: the timeline time played (`times`) at each content time (`contents`). */
+export interface RampTable {
+  contents: number[];
+  times: number[];
+  /** What plays before the first key and after the last. */
+  firstRate: number;
+  lastRate: number;
 }
 
 /** Pixel size of a picture. */

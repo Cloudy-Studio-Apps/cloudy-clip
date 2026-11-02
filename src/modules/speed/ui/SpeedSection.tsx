@@ -3,7 +3,7 @@ import { useState } from "react";
 import { notify, useModule } from "@/core";
 import { InspectorSection, type InspectorContext } from "@/modules/inspector";
 import { mediaRef } from "@/modules/media";
-import { speedOf } from "@/modules/project";
+import { rampOf, speedOf } from "@/modules/project";
 import { IconButton, ProgressBar, SegmentedControl } from "@/ui";
 import { useSpeedEdit } from "./speed.edit.hook";
 import { SpeedFields } from "./SpeedFields";
@@ -20,6 +20,7 @@ export function SpeedSection({ context }: { context: InspectorContext }) {
   const media = useModule(mediaRef);
   const [making, setMaking] = useState<number | null>(null);
   const { mediaId } = clip;
+  const ramped = rampOf(clip) !== undefined;
 
   const direct = async (next: string) => {
     const reversed = next === "reverse";
@@ -43,7 +44,7 @@ export function SpeedSection({ context }: { context: InspectorContext }) {
       actions={
         <IconButton
           label="Reset speed"
-          disabled={clip.speed === undefined}
+          disabled={clip.speed === undefined && !ramped}
           className="!size-[18px] [&_svg]:!size-3"
           onClick={() => void reset()}
         >
@@ -57,7 +58,7 @@ export function SpeedSection({ context }: { context: InspectorContext }) {
           label="Direction"
           options={DIRECTIONS}
           value={speedOf(clip).reversed ? "reverse" : "forward"}
-          disabled={making !== null}
+          disabled={making !== null || ramped}
           onChange={(next) => void direct(next)}
         />
       </div>

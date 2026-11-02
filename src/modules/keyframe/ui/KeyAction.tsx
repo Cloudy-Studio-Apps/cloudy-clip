@@ -1,17 +1,33 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { useStore } from "zustand";
-import { useKernel, useModule } from "@/core";
+import { useKernel, useModule, type Micros } from "@/core";
 import { isKeyable } from "@/modules/element";
 import type { FieldAction, PanelSubject } from "@/modules/inspector";
 import { previewRef, seek } from "@/modules/preview";
-import { clampToClip, contentTime, projectRef, timeOfContent } from "@/modules/project";
+import {
+  clampToClip,
+  contentTime,
+  projectRef,
+  timeOfContent,
+  type Clip,
+  type Keyframe,
+} from "@/modules/project";
 import { IconButton } from "@/ui";
 import { removeKeys, setKeys } from "../keyframe.edit.commands";
 import { keyframeRef } from "../keyframe.ref";
 
 /** Whether the keyed paths have keys: none, some, or one on the playhead's frame. */
 type KeyState = "off" | "animated" | "on-key";
+
+/**
+ * Whether a key sits on the frame at `time`. Times round, so through a ramp a jump to a key can
+ * land a little off its content time; the same frame is the same timeline time too.
+ */
+function onFrame(clip: Clip, key: Keyframe, time: Micros): boolean {
+  const at = clampToClip(clip, time);
+  return key.t === contentTime(clip, at) || timeOfContent(clip, key.t) === at;
+}
 
 /** What the controls act on: a clip and the paths of one row. */
 interface KeyControlsProps {
@@ -43,12 +59,11 @@ export function KeyControls({ clipId, paths, disabled = false }: KeyControlsProp
     const row = el.closest<HTMLElement>("[data-field-row]");
     const update = () => {
       const time = playback.getTime();
-      const at = contentTime(clip, clampToClip(clip, time));
       const tracks = keyed.flatMap((p) => clip.animation?.[p] ?? []);
       const state: KeyState =
         tracks.length === 0
           ? "off"
-          : tracks.some((t) => t.keys.some((k) => k.t === at))
+          : tracks.some((t) => t.keys.some((k) => onFrame(clip, k, time)))
             ? "on-key"
             : "animated";
       el.dataset.state = state;
@@ -70,10 +85,9 @@ export function KeyControls({ clipId, paths, disabled = false }: KeyControlsProp
 
   const toggle = async () => {
     const time = playback.getTime();
-    const at = contentTime(clip, clampToClip(clip, time));
     const here = keyed.flatMap((path) =>
       (clip.animation?.[path]?.keys ?? [])
-        .filter((k) => k.t === at)
+        .filter((k) => onFrame(clip, k, time))
         .map((k) => ({ clipId: clip.id, path, keyId: k.id })),
     );
     if (here.length > 0) {
