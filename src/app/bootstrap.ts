@@ -24,6 +24,7 @@ import { soundModule } from "@/modules/sound";
 import { speedModule } from "@/modules/speed";
 import { stickerModule } from "@/modules/sticker";
 import { textModule } from "@/modules/text";
+import { themeModule } from "@/modules/theme";
 import { tintModule } from "@/modules/tint";
 import { timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
@@ -34,6 +35,7 @@ const log = createLogger("app");
 
 /** Built-in modules, in any order: the kernel orders them by their dependencies. */
 const MODULES: AnyModuleDefinition[] = [
+  themeModule,
   projectModule,
   elementModule,
   junctionModule,

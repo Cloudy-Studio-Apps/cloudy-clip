@@ -4,6 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cloudy Clip</title>
+    <style>
+      /* Cloudy Dark's background, so the first paint isn't white before the CSS arrives. */
+      html {
+        background: #14171b;
+      }
+    </style>
+    <script>
+      // Paints the theme last shown before anything else does. Written by theme.apply.ts.
+      try {
+        const cached = JSON.parse(localStorage.getItem("cloudy-clip.theme-css") ?? "null");
+        if (cached) {
+          const style = document.createElement("style");
+          style.id = "cloudy-theme";
+          style.textContent = cached.css;
+          document.head.appendChild(style);
+          document.documentElement.dataset.appearance = cached.appearance;
+          document.documentElement.style.background = "var(--background)";
+        }
+      } catch (_) {}
+    </script>
   </head>
 
   <body>
