@@ -2,7 +2,6 @@ import { useModule } from "@/core";
 import { SelectField, Switch } from "@/ui";
 import { exportRef } from "../export.ref";
 import type { ExportFormState } from "../export.types";
-import { ExportHeading } from "./ExportHeading";
 import { ExportRow } from "./ExportRow";
 
 const IF_EXISTS = [
@@ -20,8 +19,7 @@ interface WhenSavingProps {
 export function WhenSavingSection({ ifExists, reveal }: WhenSavingProps) {
   const { form } = useModule(exportRef);
   return (
-    <section className="flex flex-col gap-2">
-      <ExportHeading>When saving</ExportHeading>
+    <>
       <ExportRow label="If the file exists">
         <SelectField
           label="If the file exists"
@@ -37,6 +35,6 @@ export function WhenSavingSection({ ifExists, reveal }: WhenSavingProps) {
           onChange={(value) => form.setState({ reveal: value })}
         />
       </ExportRow>
-    </section>
+    </>
   );
 }

@@ -11,7 +11,6 @@ import type {
   ExportFormat,
   ExportFormState,
 } from "../export.types";
-import { ExportHeading } from "./ExportHeading";
 import { ExportRow } from "./ExportRow";
 
 const EFFORTS: readonly { value: ExportEffort; label: string }[] = [
@@ -31,9 +30,9 @@ interface SettingsProps {
 /** Comes from the composition, so it can't be changed here. */
 function Locked({ children }: { children: ReactNode }) {
   return (
-    <span className="flex h-7 items-center justify-between rounded-sm border border-border bg-surface-sunken px-2 font-mono text-xs text-muted-foreground">
+    <span className="flex h-[26px] items-center justify-between border-b border-border px-1 font-mono text-[13px] text-muted-foreground">
       {children}
-      <Lock className="size-3" />
+      <Lock className="size-[13px] text-subtle-foreground" />
     </span>
   );
 }
@@ -49,8 +48,7 @@ export function SettingsSection({ values, format, capabilities, children }: Sett
   const card = values.format === "h265" ? capabilities?.h265Card : capabilities?.h264Card;
   const usesCard = values.format === "h264" || values.format === "h265";
   return (
-    <section className="flex flex-col gap-2">
-      <ExportHeading>Settings</ExportHeading>
+    <>
       <ExportRow label="Size">
         <Locked>
           {format.width} × {format.height}
@@ -96,6 +94,6 @@ export function SettingsSection({ values, format, capabilities, children }: Sett
           />
         </ExportRow>
       )}
-    </section>
+    </>
   );
 }

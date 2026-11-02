@@ -2,17 +2,16 @@ import { useModule } from "@/core";
 import { SliderField } from "@/ui";
 import { exportRef } from "../export.ref";
 import { kindOf } from "../logic/presets";
-import { ExportHeading } from "./ExportHeading";
 
 /** From a smaller file to a sharper picture. */
 export function QualitySlider({ value }: { value: number }) {
   const { form } = useModule(exportRef);
   const change = (quality: number) => form.setState({ quality, kind: kindOf(quality) });
   return (
-    <section className="flex flex-col gap-1.5">
-      <ExportHeading>Quality</ExportHeading>
+    <>
       <SliderField
         label="Quality"
+        bare
         value={value}
         min={10}
         max={100}
@@ -20,10 +19,10 @@ export function QualitySlider({ value }: { value: number }) {
         onInput={change}
         onCommit={change}
       />
-      <div className="flex justify-between text-2xs text-subtle-foreground">
+      <div className="flex justify-between text-[11.5px] text-subtle-foreground">
         <span>Smaller file</span>
         <span>Sharper picture</span>
       </div>
-    </section>
+    </>
   );
 }

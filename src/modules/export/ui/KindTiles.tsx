@@ -25,25 +25,30 @@ export function KindTiles({ value, picture, sizeAt }: KindTilesProps) {
           aria-pressed={value === id}
           onClick={() => form.setState(quality === null ? { kind: id } : { kind: id, quality })}
           className={cn(
-            "flex cursor-pointer flex-col items-center gap-1 rounded-md border px-1 py-2 text-xs",
+            "flex min-w-0 cursor-pointer flex-col items-center gap-0.5 rounded-[3px] px-1 pb-1.5 pt-[5px] font-hand text-[12.5px] font-bold leading-[1.2]",
             value === id
-              ? "border-primary bg-primary-soft text-primary-soft-foreground"
-              : "border-border bg-muted text-foreground hover:border-border-strong",
+              ? "text-foreground shadow-[inset_0_0_0_2px_var(--mark)]"
+              : "text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:shadow-[inset_0_0_0_1px_var(--subtle-foreground)]",
           )}
         >
-          <span className="grid h-11 w-full place-items-center overflow-hidden">
+          <span className="mb-[3px] grid aspect-video w-full place-items-center overflow-hidden">
             {quality !== null && picture ? (
               <img
                 src={picture}
                 alt=""
-                className={cn("max-h-11 max-w-full rounded-xs", quality < 50 && "blur-[1.5px]")}
+                className={cn("size-full object-cover", quality < 50 && "blur-[1.5px]")}
               />
             ) : (
-              <Settings2 className="size-5 text-muted-foreground" />
+              <Settings2 className="size-5 text-subtle-foreground" />
             )}
           </span>
           {label}
-          <span className="font-mono text-2xs text-primary">
+          <span
+            className={cn(
+              "font-mono text-[11px] font-normal",
+              value === id ? "text-mark" : "text-subtle-foreground",
+            )}
+          >
             {quality === null ? "Your pick" : sizeAt(quality)}
           </span>
         </button>
