@@ -4,7 +4,6 @@ import { useKernel, useModule } from "@/core";
 import { Button } from "@/ui";
 import { clearFinished, start } from "../export.commands";
 import { exportRef } from "../export.ref";
-import { ExportHeading } from "./ExportHeading";
 import { QueueItem } from "./QueueItem";
 
 const WORKING = ["preparing", "rendering", "finishing"];
@@ -35,11 +34,13 @@ export function QueuePanel() {
   const label = busy ? "Exporting…" : waiting > 1 ? `Export all (${waiting})` : "Export";
 
   return (
-    <aside className="flex min-h-0 flex-col gap-2.5 border-l border-border bg-surface p-3.5">
-      <ExportHeading>{jobs.length > 0 ? `Queue (${jobs.length})` : "Queue"}</ExportHeading>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+    <aside className="flex min-h-0 flex-col border-l border-border-strong bg-surface">
+      <h2 className="shrink-0 px-3 pb-2 pt-3 font-hand text-md font-bold">
+        {jobs.length > 0 ? `Queue (${jobs.length})` : "Queue"}
+      </h2>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-2">
         {jobs.length === 0 && (
-          <p className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+          <p className="border border-dashed border-border-strong px-4 py-[22px] text-center text-base text-muted-foreground">
             Nothing here yet. Choose your settings and press Add to queue.
           </p>
         )}
@@ -50,20 +51,22 @@ export function QueuePanel() {
           <button
             type="button"
             onClick={() => void bus.run(clearFinished, {})}
-            className="cursor-pointer self-start text-xs text-primary hover:underline"
+            className="mt-2 cursor-pointer self-start text-xs text-primary hover:underline"
           >
             Clear finished
           </button>
         )}
       </div>
-      <Button
-        variant="primary"
-        className="shrink-0 justify-center"
-        disabled={busy || waiting === 0}
-        onClick={() => void bus.run(start, {})}
-      >
-        {label}
-      </Button>
+      <div className="shrink-0 border-t border-border-strong px-3 py-2.5">
+        <Button
+          variant="mark"
+          className="h-[34px] w-full text-[14.5px]"
+          disabled={busy || waiting === 0}
+          onClick={() => void bus.run(start, {})}
+        >
+          {label}
+        </Button>
+      </div>
     </aside>
   );
 }

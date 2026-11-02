@@ -13,13 +13,13 @@ export function ExportStage({ picture, hasPicture, blur }: ExportStageProps) {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center">
       {!hasPicture ? (
-        <AudioLines className="size-24 text-primary" />
+        <AudioLines className="size-24 text-subtle-foreground" />
       ) : picture ? (
         <img
           src={picture}
           alt="The composition"
           style={{ filter: blur > 0 ? `blur(${blur}px)` : undefined }}
-          className="max-h-full max-w-full rounded-xs object-contain shadow-soft"
+          className="max-h-full max-w-full object-contain shadow-[0_0_0_1px_var(--border-strong)]"
         />
       ) : null}
     </div>

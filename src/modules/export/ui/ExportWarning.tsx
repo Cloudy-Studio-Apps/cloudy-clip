@@ -13,7 +13,7 @@ export function ExportWarning({ message, blocking }: ExportWarningProps) {
     <p
       role="status"
       className={cn(
-        "flex shrink-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm",
+        "flex shrink-0 items-center gap-2 rounded-[3px] px-2.5 py-1.5 text-sm",
         blocking
           ? "bg-destructive-soft text-destructive-soft-foreground"
           : "bg-accent-soft text-accent-soft-foreground",

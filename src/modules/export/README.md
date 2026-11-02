@@ -2,6 +2,8 @@
 
 Turns a composition into a file. The Export page, the last tab of the top bar, sets what to make; exports wait in a queue and run one at a time while you keep editing.
 
+The settings sections fold, one by one, and which are open lasts only as long as the page.
+
 - **Tier:** feature
 - **Requires:** `project`, `media`, `preview`, `workspace` (the default file name)
 - **Contributes:** page `export.page` (`appPages`, group `PAGE_GROUP_DELIVER`, icon `Upload`)

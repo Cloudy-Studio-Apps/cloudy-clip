@@ -32,13 +32,16 @@ export function QueueItem({ id }: { id: string }) {
   const working = WORKING.includes(job.status);
   const input = { jobId: id };
   return (
-    <div className="shrink-0 rounded-md border border-border bg-muted p-2">
+    <div className="shrink-0 border-b border-border py-2">
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm" title={job.path}>
+          <div className="truncate font-hand text-[13px] font-bold" title={job.path}>
             {job.file}
           </div>
-          <small className="block truncate text-xs text-muted-foreground" title={job.message}>
+          <small
+            className="block truncate font-mono text-[11.5px] text-subtle-foreground"
+            title={job.message}
+          >
             {job.kindLabel} · ~{formatSize(job.estimatedBytes)} · <span ref={text} />
           </small>
         </div>
@@ -59,8 +62,8 @@ export function QueueItem({ id }: { id: string }) {
         )}
       </div>
       {(working || job.status === "done") && (
-        <div className="mt-1.5 h-1 overflow-hidden rounded-xs bg-surface-sunken">
-          <div ref={bar} className="h-full bg-primary" />
+        <div className="mt-1.5 h-0.5 overflow-hidden bg-border">
+          <div ref={bar} className="h-full bg-on" />
         </div>
       )}
       {job.status === "done" && (
