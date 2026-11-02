@@ -17,12 +17,16 @@ export const IDENTITY_TRANSFORM: Readonly<ClipTransform> = Object.freeze({
 
 /**
  * The clip's transform, or the identity when it has none, with `live` (an unsaved patch, such as a
- * panel slider mid-drag) merged over it. A `live` that isn't an object is ignored.
+ * panel slider mid-drag) merged over it. The saved transform may be partial (`animatedClip` writes
+ * only the keyed fields); the rest comes from the identity. A `live` that isn't an object is ignored.
  */
 export function clipTransform(clip: Clip, live?: Partial<ClipTransform>): ClipTransform {
-  const saved = clip.transform ?? IDENTITY_TRANSFORM;
-  if (typeof live !== "object" || live === null) return saved;
-  return { ...saved, ...live };
+  if (typeof live !== "object" || live === null) {
+    return clip.transform === undefined
+      ? IDENTITY_TRANSFORM
+      : { ...IDENTITY_TRANSFORM, ...clip.transform };
+  }
+  return { ...IDENTITY_TRANSFORM, ...clip.transform, ...live };
 }
 
 /** Brings an angle in degrees into (-180, 180]. */

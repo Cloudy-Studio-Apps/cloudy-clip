@@ -115,6 +115,63 @@ export interface Clip extends Partial<SharedGroupValues> {
    * moved, trimmed, split and deleted together until unlinked. Missing means unlinked.
    */
   linkId?: string;
+  /**
+   * Keyed values by path (`transform.x`, `fontSize`, `outline.width`), each a track of keys over
+   * the clip's content time. Missing means nothing is animated.
+   */
+  animation?: Record<string, KeyTrack>;
+  /** Content time at the clip's first frame. Missing means 0. */
+  animationOrigin?: Micros;
+}
+
+/** A value a key can hold. */
+export type KeyValue = number | string | boolean;
+
+/** What a key does on the way to the next one. */
+export type KeyEase =
+  | { kind: "linear" }
+  | { kind: "hold" }
+  | { kind: "bezier"; x1: number; y1: number; x2: number; y2: number }
+  | { kind: "named"; name: "bounce" | "elastic" };
+
+/** The ease presets, in the order the curve strip shows them. */
+export type EasePresetId =
+  | "linear"
+  | "in"
+  | "out"
+  | "ease"
+  | "snap"
+  | "anticipate"
+  | "overshoot"
+  | "bounce"
+  | "elastic"
+  | "hold";
+
+/** One key of a track: a value at a time on the clip's content. */
+export interface Keyframe {
+  id: string;
+  /** Time on the clip's content (`contentTime`), never on the timeline. */
+  t: Micros;
+  value: KeyValue;
+  /** What happens on the way to the next key. Missing means linear; ignored on the last key. */
+  ease?: KeyEase;
+  /** The handles on both sides of this key stay in line. */
+  smooth?: true;
+}
+
+/** The keys of one animated value. */
+export interface KeyTrack {
+  /** How values blend: numbers and colors smoothly, everything else jumps. */
+  blend: "number" | "color" | "step";
+  /** The value sits under its own key on the clip (`transform.x`), not in `props`. */
+  shared?: true;
+  /** Copied from the property, so a curve that overshoots stays in range. */
+  min?: number;
+  max?: number;
+  /** After the last key. Missing means hold the last value. */
+  after?: "loop" | "pingpong";
+  /** Sorted by `t`, at least one. */
+  keys: Keyframe[];
 }
 
 /**

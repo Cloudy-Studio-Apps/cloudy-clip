@@ -67,7 +67,12 @@ export type {
   SharedGroupValues,
   ClipSound,
   ClipSpeed,
+  EasePresetId,
   EqBand,
+  KeyEase,
+  KeyTrack,
+  KeyValue,
+  Keyframe,
   Track,
   TrackId,
   TrackKind,
@@ -93,6 +98,11 @@ export {
   pitchShift,
   soundOf,
 } from "./logic/sound";
+
+/** Keyframes: key tracks, their curves, and a clip's values at a time. */
+export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";
+export { animatedClip, trackValue } from "./logic/animate";
+export { clampToClip, contentTime, timeOfContent } from "./logic/content";
 
 export { seedProject } from "./project.testing";
 export type { ProjectSeed } from "./project.testing";
