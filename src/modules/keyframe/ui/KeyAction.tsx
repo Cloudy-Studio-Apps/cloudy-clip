@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { isKeyable } from "@/modules/element";
-import type { FieldAction, FieldActionProps } from "@/modules/inspector";
+import type { FieldAction, PanelSubject } from "@/modules/inspector";
 import { previewRef, seek } from "@/modules/preview";
 import { clampToClip, contentTime, projectRef, timeOfContent } from "@/modules/project";
 import { IconButton } from "@/ui";
@@ -126,8 +126,18 @@ export function KeyControls({ clipId, paths, disabled = false }: KeyControlsProp
   );
 }
 
-/** The inspector's field action: the controls of the row's clip and paths. */
-function KeyActionView({ clip, paths, disabled }: FieldActionProps) {
+/** What `KeyAction` reads of a row: its clip and paths. */
+interface KeyActionProps {
+  clip: PanelSubject;
+  paths: readonly string[];
+  disabled?: boolean;
+}
+
+/**
+ * The key controls of a row, for a module that draws its own rows (the inspector's field
+ * action is this too).
+ */
+export function KeyAction({ clip, paths, disabled }: KeyActionProps) {
   return <KeyControls clipId={clip.id} paths={paths} disabled={disabled} />;
 }
 
@@ -136,5 +146,5 @@ export const keyAction: FieldAction = {
   id: "keyframe.key",
   order: 10,
   appliesTo: isKeyable,
-  component: KeyActionView,
+  component: KeyAction,
 };

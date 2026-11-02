@@ -1,6 +1,7 @@
 import { Film } from "lucide-react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
+import { audioModule, resetSound, setSound } from "@/modules/audio";
 import {
   defineElement,
   defineSharedGroup,
@@ -13,8 +14,10 @@ import {
   createProjectModule,
   mirrorEase,
   presetOf,
+  animatedClip,
   projectRef,
   seedProject,
+  soundOf,
   type Clip,
 } from "@/modules/project";
 import { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
@@ -143,6 +146,8 @@ beforeEach(async () => {
     state.clips[c.id] = c;
     state.tracks.v1!.clipIds.push(c.id);
   }
+  state.clips.snd = { ...clip("snd", 0, undefined), trackId: "a1", kind: "test.bare" };
+  state.tracks.a1!.clipIds.push("snd");
   await kernel.modules.loadAll([
     createProjectModule(state),
     elementModule,
@@ -151,6 +156,7 @@ beforeEach(async () => {
     stub("timeline"),
     fixtures,
     keyframeModule,
+    audioModule,
   ]);
 });
 
@@ -331,5 +337,50 @@ describe("keyframe.copy and paste", () => {
   it("keeps each actor's copy apart", async () => {
     await run(bus().run(copyKeys, { keys: [xKey] }));
     expect(api().clipboard.get("agent:other" as never)).toBeUndefined();
+  });
+});
+
+describe("keys on a sound", () => {
+  it("keys volume on an audio clip, leaving the rest of the sound as it is", async () => {
+    await run(bus().run(setKey, { clipId: "snd", path: "sound.volumeDb", at: S, value: -6 }));
+    const sound = soundOf(animatedClip(clipOf("snd"), S));
+    expect(sound.volumeDb).toBe(-6);
+    expect(sound.pan).toBe(0);
+    expect(sound.eq.bands).toHaveLength(6);
+    expect(clipOf("snd").sound).toBeUndefined();
+  });
+
+  it("doesn't offer sound keys on a picture clip", async () => {
+    expect(await code(bus().run(setKey, { clipId: "plain", path: "sound.pan", at: 0 }))).toBe(
+      "keyframe.not_keyable",
+    );
+  });
+
+  it("refuses a static value for a keyed one, and takes the others", async () => {
+    await run(bus().run(setKey, { clipId: "snd", path: "sound.volumeDb", at: S, value: -6 }));
+    expect(await code(bus().run(setSound, { clipIds: ["snd"], patch: { volumeDb: -3 } }))).toBe(
+      "audio.animated",
+    );
+    await run(bus().run(setSound, { clipIds: ["snd"], patch: { pan: 0.5 } }));
+    expect(clipOf("snd").sound?.pan).toBe(0.5);
+    expect(clipOf("snd").sound?.volumeDb).toBe(0);
+  });
+
+  it("keeps the last value as the static one, and reset drops the keys in one step", async () => {
+    const { key } = await run(
+      bus().run(setKey, { clipId: "snd", path: "sound.volumeDb", at: S, value: -6 }),
+    );
+    await run(
+      bus().run(removeKeys, { keys: [{ clipId: "snd", path: "sound.volumeDb", keyId: key }] }),
+    );
+    expect(clipOf("snd").animation).toBeUndefined();
+    expect(clipOf("snd").sound?.volumeDb).toBe(-6);
+    await run(bus().run(setKey, { clipId: "snd", path: "sound.pan", at: S, value: 0.5 }));
+    await run(bus().run(resetSound, { clipIds: ["snd"] }));
+    expect(clipOf("snd").animation).toBeUndefined();
+    expect(clipOf("snd").sound).toBeUndefined();
+    kernel.history.undo();
+    expect(clipOf("snd").animation).toHaveProperty(["sound.pan"]);
+    expect(clipOf("snd").sound?.volumeDb).toBe(-6);
   });
 });

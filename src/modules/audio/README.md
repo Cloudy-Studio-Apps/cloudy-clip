@@ -3,8 +3,8 @@
 How a clip sounds: volume, pan, fades, equalizer and pitch, in preview and in export. The value is `Clip.sound` in `project`, since core modules read it; this module owns the commands, tools and the inspector's Audio tab.
 
 - **Tier:** feature
-- **Requires:** `project`, `inspector`, `preview`, `timeline` (the clip menu)
-- **Contributes:** Reset sound in a clip's menu (`audio.menu.ts`); `inspectorSections` on tab `audio`: Volume, Pan, Fades, Pitch, Equalizer. The inspector's own Sound section (track, mute) stays below them.
+- **Requires:** `project`, `inspector`, `preview`, `timeline` (the clip menu), `keyframe` (volume and pan keys)
+- **Contributes:** Reset sound in a clip's menu (`audio.menu.ts`); `inspectorSections` on tab `audio`: Volume, Pan, Fades, Pitch, Equalizer. The inspector's own Sound section (track, mute) stays below them. `keyTargets`: `audio.keys` (`audio.keys.ts`).
 - **Points it owns:** —
 - **API:** none
 - **Files:**
@@ -13,10 +13,12 @@ How a clip sounds: volume, pan, fades, equalizer and pitch, in preview and in ex
   - Sound itself: `preview/engine/engine.audiograph.ts` (pitch, six biquads, pan, level, per element) and `export/logic/mixdown.ts` with `src-tauri/src/export/recipe.rs` (the same chain as FFmpeg filters, in the same order).
 - **Invariants:** a value equal to the default is never stored, so an untouched clip has no `sound` and plays exactly as it did. Linked clips: the sound clip takes the change.
 
-| Command            | MCP tool            | Notes                                         |
-| ------------------ | ------------------- | --------------------------------------------- |
-| `audio.setSound`   | `audio_set_sound`   | Fades stay within the clip. `audio.no_sound`  |
-| `audio.resetSound` | `audio_reset_sound` | All of it, or one `section`. `audio.no_sound` |
+| Command            | MCP tool            | Notes                                                                           |
+| ------------------ | ------------------- | ------------------------------------------------------------------------------- |
+| `audio.setSound`   | `audio_set_sound`   | Fades stay within the clip. `audio.no_sound`, `audio.animated`                  |
+| `audio.resetSound` | `audio_reset_sound` | All of it, or one `section`; drops the keys of what it resets. `audio.no_sound` |
+
+Keys: `sound.volumeDb` (-60 to 12) and `sound.pan` (-1 to 1) can be keyed on clips of audio tracks (`keyframe_set`, or the diamond at the end of the Volume and Pan rows). Keys sit on the sound clip only, as `Clip.animation`; `soundOf` fills in what an animated clip's partial `sound` lacks, and the engine reads it from the clip `resolveFrame` already animated. While a value has keys, its row shows the value at the playhead, releasing the slider sets a key there (`keyframe.set`), and `audio.setSound` with that value fails with `audio.animated` before writing. A live drag still goes through `previewProps` and wins over the keys. Export reads these keys in a later stage.
 
 A clip at its defaults has no `sound`, never enters Web Audio and adds no filter to an export. An element takes one `MediaElementSource`, ever, so once attached it stays attached and is driven at unity. A placed composition takes volume and fades on top of its clips; Pan, Pitch and Equalizer are per file and don't show for it.
 

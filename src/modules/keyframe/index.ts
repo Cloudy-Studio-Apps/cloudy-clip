@@ -9,6 +9,8 @@ export { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
 /** Copy keys to your own clipboard and paste them onto clips. */
 export { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
 export { moveKeys, removeKeys, setKey, setKeys, setKeyValues } from "./keyframe.edit.commands";
+/** The diamond and arrows at the end of a row: key a clip's paths at the playhead, jump between keys. */
+export { KeyAction } from "./ui";
 /** Point: what can be keyed (the element's fields, a module's own). */
 export { keyTargets } from "./keyframe.points";
 export type {

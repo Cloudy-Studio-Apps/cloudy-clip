@@ -15,6 +15,7 @@ export type {
   InspectorTab,
   InspectorView,
   InspectorViewState,
+  PanelSubject,
   PropertyControl,
   PropsLive,
   RecentColors,
