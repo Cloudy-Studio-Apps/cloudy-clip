@@ -14,6 +14,7 @@ import {
   type JunctionId,
   type ProjectState,
   compositionClips,
+  contentTime,
   followsFileTime,
   formatOf,
   projectRef,
@@ -56,6 +57,11 @@ export function splitClips(
         duration: left.duration - offset,
         ...(left.transform && { transform: { ...left.transform } }),
         ...(left.speed && { speed: { ...left.speed } }),
+        // Both halves keep the curve, and the right one starts where the cut is on the picture.
+        ...(target.animation && {
+          animation: structuredClone(target.animation),
+          animationOrigin: contentTime(target, at),
+        }),
         ...(left.disabled && { disabled: true as const }),
         // A fade stays on the outer edge of its piece.
         ...(left.sound && { sound: { ...structuredClone(target.sound!), fadeIn: 0 } }),

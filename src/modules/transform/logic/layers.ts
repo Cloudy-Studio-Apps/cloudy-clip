@@ -1,6 +1,7 @@
 import type { Micros } from "@/core";
 import { mergeProps, type ElementApi, type TextMeasure } from "@/modules/element";
 import {
+  animatedClip,
   clipTransform,
   type ClipTransform,
   type Composition,
@@ -29,10 +30,11 @@ export function visibleLayers(
     const track = state.tracks[trackId];
     if (!track || track.kind !== "video" || track.hidden) continue;
     for (const clipId of track.clipIds) {
-      const clip = state.clips[clipId];
-      if (!clip || clip.disabled) continue;
-      if (clip.start > time) break; // sorted by start
-      if (time >= clip.start + clip.duration) continue;
+      const saved = state.clips[clipId];
+      if (!saved || saved.disabled) continue;
+      if (saved.start > time) break; // sorted by start
+      if (time >= saved.start + saved.duration) continue;
+      const clip = animatedClip(saved, time);
       const element = elements.get(clip.kind);
       const picture = element?.definition.picture;
       const group = element?.groups.find((g) => g.id === "transform");
@@ -56,8 +58,8 @@ export function visibleLayers(
         continue;
       }
       if (!picture.size) continue;
-      const saved = elements.resolve(clip, composition.format);
-      const props = live ? mergeProps(saved, live) : saved;
+      const resolved = elements.resolve(clip, composition.format);
+      const props = live ? mergeProps(resolved, live) : resolved;
       layers.push({
         clipId,
         source: picture.size(props, { format: composition.format, measure }),

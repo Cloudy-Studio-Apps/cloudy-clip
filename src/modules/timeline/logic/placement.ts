@@ -14,6 +14,7 @@ import {
   type ProjectState,
   type TrackId,
   type TrackKind,
+  contentTime,
   sourceSpan,
   speedOf,
 } from "@/modules/project";
@@ -143,14 +144,15 @@ function joined(state: ProjectState, left: Clip, right: Clip): boolean {
 
 /**
  * Moves one edge of a clip to `time`, clamped so the clip stays inside its source media,
- * keeps a minimum length, and never overlaps its neighbours. Returns the new clip timing.
+ * keeps a minimum length, and never overlaps its neighbours. Returns the new clip timing, and for
+ * a clip with keys, the `animationOrigin` that keeps them on the picture they were set on.
  */
 export function clampTrim(
-  clip: Pick<Clip, "start" | "sourceIn" | "duration" | "speed">,
+  clip: Pick<Clip, "start" | "sourceIn" | "duration" | "speed" | "animation" | "animationOrigin">,
   edge: "start" | "end",
   time: Micros,
   limits: TrimLimits,
-): Pick<Clip, "start" | "sourceIn" | "duration"> {
+): Pick<Clip, "start" | "sourceIn" | "duration" | "animationOrigin"> {
   const end = clip.start + clip.duration;
   const { rate, reversed } = speedOf(clip);
   // The file's time left on each side of the clip, as it plays.
@@ -166,7 +168,12 @@ export function clampTrim(
     const delta = start - clip.start;
     const moved = clip.sourceIn + Math.round(delta * rate);
     const sourceIn = limits.sourceless || reversed ? clip.sourceIn : Math.max(0, moved);
-    return { start, sourceIn, duration: clip.duration - delta };
+    return {
+      start,
+      sourceIn,
+      duration: clip.duration - delta,
+      ...(clip.animation && { animationOrigin: contentTime(clip, start) }),
+    };
   }
   const sourceEnd = limits.sourceless
     ? Number.POSITIVE_INFINITY

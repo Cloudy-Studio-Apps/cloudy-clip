@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import {
+  animatedClip,
   type Clip,
   clipPlacement,
   clipTransform,
@@ -29,7 +30,9 @@ export function TextEditor({ clip, onDone }: TextEditorProps) {
   const preview = useModule(previewRef);
   const format = useOpenFormat();
   const style = useMemo(() => textStyleOf(clip, format), [clip, format]);
-  const transform = useMemo(() => clipTransform(clip), [clip]);
+  // Where the playhead is as the editor opens: the box stays put while typing.
+  const [openedAt] = useState(() => preview.playback.getTime());
+  const transform = useMemo(() => clipTransform(animatedClip(clip, openedAt)), [clip, openedAt]);
   const box = useRef<HTMLDivElement>(null);
   const area = useRef<HTMLTextAreaElement>(null);
   const ended = useRef(false);

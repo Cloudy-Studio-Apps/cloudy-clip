@@ -15,6 +15,7 @@ What a timeline is. A composition is a size, a frame rate, a background, a lengt
   - `ui/`: `CompositionDialog` (New Composition and Composition Settings share one form), `CompositionTile`, `CompositionSection`, `CompositionTabs`, `EmptyStart`, `EndMarker` with `end.gesture.ts` (only its handle in the ruler takes the pointer: the line sits on the last clip's edge, where drops and trims aim; moves through the DOM, one `setSettings` on release).
   - `logic/group.ts`: `planGroup(state, clipIds)`, pure. `logic/resize.ts`: `scaleTransform(transform, fit, before, after)`.
   - `logic/clone.ts`: `cloneComposition(draft, id, name)`: new ids, links remapped, placed compositions stay shared.
+- **Grouping and keys:** `composition.group` cuts a neighbour left beside the placement (`trimToSpan`); when that cuts its start, the clip's `animationOrigin` moves with it so its keys stay on the picture.
 - **Placements:** a clip with `compositionRef`, in a linked picture and sound pair (both always: placements are live). Trim is limited by the composition's length. `project`'s `settle` shortens placements when the original shrinks.
 
 | Command                       | MCP tool                        | Notes                                                                                   |

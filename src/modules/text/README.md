@@ -18,6 +18,7 @@ text element: Content, Font, Fill, Outline, Background, Shadow, then Transform.
 - **Points it owns:** —
 - **API:** none (`TextApi` is empty). Exports `textElement`, `applyTextPreset`, `presetStyle`,
   `presetTransform`, `textLayout`.
+- **Keys:** the in-place editor places its box with `animatedClip(clip, time)` at the playhead as the editor opens, so it sits on the text as drawn.
 - **Files:**
   - `text.element.ts`: `textElement` (`textProperties`: words, `font` (custom prop), size, weight,
     italic, letter and line spacing, align, uppercase, fill, outline, background, shadow, with the

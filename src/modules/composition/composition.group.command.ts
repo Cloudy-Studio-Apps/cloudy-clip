@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
-import { projectRef, type Clip, type TrackId } from "@/modules/project";
+import { contentTime, projectRef, type Clip, type TrackId } from "@/modules/project";
 import { addTrack, sortClipIds } from "@/modules/timeline";
 import type { GroupSpan } from "./composition.types";
 import { planGroup } from "./logic/group";
@@ -11,6 +11,7 @@ function trimToSpan(clip: Clip, { start, end }: GroupSpan): void {
   if (clip.start < start && clipStop > start) clip.duration = start - clip.start;
   else if (clip.start >= start && clip.start < end && clipStop > end) {
     const cut = end - clip.start;
+    if (clip.animation) clip.animationOrigin = contentTime(clip, end);
     clip.start = end;
     clip.duration -= cut;
     if (clip.mediaId !== undefined || clip.compositionRef !== undefined) clip.sourceIn += cut;

@@ -7,6 +7,9 @@ import { createFakeMediaModule, mediaRef } from "@/modules/media";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule } from "@/modules/preview";
 import {
+  animatedClip,
+  clipTransform,
+  contentTime,
   createProjectModule,
   partnersOf,
   projectRef,
@@ -236,6 +239,46 @@ describe("timeline commands", () => {
     kernel.history.undo();
     kernel.history.undo();
     expect(doc()).toEqual(before);
+  });
+});
+
+describe("keys on a clip", () => {
+  /** A 4 s clip whose x slides from 0 to 40 along its picture. */
+  async function keyed() {
+    const clip = await place({ mediaId: "mv", start: 2 * S });
+    const animation = {
+      "transform.x": {
+        blend: "number" as const,
+        shared: true as const,
+        keys: [
+          { id: "k0", t: 0, value: 0 },
+          { id: "k1", t: 4 * S, value: 40 },
+        ],
+      },
+    };
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: { ...s.clips, [clip.id]: { ...s.clips[clip.id]!, duration: 4 * S, animation } },
+    }));
+    return clip.id;
+  }
+  const clipOf = (id: string) => doc().clips[id]!;
+
+  it("keeps keys on the picture through a left trim", async () => {
+    const id = await keyed();
+    const before = animatedClip(clipOf(id), 5 * S);
+    await run(kernel.bus.run(trimClip, { clipId: id, edge: "start", time: 4 * S }));
+    expect(clipOf(id).start).toBe(4 * S);
+    expect(clipTransform(animatedClip(clipOf(id), 5 * S))).toEqual(clipTransform(before));
+  });
+
+  it("gives both halves of a split the same curve", async () => {
+    const id = await keyed();
+    const { created } = await run(kernel.bus.run(splitAt, { at: 5 * S, clipIds: [id] }));
+    const right = clipOf(created[0]!);
+    expect(right.animation).toEqual(clipOf(id).animation);
+    expect(right.animation).not.toBe(clipOf(id).animation);
+    expect(contentTime(right, 5 * S)).toBe(contentTime(clipOf(id), 5 * S));
+    expect(contentTime(right, 5 * S)).toBe(3 * S);
   });
 });
 

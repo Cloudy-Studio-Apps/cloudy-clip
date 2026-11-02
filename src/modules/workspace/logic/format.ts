@@ -5,7 +5,7 @@ import type { ProjectEnvelope } from "../workspace.types";
 
 const FORMAT = "cloudy-clip-project";
 /** Bump when the document changes shape, and teach `decodeProject` to upgrade the older one. */
-const VERSION = 2;
+const VERSION = 3;
 
 const envelope = z.object({
   format: z.literal(FORMAT),

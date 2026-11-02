@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyProject, type ProjectState } from "@/modules/project";
+import { createEmptyProject, type Clip, type ProjectState } from "@/modules/project";
 import { decodeProject, encodeProject } from "./format";
 
 const document: ProjectState = {
@@ -39,6 +39,32 @@ describe("project file", () => {
     expect(decodeProject(old)).toEqual(document);
     expect(decodeProject(old).bins).toEqual({});
     expect(decodeProject(old).binOrder).toEqual([]);
+  });
+
+  it("keeps a clip's keys, saves version 3 and still opens version 2", () => {
+    const clip: Clip = {
+      id: "c",
+      trackId: "t",
+      kind: "text",
+      start: 0,
+      sourceIn: 0,
+      duration: 1_000_000,
+      props: {},
+      animation: {
+        "transform.x": {
+          blend: "number",
+          shared: true,
+          keys: [{ id: "k0", t: 0, value: 5 }],
+        },
+      },
+      animationOrigin: 250_000,
+    };
+    const animated: ProjectState = { ...document, clips: { c: clip } };
+    const text = encodeProject(animated, "1.0.0", new Date(0));
+    expect((JSON.parse(text) as { version: number }).version).toBe(3);
+    expect(decodeProject(text)).toEqual(animated);
+    const old = file((json) => (json.version = 2));
+    expect(decodeProject(old)).toEqual(document);
   });
 
   it("refuses what it can't trust", () => {
