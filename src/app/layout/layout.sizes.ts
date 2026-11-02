@@ -1,13 +1,13 @@
 import type { PanelSizes, ResizableArea, ResizeRule } from "./layout.types";
 
 /** Height of the top bar, in px. */
-export const TOP_BAR_HEIGHT = 44;
+export const TOP_BAR_HEIGHT = 48;
 /** The preview keeps at least this much height when the timeline grows. */
 const MIN_PREVIEW_HEIGHT = 220;
 
 /** Limits of each resizable area. Defaults live in the grid template of `LayoutHost`. */
 export const RESIZE_RULES: Record<ResizableArea, ResizeRule> = {
-  side: { cssVar: "--side-w", min: 260, max: 600, axis: "x", sign: 1 },
+  side: { cssVar: "--side-w", min: 274, max: 600, axis: "x", sign: 1 },
   inspector: { cssVar: "--inspector-w", min: 280, max: 560, axis: "x", sign: -1 },
   timeline: {
     cssVar: "--timeline-h",

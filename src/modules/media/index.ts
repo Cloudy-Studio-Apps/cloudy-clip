@@ -26,3 +26,5 @@ export type {
 export { mediaModule } from "./media.module";
 /** Handle for `require(mediaRef)` / `useModule(mediaRef)`. */
 export { mediaRef } from "./media.ref";
+/** The Media page's id, for `showPage`. */
+export { MEDIA_PAGE } from "./media.ref";

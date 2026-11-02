@@ -13,6 +13,7 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
   `waitForProbe`, `pictureMeta(id)` (size, frame rate, length as soon as ffprobe has read them, rotation included), `mediaUrl`, `animation(id)` (frames and rate of an animated image), `imageFrames(id, elapsed, ahead)` (the URLs of an image's picture at a moment and those after it, looped), `restore(assets)` (registers a saved project's files, marks those not found `missing`, returns them). `useLocateMedia()` asks where a missing file went and looks for the others in that folder. `mediaHasAudio(probe)` (exported helper) says whether a file has
   sound (true unless ffprobe found none). `createFakeMediaModule(probes)` (`media.testing.ts`) stands in for it
   in tests.
+- **Exports:** `MEDIA_PAGE`, the id of the Media page, for `showPage`.
 - **Files:**
   - Native side (`src-tauri/src/media`): `media_register` validates paths into an id → path
     allowlist, under ids TypeScript made, so a saved project keeps them (registering an id again

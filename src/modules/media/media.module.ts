@@ -12,6 +12,7 @@ import { mediaRef } from "./media.ref";
 import { createMediaFiles } from "./media.files";
 import { createMediaService } from "./media.service";
 import { createMediaState } from "./media.store";
+import { MEDIA_PAGE } from "./media.ref";
 import { MediaLibrary, MediaPage } from "./ui";
 
 /** Importing files, reading their metadata, proxies, and the media library panel. */
@@ -67,7 +68,7 @@ export const mediaModule = defineModule({
       component: MediaLibrary,
     });
     contribute(appPages, {
-      id: "media.page",
+      id: MEDIA_PAGE,
       label: "Media",
       icon: Images,
       order: 10,

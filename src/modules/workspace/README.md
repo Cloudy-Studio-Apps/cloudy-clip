@@ -21,6 +21,7 @@ Which project is open and where it lives: the start dialog, saving and autosave,
   - Media stays where it is: the file keeps paths. On open, a file not found at its path is looked for by name next to the project, then marked `missing`.
   - A project with no media, no clips and no description isn't autosaved, so one opened and abandoned leaves no file.
   - Before another project opens, and on window close, pending changes are written. If that fails, opening is refused with `workspace.save_failed`, and closing asks for a second try.
+  - A project with no clips opens on Media, any other on Edit. Only the local actor moves the page: an agent's `workspace_open` leaves the user where they are.
   - The start dialog closes when an empty project gets content, so an agent's work isn't hidden behind it.
 - **Not yet:** opening a file from the OS, several windows, deleting project files.
 

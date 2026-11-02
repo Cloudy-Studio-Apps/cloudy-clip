@@ -43,12 +43,12 @@ export function ProjectTitle() {
       trigger={
         <button
           type="button"
-          className="ml-2 flex max-w-64 cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-sm hover:bg-hover"
+          className="ml-1 flex min-w-0 max-w-64 cursor-pointer items-center gap-2 rounded-[3px] px-2 py-1 font-mono text-[13px] text-muted-foreground hover:bg-hover hover:text-foreground"
         >
           <span className="truncate">{name}</span>
           <span
             className={cn(
-              "shrink-0 text-2xs",
+              "shrink-0 font-sans text-2xs",
               status === "failed" ? "text-destructive" : "text-subtle-foreground",
             )}
           >

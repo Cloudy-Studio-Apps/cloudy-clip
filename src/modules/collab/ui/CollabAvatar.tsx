@@ -15,7 +15,7 @@ export function CollabAvatar({ who, off, className }: CollabAvatarProps) {
   return (
     <span
       className={cn(
-        "relative grid size-7 shrink-0 place-items-center rounded-full border-2 border-surface text-xs font-semibold text-primary-foreground",
+        "relative grid size-7 shrink-0 place-items-center rounded-full border-2 border-surface-sunken text-xs font-bold text-primary-foreground",
         off && "opacity-55 grayscale",
         className,
       )}
@@ -28,7 +28,7 @@ export function CollabAvatar({ who, off, className }: CollabAvatarProps) {
       {who.kind === "agent" && !off && (
         <i
           className={cn(
-            "absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-surface",
+            "absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-surface-sunken",
             who.idle || who.paused ? "bg-subtle-foreground" : "bg-online",
           )}
         />

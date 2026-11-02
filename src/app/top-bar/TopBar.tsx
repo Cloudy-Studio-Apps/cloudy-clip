@@ -15,23 +15,28 @@ function TopBarSlot({ items, slot }: { items: readonly TopBarItem[]; slot: TopBa
     ));
 }
 
-/** The bar across the top: the brand on the left, the page tabs and undo/redo in the middle, modules' items. */
+/** The bar across the top: the brand on the left, the page tabs in the middle, undo/redo and modules' items on the right. */
 export function TopBar({ className }: { className?: string }) {
   const items = usePoint(topBarItems);
   return (
     <header
-      className={cn("grid grid-cols-[1fr_auto_1fr] items-center bg-surface pl-3 pr-2", className)}
+      className={cn(
+        "relative z-[35] grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-3 bg-surface-sunken px-3",
+        className,
+      )}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex min-w-0 items-center gap-1 self-center">
         <Brand />
         <TopBarSlot items={items} slot="left" />
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-end gap-2">
         <PageTabs />
-        <HistoryControls />
-        <TopBarSlot items={items} slot="center" />
+        <div className="flex items-center self-center empty:hidden">
+          <TopBarSlot items={items} slot="center" />
+        </div>
       </div>
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-1 self-center">
+        <HistoryControls />
         <TopBarSlot items={items} slot="right" />
       </div>
     </header>

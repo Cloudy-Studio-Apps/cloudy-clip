@@ -1,10 +1,19 @@
 import { z } from "zod";
-import { CommandFailure, defineCommand } from "@/core";
-import { createEmptyProject, projectRef } from "@/modules/project";
+import { CommandFailure, defineCommand, EDITOR_PAGE, LOCAL_ACTOR, pagesRef } from "@/core";
+import type { CommandContext } from "@/core";
+import { MEDIA_PAGE } from "@/modules/media";
+import { createEmptyProject, projectRef, type ProjectState } from "@/modules/project";
 import { isValidName } from "./logic/names";
 import { workspaceRef } from "./workspace.ref";
 
 const description = z.string().max(2000);
+
+/** A project with no clips opens on Media, any other on Edit. An agent never moves the user's page. */
+function showOpeningPage(ctx: CommandContext, document: ProjectState): void {
+  if (ctx.actor !== LOCAL_ACTOR) return;
+  const active = Object.keys(document.clips).length === 0 ? MEDIA_PAGE : EDITOR_PAGE;
+  ctx.require(pagesRef).store.setState({ active });
+}
 
 /** Starts an empty project. The open one is saved first. */
 export const newProject = defineCommand({
@@ -27,6 +36,7 @@ export const newProject = defineCommand({
     ctx.replace(store, document);
     view.reset();
     workspace.opened(null, document, [], name);
+    showOpeningPage(ctx, document);
     workspace.announce(ctx.actor, "started a new project.");
     // What the user gave it is worth a file now. If this fails they're told, and autosave retries.
     if (name !== undefined || about) await workspace.save().catch(() => undefined);
@@ -49,6 +59,7 @@ export const openProject = defineCommand({
     ctx.replace(store, document);
     view.reset();
     workspace.opened(path, document, missing);
+    showOpeningPage(ctx, document);
     const { name } = workspace.session.getState();
     workspace.announce(ctx.actor, `opened ${name}.`);
     return { name, missing: missing.map(({ id, name, path }) => ({ id, name, path })) };
