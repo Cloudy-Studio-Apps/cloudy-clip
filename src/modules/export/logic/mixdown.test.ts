@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { seedProject, type Clip, type MediaAsset, type ProjectState } from "@/modules/project";
 import { DEFAULT_SOUND } from "@/modules/project";
+import { dbToLinear } from "@/modules/project";
 import { mixdown } from "./mixdown";
 
 const media = (id: string): MediaAsset => ({
@@ -178,6 +179,45 @@ describe("mixdown", () => {
   it("skips files without sound", () => {
     const state = project([clip("a", "a1")]);
     expect(mixdown(state, "c1", everything, () => false)).toEqual([]);
+  });
+
+  it("gives a keyed clip a gain envelope", () => {
+    const animation: Clip["animation"] = {
+      "sound.volumeDb": {
+        blend: "number",
+        keys: [
+          { id: "k1", t: 0, value: 0 },
+          { id: "k2", t: 4_000_000, value: -12 },
+        ],
+      },
+    };
+    const [segment] = mixdown(project([clip("a", "a1", { animation })]), "c1", everything, sounds);
+    expect(segment!.gainEnvelope!.at(0)!.value).toBeCloseTo(1);
+    expect(segment!.gainEnvelope!.at(-1)!.value).toBeCloseTo(dbToLinear(-12));
+    expect(segment!.gainEnvelope!.at(-1)!.at).toBe(4_000_000);
+    expect(segment).not.toHaveProperty("gain");
+  });
+
+  it("samples a segment that starts partway into a clip from that point", () => {
+    const animation: Clip["animation"] = {
+      "sound.pan": {
+        blend: "number",
+        keys: [
+          { id: "k3", t: 0, value: -1 },
+          { id: "k4", t: 4_000_000, value: 1 },
+        ],
+      },
+    };
+    const window = { start: 2_000_000, duration: 2_000_000 };
+    const [segment] = mixdown(project([clip("a", "a1", { animation })]), "c1", window, sounds);
+    expect(segment!.panEnvelope![0]!.value).toBeCloseTo(0);
+    expect(segment!.panEnvelope!.at(-1)!.value).toBeCloseTo(1);
+  });
+
+  it("leaves a clip without keys as it was", () => {
+    const [segment] = mixdown(project([clip("a", "a1")]), "c1", everything, sounds);
+    expect(segment).not.toHaveProperty("gainEnvelope");
+    expect(segment).not.toHaveProperty("panEnvelope");
   });
 });
 

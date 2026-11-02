@@ -41,6 +41,13 @@ pub enum Effort {
     Small,
 }
 
+/// A value at a moment of a segment. All times are microseconds from the segment's start.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct EnvelopePoint {
+    pub at: u64,
+    pub value: f64,
+}
+
 /// One stretch of a file's sound on the export's clock. All times are microseconds.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -62,6 +69,12 @@ pub struct SoundSegment {
     /// -1 (left) to 1 (right).
     #[serde(default)]
     pub pan: f64,
+    /// Linear level over the segment, a keyed volume. Replaces `gain` when it has points.
+    #[serde(default)]
+    pub gain_envelope: Vec<EnvelopePoint>,
+    /// Pan over the segment, a keyed pan. Replaces `pan` when it has points.
+    #[serde(default)]
+    pub pan_envelope: Vec<EnvelopePoint>,
     #[serde(default)]
     pub eq: Vec<EqFilter>,
     /// Shift in semitones, keeping the length.
@@ -151,18 +164,106 @@ fn tempo_steps(mut factor: f64) -> String {
     steps
 }
 
-/// A pan as `StereoPannerNode` does it for stereo sound, so export sounds like the preview.
-fn pan_filter(pan: f64) -> String {
+/// How a pan mixes the two channels as `StereoPannerNode` does it for stereo sound, so export
+/// sounds like the preview: `(ll, rl, lr, rr)`, where the left output is `ll*L + rl*R` and the
+/// right one `lr*L + rr*R`.
+fn pan_gains(pan: f64) -> (f64, f64, f64, f64) {
     use std::f64::consts::FRAC_PI_2;
     if pan <= 0.0 {
         let angle = (pan + 1.0) * FRAC_PI_2;
-        let (send, keep) = (angle.cos().abs(), angle.sin());
-        format!(",pan=stereo|c0=c0+{send:.6}*c1|c1={keep:.6}*c1")
+        (1.0, angle.cos().abs(), 0.0, angle.sin())
     } else {
         let angle = pan * FRAC_PI_2;
-        let (keep, send) = (angle.cos().abs(), angle.sin());
-        format!(",pan=stereo|c0={keep:.6}*c0|c1=c1+{send:.6}*c0")
+        (angle.cos().abs(), 0.0, angle.sin(), 1.0)
     }
+}
+
+/// A still pan.
+fn pan_filter(pan: f64) -> String {
+    let (ll, rl, lr, rr) = pan_gains(pan);
+    if pan <= 0.0 {
+        format!(",pan=stereo|c0=c0+{rl:.6}*c1|c1={rr:.6}*c1")
+    } else {
+        format!(",pan=stereo|c0={ll:.6}*c0|c1=c1+{lr:.6}*c0")
+    }
+}
+
+/// A number for an expression, short because an envelope has up to 256 of them.
+fn compact(value: f64) -> String {
+    let text = format!("{value:.5}");
+    text.trim_end_matches('0').trim_end_matches('.').to_owned()
+}
+
+/// A value that follows the points along straight lines, as an expression of `t` (seconds into
+/// the segment). Before the first point and after the last it holds.
+fn envelope_expr(points: &[(f64, f64)]) -> String {
+    let [first, rest @ ..] = points else {
+        return "1".to_owned();
+    };
+    let Some(last) = points.last() else {
+        return compact(first.1);
+    };
+    let mut expr = String::new();
+    let mut closing = 0;
+    let mut before = *first;
+    for &next in rest {
+        if next.0 <= before.0 {
+            continue;
+        }
+        let slope = (next.1 - before.1) / (next.0 - before.0);
+        let (t0, v0, t1) = (compact(before.0), compact(before.1), compact(next.0));
+        expr.push_str(&format!("if(lt(t,{t1}),{v0}+{}*(t-{t0}),", compact(slope)));
+        closing += 1;
+        before = next;
+    }
+    expr.push_str(&compact(last.1));
+    expr.push_str(&")".repeat(closing));
+    expr
+}
+
+/// The points as seconds and a value each.
+fn timed(points: &[EnvelopePoint], value: impl Fn(f64) -> f64) -> Vec<(f64, f64)> {
+    points
+        .iter()
+        .map(|p| (p.at as f64 / 1_000_000.0, value(p.value)))
+        .collect()
+}
+
+/// A level that follows an envelope.
+fn gain_envelope_filter(points: &[EnvelopePoint]) -> String {
+    let expr = envelope_expr(&timed(points, |v| v));
+    format!(",volume=eval=frame:volume='{expr}'")
+}
+
+/// A pan that follows an envelope. The sound is split in two channels, each goes to both sides
+/// with the gain the pan law gives at that moment, and the sides are joined again. `n` keeps the
+/// labels of one segment apart from the others'.
+fn pan_envelope_filter(n: usize, points: &[EnvelopePoint]) -> String {
+    let gain = |pick: fn((f64, f64, f64, f64)) -> f64| {
+        envelope_expr(&timed(points, |pan| pick(pan_gains(pan))))
+    };
+    let (ll, rl) = (gain(|g| g.0), gain(|g| g.1));
+    let (lr, rr) = (gain(|g| g.2), gain(|g| g.3));
+    let volume = |from: &str, expr: String, to: &str| {
+        format!("[{from}{n}]volume=eval=frame:volume='{expr}'[{to}{n}];")
+    };
+    let mut text = format!(",channelsplit=channel_layout=stereo[pl{n}][pr{n}];");
+    text.push_str(&format!("[pl{n}]asplit[pll{n}][plr{n}];"));
+    text.push_str(&format!("[pr{n}]asplit[prl{n}][prr{n}];"));
+    text.push_str(&volume("pll", ll, "gll"));
+    text.push_str(&volume("prl", rl, "grl"));
+    text.push_str(&volume("plr", lr, "glr"));
+    text.push_str(&volume("prr", rr, "grr"));
+    text.push_str(&format!(
+        "[gll{n}][grl{n}]amix=inputs=2:normalize=0[ol{n}];"
+    ));
+    text.push_str(&format!(
+        "[glr{n}][grr{n}]amix=inputs=2:normalize=0[or{n}];"
+    ));
+    text.push_str(&format!(
+        "[ol{n}][or{n}]join=inputs=2:channel_layout=stereo[pan{n}];[pan{n}]anull"
+    ));
+    text
 }
 
 /// What a clip's sound settings add, in the preview's order. Empty at the defaults.
@@ -194,7 +295,7 @@ fn effects(segment: &SoundSegment) -> String {
             EqKind::HighCut => format!(",lowpass=f={hz:.2}"),
         });
     }
-    if segment.pan != 0.0 {
+    if segment.pan != 0.0 && segment.pan_envelope.is_empty() {
         chain.push_str(&pan_filter(segment.pan));
     }
     chain
@@ -214,8 +315,13 @@ fn sound_graph(sound: &[SoundSegment], first_input: usize, total: u64) -> String
         let mut chain =
             format!("[{input}:a]aresample={SAMPLE_RATE},aformat=sample_fmts=fltp,{layout}");
         chain.push_str(&effects(segment));
-        if segment.gain != 1.0 {
+        if !segment.gain_envelope.is_empty() {
+            chain.push_str(&gain_envelope_filter(&segment.gain_envelope));
+        } else if segment.gain != 1.0 {
             chain.push_str(&format!(",volume={:.6}", segment.gain));
+        }
+        if !segment.pan_envelope.is_empty() {
+            chain.push_str(&pan_envelope_filter(i, &segment.pan_envelope));
         }
         // `qsin` is the equal-power curve the preview's crossfade uses.
         if segment.fade_in > 0 {
@@ -405,6 +511,8 @@ mod sound_tests {
             mono: false,
             gain: 1.0,
             pan: 0.0,
+            gain_envelope: Vec::new(),
+            pan_envelope: Vec::new(),
             eq: Vec::new(),
             pitch: 0.0,
             speed: 1.0,
@@ -549,5 +657,59 @@ mod sound_tests {
             far,
             ",asetrate=192000.000,aresample=48000,atempo=0.500000,atempo=0.500000"
         );
+    }
+
+    fn keyed() -> SoundSegment {
+        let point = |at, value| EnvelopePoint { at, value };
+        SoundSegment {
+            gain_envelope: vec![point(0, 1.0), point(1_000_000, 0.25)],
+            pan_envelope: vec![point(0, -1.0), point(1_000_000, 1.0)],
+            ..segment()
+        }
+    }
+
+    #[test]
+    fn gain_envelope_becomes_a_frame_expression() {
+        let chain = sound_graph(&[keyed()], 1, 2_000_000);
+        assert!(chain.contains("volume=eval=frame:volume='"), "{chain}");
+        assert!(chain.contains("if(lt(t,1),1+-0.75*(t-0),0.25)"), "{chain}");
+        assert!(!chain.contains(",volume=1"), "{chain}");
+    }
+
+    #[test]
+    fn pan_envelope_splits_mixes_and_joins_per_segment() {
+        let chain = sound_graph(&[keyed(), keyed()], 1, 2_000_000);
+        assert!(
+            chain.contains("channelsplit=channel_layout=stereo[pl0][pr0]"),
+            "{chain}"
+        );
+        assert!(
+            chain.contains("channelsplit=channel_layout=stereo[pl1][pr1]"),
+            "{chain}"
+        );
+        assert!(
+            chain.contains("join=inputs=2:channel_layout=stereo[pan1]"),
+            "{chain}"
+        );
+        assert!(!chain.contains("pan=stereo"), "{chain}");
+    }
+
+    #[test]
+    fn a_still_pan_stays_in_the_effects_without_an_envelope() {
+        let still = SoundSegment {
+            pan: 0.5,
+            ..segment()
+        };
+        assert!(sound_graph(&[still], 0, 1_000_000).contains(",pan=stereo|"));
+    }
+
+    #[test]
+    fn pan_gains_are_the_law_of_pan_filter() {
+        let (ll, rl, lr, rr) = pan_gains(0.0);
+        assert!((ll - 1.0).abs() < 1e-9 && rl.abs() < 1e-9 && lr == 0.0 && (rr - 1.0).abs() < 1e-9);
+        let (ll, rl, lr, rr) = pan_gains(-1.0);
+        assert!((ll - 1.0).abs() < 1e-9 && (rl - 1.0).abs() < 1e-9 && lr == 0.0 && rr.abs() < 1e-9);
+        let (ll, rl, lr, rr) = pan_gains(1.0);
+        assert!(ll.abs() < 1e-9 && rl == 0.0 && (lr - 1.0).abs() < 1e-9 && (rr - 1.0).abs() < 1e-9);
     }
 }

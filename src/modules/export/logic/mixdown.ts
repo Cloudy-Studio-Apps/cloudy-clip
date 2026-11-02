@@ -2,19 +2,23 @@ import type { Micros } from "@/core";
 import {
   allowedOverlap,
   bandActive,
+  contentTime,
   dbToLinear,
   pitchShift,
   soundOf,
   sourceTimeAt,
   speedOf,
+  trackValue,
   type Clip,
   type ClipSound,
   type ClipSpeed,
+  type KeyTrack,
   type CompositionId,
   type MediaId,
   type ProjectState,
   type Track,
 } from "@/modules/project";
+import { envelope } from "./envelope";
 import type { ExportRange, MixEdges, MixWindow, SoundSegment } from "../export.types";
 
 /** The overlap a junction allows between two neighbours of a track; 0 for plain neighbours. */
@@ -25,16 +29,41 @@ function overlapOf(project: ProjectState, left: Clip | undefined, right: Clip | 
 }
 
 /** What a clip's sound adds to a segment; nothing at the defaults. */
-function soundFields(sound: ClipSound, gain: number): Partial<SoundSegment> {
+function soundFields(
+  sound: ClipSound,
+  gain: number,
+  keyed: Pick<SoundSegment, "gainEnvelope" | "panEnvelope">,
+): Partial<SoundSegment> {
   const eq = sound.eq.on
     ? sound.eq.bands.filter(bandActive).map(({ shape, hz, db, q }) => ({ kind: shape, hz, db, q }))
     : [];
   const pitch = pitchShift(sound);
   return {
-    ...(gain !== 1 && { gain }),
-    ...(sound.pan !== 0 && { pan: sound.pan }),
+    ...(keyed.gainEnvelope ? { gainEnvelope: keyed.gainEnvelope } : gain !== 1 && { gain }),
+    ...(keyed.panEnvelope
+      ? { panEnvelope: keyed.panEnvelope }
+      : sound.pan !== 0 && { pan: sound.pan }),
     ...(eq.length > 0 && { eq }),
     ...(pitch !== 0 && { pitch }),
+  };
+}
+
+/** The envelopes of a clip's keyed volume and pan over the part of it that sounds. */
+function keyedFields(
+  clip: Clip,
+  parentGain: number,
+  start: Micros,
+  stop: Micros,
+): Pick<SoundSegment, "gainEnvelope" | "panEnvelope"> {
+  const volume = clip.animation?.["sound.volumeDb"];
+  const pan = clip.animation?.["sound.pan"];
+  const read = (track: KeyTrack, time: Micros) =>
+    Number(trackValue(track, contentTime(clip, time)));
+  return {
+    ...(volume?.keys.length && {
+      gainEnvelope: envelope((time) => parentGain * dbToLinear(read(volume, time)), start, stop),
+    }),
+    ...(pan?.keys.length && { panEnvelope: envelope((time) => read(pan, time), start, stop) }),
   };
 }
 
@@ -103,7 +132,7 @@ function walk(
         duration: stop - start,
         fadeIn: Math.max(fades.fadeIn, start === from ? edges.fadeIn : 0),
         fadeOut: Math.max(fades.fadeOut, stop === end ? edges.fadeOut : 0),
-        ...soundFields(sound, level),
+        ...soundFields(sound, level, keyedFields(clip, gain, start, stop)),
         ...speedFields(speedOf(clip)),
       });
     });
