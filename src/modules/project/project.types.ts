@@ -106,6 +106,8 @@ export interface Clip extends Partial<SharedGroupValues> {
   mediaId?: MediaId;
   /** The composition it plays (composition clips); a live mirror of that composition. */
   compositionRef?: CompositionId;
+  /** Stays on the timeline but isn't seen or heard, in preview or export. Missing means on. */
+  disabled?: true;
   /**
    * Clips sharing a `linkId` are linked (a video's picture and its sound): they are selected,
    * moved, trimmed, split and deleted together until unlinked. Missing means unlinked.

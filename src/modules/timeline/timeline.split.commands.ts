@@ -1,8 +1,17 @@
 import { produce } from "immer";
 import { z } from "zod";
-import { CommandFailure, createId, defineCommand, formatTimecode } from "@/core";
+import {
+  CommandFailure,
+  createId,
+  defineCommand,
+  formatTimecode,
+  type CommandContext,
+} from "@/core";
 import {
   type Clip,
+  type ClipId,
+  type JunctionId,
+  type ProjectState,
   compositionClips,
   followsFileTime,
   formatOf,
@@ -124,21 +133,35 @@ export const deleteClips = defineCommand({
   run(ctx, { clipIds }) {
     const state = ctx.require(projectRef).store.getState();
     clipIds.forEach((id) => requireClip(state, id));
-    const all = withPartners(state, clipIds);
-    const doomed = new Set(all);
-    const removedJunctions = Object.values(state.junctions)
-      .filter((j) => doomed.has(j.leftClipId) || doomed.has(j.rightClipId))
-      .map((j) => j.id);
-    ctx.mutate(ctx.require(projectRef).store, (draft) => {
-      for (const id of all) {
-        const clip = draft.clips[id];
-        if (!clip) continue;
-        const track = draft.tracks[clip.trackId];
-        if (track) track.clipIds = track.clipIds.filter((c) => !doomed.has(c));
-        delete draft.clips[id];
-      }
-      for (const id of removedJunctions) delete draft.junctions[id];
-    });
-    return { deleted: all.length, removedJunctions };
+    return removeClips(ctx, state, withPartners(state, clipIds));
   },
 });
+
+/** `state` without the clips and the junctions on their cuts; nothing shifts. */
+export function withoutClips(
+  state: ProjectState,
+  ids: readonly ClipId[],
+): { next: ProjectState; removedJunctions: JunctionId[] } {
+  const doomed = new Set(ids);
+  const removedJunctions = Object.values(state.junctions)
+    .filter((j) => doomed.has(j.leftClipId) || doomed.has(j.rightClipId))
+    .map((j) => j.id);
+  const next = produce(state, (draft) => {
+    for (const id of ids) {
+      const clip = draft.clips[id];
+      if (!clip) continue;
+      const track = draft.tracks[clip.trackId];
+      if (track) track.clipIds = track.clipIds.filter((c) => !doomed.has(c));
+      delete draft.clips[id];
+    }
+    for (const id of removedJunctions) delete draft.junctions[id];
+  });
+  return { next, removedJunctions };
+}
+
+/** Removes clips (with their partners already in `ids`) and their junctions, as one step. */
+export function removeClips(ctx: CommandContext, state: ProjectState, ids: readonly ClipId[]) {
+  const { next, removedJunctions } = withoutClips(state, ids);
+  commitState(ctx, state, next);
+  return { deleted: ids.length, removedJunctions };
+}

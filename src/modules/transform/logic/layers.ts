@@ -30,7 +30,7 @@ export function visibleLayers(
     if (!track || track.kind !== "video" || track.hidden) continue;
     for (const clipId of track.clipIds) {
       const clip = state.clips[clipId];
-      if (!clip) continue;
+      if (!clip || clip.disabled) continue;
       if (clip.start > time) break; // sorted by start
       if (time >= clip.start + clip.duration) continue;
       const element = elements.get(clip.kind);

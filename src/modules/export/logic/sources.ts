@@ -14,7 +14,7 @@ export function usedMedia(
     for (const trackId of composition.trackOrder) {
       for (const clipId of project.tracks[trackId]?.clipIds ?? []) {
         const clip = project.clips[clipId];
-        if (!clip) continue;
+        if (!clip || clip.disabled) continue;
         const start = Math.max(from, clip.start);
         const stop = Math.min(to, clip.start + clip.duration);
         if (stop <= start) continue;

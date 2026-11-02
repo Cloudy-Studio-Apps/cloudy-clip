@@ -59,7 +59,7 @@ function resolveLevel(
     if (ended) continue;
     for (const clipId of track.clipIds) {
       const clip = project.clips[clipId];
-      if (!clip) continue;
+      if (!clip || clip.disabled) continue;
       const path = pathOf(prefix, clip.id);
       if (clip.start <= time && time < clip.start + clip.duration) {
         const inner = inside(project, clip, track, time, options, path);

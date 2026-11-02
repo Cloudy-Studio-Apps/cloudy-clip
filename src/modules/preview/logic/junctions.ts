@@ -18,7 +18,9 @@ export function activeJunctions(
   for (const junction of Object.values(project.junctions)) {
     if (junction.trackId !== trackId || junction.duration <= 0) continue;
     const right = project.clips[junction.rightClipId];
-    if (!right) continue;
+    const left = project.clips[junction.leftClipId];
+    // A disabled side isn't there, so the other clip plays plainly.
+    if (!right || !left || right.disabled || left.disabled) continue;
     const since = time - right.start;
     if (since < 0 || since >= junction.duration) continue;
     result.push({ junction, progress: since / junction.duration, elapsed: microsToSeconds(since) });
@@ -49,7 +51,7 @@ export function soundGains(
     for (let i = 1; i < track.clipIds.length; i++) {
       const left = project.clips[track.clipIds[i - 1]!];
       const right = project.clips[track.clipIds[i]!];
-      if (!left || !right) continue;
+      if (!left || !right || left.disabled || right.disabled) continue;
       const since = time - right.start;
       const overlap = left.start + left.duration - right.start;
       if (since < 0 || since >= overlap) continue;

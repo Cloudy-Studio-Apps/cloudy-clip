@@ -19,6 +19,7 @@ import {
   deleteClips,
   moveClip,
   removeTrack,
+  rippleDelete,
   splitAt,
   trimClip,
   unlinkClips,
@@ -344,6 +345,17 @@ describe("splitting and deleting joined clips", () => {
     expect(result.removedJunctions).toEqual([j.id]);
     expect(doc().junctions).toEqual({});
     expect(starts()).toEqual({ B: 3.5, C: 7.5, sB: 3.5, sC: 7.5 });
+    expect(staleJunctions(doc())).toEqual([]);
+  });
+});
+
+describe("ripple deleting joined clips", () => {
+  it("closes only the time the clip freed, and removes its junction", async () => {
+    await joined();
+    await run(kernel.bus.run(rippleDelete, { clipIds: ["B"] }));
+    expect(doc().clips.C!.start).toBe(4 * S);
+    expect(doc().clips.sC!.start).toBe(4 * S);
+    expect(doc().junctions).toEqual({});
     expect(staleJunctions(doc())).toEqual([]);
   });
 });

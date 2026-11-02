@@ -8,6 +8,7 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule } from "@/modules/preview";
 import {
   createProjectModule,
+  partnersOf,
   projectRef,
   seedProject,
   trackClips,
@@ -18,8 +19,11 @@ import {
   addClip,
   addTrack,
   deleteClips,
+  linkClips,
   moveClip,
   removeTrack,
+  rippleDelete,
+  setClipsDisabled,
   setTrackMuted,
   splitAt,
   trimClip,
@@ -471,5 +475,89 @@ describe("image clips", () => {
     expect(onAudio).toMatchObject({ ok: false, error: { code: "timeline.kind_mismatch" } });
     const withSource = await kernel.bus.run(addClip, { mediaId: "mi", sourceIn: S });
     expect(withSource).toMatchObject({ ok: false, error: { code: "timeline.out_of_range" } });
+  });
+});
+
+describe("ripple delete", () => {
+  /** Sound-only clips on one track, as [start, duration] in seconds. */
+  async function sounds(...spans: [number, number][]) {
+    const clips = [];
+    for (const [start, length] of spans) {
+      clips.push(await place({ mediaId: "ma", start: start * S, duration: length * S }));
+    }
+    return clips;
+  }
+  const startOf = (id: string) => doc().clips[id]!.start / S;
+
+  it("closes the clip's length", async () => {
+    const [, b, c] = await sounds([0, 10], [10, 5], [15, 5]);
+    await run(kernel.bus.run(rippleDelete, { clipIds: [b!.id] }));
+    expect(startOf(c!.id)).toBe(10);
+  });
+
+  it("keeps gaps that were already there", async () => {
+    const [, b, c] = await sounds([0, 5], [8, 2], [12, 2]);
+    await run(kernel.bus.run(rippleDelete, { clipIds: [b!.id] }));
+    expect(startOf(c!.id)).toBe(10);
+  });
+
+  it("adds up on a track", async () => {
+    const [a, , c, d] = await sounds([0, 2], [2, 2], [4, 2], [6, 2]);
+    await run(kernel.bus.run(rippleDelete, { clipIds: [a!.id, c!.id] }));
+    expect(startOf(d!.id)).toBe(2);
+  });
+
+  it("moves a linked pair by the smaller shift and keeps it in sync", async () => {
+    const image = await place({ mediaId: "mi", start: 0, duration: 4 * S });
+    const [sound] = await sounds([0, 2]);
+    const { video, audio } = await pair(4 * S);
+    await run(kernel.bus.run(rippleDelete, { clipIds: [image.id, sound!.id] }));
+    expect([startOf(video.id), startOf(audio.id)]).toEqual([2, 2]);
+  });
+
+  it("changes nothing when the shift would overlap", async () => {
+    await place({ mediaId: "mi", start: 0, duration: 4 * S });
+    const [sound] = await sounds([0, 4]);
+    const { video } = await pair(4 * S);
+    const before = doc();
+    const result = await kernel.bus.run(rippleDelete, { clipIds: [sound!.id] });
+    expect(result).toMatchObject({ ok: false, error: { code: "timeline.overlap" } });
+    expect(doc()).toBe(before);
+    expect(startOf(video.id)).toBe(4);
+  });
+});
+
+describe("disabling clips", () => {
+  it("marks linked partners, and stores nothing once enabled", async () => {
+    const { video, audio } = await pair();
+    await run(kernel.bus.run(setClipsDisabled, { clipIds: [video.id], disabled: true }));
+    expect(doc().clips[audio.id]!.disabled).toBe(true);
+    await run(kernel.bus.run(setClipsDisabled, { clipIds: [video.id], disabled: false }));
+    expect(doc().clips[video.id]).not.toHaveProperty("disabled");
+    expect(doc().clips[audio.id]).not.toHaveProperty("disabled");
+  });
+});
+
+describe("linking clips", () => {
+  it("restores an unlinked pair", async () => {
+    const { video, audio } = await pair();
+    await run(kernel.bus.run(unlinkClips, { clipIds: [video.id] }));
+    await run(kernel.bus.run(linkClips, { clipIds: [video.id, audio.id] }));
+    expect(partnersOf(doc(), video.id).map((c) => c.id)).toEqual([audio.id]);
+  });
+
+  it("refuses another file", async () => {
+    const image = await place({ mediaId: "mi", duration: 4 * S });
+    const sound = await place({ mediaId: "ma", duration: 4 * S });
+    const result = await kernel.bus.run(linkClips, { clipIds: [image.id, sound.id] });
+    expect(result).toMatchObject({ ok: false, error: { code: "timeline.link_mismatch" } });
+  });
+
+  it("refuses other timing", async () => {
+    const { video, audio } = await pair();
+    await run(kernel.bus.run(unlinkClips, { clipIds: [video.id] }));
+    await run(kernel.bus.run(trimClip, { clipId: audio.id, edge: "end", time: 5 * S }));
+    const result = await kernel.bus.run(linkClips, { clipIds: [video.id, audio.id] });
+    expect(result).toMatchObject({ ok: false, error: { code: "timeline.link_mismatch" } });
   });
 });

@@ -73,6 +73,7 @@ export const TimelineClip = memo(function TimelineClip({
         className={cn(
           "group absolute bottom-[3px] top-[3px] overflow-hidden text-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] select-none data-[invalid=true]:!bg-destructive data-[invalid=true]:!outline-destructive",
           selected && "z-10 outline-2 outline-offset-1 outline-mark",
+          clip.disabled && "opacity-40",
           shift !== 0 && "transition-transform duration-100",
         )}
         style={{

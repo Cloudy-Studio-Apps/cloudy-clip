@@ -45,6 +45,11 @@ function project(clips: Clip[], muted = false): ProjectState {
 }
 
 describe("mixdown", () => {
+  it("leaves out disabled clips", () => {
+    const state = project([clip("a", "a1", { disabled: true })]);
+    expect(mixdown(state, "c1", everything, sounds)).toEqual([]);
+  });
+
   it("places a clip at its timeline time and file offset", () => {
     const state = project([clip("a", "a1", { start: 1_000_000, sourceIn: 2_000_000 })]);
     expect(mixdown(state, "c1", everything, sounds)).toEqual([

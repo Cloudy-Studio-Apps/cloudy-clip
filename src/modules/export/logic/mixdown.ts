@@ -52,7 +52,7 @@ function walk(
     if (track?.kind !== "audio" || track.muted) continue;
     const clips = track.clipIds.map((id) => project.clips[id]);
     clips.forEach((clip, i) => {
-      if (!clip) return;
+      if (!clip || clip.disabled) return;
       const clipEnd = clip.start + clip.duration;
       const start = Math.max(from, clip.start);
       const stop = Math.min(end, clipEnd);
