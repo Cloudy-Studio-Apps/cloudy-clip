@@ -138,6 +138,14 @@ describe("timeline commands", () => {
     expect(doc().tracks[clips[0]!.trackId]!.kind).toBe("video");
   });
 
+  it("adds a track at a position, and undo takes it out", async () => {
+    const before = doc().compositions.c1!.trackOrder;
+    const { trackId } = await run(kernel.bus.run(addTrack, { kind: "video", index: 1 }));
+    expect(doc().compositions.c1!.trackOrder).toEqual([before[0], trackId, ...before.slice(1)]);
+    await kernel.bus.execute("history.undo", {});
+    expect(doc().compositions.c1!.trackOrder).toEqual(before);
+  });
+
   it("a video dropped on an audio track opens a video track when the first is busy", async () => {
     await place({ mediaId: "mv" });
     const { trackId } = await run(kernel.bus.run(addTrack, { kind: "audio" }));

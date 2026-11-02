@@ -16,19 +16,20 @@ function nextTrackName(state: ProjectState, compositionId: string, kind: TrackKi
   return `${base} ${count + 1}`;
 }
 
-/** Adds an empty track. New video tracks go on top (drawn above the others). */
+/** Adds an empty track at `index`; without one, video goes on top and audio at the bottom. */
 export const addTrack = defineCommand({
   id: "timeline.addTrack",
   label: "Add track",
   description:
-    "Adds an empty track to your open composition, or to compositionId. Video tracks are added at the top (their picture is drawn above lower tracks); audio tracks at the bottom. Returns the new track id.",
+    "Adds an empty track to your open composition, or to compositionId. Video tracks are added at the top (their picture is drawn above lower tracks) and audio tracks at the bottom, unless you pass index: its place in the track order, 0 being the top. Returns the new track id.",
   undoable: true,
   input: z.object({
     kind: z.enum(["video", "audio"]),
+    index: z.number().int().min(0).optional(),
     name: z.string().min(1).max(60).optional(),
     compositionId: z.string().optional(),
   }),
-  run(ctx, { kind, name, compositionId }) {
+  run(ctx, { kind, index, name, compositionId }) {
     const id = createId("track");
     const project = ctx.require(projectRef);
     const home = compositionId ?? project.view.requireOpen(ctx.actor).id;
@@ -46,8 +47,8 @@ export const addTrack = defineCommand({
         hidden: false,
       };
       const { trackOrder } = draft.compositions[home]!;
-      if (kind === "video") trackOrder.unshift(id);
-      else trackOrder.push(id);
+      const at = index ?? (kind === "video" ? 0 : trackOrder.length);
+      trackOrder.splice(Math.min(at, trackOrder.length), 0, id);
     });
     return { trackId: id };
   },

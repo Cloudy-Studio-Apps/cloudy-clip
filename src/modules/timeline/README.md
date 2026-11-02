@@ -113,3 +113,5 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
 | `timeline.setTrackHidden` | `timeline_set_track_hidden` |
 
 The panel is an animator's exposure sheet: a peg bar in the toolbar (`ui/PegBar.tsx`, decoration), and rows as a repeating background on each lane, so no page gains elements. The selected clip is a red pencil outline (`outline`, not a shadow), and a junction a long red X.
+
+Hovering the gap above, between or below the track headers offers a new video or audio track right there (`ui/TrackInsert.tsx`, `timeline.addTrack` with `index`). The gaps have no height, so lanes and hit tests don't move.

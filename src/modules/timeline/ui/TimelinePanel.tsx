@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { ErrorBoundary, MICROS_PER_SECOND, useModule, usePoint, type Micros } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
@@ -18,6 +18,7 @@ import { Playhead } from "./Playhead";
 import { Ruler } from "./Ruler";
 import { TimelineToolbar } from "./TimelineToolbar";
 import { TrackHeader } from "./TrackHeader";
+import { TrackInsert } from "./TrackInsert";
 import { TrackLane } from "./TrackLane";
 
 const NO_TRACKS: readonly TrackId[] = [];
@@ -153,21 +154,25 @@ export function TimelinePanel() {
             style={{ width: HEADER_WIDTH + contentWidth, minHeight: "100%" }}
           >
             <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
-            {lanes.map(({ track, clips }) => (
-              <div key={track.id} className="flex">
-                <TrackHeader track={track} />
-                <div style={{ width: contentWidth }}>
-                  <TrackLane
-                    track={track}
-                    clips={clips}
-                    pxPerSecond={pxPerSecond}
-                    from={from}
-                    to={to}
-                    rootRef={scrollRef}
-                  />
+            {lanes.map(({ track, clips }, index) => (
+              <Fragment key={track.id}>
+                <TrackInsert index={index} first={index === 0} />
+                <div className="flex">
+                  <TrackHeader track={track} />
+                  <div style={{ width: contentWidth }}>
+                    <TrackLane
+                      track={track}
+                      clips={clips}
+                      pxPerSecond={pxPerSecond}
+                      from={from}
+                      to={to}
+                      rootRef={scrollRef}
+                    />
+                  </div>
                 </div>
-              </div>
+              </Fragment>
             ))}
+            {open && lanes.length > 0 && <TrackInsert index={lanes.length} />}
             {open && content === 0 && (
               <p
                 className="pointer-events-none absolute text-sm text-subtle-foreground"
