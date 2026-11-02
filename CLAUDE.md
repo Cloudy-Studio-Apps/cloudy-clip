@@ -6,10 +6,10 @@ Cloudy Clip (by DarkRedgm, part of the Cloudy Studio family with Cloudy Canvas) 
 
 Two product ideas drive the architecture:
 
-1. **Agents are first-class editors.** An MCP server is built in and on by default. An agent can do anything a user can do, on the same live project, and the user can undo it. Neither side has powers the other lacks.
+1. **Agents are first-class editors.** An MCP server is built in and on by default. An agent can do anything a user can do, on the same live project, and the user can undo it. Neither side has powers the other lacks. The user's own app settings, like the theme, aren't part of the project: those stay the user's alone.
 2. **Plugins come later, but the API is designed now.** Built-in modules register through the same surface third-party plugins will use.
 
-**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, clip sound controls, constant clip speed with Freeze frame and Reverse, text clips with full styling and fonts, solid colors and gradients, blend modes and opacity, junctions with transitions between clips, and stickers in packs). Projects save and reopen (workspace), and compositions export to files (export). No picture effects or AI features yet. Do not scaffold modules beyond this unless asked.
+**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, clip sound controls, constant clip speed with Freeze frame and Reverse, text clips with full styling and fonts, solid colors and gradients, blend modes and opacity, junctions with transitions between clips, stickers in packs, and a Settings window with themes). Projects save and reopen (workspace), and compositions export to files (export). No picture effects or AI features yet. Do not scaffold modules beyond this unless asked.
 
 ## Commands
 
@@ -54,7 +54,7 @@ These are the rules, and they are strict. How things work is described in the `R
 10. A feature owns its whole surface: its commands, MCP tools, UI and contributions live in its folder, even when the data it edits lives in `project`. Don't add a feature's command to another module.
 11. `<name>.module.ts` is wiring only: `defineModule`, `ctx.contribute`, creating stores and services. No logic.
 12. **No module-level singletons** for state or services. `setup(ctx)` runs once per kernel and creates them (store factories in `<name>.store.ts`), registering each cleanup with `ctx.onDispose` right after acquiring it.
-13. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels`, `keybindings`, `topBarItems`, `appOverlays`, `appPages`, `appPageGroups` and `appMenuItems`; the timeline reads `timelineOverlays`, `timelineTabs`, `timelineTools` and `timelineDocks`; `media` reads `librarySections` and `libraryKinds`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls`, `sectionLayouts`, `inspectorTabs`, `inspectorSections` and `fieldActions`; `sticker` reads `stickerPacks` and `stickerStyles`.
+13. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels`, `keybindings`, `topBarItems`, `appOverlays`, `appPages`, `appPageGroups` and `appMenuItems`; the timeline reads `timelineOverlays`, `timelineTabs`, `timelineTools` and `timelineDocks`; `media` reads `librarySections` and `libraryKinds`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls`, `sectionLayouts`, `inspectorTabs`, `inspectorSections` and `fieldActions`; `sticker` reads `stickerPacks` and `stickerStyles`; `settings` reads `settingsSections`; `theme` reads `themes`.
 
 **Commands and state**
 
@@ -93,7 +93,7 @@ These are the rules, and they are strict. How things work is described in the `R
 **UI**
 
 33. Reuse before writing: the kit in `@/ui` (`Button`, `IconButton`, `SegmentedControl`, `ToolbarButton`, `EmptyState`, `ProgressBar`, `Waveform`, `Kbd`, `FoldSection`, `GradientField`, `SealMark`, `SealSketch`, `SketchPage`, `cn`). A piece a second module needs moves to `@/ui` instead of being copied. Icons come from `lucide-react`.
-34. Components use semantic tokens only (`bg-surface`, `text-muted-foreground`, `border-border`, `bg-primary`, `bg-clip-video`, …). Tailwind's default palette is reset, so `bg-neutral-900` doesn't exist; palette scales (`ice`, `seal`, `blush`, `sand`) are for brand art and media badges only.
+34. Components use semantic tokens only (`bg-surface`, `text-muted-foreground`, `border-border`, `bg-primary`, `bg-clip-video`, …). Tailwind's default palette is reset, so `bg-neutral-900` doesn't exist; palette scales (`ice`, `seal`, `blush`, `sand`) are for brand art and media badges only. App chrome never hard-codes a color: themes change every token, so a fixed color is only for what sits over a picture.
 35. Sharp shapes: `rounded-xs` (2px) to `rounded-lg` (8px), nothing above 8px, no pills (only avatars, switch and slider thumbs and EQ points are round). Type scale is `text-2xs`…`text-md` (10–14px), plus `text-display` for the wordmark. UI fonts are Shantell Sans (`font-hand`, for titles, tabs and buttons), Atkinson Hyperlegible and Courier Prime (Fontsource, offline). Inter and JetBrains Mono stay bundled for text clips. The look follows `docs/prototype/designs/b-mesa-de-noche.html`.
 36. The seal (`SealMark`) appears in light touches only: the logo, empty states, waiting. Never as clutter. `SealMark` is the foca watona: spotted, with dark deadpan open eyes.
 
@@ -123,6 +123,8 @@ src/
     audio/      how a clip sounds: volume, pan, fades, EQ, pitch, the inspector's Audio tab (feature)
     speed/      how fast a clip plays: the box over the clip, the Speed section, Freeze frame, Reverse (feature)
     solid/      solid colors and gradients: the element, library items, the dialog (feature)
+    settings/   the Settings window, filled by sections other modules contribute (feature)
+    theme/      themes for the interface: colors, fonts, corners, the Appearance section (feature)
     collab/     agents as collaborators: presence, access, pointer, Follow (feature)
     tint/       the Tint page, for colors, empty for now (feature)
     sound/      the Sound page, empty for now (feature)

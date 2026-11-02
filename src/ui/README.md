@@ -9,7 +9,8 @@ Import it only through `@/ui` (enforced by ESLint).
 ## Tokens
 
 - `styles/tokens.css`: the palette (ice, seal, blush, sand) and the semantic tokens of Cloudy
-  Dark (default) and Cloudy Light (`data-theme="light"` on `<html>`).
+  Dark, the default. Other themes change these values at runtime (`src/modules/theme`), so
+  components use tokens and never read a theme.
 - `styles/base.css`: page defaults, focus ring, thin square scrollbars (`data-scroll="wide"` for
   the timeline).
 - `src/index.css` maps them to Tailwind. Tailwind's default colors and radii are reset, so only
