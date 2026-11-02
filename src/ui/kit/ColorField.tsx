@@ -16,6 +16,8 @@ interface ColorFieldProps {
   swatches?: readonly string[];
   /** Shown dimmed; nothing can be changed. */
   disabled?: boolean;
+  /** Leaves out the label, for a row that draws its own. */
+  bare?: boolean;
 }
 
 /** A labelled row: a swatch that opens the picker, the hex text and the opacity %. */
@@ -27,6 +29,7 @@ export function ColorField({
   recents,
   swatches,
   disabled,
+  bare,
 }: ColorFieldProps) {
   const alpha = opacity ?? 1;
   const shown = `${color}${Math.round(alpha * 255)
@@ -42,8 +45,8 @@ export function ColorField({
     />
   );
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      {!bare && <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>}
       {disabled ? (
         swatchButton
       ) : (

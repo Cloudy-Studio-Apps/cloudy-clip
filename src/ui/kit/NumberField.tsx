@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "../lib/cn";
+import { NumberScrub } from "./NumberScrub";
 
 interface NumberFieldProps {
   /** Accessible name. */
@@ -9,8 +10,12 @@ interface NumberFieldProps {
   max?: number;
   step?: number;
   unit?: string;
-  /** Fires once, on Enter or blur, with a clamped number. */
+  /** Fires once, on Enter, blur or the end of a scrub, with a clamped number. */
   onChange(value: number): void;
+  /** Drawn first: a short name ("X") that can be dragged to change the number. */
+  prefix?: string;
+  /** Fires on every step of a scrub (live preview). */
+  onInput?(value: number): void;
   className?: string;
   /** Shown dimmed; nothing can be changed. */
   disabled?: boolean;
@@ -25,9 +30,12 @@ export function NumberField({
   step = 1,
   unit,
   onChange,
+  prefix,
+  onInput,
   className,
   disabled,
 }: NumberFieldProps) {
+  const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState(String(value));
   const [seen, setSeen] = useState(value);
   if (seen !== value) {
@@ -41,6 +49,7 @@ export function NumberField({
     setText(String(next));
     if (next !== value) onChange(next);
   };
+  const scrubBounds = { min, max, step };
   return (
     <label
       className={cn(
@@ -49,7 +58,23 @@ export function NumberField({
         className,
       )}
     >
+      {prefix !== undefined && !disabled && (
+        <NumberScrub
+          prefix={prefix}
+          read={() => Number(input.current?.value ?? value)}
+          bounds={scrubBounds}
+          onStep={(next) => {
+            if (input.current) input.current.value = String(next);
+            onInput?.(next);
+          }}
+          onEnd={(next) => commit(String(next))}
+        />
+      )}
+      {prefix !== undefined && disabled && (
+        <span className="font-mono text-2xs text-muted-foreground">{prefix}</span>
+      )}
       <input
+        ref={input}
         aria-label={label}
         inputMode="decimal"
         disabled={disabled}

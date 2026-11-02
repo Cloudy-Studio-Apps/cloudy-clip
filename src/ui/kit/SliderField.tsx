@@ -14,6 +14,8 @@ interface SliderFieldProps {
   onCommit(value: number): void;
   /** Shown dimmed; nothing can be changed. */
   disabled?: boolean;
+  /** Leaves out the label, for a row that draws its own. */
+  bare?: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ export function SliderField({
   onInput,
   onCommit,
   disabled,
+  bare,
 }: SliderFieldProps) {
   const range = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -53,8 +56,8 @@ export function SliderField({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      {!bare && <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>}
       <input
         ref={range}
         type="range"
