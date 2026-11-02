@@ -102,6 +102,7 @@ export {
 /** Keyframes: key tracks, their curves, and a clip's values at a time. */
 export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";
 export { animatedClip, trackValue } from "./logic/animate";
+export { mirrorEase, moveTrackKeys, withoutKeys, withoutTracks, writeKey } from "./logic/keys";
 export { clampToClip, contentTime, timeOfContent } from "./logic/content";
 
 export { seedProject } from "./project.testing";
