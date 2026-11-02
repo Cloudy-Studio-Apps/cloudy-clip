@@ -2,7 +2,16 @@ import { MICROS_PER_SECOND } from "@/core";
 import { clipEnd, contentTime, timeOfContent, trackValue } from "@/modules/project";
 import type { Clip, Keyframe, KeyTrack } from "@/modules/project";
 import { CURVE_KEY_RADIUS } from "../keyframe.layout";
-import type { CurveSource, KeyBox, ShownCurve, ValueScale } from "../keyframe.types";
+import type {
+  CurveDragKey,
+  CurveSource,
+  KeyBox,
+  KeyRef,
+  PanelClip,
+  ShownCurve,
+  ValueScale,
+} from "../keyframe.types";
+import { refId } from "./picking";
 
 /** How many places along a clip's span are sampled to find the range its curve covers. */
 const RANGE_SAMPLES = 64;
@@ -144,4 +153,52 @@ export function dragPreview(
       .sort((a, b) => a.t - b.t);
     return { ...source, track: { ...source.track, keys } };
   });
+}
+
+/**
+ * The curves on show, with a color slot by row order. With nothing shown, the primary row is
+ * (or the first number row when there is no primary), without touching the view.
+ */
+export function curveSources(
+  rows: readonly PanelClip[],
+  shown: readonly string[],
+  primary: string | null,
+): CurveSource[] {
+  const all = rows.flatMap(({ clip, fields }) =>
+    fields.map((field) => ({ clip, path: field.path, id: `${clip.id}:${field.path}` })),
+  );
+  const numbers = all.filter(({ clip, path }) => clip.animation?.[path]?.blend === "number");
+  const fallback = numbers.find((r) => r.id === primary) ?? numbers[0];
+  const on = shown.length > 0 ? new Set(shown) : new Set(fallback ? [fallback.id] : []);
+  return all.flatMap(({ clip, path, id }, slot) => {
+    const track = clip.animation?.[path];
+    return track && track.blend === "number" && on.has(id)
+      ? [{ id, clip, path, track, slot, primary: id === primary || (on.size === 1 && on.has(id)) }]
+      : [];
+  });
+}
+
+/** The selected keys that are on shown curves, as a drag needs them: time limits, scale, range. */
+export function dragKeys(curves: readonly ShownCurve[], list: readonly KeyRef[]): CurveDragKey[] {
+  const wanted = new Set(list.map(refId));
+  return curves.flatMap((curve) =>
+    curve.track.keys.flatMap((key) =>
+      wanted.has(`${curve.clip.id}|${curve.path}|${key.id}`) && typeof key.value === "number"
+        ? [
+            {
+              ref: { clipId: curve.clip.id, path: curve.path, keyId: key.id },
+              moved: {
+                time: timeOfContent(curve.clip, key.t),
+                clipStart: curve.clip.start,
+                clipEnd: clipEnd(curve.clip),
+              },
+              scale: curve.scale,
+              value: key.value,
+              ...(curve.track.min !== undefined && { min: curve.track.min }),
+              ...(curve.track.max !== undefined && { max: curve.track.max }),
+            },
+          ]
+        : [],
+    ),
+  );
 }

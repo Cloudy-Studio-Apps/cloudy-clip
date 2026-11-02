@@ -73,11 +73,12 @@ export function PropertyRow({
           const onButton = e.target instanceof Element && e.target.closest("button") !== null;
           view.setState((s) => ({
             primary: id,
-            shown: onButton
-              ? s.shown
-              : s.shown.includes(id)
-                ? s.shown.filter((x) => x !== id)
-                : [...s.shown, id],
+            shown:
+              onButton || track.blend !== "number"
+                ? s.shown
+                : s.shown.includes(id)
+                  ? s.shown.filter((x) => x !== id)
+                  : [...s.shown, id],
           }));
         }}
         className={cn(

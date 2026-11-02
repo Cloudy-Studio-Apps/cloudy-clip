@@ -206,3 +206,11 @@ export interface CurveDragOptions {
   /** On release when the pointer never left the press. */
   onClick?(): void;
 }
+
+/** What the graph's drawing and pointer read, kept current without re-attaching listeners. */
+export interface GraphState {
+  sources: readonly CurveSource[];
+  selected: ReadonlySet<string>;
+  /** A drag in progress: the sources as it shows them, and the scales it began with. */
+  preview?: { sources: readonly CurveSource[]; frozen: ReadonlyMap<string, ValueScale> };
+}
