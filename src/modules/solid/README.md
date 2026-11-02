@@ -1,6 +1,6 @@
 # solid
 
-Flat colours. A solid sits in the media library like a file, with its own smart bin, and dragging one onto a timeline makes a clip of five seconds.
+Flat colours and gradients. A solid sits in the media library like a file, with its own smart bin, and dragging one onto a timeline makes a clip of five seconds.
 
 - **Tier:** feature
 - **Requires:** `project`, `element`, `media`, `transform`
@@ -8,7 +8,7 @@ Flat colours. A solid sits in the media library like a file, with its own smart 
 - **Points it owns:** —
 - **API:** none
 - **Files:**
-  - `solid.element.ts`: the element: a colour, a size, and the transform group.
+  - `solid.element.ts`: the element: a fill (`fillType`: a `color` or a `gradient`), a size, and the transform and composite groups. Its size defaults to the format, and `clip.props` keeps only what differs, so a clip that stores no size follows its composition (`picture.followsFrame`). The row's reset goes back to that. Sizes can't be keyed.
   - `solid.commands.ts`: the commands below. Library solids live in the document (`ProjectState.solids`).
   - `ui/`: `SolidTile`, `SolidButton`, `SolidDialog`, `useSolidEntries`.
 - **Invariants:** a clip holds its own copy of the colour, so changing or removing a library solid never touches clips.

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, type Kernel } from "@/core";
-import { elementModule } from "@/modules/element";
+import { compositionModule, setSettings } from "@/modules/composition";
+import { elementModule, elementRef } from "@/modules/element";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule } from "@/modules/media";
@@ -24,9 +25,43 @@ beforeEach(async () => {
     createFakeFontsModule(),
     previewModule,
     timelineModule,
+    compositionModule,
     transformModule,
     solidModule,
   ]);
+});
+
+const wide = { width: 1280, height: 720, fps: 30 };
+
+async function addSolid(props?: Record<string, unknown>) {
+  const placed = await kernel.bus.run(addElement, { kind: "solid", ...(props && { props }) });
+  if (!placed.ok) throw new Error(placed.error.code);
+  return placed.value.id;
+}
+
+describe("a solid on the timeline", () => {
+  it("follows the frame while it stores no size", async () => {
+    const id = await addSolid();
+    await kernel.bus.run(setSettings, { compositionId: "c1", format: wide, resize: "keep" });
+    const clip = doc().clips[id]!;
+    const values = kernel.modules.require(elementRef).resolve(clip, wide);
+    expect([values.width, values.height]).toEqual([1280, 720]);
+    expect(clip.props.width).toBeUndefined();
+  });
+
+  it("isn't scaled twice when the composition is resized with scale", async () => {
+    const id = await addSolid();
+    await kernel.bus.run(setSettings, { compositionId: "c1", format: wide, resize: "scale" });
+    expect(doc().clips[id]!.transform).toBeUndefined();
+  });
+
+  it("keeps a size of its own, and scales with the composition", async () => {
+    const id = await addSolid({ width: 500, height: 500 });
+    await kernel.bus.run(setSettings, { compositionId: "c1", format: wide, resize: "scale" });
+    const clip = doc().clips[id]!;
+    expect(clip.props.width).toBe(500);
+    expect(clip.transform?.scale).not.toBe(1);
+  });
 });
 
 describe("solid colors", () => {

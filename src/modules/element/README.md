@@ -60,6 +60,7 @@ declaration, and one command changes any element's values.
   - **Missing value types:** a `custom` prop whose type isn't in `propTypes` parses as `z.never()`
     ("value type … is not registered"), so no value is accepted, and the registry logs once
     `element "<kind>": value type "<name>" for "<path>" is not registered (is its module loaded?)`.
+  - `picture.followsFrame(clip)` (optional): whether the picture takes its size from the frame; resizing a composition with `scale` skips such a clip.
   - `picture.ready(props, { time })` (optional): whether `draw` can paint now. The engine holds the
     frame while it says no, as for a video frame still decoding (rule 22); asking may start loading,
     and it must say yes once loading has failed. `DrawEnv.time` is the time since the clip started.
@@ -88,7 +89,7 @@ declaration, and one command changes any element's values.
   - `logic/measure.ts`: `canvasTextMeasure(ctx)`, a `TextMeasure` over a 2D canvas (removes the
     trailing letter spacing the canvas adds; letter by letter without `ctx.letterSpacing`). The
     engine draws and the canvas tools hit-test with it.
-- **Elements so far:** `media` (media module), `text` (text module), `sticker` (sticker module).
+- **Elements so far:** `media` (media module), `text` (text module), `sticker` (sticker module), `solid` (solid module), `composition` (composition module).
 - **Creation:** an element's `create` entries (`{ panel, id, label, props?(format) }`) are shown by
   the timeline's `CreateTiles` and added with `timeline.addElement`.
 - **Not yet:** saving projects (`version` migrations), lists of groups, keyframes.

@@ -22,7 +22,7 @@ export const setSettings = defineCommand({
   id: "composition.setSettings",
   label: "Composition settings",
   description:
-    "Changes a composition's settings: name, format ({ width, height, fps }), background, duration (microseconds) and extendToFit. A duration without extendToFit turns Extend to fit off, so the length you set holds. When the size changes clips keep their positions, unless resize is scale, which keeps each in the same proportion of the frame. Returns the composition.",
+    "Changes a composition's settings: name, format ({ width, height, fps }), background, duration (microseconds) and extendToFit. A duration without extendToFit turns Extend to fit off, so the length you set holds. When the size changes clips keep their positions, unless resize is scale, which keeps each in the same proportion of the frame; a picture that follows the frame (a solid with no size of its own) is left alone, since it already fits. Returns the composition.",
   undoable: true,
   input: z.object({
     compositionId,
@@ -41,10 +41,12 @@ export const setSettings = defineCommand({
     if (input.duration !== undefined) checkLength(input.duration, input.format ?? before);
     const clips = input.format && resize === "scale" ? compositionClips(state, id) : [];
     ctx.mutate(store, (draft) => {
-      for (const { id: clipId, kind, transform, animation } of clips) {
+      for (const clip of clips) {
+        const { id: clipId, kind, transform, animation } = clip;
         const definition = elements.get(kind)?.definition;
         const fit = definition?.picture?.fit;
         if (!fit || !definition.supports?.transform) continue;
+        if (definition.picture?.followsFrame?.(clip)) continue;
         draft.clips[clipId]!.transform = scaleTransform(
           transform ?? IDENTITY_TRANSFORM,
           fit,

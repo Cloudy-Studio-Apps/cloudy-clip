@@ -198,6 +198,11 @@ export interface PictureDefinition<P> {
    * the frame while it says no, so it must say yes once loading has failed. Absent means ready.
    */
   ready?(props: P, env: { time: Micros }): boolean;
+  /**
+   * Whether this clip's picture takes its size from the frame. Resizing a composition with `scale`
+   * leaves such a clip alone, since it already grows with the frame.
+   */
+  followsFrame?(clip: Clip): boolean;
 }
 
 /** A tile that creates this element from a side panel. */
