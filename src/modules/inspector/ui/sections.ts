@@ -1,5 +1,5 @@
 import type { InspectorSectionItem } from "../inspector.types";
-import { InfoSection } from "./InfoSection";
+import { FileMetadataSection, FileSection } from "./FileSections";
 import { clipJunctions, JunctionsSection } from "./JunctionsSection";
 import { soundMember, SoundSection } from "./SoundSection";
 import { TimingSection } from "./TimingSection";
@@ -23,6 +23,21 @@ export const builtinSections: InspectorSectionItem[] = [
     bare: true,
     component: JunctionsSection,
   },
+  {
+    id: "inspector.file",
+    tab: "file",
+    title: "File",
+    order: 50,
+    appliesTo: ({ clip }) => clip.mediaId !== undefined,
+    component: FileSection,
+  },
+  {
+    id: "inspector.metadata",
+    tab: "file",
+    title: "Metadata",
+    order: 60,
+    appliesTo: ({ clip }) => clip.mediaId !== undefined,
+    component: FileMetadataSection,
+  },
   { id: "inspector.timing", tab: "file", title: "Timing", order: 100, component: TimingSection },
-  { id: "inspector.info", tab: "file", title: "Info", order: 200, component: InfoSection },
 ];

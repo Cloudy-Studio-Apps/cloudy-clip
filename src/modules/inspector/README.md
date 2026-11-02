@@ -9,7 +9,7 @@ several, which ones. With one junction selected (the timeline's `junctionSelecti
 panel, without tabs.
 
 - **Tier:** feature
-- **Requires:** `project`, `element` (layouts, values, `element.setProps`), `preview` (live props),
+- **Requires:** `project`, `element` (layouts, values, `element.setProps`), `media` (the File tab), `preview` (live props),
   `timeline` (the selection), `junction` (kinds, `junction.set`/`junction.remove`)
 - **Contributes:** panel `inspector.panel` (inspector slot); to its own points, the built-in
   controls, the `section` layout, the tabs Video, Audio, Transition and File, the sections Sound,
@@ -71,7 +71,7 @@ bare?, component }`, for what isn't a property of an element, so any module can 
     its opacity; a section leaves out its header's switch and the user's words), `differs`. Junctions
     have no `reset`: `junction.set` can't clear an object value, so they show none.
   - `ui/sections.ts`: the built-in `inspectorSections`, with `SoundSection`, `JunctionsSection`
-    (each junction of the clip as `JunctionBody`, titled by side), `TimingSection`, `InfoSection`.
+    (each junction of the clip as `JunctionBody`, titled by side), `FileSections` (the File tab's File and Metadata, from `media`), `TimingSection`.
   - `ui/CommandItem.tsx`: `checkPanelCommand(id, bus.get(id))`; the control is the item's
     `control`, else `button` (no field) or `choices` (an enum field). Runs `bus.execute(id, {
 ...input, clipIds: [clip.id] })`.

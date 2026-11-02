@@ -4,9 +4,9 @@ import { projectRef } from "@/modules/project";
 import { InfoList } from "@/ui";
 import type { InspectorContext } from "../inspector.types";
 
-/** Where a clip sits in time. An image and a clip without a file have no source time. */
+/** Where a clip sits: its track and time. An image and a clip without a file have no source time. */
 export function TimingSection({ context }: { context: InspectorContext }) {
-  const { clip } = context;
+  const { clip, track } = context;
   const media = useStore(useModule(projectRef).store.api, (s) =>
     clip.mediaId ? s.media[clip.mediaId] : undefined,
   );
@@ -14,6 +14,7 @@ export function TimingSection({ context }: { context: InspectorContext }) {
   return (
     <InfoList
       rows={[
+        { label: "Track", value: track.name },
         { label: "Start", value: formatTimecode(clip.start) },
         { label: "End", value: formatTimecode(clip.start + clip.duration) },
         { label: "Duration", value: formatTimecode(clip.duration) },

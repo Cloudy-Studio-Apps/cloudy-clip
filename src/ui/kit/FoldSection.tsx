@@ -6,7 +6,7 @@ interface FoldSectionProps {
   title: string;
   open: boolean;
   onToggle(): void;
-  /** Left of the title: a group's switch. The slot stays, so titles line up. */
+  /** Left of the title: a group's switch. */
   leading?: ReactNode;
   /** Right of the band; clicking them doesn't fold. */
   actions?: ReactNode;
@@ -26,9 +26,7 @@ export function FoldSection({
   return (
     <section className="border-b border-dashed border-border-strong">
       <div className="flex h-[34px] items-center gap-1.5 px-3">
-        {leading !== undefined && (
-          <span className="grid w-[30px] shrink-0 place-items-center">{leading}</span>
-        )}
+        {leading && <span className="grid shrink-0 place-items-center">{leading}</span>}
         <button
           type="button"
           aria-expanded={open}
