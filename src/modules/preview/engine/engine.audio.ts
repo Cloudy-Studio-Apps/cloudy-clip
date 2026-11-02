@@ -1,9 +1,34 @@
-import { DEFAULT_SOUND, pitchShift, type ClipSound, type Track } from "@/modules/project";
+import {
+  DEFAULT_SOUND,
+  pitchShift,
+  type ClipSound,
+  type ClipSpeed,
+  type Track,
+} from "@/modules/project";
 import type { Slot, SoundGraph } from "./engine.types";
 
 /** Whether a clip needs Web Audio: more than an element's own 0 to 1 volume can do. */
 function needsGraph(sound: ClipSound, gain: number): boolean {
   return gain > 1 || sound.pan !== 0 || sound.eq.on || pitchShift(sound) !== 0;
+}
+
+/**
+ * A clip's sound with what its speed adds. WebKitGTK always keeps the pitch at any rate (see
+ * `docs/superpowers/specs/2026-11-02-speed-preview-check.md`), so a clip without pitch correction
+ * gets the shift a plain speed change would give, through the pitch worklet. The result is kept
+ * per sound and rate, because the chain only updates when it's handed a new object.
+ */
+export function createSoundAtSpeed() {
+  const known = new WeakMap<ClipSound, Map<number, ClipSound>>();
+  return (sound: ClipSound, { rate, pitchCorrection }: ClipSpeed): ClipSound => {
+    if (pitchCorrection || rate === 1 || rate === 0) return sound;
+    const rates = known.get(sound) ?? new Map<number, ClipSound>();
+    known.set(sound, rates);
+    const semitones = pitchShift(sound) + 12 * Math.log2(rate);
+    const shifted = rates.get(rate) ?? { ...sound, pitch: { on: true, semitones, cents: 0 } };
+    rates.set(rate, shifted);
+    return shifted;
+  };
 }
 
 /**

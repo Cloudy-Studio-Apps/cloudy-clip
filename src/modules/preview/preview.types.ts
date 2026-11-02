@@ -229,6 +229,8 @@ export interface DriftState {
   seekTarget: number | null;
   /** Milliseconds since the last seek. */
   sinceSeekMs: number;
+  /** How fast the clip plays: the file runs away this much faster, so everything scales. */
+  rate: number;
   /** Seconds the last seek took. */
   seekCost: number;
 }

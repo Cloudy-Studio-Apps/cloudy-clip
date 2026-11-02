@@ -67,10 +67,20 @@ pub struct SoundSegment {
     /// Shift in semitones, keeping the length.
     #[serde(default)]
     pub pitch: f64,
+    /// How fast it plays. `duration` is its length in the export, this many times that of the file.
+    #[serde(default = "one")]
+    pub speed: f64,
+    /// Keeps voices at their pitch at another speed.
+    #[serde(default = "yes")]
+    pub keep_pitch: bool,
 }
 
 fn one() -> f64 {
     1.0
+}
+
+fn yes() -> bool {
+    true
 }
 
 /// The shape of an equalizer band.
@@ -118,6 +128,11 @@ fn seconds(micros: u64) -> String {
     format!("{:.6}", micros as f64 / 1_000_000.0)
 }
 
+/// How much of the file a segment plays.
+fn source_length(segment: &SoundSegment) -> u64 {
+    (segment.duration as f64 * segment.speed).round() as u64
+}
+
 /// `atempo` steps that make up a factor, each within its 0.5 to 2 range.
 fn tempo_steps(mut factor: f64) -> String {
     let mut steps = String::new();
@@ -150,6 +165,14 @@ fn pan_filter(pan: f64) -> String {
 /// What a clip's sound settings add, in the preview's order. Empty at the defaults.
 fn effects(segment: &SoundSegment) -> String {
     let mut chain = String::new();
+    if segment.speed != 1.0 {
+        chain.push_str(&if segment.keep_pitch {
+            tempo_steps(segment.speed)
+        } else {
+            let rate = f64::from(SAMPLE_RATE) * segment.speed;
+            format!(",asetrate={rate:.3},aresample={SAMPLE_RATE}")
+        });
+    }
     if segment.pitch != 0.0 {
         let ratio = 2f64.powf(segment.pitch / 12.0);
         let rate = f64::from(SAMPLE_RATE) * ratio;
@@ -332,7 +355,7 @@ pub fn arguments(spec: &ExportSpec, partial: &Path, hardware: Option<&str>) -> V
     };
     for segment in sound {
         push(&["-ss", &seconds(segment.from)]);
-        push(&["-t", &seconds(segment.duration), "-i", &segment.path]);
+        push(&["-t", &seconds(source_length(segment)), "-i", &segment.path]);
     }
 
     let mut graph = Vec::new();
@@ -378,6 +401,8 @@ mod sound_tests {
             pan: 0.0,
             eq: Vec::new(),
             pitch: 0.0,
+            speed: 1.0,
+            keep_pitch: true,
         }
     }
 
@@ -388,6 +413,55 @@ mod sound_tests {
             db,
             q: 1.0,
         }
+    }
+
+    #[test]
+    fn speed_keeping_pitch_uses_tempo() {
+        let fast = SoundSegment {
+            speed: 2.0,
+            ..segment()
+        };
+        assert_eq!(effects(&fast), ",atempo=2.000000");
+    }
+
+    #[test]
+    fn speed_past_two_chains_tempo() {
+        let fast = SoundSegment {
+            speed: 4.0,
+            ..segment()
+        };
+        assert_eq!(effects(&fast), ",atempo=2.000000,atempo=2.000000");
+    }
+
+    #[test]
+    fn speed_without_correction_resamples() {
+        let fast = SoundSegment {
+            speed: 2.0,
+            keep_pitch: false,
+            ..segment()
+        };
+        assert_eq!(effects(&fast), ",asetrate=96000.000,aresample=48000");
+    }
+
+    #[test]
+    fn input_reads_duration_times_speed() {
+        let fast = SoundSegment {
+            duration: 4_000_000,
+            speed: 2.0,
+            ..segment()
+        };
+        assert_eq!(source_length(&fast), 8_000_000);
+    }
+
+    #[test]
+    fn fades_stay_after_the_tempo_step() {
+        let fast = SoundSegment {
+            speed: 2.0,
+            fade_in: 500_000,
+            ..segment()
+        };
+        let graph = sound_graph(&[fast], 0, 1_000_000);
+        assert!(graph.find("atempo").unwrap() < graph.find("afade").unwrap());
     }
 
     #[test]

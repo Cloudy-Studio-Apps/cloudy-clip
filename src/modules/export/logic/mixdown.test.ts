@@ -45,6 +45,31 @@ function project(clips: Clip[], muted = false): ProjectState {
 }
 
 describe("mixdown", () => {
+  const fast = { rate: 2, pitchCorrection: true, reversed: false };
+
+  it("gives a clip at 2x its time in the file and its rate", () => {
+    const state = project([clip("a", "a1", { sourceIn: 1_000_000, speed: fast })]);
+    const window = { start: 1_000_000, duration: 2_000_000 };
+    expect(mixdown(state, "c1", window, sounds)[0]).toMatchObject({
+      from: 3_000_000,
+      duration: 2_000_000,
+      speed: 2,
+    });
+  });
+
+  it("says when a clip's pitch moves with its speed", () => {
+    const speed = { ...fast, pitchCorrection: false };
+    const state = project([clip("a", "a1", { speed })]);
+    expect(mixdown(state, "c1", everything, sounds)[0]).toMatchObject({ keepPitch: false });
+  });
+
+  it("adds no speed at 1x", () => {
+    const state = project([clip("a", "a1")]);
+    const [segment] = mixdown(state, "c1", everything, sounds);
+    expect(segment).not.toHaveProperty("speed");
+    expect(segment).not.toHaveProperty("keepPitch");
+  });
+
   it("leaves out disabled clips", () => {
     const state = project([clip("a", "a1", { disabled: true })]);
     expect(mixdown(state, "c1", everything, sounds)).toEqual([]);

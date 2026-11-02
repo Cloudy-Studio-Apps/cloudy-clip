@@ -5,8 +5,11 @@ import {
   dbToLinear,
   pitchShift,
   soundOf,
+  sourceTimeAt,
+  speedOf,
   type Clip,
   type ClipSound,
+  type ClipSpeed,
   type CompositionId,
   type MediaId,
   type ProjectState,
@@ -33,6 +36,12 @@ function soundFields(sound: ClipSound, gain: number): Partial<SoundSegment> {
     ...(eq.length > 0 && { eq }),
     ...(pitch !== 0 && { pitch }),
   };
+}
+
+/** What a clip's speed adds to a segment; nothing at normal speed. */
+function speedFields({ rate, pitchCorrection }: ClipSpeed): Partial<SoundSegment> {
+  if (rate === 1) return {};
+  return { speed: rate, ...(!pitchCorrection && { keepPitch: false }) };
 }
 
 function walk(
@@ -87,11 +96,12 @@ function walk(
       out.push({
         path: media.path,
         at: start + shift,
-        from: clip.sourceIn + skipped,
+        from: sourceTimeAt(clip, start),
         duration: stop - start,
         fadeIn: Math.max(fades.fadeIn, start === from ? edges.fadeIn : 0),
         fadeOut: Math.max(fades.fadeOut, stop === end ? edges.fadeOut : 0),
         ...soundFields(sound, level),
+        ...speedFields(speedOf(clip)),
       });
     });
   }

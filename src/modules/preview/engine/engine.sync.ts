@@ -5,8 +5,10 @@ import type { Slot } from "./engine.types";
 const log = createLogger("preview.engine");
 
 /** Keeps the element on the clock: plays/pauses it and seeks only when needed. */
-export function syncSlot(slot: Slot, desired: number, playing: boolean): void {
+export function syncSlot(slot: Slot, desired: number, playing: boolean, rate = 1): void {
   const element = slot.element;
+  // Loading a file puts it back to 1, so this is checked every time.
+  if (rate > 0 && element.playbackRate !== rate) element.playbackRate = rate;
   const drift = Math.abs(element.currentTime - desired);
 
   if (playing) {
@@ -17,6 +19,7 @@ export function syncSlot(slot: Slot, desired: number, playing: boolean): void {
       seekTarget: slot.seekTarget,
       sinceSeekMs: performance.now() - slot.lastSeekAt,
       seekCost: slot.seekCost,
+      rate,
     });
     if (target !== null) seekSlot(slot, target);
     if (element.paused) {

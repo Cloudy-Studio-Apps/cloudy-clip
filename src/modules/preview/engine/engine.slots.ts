@@ -53,6 +53,7 @@ export class MediaSlotPool {
       if (needed.has(path)) continue;
       this.assigned.delete(path);
       slot.path = null;
+      slot.element.playbackRate = 1;
     }
   }
 

@@ -19,12 +19,14 @@ import {
   type ProjectFormat,
   type ProjectState,
   sourceTimeAt,
+  speedOf,
+  type ClipSpeed,
 } from "@/modules/project";
 import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
 import { picturesSettled } from "../logic/readiness";
 import type { PreviewEngine } from "../preview.types";
-import { quietSlot, voiceSlot } from "./engine.audio";
+import { createSoundAtSpeed, quietSlot, voiceSlot } from "./engine.audio";
 import { createSoundGraph, PITCH_LEAD_SECONDS } from "./engine.audiograph";
 import { ImageCache } from "./engine.images";
 import { LevelCorrection } from "./engine.levels";
@@ -94,6 +96,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly pictureOnly: boolean;
   /** Web Audio for clips with sound settings; a picture-only engine has no sound. */
   private readonly sound: SoundGraph | null;
+  private readonly soundAtSpeed = createSoundAtSpeed();
   private readonly levels: LevelCorrection | null;
 
   constructor(
@@ -213,14 +216,17 @@ export class HtmlMediaEngine implements PreviewEngine {
           if (!track.hidden && !this.images.ready(current)) this.settled = false;
           continue;
         }
-        const desired = microsToSeconds(sourceTimeAt(clip, time));
+        const speed = (propsOverrides.get(clip.id)?.speed as ClipSpeed) ?? speedOf(clip);
+        const desired = microsToSeconds(sourceTimeAt({ ...clip, speed }, time));
         // The track decides the element: pictures come from video tracks (always silent), sound
         // from audio tracks (a video file's sound plays through an <audio> on the same URL).
         const slot = this.pool.acquire(path, clip, track.kind, desired);
         if (!slot) continue;
-        voiceSlot(slot, track, own, silenced, sound, this.sound);
-        const pitched = playing && track.kind === "audio" && pitchShift(sound) !== 0;
-        syncSlot(slot, pitched ? desired + PITCH_LEAD_SECONDS : desired, playing);
+        const heard = this.soundAtSpeed(sound, speed);
+        voiceSlot(slot, track, own, silenced, heard, this.sound);
+        const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
+        const lead = pitched ? PITCH_LEAD_SECONDS * speed.rate : 0;
+        syncSlot(slot, desired + lead, playing, speed.rate);
         if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) {
           this.settled = false;
         }

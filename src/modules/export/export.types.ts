@@ -28,6 +28,10 @@ export interface SoundSegment {
   eq?: EqFilter[];
   /** Shift in semitones, keeping the length. */
   pitch?: number;
+  /** How fast it plays; `duration` is its length in the export. Missing is 1. */
+  speed?: number;
+  /** False when its pitch moves with its speed. Missing is true. */
+  keepPitch?: boolean;
 }
 
 /** What a file holds (mirrors `Format` in Rust). */

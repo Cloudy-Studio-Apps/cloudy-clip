@@ -18,14 +18,16 @@ export const MAX_SEEK_AHEAD = 0.6;
  * audible tick every `SEEK_GRACE_MS`). So a seek aims where the clock will be when it lands.
  */
 export function driftSeek(state: DriftState): number | null {
-  const { current, desired, duration, seekTarget, sinceSeekMs, seekCost } = state;
-  const limit = sinceSeekMs < SEEK_GRACE_MS ? GRACE_DRIFT_SECONDS : MAX_DRIFT_SECONDS;
+  const { current, desired, duration, seekTarget, sinceSeekMs, seekCost, rate } = state;
+  const scale = Math.max(1, rate);
+  const drift = MAX_DRIFT_SECONDS * scale;
+  const limit = sinceSeekMs < SEEK_GRACE_MS ? GRACE_DRIFT_SECONDS * scale : drift;
   if (Math.abs(current - desired) <= limit) return null;
   const pending =
     seekTarget !== null &&
-    seekTarget > desired - MAX_DRIFT_SECONDS &&
-    seekTarget < desired + MAX_SEEK_AHEAD + MAX_DRIFT_SECONDS;
+    seekTarget > desired - drift &&
+    seekTarget < desired + MAX_SEEK_AHEAD + drift;
   if (pending) return null;
-  const target = desired + Math.min(seekCost, MAX_SEEK_AHEAD);
+  const target = desired + Math.min(seekCost * scale, MAX_SEEK_AHEAD);
   return target < duration ? target : desired;
 }

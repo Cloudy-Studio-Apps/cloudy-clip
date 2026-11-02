@@ -11,11 +11,21 @@ function state(patch: Partial<DriftState> = {}): DriftState {
     seekTarget: null,
     sinceSeekMs: 10_000,
     seekCost: 0.2,
+    rate: 1,
     ...patch,
   };
 }
 
 describe("driftSeek", () => {
+  it("tolerates more drift at 4x", () => {
+    expect(driftSeek(state({ current: 9.8, rate: 4 }))).toBeNull();
+  });
+
+  it("aims further ahead at 4x", () => {
+    expect(driftSeek(state({ current: 9, rate: 4 }))).toBeCloseTo(10.6);
+    expect(driftSeek(state({ current: 9, rate: 2 }))).toBeCloseTo(10.4);
+  });
+
   it("leaves an element on the clock alone", () => {
     expect(driftSeek(state({ current: 9.95 }))).toBeNull();
   });
