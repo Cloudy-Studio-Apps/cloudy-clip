@@ -37,6 +37,20 @@ declaration, and one command changes any element's values.
   - `element.guards.ts` (exported): `parsePatch` (schema + `read_only`), `checkGroupsApply`
     (a group on a track it doesn't apply to), `checkResetPaths` (unknown path →
     `invalid_props`, read-only → `read_only`).
+  - `logic/animated.ts`: `splitAnimated(clip, patch, element)` → `{ keyed, rest }`: the patch's leaves
+    whose path is a key track on the clip, and everything else (a group left empty is dropped).
+    `element.setProps` takes `at` (timeline time): each keyed field goes through `writeKey` at
+    `contentTime(clip, clampToClip(clip, at))` with half a frame of tolerance, so the key lands on the
+    clip's nearest frame when the playhead is outside it; the rest is written static, as before. A
+    keyed field without `at` fails with `element.animated` (naming the path and `keyframe_set`) and
+    nothing is written. Keyed values skip the group's and the element's `normalize`.
+    `element.resetProps` drops the tracks at or under a reset path, and with no paths every track
+    that isn't `shared`.
+  - `logic/keyable.ts`: `keyableFields(element, clip?, track?)` (exported) → `KeyableField[]`
+    (`path`, `spec`, `blend`, `shared`): numbers (blend `number`), colors (`color`), enums and
+    booleans (`step`); not strings, groups, custom values, `readOnly` fields or `keyframes: false`
+    ones. A shared group's fields are left out where its `appliesTo` says no; without a clip and
+    track that check is skipped (`element_describe` lists `keyable` per element this way).
   - Both commands write only the clips whose values really change; when none does they don't
     mutate, so no undo step is added.
 - **Values:** `clip.props` holds only what differs from `defaults(format)`, so a value the clip

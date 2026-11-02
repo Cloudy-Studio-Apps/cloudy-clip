@@ -15,7 +15,7 @@ import {
   requireComposition,
   settings,
 } from "./composition.guards";
-import { scaleTransform } from "./logic/resize";
+import { scaleKeys, scaleTransform } from "./logic/resize";
 
 /** Changes a composition's name, format, background or length. */
 export const setSettings = defineCommand({
@@ -41,7 +41,7 @@ export const setSettings = defineCommand({
     if (input.duration !== undefined) checkLength(input.duration, input.format ?? before);
     const clips = input.format && resize === "scale" ? compositionClips(state, id) : [];
     ctx.mutate(store, (draft) => {
-      for (const { id: clipId, kind, transform } of clips) {
+      for (const { id: clipId, kind, transform, animation } of clips) {
         const definition = elements.get(kind)?.definition;
         const fit = definition?.picture?.fit;
         if (!fit || !definition.supports?.transform) continue;
@@ -51,6 +51,8 @@ export const setSettings = defineCommand({
           before,
           input.format!,
         );
+        const keys = scaleKeys(animation, fit, before, input.format!);
+        if (keys) draft.clips[clipId]!.animation = keys;
       }
       const composition = draft.compositions[id]!;
       if (input.name !== undefined) composition.name = input.name;

@@ -74,7 +74,11 @@ export function startTransformGesture(options: TransformGestureOptions): void {
     showGuides(false, false);
     const patch = transformPatch(start, current, fields);
     const result = patch
-      ? await bus.run(setProps, { clipIds: [clipId], patch: { transform: patch } })
+      ? await bus.run(setProps, {
+          clipIds: [clipId],
+          patch: { transform: patch },
+          at: preview.playback.getTime(),
+        })
       : null;
     preview.previewTransform(clipId, null);
     // On failure (or no change) React won't re-render the box: put it back where it was.

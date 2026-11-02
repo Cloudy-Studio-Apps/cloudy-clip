@@ -19,7 +19,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     back to that. Applies only on video tracks (a patch for a clip on an audio track fails with
     `element.invalid_props`). Its section, in the Video tab: a Position row (X, Y), scale, rotation; the band's reset does what
     `transform.reset` does.
-  - `transform.commands.ts`: `transform.reset` (`clipIds`): drops `Clip.transform`, one undo step.
+  - `transform.commands.ts`: `transform.reset` (`clipIds`): drops `Clip.transform` and the key tracks under `transform.`, one undo step.
   - `logic/`: pure parts: `picking.ts` (hit test of rotated pictures), `gestures.ts`
     (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override; each layer's `transform` is
     the live `transform` patch over the saved one, so a panel slider moves the box too; elements
@@ -30,7 +30,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     picture always agree.
   - `ui/`: `TransformOverlay` (its root takes the pointer: `pointer-events-auto`, since the overlay wrappers ignore it), `SelectionBox`, `transform.gesture.ts` (while dragging, the preview
     draws the live value through `PreviewApi.previewTransform` and the box follows through direct
-    DOM updates; release commits one `element.setProps` with a `transform` patch of the changed, supported
+    DOM updates; release commits one `element.setProps` with a `transform` patch of the changed, supported (and `at`, the playhead, so an animated field gets a key there)
     fields, one undo step; nothing when none changed), `layers.hook.ts`. The box shows
     when the selection is one clip or one linked picture + sound (`selectionSubject`). An element
     that `except`s fields: the box hides the corners without `scale` and the rotate handle without

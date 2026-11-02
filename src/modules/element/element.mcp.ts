@@ -4,13 +4,14 @@ import { projectRef } from "@/modules/project";
 import { resetProps, setProps } from "./element.commands";
 import { elementRef } from "./element.ref";
 import { layoutCommands } from "./logic/commands";
+import { keyableFields } from "./logic/keyable";
 
 /** Describes every kind of clip, so an agent knows what `element_set_props` accepts. */
 const describeElements = defineMcpTool({
   name: "element_describe",
   readOnly: true,
   description:
-    "Lists every kind of clip (text, media, …): its name, the track kinds it may sit on, whether it plays a file, the shared groups it supports (transform), the JSON schema of the patch element_set_props accepts (ranges, units in descriptions) and its default values for the format of your open composition, and the commands its inspector panel offers (each takes clipIds). Values a clip doesn't store are these defaults.",
+    "Lists every kind of clip (text, media, …): its name, the track kinds it may sit on, whether it plays a file, the shared groups it supports (transform), the fields that can be keyed (keyable), the JSON schema of the patch element_set_props accepts (ranges, units in descriptions) and its default values for the format of your open composition, and the commands its inspector panel offers (each takes clipIds). Values a clip doesn't store are these defaults.",
   input: z.object({}),
   handler(_input, ctx) {
     const format = ctx.require(projectRef).view.formatFor(ctx.caller.key);
@@ -24,6 +25,7 @@ const describeElements = defineMcpTool({
           tracks: element.definition.tracks,
           source: element.definition.source,
           supports: element.groups.map((g) => g.id),
+          keyable: keyableFields(element).map((f) => f.path),
           schema: z.toJSONSchema(element.schema, { io: "input", unrepresentable: "any" }),
           defaults: element.definition.defaults(format),
           commands: layoutCommands(element),

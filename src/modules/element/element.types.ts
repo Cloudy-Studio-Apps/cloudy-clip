@@ -3,6 +3,7 @@ import type { z } from "zod";
 import type { Micros, ModuleRef, PanelCommandId } from "@/core";
 import type {
   Clip,
+  KeyTrack,
   ClipPlacement,
   PictureSize,
   ProjectFormat,
@@ -34,6 +35,8 @@ export interface PropUi {
   hidden?: boolean;
   /** Shown disabled; `element.setProps` refuses it. */
   readOnly?: boolean;
+  /** `false` keeps a field that could be keyed (a number, color, enum, boolean) static. */
+  keyframes?: false;
   /** Shown only while the condition holds. */
   visibleWhen?: PropCondition;
   /** Greyed out unless the condition holds. */
@@ -310,6 +313,15 @@ export interface ElementApi {
   defaults(kind: string, format: ProjectFormat): Record<string, unknown>;
   /** Logs a warning about a declaration once per kernel, however often it is met. */
   warn(message: string): void;
+}
+
+/** A field that can hold keys: its path, its declaration, how its values blend. */
+export interface KeyableField {
+  path: string;
+  spec: PropSpec;
+  blend: KeyTrack["blend"];
+  /** Its value sits under a shared group's key on the clip (`transform.x`), not in `props`. */
+  shared: boolean;
 }
 
 /** New values of shared groups by key; undefined means back to the defaults (removed). */
