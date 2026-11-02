@@ -11,11 +11,15 @@ export { MEDIA_DRAG_END, MEDIA_DRAG_MOVE, MEDIA_DROP, startMediaDrag } from "./m
 export { createFakeMediaModule } from "./media.testing";
 /** Sections of the Library, above the files; contribute with `ctx.contribute(librarySections, …)`. */
 export { librarySections } from "./media.points";
+/** Kinds of item the library lists besides files; contribute with `ctx.contribute(libraryKinds, …)`. */
+export { libraryKinds } from "./media.points";
 export type {
   ImageAnimation,
   ImportResult,
   MediaApi,
+  LibraryEntry,
   LibraryItem,
+  LibraryKind,
   MediaDragDetail,
   MediaProbe,
   ProbeStatus,

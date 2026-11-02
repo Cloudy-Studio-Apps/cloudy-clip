@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { Micros } from "@/core";
-import type { MediaAsset, MediaId, MediaKind } from "@/modules/project";
+import type { Micros, PanelIcon } from "@/core";
+import type { BinId, MediaAsset, MediaId, MediaKind } from "@/modules/project";
 
 /** Progress of reading a file's metadata. `missing`: the file isn't where the project says. */
 export type ProbeStatus = "pending" | "ready" | "error" | "missing";
@@ -217,9 +217,28 @@ export interface ProbeQueue {
 }
 
 /** What is dragged from the Library. */
-export interface LibraryItem {
-  type: "media" | "composition";
+export type LibraryItem =
+  | { type: "media" | "composition"; id: string }
+  /** Makes a clip of an element with no file, such as a solid color. */
+  | { type: "element"; kind: string; props: Record<string, unknown>; duration?: Micros };
+
+/** One item of a `LibraryKind`. */
+export interface LibraryEntry {
   id: string;
+  name: string;
+  binId?: BinId;
+}
+
+/** A kind of item the library lists besides files: its smart bin, tile and create button. */
+export interface LibraryKind {
+  type: string;
+  /** Name of its smart bin, such as "Solid colors". */
+  label: string;
+  icon: PanelIcon;
+  /** A hook: what the library holds of this kind. */
+  useEntries(): readonly LibraryEntry[];
+  Tile: ComponentType<{ id: string }>;
+  CreateButton?: ComponentType;
 }
 
 /** A section of the Library, above the files. */

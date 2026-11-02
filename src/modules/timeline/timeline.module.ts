@@ -32,7 +32,8 @@ export const timelineModule = defineModule({
       const at = { ...(start !== undefined && { start }), ...(trackId && { trackId }) };
       if (item.type === "action") item.place(at);
       else if (item.type === "element") {
-        void ctx.bus.run(addElement, { kind: item.kind, props: item.props, ...at });
+        const { kind, props, duration } = item;
+        void ctx.bus.run(addElement, { kind, props, duration, ...at });
       } else if (item.type === "media") {
         void ctx.bus.run(addClip, { mediaId: item.id, ...at });
       }

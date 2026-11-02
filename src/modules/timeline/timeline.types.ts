@@ -177,7 +177,6 @@ export interface TimelineMenuItems {
 export interface TimelineDrop {
   item:
     | LibraryItem
-    | { type: "element"; kind: string; props: Record<string, unknown> }
     | { type: "action"; label: string; place(at: { start?: Micros; trackId?: TrackId }): void };
   start?: Micros;
   trackId?: TrackId;
