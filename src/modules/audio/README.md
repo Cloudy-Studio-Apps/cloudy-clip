@@ -20,4 +20,4 @@ How a clip sounds: volume, pan, fades, equalizer and pitch, in preview and in ex
 
 A clip at its defaults has no `sound`, never enters Web Audio and adds no filter to an export. An element takes one `MediaElementSource`, ever, so once attached it stays attached and is driven at unity. A placed composition takes volume and fades on top of its clips; Pan, Pitch and Equalizer are per file and don't show for it.
 
-**Not yet:** speed change. It needs its own plan, because `Clip` assumes no speed changes and speed reaches placement, trim, split, the engine and export, for picture as well as sound. Pitch costs about 125 ms through the worklet on WebKitGTK, which pitched sound runs ahead of the clock to cover. Windows (WebView2) hasn't been checked. See `docs/superpowers/specs/2026-11-02-audio-preview-check.md`.
+Pitch costs about 125 ms through the worklet on WebKitGTK, which pitched sound runs ahead of the clock to cover. Windows (WebView2) hasn't been checked. See `docs/superpowers/specs/2026-11-02-audio-preview-check.md`.

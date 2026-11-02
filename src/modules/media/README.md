@@ -14,6 +14,7 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
   sound (true unless ffprobe found none). `createFakeMediaModule(probes)` (`media.testing.ts`) stands in for it
   in tests.
 - **Exports:** `MEDIA_PAGE`, the id of the Media page, for `showPage`.
+- **Reversed copies** (`media.reversed.ts`, `src-tauri/src/media/reversed.rs`): `prepareReversed(id, full, onProgress?)` makes a copy of a file that runs backwards, `full` for export; asking again joins the job. `reversedUrl(id, full)` gives its URL, or null while it's being made, starting it if needed. FFmpeg's `reverse` holds what it reverses in memory, so a file is reversed in 10-second pieces and joined last to first. They follow the proxy rules and are cached with the proxies.
 - **Media page** (`ui/MediaPage.tsx`): Disks, Bins and Smart bins on the left, the files in the middle, the viewer and file info on the right. Bins, solids and metadata are document state; what's open (`LibraryView`: place, search, layout, selection) is the per-kernel `view` store, shared with Edit's Media tab. `logic/library.ts` (`libraryRows`) decides what a place lists. A bin lists its sub-bins first, as folders: a double click opens one, and files can be dropped on it. A right click on the middle column offers New bin and Import media. Modules add kinds of item with the `libraryKinds` point. `FileFactsSection` and `MetadataSection` are exported for the inspector's File tab.
 - **Files:**
   - Native side (`src-tauri/src/media`): `media_register` validates paths into an id → path

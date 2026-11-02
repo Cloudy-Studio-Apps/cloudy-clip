@@ -9,9 +9,10 @@ The settings sections fold one by one, and all open again when you come back to 
 - **Contributes:** page `export.page` (`appPages`, group `PAGE_GROUP_DELIVER`, icon `Upload`)
 - **API** (`useModule(exportRef)` / `ctx.require(exportRef)`): `queue`, `form`, `capabilities`, `runner`
 - **Files:**
+  - Speed: frames come from the preview engine, which follows `sourceTimeAt`. Sound carries `speed`, `keepPitch` and `reversed` to `src-tauri/src/export/recipe.rs`, which reads `duration * speed` of the file and adds `areverse`, then `atempo` (or `asetrate` when `keepPitch` is false) before the clip's own settings. Reversed clips get a full-quality copy before rendering (`media.prepareReversed`).
   - `export.commands.ts`: `enqueue` checks everything and keeps the document as it is, so later edits don't reach a queued export.
   - `export.runner.ts`: one job at a time, outside the bus. A file with a proxy gets its master first (`media.prepareMaster`), the webview's video levels are measured once (`preview.measureVideoLevels`), then each frame is drawn by `preview.createRenderer` and posted to FFmpeg, which sets the pace.
-  - `logic/mixdown.ts`: what sounds in a stretch of a composition, at any depth, as stretches of the original files. Muted tracks are left out; clips under a junction get equal-power fades.
+  - `logic/mixdown.ts`: what sounds in a stretch of a composition, at any depth, as stretches of the original files, with their speed. Muted tracks and disabled clips are left out; clips under a junction get equal-power fades.
   - `logic/timing.ts`: a frame is drawn 1 ms into its time. A time rounded to microseconds can fall just before its frame, and a seek there lands on the previous one.
   - `logic/presets.ts`: kinds, formats and the 10–100 quality scale as encoder numbers. `logic/estimate.ts`: rough size and time.
   - `export.guards.ts`: what `enqueue` refuses, and where the file goes.

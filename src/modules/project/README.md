@@ -53,4 +53,6 @@ lives here, so every change is undoable and readable by agents.
 | ------- | ------------------- | ------------------------------------------------------------------------------ |
 | —       | `project_get_state` | Whole document: each composition with its tracks, clips and `junctions` inline |
 
+**Speed:** `Clip.speed` (`ClipSpeed`: `rate`, `pitchCorrection`, `reversed`) says how a clip plays its file; missing means normally. `Clip.duration` is the length on the timeline and the part of the file played is that at the rate (`sourceSpan`). `logic/speed.ts` holds `DEFAULT_SPEED`, `speedOf`, `sourceTimeAt` (the file's time at a timeline time, the only place a rate meets clip time), `elementTimeAt` (the same for a reversed copy), `canChangeSpeed` and `sameSpeed`. A `rate` of 0 holds one frame. The `speed` module owns the commands.
+
 **Sound:** `Clip.sound` (`ClipSound`) says how a clip on an audio track sounds; missing means as the file does. `logic/sound.ts` holds `DEFAULT_SOUND`, `soundOf`, `dbToLinear`, `fadeLevel` and `pitchShift`, which preview and export share. The store policy keeps fades within their clip on every change. The `audio` module owns the commands.
