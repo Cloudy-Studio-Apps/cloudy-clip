@@ -175,7 +175,7 @@ CLAUDE.md                                ~ scope, Where to look, rule 13
 
 ```ts
 export type ClipMenuGroup =
-  | "clipboard" | "timing" | "edit" | "reset" | "composition" | "library" | "delete";
+  "clipboard" | "timing" | "edit" | "reset" | "composition" | "library" | "delete";
 export interface ClipMenuEntry extends Omit<MenuItem, "group"> {
   group: ClipMenuGroup;
   /** Lower comes first within the group. Defaults to 0. */
@@ -229,17 +229,25 @@ export interface ClipMenuEntry extends Omit<MenuItem, "group"> {
 - [ ] **Step 1: Write the failing tests** in `timeline.commands.test.ts`:
 
 ```ts
-it("ripple delete closes the clip's length", /* a[0,10] b[10,15] c[15,20]; delete b → c.start 10s */);
-it("ripple delete with a junction closes only the freed time",
-  /* A[0,10] B[9,15] joined, D[15,20]; delete B → D.start 10s, no conflict */);
-it("ripple delete keeps gaps that were already there",
-  /* a[0,5] b[8,10] c[12,14]; delete b → c.start 10s */);
-it("ripple delete adds up on a track", /* delete two of four → last moves by both lengths */);
+it(
+  "ripple delete closes the clip's length" /* a[0,10] b[10,15] c[15,20]; delete b → c.start 10s */,
+);
+it(
+  "ripple delete with a junction closes only the freed time",
+  /* A[0,10] B[9,15] joined, D[15,20]; delete B → D.start 10s, no conflict */
+);
+it(
+  "ripple delete keeps gaps that were already there",
+  /* a[0,5] b[8,10] c[12,14]; delete b → c.start 10s */
+);
+it("ripple delete adds up on a track" /* delete two of four → last moves by both lengths */);
 it("ripple delete moves a linked pair by the smaller shift and keeps it in sync");
-it("ripple delete changes nothing when the shift would overlap", /* code timeline.overlap */);
+it("ripple delete changes nothing when the shift would overlap" /* code timeline.overlap */);
 it("disable marks linked partners and stores nothing when enabled");
-it("link restores an unlinked pair", /* unlink then link → same linkId on both, partnersOf finds them */);
-it("link refuses another file or other timing", /* code timeline.link_mismatch */);
+it(
+  "link restores an unlinked pair" /* unlink then link → same linkId on both, partnersOf finds them */,
+);
+it("link refuses another file or other timing" /* code timeline.link_mismatch */);
 ```
 
 In `mixdown.test.ts`: `it("leaves out disabled clips")`.
@@ -303,9 +311,11 @@ it("trackId anchors the first clip, the rest keep their distance in tracks");
 it("an agent's copy doesn't replace the local actor's");
 it("cut is one undo step");
 it("duplicate lands right after the selection");
-it("paste refuses a composition into one it contains", /* code composition.cycle */);
-it("paste fails when the copied media is gone", /* code timeline.clipboard_stale, nothing written */);
-it("copy with nothing copied before fails paste", /* code timeline.clipboard_empty */);
+it("paste refuses a composition into one it contains" /* code composition.cycle */);
+it(
+  "paste fails when the copied media is gone" /* code timeline.clipboard_stale, nothing written */,
+);
+it("copy with nothing copied before fails paste" /* code timeline.clipboard_empty */);
 ```
 
 - [ ] **Step 2: Run them.** `pnpm vitest run src/modules/timeline/timeline.clipboard.test.ts`. Expected: FAIL.
@@ -389,7 +399,10 @@ export function speedOf(clip: Pick<Clip, "speed">): ClipSpeed;
 /** The part of the file a clip uses, in file time. */
 export function sourceSpan(clip: Pick<Clip, "duration" | "speed">): Micros;
 /** Forward file time at a timeline time. Clamped to the clip's span. */
-export function sourceTimeAt(clip: Pick<Clip, "start" | "sourceIn" | "duration" | "speed">, time: Micros): Micros;
+export function sourceTimeAt(
+  clip: Pick<Clip, "start" | "sourceIn" | "duration" | "speed">,
+  time: Micros,
+): Micros;
 /** Whether speed can change on this clip: a file's time, and not a hold. */
 export function canChangeSpeed(state: Pick<ProjectState, "media">, clip: Clip): boolean;
 export function sameSpeed(a: Clip, b: Clip): boolean;
@@ -398,18 +411,20 @@ export function sameSpeed(a: Clip, b: Clip): boolean;
 - [ ] **Step 1: Write the failing tests** in `speed.test.ts`:
 
 ```ts
-it("maps time at 1x exactly as before", /* sourceTimeAt({start:5s,sourceIn:2s,duration:4s}, 6s) === 3s */);
-it("maps time at 2x", /* same clip with rate 2 at 6s === 4s */);
+it(
+  "maps time at 1x exactly as before" /* sourceTimeAt({start:5s,sourceIn:2s,duration:4s}, 6s) === 3s */,
+);
+it("maps time at 2x" /* same clip with rate 2 at 6s === 4s */);
 it("gives integer micros at 3x");
-it("sourceSpan is duration times rate", /* 4s at 2x === 8s */);
-it("a hold stays on one frame", /* rate 0, any time === sourceIn */);
+it("sourceSpan is duration times rate" /* 4s at 2x === 8s */);
+it("a hold stays on one frame" /* rate 0, any time === sourceIn */);
 ```
 
 In `placement.test.ts`:
 
 ```ts
-it("end trim stops at the end of the file at 2x", /* sourceIn 0, media 10s → clip can't pass 5s */);
-it("start trim moves sourceIn by delta times the rate", /* start +1s at 2x → sourceIn +2s */);
+it("end trim stops at the end of the file at 2x" /* sourceIn 0, media 10s → clip can't pass 5s */);
+it("start trim moves sourceIn by delta times the rate" /* start +1s at 2x → sourceIn +2s */);
 ```
 
 In `timeline.commands.test.ts`: `it("split at 2x moves the right half's sourceIn by twice the offset")`.
@@ -444,15 +459,24 @@ In `timeline.commands.test.ts`: `it("split at 2x moves the right half's sourceIn
 
 ```ts
 // speed.commands.ts
-export const setSpeed;   // "speed.set"
+export const setSpeed; // "speed.set"
 // input { clipIds, rate?: 0.1..10, duration?: Micros, pitchCorrection?, reversed?, ripple?: boolean = true }
 // exactly one of rate or duration may be set; both may be absent to change only pitchCorrection
 // result { clips: { id, rate, duration }[] }
 export const resetSpeed; // "speed.reset", input { clipIds, ripple?: boolean = true }
 // speed.view.store.ts
-export interface SpeedView { boxClipId: ClipId | null; ripple: boolean }
+export interface SpeedView {
+  boxClipId: ClipId | null;
+  ripple: boolean;
+}
 // logic/retime.ts
-export function retime(state, group: ClipId[], rate, ripple, kindOf): { state: ProjectState; rate: number };
+export function retime(
+  state,
+  group: ClipId[],
+  rate,
+  ripple,
+  kindOf,
+): { state: ProjectState; rate: number };
 ```
 
 - [ ] **Step 1: Write the failing tests** in `speed.commands.test.ts`:
@@ -460,21 +484,21 @@ export function retime(state, group: ClipId[], rate, ripple, kindOf): { state: P
 ```ts
 it("2x halves the clip and keeps its start and its part of the file");
 it("takes a duration and works out the rate");
-it("refuses a duration outside the range", /* speed.out_of_range */);
+it("refuses a duration outside the range" /* speed.out_of_range */);
 it("linked clips take the same speed in one step");
 it("ripple on moves what follows, with partners");
 it("ripple on keeps a junction after the clip, and shrinks one that no longer fits");
-it("ripple on refuses when something unlinked is in the way", /* timeline.overlap */);
+it("ripple on refuses when something unlinked is in the way" /* timeline.overlap */);
 it("ripple off leaves a gap when faster");
 it("ripple off stops a slower clip at the next one and returns the rate applied");
-it("ripple off refuses a junction on the clip's end", /* speed.joined */);
+it("ripple off refuses a junction on the clip's end" /* speed.joined */);
 it("ripple off ignores a junction on the clip's start");
-it("refuses text, images and composition clips", /* speed.unsupported */);
+it("refuses text, images and composition clips" /* speed.unsupported */);
 it("fades stay within a shorter clip");
 it("1x with pitch correction on stores no speed");
 it("reset clears speed on the clip and its partner");
 it("one undo restores everything");
-it("3x then 1x stays inside the file", /* duration within rate µs of the original */);
+it("3x then 1x stays inside the file" /* duration within rate µs of the original */);
 ```
 
 - [ ] **Step 2: Run them.** `pnpm vitest run src/modules/speed`. Expected: FAIL.
@@ -523,7 +547,9 @@ The group's rate is the slowest clamp of its clips. With several groups, retime 
 // drift.test.ts
 it("tolerates more drift at 4x and aims further ahead");
 // mixdown.test.ts
-it("gives a 2x clip its file time and rate", /* from = sourceIn + skipped * 2, speed 2, duration timeline */);
+it(
+  "gives a 2x clip its file time and rate" /* from = sourceIn + skipped * 2, speed 2, duration timeline */,
+);
 it("a clip at 1x adds no speed field");
 ```
 
@@ -599,9 +625,11 @@ it("a clip at 1x adds no speed field");
 ```ts
 it("splits at the playhead and inserts a 3 s hold, moving what follows");
 it("linked sound gets a gap of the same length");
-it("the hold shows the frame at the playhead, at any speed", /* sourceIn = sourceTimeAt(clip, at) */);
+it(
+  "the hold shows the frame at the playhead, at any speed" /* sourceIn = sourceTimeAt(clip, at) */,
+);
 it("a hold trims to any length and keeps its frame when split");
-it("speed.set refuses a hold", /* speed.unsupported */);
+it("speed.set refuses a hold" /* speed.unsupported */);
 it("one undo restores the clip");
 ```
 
@@ -636,7 +664,7 @@ it("one undo restores the clip");
 
 ```ts
 // speed.test.ts
-it("runs backwards through the clip's span when reversed", /* start → end of span */);
+it("runs backwards through the clip's span when reversed" /* start → end of span */);
 it("elementTimeAt mirrors the file when reversed");
 // placement.test.ts
 it("a reversed clip's start trim keeps sourceIn and its end trim moves it");

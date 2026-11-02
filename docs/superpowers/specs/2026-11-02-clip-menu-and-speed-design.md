@@ -73,24 +73,24 @@ this too. Destructive items keep `text-destructive`.
 
 ### The menu, top to bottom
 
-| Group | Item | Shows when | Runs | Shortcut |
-| --- | --- | --- | --- | --- |
-| Clipboard | Cut | always | new | Ctrl+X |
-| | Copy | always | new | Ctrl+C |
-| | Paste | clipboard has clips | new | Ctrl+V |
-| | Duplicate | always | new | Ctrl+D |
-| Timing | Speed... | file-time clips, one subject | project 2 | |
-| | Freeze frame | a picture on a video track under the playhead | project 2 | |
-| Edit | Split at playhead | playhead is inside the clip | `timeline.splitAt` | S |
-| | Unlink audio / Link audio | see below | `timeline.unlinkClips` / new | |
-| | Disable clip / Enable clip | always | new | |
-| Reset | Reset transform | the clip has a transform | `transform.reset` | |
-| | Reset sound | the clip or its partner has `sound` | `audio.resetSound` | |
-| Composition | Group into composition | always | `composition.group` | |
-| | Make unique | composition clips | `composition.makeUnique` | |
-| Library | Show in Library | the clip has a file | new | |
-| Delete | Ripple delete | always | new | |
-| | Delete | always | `timeline.deleteClips` | Del |
+| Group       | Item                       | Shows when                                    | Runs                         | Shortcut |
+| ----------- | -------------------------- | --------------------------------------------- | ---------------------------- | -------- |
+| Clipboard   | Cut                        | always                                        | new                          | Ctrl+X   |
+|             | Copy                       | always                                        | new                          | Ctrl+C   |
+|             | Paste                      | clipboard has clips                           | new                          | Ctrl+V   |
+|             | Duplicate                  | always                                        | new                          | Ctrl+D   |
+| Timing      | Speed...                   | file-time clips, one subject                  | project 2                    |          |
+|             | Freeze frame               | a picture on a video track under the playhead | project 2                    |          |
+| Edit        | Split at playhead          | playhead is inside the clip                   | `timeline.splitAt`           | S        |
+|             | Unlink audio / Link audio  | see below                                     | `timeline.unlinkClips` / new |          |
+|             | Disable clip / Enable clip | always                                        | new                          |          |
+| Reset       | Reset transform            | the clip has a transform                      | `transform.reset`            |          |
+|             | Reset sound                | the clip or its partner has `sound`           | `audio.resetSound`           |          |
+| Composition | Group into composition     | always                                        | `composition.group`          |          |
+|             | Make unique                | composition clips                             | `composition.makeUnique`     |          |
+| Library     | Show in Library            | the clip has a file                           | new                          |          |
+| Delete      | Ripple delete              | always                                        | new                          |          |
+|             | Delete                     | always                                        | `timeline.deleteClips`       | Del      |
 
 The empty part of the timeline gets Paste above its existing Composition Settings and Extend to fit.
 

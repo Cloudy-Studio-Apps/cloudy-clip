@@ -169,8 +169,8 @@ export interface TimelineTabs {
 /** Entries a module adds to the timeline's right-click menu. */
 export interface TimelineMenuItems {
   id: string;
-  /** Asked when the menu opens. */
-  items(): MenuItem[];
+  /** Asked when the menu opens, with the lane and time under the click (null off the lanes). */
+  items(at: DropTarget | null): MenuItem[];
 }
 
 /** Something landing on the timeline. A tile's click is a drop without a place. */
@@ -194,6 +194,17 @@ export interface ClipActions {
   id: string;
   /** A double click. True when it took care of it. */
   doubleClick?(clip: Clip): boolean;
-  /** Entries of the clip's right-click menu. */
-  items?(clip: Clip): MenuItem[];
+  /** Entries of the clip's right-click menu. The clip is selected by then: act on the selection. */
+  items?(clip: Clip): ClipMenuEntry[];
+}
+
+/** Where an entry of a clip's menu sits. The menu shows them in this order, top to bottom. */
+export type ClipMenuGroup =
+  "clipboard" | "timing" | "edit" | "reset" | "composition" | "library" | "delete";
+
+/** One entry of a clip's menu. */
+export interface ClipMenuEntry extends Omit<MenuItem, "group"> {
+  group: ClipMenuGroup;
+  /** Lower comes first within the group. Defaults to 0. */
+  order?: number;
 }

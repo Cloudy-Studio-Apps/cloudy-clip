@@ -1,3 +1,4 @@
+import { Copy, Group } from "lucide-react";
 import { appMenuItems, appOverlays, defineModule, LOCAL_ACTOR } from "@/core";
 import { elements } from "@/modules/element";
 import { librarySections, mediaRef } from "@/modules/media";
@@ -99,6 +100,8 @@ export const compositionModule = defineModule({
         const clipIds = selection.includes(clip.id) ? selection : [clip.id];
         return [
           {
+            group: "composition",
+            icon: Group,
             label: "Group into composition",
             onSelect: () => void ctx.bus.run(groupClips, { clipIds }),
           },
@@ -106,6 +109,8 @@ export const compositionModule = defineModule({
             ? []
             : [
                 {
+                  group: "composition" as const,
+                  icon: Copy,
                   label: "Make unique",
                   onSelect: () => void ctx.bus.run(makeUnique, { clipId: clip.id }),
                 },

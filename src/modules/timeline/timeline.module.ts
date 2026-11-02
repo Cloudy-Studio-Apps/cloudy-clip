@@ -11,7 +11,8 @@ import {
   timelineCommands,
 } from "./timeline.commands";
 import { timelineMcpTools } from "./timeline.mcp";
-import { timelineDropHandlers } from "./timeline.points";
+import { clipMenu } from "./timeline.menu";
+import { clipActions, timelineDropHandlers } from "./timeline.points";
 import { timelineRef } from "./timeline.ref";
 import { createTimelineView } from "./timeline.store";
 import { TimelinePanel } from "./ui";
@@ -60,6 +61,8 @@ export const timelineModule = defineModule({
       slot: "bottom",
       component: TimelinePanel,
     });
+
+    ctx.contribute(clipActions, clipMenu(ctx, view));
 
     const deleteSelection = () => {
       const { selection: clipIds, junctionSelection: junctionIds } = view.getState();

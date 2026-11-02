@@ -14,15 +14,18 @@ export function MenuList({ items, onClose }: MenuListProps) {
   const [open, setOpen] = useState<string | null>(null);
   return (
     <div role="menu" className="flex min-w-44 flex-col">
-      {items.map((item) => {
+      {items.map((item, index) => {
         const nested = item.items !== undefined;
         const expanded = nested && open === item.label;
+        const before = items[index - 1]?.group;
+        const newGroup = before !== undefined && item.group !== before;
         return (
           <div
             key={item.label}
             className="relative"
             onPointerEnter={() => setOpen(nested ? item.label : null)}
           >
+            {newGroup && <div className="mx-1 my-1 border-t border-dashed border-border-strong" />}
             <button
               type="button"
               role="menuitem"
@@ -30,7 +33,7 @@ export function MenuList({ items, onClose }: MenuListProps) {
               aria-haspopup={nested ? "menu" : undefined}
               aria-expanded={nested ? expanded : undefined}
               className={cn(
-                "flex w-full cursor-pointer items-center gap-4 rounded-xs px-2 py-1 text-left text-sm hover:bg-hover disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent",
+                "flex w-full cursor-pointer items-center gap-2 rounded-xs px-2 py-1 text-left text-sm hover:bg-hover disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent",
                 item.destructive ? "text-destructive" : "text-foreground",
                 expanded && "bg-hover",
               )}
@@ -40,9 +43,15 @@ export function MenuList({ items, onClose }: MenuListProps) {
                 item.onSelect?.();
               }}
             >
+              {item.icon && (
+                <item.icon
+                  aria-hidden
+                  className={cn("size-3.5 shrink-0", !item.destructive && "text-muted-foreground")}
+                />
+              )}
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
               {item.shortcut && (
-                <span className="shrink-0 font-mono text-xs text-subtle-foreground">
+                <span className="ml-3 shrink-0 font-mono text-xs text-subtle-foreground">
                   {item.shortcut}
                 </span>
               )}

@@ -43,6 +43,8 @@ export { overlapError } from "./timeline.guards";
 export { selectionSubject } from "./logic/links";
 export type {
   ClipActions,
+  ClipMenuEntry,
+  ClipMenuGroup,
   ScreenBox,
   TimelineDrop,
   TimelineDropHandler,

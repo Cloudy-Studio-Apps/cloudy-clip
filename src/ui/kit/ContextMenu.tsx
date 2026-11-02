@@ -1,21 +1,32 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
-import type { MenuItem } from "./kit.types";
+import type { MenuItem, MenuPoint } from "./kit.types";
 import { MenuList } from "./MenuList";
 
 interface ContextMenuProps {
-  /** A list, or a function asked when the menu opens. */
-  items: readonly MenuItem[] | (() => readonly MenuItem[]);
+  /** A list, or a function asked when the menu opens, with where the click landed. */
+  items: readonly MenuItem[] | ((point: MenuPoint) => readonly MenuItem[]);
   /** The element that is right-clicked. */
   children: ReactElement;
 }
 
-/** A menu at the pointer, opened by a right click on its child. */
+/** Space kept between the menu and the window's edges. */
+const EDGE = 6;
+
+/** A menu at the pointer, opened by a right click on its child. It stays inside the window. */
 export function ContextMenu({ items, children }: ContextMenuProps) {
   const [open, setOpen] = useState<{ x: number; y: number; items: readonly MenuItem[] } | null>(
     null,
   );
   const panel = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const box = panel.current;
+    if (!open || !box) return;
+    const { width, height } = box.getBoundingClientRect();
+    box.style.left = `${Math.max(EDGE, Math.min(open.x, window.innerWidth - width - EDGE))}px`;
+    box.style.top = `${Math.max(EDGE, Math.min(open.y, window.innerHeight - height - EDGE))}px`;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +51,8 @@ export function ContextMenu({ items, children }: ContextMenuProps) {
         onContextMenu={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          const shown = typeof items === "function" ? items() : items;
+          const { clientX, clientY } = event;
+          const shown = typeof items === "function" ? items({ clientX, clientY }) : items;
           if (shown.length > 0) setOpen({ x: event.clientX, y: event.clientY, items: shown });
         }}
       >

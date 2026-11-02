@@ -49,6 +49,12 @@ export interface EyeDropperLike {
   open(): Promise<{ sRGBHex: string }>;
 }
 
+/** Where a menu was opened, in pixels from the window's top left. */
+export interface MenuPoint {
+  clientX: number;
+  clientY: number;
+}
+
 /** One entry of a context menu. */
 export interface MenuItem {
   label: string;
@@ -57,6 +63,10 @@ export interface MenuItem {
   disabled?: boolean;
   /** Its keyboard shortcut, to read. */
   shortcut?: string;
+  /** Drawn before the label. */
+  icon?: ComponentType<{ className?: string }>;
+  /** Entries of one group sit together; a rule separates a group from the one before it. */
+  group?: string;
   /** Makes it open a submenu. */
   items?: readonly MenuItem[];
   /** Shown in the destructive colour. */

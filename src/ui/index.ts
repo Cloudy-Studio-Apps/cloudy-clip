@@ -61,4 +61,11 @@ export { InfoList } from "./kit/InfoList";
 /** Normalizes `#abc`/`abc`/`#aabbcc` to lowercase `#aabbcc`, or null. */
 export { normalizeHex, hexToHsv, hsvToHex } from "./lib/color";
 
-export type { SegmentedOption, ColorChangeInfo, Hsv, InfoRow, MenuItem } from "./kit/kit.types";
+export type {
+  SegmentedOption,
+  ColorChangeInfo,
+  Hsv,
+  InfoRow,
+  MenuItem,
+  MenuPoint,
+} from "./kit/kit.types";

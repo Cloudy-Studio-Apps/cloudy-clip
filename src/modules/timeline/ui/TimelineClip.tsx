@@ -11,6 +11,7 @@ import { cn, ContextMenu } from "@/ui";
 import { clipActions } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { timeToPx } from "../logic/geometry";
+import { arrangeMenu } from "../logic/menu";
 import { ClipBody } from "./ClipBody";
 import { gestureMode, startClipGesture } from "./clip.gesture";
 
@@ -59,7 +60,12 @@ export const TimelineClip = memo(function TimelineClip({
   const actions = usePoint(clipActions);
 
   return (
-    <ContextMenu items={() => actions.flatMap((action) => action.items?.(clip) ?? [])}>
+    <ContextMenu
+      items={() => {
+        if (!timeline.view.getState().selection.includes(clip.id)) timeline.selectClip(clip.id);
+        return arrangeMenu(actions.flatMap((action) => action.items?.(clip) ?? []));
+      }}
+    >
       <div
         ref={ref}
         data-clip-id={clip.id}

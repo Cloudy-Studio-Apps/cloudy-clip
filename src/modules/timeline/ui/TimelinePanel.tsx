@@ -143,7 +143,12 @@ export function TimelinePanel() {
           <Tabs />
         </ErrorBoundary>
       ))}
-      <ContextMenu items={() => menus.flatMap((menu) => menu.items())}>
+      <ContextMenu
+        items={({ clientX, clientY }) => {
+          const at = timeline.dropTarget(clientX, clientY);
+          return menus.flatMap((menu) => menu.items(at));
+        }}
+      >
         <div
           ref={scrollRef}
           data-scroll="wide"
