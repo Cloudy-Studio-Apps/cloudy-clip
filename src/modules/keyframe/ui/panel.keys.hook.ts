@@ -5,7 +5,7 @@ import { timelineRef } from "@/modules/timeline";
 import { moveKeys } from "../keyframe.edit.commands";
 import { keyframeRef } from "../keyframe.ref";
 import type { KeyBox, KeyRef } from "../keyframe.types";
-import { keysAtTime, keysInBox, parseRef, refId } from "../logic/picking";
+import { keysAtTime, keysInBox, parseRef, refId, toggled } from "../logic/picking";
 import { startBoxSelect } from "./box.gesture";
 import { startKeyDrag } from "./key.gesture";
 import { report, type PanelActions } from "./panel.actions.hook";
@@ -16,15 +16,6 @@ function isTyping(target: EventTarget | null): boolean {
     target instanceof HTMLElement &&
     (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
   );
-}
-
-/** Toggles refs in a selection: all in, they come out; otherwise they are added. */
-function toggled(selection: readonly KeyRef[], refs: readonly KeyRef[]): KeyRef[] {
-  const ids = new Set(refs.map(refId));
-  const all = refs.every((r) => selection.some((s) => refId(s) === refId(r)));
-  return all
-    ? selection.filter((s) => !ids.has(refId(s)))
-    : [...selection, ...refs.filter((r) => !selection.some((s) => refId(s) === refId(r)))];
 }
 
 /**

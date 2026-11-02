@@ -29,13 +29,22 @@ interface PropertyRowProps {
   track: KeyTrack;
   scale: PanelWindow;
   selectedIds: ReadonlySet<string>;
+  /** Curves: no band, the graph draws the keys. */
+  headersOnly?: boolean;
 }
 
 /**
  * One animated field of a clip: swatch, name, value at the playhead, previous key, diamond and
  * next key on the left, and its keys along the timeline on the right.
  */
-export function PropertyRow({ clip, field, track, scale, selectedIds }: PropertyRowProps) {
+export function PropertyRow({
+  clip,
+  field,
+  track,
+  scale,
+  selectedIds,
+  headersOnly,
+}: PropertyRowProps) {
   const { playback } = useModule(previewRef);
   const { view } = useModule(keyframeRef);
   const id = `${clip.id}:${field.path}`;
@@ -59,7 +68,18 @@ export function PropertyRow({ clip, field, track, scale, selectedIds }: Property
     <div className="flex border-b border-border" style={{ height: ROW_HEIGHT }}>
       <div
         data-field-row
-        onClick={() => view.setState({ primary: id })}
+        onClick={(e) => {
+          // The diamond and arrows only make the row primary; the rest of the row also shows or hides its curve.
+          const onButton = e.target instanceof Element && e.target.closest("button") !== null;
+          view.setState((s) => ({
+            primary: id,
+            shown: onButton
+              ? s.shown
+              : s.shown.includes(id)
+                ? s.shown.filter((x) => x !== id)
+                : [...s.shown, id],
+          }));
+        }}
         className={cn(
           "group/cell grid shrink-0 cursor-pointer grid-cols-[10px_minmax(0,1fr)_56px_auto] items-center gap-1 border-r-[1.5px] border-border-strong bg-muted pl-2 pr-1 text-sm text-muted-foreground hover:text-foreground",
           primary && "bg-accent-soft text-foreground shadow-[inset_2px_0_0_var(--on)]",
@@ -74,15 +94,17 @@ export function PropertyRow({ clip, field, track, scale, selectedIds }: Property
         />
         <KeyControls clipId={clip.id} paths={paths} />
       </div>
-      <div className="relative min-w-0 flex-1 overflow-hidden">
-        <KeyBand
-          clip={clip}
-          path={field.path}
-          track={track}
-          scale={scale}
-          selectedIds={selectedIds}
-        />
-      </div>
+      {!headersOnly && (
+        <div className="relative min-w-0 flex-1 overflow-hidden">
+          <KeyBand
+            clip={clip}
+            path={field.path}
+            track={track}
+            scale={scale}
+            selectedIds={selectedIds}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -10,3 +10,9 @@ export const MIN_PANEL_HEIGHT = 120;
 export const PANEL_TOOLBAR_HEIGHT = 30;
 /** CSS variable the panel sets on itself: how far the timeline is scrolled, in px. */
 export const SCROLL_VAR = "--panel-scroll";
+/** Room above and below the plane for the value labels, in px. */
+export const CURVE_PADDING = 26;
+/** Half the side of a key's diamond on the graph, in px. */
+export const CURVE_KEY_RADIUS = 5;
+/** The tokens curves are drawn in, by row order. */
+export const CURVE_COLORS = ["--mark", "--primary", "--foreground", "--muted-foreground"] as const;

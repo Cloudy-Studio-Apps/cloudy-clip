@@ -5,6 +5,7 @@ import { cn } from "@/ui";
 import { MIN_PANEL_HEIGHT, PANEL_HEADER_WIDTH } from "../keyframe.layout";
 import { keyframeRef } from "../keyframe.ref";
 import { ClipGroup } from "./ClipGroup";
+import { CurveGraph } from "./CurveGraph";
 import { PanelPlayhead } from "./PanelPlayhead";
 import { PanelToolbar } from "./PanelToolbar";
 import { usePanelActions } from "./panel.actions.hook";
@@ -27,6 +28,7 @@ function OpenPanel() {
   const maximized = useStore(view, (s) => s.maximized);
   const panelHeight = useStore(view, (s) => s.panelHeight);
   const scope = useStore(view, (s) => s.scope);
+  const curves = useStore(view, (s) => s.mode) === "curves";
   const selection = useStore(view, (s) => s.selection);
   const rows = usePanelRows();
   const scale = usePanelWindow(root);
@@ -88,35 +90,44 @@ function OpenPanel() {
         />
       )}
       <PanelToolbar rows={rows} actions={actions} />
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="relative flex min-h-full flex-col">
-          {rows.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-subtle-foreground">
-              {scope === "all" ? "No clip has keys yet." : "Select a clip that has keys."}
-            </p>
-          ) : (
-            rows.map((entry) => (
-              <ClipGroup
-                key={entry.clip.id}
-                entry={entry}
-                scale={scale}
-                selectedIds={selectedIds}
+      <div className="flex min-h-0 flex-1">
+        <div
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+          style={curves ? { flex: `0 0 ${PANEL_HEADER_WIDTH}px` } : undefined}
+        >
+          <div className="relative flex min-h-full flex-col">
+            {rows.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-subtle-foreground">
+                {scope === "all" ? "No clip has keys yet." : "Select a clip that has keys."}
+              </p>
+            ) : (
+              rows.map((entry) => (
+                <ClipGroup
+                  key={entry.clip.id}
+                  entry={entry}
+                  scale={scale}
+                  selectedIds={selectedIds}
+                  headersOnly={curves}
+                />
+              ))
+            )}
+            <div className="flex flex-1">
+              <div
+                className="shrink-0 border-r-[1.5px] border-border-strong bg-muted"
+                style={{ width: PANEL_HEADER_WIDTH }}
               />
-            ))
-          )}
-          <div className="flex flex-1">
-            <div
-              className="shrink-0 border-r-[1.5px] border-border-strong bg-muted"
-              style={{ width: PANEL_HEADER_WIDTH }}
-            />
-          </div>
-          <div
-            className="pointer-events-none absolute inset-y-0 right-0 overflow-hidden"
-            style={{ left: PANEL_HEADER_WIDTH }}
-          >
-            <PanelPlayhead />
+            </div>
+            {!curves && (
+              <div
+                className="pointer-events-none absolute inset-y-0 right-0 overflow-hidden"
+                style={{ left: PANEL_HEADER_WIDTH }}
+              >
+                <PanelPlayhead />
+              </div>
+            )}
           </div>
         </div>
+        {curves && <CurveGraph rows={rows} />}
       </div>
     </div>
   );

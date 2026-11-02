@@ -18,10 +18,12 @@ interface ClipGroupProps {
   entry: PanelClip;
   scale: PanelWindow;
   selectedIds: ReadonlySet<string>;
+  /** Curves: the rows keep their headers and the graph draws the keys. */
+  headersOnly?: boolean;
 }
 
 /** A clip of the panel: a fold arrow, its name and a summary band, then a row per animated field. */
-export function ClipGroup({ entry, scale, selectedIds }: ClipGroupProps) {
+export function ClipGroup({ entry, scale, selectedIds, headersOnly }: ClipGroupProps) {
   const { clip, fields } = entry;
   const { view } = useModule(keyframeRef);
   const elements = useModule(elementRef);
@@ -66,27 +68,29 @@ export function ClipGroup({ entry, scale, selectedIds }: ClipGroupProps) {
           <Arrow className="size-3 shrink-0" />
           <span className="truncate">{name}</span>
         </button>
-        <div className="relative min-w-0 flex-1 overflow-hidden">
-          <div data-key-plane className="absolute inset-0 will-change-transform" style={SCROLLED}>
-            <i
-              className="absolute inset-y-[5px] bg-primary-soft/40 shadow-[inset_0_0_0_1px_var(--border-strong)]"
-              style={{
-                left: timeToPx(clip.start, pxPerSecond),
-                width: timeToPx(clip.duration, pxPerSecond),
-              }}
-            />
-            {times.map((time) => (
-              <KeyDiamond
-                key={time}
-                summary
-                summaryKey={`${clip.id}|${time}`}
-                selected={keysAtTime(clip, time).every((ref) => selectedIds.has(refId(ref)))}
-                x={timeToPx(time, pxPerSecond)}
-                title="Every key of this clip at this time"
+        {!headersOnly && (
+          <div className="relative min-w-0 flex-1 overflow-hidden">
+            <div data-key-plane className="absolute inset-0 will-change-transform" style={SCROLLED}>
+              <i
+                className="absolute inset-y-[5px] bg-primary-soft/40 shadow-[inset_0_0_0_1px_var(--border-strong)]"
+                style={{
+                  left: timeToPx(clip.start, pxPerSecond),
+                  width: timeToPx(clip.duration, pxPerSecond),
+                }}
               />
-            ))}
+              {times.map((time) => (
+                <KeyDiamond
+                  key={time}
+                  summary
+                  summaryKey={`${clip.id}|${time}`}
+                  selected={keysAtTime(clip, time).every((ref) => selectedIds.has(refId(ref)))}
+                  x={timeToPx(time, pxPerSecond)}
+                  title="Every key of this clip at this time"
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       {!folded &&
         fields.map((field) => {
@@ -99,6 +103,7 @@ export function ClipGroup({ entry, scale, selectedIds }: ClipGroupProps) {
               track={track}
               scale={scale}
               selectedIds={selectedIds}
+              headersOnly={headersOnly}
             />
           ) : null;
         })}

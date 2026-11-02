@@ -140,3 +140,69 @@ export interface BoxSelectOptions {
   /** Called on release with the box on screen. */
   onDone(box: ScreenBox): void;
 }
+
+/** How a curve's values sit on screen: value to y and back, over the range the curve covers. */
+export interface ValueScale {
+  toY(value: number): number;
+  toValue(y: number): number;
+  /** The least and greatest value the plane shows. */
+  low: number;
+  high: number;
+}
+
+/** A curve on show, before it has a scale: its track, its color slot and whether it is the primary. */
+export interface CurveSource {
+  /** `clipId:path`, as `view.shown` keeps it. */
+  id: string;
+  clip: Clip;
+  path: string;
+  track: KeyTrack;
+  /** Index into `CURVE_COLORS`. */
+  slot: number;
+  primary: boolean;
+}
+
+/** A curve ready to draw. */
+export interface ShownCurve extends CurveSource {
+  scale: ValueScale;
+}
+
+/** What `drawCurves` paints. Sizes are CSS px; the caller scales the context for the device. */
+export interface CurveScene {
+  curves: readonly ShownCurve[];
+  pxPerSecond: number;
+  scrollLeft: number;
+  width: number;
+  height: number;
+  /** `clipId|path|keyId` of the selected keys. */
+  selection: ReadonlySet<string>;
+}
+
+/** A selected key a curve drag moves: where it starts, the limits of its time and its scale. */
+export interface CurveDragKey {
+  ref: KeyRef;
+  moved: MovedKey;
+  scale: ValueScale;
+  value: number;
+  min?: number;
+  max?: number;
+}
+
+/** Where a curve drag stands: the time delta and the new value of each key whose value changed, by `refId`. */
+export interface CurveDragState {
+  delta: Micros;
+  values: ReadonlyMap<string, number>;
+}
+
+/** What a drag of keys on the graph needs. */
+export interface CurveDragOptions {
+  event: PointerEvent;
+  pxPerSecond: number;
+  keys: readonly CurveDragKey[];
+  /** On the next frame after the pointer moved; `undefined` when the drag is cancelled. */
+  onPreview(state: CurveDragState | undefined): void;
+  /** On release, when something changed. */
+  onDrop(state: CurveDragState): void;
+  /** On release when the pointer never left the press. */
+  onClick?(): void;
+}

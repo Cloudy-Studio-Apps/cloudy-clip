@@ -31,3 +31,12 @@ export function parseRef(id: string): KeyRef | undefined {
   const [clipId, path, keyId] = id.split("|");
   return clipId && path && keyId ? { clipId, path, keyId } : undefined;
 }
+
+/** Toggles refs in a selection: all in, they come out; otherwise they are added. */
+export function toggled(selection: readonly KeyRef[], refs: readonly KeyRef[]): KeyRef[] {
+  const ids = new Set(refs.map(refId));
+  const all = refs.every((r) => selection.some((s) => refId(s) === refId(r)));
+  return all
+    ? selection.filter((s) => !ids.has(refId(s)))
+    : [...selection, ...refs.filter((r) => !selection.some((s) => refId(s) === refId(r)))];
+}
