@@ -2,22 +2,28 @@ import { useEffect, type MutableRefObject, type RefObject } from "react";
 import { useKernel, useModule } from "@/core";
 import { timelineRef } from "@/modules/timeline";
 import { moveKeys } from "../keyframe.edit.commands";
-import { CURVE_KEY_RADIUS } from "../keyframe.layout";
+import { setEase } from "../keyframe.ease.commands";
+import { CURVE_HANDLE_RADIUS, CURVE_KEY_RADIUS } from "../keyframe.layout";
 import { keyframeRef } from "../keyframe.ref";
 import type { GraphState, KeyRef, ShownCurve } from "../keyframe.types";
 import { dragKeys, dragPreview, keyBoxes } from "../logic/graph";
-import { keysInBox, refId, toggled } from "../logic/picking";
+import { handleDrag, handleSpots, withEases } from "../logic/handles";
+import { keysInBox, parseRef, refId, toggled } from "../logic/picking";
 import { startBoxSelect } from "./box.gesture";
 import { startCurveDrag } from "./curve.gesture";
+import { startHandleDrag } from "./handle.gesture";
 import { report } from "./panel.actions.hook";
 
 /** How near a press must be to a key to take it, in px. */
 const PICK_RADIUS = CURVE_KEY_RADIUS + 3;
 
+/** How near a press must be to a handle to take it, in px. */
+const HANDLE_PICK_RADIUS = CURVE_HANDLE_RADIUS + 3;
+
 /**
- * The graph's presses: on a key, select it (Ctrl/Shift toggles) and drag the selection in time
+ * The graph's presses: on a handle of a selected key, shape its ease; on a key, select it (Ctrl/Shift toggles) and drag the selection in time
  * and value; on empty plane, a rubber band. A drag shows through `state.preview` and sends one
- * `keyframe.move` on release.
+ * `keyframe.move` (or `keyframe.setEase` for a handle) on release.
  */
 export function useCurvePointer(
   canvas: RefObject<HTMLCanvasElement | null>,
@@ -78,10 +84,54 @@ export function useCurvePointer(
       });
     };
 
+    const dragHandle = (e: PointerEvent, curves: readonly ShownCurve[], rect: DOMRect) => {
+      const { pxPerSecond } = timeline.view.getState();
+      const scrollLeft = timeline.scrollLeft();
+      const selected = state.current.selected;
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const spot = curves
+        .flatMap((curve) =>
+          handleSpots(curve, selected, pxPerSecond, scrollLeft).map((s) => ({ s, curve })),
+        )
+        .filter(({ s }) => Math.hypot(s.x - x, s.y - y) <= HANDLE_PICK_RADIUS)
+        .at(-1);
+      if (!spot) return false;
+      const frozen = new Map(curves.map((c) => [c.id, c.scale]));
+      const base = state.current.sources;
+      startHandleDrag({
+        event: e,
+        resolve: handleDrag(spot.s, spot.curve.scale, pxPerSecond, scrollLeft),
+        onPreview: (eases) => {
+          state.current = {
+            ...state.current,
+            preview: eases ? { sources: withEases(base, eases), frozen } : undefined,
+          };
+          schedule();
+        },
+        onDrop: (eases) => {
+          void bus
+            .run(setEase, {
+              changes: [...eases].flatMap(([id, ease]) => {
+                const key = parseRef(id);
+                return key ? [{ key, ease }] : [];
+              }),
+            })
+            .then((result) => {
+              report(result);
+              state.current = { ...state.current, preview: undefined };
+              schedule();
+            });
+        },
+      });
+      return true;
+    };
+
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
       const rect = element.getBoundingClientRect();
       const curves = current();
+      if (dragHandle(e, curves, rect)) return;
       const boxes = keyBoxes(
         curves,
         timeline.view.getState().pxPerSecond,

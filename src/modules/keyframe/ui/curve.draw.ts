@@ -1,8 +1,14 @@
 import { MICROS_PER_SECOND } from "@/core";
 import { clipEnd, contentTime, trackValue } from "@/modules/project";
-import { CURVE_COLORS, CURVE_KEY_RADIUS, CURVE_PADDING } from "../keyframe.layout";
+import {
+  CURVE_COLORS,
+  CURVE_HANDLE_RADIUS,
+  CURVE_KEY_RADIUS,
+  CURVE_PADDING,
+} from "../keyframe.layout";
 import type { CurveScene, ShownCurve } from "../keyframe.types";
 import { keyPoint } from "../logic/graph";
+import { handleSpots } from "../logic/handles";
 
 /** A curve is sampled at most once per this many px of width. */
 const SAMPLE_PX = 2;
@@ -40,10 +46,36 @@ function trace(ctx: CanvasRenderingContext2D, curve: ShownCurve, scene: CurveSce
   ctx.stroke();
 }
 
+/** Paints the handles of the primary curve's selected keys: a line from the key and a round knob. */
+function drawHandles(
+  ctx: CanvasRenderingContext2D,
+  curves: readonly ShownCurve[],
+  scene: CurveScene,
+  colors: { line: string; knob: string; fill: string },
+): void {
+  for (const curve of curves) {
+    for (const spot of handleSpots(curve, scene.selection, scene.pxPerSecond, scene.scrollLeft)) {
+      ctx.strokeStyle = colors.line;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(spot.anchor.x, spot.anchor.y);
+      ctx.lineTo(spot.x, spot.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(spot.x, spot.y, CURVE_HANDLE_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = colors.fill;
+      ctx.fill();
+      ctx.strokeStyle = colors.knob;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+}
+
 /**
  * Paints the graph: a grid at each second, the center line, every curve in its color (the primary
- * stronger, with its high and low at the left), then the keys as diamonds, red when selected.
- * Only the visible window is sampled.
+ * stronger, with its high and low at the left), then the keys as diamonds, red when selected, and
+ * the handles of the primary's selected keys. Only the visible window is sampled.
  */
 export function drawCurves(ctx: CanvasRenderingContext2D, scene: CurveScene): void {
   const { width, height, scrollLeft, pxPerSecond, curves, selection } = scene;
@@ -113,4 +145,5 @@ export function drawCurves(ctx: CanvasRenderingContext2D, scene: CurveScene): vo
       ctx.stroke();
     }
   }
+  drawHandles(ctx, ordered, scene, { line: text, knob: token("--foreground"), fill: surface });
 }

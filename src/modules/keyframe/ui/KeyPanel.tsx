@@ -8,6 +8,7 @@ import { ClipGroup } from "./ClipGroup";
 import { CurveGraph } from "./CurveGraph";
 import { PanelPlayhead } from "./PanelPlayhead";
 import { PanelToolbar } from "./PanelToolbar";
+import { PresetStrip } from "./PresetStrip";
 import { usePanelActions } from "./panel.actions.hook";
 import { usePanelKeys } from "./panel.keys.hook";
 import { usePanelRows } from "./panel.rows.hook";
@@ -129,6 +130,7 @@ function OpenPanel() {
         </div>
         {curves && <CurveGraph rows={rows} />}
       </div>
+      <PresetStrip />
     </div>
   );
 }

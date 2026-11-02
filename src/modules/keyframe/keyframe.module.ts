@@ -2,6 +2,7 @@ import { defineModule, keybindings, type ActorId } from "@/core";
 import { projectRef } from "@/modules/project";
 import { clipActions, timelineDocks, timelineTools } from "@/modules/timeline";
 import { ClipBadge, KeyPanel, keyAction, ModeSwitch } from "./ui";
+import { setEase } from "./keyframe.ease.commands";
 import { keyframeCommands } from "./keyframe.commands";
 import { createKeyframeApi, elementTarget } from "./keyframe.fields";
 import { fieldActions } from "@/modules/inspector";
@@ -42,6 +43,16 @@ export const keyframeModule = defineModule({
       id: "keyframe.toggle-mode",
       key: "k",
       resolve: () => ({ command: toggleMode.id, input: {} }),
+    });
+    ctx.contribute(keybindings, {
+      id: "keyframe.ease-selected",
+      key: "f9",
+      resolve: () => {
+        const keys = view.getState().selection;
+        return keys.length === 0
+          ? null
+          : { command: setEase.id, input: { changes: keys.map((key) => ({ key, ease: "ease" })) } };
+      },
     });
     return { api: createKeyframeApi(ctx, view, clipboard) };
   },

@@ -1,7 +1,16 @@
 import type { StoreApi } from "zustand";
 import type { ActorId, CommandContext, Micros } from "@/core";
 import type { ScreenBox } from "@/modules/timeline";
-import type { Clip, ClipId, KeyEase, Keyframe, KeyTrack, KeyValue, Track } from "@/modules/project";
+import type {
+  Clip,
+  ClipId,
+  EasePresetId,
+  KeyEase,
+  Keyframe,
+  KeyTrack,
+  KeyValue,
+  Track,
+} from "@/modules/project";
 
 /** One key of one track of one clip. */
 export interface KeyRef {
@@ -213,4 +222,69 @@ export interface GraphState {
   selected: ReadonlySet<string>;
   /** A drag in progress: the sources as it shows them, and the scales it began with. */
   preview?: { sources: readonly CurveSource[]; frozen: ReadonlyMap<string, ValueScale> };
+}
+
+/** A place on a curve: a time on the clip's content and a value. */
+export interface Point {
+  t: number;
+  v: number;
+}
+
+/** One change of `keyframe.setEase`. */
+export interface EaseChange {
+  key: KeyRef;
+  ease?: KeyEase | EasePresetId;
+  smooth?: boolean;
+}
+
+/** A segment between two keys as its handles see it: its time span and value change, and its ease. */
+export interface SegmentShape {
+  /** Time from the left key to the right one (any consistent unit). */
+  dt: number;
+  dv: number;
+  ease: KeyEase;
+}
+
+/** The segments on either side of a key: the one before it and the one after it. */
+export interface SegmentPair {
+  prev: SegmentShape;
+  next: SegmentShape;
+}
+
+/** A handle of a selected key on screen, with what dragging it needs. */
+export interface HandleSpot {
+  /** The selected key the handle belongs to. */
+  key: KeyRef;
+  /** `in` is on the key's left (the previous key's ease), `out` on its right (its own). */
+  side: "in" | "out";
+  /** The key whose ease the handle edits. */
+  owner: KeyRef;
+  /** Timeline times of the owner and of the key after it. */
+  start: Micros;
+  end: Micros;
+  /** Value of the owner, and the value change to the next key. */
+  from: number;
+  dv: number;
+  /** The ease being edited, always a bezier. */
+  ease: KeyEase;
+  /** Where the handle and its key sit in the plane, in px. */
+  x: number;
+  y: number;
+  anchor: { x: number; y: number };
+  /** On a smooth key, the key whose ease follows this handle and both segments around the key. */
+  follow?: { owner: KeyRef; segments: SegmentPair };
+}
+
+/** The eases a handle drag sets, by the `clipId|path|keyId` of the key that owns each. */
+export type HandleState = ReadonlyMap<string, KeyEase>;
+
+/** What a drag of a handle needs. */
+export interface HandleDragOptions {
+  event: PointerEvent;
+  /** The eases for a pointer moved by this much from the press, in px. */
+  resolve(dx: number, dy: number): HandleState;
+  /** On the next frame after the pointer moved; `undefined` when the drag is cancelled. */
+  onPreview(state: HandleState | undefined): void;
+  /** On release, when the pointer moved. */
+  onDrop(state: HandleState): void;
 }

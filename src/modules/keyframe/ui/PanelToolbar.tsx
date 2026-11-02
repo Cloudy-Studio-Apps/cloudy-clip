@@ -7,17 +7,21 @@ import {
   Minimize2,
   MousePointerSquareDashed,
   ScanSearch,
+  Spline,
 } from "lucide-react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
+import { projectRef } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { ToolbarButton } from "@/ui";
 import { PANEL_TOOLBAR_HEIGHT } from "../keyframe.layout";
 import { keyframeRef } from "../keyframe.ref";
+import { setEase } from "../keyframe.ease.commands";
 import { setKeys } from "../keyframe.edit.commands";
+import { allSmooth, smoothChanges } from "../logic/handles";
 import type { PanelClip } from "../keyframe.types";
-import type { PanelActions } from "./panel.actions.hook";
+import { report, type PanelActions } from "./panel.actions.hook";
 
 /** The row Add key works on: the primary one when it is listed, else the first. */
 function targetRow(rows: readonly PanelClip[], primary: string | null) {
@@ -44,6 +48,14 @@ export function PanelToolbar({
   const maximized = useStore(view, (s) => s.maximized);
   const selectedCount = useStore(view, (s) => s.selection.length);
   const target = targetRow(rows, primary);
+  const project = useModule(projectRef).store;
+
+  const smooth = () => {
+    const { clips } = project.api.getState();
+    const selection = view.getState().selection;
+    const changes = smoothChanges(clips, selection, !allSmooth(clips, selection));
+    if (changes.length > 0) void bus.run(setEase, { changes }).then(report);
+  };
 
   const maximize = (next: boolean) => {
     view.setState({ maximized: next });
@@ -76,6 +88,14 @@ export function PanelToolbar({
         }
       >
         Add key at playhead
+      </ToolbarButton>
+      <ToolbarButton
+        icon={<Spline />}
+        title="Turn the selected keys' linear segments into curves with handles, and keep the handles on both sides of each key in line"
+        disabled={selectedCount === 0}
+        onClick={smooth}
+      >
+        Smooth handles
       </ToolbarButton>
       <ToolbarButton
         icon={<Copy />}
