@@ -3,6 +3,8 @@ import { defineCommand } from "@/core";
 import { clampToClip, contentTime, projectRef, trackValue, type KeyValue } from "@/modules/project";
 import { requireClip, requireField, time } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
+import { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
+import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
 import { moveKeys, removeKeys, setKey, setKeyValues } from "./keyframe.edit.commands";
 import { writeTracks, type TrackEdit } from "./keyframe.write";
 
@@ -34,4 +36,15 @@ export const clearKeys = defineCommand({
 });
 
 /** The keyframe module's commands. */
-export const keyframeCommands = [setKey, removeKeys, moveKeys, setKeyValues, clearKeys];
+export const keyframeCommands = [
+  setKey,
+  removeKeys,
+  moveKeys,
+  setKeyValues,
+  clearKeys,
+  setEase,
+  setAfter,
+  scaleKeys,
+  copyKeys,
+  pasteKeys,
+];

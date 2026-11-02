@@ -9,8 +9,17 @@ import {
   prop,
   sharedGroups,
 } from "@/modules/element";
-import { createProjectModule, projectRef, seedProject, type Clip } from "@/modules/project";
+import {
+  createProjectModule,
+  mirrorEase,
+  presetOf,
+  projectRef,
+  seedProject,
+  type Clip,
+} from "@/modules/project";
+import { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
 import { clearKeys } from "./keyframe.commands";
+import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
 import { moveKeys, removeKeys, setKey } from "./keyframe.edit.commands";
 import { keyframeModule } from "./keyframe.module";
 import { keyframeRef } from "./keyframe.ref";
@@ -27,6 +36,17 @@ const testElement = defineElement({
   properties: { content: prop.string() },
   defaults: () => ({ content: "" }),
   display: () => ({ icon: Film, color: "clip-video", label: "Keyed", body: "none" }),
+});
+
+const bareElement = defineElement({
+  kind: "test.bare",
+  name: "Bare",
+  source: "none",
+  tracks: ["video"],
+  supports: {},
+  properties: { content: prop.string() },
+  defaults: () => ({ content: "" }),
+  display: () => ({ icon: Film, color: "clip-video", label: "Bare", body: "none" }),
 });
 
 const group = defineSharedGroup({
@@ -50,7 +70,7 @@ const fixtures = defineModule({
   commands: [],
   mcpTools: [],
   setup({ contribute }) {
-    contribute(elements, testElement);
+    contribute(elements, testElement, bareElement);
     contribute(sharedGroups, group);
     return { api: {} };
   },
@@ -106,6 +126,7 @@ beforeEach(async () => {
       "transform.x": { blend: "number", shared: true, keys: [{ id: "o", t: S, value: 40 }] },
     }),
     clip("plain", 2 * S, undefined),
+    { ...clip("bare", 0, undefined), kind: "test.bare" },
   ];
   for (const c of clips) {
     state.clips[c.id] = c;
@@ -197,5 +218,82 @@ describe("keyframe.clear", () => {
     await run(bus().run(clearKeys, { clipId: "a", paths: ["transform.x"], at: 3.5 * S }));
     expect(clipOf("a").animation).toBeUndefined();
     expect(clipOf("a").transform!.x).toBeCloseTo(15);
+  });
+});
+
+describe("keyframe.setEase and setAfter", () => {
+  const refA = { clipId: "a", path: "transform.x", keyId: "k1" };
+  const refB = { clipId: "a", path: "transform.x", keyId: "k2" };
+
+  it("sets a preset by name on many keys", async () => {
+    await run(
+      bus().run(setEase, {
+        changes: [
+          { key: refA, ease: "overshoot" },
+          { key: refB, ease: "overshoot", smooth: true },
+        ],
+      }),
+    );
+    const keys = trackOf("a", "transform.x").keys;
+    expect(presetOf(keys[0]!.ease)).toBe("overshoot");
+    expect(keys[1]!.smooth).toBe(true);
+  });
+
+  it("loops a field, holds again, and refuses a change with nothing in it", async () => {
+    await run(bus().run(setAfter, { clipId: "a", path: "transform.x", after: "loop" }));
+    expect(trackOf("a", "transform.x").after).toBe("loop");
+    await run(bus().run(setAfter, { clipId: "a", path: "transform.x", after: "hold" }));
+    expect(trackOf("a", "transform.x").after).toBeUndefined();
+    expect(await code(bus().run(setEase, { changes: [{ key: refA }] }))).toBe(
+      "keyframe.invalid_value",
+    );
+  });
+});
+
+describe("keyframe.scale", () => {
+  const eased = { kind: "bezier", x1: 0.1, y1: 0.2, x2: 0.3, y2: 0.4 } as const;
+  const k = (keyId: string) => ({ clipId: "a", path: "transform.x", keyId });
+
+  it("reverses keys with a negative factor, mirroring their curves", async () => {
+    await run(bus().run(setEase, { changes: [{ key: k("k1"), ease: eased }] }));
+    // Clip a starts at 2s: content S is timeline 3s. Flipping k1 and k2 around 3s swaps their places.
+    await run(bus().run(scaleKeys, { keys: [k("k1"), k("k2")], pivot: 3 * S, factor: -1 }));
+    const after = trackOf("a", "transform.x").keys;
+    expect(after.map((x) => x.t)).toEqual([0, S, 3 * S]);
+    expect(after.map((x) => x.id)).toEqual(["k2", "k1", "k3"]);
+    expect(after[0]!.ease).toEqual(mirrorEase(eased));
+    expect(after[1]!.ease).toBeUndefined();
+  });
+
+  it("refuses a stretch that puts keys on one time", async () => {
+    expect(
+      await code(bus().run(scaleKeys, { keys: [k("k1"), k("k2")], pivot: 0, factor: 1e-9 })),
+    ).toBe("keyframe.invalid_value");
+  });
+});
+
+describe("keyframe.copy and paste", () => {
+  const xKey = { clipId: "a", path: "transform.x", keyId: "k1" };
+
+  it("pastes onto matching paths at a time, and only those", async () => {
+    await run(bus().run(copyKeys, { keys: [xKey] }));
+    await run(bus().run(pasteKeys, { at: 5 * S, clipIds: ["plain"] }));
+    expect(trackOf("plain", "transform.x").keys).toHaveLength(1);
+    expect(trackOf("plain", "transform.x").keys[0]!.t).toBe(3 * S);
+    expect(await code(bus().run(pasteKeys, { at: 0, clipIds: ["missing"] }))).toBe(
+      "keyframe.clip_not_found",
+    );
+  });
+
+  it("fails with no target when no copied field is on the clip", async () => {
+    await run(bus().run(copyKeys, { keys: [xKey] }));
+    expect(await code(bus().run(pasteKeys, { at: 0, clipIds: ["bare"] }))).toBe(
+      "keyframe.no_target",
+    );
+  });
+
+  it("keeps each actor's copy apart", async () => {
+    await run(bus().run(copyKeys, { keys: [xKey] }));
+    expect(api().clipboard.get("agent:other" as never)).toBeUndefined();
   });
 });

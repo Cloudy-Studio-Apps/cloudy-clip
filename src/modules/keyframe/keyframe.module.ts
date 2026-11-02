@@ -1,10 +1,11 @@
-import { defineModule } from "@/core";
+import { defineModule, type ActorId } from "@/core";
 import { projectRef } from "@/modules/project";
 import { keyframeCommands } from "./keyframe.commands";
 import { createKeyframeApi, elementTarget } from "./keyframe.fields";
 import { keyTargets } from "./keyframe.points";
 import { keyframeMcpTools } from "./keyframe.mcp";
 import { keyframeRef } from "./keyframe.ref";
+import type { CopiedKeys, KeyframeClipboard } from "./keyframe.types";
 import { createKeyframeView, pruneSelection } from "./keyframe.view.store";
 
 /** Keys on a clip's values over time: commands and tools to add, move and remove them. */
@@ -17,6 +18,11 @@ export const keyframeModule = defineModule({
   mcpTools: keyframeMcpTools,
   setup(ctx) {
     const view = createKeyframeView();
+    const copied = new Map<ActorId, CopiedKeys>();
+    const clipboard: KeyframeClipboard = {
+      get: (actor) => copied.get(actor),
+      set: (actor, keys) => void copied.set(actor, keys),
+    };
     const project = ctx.require(projectRef).store;
     ctx.onDispose(
       project.subscribe((state, previous) => {
@@ -24,6 +30,6 @@ export const keyframeModule = defineModule({
       }),
     );
     ctx.contribute(keyTargets, elementTarget(ctx));
-    return { api: createKeyframeApi(ctx, view) };
+    return { api: createKeyframeApi(ctx, view, clipboard) };
   },
 });

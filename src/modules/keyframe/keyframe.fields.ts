@@ -3,7 +3,13 @@ import type { CommandContext, ModuleContext } from "@/core";
 import { getPath, keyableFields, labelOf, elementRef, setProps } from "@/modules/element";
 import { formatOfTrack, projectRef, type KeyValue } from "@/modules/project";
 import { keyTargets } from "./keyframe.points";
-import type { KeyField, KeyframeApi, KeyframeViewState, KeyTarget } from "./keyframe.types";
+import type {
+  KeyField,
+  KeyframeApi,
+  KeyframeClipboard,
+  KeyframeViewState,
+  KeyTarget,
+} from "./keyframe.types";
 
 /** A patch with `value` at a dotted path: `("a.b", 1)` is `{ a: { b: 1 } }`. */
 function patchAt(path: string, value: KeyValue): Record<string, unknown> {
@@ -42,11 +48,13 @@ export function elementTarget(ctx: Pick<ModuleContext, "require">): KeyTarget {
 export function createKeyframeApi(
   ctx: ModuleContext,
   view: StoreApi<KeyframeViewState>,
+  clipboard: KeyframeClipboard,
 ): KeyframeApi {
   const targets = () => ctx.points.get(keyTargets);
   const trackOf = (trackId: string) => ctx.require(projectRef).store.getState().tracks[trackId];
   return {
     view,
+    clipboard,
     fieldsOf(clip) {
       const track = trackOf(clip.trackId);
       return track ? targets().flatMap((target) => target.fields(clip, track)) : [];

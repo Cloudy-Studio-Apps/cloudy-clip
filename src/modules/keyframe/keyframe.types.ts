@@ -1,6 +1,6 @@
 import type { StoreApi } from "zustand";
-import type { CommandContext } from "@/core";
-import type { Clip, ClipId, KeyTrack, KeyValue, Track } from "@/modules/project";
+import type { ActorId, CommandContext, Micros } from "@/core";
+import type { Clip, ClipId, KeyEase, KeyTrack, KeyValue, Track } from "@/modules/project";
 
 /** One key of one track of one clip. */
 export interface KeyRef {
@@ -42,6 +42,28 @@ export interface KeyframeApi {
   /** One field of a clip with the target that owns it, or undefined when it can't be keyed. */
   fieldOf(clip: Clip, path: string): { target: KeyTarget; field: KeyField } | undefined;
   readonly view: StoreApi<KeyframeViewState>;
+  /** What each actor copied. Never in history. */
+  readonly clipboard: KeyframeClipboard;
+}
+
+/** One copied key: its path, its content-time distance from the earliest copied key, and its look. */
+export interface CopiedKey {
+  path: string;
+  offset: Micros;
+  value: KeyValue;
+  ease?: KeyEase;
+  smooth?: true;
+}
+
+/** What an actor copied. */
+export interface CopiedKeys {
+  keys: readonly CopiedKey[];
+}
+
+/** Per actor, so an agent's copy doesn't replace the user's. */
+export interface KeyframeClipboard {
+  get(actor: ActorId): CopiedKeys | undefined;
+  set(actor: ActorId, copied: CopiedKeys): void;
 }
 
 /** How the keyframe panel looks, per kernel and never in history. */

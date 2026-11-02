@@ -16,6 +16,7 @@ import {
 } from "@/modules/project";
 import {
   checkKeyValue,
+  grouped,
   invalidValue,
   keyEase,
   keyRef,
@@ -27,21 +28,6 @@ import {
 } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
 import { writeTracks, type TrackEdit } from "./keyframe.write";
-
-/** Groups keys by clip and path, once each, in the order given. */
-function grouped<T extends { clipId: string; path: string; keyId: string }>(keys: readonly T[]) {
-  const seen = new Set<string>();
-  const out = new Map<string, Map<string, T[]>>();
-  for (const key of keys) {
-    const id = `${key.clipId}\n${key.path}\n${key.keyId}`;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const paths = out.get(key.clipId) ?? new Map<string, T[]>();
-    out.set(key.clipId, paths);
-    paths.set(key.path, [...(paths.get(key.path) ?? []), key]);
-  }
-  return out;
-}
 
 /** Adds a key, or updates the one on that frame. */
 export const setKey = defineCommand({

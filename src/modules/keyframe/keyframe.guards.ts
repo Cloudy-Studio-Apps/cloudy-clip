@@ -102,3 +102,20 @@ export function checkKeyValue(
   if (typeof value !== "boolean") throw invalidValue(path, "takes true or false");
   return value;
 }
+
+/** Groups keys by clip and path, once each, in the order given. */
+export function grouped<T extends { clipId: string; path: string; keyId: string }>(
+  keys: readonly T[],
+) {
+  const seen = new Set<string>();
+  const out = new Map<string, Map<string, T[]>>();
+  for (const key of keys) {
+    const id = `${key.clipId}\n${key.path}\n${key.keyId}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const paths = out.get(key.clipId) ?? new Map<string, T[]>();
+    out.set(key.clipId, paths);
+    paths.set(key.path, [...(paths.get(key.path) ?? []), key]);
+  }
+  return out;
+}
