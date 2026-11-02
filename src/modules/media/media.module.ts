@@ -43,6 +43,15 @@ export const mediaModule = defineModule({
     });
     onDispose(() => probes.dispose());
 
+    // Deleted, undone or from another project: an open bin that's gone falls back to Master.
+    onDispose(
+      project.subscribe((next) => {
+        const { place } = view.getState();
+        if (place.kind !== "bin" || place.binId === null || next.bins[place.binId]) return;
+        view.setState({ place: { kind: "bin", binId: null } });
+      }),
+    );
+
     const files = createMediaFiles({ project, state, probes });
     onDispose(files.follow());
 

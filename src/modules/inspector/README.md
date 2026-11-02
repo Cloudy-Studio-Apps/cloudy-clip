@@ -104,3 +104,5 @@ bare?, component }`, for what isn't a property of an element, so any module can 
 
 No commands or MCP tools of its own: agents read the same data with `project_get_state` and
 change it with `element_set_props`.
+
+The Audio tab's sound controls come from the `audio` module through `inspectorSections`; this module keeps only the Sound section (track and mute).

@@ -4,7 +4,7 @@ import { useModule } from "@/core";
 import { mediaRef } from "../media.ref";
 import type { DiskInfo } from "../media.types";
 import { usePickMedia } from "./media.pick.hook";
-import { TreeRow } from "./SmartBinList";
+import { TreeRow } from "./TreeRow";
 
 /** What's mounted. A click opens the file picker there. */
 export function DiskList() {

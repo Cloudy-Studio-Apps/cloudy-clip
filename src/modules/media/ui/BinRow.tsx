@@ -8,7 +8,7 @@ import { MEDIA_DROP } from "../media.drag";
 import { mediaRef } from "../media.ref";
 import type { MediaDragDetail } from "../media.types";
 import { BinNameField } from "./BinNameField";
-import { TreeRow } from "./SmartBinList";
+import { TreeRow } from "./TreeRow";
 
 interface BinRowProps {
   /** Null is Master. */

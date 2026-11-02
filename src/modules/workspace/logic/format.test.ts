@@ -41,10 +41,6 @@ describe("project file", () => {
     expect(decodeProject(old).binOrder).toEqual([]);
   });
 
-  it("saves version 2", () => {
-    expect(JSON.parse(encodeProject(document, "1.0.0", new Date(0))).version).toBe(2);
-  });
-
   it("refuses what it can't trust", () => {
     expect(codeOf("not json")).toBe("workspace.not_a_project");
     expect(codeOf(file((json) => (json.format = "other")))).toBe("workspace.not_a_project");

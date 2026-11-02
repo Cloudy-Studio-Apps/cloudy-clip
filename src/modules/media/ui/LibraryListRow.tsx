@@ -12,11 +12,12 @@ export function LibraryListRow({ id, used }: { id: string; used: boolean }) {
   const asset = useStore(useModule(projectRef).store.api, (s) => s.media[id]);
   const probe = useStore(media.probes, (s) => s.probes[id]);
   if (!asset) return null;
+  const ready = probe?.status === "ready" || media.pictureMeta(id) !== undefined;
   return (
     <div
-      className="flex cursor-grab items-center gap-3 py-1"
+      className={cn("flex items-center gap-3 py-1", ready && "cursor-grab")}
       onPointerDown={(event) => {
-        if (event.button === 0) {
+        if (event.button === 0 && ready) {
           startMediaDrag({ type: "media", id }, asset.name, event.nativeEvent);
         }
       }}
