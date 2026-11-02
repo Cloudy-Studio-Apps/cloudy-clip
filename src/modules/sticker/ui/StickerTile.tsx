@@ -17,7 +17,7 @@ export function StickerTile({ hit }: { hit: StickerHit }) {
       type="button"
       title={sticker.label}
       aria-label={sticker.label}
-      className="relative grid size-full cursor-grab place-items-center rounded-xs bg-surface-sunken hover:bg-hover"
+      className="relative grid size-full cursor-grab place-items-center shadow-[inset_0_0_0_1px_var(--border)] hover:shadow-[inset_0_0_0_1.5px_var(--primary)]"
       onPointerDown={(e) => {
         if (e.button === 0) press(e.nativeEvent, hit);
       }}

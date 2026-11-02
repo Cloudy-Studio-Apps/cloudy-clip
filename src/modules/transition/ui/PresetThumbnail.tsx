@@ -8,7 +8,7 @@ export function PresetThumbnail({ canvasRef }: { canvasRef: RefObject<HTMLCanvas
       ref={canvasRef}
       width={THUMB_WIDTH}
       height={THUMB_HEIGHT}
-      className="block aspect-video w-full rounded-xs bg-surface-sunken"
+      className="block aspect-video w-full bg-surface-sunken"
     />
   );
 }

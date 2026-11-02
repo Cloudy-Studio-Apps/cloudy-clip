@@ -13,14 +13,10 @@ export function TransitionsPanel() {
   const sections = useMemo(() => orderCategories(presets), [presets]);
   return (
     <section className="flex h-full flex-col gap-2.5 overflow-y-auto overflow-x-hidden p-2.5">
-      <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-subtle-foreground">
-        Transitions
-      </h2>
+      <h2 className="font-hand text-[13px] font-bold text-foreground">Transitions</h2>
       {sections.map((section) => (
         <div key={section.category} className="flex flex-col gap-1.5">
-          <h3 className="text-2xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-            {section.title}
-          </h3>
+          <h3 className="font-hand text-[13px] font-bold text-foreground">{section.title}</h3>
           <div className="grid grid-cols-2 gap-1.5">
             {section.presets.map((preset) => (
               <PresetTile key={preset.id} preset={preset} />

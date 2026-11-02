@@ -21,7 +21,7 @@ export function CompositionSection() {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between gap-1.5">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-subtle-foreground">
+        <h2 className="font-hand text-[13px] font-bold text-foreground">
           Compositions
           {order.length > 0 && (
             <span className="ml-1.5 font-normal normal-case">· {order.length}</span>

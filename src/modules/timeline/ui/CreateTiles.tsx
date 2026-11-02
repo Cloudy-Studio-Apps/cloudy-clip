@@ -46,7 +46,7 @@ export function CreateTiles({ panel }: { panel: string }) {
           key={`${element.kind}:${entry.id}`}
           type="button"
           title="Click to add at the playhead, or drag onto the timeline"
-          className="grid h-16 cursor-grab place-items-center rounded-xs border border-border bg-surface-sunken px-2 text-center text-sm font-bold text-foreground hover:bg-hover"
+          className="grid h-[62px] cursor-grab place-items-center px-2 text-center font-hand text-md font-bold text-foreground bg-muted shadow-[inset_0_0_0_1px_var(--border)] hover:shadow-[inset_0_0_0_1.5px_var(--primary)]"
           onPointerDown={(e) => {
             if (e.button !== 0) return;
             startCreateDrag(e.nativeEvent, entry.label, {

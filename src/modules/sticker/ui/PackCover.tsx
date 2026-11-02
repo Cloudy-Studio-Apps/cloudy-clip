@@ -16,7 +16,7 @@ export function PackCover({ pack, onOpen }: { pack: StickerPackDefinition; onOpe
   return (
     <button
       type="button"
-      className="flex min-w-0 cursor-pointer flex-col gap-1 rounded-xs bg-surface-sunken p-1.5 text-left hover:bg-hover"
+      className="flex min-w-0 cursor-pointer flex-col gap-1 p-1.5 text-left shadow-[inset_0_0_0_1px_var(--border)] hover:shadow-[inset_0_0_0_1.5px_var(--primary)]"
       onClick={onOpen}
     >
       <span className="grid aspect-square grid-cols-2 gap-0.5">
@@ -35,7 +35,7 @@ export function PackCover({ pack, onOpen }: { pack: StickerPackDefinition; onOpe
           );
         })}
       </span>
-      <span className="truncate text-xs font-semibold">{pack.name}</span>
+      <span className="truncate font-hand text-[13px] font-bold">{pack.name}</span>
       <span className="text-2xs text-subtle-foreground">{hits.length} stickers</span>
     </button>
   );

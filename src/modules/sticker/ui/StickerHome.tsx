@@ -5,7 +5,7 @@ import { PackCover } from "./PackCover";
 import { StickerTile } from "./StickerTile";
 import { useRecentStickers } from "./sticker.recents.hook";
 
-const HEADING = "text-2xs font-semibold uppercase tracking-[0.04em] text-muted-foreground";
+const HEADING = "font-hand text-[13px] font-bold text-foreground";
 
 /** What the tab opens on: the recently used stickers, then a cover for each pack. */
 export function StickerHome({ onOpenPack }: { onOpenPack(id: string): void }) {

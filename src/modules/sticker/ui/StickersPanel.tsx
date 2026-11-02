@@ -59,7 +59,7 @@ export function StickersPanel() {
           value={search}
           placeholder="Search stickers"
           aria-label="Search stickers"
-          className="h-7 min-w-0 flex-1 rounded-xs border border-border bg-surface-sunken px-2 text-sm outline-none placeholder:text-subtle-foreground focus:border-ring"
+          className="h-7 min-w-0 flex-1 border-b-[1.5px] border-subtle-foreground bg-transparent px-0.5 text-base outline-none placeholder:text-subtle-foreground focus:border-ring"
           onChange={(event) => setSearch(event.target.value)}
         />
       </div>

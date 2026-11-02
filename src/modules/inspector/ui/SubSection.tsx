@@ -30,9 +30,7 @@ export function SubSection({ item, values, live, enabled, children }: SubSection
   }
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-2xs font-semibold uppercase tracking-[0.04em] text-subtle-foreground">
-        {item.title}
-      </span>
+      <span className="font-hand text-[13px] font-bold text-foreground">{item.title}</span>
       <div className="flex flex-col gap-2 pl-2">{children}</div>
     </div>
   );

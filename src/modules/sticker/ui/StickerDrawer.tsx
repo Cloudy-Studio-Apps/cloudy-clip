@@ -9,7 +9,7 @@ import { useStickerList } from "./sticker.list.hook";
 const ROW =
   "flex w-full cursor-pointer items-center justify-between gap-2 rounded-xs px-1.5 py-1 text-left text-sm hover:bg-hover";
 const ACTIVE = "bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft";
-const HEADING = "px-1.5 text-2xs font-semibold uppercase tracking-[0.04em] text-subtle-foreground";
+const HEADING = "px-1.5 font-hand text-[13px] font-bold text-foreground";
 
 function PackRow({
   pack,

@@ -1,5 +1,7 @@
 import { useRef } from "react";
+import { useStore } from "zustand";
 import { useKernel, useModule, notify } from "@/core";
+import { cn } from "@/ui";
 import { junctionRef } from "@/modules/junction";
 import { projectRef } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
@@ -21,6 +23,9 @@ export function PresetTile({ preset }: { preset: TransitionPresetDefinition }) {
   const junctions = useModule(junctionRef);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const thumbnail = usePresetThumbnail(preset, canvasRef);
+  const used = useStore(project.api, (s) =>
+    Object.values(s.junctions).some((junction) => junction.props.preset === preset.id),
+  );
 
   const apply = () => {
     const { junctionSelection, selection } = timeline.view.getState();
@@ -41,7 +46,12 @@ export function PresetTile({ preset }: { preset: TransitionPresetDefinition }) {
     <button
       type="button"
       title="Click to apply to the selected cut, or drag onto a cut on the timeline"
-      className="flex cursor-grab flex-col gap-1 rounded-xs border border-border bg-surface-sunken p-1 text-left hover:bg-hover"
+      className={cn(
+        "flex cursor-grab flex-col gap-1 text-left",
+        used
+          ? "[&>:first-child]:shadow-[0_0_0_2px_var(--mark)]"
+          : "[&>:first-child]:shadow-[0_0_0_1px_var(--border-strong)] hover:[&>:first-child]:shadow-[0_0_0_1.5px_var(--primary)]",
+      )}
       onPointerEnter={thumbnail.start}
       onPointerLeave={thumbnail.stop}
       onPointerDown={(e) => {
@@ -70,7 +80,11 @@ export function PresetTile({ preset }: { preset: TransitionPresetDefinition }) {
       }}
     >
       <PresetThumbnail canvasRef={canvasRef} />
-      <span className="truncate px-0.5 text-xs font-medium text-foreground">{preset.name}</span>
+      <span
+        className={cn("truncate text-sm", used ? "font-bold text-mark" : "text-muted-foreground")}
+      >
+        {preset.name}
+      </span>
     </button>
   );
 }
