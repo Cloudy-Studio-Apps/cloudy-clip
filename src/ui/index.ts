@@ -11,6 +11,9 @@ export { cn } from "./lib/cn";
 /** The foca watona of the Cloudy Studio family, for the logo, empty states and waiting; `rough` adds its blue construction lines. */
 export { SealMark } from "./brand/SealMark";
 
+/** The foca watona drawing itself, for an empty page; finished at once under reduced motion. */
+export { SealSketch } from "./brand/SealSketch";
+
 /** A text button: `primary`, `secondary` or `mark`, `sm` or `md`. */
 export { Button } from "./kit/Button";
 /** A square icon-only button with a tooltip; `active` for toggles, `solid` for play. */
