@@ -4,6 +4,8 @@
  */
 /** Puts clips' pictures back to fitted and centered (undoable). */
 export { resetTransform } from "./transform.commands";
+/** The `composite` shared group (blend mode, opacity), edited with `element.setProps`. */
+export { compositeGroup } from "./transform.composite.group";
 /** The `transform` shared group (x, y, scale, rotation), edited with `element.setProps`. */
 export { transformGroup } from "./transform.group";
 export type { TransformApi } from "./transform.types";

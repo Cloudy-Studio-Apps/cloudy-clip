@@ -79,7 +79,7 @@ function write(ctx: CommandContext, state: ProjectState, writes: readonly ClipWr
       }
       for (const [key, value] of groups) {
         if (value === undefined) delete clip[key];
-        else clip[key] = value;
+        else Object.assign(clip, { [key]: value });
       }
     }
   });

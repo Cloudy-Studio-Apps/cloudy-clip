@@ -213,6 +213,37 @@ export interface ClipPlacement {
  */
 export interface SharedGroupValues {
   transform: ClipTransform;
+  composite: ClipComposite;
+}
+
+/** The blend modes, in menu order. Each is a canvas operation (`preview`'s `canvasBlend`). */
+export const BLEND_MODES = [
+  "normal",
+  "add",
+  "multiply",
+  "screen",
+  "overlay",
+  "softLight",
+  "hardLight",
+  "darken",
+  "lighten",
+  "colorDodge",
+  "colorBurn",
+  "difference",
+  "exclusion",
+  "hue",
+  "saturation",
+  "color",
+  "luminosity",
+] as const;
+
+/** How a clip's picture mixes with what's under it. */
+export type BlendMode = (typeof BLEND_MODES)[number];
+
+/** How a clip's picture lands on what's under it: a blend mode and an opacity from 0 to 1. */
+export interface ClipComposite {
+  mode: BlendMode;
+  opacity: number;
 }
 
 /** One band of a clip's equalizer. */

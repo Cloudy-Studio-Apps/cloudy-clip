@@ -132,7 +132,7 @@ export const textElement = defineElement<typeof textProperties, TextProps>({
   name: "Text",
   source: "none",
   tracks: ["video"],
-  supports: { transform: true },
+  supports: { transform: true, composite: true },
   properties: textProperties,
   layout: textPanelLayout,
   defaults: (format) => ({ text: DEFAULT_TEXT, ...defaultTextStyle(format) }),

@@ -7,7 +7,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
 
 - **Tier:** feature
 - **Requires:** `project`, `element` (picture sizes and fits), `media` (picture sizes), `fonts` (re-measure text when a font loads), `preview`, `timeline` (the selection)
-- **Contributes:** Reset transform in a clip's menu (`transform.menu.ts`); shared group `transform` (`sharedGroups`, its section in every element's panel
+- **Contributes:** Reset transform in a clip's menu (`transform.menu.ts`); shared groups `transform` and `composite` (`sharedGroups`, their sections in every element's panel
   on video tracks); preview overlay `transform.overlay`
 - **Points it owns:** —
 - **API:** none beyond its exported command and group (`TransformApi` is empty)
@@ -19,6 +19,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     back to that. Applies only on video tracks (a patch for a clip on an audio track fails with
     `element.invalid_props`). Its section, in the Video tab: a Position row (X, Y), scale, rotation; the band's reset does what
     `transform.reset` does.
+  - `transform.composite.group.ts`: `compositeGroup`, the shared group `composite` stored at `Clip.composite`: `mode` (one of `BLEND_MODES`) and `opacity` (0–1, shown as %). Missing means Normal at 100%, and `element.setProps` removes it when the values are back to that. An element opts in with `composite: true` in `supports`; all five picture elements do. Applies only on video tracks. Its section, in the Video tab, sits right under Transform (order 910). The engine draws it.
   - `transform.commands.ts`: `transform.reset` (`clipIds`): drops `Clip.transform` and the key tracks under `transform.`, one undo step.
   - `logic/`: pure parts: `picking.ts` (hit test of rotated pictures), `gestures.ts`
     (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override; each layer's `transform` is
@@ -36,7 +37,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     that `except`s fields: the box hides the corners without `scale` and the rotate handle without
     `rotation`, and a picture without `x` and `y` is selected by a click but not dragged.
 - **Keys:** `visibleLayers` reads each clip through `animatedClip(clip, time)`, so the box sits on the picture the engine draws; the live `transform` patch still goes over it.
-- **Not yet:** keyframes editing, crop, flip, opacity.
+- **Not yet:** keyframes editing, crop, flip, a switch on the Composite band.
 
 | Command                                 | MCP tool                                 |
 | --------------------------------------- | ---------------------------------------- |

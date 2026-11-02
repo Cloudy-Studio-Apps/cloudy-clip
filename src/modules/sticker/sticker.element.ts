@@ -14,7 +14,7 @@ export function createStickerElement(library: StickerLibrary, art: StickerArtCac
     name: "Sticker",
     source: "none",
     tracks: ["video"],
-    supports: { transform: true },
+    supports: { transform: true, composite: true },
     properties: {
       pack: prop.string({ hidden: true }),
       sticker: prop.string({ hidden: true }),

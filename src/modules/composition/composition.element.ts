@@ -10,7 +10,7 @@ export const compositionElement = defineElement({
   name: "Composition",
   source: "composition",
   tracks: ["video", "audio"],
-  supports: { transform: true },
+  supports: { transform: true, composite: true },
   properties: {},
   defaults: () => ({}),
   display(clip, { project }) {

@@ -10,7 +10,7 @@ export const mediaElement = defineElement({
   name: "Media",
   source: "media",
   tracks: ["video", "audio"],
-  supports: { transform: true },
+  supports: { transform: true, composite: true },
   properties: {},
   defaults: () => ({}),
   display(clip, { project, track }) {

@@ -18,11 +18,15 @@ export {
   placementsOf,
   trackClips,
 } from "./project.selectors";
+/** The blend modes, in menu order. */
+export { BLEND_MODES } from "./project.types";
 export { contains } from "./logic/compositions";
 export { useOpenComposition, useOpenFormat } from "./project.view.hook";
 export {
+  IDENTITY_COMPOSITE,
   IDENTITY_TRANSFORM,
   clipPlacement,
+  clipComposite,
   clipTransform,
   normalizeRotation,
 } from "./project.geometry";
@@ -46,6 +50,8 @@ export type {
   ClipFit,
   ClipId,
   ClipPlacement,
+  BlendMode,
+  ClipComposite,
   ClipTransform,
   Composition,
   CompositionId,

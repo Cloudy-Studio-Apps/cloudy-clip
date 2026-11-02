@@ -1,6 +1,7 @@
 import type {
   Clip,
   ClipFit,
+  ClipComposite,
   ClipPlacement,
   ClipTransform,
   PictureSize,
@@ -27,6 +28,20 @@ export function clipTransform(clip: Clip, live?: Partial<ClipTransform>): ClipTr
       : { ...IDENTITY_TRANSFORM, ...clip.transform };
   }
   return { ...IDENTITY_TRANSFORM, ...clip.transform, ...live };
+}
+
+/** A clip with no `composite`: Normal at 100%. */
+export const IDENTITY_COMPOSITE: Readonly<ClipComposite> = Object.freeze({
+  mode: "normal",
+  opacity: 1,
+});
+
+/**
+ * The clip's composite, with `live` (an unsaved patch) merged over it. The saved value may be
+ * partial (`animatedClip` writes only the keyed fields); the rest comes from the identity.
+ */
+export function clipComposite(clip: Clip, live?: Partial<ClipComposite>): ClipComposite {
+  return { ...IDENTITY_COMPOSITE, ...clip.composite, ...live };
 }
 
 /** Brings an angle in degrees into (-180, 180]. */

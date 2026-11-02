@@ -2,6 +2,7 @@ import { defineModule } from "@/core";
 import { sharedGroups } from "@/modules/element";
 import { previewOverlays } from "@/modules/preview";
 import { clipActions, timelineRef } from "@/modules/timeline";
+import { compositeGroup } from "./transform.composite.group";
 import { transformCommands } from "./transform.commands";
 import { transformGroup } from "./transform.group";
 import { transformMcpTools } from "./transform.mcp";
@@ -24,6 +25,7 @@ export const transformModule = defineModule({
   setup(ctx) {
     const { contribute } = ctx;
     contribute(sharedGroups, transformGroup);
+    contribute(sharedGroups, compositeGroup);
     contribute(clipActions, transformMenu(ctx, ctx.require(timelineRef).view));
     contribute(previewOverlays, { id: "transform.overlay", component: TransformOverlay });
     return { api: {} };

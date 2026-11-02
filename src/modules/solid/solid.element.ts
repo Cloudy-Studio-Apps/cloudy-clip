@@ -18,7 +18,7 @@ export const solidElement = defineElement({
   name: "Solid color",
   source: "none",
   tracks: ["video"],
-  supports: { transform: true },
+  supports: { transform: true, composite: true },
   properties: {
     color: prop.color(),
     width: prop.number({ min: 1, max: 16384, hidden: true }),
