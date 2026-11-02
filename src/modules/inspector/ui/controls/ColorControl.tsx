@@ -5,6 +5,7 @@ import { ColorField } from "@/ui";
 import type { FieldControlProps } from "../../inspector.types";
 import { inspectorRef } from "../../inspector.ref";
 import { pathPatch } from "../../logic/paths";
+import { FieldRow } from "./FieldRow";
 
 /** Quick colors offered by every color field. */
 const SWATCHES = ["#ffffff", "#1f2430", "#f2a385", "#8cc4f0", "#f5d97a", "#b9a3f0"];
@@ -28,21 +29,24 @@ export function ColorControl({
   const opacityPath = spec.opacity ? parent + spec.opacity : undefined;
   const opacity = opacityPath ? Number(getPath(values, opacityPath) ?? 1) : undefined;
   return (
-    <ColorField
-      label={label}
-      color={typeof value === "string" ? value : "#000000"}
-      opacity={opacity}
-      disabled={disabled}
-      swatches={SWATCHES}
-      recents={colors}
-      onChange={(color, alpha, info) => {
-        const patch = opacityPath
-          ? mergeProps(pathPatch(path, color), pathPatch(opacityPath, alpha))
-          : pathPatch(path, color);
-        if (!info.done) return live.input(patch);
-        live.commit(patch);
-        recents.push(color);
-      }}
-    />
+    <FieldRow label={label}>
+      <ColorField
+        bare
+        label={label}
+        color={typeof value === "string" ? value : "#000000"}
+        opacity={opacity}
+        disabled={disabled}
+        swatches={SWATCHES}
+        recents={colors}
+        onChange={(color, alpha, info) => {
+          const patch = opacityPath
+            ? mergeProps(pathPatch(path, color), pathPatch(opacityPath, alpha))
+            : pathPatch(path, color);
+          if (!info.done) return live.input(patch);
+          live.commit(patch);
+          recents.push(color);
+        }}
+      />
+    </FieldRow>
   );
 }

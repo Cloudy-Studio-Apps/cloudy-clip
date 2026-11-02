@@ -17,7 +17,8 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     shown as %), `rotation` (degrees, brought into (-180, 180] by `normalize`). Missing means
     fitted and centered (`IDENTITY_TRANSFORM`); `element.setProps` removes it when the values are
     back to that. Applies only on video tracks (a patch for a clip on an audio track fails with
-    `element.invalid_props`). Its section: X/Y row, scale, rotation, Reset (`transform.reset`).
+    `element.invalid_props`). Its section, in the Video tab: a Position row (X, Y), scale, rotation; the band's reset does what
+    `transform.reset` does.
   - `transform.commands.ts`: `transform.reset` (`clipIds`): drops `Clip.transform`, one undo step.
   - `logic/`: pure parts: `picking.ts` (hit test of rotated pictures), `gestures.ts`
     (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override; each layer's `transform` is

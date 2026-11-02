@@ -1,7 +1,7 @@
 import { Type } from "lucide-react";
 import { defineModule, layoutPanels } from "@/core";
 import { elements } from "@/modules/element";
-import { propertyControls } from "@/modules/inspector";
+import { inspectorTabs, propertyControls } from "@/modules/inspector";
 import { previewOverlays } from "@/modules/preview";
 import { textCommands } from "./text.commands";
 import { textElement } from "./text.element";
@@ -24,6 +24,13 @@ export const textModule = defineModule({
   setup({ contribute }) {
     contribute(elements, textElement);
     contribute(propertyControls, ...textControls);
+    contribute(inspectorTabs, {
+      id: "text",
+      label: "Text",
+      icon: Type,
+      order: 10,
+      contextual: true,
+    });
     contribute(layoutPanels, {
       id: "text.panel",
       title: "Text",

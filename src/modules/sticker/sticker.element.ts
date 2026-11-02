@@ -21,7 +21,9 @@ export function createStickerElement(library: StickerLibrary, art: StickerArtCac
       variation: prop.custom("sticker-variation", {}, { label: "Variation" }),
     },
     defaults: () => ({ pack: "", sticker: "", variation: {} }),
-    layout: [{ title: "Variations", layout: "sticker-variation", items: ["variation"] }],
+    layout: [
+      { title: "Variations", tab: "sticker", layout: "sticker-variation", items: ["variation"] },
+    ],
     normalize(next) {
       // Only what can be checked: a clip of a removed plugin stays editable.
       if (library.find(next.pack, next.sticker)) {

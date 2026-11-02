@@ -37,7 +37,7 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `preview`     | core    | `project`, `element`, `junction`, `media`, `fonts`                             | playback clock, engine, viewer, preview panel, overlays                                           |
 | `timeline`    | core    | `project`, `element`, `junction`, `media`, `preview`                           | track and clip commands, `addElement`, create tiles, timeline panel                               |
 | `composition` | core    | `project`, `element`, `media`, `timeline`                                      | composition commands and tools, dialog, Library section, timeline tabs, the `composition` element |
-| `inspector`   | feature | `project`, `element`, `preview`, `timeline`, `junction`, `composition`         | the right column, generated element panels, controls                                              |
+| `inspector`   | feature | `project`, `element`, `preview`, `timeline`, `junction`, `composition`         | the right column, its tabs and sections, generated element panels, controls                       |
 | `transform`   | feature | `project`, `element`, `media`, `fonts`, `preview`, `timeline`                  | the `transform` shared group, `transform.reset`, canvas tools                                     |
 | `text`        | feature | `project`, `element`, `preview`, `timeline`, `transform`, `fonts`, `inspector` | the `text` element, Text tab, presets, font controls, in-place editing                            |
 | `transition`  | feature | `project`, `element`, `junction`, `timeline`, `inspector`                      | the `transition` junction kind, the `transitionPresets` point, `transition.apply`                 |
@@ -154,18 +154,21 @@ it, so does the UI, and it becomes a command.
 
 ## Contributing to the UI
 
-| Point              | Owner        | Item                                                                                   |
-| ------------------ | ------------ | -------------------------------------------------------------------------------------- |
-| `layoutPanels`     | core (shell) | `{ id, title, slot: "side"\|"main"\|"inspector"\|"bottom", icon?, order?, component }` |
-| `appPages`         | core (shell) | `{ id, label, icon, group?, order?, component? }`, a page with a tab in the top bar    |
-| `appPageGroups`    | core (shell) | `{ id, order? }`, tabs that belong together; a divider separates groups                |
-| `keybindings`      | core (shell) | `{ id, key, mod?, shift?, resolve() → { command, input } \| null }`                    |
-| `previewOverlays`  | `preview`    | `{ id, component }`, drawn over the frame, in % of it                                  |
-| `elements`         | `element`    | an `ElementDefinition` (`defineElement`), keyed by `kind`                              |
-| `sharedGroups`     | `element`    | a `SharedGroup` (`defineSharedGroup`), keyed by `id`                                   |
-| `propTypes`        | `element`    | a `PropType` (`definePropType`), keyed by `name`                                       |
-| `propertyControls` | `inspector`  | `{ id, for: "field" \| "command", component }`                                         |
-| `sectionLayouts`   | `inspector`  | `{ id, component }`, draws a whole panel section                                       |
+| Point               | Owner        | Item                                                                                   |
+| ------------------- | ------------ | -------------------------------------------------------------------------------------- |
+| `layoutPanels`      | core (shell) | `{ id, title, slot: "side"\|"main"\|"inspector"\|"bottom", icon?, order?, component }` |
+| `appPages`          | core (shell) | `{ id, label, icon, group?, order?, component? }`, a page with a tab in the top bar    |
+| `appPageGroups`     | core (shell) | `{ id, order? }`, tabs that belong together; a divider separates groups                |
+| `keybindings`       | core (shell) | `{ id, key, mod?, shift?, resolve() → { command, input } \| null }`                    |
+| `previewOverlays`   | `preview`    | `{ id, component }`, drawn over the frame, in % of it                                  |
+| `elements`          | `element`    | an `ElementDefinition` (`defineElement`), keyed by `kind`                              |
+| `sharedGroups`      | `element`    | a `SharedGroup` (`defineSharedGroup`), keyed by `id`                                   |
+| `propTypes`         | `element`    | a `PropType` (`definePropType`), keyed by `name`                                       |
+| `propertyControls`  | `inspector`  | `{ id, for: "field" \| "command", component }`                                         |
+| `sectionLayouts`    | `inspector`  | `{ id, component }`, draws a whole panel section                                       |
+| `inspectorTabs`     | `inspector`  | `{ id, label, icon, order, contextual? }`, available when a section lands in it        |
+| `inspectorSections` | `inspector`  | `{ id, tab, title, order, appliesTo?, bare?, component }`, add to any clip's panel     |
+| `fieldActions`      | `inspector`  | `{ id, order, appliesTo?, component }`, the end of a field's row                       |
 
 `side` panels become tabs of the left rail (`title` + `icon`). Keybindings always resolve to a
 command, so shortcuts, buttons and agents share one path.

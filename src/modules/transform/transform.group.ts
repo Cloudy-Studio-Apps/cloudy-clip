@@ -23,7 +23,13 @@ export const transformGroup = defineSharedGroup({
       ui: { min: 0.01, max: 4, step: 0.01 },
       display: { scale: 100, unit: "%" },
     }),
-    rotation: prop.number({ min: -3600, max: 3600, unit: "°", control: "dial" }),
+    rotation: prop.number({
+      min: -3600,
+      max: 3600,
+      unit: "°",
+      control: "slider",
+      ui: { min: -180, max: 180, step: 1 },
+    }),
   },
   defaults: () => ({ ...IDENTITY_TRANSFORM }),
   normalize: (value) => ({ ...value, rotation: normalizeRotation(Number(value.rotation)) }),
@@ -31,11 +37,7 @@ export const transformGroup = defineSharedGroup({
   layout: {
     title: "Transform",
     order: 900,
-    items: [
-      { row: ["x", "y"] },
-      "scale",
-      "rotation",
-      { command: "transform.reset", label: "Reset", icon: "RotateCcw" },
-    ],
+    tab: "video",
+    items: [{ row: ["x", "y"], label: "Position" }, "scale", "rotation"],
   },
 });

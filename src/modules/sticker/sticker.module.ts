@@ -1,7 +1,7 @@
 import { Sticker } from "lucide-react";
 import { defineModule, layoutPanels } from "@/core";
 import { elements, propTypes } from "@/modules/element";
-import { propertyControls, sectionLayouts } from "@/modules/inspector";
+import { inspectorTabs, propertyControls, sectionLayouts } from "@/modules/inspector";
 import { previewRef } from "@/modules/preview";
 import { editingPack } from "./packs/editing/editing.pack";
 import { fluentPack } from "./packs/fluent/fluent.pack";
@@ -39,6 +39,13 @@ export const stickerModule = defineModule({
     contribute(elements, createStickerElement(library, art));
     contribute(propertyControls, ...stickerControls);
     contribute(sectionLayouts, ...stickerSections);
+    contribute(inspectorTabs, {
+      id: "sticker",
+      label: "Sticker",
+      icon: Sticker,
+      order: 10,
+      contextual: true,
+    });
     contribute(stickerPacks, sealPack, editingPack, fluentPack);
     contribute(layoutPanels, {
       id: "sticker.panel",

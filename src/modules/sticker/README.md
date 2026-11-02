@@ -51,7 +51,7 @@ contribute(
 );
 ```
 
-The inspector shows an axis once it has two options. If the plugin goes, clips using its option
+The inspector shows an axis once it has two options, in the contextual Sticker tab (with a note when a sticker has none). If the plugin goes, clips using its option
 fall back to the default. Animated art is Lottie JSON with `type: "lottie"` and a `thumbnail`.
 
 | Command       | MCP tool             | Notes                                                                                                                                   |

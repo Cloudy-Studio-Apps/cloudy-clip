@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useKernel, useModule } from "@/core";
-import { elementRef, setProps } from "@/modules/element";
+import { elementRef, resetProps, setProps } from "@/modules/element";
 import { previewRef } from "@/modules/preview";
 import { projectRef, type Clip, formatOf } from "@/modules/project";
 import type { PropsLive } from "../inspector.types";
@@ -27,6 +27,7 @@ export function usePropsLive(clip: Clip): PropsLive {
           return now ? elements.resolve(now, formatOf(state, now)) : null;
         },
         commit: (patch) => bus.run(setProps, { clipIds: [id], patch }),
+        reset: (paths) => bus.run(resetProps, { clipIds: [id], paths: [...paths] }),
       }),
     [bus, elements, preview, project, id],
   );

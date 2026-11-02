@@ -1,40 +1,48 @@
-import { ChevronRight } from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { cn } from "@/ui";
+import { useStore } from "zustand";
+import type { ReactNode } from "react";
+import { useModule } from "@/core";
+import { inspectorRef } from "../inspector.ref";
 
 interface InspectorSectionProps {
   title: string;
-  /** Controls at the right of the header (a group's switch); clicking them doesn't collapse. */
+  /** Remembers whether it is folded; the title by default. */
+  foldKey?: string;
+  /** Drawn left of the title: a group's switch. The slot stays, so titles line up. */
+  leading?: ReactNode;
+  /** Drawn at the right of the band; clicking them doesn't fold. */
   actions?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
-/** A collapsible group of fields, like Premiere's Effect Controls. */
-export function InspectorSection({ title, actions, children }: InspectorSectionProps) {
-  const [open, setOpen] = useState(true);
+/** A band with a title that folds the fields under it, like DaVinci Resolve's inspector. */
+export function InspectorSection({
+  title,
+  foldKey,
+  leading,
+  actions,
+  children,
+}: InspectorSectionProps) {
+  const view = useModule(inspectorRef).view;
+  const key = foldKey ?? title;
+  const folded = useStore(view.store, (s) => s.folded.includes(key));
   const hasBody = Array.isArray(children) ? children.length > 0 : Boolean(children);
   return (
     <section className="border-b border-border">
-      <div className="flex h-[34px] items-center pr-3">
+      <div className="flex h-[30px] items-center gap-1.5 bg-muted px-2">
+        <span className="grid w-7 shrink-0 place-items-center">{leading}</span>
         <button
           type="button"
-          aria-expanded={open}
-          className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1 px-2 text-left text-sm font-semibold"
-          onClick={() => setOpen(!open)}
+          aria-expanded={!folded}
+          className="h-full min-w-0 flex-1 cursor-pointer truncate text-left text-sm font-medium"
+          onClick={() => view.toggleFold(key)}
         >
-          <ChevronRight
-            aria-hidden
-            strokeWidth={2.25}
-            className={cn(
-              "size-3 text-subtle-foreground transition-[rotate] duration-150 ease-out",
-              open && "rotate-90",
-            )}
-          />
-          <span className="truncate">{title}</span>
+          {title}
         </button>
         {actions}
       </div>
-      {open && hasBody && <div className="flex flex-col gap-2 px-3 pb-3 pt-0.5">{children}</div>}
+      {!folded && hasBody && (
+        <div className="flex flex-col gap-1.5 px-2 pb-3 pt-2.5">{children}</div>
+      )}
     </section>
   );
 }

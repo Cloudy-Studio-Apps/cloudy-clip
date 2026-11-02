@@ -11,7 +11,7 @@ text element: Content, Font, Fill, Outline, Background, Shadow, then Transform.
 - **Requires:** `project`, `element` (the text element, `element.setProps`), `preview` (the
   playhead, live props), `timeline` (`addElement`, `CreateTiles`), `transform` (the
   shared group presets place), `fonts` (face checks against `knownFamilies()`, family list),
-  `inspector` (`propertyControls`, `usePropsLive`)
+  `inspector` (`propertyControls`, `inspectorTabs`, `FieldRow`)
 - **Contributes:** element `text`; controls `font-picker`, `font-weight`, `font-italic` (fields)
   and `preset-row` (command); panel `text.panel` (side, icon `Type`); preview overlay
   `text.editor` (in-place editing)
@@ -27,7 +27,7 @@ text element: Content, Font, Fill, Outline, Background, Shadow, then Transform.
     family lacks) then `snapStyleToFamily`; supports `transform`; `picture: { fit: "none", size:
 textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs from the
     defaults. Only families in `fonts.knownFamilies()` are checked (never waits for the network).
-  - `text.panel.ts`: `textPanelLayout`: Content (`text` + the `text.applyPreset` command as
+  - `text.panel.ts`: `textPanelLayout`, every section in the contextual Text tab: Content (`text` + the `text.applyPreset` command as
     `preset-row`), Font (`font`, a row of weight / italic / uppercase, size, align, sub-section
     Spacing), then the fill, outline, background and shadow groups (their switch in the header).
   - `text.preset.command.ts`: `text.applyPreset` (`clipIds`, `preset`): per clip one nested

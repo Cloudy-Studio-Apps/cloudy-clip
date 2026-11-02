@@ -60,7 +60,7 @@ export function LayoutHost() {
     // Explicit track sizes (not content-based) so no panel's content can squeeze another.
     <div
       ref={gridRef}
-      className="relative grid h-screen grid-cols-[var(--side-w,340px)_minmax(0,1fr)_var(--inspector-w,300px)] grid-rows-[44px_minmax(0,1fr)_var(--timeline-h,38vh)] gap-px bg-border text-foreground"
+      className="relative grid h-screen grid-cols-[var(--side-w,340px)_minmax(0,1fr)_var(--inspector-w,360px)] grid-rows-[44px_minmax(0,1fr)_var(--timeline-h,38vh)] gap-px bg-border text-foreground"
     >
       <TopBar className="col-span-3" />
       <LayoutRegion

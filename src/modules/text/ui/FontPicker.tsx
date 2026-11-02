@@ -22,7 +22,7 @@ export function FontPicker({ style, onPick, disabled }: FontPickerProps) {
     style: style.italic ? "italic" : "normal",
   });
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex w-full min-w-0 flex-col gap-1">
       <Popover
         open={open}
         onOpenChange={(next) => setOpen(next && !disabled)}

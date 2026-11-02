@@ -3,6 +3,8 @@ import { getPath, propTypes, type PropSpec, type ResolvedItem } from "@/modules/
 import { propertyControls } from "../inspector.points";
 import type { PanelSubject, PropsLive } from "../inspector.types";
 import { isEnabled, isVisible } from "../logic/conditions";
+import { itemPaths } from "../logic/reset";
+import { FieldActions } from "./FieldActions";
 import { useWarnOnce } from "./panel.warn.hook";
 import { WarningRow } from "./WarningRow";
 
@@ -12,11 +14,23 @@ interface FieldItemProps {
   /** Every field of the subject by path. */
   fields: ReadonlyMap<string, PropSpec>;
   values: Record<string, unknown>;
+  /** The subject's values when it stores none, when known. */
+  defaults?: Record<string, unknown>;
   live: PropsLive;
+  /** Inside a row, which draws one end for all its fields. */
+  inRow?: boolean;
 }
 
 /** One value of the clip or junction with its control, or a warning row when the control isn't registered. */
-export function FieldItem({ item, clip, fields, values, live }: FieldItemProps) {
+export function FieldItem({
+  item,
+  clip,
+  fields,
+  values,
+  defaults,
+  live,
+  inRow = false,
+}: FieldItemProps) {
   const controls = usePoint(propertyControls);
   const types = usePoint(propTypes);
   const spec = fields.get(item.path);
@@ -48,7 +62,8 @@ export function FieldItem({ item, clip, fields, values, live }: FieldItemProps) 
     );
   }
   const Control = control.component;
-  return (
+  const disabled = !isEnabled(spec, values);
+  const drawn = (
     <Control
       clip={clip}
       path={item.path}
@@ -56,8 +71,22 @@ export function FieldItem({ item, clip, fields, values, live }: FieldItemProps) 
       value={getPath(values, item.path)}
       values={values}
       label={item.label}
-      disabled={!isEnabled(spec, values)}
+      disabled={disabled}
       live={live}
     />
+  );
+  if (inRow) return drawn;
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      <div className="min-w-0 flex-1">{drawn}</div>
+      <FieldActions
+        specs={[spec]}
+        paths={itemPaths(item, fields)}
+        values={values}
+        defaults={defaults}
+        live={live}
+        disabled={disabled}
+      />
+    </div>
   );
 }

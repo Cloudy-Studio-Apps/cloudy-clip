@@ -1,17 +1,19 @@
 # inspector
 
-The right column of the editor. With nothing selected it shows the project (resolution, frame rate,
-clip count), how to connect an agent over MCP, and a tip from the seal; with one clip, the panel
-generated from its element, then timing, track and file (clips without a file show no file; a
-linked picture + sound counts as one clip: the one clicked, via the timeline's
-`selectionSubject`); with several, which ones. With one junction selected (the timeline's
-`junctionSelection`), the junction's panel.
+The right column of the editor, laid out like DaVinci Resolve's: a strip of icon tabs, sections as
+bands with a switch and a reset, rows with a name column and an end column. With nothing selected it
+shows the project (resolution, frame rate, clip count), how to connect an agent over MCP, and a tip
+from the seal; with one clip, that clip's tabs (a linked picture + sound counts as one clip: the one
+clicked, via the timeline's `selectionSubject`, with the partner's sections in the same tabs); with
+several, which ones. With one junction selected (the timeline's `junctionSelection`), the junction's
+panel, without tabs.
 
 - **Tier:** feature
 - **Requires:** `project`, `element` (layouts, values, `element.setProps`), `preview` (live props),
   `timeline` (the selection), `junction` (kinds, `junction.set`/`junction.remove`)
-- **Contributes:** panel `inspector.panel` (inspector slot); the built-in controls and the
-  `section` layout to its own points
+- **Contributes:** panel `inspector.panel` (inspector slot); to its own points, the built-in
+  controls, the `section` layout, the tabs Video, Audio, Transition and File, the sections Sound,
+  Transition, Timing and Info, and the `reset` field action
 - **Points it owns** (`inspector.points.ts`, read by `ElementPanel`):
   - `propertyControls` (keyed by `id`): `{ id, for: "field", component }` gets `FieldControlProps`
     (`clip`, `path`, `spec`, `value`, `values`, `label`, `disabled`, `live`); `{ id, for:
@@ -24,23 +26,52 @@ linked picture + sound counts as one clip: the one clicked, via the timeline's
     `clip`, `values`, `live`, `renderItem`, `enabled(path)`). Built in: `section`
     (`ui/PanelSection.tsx`): collapsible, the group's toggle as a `Switch` in the header (disabled
     when `enabled(header)` is false), items only while it is on.
+  - `inspectorTabs` (keyed by `id`): `{ id, label, icon, order, contextual? }`. A tab holds no logic:
+    it is available exactly when a section lands in it, else greyed out, or left out when
+    `contextual` (Text, Sticker, from their modules). `logic/tabs.ts`: `sectionTab`, `tabStates`,
+    `pickTab` (the remembered tab while available, else the first available).
+  - `inspectorSections` (keyed by `id`): `{ id, tab, title, order, appliesTo?(context, project),
+bare?, component }`, for what isn't a property of an element, so any module can add to any clip's
+    panel. Drawn in the standard band unless `bare`. The component gets an `InspectorContext`
+    (`clip`, `track`, `partner?`).
+  - `fieldActions` (keyed by `id`): `{ id, order, appliesTo?(spec), component }`, the end of a row.
+    Gets `FieldActionProps` (`paths`, `values`, `defaults?`, `live`, `disabled`). Keyframes go here.
+  - A section of an element or shared group picks its tab with `tab` in its `LayoutSection`
+    (`"video"` when it names none). A tab that isn't registered is warned about once and the section
+    lands in the first tab, so no property is lost.
   - Every built-in field control passes `disabled` (read-only or `enabledWhen` false) to its kit
     field, so a disabled field can't send a command.
-- **API:** `InspectorApi.recents`: the recent colors of every color field (`store` of `{ colors }`,
+- **API:** `InspectorApi.view`: the tab per clip kind and the folded sections, per kernel and never
+  in history (`inspector.view.store.ts`). `InspectorApi.recents`: the recent colors of every color field (`store` of `{ colors }`,
   `push(color)`), per kernel, saved in `localStorage` key `cloudy-clip.colors.recent` (max 12;
   `inspector.recents.store.ts`, `logic/recents.ts`). Exported for custom controls:
-  `usePropsLive(clip)`, `FieldRow`, `pathPatch`.
+  `usePropsLive(clip)`, `FieldRow`, `InspectorSection`, `pathPatch`.
 - **Files:** `ui/InspectorPanel.tsx` picks the view (`ProjectView`, `ClipView`, `MultiView`);
-  `InspectorHeader` and `InspectorSection` (collapsible, optional header `actions`) are shared by
-  them; `InfoList` comes from `@/ui`. The header shows the clip's element `display`.
-  - `ui/ElementPanel.tsx`: reads the `elements` point, so an element registered after the panel
-    opened shows; `resolveLayout` of the clip's element (controls by `defaultControl`,
-    custom types' control from `propTypes`), memoized per resolved element; values resolved once
-    per clip change. Shared group sections whose `appliesTo` is false for the clip are left out.
-    Each section is drawn by its layout from `sectionLayouts`, each item by `renderItem`: fields
-    (`FieldItem`, hidden by `visibleWhen`, disabled by `readOnly`/`enabledWhen`), rows, sub-sections
-    (`SubSection`: with a toggle, a `ToggleRow` showing its fields while on), commands
-    (`CommandItem`).
+  `InspectorHeader` and `InspectorSection` (the band: `foldKey`, `leading` slot for a switch,
+  `actions`, its fold state in `InspectorApi.view`) are shared by them; `InfoList` comes from `@/ui`.
+  The header shows the clip's element `display`.
+  - `ui/ClipView.tsx`: the header, `InspectorTabs` and `TabBody`. `ui/clip.panel.hook.ts`
+    (`useClipPanel`): reads the `elements` point, so an element registered after the panel opened
+    shows; `panelLayout` (`logic/layout.ts`: `resolveLayout`, controls by `defaultControl`, custom
+    types' control from `propTypes`) of the clip and its partner, memoized per kind. Shared group
+    sections whose `appliesTo` is false for that clip are left out. Merges those with
+    `inspectorSections`, grouped by tab and sorted by `order`.
+  - `ui/ClipSection.tsx`: one section of an element, values resolved once per clip change.
+    `ui/PropertySection.tsx`: draws a section by its layout from `sectionLayouts`, each item by
+    `renderItem`: fields (`FieldItem`, hidden by `visibleWhen`, disabled by
+    `readOnly`/`enabledWhen`), rows, sub-sections (`SubSection`: with a toggle, a `ToggleRow` showing
+    its fields while on), commands (`CommandItem`).
+  - **Rows:** `FieldRow` is the name column and the control. The end column is drawn by `FieldItem`
+    (or the row), not by controls, so a custom control gets it without doing anything, and a control
+    with several rows (sticker variations) gets one. In a row with a `label`, `field.context.ts`
+    tells fields to drop their name; a number then shows it as a prefix that scrubs.
+  - **Reset:** `live.reset(paths)` (`PropsLive`), one undo step, for a row (`ui/ResetAction.tsx`) or a
+    section's band. Clips run `element.resetProps`, because a merge can't remove keys of an object
+    value (a sticker's variation). `logic/reset.ts`: the paths of an item or section (a color with
+    its opacity; a section leaves out its header's switch and the user's words), `differs`. Junctions
+    have no `reset`: `junction.set` can't clear an object value, so they show none.
+  - `ui/sections.ts`: the built-in `inspectorSections`, with `SoundSection`, `JunctionsSection`
+    (each junction of the clip as `JunctionBody`, titled by side), `TimingSection`, `InfoSection`.
   - `ui/CommandItem.tsx`: `checkPanelCommand(id, bus.get(id))`; the control is the item's
     `control`, else `button` (no field) or `choices` (an enum field). Runs `bus.execute(id, {
 ...input, clipIds: [clip.id] })`.
@@ -58,18 +89,18 @@ linked picture + sound counts as one clip: the one clicked, via the timeline's
     while that command runs stays in the preview and goes with the next commit); `dispose`
     clears without committing (clip deleted or deselected mid-drag). `ui/props.live.hook.ts`:
     `usePropsLive(clip)` wraps it per clip and disposes on unmount.
-  - `ui/PropertyPanel.tsx`: the part `ElementPanel` and `JunctionView` share: takes a `LayoutSource`
-    (an element, or a junction kind's properties), the resolved `values` and a `live` (`input`/
-    `commit(patch)`), and draws the sections, fields, rows and sub-sections; `include` leaves
-    sections out, `renderCommand` draws command items (junctions have none: they show as
-    unavailable). Controls get a `PanelSubject` (`{ id, kind }`) in `clip`.
+  - `ui/PropertyPanel.tsx`: every section of a `LayoutSource` without tabs, for junctions.
+    `renderCommand` draws command items (junctions have none: they show as unavailable). Controls
+    get a `PanelSubject` (`{ id, kind }`) in `clip`.
   - `ui/JunctionView.tsx`: header with the junction's `display` (a missing kind shows "(not
-    available)", no values, still Remove); a Duration row in seconds (`junction.set { duration }`
-    in integer µs, limits from `durationLimits`, only for kinds that overlap); the kind's values
-    through `PropertyPanel`, committed by `ui/junction.live.hook.ts` (`createPropsLive` with no
-    preview) as `junction.set { junctionIds, patch }`; a Remove button (`junction.remove`).
-    `logic/junction.ts`: `junctionSetInput`, `junctionLayoutSource`.
-- **Not yet:** a real dial; tabs; editing several selected clips at once.
+    available)", no values, still Remove), then `ui/JunctionBody.tsx`: a band with a Duration row in
+    seconds (`junction.set { duration }` in integer µs, limits from `durationLimits`, only for kinds
+    that overlap) and a Remove button (`junction.remove`); the kind's values through `PropertyPanel`,
+    committed by `ui/junction.live.hook.ts` (`createPropsLive` with no preview) as
+    `junction.set { junctionIds, patch }`. `logic/junction.ts`: `junctionSetInput`,
+    `junctionLayoutSource`.
+- **Not yet:** a real dial; editing several selected clips at once; an Effects tab; a switch on
+  Transform (it needs an `enabled` value `clipPlacement` and the canvas tools honor).
 
 No commands or MCP tools of its own: agents read the same data with `project_get_state` and
 change it with `element_set_props`.

@@ -1,8 +1,16 @@
 import { defineModule, layoutPanels } from "@/core";
+import { Blend, FileText, Music, SquarePlay } from "lucide-react";
+import {
+  fieldActions,
+  inspectorSections,
+  inspectorTabs,
+  propertyControls,
+  sectionLayouts,
+} from "./inspector.points";
 import { createRecentColors } from "./inspector.recents.store";
-import { propertyControls, sectionLayouts } from "./inspector.points";
 import { inspectorRef } from "./inspector.ref";
-import { InspectorPanel } from "./ui";
+import { createInspectorView } from "./inspector.view.store";
+import { builtinSections, InspectorPanel, resetAction } from "./ui";
 import { builtinControls } from "./ui/controls";
 import { PanelSection } from "./ui/PanelSection";
 
@@ -26,6 +34,15 @@ export const inspectorModule = defineModule({
     });
     contribute(propertyControls, ...builtinControls);
     contribute(sectionLayouts, { id: "section", component: PanelSection });
-    return { api: { recents: createRecentColors() } };
+    contribute(
+      inspectorTabs,
+      { id: "video", label: "Video", icon: SquarePlay, order: 100 },
+      { id: "audio", label: "Audio", icon: Music, order: 200 },
+      { id: "transition", label: "Transition", icon: Blend, order: 300 },
+      { id: "file", label: "File", icon: FileText, order: 400 },
+    );
+    contribute(inspectorSections, ...builtinSections);
+    contribute(fieldActions, resetAction);
+    return { api: { recents: createRecentColors(), view: createInspectorView() } };
   },
 });

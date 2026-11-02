@@ -27,7 +27,14 @@ export function createPropsLive(deps: PropsLiveDeps): PropsLive & { dispose(): v
     pending = {};
     deps.preview(null);
   };
+  const { reset } = deps;
   return {
+    ...(reset && {
+      reset(paths: readonly string[]) {
+        clear();
+        void reset(paths);
+      },
+    }),
     input(patch) {
       pending = mergeProps(pending, patch);
       deps.preview(pending);

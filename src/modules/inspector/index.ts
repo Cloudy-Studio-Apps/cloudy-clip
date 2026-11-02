@@ -5,17 +5,35 @@
  */
 export type {
   CommandControlProps,
+  FieldAction,
+  FieldActionProps,
   FieldControlProps,
   InspectorApi,
+  InspectorContext,
+  InspectorMember,
+  InspectorSectionItem,
+  InspectorTab,
+  InspectorView,
+  InspectorViewState,
   PropertyControl,
   PropsLive,
   RecentColors,
   SectionLayout,
   SectionLayoutProps,
+  SectionReset,
 } from "./inspector.types";
 
-/** Controls (by id) and section layouts (by id) an element's panel can use. */
-export { propertyControls, sectionLayouts } from "./inspector.points";
+/**
+ * What a panel is made of: controls and section layouts an element can use, the tabs, sections of
+ * a clip that aren't its element's properties, and the actions at the end of a field's row.
+ */
+export {
+  fieldActions,
+  inspectorSections,
+  inspectorTabs,
+  propertyControls,
+  sectionLayouts,
+} from "./inspector.points";
 /** Live editing of a clip's values: preview while dragging, one `element.setProps` on release. */
 export { usePropsLive } from "./ui/props.live.hook";
 /** A label on the left and a control filling the row, for custom controls. */

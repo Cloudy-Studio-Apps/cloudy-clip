@@ -8,7 +8,7 @@ const MIN_PREVIEW_HEIGHT = 220;
 /** Limits of each resizable area. Defaults live in the grid template of `LayoutHost`. */
 export const RESIZE_RULES: Record<ResizableArea, ResizeRule> = {
   side: { cssVar: "--side-w", min: 260, max: 600, axis: "x", sign: 1 },
-  inspector: { cssVar: "--inspector-w", min: 240, max: 520, axis: "x", sign: -1 },
+  inspector: { cssVar: "--inspector-w", min: 280, max: 560, axis: "x", sign: -1 },
   timeline: {
     cssVar: "--timeline-h",
     min: 140,
