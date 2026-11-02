@@ -36,7 +36,7 @@ function blended(track: KeyTrack, a: Keyframe, b: Keyframe, p: number): KeyValue
     const to = channels(b.value);
     if (from && to) {
       const hex = from.map((c, i) =>
-        Math.round(c + (to[i]! - c) * p)
+        Math.min(255, Math.max(0, Math.round(c + (to[i]! - c) * p)))
           .toString(16)
           .padStart(2, "0"),
       );

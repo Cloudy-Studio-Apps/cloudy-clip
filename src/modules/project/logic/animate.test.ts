@@ -33,6 +33,19 @@ describe("trackValue", () => {
     expect(trackValue(t, S / 2)).toBe("#808080");
   });
 
+  it("keeps an overshooting color within its channels", () => {
+    const color = (y: number) =>
+      track(
+        [
+          { t: 0, value: "#000000", ease: { kind: "bezier", x1: 0.3, y1: y, x2: 0.7, y2: y } },
+          { t: S, value: "#ffffff" },
+        ],
+        { blend: "color" },
+      );
+    expect(trackValue(color(4), S / 2)).toBe("#ffffff");
+    expect(trackValue(color(-4), S / 2)).toBe("#000000");
+  });
+
   it("steps enums to the left key", () => {
     const t = track(
       [
