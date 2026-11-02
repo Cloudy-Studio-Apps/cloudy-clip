@@ -13,7 +13,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin};
 use tokio::sync::Mutex;
 
-use super::recipe::{ExportSpec, arguments};
+use super::recipe::{ExportSpec, ScriptOption, arguments, script_of};
 use crate::media::proxy::{Tools, command};
 
 /// Lines of FFmpeg's complaints kept to explain a failure.
@@ -31,11 +31,27 @@ fn partial_of(output: &Path) -> PathBuf {
     output.with_extension(format!("partial.{extension}"))
 }
 
+/// How this FFmpeg reads a filter graph from a file, by its `-version`. Unknown counts as new.
+fn script_option(ffmpeg: &Path) -> ScriptOption {
+    let mut probe = std::process::Command::new(ffmpeg);
+    probe.arg("-version").stdin(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        probe.creation_flags(0x0800_0000);
+    }
+    let output = probe.output().ok();
+    let text = output.map(|o| String::from_utf8_lossy(&o.stdout).into_owned());
+    ScriptOption::from_version_line(text.as_deref().and_then(|t| t.lines().next()).unwrap_or(""))
+}
+
 /// An export FFmpeg is working on.
 pub struct Job {
     /// Bytes of one frame; 0 for a sound-only export.
     pub frame_bytes: usize,
     pub partial: PathBuf,
+    /// The filter graph file of a long graph, removed with the partial file.
+    script: Option<PathBuf>,
     output: PathBuf,
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Child>,
@@ -51,8 +67,15 @@ impl Job {
         let output = PathBuf::from(&spec.output);
         let partial = partial_of(&output);
         let picture = spec.format.has_picture();
+        let option = script_option(&tools.ffmpeg);
+        let recipe = arguments(spec, &partial, card, option);
+        let script = recipe.script.as_ref().map(|_| script_of(&partial));
+        if let (Some(file), Some(graph)) = (&script, &recipe.script) {
+            std::fs::write(file, graph)
+                .map_err(|e| format!("Could not write the filter graph: {e}"))?;
+        }
         let mut cmd = command(&tools.ffmpeg);
-        cmd.args(arguments(spec, &partial, card))
+        cmd.args(recipe.args)
             .stdin(if picture {
                 Stdio::piped()
             } else {
@@ -60,9 +83,12 @@ impl Job {
             })
             .stdout(Stdio::null())
             .stderr(Stdio::piped());
-        let mut child = cmd
-            .spawn()
-            .map_err(|e| format!("Could not start FFmpeg: {e}"))?;
+        let mut child = cmd.spawn().map_err(|e| {
+            if let Some(file) = &script {
+                let _ = std::fs::remove_file(file);
+            }
+            format!("Could not start FFmpeg: {e}")
+        })?;
 
         let tail = Arc::new(StdMutex::new(VecDeque::new()));
         let reader = child.stderr.take().map(|stderr| {
@@ -88,6 +114,7 @@ impl Job {
         Ok(Self {
             frame_bytes,
             partial,
+            script,
             output,
             stdin: Mutex::new(stdin),
             child: Mutex::new(child),
@@ -95,6 +122,13 @@ impl Job {
             reader: Mutex::new(reader),
             cancelled: AtomicBool::new(false),
         })
+    }
+
+    /// Removes the filter graph file, if the export has one.
+    async fn remove_script(&self) {
+        if let Some(file) = &self.script {
+            let _ = tokio::fs::remove_file(file).await;
+        }
     }
 
     /// Hands one frame to FFmpeg. Returns once it took all of it, which paces the sender.
@@ -145,6 +179,7 @@ impl Job {
         // Dropping the pipe tells FFmpeg there are no more frames.
         self.stdin.lock().await.take();
         let succeeded = self.wait().await;
+        self.remove_script().await;
         if self.cancelled.load(Ordering::SeqCst) {
             return Err("Cancelled".to_owned());
         }
@@ -165,6 +200,7 @@ impl Job {
         // Killing first breaks the pipe, so a frame being written lets go of it.
         let _ = self.child.lock().await.kill().await;
         self.stdin.lock().await.take();
+        self.remove_script().await;
         let _ = tokio::fs::remove_file(&self.partial).await;
     }
 }

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { seedProject, type Clip, type MediaAsset, type ProjectState } from "@/modules/project";
-import { DEFAULT_SOUND } from "@/modules/project";
-import { dbToLinear } from "@/modules/project";
+import {
+  DEFAULT_SOUND,
+  dbToLinear,
+  seedProject,
+  type Clip,
+  type MediaAsset,
+  type ProjectState,
+} from "@/modules/project";
 import { mixdown } from "./mixdown";
 
 const media = (id: string): MediaAsset => ({

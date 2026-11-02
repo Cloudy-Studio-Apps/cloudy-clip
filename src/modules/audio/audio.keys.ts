@@ -11,11 +11,12 @@ const KEYED: readonly { key: "volumeDb" | "pan"; label: string; min: number; max
 /** The paths of a clip's sound that can hold keys: `sound.volumeDb` and `sound.pan`. */
 export const KEYED_SOUND_PATHS: readonly string[] = KEYED.map(({ key }) => `sound.${key}`);
 
-/** Volume and pan of clips on audio tracks, as keyable fields. The keys sit on the sound clip. */
+/** Volume and pan of clips on audio tracks (not placed compositions), as keyable fields. The keys sit on the sound clip. */
 export const audioKeys: KeyTarget = {
   id: "audio.keys",
-  fields(_clip, track) {
-    if (track.kind !== "audio") return [];
+  fields(clip, track) {
+    // A composition placed in a track is mixed from its own clips; export has no envelope for it.
+    if (track.kind !== "audio" || clip.compositionRef !== undefined) return [];
     return KEYED.map(({ key, label, min, max }): KeyField => ({
       path: `sound.${key}`,
       label,

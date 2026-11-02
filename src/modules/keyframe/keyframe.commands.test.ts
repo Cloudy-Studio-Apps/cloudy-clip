@@ -147,7 +147,8 @@ beforeEach(async () => {
     state.tracks.v1!.clipIds.push(c.id);
   }
   state.clips.snd = { ...clip("snd", 0, undefined), trackId: "a1", kind: "test.bare" };
-  state.tracks.a1!.clipIds.push("snd");
+  state.clips.placed = { ...state.clips.snd, id: "placed", compositionRef: "other" };
+  state.tracks.a1!.clipIds.push("snd", "placed");
   await kernel.modules.loadAll([
     createProjectModule(state),
     elementModule,
@@ -352,6 +353,12 @@ describe("keys on a sound", () => {
 
   it("doesn't offer sound keys on a picture clip", async () => {
     expect(await code(bus().run(setKey, { clipId: "plain", path: "sound.pan", at: 0 }))).toBe(
+      "keyframe.not_keyable",
+    );
+  });
+
+  it("doesn't offer sound keys on a composition placed in a track", async () => {
+    expect(await code(bus().run(setKey, { clipId: "placed", path: "sound.volumeDb", at: 0 }))).toBe(
       "keyframe.not_keyable",
     );
   });

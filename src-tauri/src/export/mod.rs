@@ -53,6 +53,7 @@ fn sweep_partials(notes: &Path) {
     };
     for entry in entries.flatten() {
         if let Ok(partial) = std::fs::read_to_string(entry.path()) {
+            let _ = std::fs::remove_file(recipe::script_of(Path::new(&partial)));
             let _ = std::fs::remove_file(partial);
         }
         let _ = std::fs::remove_file(entry.path());

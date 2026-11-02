@@ -2,7 +2,7 @@
 //! wrote. Frames arrive as raw RGBA on stdin; sound is mixed here from the original files.
 
 use std::ffi::OsString;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
@@ -197,28 +197,56 @@ fn compact(value: f64) -> String {
 /// A value that follows the points along straight lines, as an expression of `t` (seconds into
 /// the segment). Before the first point and after the last it holds.
 fn envelope_expr(points: &[(f64, f64)]) -> String {
-    let [first, rest @ ..] = points else {
-        return "1".to_owned();
-    };
-    let Some(last) = points.last() else {
-        return compact(first.1);
-    };
-    let mut expr = String::new();
-    let mut closing = 0;
-    let mut before = *first;
-    for &next in rest {
-        if next.0 <= before.0 {
+    // A point on the line between its neighbours adds nothing; this collapses constant stretches.
+    let mut kept: Vec<(f64, f64)> = Vec::with_capacity(points.len());
+    for (i, &point) in points.iter().enumerate() {
+        if let (Some(&a), Some(&b)) = (kept.last(), points.get(i + 1))
+            && b.0 > a.0
+            && (point.1 - (a.1 + (b.1 - a.1) * (point.0 - a.0) / (b.0 - a.0))).abs() < 1e-5
+        {
             continue;
         }
-        let slope = (next.1 - before.1) / (next.0 - before.0);
-        let (t0, v0, t1) = (compact(before.0), compact(before.1), compact(next.0));
-        expr.push_str(&format!("if(lt(t,{t1}),{v0}+{}*(t-{t0}),", compact(slope)));
-        closing += 1;
-        before = next;
+        kept.push(point);
     }
-    expr.push_str(&compact(last.1));
-    expr.push_str(&")".repeat(closing));
-    expr
+    let Some(first) = kept.first().copied() else {
+        return "1".to_owned();
+    };
+    if kept.iter().all(|p| (p.1 - first.1).abs() < 1e-5) {
+        return compact(first.1);
+    }
+    // One straight stretch each, from its start; the last one holds the final value.
+    let mut stretches: Vec<(f64, f64, f64)> = Vec::new();
+    for pair in kept.windows(2) {
+        if let [a, b] = pair
+            && b.0 > a.0
+        {
+            stretches.push((a.0, a.1, (b.1 - a.1) / (b.0 - a.0)));
+        }
+    }
+    if let Some(last) = kept.last() {
+        stretches.push((last.0, last.1, 0.0));
+    }
+    stretch_tree(&stretches)
+}
+
+/// The stretches as a balanced tree of `if`s: FFmpeg's expression parser refuses to nest deeper
+/// than 100 levels, which a chain of 256 would.
+fn stretch_tree(stretches: &[(f64, f64, f64)]) -> String {
+    if let [(t0, v0, slope)] = stretches {
+        if slope.abs() < 1e-5 {
+            return compact(*v0);
+        }
+        return format!("{}+{}*(t-{})", compact(*v0), compact(*slope), compact(*t0));
+    }
+    let middle = stretches.len() / 2;
+    let (before, after) = stretches.split_at(middle);
+    let start = after.first().map_or(0.0, |s| s.0);
+    format!(
+        "if(lt(t,{}),{},{})",
+        compact(start),
+        stretch_tree(before),
+        stretch_tree(after)
+    )
 }
 
 /// The points as seconds and a value each.
@@ -447,8 +475,63 @@ fn output_args(spec: &ExportSpec, hardware: Option<&str>) -> Vec<String> {
     args
 }
 
+/// Longest filter graph given to FFmpeg as an argument. Windows allows about 32 KB for the whole
+/// command line, so a longer graph goes in a file.
+const INLINE_GRAPH_LIMIT: usize = 8_000;
+
+/// The file a long filter graph of the export writing to `partial` goes in.
+pub fn script_of(partial: &Path) -> PathBuf {
+    let mut name = partial.as_os_str().to_owned();
+    name.push(".filter");
+    PathBuf::from(name)
+}
+
+/// How this FFmpeg takes a filter graph from a file: `-/filter_complex <file>` from 7.0, where
+/// `-filter_complex_script` went away in 8.0; older ones know only the latter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScriptOption {
+    Slash,
+    Legacy,
+}
+
+impl ScriptOption {
+    /// From the first line of `ffmpeg -version` (`ffmpeg version n9.0.2 ...`, `6.1.1-3ubuntu`,
+    /// `N-12345-gabc` for a build from git, which is recent). Anything unreadable counts as new.
+    pub fn from_version_line(line: &str) -> Self {
+        let version = line.split_whitespace().nth(2).unwrap_or_default();
+        let digits: String = version
+            .trim_start_matches(['n', 'N'])
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .collect();
+        match digits.parse::<u32>() {
+            Ok(major) if major < 7 && !version.starts_with("N-") => ScriptOption::Legacy,
+            _ => ScriptOption::Slash,
+        }
+    }
+
+    fn flag(self) -> &'static str {
+        match self {
+            ScriptOption::Slash => "-/filter_complex",
+            ScriptOption::Legacy => "-filter_complex_script",
+        }
+    }
+}
+
+/// The arguments of an export, and the filter graph that goes in a file when it is too long.
+pub struct Recipe {
+    pub args: Vec<OsString>,
+    /// The graph to write to `script_of(partial)`; the arguments name that file.
+    pub script: Option<String>,
+}
+
 /// Every FFmpeg argument of an export that writes to `partial`.
-pub fn arguments(spec: &ExportSpec, partial: &Path, hardware: Option<&str>) -> Vec<OsString> {
+pub fn arguments(
+    spec: &ExportSpec,
+    partial: &Path,
+    hardware: Option<&str>,
+    script_option: ScriptOption,
+) -> Recipe {
     let mut args: Vec<OsString> = Vec::new();
     let mut push = |values: &[&str]| args.extend(values.iter().map(OsString::from));
     push(&["-hide_banner", "-nostats", "-loglevel", "error", "-y"]);
@@ -482,7 +565,15 @@ pub fn arguments(spec: &ExportSpec, partial: &Path, hardware: Option<&str>) -> V
     if !sound.is_empty() {
         graph.push(sound_graph(sound, usize::from(picture), spec.duration));
     }
-    push(&["-filter_complex", &graph.join(";")]);
+    let graph = graph.join(";");
+    let script = (graph.len() > INLINE_GRAPH_LIMIT).then(|| graph.clone());
+    match &script {
+        Some(_) => {
+            let file = script_of(partial);
+            push(&[script_option.flag(), &file.to_string_lossy()]);
+        }
+        None => push(&["-filter_complex", &graph]),
+    }
     if picture {
         push(&["-map", "[picture]"]);
     }
@@ -493,7 +584,7 @@ pub fn arguments(spec: &ExportSpec, partial: &Path, hardware: Option<&str>) -> V
     push(&output.iter().map(String::as_str).collect::<Vec<_>>());
     push(&["-t", &seconds(spec.duration)]);
     args.push(partial.as_os_str().to_owned());
-    args
+    Recipe { args, script }
 }
 
 #[cfg(test)]
@@ -711,5 +802,117 @@ mod sound_tests {
         assert!((ll - 1.0).abs() < 1e-9 && (rl - 1.0).abs() < 1e-9 && lr == 0.0 && rr.abs() < 1e-9);
         let (ll, rl, lr, rr) = pan_gains(1.0);
         assert!(ll.abs() < 1e-9 && rl == 0.0 && (lr - 1.0).abs() < 1e-9 && (rr - 1.0).abs() < 1e-9);
+    }
+
+    fn busy(n: u64) -> Vec<EnvelopePoint> {
+        (0..256)
+            .map(|i| EnvelopePoint {
+                at: i * n,
+                value: ((i as f64) * 0.37).sin(),
+            })
+            .collect()
+    }
+
+    fn worst_case(clips: usize) -> ExportSpec {
+        let segment = SoundSegment {
+            duration: 25_500_000,
+            gain_envelope: busy(100_000)
+                .into_iter()
+                .map(|p| EnvelopePoint {
+                    value: 0.5 + p.value / 3.0,
+                    ..p
+                })
+                .collect(),
+            pan_envelope: busy(100_000),
+            ..segment()
+        };
+        ExportSpec {
+            output: "/o.mp3".into(),
+            format: Format::Mp3,
+            width: 0,
+            height: 0,
+            fps: 30.0,
+            duration: 25_500_000,
+            crf: 20,
+            audio_kbps: 128,
+            effort: Effort::Fast,
+            hardware: false,
+            sound: vec![segment; clips],
+        }
+    }
+
+    #[test]
+    fn a_constant_stretch_costs_no_expression() {
+        let still = timed(
+            &[
+                EnvelopePoint { at: 0, value: 1.0 },
+                EnvelopePoint {
+                    at: 1_000_000,
+                    value: 1.0,
+                },
+            ],
+            |v| v,
+        );
+        assert_eq!(envelope_expr(&still), "1");
+        let hold = envelope_expr(&[(0.0, 1.0), (1.0, 1.0), (2.0, 0.0)]);
+        assert_eq!(hold, "if(lt(t,1),1,if(lt(t,2),1+-1*(t-1),0))");
+    }
+
+    #[test]
+    fn a_long_graph_goes_in_a_file_and_a_short_one_stays_inline() {
+        let partial = Path::new("/o.partial.mp3");
+        let long = arguments(&worst_case(3), partial, None, ScriptOption::Slash);
+        let graph = long.script.expect("a long graph is written to a file");
+        assert!(graph.len() > INLINE_GRAPH_LIMIT);
+        // FFmpeg's expression parser stops at 100 levels of nesting.
+        let mut depth = 0;
+        let mut deepest = 0;
+        for c in graph.chars() {
+            match c {
+                '(' => {
+                    depth += 1;
+                    deepest = deepest.max(depth);
+                }
+                ')' => depth -= 1,
+                _ => {}
+            }
+        }
+        assert!(deepest < 50, "{deepest}");
+        let args: Vec<_> = long
+            .args
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect();
+        assert!(!args.iter().any(|a| a == "-filter_complex"));
+        let at = args.iter().position(|a| a == "-/filter_complex").unwrap();
+        assert_eq!(args[at + 1], "/o.partial.mp3.filter");
+        assert!(args.iter().all(|a| a.len() < 1_000));
+        let legacy = arguments(&worst_case(3), partial, None, ScriptOption::Legacy);
+        assert!(legacy.args.iter().any(|a| a == "-filter_complex_script"));
+
+        let one = ExportSpec {
+            sound: vec![segment()],
+            ..worst_case(0)
+        };
+        let short = arguments(&one, partial, None, ScriptOption::Slash);
+        assert!(short.script.is_none());
+        assert!(short.args.iter().any(|a| a == "-filter_complex"));
+    }
+
+    #[test]
+    fn ffmpeg_versions_pick_how_a_graph_file_is_read() {
+        let pick = ScriptOption::from_version_line;
+        assert_eq!(pick("ffmpeg version n9.0.2 Copyright"), ScriptOption::Slash);
+        assert_eq!(pick("ffmpeg version 7.1 Copyright"), ScriptOption::Slash);
+        assert_eq!(
+            pick("ffmpeg version 6.1.1-3ubuntu5 Copyright"),
+            ScriptOption::Legacy
+        );
+        assert_eq!(pick("ffmpeg version 4.4.2 Copyright"), ScriptOption::Legacy);
+        assert_eq!(
+            pick("ffmpeg version N-118000-gabc Copyright"),
+            ScriptOption::Slash
+        );
+        assert_eq!(pick(""), ScriptOption::Slash);
     }
 }
