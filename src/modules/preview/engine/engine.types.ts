@@ -67,6 +67,8 @@ export interface EngineOptions {
   mediaUrl(id: MediaId): string;
   /** URL of the file played backwards, or null until that copy is ready. */
   reversedUrl?(id: MediaId): string | null;
+  /** Calls `done` once that copy is ready. */
+  whenReversed?(id: MediaId, done: () => void): void;
   /** Length of a file. */
   fileDuration?(id: MediaId): Micros | undefined;
   /** URLs of an image's picture at a moment of its clip, then those up to `ahead` later. */

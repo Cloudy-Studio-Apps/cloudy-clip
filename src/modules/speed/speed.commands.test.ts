@@ -213,6 +213,13 @@ describe("speed.set", () => {
     expect(clipOf("B").duration).toBe(2 * S);
   });
 
+  it("refuses when a junction on the clip's start would no longer fit, ripple off", async () => {
+    await join();
+    const result = await kernel.bus.run(setSpeed, { clipIds: ["B"], rate: 8, ripple: false });
+    expect(result).toMatchObject({ ok: false, error: { code: "speed.joined" } });
+    expect(staleJunctions(doc())).toEqual([]);
+  });
+
   it("refuses clips without a file's time", async () => {
     await load((s) => {
       s.clips.T = { ...s.clips.C!, id: "T", kind: "text", mediaId: undefined, start: 20 * S };

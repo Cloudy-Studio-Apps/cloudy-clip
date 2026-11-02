@@ -54,6 +54,13 @@ export function createTimelineView(
         if (scroller) scroller.scrollLeft = place?.scrollLeft ?? 0;
       });
     },
+    previewClipLength(id, duration) {
+      const box = document.querySelector<HTMLElement>(`[data-clip-id="${id}"]`);
+      const length = duration ?? project?.().clips[id]?.duration;
+      if (box && length !== undefined) {
+        box.style.width = `${timeToPx(length, view.getState().pxPerSecond)}px`;
+      }
+    },
     clipBox(id) {
       const clip = project?.().clips[id];
       const lane = clip && lanes().find((l) => l.trackId === clip.trackId);

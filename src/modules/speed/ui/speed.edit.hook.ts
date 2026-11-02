@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useStore } from "zustand";
 import { notify, useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
@@ -10,17 +10,10 @@ import {
   speedOf,
   type ClipId,
 } from "@/modules/project";
-import { timelineRef, timeToPx } from "@/modules/timeline";
+import { timelineRef } from "@/modules/timeline";
 import { resetSpeed, setSpeed } from "../speed.commands";
 import { speedRef } from "../speed.ref";
-
-/** What can change besides the rate. */
-interface SpeedPatch {
-  rate?: number;
-  duration?: number;
-  pitchCorrection?: boolean;
-  reversed?: boolean;
-}
+import type { SpeedPatch } from "../speed.types";
 
 /** Changes to a clip's speed: drag steps show live, the release is one command. */
 export function useSpeedEdit(clipId: ClipId) {
@@ -41,27 +34,23 @@ export function useSpeedEdit(clipId: ClipId) {
       const own = state.clips[clipId];
       return own ? [own, ...partnersOf(state, clipId)] : [];
     };
-    /** Draws the clips at a length, without the project knowing. */
-    const widen = (length: (id: ClipId, duration: number) => number) => {
-      const { pxPerSecond } = timeline.view.getState();
-      for (const { id, duration } of group()) {
-        const box = document.querySelector<HTMLElement>(`[data-clip-id="${id}"]`);
-        if (box) box.style.width = `${timeToPx(length(id, duration), pxPerSecond)}px`;
-      }
-    };
+    // Kept here, so a drag cut short still finds what it drew, even if the clip has gone.
+    const drawn = new Set<ClipId>();
     const clear = () => {
-      for (const { id } of group()) preview.previewProps(id, null);
-      widen((_id, duration) => duration);
+      for (const id of drawn) {
+        preview.previewProps(id, null);
+        timeline.previewClipLength(id, null);
+      }
+      drawn.clear();
     };
     return {
+      clear,
       live(rate: number) {
         for (const member of group()) {
+          drawn.add(member.id);
           preview.previewProps(member.id, { speed: { ...speedOf(member), rate } });
+          timeline.previewClipLength(member.id, sourceSpan(member) / rate);
         }
-        widen((id) => {
-          const member = project.getState().clips[id];
-          return member ? sourceSpan(member) / rate : 0;
-        });
       },
       async commit(patch: SpeedPatch) {
         const result = await bus.run(setSpeed, {
@@ -84,6 +73,9 @@ export function useSpeedEdit(clipId: ClipId) {
       },
     };
   }, [bus, clipId, preview, project, timeline, view]);
+
+  // Escape mid-drag closes the box with no release, so nothing else would clear it.
+  useEffect(() => edit.clear, [edit]);
 
   return { clip, ripple, joined, ...edit };
 }

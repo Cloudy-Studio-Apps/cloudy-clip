@@ -13,7 +13,7 @@ export const speedModule = defineModule({
   ref: speedRef,
   name: "Speed",
   tier: "feature",
-  requires: ["project", "junction", "timeline", "preview", "inspector"],
+  requires: ["project", "junction", "media", "timeline", "preview", "inspector"],
   commands: speedCommands,
   mcpTools: speedMcpTools,
   setup(ctx) {

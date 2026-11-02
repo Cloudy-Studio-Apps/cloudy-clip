@@ -1,5 +1,6 @@
 import { produce } from "immer";
 import { CommandFailure, type Micros } from "@/core";
+import { durationLimits } from "@/modules/junction";
 import {
   applyMoves,
   formatOf,
@@ -42,6 +43,28 @@ function rateWithoutRipple(state: ProjectState, group: readonly Clip[], rate: nu
     limit = Math.max(limit, sourceSpan(clip) / room);
   }
   return limit;
+}
+
+/** Without ripple nothing may move, so a junction on a clip's start must still fit it. */
+function refuseShortJoin(
+  state: ProjectState,
+  group: readonly Clip[],
+  kindOf: JunctionKindOf,
+): void {
+  for (const { id } of group) {
+    for (const junction of junctionsOfClip(state, id)) {
+      const kind = kindOf(junction.kind);
+      const left = state.clips[junction.leftClipId];
+      const right = state.clips[junction.rightClipId];
+      if (!kind || !left || !right || junction.duration === 0) continue;
+      if (junction.duration <= durationLimits(kind, state, left, right).max) continue;
+      throw new CommandFailure(
+        "speed.joined",
+        `Clip "${id}" would be too short for its transition. Turn Ripple timeline on, or remove the transition.`,
+        { clipId: id },
+      );
+    }
+  }
 }
 
 /** What follows each clip on its track moves by the change of its end, with partners. */
@@ -88,7 +111,10 @@ export function retime(
       }
     }
   });
-  if (!ripple) return { state: changed, rate };
+  if (!ripple) {
+    refuseShortJoin(changed, group, kindOf);
+    return { state: changed, rate };
+  }
   const moved = applyMoves(changed, followers(state, group, lengthOf(before) - before.duration));
   const fitted = fitJunctions(
     moved,

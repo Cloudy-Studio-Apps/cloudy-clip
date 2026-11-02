@@ -104,6 +104,8 @@ export interface TimelineApi {
    * changes, not on every pointer move.
    */
   previewCut(preview: CutPreview | null): void;
+  /** Draws a clip at a length while a tool drags it, or back at its own (null). */
+  previewClipLength(id: ClipId, duration: Micros | null): void;
   /** The clip's box on screen, or null when no lane shows it. It may be outside the panel. */
   clipBox(id: ClipId): ScreenBox | null;
   /** The visible timeline on screen, or null when it isn't shown. */
@@ -178,6 +180,9 @@ export interface TimelineClipboard {
   get(actor: ActorId): ClipboardEntry | undefined;
   set(actor: ActorId, entry: ClipboardEntry): void;
 }
+
+/** A stretch of time. */
+export type Span = [start: Micros, end: Micros];
 
 /** One track's worth of a paste. */
 export interface PastePlacement {

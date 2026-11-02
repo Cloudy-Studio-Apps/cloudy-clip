@@ -6,7 +6,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
 - **Tier:** core
 - **Requires:** `project`, `element` (how each kind of clip is drawn), `junction` (how the two
   clips of a junction are mixed), `media`, `fonts`
-- **Speed:** an element plays at its clip's rate (`syncSlot` sets it each time, since loading a file resets it, and a released slot goes back to 1), and drift limits scale with the rate. A clip without pitch correction gets the shift through the pitch worklet (`createSoundAtSpeed`). A reversed clip plays `reversedUrl`; until that copy is ready the frame isn't settled, so the last picture stays. A held frame stays paused.
+- **Speed:** an element plays at its clip's rate (`syncSlot` sets it each time, since loading a file resets it, and a released slot goes back to 1), and drift limits scale with the rate. A clip without pitch correction gets the shift through the pitch worklet (`createSoundAtSpeed`). A reversed clip plays `reversedUrl`; until that copy is ready the clip is left out of the frame and `whenReversed` asks for a redraw. A held frame stays paused.
 - **Disabled clips** are left out of `resolveFrame`; a junction beside one isn't active.
 - **Contributes:** panel `preview.panel` (main); overlay `preview.fieldGuide` (`previewOverlays`: the field guide and corner marks, DOM only, so never in a capture or export); keybindings `preview.toggle-play` (Space),
   `preview.seek-start` (Home). Playback pauses when another page covers the editor

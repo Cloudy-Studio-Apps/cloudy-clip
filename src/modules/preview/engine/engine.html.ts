@@ -97,6 +97,7 @@ export class HtmlMediaEngine implements PreviewEngine {
   /** Web Audio for clips with sound settings; a picture-only engine has no sound. */
   private readonly sound: SoundGraph | null;
   private readonly soundAtSpeed = createSoundAtSpeed();
+  private readonly awaited = new Set<MediaId>();
   private readonly levels: LevelCorrection | null;
 
   constructor(
@@ -186,6 +187,16 @@ export class HtmlMediaEngine implements PreviewEngine {
     return this.options.reversedUrl?.(mediaId) ?? null;
   }
 
+  /** Redraws once a reversed copy is ready. */
+  private awaitReversed(mediaId: MediaId): void {
+    if (this.awaited.has(mediaId)) return;
+    this.awaited.add(mediaId);
+    this.options.whenReversed?.(mediaId, () => {
+      this.awaited.delete(mediaId);
+      this.options.onFrameReady();
+    });
+  }
+
   /** Where a clip's element should be at a time. */
   private elementTime(clip: Clip & { mediaId: MediaId }, time: Micros): Micros {
     return elementTimeAt(clip, time, this.options.fileDuration?.(clip.mediaId) ?? 0);
@@ -232,7 +243,8 @@ export class HtmlMediaEngine implements PreviewEngine {
         const speed = (propsOverrides.get(clip.id)?.speed as ClipSpeed) ?? speedOf(clip);
         const url = this.urlOf(clip.mediaId, speed);
         if (url === null) {
-          this.settled = false; // Its reversed copy is on the way.
+          // Its reversed copy is on the way: the rest of the frame doesn't wait for it.
+          this.awaitReversed(clip.mediaId);
           continue;
         }
         const desired = microsToSeconds(this.elementTime({ ...clip, speed }, time));

@@ -7,8 +7,7 @@ import {
   type ClipMove,
   type ProjectState,
 } from "@/modules/project";
-
-type Span = [start: Micros, end: Micros];
+import type { Span } from "../timeline.types";
 
 /** The parts of `spans` that none of `covered` lies over, merged and in order. */
 function uncovered(spans: readonly Span[], covered: readonly Span[]): Span[] {

@@ -47,6 +47,8 @@ export const previewModule = defineModule({
     const engineOptions = {
       mediaUrl: media.mediaUrl,
       reversedUrl: (id: string) => media.reversedUrl(id, false),
+      whenReversed: (id: string, done: () => void) =>
+        void media.prepareReversed(id, false).then(done, () => undefined),
       fileDuration: (id: string) => media.getProbe(id)?.duration,
       imageFrames: media.imageFrames,
       elements,

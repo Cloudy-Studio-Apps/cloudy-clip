@@ -17,7 +17,7 @@ import {
 } from "@/modules/project";
 import { checkLayout, commitState, junctionKindOf, sortClipIds, splitAt } from "@/modules/timeline";
 import { retime, writeSpeed } from "./logic/retime";
-import type { RetimedClip } from "./speed.types";
+import type { RetimedClip, SpeedChange } from "./speed.types";
 
 const RATE = { min: 0.1, max: 10 };
 const FREEZE_LENGTH = 3_000_000;
@@ -56,13 +56,6 @@ function rateFor(clip: Clip, duration: number): number {
     );
   }
   return rate;
-}
-
-interface SpeedChange {
-  rate?: (clip: Clip) => number;
-  pitchCorrection?: boolean;
-  reversed?: boolean;
-  ripple: boolean;
 }
 
 /** Applies a change to every group, as one undo step. */

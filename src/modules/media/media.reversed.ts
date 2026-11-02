@@ -37,6 +37,7 @@ export function createReversedCopies(
       const key = keyOf(id, full);
       if (ready.has(key)) return service.reversedFileUrl(id, full);
       if (!jobs.has(key) && !failed.has(key)) {
+        notify("info", "Making a reversed copy of this clip. It shows once that's done.");
         prepare(id, full).catch((error: unknown) => {
           failed.add(key);
           log.warn("No reversed copy", error);

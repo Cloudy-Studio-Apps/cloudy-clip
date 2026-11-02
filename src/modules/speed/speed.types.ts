@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { ClipId } from "@/modules/project";
+import type { Clip, ClipId } from "@/modules/project";
 
 /** What the speed tools remember. Per kernel, and never in history. */
 export interface SpeedView {
@@ -13,6 +13,22 @@ export interface SpeedView {
 export interface SpeedApi {
   /** Read with `useStore(api.view, selector)`. */
   readonly view: StoreApi<SpeedView>;
+}
+
+/** What the speed tools can change on a clip. */
+export interface SpeedPatch {
+  rate?: number;
+  duration?: number;
+  pitchCorrection?: boolean;
+  reversed?: boolean;
+}
+
+/** What one speed command does to each clip it's given. */
+export interface SpeedChange {
+  rate?: (clip: Clip) => number;
+  pitchCorrection?: boolean;
+  reversed?: boolean;
+  ripple: boolean;
 }
 
 /** A clip after a speed change. */
