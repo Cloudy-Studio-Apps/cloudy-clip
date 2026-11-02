@@ -1,9 +1,12 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import type {
   MediaFile,
   MediaService,
   MediaState,
+  DiskInfo,
+  FileFacts,
   ProxyEvent,
   RegisterFile,
   RegisterOutcome,
@@ -17,6 +20,21 @@ export function registerFiles(files: RegisterFile[]): Promise<RegisterOutcome[]>
 /** What a file is, without registering it. Rejects when it is missing or not media. */
 export function statFile(path: string): Promise<MediaFile> {
   return invoke<MediaFile>("media_stat", { path });
+}
+
+/** What a registered file says about itself. Every field is missing when it can't be told. */
+export function readFileFacts(id: string): Promise<FileFacts> {
+  return invoke<FileFacts>("media_file_facts", { id });
+}
+
+/** What's mounted, without pseudo filesystems. */
+export function listDisks(): Promise<DiskInfo[]> {
+  return invoke<DiskInfo[]>("media_list_disks");
+}
+
+/** Opens the file manager at a file. */
+export function revealFile(path: string): Promise<void> {
+  return revealItemInDir(path);
 }
 
 /** Creates the media server connection, writing proxy progress into `state`. */

@@ -95,7 +95,7 @@ pub struct ProbeMeta {
 #[derive(Debug, Clone)]
 pub(crate) struct Tools {
     pub(crate) ffmpeg: PathBuf,
-    ffprobe: PathBuf,
+    pub(crate) ffprobe: PathBuf,
 }
 
 /// Runs proxy jobs. One per app.

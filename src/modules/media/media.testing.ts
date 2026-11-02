@@ -29,6 +29,9 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
           masterUrl: (id: string) => `fake://${id}`,
           imageFrames: (id: string) => [`fake://${id}`],
           restore: async () => [],
+          fileFacts: async () => ({}),
+          listDisks: async () => [],
+          revealFile: async () => undefined,
         },
       };
     },

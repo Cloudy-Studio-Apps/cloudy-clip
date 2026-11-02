@@ -11,7 +11,7 @@ import { mediaMcpTools } from "./media.mcp";
 import { createProbeQueue } from "./media.probe";
 import { mediaRef } from "./media.ref";
 import { createMediaFiles } from "./media.files";
-import { createMediaService } from "./media.service";
+import { createMediaService, listDisks, readFileFacts, revealFile } from "./media.service";
 import { createMediaState } from "./media.store";
 import { MEDIA_PAGE } from "./media.ref";
 import { MediaLibrary, MediaPage } from "./ui";
@@ -93,6 +93,9 @@ export const mediaModule = defineModule({
           return frameIndexesAt(animation, elapsed, ahead).map((n) => service.frameUrl(id, n));
         },
         restore: files.restore,
+        fileFacts: readFileFacts,
+        listDisks,
+        revealFile,
       },
     };
   },

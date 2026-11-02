@@ -43,6 +43,8 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
     `MediaThumb`, `media.pick.hook.ts` (the file picker).
 - **Not yet:** search, filters, folders, list view.
 
+Native side: `src-tauri/src/media/facts.rs` (`media_file_facts`: ffprobe on the original; without ffprobe every field is missing) and `disks.rs` (`media_list_disks`: mounted disks, no pseudo filesystems).
+
 | Command           | MCP tool            | Notes                                                               |
 | ----------------- | ------------------- | ------------------------------------------------------------------- |
 | `media.import`    | `media_import`      | Tool waits until metadata is read                                   |

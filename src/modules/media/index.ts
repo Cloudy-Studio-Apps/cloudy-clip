@@ -14,6 +14,8 @@ export { librarySections } from "./media.points";
 /** Kinds of item the library lists besides files; contribute with `ctx.contribute(libraryKinds, …)`. */
 export { libraryKinds } from "./media.points";
 export type {
+  DiskInfo,
+  FileFacts,
   ImageAnimation,
   ImportResult,
   MediaApi,

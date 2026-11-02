@@ -35,6 +35,8 @@ pub fn run() {
             media::commands::media_register,
             media::commands::media_server_url,
             media::commands::media_stat,
+            media::disks::media_list_disks,
+            media::facts::media_file_facts,
             mcp::commands::mcp_register_tools,
             mcp::commands::mcp_respond,
             mcp::commands::mcp_status,

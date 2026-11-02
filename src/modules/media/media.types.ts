@@ -104,6 +104,26 @@ export type RegisterOutcome =
     }
   | { status: "error"; id: string; path: string; error: { code: string; message: string } };
 
+/** What a file says about itself (mirrors `FileFacts` in Rust). */
+export interface FileFacts {
+  videoCodec?: string;
+  audioCodec?: string;
+  sampleRate?: number;
+  channels?: number;
+  sampleFormat?: string;
+  timecode?: string;
+  /** ms since the epoch. */
+  createdAt?: number;
+}
+
+/** A mounted disk (mirrors `DiskInfo` in Rust). */
+export interface DiskInfo {
+  name: string;
+  mountPoint: string;
+  totalBytes: number;
+  freeBytes: number;
+}
+
 /** Result of the `media.import` command. */
 export interface ImportResult {
   imported: MediaAsset[];
@@ -164,12 +184,25 @@ export interface MediaApi {
    * marks those that can't be found `missing`. Returns those. Never rejects for a missing file.
    */
   restore(assets: readonly MediaAsset[]): Promise<MediaAsset[]>;
+  /** What a file says about itself, read from the original. */
+  fileFacts(id: MediaId): Promise<FileFacts>;
+  /** What's mounted. */
+  listDisks(): Promise<DiskInfo[]>;
+  /** Opens the file manager at a file. */
+  revealFile(path: string): Promise<void>;
 }
 
 /** Probe state plus the setters only the media module uses. */
 export interface MediaState extends Omit<
   MediaApi,
-  "mediaUrl" | "prepareMaster" | "masterUrl" | "imageFrames" | "restore"
+  | "mediaUrl"
+  | "prepareMaster"
+  | "masterUrl"
+  | "imageFrames"
+  | "restore"
+  | "fileFacts"
+  | "listDisks"
+  | "revealFile"
 > {
   /** Sets (or merges into) the probe of one media item. */
   setProbe(id: MediaId, probe: Partial<MediaProbe>): void;

@@ -34,6 +34,7 @@ tauri-plugin-http = "2.8.3"
 tauri-plugin-fs = "2.7.1"
 fontdb = "0.23"
 fs2 = "0.4"
+sysinfo = { version = "0.40.1", default-features = false, features = ["disk"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Same version Tauri uses; for WebKitGTK workarounds (src/webview).
