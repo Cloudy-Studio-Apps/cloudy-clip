@@ -1,4 +1,4 @@
-import type { PointerEvent } from "react";
+import type { ComponentType, PointerEvent } from "react";
 
 /** One choice of a `SegmentedControl`. */
 export interface SegmentedOption<T extends string> {
@@ -6,6 +6,10 @@ export interface SegmentedOption<T extends string> {
   label: string;
   /** Tooltip, e.g. what an aspect ratio is for. */
   hint?: string;
+  /** Drawn before the label. */
+  icon?: ComponentType<{ className?: string }>;
+  /** Draws a divider before this choice, to set groups of choices apart. */
+  divided?: boolean;
 }
 
 /** A color as hue (0–360), saturation and value (0–1). */

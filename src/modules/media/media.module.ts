@@ -1,6 +1,6 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { SquarePlay } from "lucide-react";
-import { defineModule, layoutPanels } from "@/core";
+import { Images, SquarePlay } from "lucide-react";
+import { appPages, defineModule, layoutPanels } from "@/core";
 import { elements } from "@/modules/element";
 import { projectRef } from "@/modules/project";
 import { importMedia, mediaCommands } from "./media.commands";
@@ -12,7 +12,7 @@ import { mediaRef } from "./media.ref";
 import { createMediaFiles } from "./media.files";
 import { createMediaService } from "./media.service";
 import { createMediaState } from "./media.store";
-import { MediaLibrary } from "./ui";
+import { MediaLibrary, MediaPage } from "./ui";
 
 /** Importing files, reading their metadata, proxies, and the media library panel. */
 export const mediaModule = defineModule({
@@ -65,6 +65,13 @@ export const mediaModule = defineModule({
       slot: "side",
       icon: SquarePlay,
       component: MediaLibrary,
+    });
+    contribute(appPages, {
+      id: "media.page",
+      label: "Media",
+      icon: Images,
+      order: 10,
+      component: MediaPage,
     });
 
     return {

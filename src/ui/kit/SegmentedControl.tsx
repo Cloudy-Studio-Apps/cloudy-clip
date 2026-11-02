@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { cn } from "../lib/cn";
 import type { SegmentedOption } from "./kit.types";
 
@@ -34,23 +35,26 @@ export function SegmentedControl<T extends string>({
       {options.map((option) => {
         const selected = option.value === value;
         return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            disabled={disabled}
-            title={option.hint}
-            className={cn(
-              "min-w-10 cursor-pointer rounded-xs px-2 font-mono text-xs disabled:cursor-default",
-              selected
-                ? "bg-muted text-foreground shadow-soft"
-                : "text-muted-foreground enabled:hover:text-foreground",
-            )}
-            onClick={() => onChange(option.value)}
-          >
-            {option.label}
-          </button>
+          <Fragment key={option.value}>
+            {option.divided && <span aria-hidden className="mx-1 my-0.5 w-px bg-border" />}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              title={option.hint}
+              className={cn(
+                "inline-flex min-w-10 cursor-pointer items-center justify-center gap-1.5 rounded-xs px-2 font-mono text-xs disabled:cursor-default",
+                selected
+                  ? "bg-muted text-foreground shadow-soft"
+                  : "text-muted-foreground enabled:hover:text-foreground",
+              )}
+              onClick={() => onChange(option.value)}
+            >
+              {option.icon && <option.icon className="size-3.5" />}
+              {option.label}
+            </button>
+          </Fragment>
         );
       })}
     </div>

@@ -43,6 +43,7 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `transition`  | feature | `project`, `element`, `junction`, `timeline`, `inspector`                      | the `transition` junction kind, the `transitionPresets` point, `transition.apply`                 |
 | `sticker`     | feature | `project`, `element`, `preview`, `timeline`, `transform`, `inspector`          | the `sticker` element, Stickers tab, `stickerPacks` and `stickerStyles`, `sticker.add`            |
 | `collab`      | feature | `project`, `preview`, `timeline`                                               | presence, access, the agent pointer and playhead, Follow                                          |
+| `sound`       | feature | —                                                                              | the Sound page, empty for now                                                                     |
 | `export`      | feature | `project`, `media`, `preview`, `workspace`                                     | the Export page and queue, turning a composition into a file                                      |
 
 The built-in `history` module (undo/redo) lives in `src/core/history`.
@@ -156,7 +157,8 @@ it, so does the UI, and it becomes a command.
 | Point              | Owner        | Item                                                                                   |
 | ------------------ | ------------ | -------------------------------------------------------------------------------------- |
 | `layoutPanels`     | core (shell) | `{ id, title, slot: "side"\|"main"\|"inspector"\|"bottom", icon?, order?, component }` |
-| `appPages`         | core (shell) | `{ id, label, order?, component }`, a page beside the editor with a tab in the top bar |
+| `appPages`         | core (shell) | `{ id, label, icon, group?, order?, component? }`, a page with a tab in the top bar    |
+| `appPageGroups`    | core (shell) | `{ id, order? }`, tabs that belong together; a divider separates groups                |
 | `keybindings`      | core (shell) | `{ id, key, mod?, shift?, resolve() → { command, input } \| null }`                    |
 | `previewOverlays`  | `preview`    | `{ id, component }`, drawn over the frame, in % of it                                  |
 | `elements`         | `element`    | an `ElementDefinition` (`defineElement`), keyed by `kind`                              |

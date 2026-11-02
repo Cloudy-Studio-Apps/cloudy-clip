@@ -7,7 +7,7 @@ rail), from which compositions and files are dragged onto the timeline.
 - **Requires:** `project`, `element`
 - **Contributes:** panel `media.library` (side, icon `SquarePlay`); element `media`
   (`media.element.ts`: no own properties, supports `transform`, `picture: { fit: "contain",
-source: "media" }`, labelled with the file name, a filmstrip on video tracks and a waveform on audio; image clips are the same element, drawn by the preview's image cache)
+source: "media" }`, labelled with the file name, a filmstrip on video tracks and a waveform on audio; image clips are the same element, drawn by the preview's image cache); page `media.page` (`appPages`, icon `Images`), empty for now
 - **Points it owns:** `librarySections` (`media.points.ts`): sections above the files (`composition` contributes its own).
 - **API** (`useModule(mediaRef)` / `ctx.require(mediaRef)`): `probes`, `fileDrop`, `getProbe`,
   `waitForProbe`, `pictureMeta(id)` (size, frame rate, length as soon as ffprobe has read them, rotation included), `mediaUrl`, `animation(id)` (frames and rate of an animated image), `imageFrames(id, elapsed, ahead)` (the URLs of an image's picture at a moment and those after it, looped), `restore(assets)` (registers a saved project's files, marks those not found `missing`, returns them). `useLocateMedia()` asks where a missing file went and looks for the others in that folder. `mediaHasAudio(probe)` (exported helper) says whether a file has

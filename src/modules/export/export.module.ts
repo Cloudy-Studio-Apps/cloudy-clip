@@ -1,4 +1,5 @@
-import { appPages, defineModule, EDITOR_PAGE, pagesRef } from "@/core";
+import { Upload } from "lucide-react";
+import { appPages, defineModule, PAGE_GROUP_DELIVER } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { exportCommands } from "./export.commands";
@@ -43,15 +44,14 @@ export const exportModule = defineModule({
       .then((value) => capabilities.setState({ value }))
       .catch((error: unknown) => log.warn("Could not read what FFmpeg can do", error));
 
-    // The page covers the preview, so nothing should keep playing behind it.
-    const pages = require(pagesRef).store;
-    const { playback } = require(previewRef);
-    onDispose(
-      pages.subscribe(({ active }) => {
-        if (active !== EDITOR_PAGE) playback.pause();
-      }),
-    );
-    contribute(appPages, { id: "export.page", label: "Export", component: ExportPage });
+    contribute(appPages, {
+      id: "export.page",
+      label: "Export",
+      icon: Upload,
+      group: PAGE_GROUP_DELIVER,
+      order: 10,
+      component: ExportPage,
+    });
 
     return { api: { queue, form, capabilities, runner } };
   },

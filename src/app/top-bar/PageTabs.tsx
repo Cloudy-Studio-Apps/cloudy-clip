@@ -1,23 +1,35 @@
 import { useMemo } from "react";
 import { useStore } from "zustand";
-import { appPages, EDITOR_PAGE, pagesRef, showPage, useKernel, useModule, usePoint } from "@/core";
+import {
+  appPageGroups,
+  appPages,
+  groupPages,
+  pagesRef,
+  showPage,
+  useKernel,
+  useModule,
+  usePoint,
+} from "@/core";
 import { SegmentedControl } from "@/ui";
 
-/** Edit and the pages modules add. Hidden while the editor is alone. */
+/** A tab for every page modules contribute, in order, with a divider between groups. */
 export function PageTabs() {
   const { bus } = useKernel();
   const pages = usePoint(appPages);
+  const groups = usePoint(appPageGroups);
   const active = useStore(useModule(pagesRef).store, (state) => state.active);
   const options = useMemo(
-    () => [
-      { value: EDITOR_PAGE, label: "Edit" },
-      ...[...pages]
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        .map(({ id, label }) => ({ value: id, label })),
-    ],
-    [pages],
+    () =>
+      groupPages(pages, groups).flatMap((group, groupIndex) =>
+        group.map(({ id, label, icon }, index) => ({
+          value: id,
+          label,
+          icon,
+          divided: groupIndex > 0 && index === 0,
+        })),
+      ),
+    [pages, groups],
   );
-  if (pages.length === 0) return null;
   return (
     <SegmentedControl
       label="Page"

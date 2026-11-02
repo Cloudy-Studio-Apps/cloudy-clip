@@ -50,7 +50,11 @@ export type { Point, PointOptions, PointReader, PointRegistry } from "./module/p
 export { EDITOR_PAGE, pagesRef, showPage } from "./shell/shell.pages";
 export {
   appOverlays,
+  appPageGroups,
   appPages,
+  groupPages,
+  PAGE_GROUP_CREATE,
+  PAGE_GROUP_DELIVER,
   keybindings,
   layoutPanels,
   matchKeybinding,
@@ -59,6 +63,7 @@ export {
 export type {
   AppOverlay,
   AppPage,
+  AppPageGroup,
   Keybinding,
   KeybindingAction,
   KeyPress,

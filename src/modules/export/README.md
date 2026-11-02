@@ -1,10 +1,10 @@
 # export
 
-Turns a composition into a file. The Export page, next to Edit in the top bar, sets what to make; exports wait in a queue and run one at a time while you keep editing.
+Turns a composition into a file. The Export page, the last tab of the top bar, sets what to make; exports wait in a queue and run one at a time while you keep editing.
 
 - **Tier:** feature
 - **Requires:** `project`, `media`, `preview`, `workspace` (the default file name)
-- **Contributes:** page `export.page` (`appPages`)
+- **Contributes:** page `export.page` (`appPages`, group `PAGE_GROUP_DELIVER`, icon `Upload`)
 - **API** (`useModule(exportRef)` / `ctx.require(exportRef)`): `queue`, `form`, `capabilities`, `runner`
 - **Files:**
   - `export.commands.ts`: `enqueue` checks everything and keeps the document as it is, so later edits don't reach a queued export.

@@ -32,8 +32,9 @@ export function LayoutHost() {
   const pages = usePoint(appPages);
   const active = useStore(useModule(pagesRef).store, (state) => state.active);
   const page = pages.find(({ id }) => id === active);
+  const Page = page?.component;
   // Hidden, not unmounted: the editor is exactly as it was when you come back.
-  const behind = page ? "invisible" : undefined;
+  const behind = Page ? "invisible" : undefined;
   const bySlot = useMemo(() => {
     const sorted = [...panels].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const of = (slot: LayoutSlot) => sorted.filter((panel) => panel.slot === slot);
@@ -84,11 +85,11 @@ export function LayoutHost() {
       >
         <PanelSlot panels={bySlot.bottom} />
       </LayoutRegion>
-      {page && (
+      {page && Page && (
         // Out of the grid's flow, over the editor, which stays mounted underneath.
         <div className="absolute inset-0 z-30 col-span-3 row-start-2 row-end-4 min-h-0 bg-background">
           <ErrorBoundary name={page.id}>
-            <page.component />
+            <Page />
           </ErrorBoundary>
         </div>
       )}

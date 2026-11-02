@@ -7,7 +7,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
 - **Requires:** `project`, `element` (how each kind of clip is drawn), `junction` (how the two
   clips of a junction are mixed), `media`, `fonts`
 - **Contributes:** panel `preview.panel` (main); keybindings `preview.toggle-play` (Space),
-  `preview.seek-start` (Home)
+  `preview.seek-start` (Home). Playback pauses when another page covers the editor
 - **Points it owns:** `previewOverlays` (`preview.points.ts`): layers drawn over the frame, sized
   and moved with it, positioned in % of the frame (`transform` contributes its selection box). Each overlay's
   wrapper ignores the pointer (`pointer-events-none`); an overlay turns it back on for the parts

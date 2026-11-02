@@ -33,15 +33,28 @@ export interface TopBarItem {
   component: ComponentType;
 }
 
-/** A page that takes the place of the editor below the top bar, with a tab of its own. */
+/** A page of the app, with a tab of its own in the top bar. */
 export interface AppPage {
   /** Unique id, `<module>.<name>`. */
   id: string;
   /** Label of its tab. */
   label: string;
-  /** Lower comes first, after Edit. Defaults to 0. */
+  /** Icon of its tab. */
+  icon: PanelIcon;
+  /** Id of the `AppPageGroup` its tab sits in. Defaults to `PAGE_GROUP_CREATE`. */
+  group?: string;
+  /** Lower comes first within the group. Defaults to 0. */
   order?: number;
-  component: ComponentType;
+  /** Takes the place of the editor below the top bar. Only the editor's own page has none. */
+  component?: ComponentType;
+}
+
+/** Tabs that belong together. A divider separates groups in the top bar. */
+export interface AppPageGroup {
+  /** Unique id. A page naming a group nobody declared still shows, after the declared ones. */
+  id: string;
+  /** Lower comes first. Defaults to 0. */
+  order?: number;
 }
 
 /** Which page shows. */

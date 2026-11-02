@@ -17,6 +17,7 @@ import { junctionModule } from "@/modules/junction";
 import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
+import { soundModule } from "@/modules/sound";
 import { stickerModule } from "@/modules/sticker";
 import { textModule } from "@/modules/text";
 import { timelineModule } from "@/modules/timeline";
@@ -42,6 +43,7 @@ const MODULES: AnyModuleDefinition[] = [
   transitionModule,
   stickerModule,
   collabModule,
+  soundModule,
   exportModule,
   workspaceModule,
 ];

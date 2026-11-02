@@ -1,4 +1,11 @@
-import { defineModule, keybindings, layoutPanels, LOCAL_ACTOR } from "@/core";
+import {
+  defineModule,
+  EDITOR_PAGE,
+  keybindings,
+  layoutPanels,
+  LOCAL_ACTOR,
+  pagesRef,
+} from "@/core";
 import { elementRef } from "@/modules/element";
 import { fontsRef } from "@/modules/fonts";
 import { junctionRef } from "@/modules/junction";
@@ -94,6 +101,12 @@ export const previewModule = defineModule({
     ctx.onDispose(project.subscribe(followOpen));
     // A font arriving (or failing) changes how text is drawn and measured.
     ctx.onDispose(fonts.onLoaded(() => controller.redraw()));
+    // Another page covers the preview, so nothing should keep playing behind it.
+    ctx.onDispose(
+      ctx.require(pagesRef).store.subscribe(({ active }) => {
+        if (active !== EDITOR_PAGE) clock.pause();
+      }),
+    );
     ctx.onDispose(() => {
       controller.dispose();
       clock.dispose();
