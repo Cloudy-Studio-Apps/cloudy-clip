@@ -3,17 +3,22 @@ import { ErrorBoundary, useModule, usePoint } from "@/core";
 import { projectRef } from "@/modules/project";
 import { librarySections } from "../media.points";
 import { mediaRef } from "../media.ref";
+import { useLibraryRows } from "./library.rows.hook";
+import { LibraryRows } from "./LibraryRows";
 import { DropHint, DropOverlay } from "./MediaDrop";
 import { MediaEmpty } from "./MediaEmpty";
-import { MediaGrid } from "./MediaGrid";
 import { MediaHeader } from "./MediaHeader";
 
-/** The Library panel: compositions and imported files, dragged from here onto the timeline. */
+/** The Media tab: compositions and the open bin, dragged from here onto the timeline. */
 export function MediaLibrary() {
   const project = useModule(projectRef).store;
-  const mediaOrder = useStore(project.api, (s) => s.mediaOrder);
+  const empty = useStore(
+    project.api,
+    (s) => s.mediaOrder.length === 0 && s.solidOrder.length === 0,
+  );
   const dropActive = useStore(useModule(mediaRef).fileDrop, (s) => s.active);
   const sections = usePoint(librarySections);
+  const rows = useLibraryRows();
 
   return (
     <section className="relative flex h-full flex-col gap-2.5 overflow-y-auto overflow-x-hidden p-2.5">
@@ -22,8 +27,14 @@ export function MediaLibrary() {
           <Section />
         </ErrorBoundary>
       ))}
-      <MediaHeader count={mediaOrder.length} />
-      {mediaOrder.length === 0 ? <MediaEmpty /> : <MediaGrid ids={mediaOrder} />}
+      <MediaHeader />
+      {empty ? (
+        <MediaEmpty />
+      ) : rows.length > 0 ? (
+        <LibraryRows rows={rows} compact />
+      ) : (
+        <p className="py-6 text-center text-muted-foreground">Nothing in here.</p>
+      )}
       <DropHint />
       {dropActive && <DropOverlay />}
     </section>

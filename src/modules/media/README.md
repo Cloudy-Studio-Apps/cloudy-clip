@@ -1,6 +1,6 @@
 # media
 
-Importing files, reading their metadata, editing proxies, and the Library panel (a tab of the
+Importing files, reading their metadata, editing proxies, and the Media panel (a tab of the
 rail), from which compositions and files are dragged onto the timeline.
 
 - **Tier:** core
@@ -38,9 +38,9 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
     media element to read duration, size and a poster (the element is silenced with `volume = 0`,
     not `muted`: WebKitGTK draws a muted video's frames to a canvas as black). Results live in `probes` (per kernel, not
     undoable). A file that can't be decoded gets `status: "error"` with a reason; it never throws.
-  - `media.drag.ts`: pointer-based drag of a `LibraryItem` (`{ type, id }`) to the timeline; drop targets listen for `MEDIA_DROP`.
+  - `media.drag.ts`: pointer-based drag of a `LibraryItem` to the timeline; drop targets listen for `MEDIA_DROP`.
   - OS file drop is handled in `setup` (Tauri's drag-drop event drives `fileDrop` and the overlay).
-  - `ui/`: `MediaLibrary` (header, grid, empty state, drop hint/overlay), `MediaTile`,
+  - `ui/`: `MediaLibrary` (header, bin picker, rows, empty state, drop hint/overlay), `MediaPage`, `MediaTile`,
     `MediaThumb`, `media.pick.hook.ts` (the file picker).
 - **Not yet:** search, filters, folders, list view.
 
