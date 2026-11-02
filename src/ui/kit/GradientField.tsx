@@ -56,7 +56,7 @@ export function GradientField({
     value.stops.map((s, i) => (i === index ? { ...s, ...changes } : s));
 
   const add = (event: PointerEvent<HTMLElement>) => {
-    if (disabled || value.stops.length >= MAX_STOPS) return;
+    if (disabled || event.button !== 0 || value.stops.length >= MAX_STOPS) return;
     const stops = [...value.stops, stopAt(value.stops, placeOnBar(event))];
     setSelected(stops.length - 1);
     onChange({ ...value, stops }, done);
