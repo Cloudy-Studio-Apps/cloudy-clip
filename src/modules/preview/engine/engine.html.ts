@@ -1,6 +1,7 @@
 import { microsToSeconds, type Micros } from "@/core";
 import { canvasTextMeasure, mergeProps, type PictureDefinition } from "@/modules/element";
 import {
+  clipComposite,
   clipPlacement,
   clipTransform,
   formatOf,
@@ -9,6 +10,7 @@ import {
   fadeLevel,
   pitchShift,
   soundOf,
+  type ClipComposite,
   type ClipId,
   type ClipPlacement,
   type ClipSound,
@@ -30,6 +32,7 @@ import type { PreviewEngine } from "../preview.types";
 import { createSoundAtSpeed, quietSlot, voiceSlot } from "./engine.audio";
 import { createSoundGraph, PITCH_LEAD_SECONDS } from "./engine.audiograph";
 import { ImageCache } from "./engine.images";
+import { landLayer } from "./engine.composite";
 import { LevelCorrection } from "./engine.levels";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
@@ -359,7 +362,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     for (const { clips } of tracks) {
       for (const { clip, inner } of clips) if (inner) inners.set(clip.id, inner);
     }
-    const drawClip = (on: CanvasRenderingContext2D, clip: Clip) => {
+    const paint = (on: CanvasRenderingContext2D, clip: Clip) => {
       const live = propsOverrides.get(clip.id)?.transform as Partial<ClipTransform> | undefined;
       const transform = transforms.get(clip.id) ?? clipTransform(clip, live);
       const inner = inners.get(clip.id);
@@ -376,6 +379,19 @@ export class HtmlMediaEngine implements PreviewEngine {
         return;
       }
       this.drawClip(on, format, clip, pathOf(clip), time, transform, propsOverrides, kx, ky);
+    };
+    // `blend` is false under a junction: the picture has no backdrop there (see `drawTrack`).
+    const drawClip = (on: CanvasRenderingContext2D, clip: Clip, blend = true) => {
+      const live = propsOverrides.get(clip.id)?.composite as Partial<ClipComposite> | undefined;
+      const composite = clipComposite(clip, live);
+      const mode = blend ? composite.mode : "normal";
+      if (mode === "normal" && composite.opacity === 1) {
+        paint(on, clip);
+        return;
+      }
+      const layer = mix.layer();
+      paint(layer, clip);
+      landLayer(on, layer.canvas, { mode, opacity: composite.opacity });
     };
 
     // Tracks are top → bottom; draw bottom first so higher tracks end up on top.

@@ -47,6 +47,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     `fonts.ensure`; the module redraws on `fonts.onLoaded`; `env.measure` is `canvasTextMeasure`
     (`element`) over the engine's canvas. An element without `picture` is not drawn. Swap engines by
     implementing `PreviewEngine` (`preview.types.ts`).
+    **Composite:** a clip at Normal and 100% draws straight onto its target. Any other is painted on `MixCanvases.layer()` and lands once through `landLayer` (`engine.composite.ts`), with `canvasBlend` (`logic/blend.ts`) as the canvas operation, because text paints in several passes that would otherwise blend one by one. Export and captures use the same path. Under a junction a picture has no backdrop, so each clip keeps only its opacity: when both share a mode, the mix draws on `MixCanvases.result()` and that lands with the mode; when they differ it lands Normal for the overlap. Inside a placement a clip blends with what's in that composition; the placement's own mode blends with what's under it.
     **Junctions (the mixing hook):** during a junction's overlap a video track has two active
     clips. `engine.mix.ts` (`drawTrack`) draws each with the normal placement path into one of
     two pooled full-frame offscreen canvases (`MixCanvases`: default accelerated 2D canvases,

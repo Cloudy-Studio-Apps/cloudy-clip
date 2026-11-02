@@ -1,12 +1,15 @@
 import { createLogger } from "@/core";
+import { clipComposite } from "@/modules/project";
 import { activeJunctions } from "../logic/junctions";
 import { seededRandom } from "../logic/random";
+import { landLayer } from "./engine.composite";
 import type { ClipDrawer, EngineOptions, TrackFrame } from "./engine.types";
 
 /**
- * Two pooled full-frame offscreen canvases, sized like the main canvas, that a junction's two
- * pictures are drawn into before its `mix` combines them. Default (accelerated) 2D canvases:
- * never `willReadFrequently`, which draws video frames black on WebKitGTK.
+ * Pooled full-frame offscreen canvases, sized like the main canvas: a junction's two pictures
+ * before its `mix` combines them, its result when that blends, and a layer for a clip that doesn't
+ * land plainly. Default (accelerated) 2D canvases: never `willReadFrequently`, which draws video
+ * frames black on WebKitGTK.
  */
 const log = createLogger("preview.mix");
 
@@ -25,6 +28,16 @@ export class MixCanvases {
   /** The second picture's canvas (the right clip), cleared and sized like the main canvas. */
   b(): CanvasRenderingContext2D {
     return this.prepare(1);
+  }
+
+  /** A clip's picture before it lands with its blend mode and opacity. */
+  layer(): CanvasRenderingContext2D {
+    return this.prepare(2);
+  }
+
+  /** What a junction's `mix` draws when the result blends with what's under it. */
+  result(): CanvasRenderingContext2D {
+    return this.prepare(3);
   }
 
   dispose(): void {
@@ -57,7 +70,8 @@ export class MixCanvases {
  * Draws one video track's clips onto `ctx`. Under a junction whose kind has a `mix`, the left and
  * right pictures are drawn into the offscreen canvases and the mix draws the result in the
  * track's place. Otherwise (no junction, no `mix`, a missing kind) clips draw in start order, so
- * the right one covers the left.
+ * the right one covers the left. Offscreen a picture has no backdrop, so each keeps only its
+ * opacity there: when both clips share a mode, the mix's result lands with it, else as Normal.
  */
 export function drawTrack(
   ctx: CanvasRenderingContext2D,
@@ -84,17 +98,20 @@ export function drawTrack(
     const left = project.clips[junction.leftClipId];
     const a = canvases.a();
     const b = canvases.b();
-    if (left) drawClip(a, left);
-    drawClip(b, clip);
+    if (left) drawClip(a, left, false);
+    drawClip(b, clip, false);
+    const mode = clipComposite(clip).mode;
+    const blended = left !== undefined && mode !== "normal" && clipComposite(left).mode === mode;
+    const target = blended ? canvases.result() : ctx;
     const props = junctions.resolve(junction, format);
     const kx = ctx.canvas.width / format.width;
     const ky = ctx.canvas.height / format.height;
     // A fresh generator each frame, seeded by the junction: the same noise on every frame.
     const env = { format, kx, ky, random: seededRandom(junction.id), elapsed };
-    ctx.save();
+    target.save();
     try {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      mix(ctx, a.canvas, b.canvas, progress, props, env);
+      target.setTransform(1, 0, 0, 1, 0, 0);
+      mix(target, a.canvas, b.canvas, progress, props, env);
     } catch (error) {
       if (!canvases.reported) {
         canvases.reported = true;
@@ -104,13 +121,14 @@ export function drawTrack(
         );
       }
       // Whatever the mix drew is undone by the restore below; show both pictures plainly.
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
-      ctx.drawImage(a.canvas, 0, 0);
-      ctx.drawImage(b.canvas, 0, 0);
+      target.setTransform(1, 0, 0, 1, 0, 0);
+      target.globalAlpha = 1;
+      target.globalCompositeOperation = "source-over";
+      target.drawImage(a.canvas, 0, 0);
+      target.drawImage(b.canvas, 0, 0);
     } finally {
-      ctx.restore();
+      target.restore();
     }
+    if (blended) landLayer(ctx, target.canvas, { mode, opacity: 1 });
   }
 }

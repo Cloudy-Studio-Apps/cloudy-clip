@@ -147,8 +147,11 @@ export interface TrackFrame extends ActiveTrack {
   time: Micros;
 }
 
-/** Draws one clip onto `target` at its placement (a media frame or the element's own `draw`). */
-export type ClipDrawer = (target: CanvasRenderingContext2D, clip: Clip) => void;
+/**
+ * Draws one clip onto `target` at its placement (a media frame or the element's own `draw`), with
+ * its opacity and, unless `blend` is false, its blend mode.
+ */
+export type ClipDrawer = (target: CanvasRenderingContext2D, clip: Clip, blend?: boolean) => void;
 
 /** One placement's offscreen picture, and the canvases for the transitions inside it. */
 export interface NestedCanvas {
