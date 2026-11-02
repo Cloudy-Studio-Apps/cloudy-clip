@@ -30,6 +30,7 @@ pub fn run() {
             export::commands::export_free_space,
             export::commands::export_unique_path,
             fonts::commands::fonts_system_list,
+            media::commands::media_prepare_master,
             media::commands::media_register,
             media::commands::media_server_url,
             media::commands::media_stat,

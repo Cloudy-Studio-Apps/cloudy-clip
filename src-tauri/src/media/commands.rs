@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 
 use super::MediaServerUrl;
@@ -90,6 +91,24 @@ pub async fn media_stat(path: String) -> Result<MediaFile, AppError> {
         return Err(AppError::InvalidInput(format!("Not a file: {path}")));
     }
     describe(&file, meta.len())
+}
+
+/// Makes the full-size copy export draws from, for a file that previews through a proxy.
+/// `on_progress` gets 0..1. Returns whether the file has one.
+#[tauri::command]
+pub async fn media_prepare_master(
+    id: String,
+    on_progress: Channel<f32>,
+    registry: State<'_, Arc<MediaRegistry>>,
+    proxies: State<'_, ProxyJobs>,
+) -> Result<bool, AppError> {
+    let report = |progress: f32| {
+        let _ = on_progress.send(progress);
+    };
+    proxies
+        .prepare_master(&registry, &id, report)
+        .await
+        .map_err(AppError::Unavailable)
 }
 
 /// Base URL the webview streams media from: `<url>/<media id>`.

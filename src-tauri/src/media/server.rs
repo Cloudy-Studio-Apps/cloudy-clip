@@ -18,7 +18,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use axum::body::Body;
-use axum::extract::{Path as UrlPath, State};
+use axum::extract::{Path as UrlPath, RawQuery, State};
 use axum::http::{HeaderMap, Method, Response, StatusCode, header};
 use axum::routing::any;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
@@ -101,13 +101,20 @@ fn turned_away(
 async fn handle(
     State(state): State<ServerState>,
     UrlPath((token, id)): UrlPath<(String, String)>,
+    RawQuery(query): RawQuery,
     method: Method,
     headers: HeaderMap,
 ) -> Response<Body> {
     if let Some(response) = turned_away(&state, &token, &method, &headers) {
         return response;
     }
-    let Some(path) = state.registry.playback_path_of(&id) else {
+    let master = query.is_some_and(|q| q.split('&').any(|pair| pair == "master=1"));
+    let path = if master {
+        state.registry.master_path_of(&id)
+    } else {
+        state.registry.playback_path_of(&id)
+    };
+    let Some(path) = path else {
         return error(StatusCode::NOT_FOUND, "Unknown media id");
     };
 

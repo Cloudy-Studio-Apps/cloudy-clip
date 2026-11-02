@@ -145,6 +145,13 @@ export interface MediaApi {
    * support). Changes once a proxy is ready, so media elements reload.
    */
   mediaUrl(id: MediaId): string;
+  /**
+   * Makes the full-size copy of a video that previews through a small proxy, reporting 0..1, and
+   * resolves to whether it has one. Once done, `masterUrl` streams it. Rejects if it can't be made.
+   */
+  prepareMaster(id: MediaId, onProgress: (progress: number) => void): Promise<boolean>;
+  /** URL of the sharpest picture the webview can decode: the master, otherwise the original. */
+  masterUrl(id: MediaId): string;
   /** The frames of an animated image, once they are ready; undefined for anything else. */
   animation(id: MediaId): ImageAnimation | undefined;
   /**
@@ -179,6 +186,8 @@ export interface MediaService {
   mediaUrl(id: MediaId): string;
   /** URL of one frame of an animated image. */
   frameUrl(id: MediaId, index: number): string;
+  prepareMaster: MediaApi["prepareMaster"];
+  masterUrl: MediaApi["masterUrl"];
 }
 
 /** Files of the document, in step with the native side. */

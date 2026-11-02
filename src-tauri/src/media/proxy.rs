@@ -13,6 +13,8 @@
 //! - Written to a temporary file and renamed when complete, so a crash never leaves a broken
 //!   proxy behind. Encoders are killed when the app exits.
 //! - Progress is reported to the webview through [`PROXY_EVENT`].
+//! - A proxy is too small to export from, so a file that has one gets a *master* on its first
+//!   export: the same safe recipe at full size, cached beside the proxies.
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -221,6 +223,37 @@ impl ProxyJobs {
                 Err(message) => report(ProxyState::Error, None, Some(message)),
             }
         });
+    }
+}
+
+impl ProxyJobs {
+    /// Makes sure a file with a proxy has a master. Returns whether it has one; a file without a
+    /// proxy needs none, because the original is what plays.
+    pub async fn prepare_master(
+        &self,
+        registry: &MediaRegistry,
+        id: &str,
+        on_progress: impl Fn(f32),
+    ) -> Result<bool, String> {
+        let Some((source, generation)) = registry.proxied_original(id) else {
+            return Ok(false);
+        };
+        let tools = find_tools().ok_or("FFmpeg was not found")?;
+        let target = cache_path(&self.cache_dir, &source, "master.mp4").await?;
+        if !tokio::fs::try_exists(&target).await.unwrap_or(false) {
+            let _permit = self
+                .encoder
+                .acquire()
+                .await
+                .map_err(|_| "Encoder unavailable".to_owned())?;
+            // Another export may have made it while this one waited.
+            if !tokio::fs::try_exists(&target).await.unwrap_or(false) {
+                let duration = ffprobe(&tools, &source, false).await?.duration_us;
+                encode_master(&tools, &source, &target, duration, on_progress).await?;
+            }
+        }
+        registry.set_master(id, generation, target);
+        Ok(true)
     }
 }
 
@@ -539,6 +572,43 @@ async fn encode(
     tokio::fs::rename(&partial, target)
         .await
         .map_err(|e| format!("Could not save the proxy: {e}"))
+}
+
+/// A full-size copy the webview can decode: like a proxy (one picture stream, no timecode, a
+/// keyframe every half second so seeks stay quick), near lossless and with no sound.
+async fn encode_master(
+    tools: &Tools,
+    source: &Path,
+    target: &Path,
+    duration_us: Option<u64>,
+    on_progress: impl Fn(f32),
+) -> Result<(), String> {
+    let partial = target.with_extension("partial.mp4");
+    let mut cmd = command(&tools.ffmpeg);
+    cmd.args(["-hide_banner", "-nostats", "-loglevel", "error", "-y", "-i"])
+        .arg(source)
+        .args([
+            "-map_metadata",
+            "-1",
+            "-map_chapters",
+            "-1",
+            "-dn",
+            "-sn",
+            "-an",
+        ])
+        .args(["-map", "0:v:0", "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2"])
+        .args(["-c:v", "libx264", "-preset", "veryfast", "-crf", "14"])
+        .args(["-pix_fmt", "yuv420p", "-profile:v", "high"])
+        .args(["-g", "15", "-keyint_min", "15", "-sc_threshold", "0"])
+        .args(["-write_tmcd", "0", "-movflags", "+faststart", "-f", "mp4"])
+        .arg(&partial);
+    if let Err(detail) = run_encoder(cmd, duration_us, on_progress).await {
+        let _ = tokio::fs::remove_file(&partial).await;
+        return Err(format!("Could not prepare this file for export: {detail}"));
+    }
+    tokio::fs::rename(&partial, target)
+        .await
+        .map_err(|e| format!("Could not save the export copy: {e}"))
 }
 
 /// Runs an `ffmpeg` command to the end, reporting progress against `duration_us`. The error is

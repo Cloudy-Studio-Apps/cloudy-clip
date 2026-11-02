@@ -51,6 +51,8 @@ struct Entry {
     generation: u64,
     original: PathBuf,
     proxy: Option<PathBuf>,
+    /// Full-size copy made for export, for files that preview through a proxy.
+    master: Option<PathBuf>,
     /// Folder of an animated image's frames, `00000.png` onwards.
     frames: Option<PathBuf>,
 }
@@ -77,6 +79,7 @@ impl MediaRegistry {
                     generation,
                     original: path.to_path_buf(),
                     proxy: None,
+                    master: None,
                     frames: None,
                 },
             );
@@ -109,6 +112,32 @@ impl MediaRegistry {
                 .clone()
                 .unwrap_or_else(|| entry.original.clone()),
         )
+    }
+
+    /// The file export should draw from: its master if one is ready, otherwise what plays.
+    pub fn master_path_of(&self, id: &str) -> Option<PathBuf> {
+        let entries = self.entries.read().ok()?;
+        let entry = entries.get(id)?;
+        let original = || entry.original.clone();
+        Some(entry.master.clone().unwrap_or_else(original))
+    }
+
+    /// The original and registration of an id that previews through a proxy.
+    pub fn proxied_original(&self, id: &str) -> Option<(PathBuf, u64)> {
+        let entries = self.entries.read().ok()?;
+        let entry = entries.get(id)?;
+        entry.proxy.as_ref()?;
+        Some((entry.original.clone(), entry.generation))
+    }
+
+    /// Attaches a finished master to a registration of an id.
+    pub fn set_master(&self, id: &str, generation: u64, master: PathBuf) {
+        if let Ok(mut entries) = self.entries.write()
+            && let Some(entry) = entries.get_mut(id)
+            && entry.generation == generation
+        {
+            entry.master = Some(master);
+        }
     }
 
     /// Attaches a finished proxy to a registration of an id.

@@ -75,6 +75,8 @@ export const mediaModule = defineModule({
         waitForProbe: state.waitForProbe,
         pictureMeta: state.pictureMeta,
         mediaUrl: service.mediaUrl,
+        prepareMaster: service.prepareMaster,
+        masterUrl: service.masterUrl,
         animation: state.animation,
         imageFrames(id, elapsed, ahead) {
           const animation = state.animation(id);

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type {
   MediaFile,
@@ -31,6 +31,17 @@ export function createMediaService(state: MediaState): MediaService {
         const { mediaId, ...proxy } = payload;
         state.setProxy(mediaId, proxy);
       });
+    },
+    prepareMaster(id, onProgress) {
+      const channel = new Channel<number>();
+      channel.onmessage = onProgress;
+      return invoke<boolean>("media_prepare_master", { id, onProgress: channel });
+    },
+    masterUrl(id) {
+      if (!baseUrl) throw new Error("The media server is not ready");
+      const revision = state.getProbe(id)?.revision;
+      const version = revision ? `&file=${revision}` : "";
+      return `${baseUrl}/${encodeURIComponent(id)}?master=1${version}`;
     },
     frameUrl(id, index) {
       if (!baseUrl) throw new Error("The media server is not ready");

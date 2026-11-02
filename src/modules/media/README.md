@@ -22,6 +22,9 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
     H.264 copy made with the system FFmpeg. Progress arrives as `media://proxy` events and is stored
     in `probe.proxy`, with `hasAudio` once ffprobe has read the streams. Without FFmpeg, files are
     played directly.
+  - Masters: a proxy is capped at 1280, too small to export from, so `prepareMaster(id, onProgress)` makes a full-size H.264 copy of
+    a file that has one (`media_prepare_master`, cached with the proxies, one encode at a time), streamed by `masterUrl(id)`
+    (`?master=1`), which serves the original for a file with no proxy. Only export uses it; it has no sound, which export mixes from the originals.
   - `media.service.ts`: the native calls and the proxy listener.
   - Images (`src-tauri/src/media/image.rs`): in the proxy pipeline, under its encoder and cache. PNG, JPG, WebP, BMP, SVG and GIF
     are served as they are up to 3840 on the long side; the rest (HEIC, TIFF, PSD, AVIF, …) and larger ones become one PNG. A file
