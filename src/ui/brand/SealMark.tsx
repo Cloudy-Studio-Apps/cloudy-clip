@@ -1,83 +1,47 @@
-import { useId } from "react";
-
 /**
- * The Cloudy Studio seal peeking over a canvas, adapted from Cloudy Canvas (`seal-logo.tsx`,
- * "mark" variant). Size it with `className` (e.g. `size-6`).
+ * The foca watona, as an animator's rough: spotted, with dark deadpan open eyes. It is wider than
+ * tall (6:5), so size it with `className` (e.g. `h-6 w-7`). `rough` adds the blue construction
+ * lines, for large sizes only. Colours are brand art, so they stay fixed in every theme.
  */
-export function SealMark({ className }: { className?: string }) {
-  // `useId` may contain characters that break `url(#…)`, so keep only safe ones.
-  const fur = `seal-fur-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+export function SealMark({ className, rough = false }: { className?: string; rough?: boolean }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 64 64"
-      aria-hidden
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <defs>
-        <linearGradient id={fur} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--seal-300)" />
-          <stop offset="75%" stopColor="var(--seal-100)" />
-        </linearGradient>
-      </defs>
-      <ellipse
-        cx="32"
-        cy="28"
-        rx="20"
-        ry="16.5"
-        fill={`url(#${fur})`}
-        stroke="var(--seal-900)"
-        strokeWidth="2.4"
-      />
-      <ellipse cx="24" cy="15.5" rx="1.6" ry="1.1" fill="var(--seal-400)" />
-      <ellipse cx="31" cy="12.6" rx="1.2" ry="0.8" fill="var(--seal-400)" />
-      <ellipse cx="38.5" cy="14" rx="1.8" ry="1.2" fill="var(--seal-400)" />
-      <ellipse cx="45" cy="19" rx="1.3" ry="1" fill="var(--seal-400)" />
-      <ellipse cx="19.5" cy="26" rx="3" ry="1.8" fill="var(--blush-300)" opacity="0.8" />
-      <ellipse cx="44.5" cy="26" rx="3" ry="1.8" fill="var(--blush-300)" opacity="0.8" />
+    <svg className={className} viewBox="0 0 120 100" aria-hidden>
+      {rough && (
+        <g fill="none" stroke="#6fb7e6" strokeWidth="0.9" opacity="0.8">
+          <circle cx="60" cy="50" r="46" />
+          <path d="M6 50c20 8 88 8 108 0M60 2c-8 30-8 66 0 96" />
+        </g>
+      )}
       <path
-        d="M21.5 22.5q3-3 6 0M36.5 22.5q3-3 6 0"
-        fill="none"
-        stroke="var(--seal-900)"
-        strokeWidth="2.4"
+        d="M60 6c30 0 54 20 54 49 0 25-24 39-54 39S6 80 6 55C6 26 30 6 60 6z"
+        fill="#dfe5e9"
+        stroke="#eceff1"
+        strokeWidth="2.2"
       />
+      <g fill="#22272e" opacity="0.28">
+        <ellipse cx="38" cy="19" rx="5" ry="3.2" transform="rotate(-24 38 19)" />
+        <ellipse cx="53" cy="13" rx="3.2" ry="2.2" />
+        <ellipse cx="70" cy="15" rx="5.2" ry="3" />
+        <ellipse cx="86" cy="23" rx="4.2" ry="2.8" transform="rotate(30 86 23)" />
+        <ellipse cx="24" cy="33" rx="3.6" ry="2.6" />
+        <ellipse cx="97" cy="36" rx="3.8" ry="2.6" />
+        <ellipse cx="22" cy="68" rx="3.8" ry="2.6" />
+        <ellipse cx="96" cy="70" rx="4" ry="2.6" />
+      </g>
+      <ellipse cx="40" cy="49" rx="6.4" ry="4.4" transform="rotate(10 40 49)" fill="#22272e" />
+      <ellipse cx="80" cy="49" rx="6.4" ry="4.4" transform="rotate(-10 80 49)" fill="#22272e" />
       <path
-        d="M32 26.2c-1-1.6-5.6-1.6-6 1.4-.3 2.4 2.6 3.4 4.4 2.6.8-.3 1.3-.8 1.6-1.3.3.5.8 1 1.6 1.3 1.8.8 4.7-.2 4.4-2.6-.4-3-5-3-6-1.4z"
-        fill="var(--seal-50)"
-        stroke="var(--seal-900)"
+        d="M60 58c-7-1-16 1-16 8 0 6 10 9 16 4 6 5 16 2 16-4 0-7-9-9-16-8z"
+        fill="#f7f9fa"
+        stroke="#22272e"
         strokeWidth="1.9"
       />
-      <ellipse cx="32" cy="25.9" rx="1.7" ry="1.15" fill="var(--seal-900)" />
-      <rect
-        x="8"
-        y="33"
-        width="48"
-        height="25"
-        rx="1.5"
-        fill="#fff"
-        stroke="var(--seal-900)"
-        strokeWidth="2.4"
-      />
-      <ellipse
-        cx="17.5"
-        cy="34.5"
-        rx="4.6"
-        ry="2.6"
-        transform="rotate(-18 17.5 34.5)"
-        fill="var(--seal-300)"
-        stroke="var(--seal-900)"
-        strokeWidth="2.4"
-      />
-      <ellipse
-        cx="46.5"
-        cy="34.5"
-        rx="4.6"
-        ry="2.6"
-        transform="rotate(18 46.5 34.5)"
-        fill="var(--seal-300)"
-        stroke="var(--seal-900)"
-        strokeWidth="2.4"
+      <path
+        d="M55.5 56.5h9l-4.5 5z"
+        fill="#22272e"
+        stroke="#22272e"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
       />
     </svg>
   );

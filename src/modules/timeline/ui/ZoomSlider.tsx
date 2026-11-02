@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
@@ -28,7 +29,8 @@ export function ZoomSlider() {
         aria-label="Zoom"
         value={toSlider(pxPerSecond)}
         onChange={(e) => timeline.setZoom(fromSlider(Number(e.currentTarget.value)))}
-        className="w-[90px] accent-primary"
+        className="w-[90px]"
+        style={{ "--v": `${toSlider(pxPerSecond) * 100}%` } as CSSProperties}
       />
       <ZoomIn aria-hidden className="size-4" />
     </label>

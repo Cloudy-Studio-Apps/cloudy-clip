@@ -19,8 +19,8 @@ export function EmptyState({ title, children, action, className }: EmptyStatePro
         className,
       )}
     >
-      <SealMark className="mb-2 size-[72px] animate-bob" />
-      <p className="font-semibold">{title}</p>
+      <SealMark rough className="mb-2 h-[72px] w-[86px] animate-bob" />
+      <p className="font-hand text-md font-bold">{title}</p>
       {children && <p className="mt-1 text-sm text-muted-foreground">{children}</p>}
       {action && <div className="mt-3.5">{action}</div>}
     </div>

@@ -8,7 +8,7 @@
 /** Joins class names, skipping falsy ones. */
 export { cn } from "./lib/cn";
 
-/** The seal mark of the Cloudy Studio family, for the logo, empty states and waiting. */
+/** The foca watona of the Cloudy Studio family, for the logo, empty states and waiting; `rough` adds its blue construction lines. */
 export { SealMark } from "./brand/SealMark";
 
 /** A text button: `primary`, `secondary` or `mark`, `sm` or `md`. */

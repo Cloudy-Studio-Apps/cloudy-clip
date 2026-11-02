@@ -27,7 +27,7 @@ export function FoldSection({
     <section className="border-b border-dashed border-border-strong">
       <div className="flex h-[34px] items-center gap-1.5 px-3">
         {leading !== undefined && (
-          <span className="grid shrink-0 place-items-center">{leading}</span>
+          <span className="grid w-[30px] shrink-0 place-items-center">{leading}</span>
         )}
         <button
           type="button"
