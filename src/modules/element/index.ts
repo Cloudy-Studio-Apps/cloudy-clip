@@ -21,8 +21,8 @@ export { resolveLayout } from "./logic/layout";
 export { indexFields } from "./logic/fields";
 /** Whether a command can sit in a panel (takes clipIds, at most one more field). */
 export { checkPanelCommand } from "./logic/commands";
-/** The fields of an element that can hold keys (numbers, colors, enums, booleans). */
-export { keyableFields } from "./logic/keyable";
+/** The fields of an element that can hold keys (numbers, colors, enums, booleans), and the test for one field. */
+export { isKeyable, keyableFields } from "./logic/keyable";
 /** The label of a field path ("letterSpacing" → "Letter spacing"). */
 export { labelOf } from "./logic/labels";
 /** Measures text over a 2D canvas context (the engine and canvas tools measure alike). */

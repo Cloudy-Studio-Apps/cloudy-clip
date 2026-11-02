@@ -36,6 +36,8 @@ export {
 } from "./inspector.points";
 /** Live editing of a clip's values: preview while dragging, one `element.setProps` on release. */
 export { usePropsLive } from "./ui/props.live.hook";
+/** A clip with its animated values at the playhead; the clip itself when nothing is keyed. */
+export { useClipAtPlayhead } from "./ui/clip.values.hook";
 /** A label on the left and a control filling the row, for custom controls. */
 export { FieldRow } from "./ui/controls/FieldRow";
 /** A collapsible group of fields, for custom section layouts. */

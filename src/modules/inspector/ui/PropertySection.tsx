@@ -70,14 +70,15 @@ export function PropertySection({
       case "row": {
         const rowPaths = itemPaths(item, fields);
         return (
-          <div key={index} className="flex min-w-0 items-center gap-1">
+          <div key={index} data-field-row="" className="group flex min-w-0 items-center gap-1">
             {item.label !== undefined && <FieldLabel>{item.label}</FieldLabel>}
             <FieldInlineContext.Provider value={item.label !== undefined}>
-              <div className="ml-0.5 flex min-w-0 flex-1 items-center gap-1.5">
+              <div className="ml-0.5 flex min-w-0 flex-1 items-center gap-1.5 group-data-[key-state=animated]:[&_input]:text-on group-data-[key-state=on-key]:[&_input]:text-mark">
                 {item.items.map((inner, i) => draw(inner, i, true))}
               </div>
             </FieldInlineContext.Provider>
             <FieldActions
+              clip={subject}
               specs={rowSpecs(item, fields)}
               paths={rowPaths}
               values={values}

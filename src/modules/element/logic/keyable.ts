@@ -9,6 +9,11 @@ function blendOf(spec: PropSpec): KeyTrack["blend"] | undefined {
   return undefined;
 }
 
+/** Whether a field can hold keys: a number, color, enum or boolean that is shown and editable. */
+export function isKeyable(spec: PropSpec): boolean {
+  return blendOf(spec) !== undefined && !spec.readOnly && !spec.hidden && spec.keyframes !== false;
+}
+
 /**
  * The fields of an element that can hold keys: numbers, colors, enums and booleans, not text,
  * custom values, read-only fields or those that opt out with `keyframes: false`. A shared group's

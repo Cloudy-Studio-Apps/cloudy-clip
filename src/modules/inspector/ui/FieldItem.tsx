@@ -78,14 +78,15 @@ export function FieldItem({
   if (inRow) return drawn;
   const paths = itemPaths(item, fields);
   return (
-    <div className="flex min-w-0 items-center gap-1">
+    <div data-field-row="" className="group flex min-w-0 items-center gap-1">
       <div
         data-changed={defaults && differs(paths, values, defaults) ? "" : undefined}
-        className="min-w-0 flex-1 data-[changed]:[&_input]:text-mark data-[changed]:[&_label]:border-mark"
+        className="min-w-0 flex-1 data-[changed]:[&_input]:text-mark data-[changed]:[&_label]:border-mark group-data-[key-state=animated]:[&_input]:text-on group-data-[key-state=on-key]:[&_input]:text-mark"
       >
         {drawn}
       </div>
       <FieldActions
+        clip={clip}
         specs={[spec]}
         paths={paths}
         values={values}

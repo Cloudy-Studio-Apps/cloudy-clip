@@ -35,7 +35,7 @@ bare?, component }`, for what isn't a property of an element, so any module can 
     panel. Drawn in the standard band unless `bare`. The component gets an `InspectorContext`
     (`clip`, `track`, `partner?`).
   - `fieldActions` (keyed by `id`): `{ id, order, appliesTo?(spec), component }`, the end of a row.
-    Gets `FieldActionProps` (`paths`, `values`, `defaults?`, `live`, `disabled`). Keyframes go here.
+    Gets `FieldActionProps` (`clip`: a `PanelSubject`, also a junction; `paths`, `values`, `defaults?`, `live`, `disabled`). Keyframes (`keyframe` module) go here. A row's wrapper has `data-field-row`; an action may set `data-key-state` on it (`off`, `animated`, `on-key`) and the row's inputs take `text-on` / `text-mark`.
   - A section of an element or shared group picks its tab with `tab` in its `LayoutSection`
     (`"video"` when it names none). A tab that isn't registered is warned about once and the section
     lands in the first tab, so no property is lost.
@@ -45,7 +45,7 @@ bare?, component }`, for what isn't a property of an element, so any module can 
   in history (`inspector.view.store.ts`). `InspectorApi.recents`: the recent colors of every color field (`store` of `{ colors }`,
   `push(color)`), per kernel, saved in `localStorage` key `cloudy-clip.colors.recent` (max 12;
   `inspector.recents.store.ts`, `logic/recents.ts`). Exported for custom controls:
-  `usePropsLive(clip)`, `FieldRow`, `InspectorSection`, `pathPatch`.
+  `usePropsLive(clip)`, `useClipAtPlayhead(clip)`, `FieldRow`, `InspectorSection`, `pathPatch`.
 - **Files:** `ui/InspectorPanel.tsx` picks the view (`ProjectView`, `ClipView`, `MultiView`);
   `InspectorHeader` (project, junction and multi-select views; a clip shows no title) and `InspectorSection` (the band: `foldKey`, `leading` slot for a switch,
   `actions`, its fold state in `InspectorApi.view`) are shared by them; `InfoList` comes from `@/ui`.
@@ -89,6 +89,7 @@ bare?, component }`, for what isn't a property of an element, so any module can 
     while that command runs stays in the preview and goes with the next commit); `dispose`
     clears without committing (clip deleted or deselected mid-drag). `ui/props.live.hook.ts`:
     `usePropsLive(clip)` wraps it per clip and disposes on unmount.
+  - `ui/clip.values.hook.ts`: `useClipAtPlayhead(clip)`, the clip with its animated values at the playhead (`animatedClip` at `clampToClip`), which `ClipSection` resolves for its fields. A clip with no `animation` is returned as is and subscribes to nothing; otherwise it follows `playback.onTime` at most every 100 ms while playing and sets state only when a value differs. `usePropsLive` commits `element.setProps` with `at` (the playhead), and reads the values at the playhead, so an animated field writes a key.
   - `ui/PropertyPanel.tsx`: every section of a `LayoutSource` without tabs, for junctions.
     `renderCommand` draws command items (junctions have none: they show as unavailable). Controls
     get a `PanelSubject` (`{ id, kind }`) in `clip`.

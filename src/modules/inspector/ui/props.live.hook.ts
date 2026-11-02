@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useKernel, useModule } from "@/core";
 import { elementRef, resetProps, setProps } from "@/modules/element";
 import { previewRef } from "@/modules/preview";
-import { projectRef, type Clip, formatOf } from "@/modules/project";
+import { animatedClip, clampToClip, projectRef, type Clip, formatOf } from "@/modules/project";
 import type { PropsLive } from "../inspector.types";
 import { createPropsLive } from "../logic/live";
 
@@ -24,9 +24,12 @@ export function usePropsLive(clip: Clip): PropsLive {
         read: () => {
           const state = project.getState();
           const now = state.clips[id];
-          return now ? elements.resolve(now, formatOf(state, now)) : null;
+          if (!now) return null;
+          const shown = animatedClip(now, clampToClip(now, preview.playback.getTime()));
+          return elements.resolve(shown, formatOf(state, now));
         },
-        commit: (patch) => bus.run(setProps, { clipIds: [id], patch }),
+        commit: (patch) =>
+          bus.run(setProps, { clipIds: [id], patch, at: preview.playback.getTime() }),
         reset: (paths) => bus.run(resetProps, { clipIds: [id], paths: [...paths] }),
       }),
     [bus, elements, preview, project, id],

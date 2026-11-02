@@ -5,6 +5,7 @@ import { useOpenFormat } from "@/modules/project";
 import type { InspectorMember } from "../inspector.types";
 import { CommandItem } from "./CommandItem";
 import { PropertySection } from "./PropertySection";
+import { useClipAtPlayhead } from "./clip.values.hook";
 import { usePropsLive } from "./props.live.hook";
 
 interface ClipSectionProps {
@@ -19,7 +20,8 @@ export function ClipSection({ member, source, section }: ClipSectionProps) {
   const elements = useModule(elementRef);
   const format = useOpenFormat();
   const live = usePropsLive(clip);
-  const values = useMemo(() => elements.resolve(clip, format), [elements, clip, format]);
+  const shown = useClipAtPlayhead(clip);
+  const values = useMemo(() => elements.resolve(shown, format), [elements, shown, format]);
   const defaults = useMemo(
     () => elements.defaults(clip.kind, format),
     [elements, clip.kind, format],

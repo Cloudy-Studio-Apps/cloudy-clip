@@ -1,10 +1,10 @@
 # keyframe
 
-Keys on a clip's values over time: add a key, move keys together, change their values, remove them, clear a field. The keys themselves are `Clip.animation` in `project` (read by the preview and export as data); this module owns the edit commands and tools. Its panel and canvas parts come in later tasks.
+Keys on a clip's values over time: add a key, move keys together, change their values, remove them, clear a field. The keys themselves are `Clip.animation` in `project` (read by the preview and export as data); this module owns the edit commands and tools. The inspector's diamonds are here; its panel and canvas parts come later.
 
 - **Tier:** feature
-- **Requires:** `project`, `element`
-- **Contributes:** key target `element` (`keyTargets`): every number, color, enum and boolean field of a clip's element, from `element`'s `keyableFields`
+- **Requires:** `project`, `element`, `preview` (the playhead, `preview.seek`), `inspector` (`fieldActions`)
+- **Contributes:** field action `keyframe.key` (`fieldActions`, order 10, for every keyable field), key target `element` (`keyTargets`): every number, color, enum and boolean field of a clip's element, from `element`'s `keyableFields`
 - **Points it owns:** `keyTargets` (this module for the element's fields; a module that keys values of its own, like speed, adds a target)
 - **API** (`useModule(keyframeRef)` / `ctx.require(keyframeRef)`): `fieldsOf(clip)`, `fieldOf(clip, path)`, `clipboard` (what each actor copied, per kernel, never in history), `view` (the panel's state: mode, scope, selection, ... per kernel, never in history)
 - **Files:**
@@ -14,7 +14,8 @@ Keys on a clip's values over time: add a key, move keys together, change their v
   - `keyframe.view.store.ts`: the view store, and `pruneSelection`, which the module runs on every project change so the selection forgets keys that an undo or an agent removed.
 - **Invariants:** a track never has zero keys: when the last key goes the track goes and its value becomes the static value (`KeyField.commitStatic`, run in the same command, so one undo step). A command validates every key and value before it writes, so one key that is gone (`keyframe.not_found`) changes nothing. `at` and `delta` are timeline times; stored key times are content times (`contentTime`, `timeOfContent`). A key set outside the clip lands on its nearest frame. A new track copies `blend`, `shared`, `min` and `max` from its field.
 - **Clipboard:** copied keys store content-time offsets from the earliest key, with value, ease and smooth. A paste puts the earliest at `at` and keeps the spacing on the target clip's own clock, with fresh ids; paths the clip can't key are skipped.
-- **Not yet:** the panel, the diamonds in the inspector.
+- **Diamonds** (`ui/KeyAction.tsx`): a previous arrow, a diamond and a next arrow at the end of a row, for the row's paths that the clip can key (Position keys X and Y, a color its opacity). The diamond adds keys at the playhead (`keyframe.set`, one per path) or removes the ones there (`keyframe.remove`, one step); the arrows `preview.seek` to the nearest key time of any of the paths. It subscribes to `playback.onTime` and sets `data-state` on itself and `data-key-state` on the row (no React state), which colors the diamond and the value.
+- **Not yet:** the panel.
 
 | Command              | MCP tool              | Notes                                                                                                                                             |
 | -------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |

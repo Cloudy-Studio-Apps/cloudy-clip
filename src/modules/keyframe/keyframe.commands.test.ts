@@ -76,6 +76,17 @@ const fixtures = defineModule({
   },
 });
 
+/** Stands in for a module the keyframe module needs only for its panel. */
+const stub = (id: string) =>
+  defineModule({
+    ref: defineModuleRef<Record<string, never>>(id),
+    name: id,
+    tier: "feature",
+    commands: [],
+    mcpTools: [],
+    setup: () => ({ api: {} }),
+  });
+
 let kernel: Kernel;
 const bus = () => kernel.bus;
 const doc = () => kernel.modules.require(projectRef).store.getState();
@@ -135,6 +146,8 @@ beforeEach(async () => {
   await kernel.modules.loadAll([
     createProjectModule(state),
     elementModule,
+    stub("preview"),
+    stub("inspector"),
     fixtures,
     keyframeModule,
   ]);

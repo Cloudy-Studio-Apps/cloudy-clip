@@ -1,7 +1,9 @@
 import { defineModule, type ActorId } from "@/core";
 import { projectRef } from "@/modules/project";
+import { keyAction } from "./ui";
 import { keyframeCommands } from "./keyframe.commands";
 import { createKeyframeApi, elementTarget } from "./keyframe.fields";
+import { fieldActions } from "@/modules/inspector";
 import { keyTargets } from "./keyframe.points";
 import { keyframeMcpTools } from "./keyframe.mcp";
 import { keyframeRef } from "./keyframe.ref";
@@ -13,7 +15,7 @@ export const keyframeModule = defineModule({
   ref: keyframeRef,
   name: "Keyframes",
   tier: "feature",
-  requires: ["project", "element"],
+  requires: ["project", "element", "preview", "inspector"],
   commands: keyframeCommands,
   mcpTools: keyframeMcpTools,
   setup(ctx) {
@@ -30,6 +32,7 @@ export const keyframeModule = defineModule({
       }),
     );
     ctx.contribute(keyTargets, elementTarget(ctx));
+    ctx.contribute(fieldActions, keyAction);
     return { api: createKeyframeApi(ctx, view, clipboard) };
   },
 });

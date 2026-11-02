@@ -100,6 +100,8 @@ export interface InspectorSectionItem {
 
 /** What a field action gets: the values it is about. */
 export interface FieldActionProps {
+  /** The clip (or junction) the row edits. */
+  clip: PanelSubject;
   /** The paths of the row: one field and its opacity, or every field of a row. */
   paths: readonly string[];
   values: Record<string, unknown>;
