@@ -14,6 +14,8 @@ export { SealMark } from "./brand/SealMark";
 /** The foca watona drawing itself, for an empty page; finished at once under reduced motion. */
 export { SealSketch } from "./brand/SealSketch";
 
+/** A page with nothing on it yet: the seal draws itself over a title and one line. */
+export { SketchPage } from "./kit/SketchPage";
 /** A text button: `primary`, `secondary` or `mark`, `sm` or `md`. */
 export { Button } from "./kit/Button";
 /** A square icon-only button with a tooltip; `active` for toggles, `solid` for play. */

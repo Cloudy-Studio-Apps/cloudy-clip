@@ -22,6 +22,7 @@ import { solidModule } from "@/modules/solid";
 import { soundModule } from "@/modules/sound";
 import { stickerModule } from "@/modules/sticker";
 import { textModule } from "@/modules/text";
+import { tintModule } from "@/modules/tint";
 import { timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
 import { transitionModule } from "@/modules/transition";
@@ -47,6 +48,7 @@ const MODULES: AnyModuleDefinition[] = [
   solidModule,
   audioModule,
   collabModule,
+  tintModule,
   soundModule,
   exportModule,
   workspaceModule,

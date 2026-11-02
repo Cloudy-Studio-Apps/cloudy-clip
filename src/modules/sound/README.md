@@ -6,5 +6,5 @@ The Sound page, a tab between Edit and Export, where music and sound will be wor
 - **Requires:** nothing
 - **Contributes:** page `sound.page` (`appPages`, icon `AudioLines`)
 - **API:** none
-- **Files:** `ui/SoundPage.tsx`: the page. Only the open page is mounted, so the drawing replays on each visit.
+- **Files:** `ui/SoundPage.tsx`: the page, a `SketchPage`. Only the open page is mounted, so the drawing replays on each visit.
 - **Not yet:** anything on the page.
