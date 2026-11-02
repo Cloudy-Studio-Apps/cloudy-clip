@@ -13,7 +13,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   wrapper ignores the pointer (`pointer-events-none`); an overlay turns it back on for the parts
   that take input, so overlays stacked later never block the ones below
 - **API** (`PreviewApi`, per kernel): `playback` (the user's clock), `clockFor(actor)` / `dropClock` (each collaborator has a `logic/virtual.clock.ts` playhead: wall-clock time read on demand, no frames, nothing drawn; commands use `clockFor(ctx.actor)` so an agent never moves the user), `attachCanvas`, `redraw`,
-  `captureAt(time)` (`preview.capture.ts`: its own picture-only engine on a detached canvas, polled with timers because frames stop on a hidden window, disposed after 30 s idle; never touches the user's preview; an undecoded frame is an error, not a stale picture), `previewTransform(clipId, transform | null)` (draws a live transform during a
+  `captureAt(time)` (`preview.capture.ts`: its own picture-only engine on a detached canvas, polled with timers because frames stop on a hidden window, disposed after 30 s idle; never touches the user's preview; an undecoded frame is an error, not a stale picture), `createRenderer({ project, compositionId, mediaUrl? })` (`preview.capture.ts`: a hidden picture-only engine at the composition's full size; `frameAt(time)` waits up to 30 s for every layer and returns RGBA bytes read with `getImageData`, which is what export sends to FFmpeg; the canvas keeps the same 2D context, never `willReadFrequently`; `project` is a snapshot, so later edits don't reach it), `previewTransform(clipId, transform | null)` (draws a live transform during a
   canvas gesture without changing the project), `previewProps(clipId, patch | null)`
   (a live patch of any element's values drawn over the saved ones until cleared; groups may be
   partial; a `transform` patch moves any picture, media included), `onPropsOverride(listener)` (fires on set/clear) and `propsOverride(clipId)` (so the
@@ -81,7 +81,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     `UseDamagingInformationForCompositing`); `CLOUDY_CLIP_WEBKIT_DAMAGE=1` keeps it, to check
     whether a WebKit update fixed it. A CPU canvas (`willReadFrequently`) is not an option: it
     draws video frames black.
-- **Not yet:** safe zones, fullscreen, previous/next frame buttons, export.
+- **Not yet:** safe zones, fullscreen, previous/next frame buttons.
 
 | Command                                                 | MCP tool                        | Notes                                    |
 | ------------------------------------------------------- | ------------------------------- | ---------------------------------------- |

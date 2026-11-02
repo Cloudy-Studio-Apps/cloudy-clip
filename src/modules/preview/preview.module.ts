@@ -6,12 +6,13 @@ import { mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/engine.html";
 import { rememberPlayheads } from "./logic/playheads";
-import { createCapture } from "./preview.capture";
+import { createCapture, createFrameRenderer } from "./preview.capture";
 import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
 import { previewCommands, seek, togglePlay } from "./preview.commands";
 import { previewMcpTools } from "./preview.mcp";
 import { previewRef } from "./preview.ref";
+import type { PreviewCaptureDeps } from "./preview.types";
 import { PreviewPanel } from "./ui";
 
 /** The playback clock, the preview engine and the preview panel. */
@@ -39,6 +40,19 @@ export const previewModule = defineModule({
       elements,
       junctions,
     };
+    const captureDeps: PreviewCaptureDeps = {
+      getProject: () => project.getState(),
+      getComposition: (id) => project.getState().compositions[id] ?? null,
+      ensureFont: (request) => fonts.ensure(request),
+      createEngine: (canvas, ensureFont, mediaUrl) =>
+        new HtmlMediaEngine(canvas, {
+          ...engineOptions,
+          ...(mediaUrl && { mediaUrl }),
+          ensureFont,
+          onFrameReady: () => undefined,
+          pictureOnly: true,
+        }),
+    };
     const controller = createPreviewController({
       clock,
       getProject: () => project.getState(),
@@ -60,18 +74,8 @@ export const previewModule = defineModule({
           onFrameReady,
         }),
       requestFrame: (callback) => void requestAnimationFrame(callback),
-      capture: createCapture({
-        getProject: () => project.getState(),
-        getComposition: (id) => project.getState().compositions[id] ?? null,
-        ensureFont: (request) => fonts.ensure(request),
-        createEngine: (canvas, ensureFont) =>
-          new HtmlMediaEngine(canvas, {
-            ...engineOptions,
-            ensureFont,
-            onFrameReady: () => undefined,
-            pictureOnly: true,
-          }),
-      }),
+      capture: createCapture(captureDeps),
+      createRenderer: (options) => createFrameRenderer(captureDeps, options),
     });
     // Each composition keeps its playhead: a switch stops playback and goes where this one was.
     const playheads = rememberPlayheads();

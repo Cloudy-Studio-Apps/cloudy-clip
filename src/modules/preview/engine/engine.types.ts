@@ -28,6 +28,8 @@ export interface Slot {
   lastSeekAt: number;
   /** Seconds the last seek took, so the next one can aim ahead of the moving clock. */
   seekCost: number;
+  /** Counts seeks and loads, so a wait for an older one's frame can tell it is outdated. */
+  seeks: number;
   /**
    * Whether the frame for the current position has actually been decoded. WebKit fires
    * `seeked` before that, so drawing at `seeked` can paint black.

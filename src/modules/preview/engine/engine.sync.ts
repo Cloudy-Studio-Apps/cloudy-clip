@@ -45,6 +45,7 @@ export function syncSlot(slot: Slot, desired: number, playing: boolean): void {
 export function seekSlot(slot: Slot, to: number): void {
   slot.seekTarget = to;
   slot.lastSeekAt = performance.now();
+  slot.seeks += 1;
   slot.presented = false;
   slot.element.currentTime = to;
 }

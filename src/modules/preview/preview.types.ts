@@ -8,6 +8,7 @@ import type {
   Composition,
   CompositionId,
   Junction,
+  MediaId,
   ProjectState,
 } from "@/modules/project";
 
@@ -56,6 +57,8 @@ export interface PreviewEngine {
   isSettled(): boolean;
   /** The canvas as a base64 PNG (no `data:` prefix). */
   captureFrame(): Promise<string>;
+  /** The canvas as RGBA bytes, row by row from the top. */
+  readPixels(): Uint8ClampedArray;
   dispose(): void;
 }
 
@@ -75,6 +78,7 @@ export interface PreviewControllerDeps {
   /** `requestAnimationFrame` in the app; a manual queue in tests. */
   requestFrame(callback: () => void): void;
   capture: PreviewCapture;
+  createRenderer(options: FrameRendererOptions): FrameRenderer;
 }
 
 /** What offscreen capture needs from the rest of the app. */
@@ -83,11 +87,29 @@ export interface PreviewCaptureDeps {
   getComposition(id: CompositionId): Composition | null;
   /** Whether a font can be drawn now; when not, it starts loading. */
   ensureFont(request: FontRequest): boolean;
-  /** A picture-only engine that asks `ensureFont` about fonts. */
+  /** A picture-only engine that asks `ensureFont` about fonts, streaming `mediaUrl` if given. */
   createEngine(
     canvas: HTMLCanvasElement,
     ensureFont: (request: FontRequest) => boolean,
+    mediaUrl?: (id: MediaId) => string,
   ): PreviewEngine;
+}
+
+/** What a hidden renderer draws. */
+export interface FrameRendererOptions {
+  /** The document to draw: a snapshot, so later edits don't reach it. */
+  project: ProjectState;
+  compositionId: CompositionId;
+  /** Where the pictures come from, when not from the files the preview plays. */
+  mediaUrl?(id: MediaId): string;
+}
+
+/** Draws frames of one composition at its full size, on an engine of its own. */
+export interface FrameRenderer {
+  /** RGBA bytes of the frame at `time`, once every layer has decoded. Rejects if one never does. */
+  frameAt(time: Micros): Promise<Uint8ClampedArray>;
+  /** Releases the decoders. */
+  dispose(): void;
 }
 
 /** Offscreen capture, owned by the preview controller. */
@@ -116,6 +138,11 @@ export interface PreviewApi {
    * and works with the window hidden. Rejects if a frame isn't decoded within 3 s.
    */
   captureAt(time: Micros, compositionId: CompositionId): Promise<string>;
+  /**
+   * A renderer of its own for going through a composition frame by frame, the way the preview
+   * draws it. Doesn't touch the user's preview. Dispose it when done.
+   */
+  createRenderer(options: FrameRendererOptions): FrameRenderer;
   /**
    * Draws a clip with `transform` instead of its saved one, without changing the project (live
    * feedback while dragging on the canvas). Pass null to go back to the saved transform. The

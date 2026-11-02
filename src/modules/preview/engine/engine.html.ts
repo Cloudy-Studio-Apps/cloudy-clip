@@ -228,6 +228,11 @@ export class HtmlMediaEngine implements PreviewEngine {
     return this.settled;
   }
 
+  readPixels(): Uint8ClampedArray {
+    const { width, height } = this.canvas;
+    return this.ctx.getImageData(0, 0, width, height).data;
+  }
+
   captureFrame(): Promise<string> {
     // `toBlob`, not `toDataURL`: a capture must not stall the user's playback while encoding.
     return new Promise((resolve, reject) => {

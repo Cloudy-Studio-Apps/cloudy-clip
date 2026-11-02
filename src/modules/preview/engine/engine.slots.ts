@@ -106,6 +106,7 @@ export class MediaSlotPool {
     slot.mediaId = mediaId;
     slot.url = url;
     slot.seekTarget = null;
+    slot.seeks += 1;
     slot.presented = false;
     slot.element.src = url;
   }
@@ -122,8 +123,10 @@ export class MediaSlotPool {
   /** Marks the slot presented once its new frame is really decoded, then asks for a redraw. */
   private watchForFrame(slot: Slot): void {
     const element = slot.element;
+    // A later seek outdates this watch: its timer must not call that seek's frame decoded.
+    const seek = slot.seeks;
     const done = () => {
-      if (slot.presented) return;
+      if (slot.presented || slot.seeks !== seek) return;
       slot.presented = true;
       this.options.onFrameReady();
     };
@@ -133,7 +136,7 @@ export class MediaSlotPool {
     // Fallback (and safety net if the callback never fires for an off-screen element).
     setTimeout(() => {
       if (!element.seeking && element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) done();
-      else this.options.onFrameReady();
+      else if (slot.seeks === seek) this.options.onFrameReady();
     }, PRESENT_FALLBACK_MS);
   }
 
@@ -151,6 +154,7 @@ export class MediaSlotPool {
       seekTarget: null,
       lastSeekAt: 0,
       seekCost: INITIAL_SEEK_COST,
+      seeks: 0,
       presented: false,
     };
     element.addEventListener("seeked", () => {

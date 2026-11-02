@@ -8,6 +8,8 @@ export { HtmlMediaEngine } from "./engine/engine.html";
 export { previewOverlays } from "./preview.points";
 export { MAX_ZOOM, MIN_ZOOM } from "./preview.viewport";
 export type {
+  FrameRenderer,
+  FrameRendererOptions,
   PlaybackClock,
   PreviewApi,
   PreviewEngine,
