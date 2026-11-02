@@ -7,6 +7,8 @@ import { keyframeRef } from "../keyframe.ref";
 import { ClipGroup } from "./ClipGroup";
 import { PanelPlayhead } from "./PanelPlayhead";
 import { PanelToolbar } from "./PanelToolbar";
+import { usePanelActions } from "./panel.actions.hook";
+import { usePanelKeys } from "./panel.keys.hook";
 import { usePanelRows } from "./panel.rows.hook";
 import { usePanelScroll, usePanelWindow } from "./panel.scroll.hook";
 
@@ -29,6 +31,8 @@ function OpenPanel() {
   const rows = usePanelRows();
   const scale = usePanelWindow(root);
   usePanelScroll(root);
+  const actions = usePanelActions(rows, root);
+  usePanelKeys(root, actions);
   const selectedIds = useMemo(
     () => new Set(selection.map((ref) => `${ref.clipId}|${ref.path}|${ref.keyId}`)),
     [selection],
@@ -83,7 +87,7 @@ function OpenPanel() {
           onPointerDown={drag}
         />
       )}
-      <PanelToolbar rows={rows} />
+      <PanelToolbar rows={rows} actions={actions} />
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="relative flex min-h-full flex-col">
           {rows.length === 0 ? (

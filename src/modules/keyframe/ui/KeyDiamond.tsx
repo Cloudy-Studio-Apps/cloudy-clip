@@ -5,6 +5,8 @@ interface KeyDiamondProps {
   x: number;
   /** `clipId|path|keyId`, for the pointer tools. */
   keyRef?: string;
+  /** `clipId|time` of a summary diamond, for the pointer tools. */
+  summaryKey?: string;
   /** In a clip's summary row: smaller and grey, for every key at a time. */
   summary?: boolean;
   /** A key the selection holds: filled red. */
@@ -22,6 +24,7 @@ interface KeyDiamondProps {
 export function KeyDiamond({
   x,
   keyRef,
+  summaryKey,
   summary,
   selected,
   step,
@@ -32,6 +35,7 @@ export function KeyDiamond({
   return (
     <i
       data-key-ref={keyRef}
+      data-key-summary={summaryKey}
       data-selected={selected ? "true" : undefined}
       title={title}
       className={cn(

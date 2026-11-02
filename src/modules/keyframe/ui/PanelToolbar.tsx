@@ -1,4 +1,13 @@
-import { Diamond, Layers, Maximize2, Minimize2 } from "lucide-react";
+import {
+  ClipboardPaste,
+  Copy,
+  Diamond,
+  Layers,
+  Maximize2,
+  Minimize2,
+  MousePointerSquareDashed,
+  ScanSearch,
+} from "lucide-react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
@@ -8,6 +17,7 @@ import { PANEL_TOOLBAR_HEIGHT } from "../keyframe.layout";
 import { keyframeRef } from "../keyframe.ref";
 import { setKeys } from "../keyframe.edit.commands";
 import type { PanelClip } from "../keyframe.types";
+import type { PanelActions } from "./panel.actions.hook";
 
 /** The row Add key works on: the primary one when it is listed, else the first. */
 function targetRow(rows: readonly PanelClip[], primary: string | null) {
@@ -18,7 +28,13 @@ function targetRow(rows: readonly PanelClip[], primary: string | null) {
 }
 
 /** Under the divider: what the panel lists, adding a key, and giving the tracks back or taking them. */
-export function PanelToolbar({ rows }: { rows: readonly PanelClip[] }) {
+export function PanelToolbar({
+  rows,
+  actions,
+}: {
+  rows: readonly PanelClip[];
+  actions: PanelActions;
+}) {
   const { bus } = useKernel();
   const { playback } = useModule(previewRef);
   const timeline = useModule(timelineRef);
@@ -26,6 +42,7 @@ export function PanelToolbar({ rows }: { rows: readonly PanelClip[] }) {
   const scope = useStore(view, (s) => s.scope);
   const primary = useStore(view, (s) => s.primary);
   const maximized = useStore(view, (s) => s.maximized);
+  const selectedCount = useStore(view, (s) => s.selection.length);
   const target = targetRow(rows, primary);
 
   const maximize = (next: boolean) => {
@@ -59,6 +76,37 @@ export function PanelToolbar({ rows }: { rows: readonly PanelClip[] }) {
         }
       >
         Add key at playhead
+      </ToolbarButton>
+      <ToolbarButton
+        icon={<Copy />}
+        title="Copy the selected keys"
+        disabled={selectedCount === 0}
+        onClick={actions.copy}
+      >
+        Copy
+      </ToolbarButton>
+      <ToolbarButton
+        icon={<ClipboardPaste />}
+        title="Paste the copied keys onto the selected clips at the playhead"
+        onClick={actions.paste}
+      >
+        Paste
+      </ToolbarButton>
+      <ToolbarButton
+        icon={<MousePointerSquareDashed />}
+        title="Select every key the panel lists"
+        disabled={rows.length === 0}
+        onClick={actions.selectAll}
+      >
+        Select all keys
+      </ToolbarButton>
+      <ToolbarButton
+        icon={<ScanSearch />}
+        title="Zoom the timeline to the listed clips"
+        disabled={rows.length === 0}
+        onClick={actions.fit}
+      >
+        Fit
       </ToolbarButton>
       <div className="min-w-3 flex-1" />
       <ToolbarButton

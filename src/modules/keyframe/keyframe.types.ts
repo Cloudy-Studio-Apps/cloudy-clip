@@ -1,5 +1,6 @@
 import type { StoreApi } from "zustand";
 import type { ActorId, CommandContext, Micros } from "@/core";
+import type { ScreenBox } from "@/modules/timeline";
 import type { Clip, ClipId, KeyEase, Keyframe, KeyTrack, KeyValue, Track } from "@/modules/project";
 
 /** One key of one track of one clip. */
@@ -102,4 +103,38 @@ export interface WindowKey {
   time: Micros;
   /** False past the clip's ends. */
   inside: boolean;
+}
+
+/** A selected key as the move limits see it: its timeline time and its clip's span. */
+export interface MovedKey {
+  time: Micros;
+  clipStart: Micros;
+  clipEnd: Micros;
+}
+
+/** A diamond on screen, with the key it stands for. */
+export interface KeyBox {
+  ref: KeyRef;
+  box: ScreenBox;
+}
+
+/** What a drag of keys needs. */
+export interface KeyDragOptions {
+  /** The press that starts the drag. */
+  event: PointerEvent;
+  /** The panel; diamonds are found in it once, at the start. */
+  root: HTMLElement;
+  pxPerSecond: number;
+  /** The keys that move, with their limits. */
+  keys: readonly { ref: KeyRef; moved: MovedKey }[];
+  /** Called on release with the clamped delta (never 0). */
+  onDrop(delta: Micros): void;
+}
+
+/** What a rubber band needs. */
+export interface BoxSelectOptions {
+  event: PointerEvent;
+  root: HTMLElement;
+  /** Called on release with the box on screen. */
+  onDone(box: ScreenBox): void;
 }

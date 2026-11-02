@@ -23,7 +23,7 @@ export function KeyBand({ clip, path, track, scale, selectedIds }: KeyBandProps)
   const keys = useMemo(() => keysInWindow(track, clip, from, to), [track, clip, from, to]);
   const step = track.blend === "step";
   return (
-    <div className="absolute inset-0 will-change-transform" style={SCROLLED}>
+    <div data-key-plane className="absolute inset-0 will-change-transform" style={SCROLLED}>
       {keys.map(({ key, time, inside }, i) => {
         const next = keys[i + 1];
         const showsSpan = !step && next !== undefined && next.key.value !== key.value;

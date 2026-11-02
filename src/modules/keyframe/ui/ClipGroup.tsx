@@ -8,6 +8,7 @@ import { timeToPx } from "@/modules/timeline";
 import { GROUP_HEIGHT, PANEL_HEADER_WIDTH } from "../keyframe.layout";
 import { keyframeRef } from "../keyframe.ref";
 import type { PanelClip, PanelWindow } from "../keyframe.types";
+import { keysAtTime, refId } from "../logic/picking";
 import { keysInWindow, summaryTimes } from "../logic/range";
 import { KeyDiamond } from "./KeyDiamond";
 import { SCROLLED } from "./KeyBand";
@@ -66,7 +67,7 @@ export function ClipGroup({ entry, scale, selectedIds }: ClipGroupProps) {
           <span className="truncate">{name}</span>
         </button>
         <div className="relative min-w-0 flex-1 overflow-hidden">
-          <div className="absolute inset-0 will-change-transform" style={SCROLLED}>
+          <div data-key-plane className="absolute inset-0 will-change-transform" style={SCROLLED}>
             <i
               className="absolute inset-y-[5px] bg-primary-soft/40 shadow-[inset_0_0_0_1px_var(--border-strong)]"
               style={{
@@ -78,6 +79,8 @@ export function ClipGroup({ entry, scale, selectedIds }: ClipGroupProps) {
               <KeyDiamond
                 key={time}
                 summary
+                summaryKey={`${clip.id}|${time}`}
+                selected={keysAtTime(clip, time).every((ref) => selectedIds.has(refId(ref)))}
                 x={timeToPx(time, pxPerSecond)}
                 title="Every key of this clip at this time"
               />
