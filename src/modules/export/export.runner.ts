@@ -1,6 +1,6 @@
 import { notify } from "@/core";
 import type { VideoLevels } from "@/modules/preview";
-import { usedMedia } from "./logic/sources";
+import { reversedMedia, usedMedia } from "./logic/sources";
 import { frameCount, frameTime } from "./logic/timing";
 import { formatInfo } from "./logic/presets";
 import {
@@ -66,11 +66,18 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
       (id) => job.project.media[id]?.kind === "video",
     );
     const proxied = videos.filter((id) => media.getProbe(id)?.proxy?.state === "ready");
-    if (!formatInfo(job.spec.format).picture || proxied.length === 0) return;
+    const reversed = [...reversedMedia(job.project, job.compositionId, job.range)];
+    if (!formatInfo(job.spec.format).picture || proxied.length + reversed.length === 0) return;
     enter(job.id, "preparing", "Preparing full-size copies");
     for (const [index, id] of proxied.entries()) {
       await media.prepareMaster(id, (progress) =>
         update(job.id, { progress: (index + progress) / proxied.length }),
+      );
+      if (stopped(job.id)) throw new Cancelled();
+    }
+    for (const [index, id] of reversed.entries()) {
+      await media.prepareReversed(id, true, (progress) =>
+        update(job.id, { progress: (index + progress) / reversed.length }),
       );
       if (stopped(job.id)) throw new Cancelled();
     }
@@ -84,6 +91,7 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
       project: job.project,
       compositionId: job.compositionId,
       mediaUrl: media.masterUrl,
+      reversedUrl: (id) => media.reversedUrl(id, true),
       ...(corrected && { videoLevels: corrected }),
     });
     try {

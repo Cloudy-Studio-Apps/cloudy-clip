@@ -1,6 +1,21 @@
 import { type CompositionId, type MediaId, type ProjectState } from "@/modules/project";
 import type { ExportRange } from "../export.types";
 
+/** The files of a stretch that some clip plays backwards. */
+export function reversedMedia(
+  project: ProjectState,
+  compositionId: CompositionId,
+  range: ExportRange,
+): Set<MediaId> {
+  const used = usedMedia(project, compositionId, range);
+  const reversed = Object.values(project.clips).flatMap((clip) =>
+    clip.speed?.reversed && clip.mediaId !== undefined && used.has(clip.mediaId)
+      ? [clip.mediaId]
+      : [],
+  );
+  return new Set(reversed);
+}
+
 /** Every file a stretch of a composition shows or plays, at any depth. */
 export function usedMedia(
   project: ProjectState,

@@ -77,6 +77,7 @@ export type {
 export {
   DEFAULT_SPEED,
   canChangeSpeed,
+  elementTimeAt,
   sameSpeed,
   sourceSpan,
   sourceTimeAt,

@@ -65,6 +65,10 @@ export interface CachedPicture {
 export interface EngineOptions {
   /** URL that streams a media item. */
   mediaUrl(id: MediaId): string;
+  /** URL of the file played backwards, or null until that copy is ready. */
+  reversedUrl?(id: MediaId): string | null;
+  /** Length of a file. */
+  fileDuration?(id: MediaId): Micros | undefined;
   /** URLs of an image's picture at a moment of its clip, then those up to `ahead` later. */
   imageFrames: MediaApi["imageFrames"];
   /**

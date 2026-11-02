@@ -239,6 +239,13 @@ describe("speed.set", () => {
     expect(clipOf("sA")).not.toHaveProperty("speed");
   });
 
+  it("stores reversed, and nothing once it's off again", async () => {
+    await run(kernel.bus.run(setSpeed, { clipIds: ["A"], reversed: true }));
+    expect(clipOf("sA").speed?.reversed).toBe(true);
+    await run(kernel.bus.run(setSpeed, { clipIds: ["A"], reversed: false }));
+    expect(clipOf("A")).not.toHaveProperty("speed");
+  });
+
   it("is undone in one step", async () => {
     const before = doc();
     await run(kernel.bus.run(setSpeed, { clipIds: ["A"], rate: 2 }));

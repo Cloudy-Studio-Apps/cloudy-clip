@@ -55,6 +55,16 @@ export function createMediaService(state: MediaState): MediaService {
       channel.onmessage = onProgress;
       return invoke<boolean>("media_prepare_master", { id, onProgress: channel });
     },
+    prepareReversed(id, full, onProgress) {
+      const channel = new Channel<number>();
+      channel.onmessage = onProgress;
+      return invoke("media_prepare_reversed", { id, full, onProgress: channel });
+    },
+    reversedFileUrl(id, full) {
+      if (!baseUrl) throw new Error("The media server is not ready");
+      const master = full ? "&master=1" : "";
+      return `${baseUrl}/${encodeURIComponent(id)}?reversed=1${master}`;
+    },
     masterUrl(id) {
       if (!baseUrl) throw new Error("The media server is not ready");
       const revision = state.getProbe(id)?.revision;

@@ -19,6 +19,7 @@ interface SpeedPatch {
   rate?: number;
   duration?: number;
   pitchCorrection?: boolean;
+  reversed?: boolean;
 }
 
 /** Changes to a clip's speed: drag steps show live, the release is one command. */

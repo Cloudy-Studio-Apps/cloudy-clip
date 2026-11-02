@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sourceSpan, sourceTimeAt } from "./speed";
+import { elementTimeAt, sourceSpan, sourceTimeAt } from "./speed";
 
 const S = 1_000_000;
 const clip = { start: 5 * S, sourceIn: 2 * S, duration: 4 * S };
@@ -25,6 +25,19 @@ describe("clip time", () => {
   it("sourceSpan is the duration times the rate", () => {
     expect(sourceSpan(at(2))).toBe(8 * S);
     expect(sourceSpan(clip)).toBe(4 * S);
+  });
+
+  it("runs backwards through its part of the file when reversed", () => {
+    const back = { ...clip, speed: { rate: 1, pitchCorrection: true, reversed: true } };
+    expect(sourceTimeAt(back, 5 * S)).toBe(6 * S);
+    expect(sourceTimeAt(back, 6 * S)).toBe(5 * S);
+    expect(sourceTimeAt(back, 9 * S)).toBe(2 * S);
+  });
+
+  it("mirrors the file for a reversed copy", () => {
+    const back = { ...clip, speed: { rate: 1, pitchCorrection: true, reversed: true } };
+    expect(elementTimeAt(back, 5 * S, 60 * S)).toBe(54 * S);
+    expect(elementTimeAt(clip, 6 * S, 60 * S)).toBe(3 * S);
   });
 
   it("a hold stays on one frame", () => {

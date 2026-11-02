@@ -14,6 +14,7 @@ import {
   type ProjectState,
   type TrackId,
   type TrackKind,
+  sourceSpan,
   speedOf,
 } from "@/modules/project";
 import type { JunctionKindOf, TrimEdge, TrimLimits } from "../timeline.types";
@@ -151,24 +152,32 @@ export function clampTrim(
   limits: TrimLimits,
 ): Pick<Clip, "start" | "sourceIn" | "duration"> {
   const end = clip.start + clip.duration;
-  const { rate } = speedOf(clip);
+  const { rate, reversed } = speedOf(clip);
+  // The file's time left on each side of the clip, as it plays.
+  const fileBefore = clip.sourceIn;
+  const fileAfter = limits.mediaDuration - clip.sourceIn - sourceSpan(clip);
+  const roomBefore = reversed ? fileAfter : fileBefore;
+  const roomAfter = reversed ? fileBefore : fileAfter;
   if (edge === "start") {
-    const sourceStart = limits.sourceless ? 0 : clip.start - Math.floor(clip.sourceIn / rate);
+    const sourceStart = limits.sourceless ? 0 : clip.start - Math.floor(roomBefore / rate);
     const earliest = Math.max(limits.prevEnd, sourceStart, 0);
     const latest = end - limits.minDuration;
     const start = Math.min(Math.max(time, earliest), latest);
     const delta = start - clip.start;
     const moved = clip.sourceIn + Math.round(delta * rate);
-    const sourceIn = limits.sourceless ? clip.sourceIn : Math.max(0, moved);
+    const sourceIn = limits.sourceless || reversed ? clip.sourceIn : Math.max(0, moved);
     return { start, sourceIn, duration: clip.duration - delta };
   }
   const sourceEnd = limits.sourceless
     ? Number.POSITIVE_INFINITY
-    : clip.start + Math.floor((limits.mediaDuration - clip.sourceIn) / rate);
+    : end + Math.floor(roomAfter / rate);
   const latest = Math.min(limits.nextStart, sourceEnd);
   const earliest = clip.start + limits.minDuration;
   const newEnd = Math.min(Math.max(time, earliest), latest);
-  return { start: clip.start, sourceIn: clip.sourceIn, duration: newEnd - clip.start };
+  const sourceIn = reversed
+    ? Math.max(0, clip.sourceIn - Math.round((newEnd - end) * rate))
+    : clip.sourceIn;
+  return { start: clip.start, sourceIn, duration: newEnd - clip.start };
 }
 
 /** Snaps `time` to the closest candidate within `threshold`, or returns it unchanged. */

@@ -491,6 +491,19 @@ describe("splitting at a speed", () => {
   });
 });
 
+describe("splitting a reversed clip", () => {
+  it("gives the left half the later part of the file", async () => {
+    const clip = await place({ mediaId: "ma", duration: 4 * S });
+    const speed = { rate: 1, pitchCorrection: true, reversed: true };
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: { ...s.clips, [clip.id]: { ...clip, speed } },
+    }));
+    const { created } = await run(kernel.bus.run(splitAt, { at: S, clipIds: [clip.id] }));
+    expect(doc().clips[clip.id]!.sourceIn).toBe(3 * S);
+    expect(doc().clips[created[0]!]!.sourceIn).toBe(0);
+  });
+});
+
 describe("ripple delete", () => {
   /** Sound-only clips on one track, as [start, duration] in seconds. */
   async function sounds(...spans: [number, number][]) {

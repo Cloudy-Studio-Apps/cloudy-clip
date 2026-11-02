@@ -154,6 +154,31 @@ describe("clampTrim at a rate", () => {
   });
 });
 
+describe("clampTrim of a reversed clip", () => {
+  const speed = { rate: 1, pitchCorrection: true, reversed: true };
+  const limits = { mediaDuration: 10 * S, minDuration: 100_000, prevEnd: 0, nextStart: 100 * S };
+  const clip = { start: 2 * S, sourceIn: 3 * S, duration: 4 * S, speed };
+
+  it("keeps sourceIn on a start trim, which drops the file's later part", () => {
+    expect(clampTrim(clip, "start", 3 * S, limits)).toMatchObject({
+      start: 3 * S,
+      sourceIn: 3 * S,
+      duration: 3 * S,
+    });
+  });
+
+  it("moves sourceIn on an end trim, which drops the file's earlier part", () => {
+    expect(clampTrim(clip, "end", 5 * S, limits)).toMatchObject({
+      sourceIn: 4 * S,
+      duration: 3 * S,
+    });
+  });
+
+  it("stops an end trim where the file begins", () => {
+    expect(clampTrim(clip, "end", 50 * S, limits)).toMatchObject({ sourceIn: 0, duration: 7 * S });
+  });
+});
+
 describe("clampTrim", () => {
   const limits = { mediaDuration: 10 * S, minDuration: 100_000, prevEnd: 0, nextStart: Infinity };
 

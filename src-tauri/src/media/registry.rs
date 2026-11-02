@@ -53,6 +53,10 @@ struct Entry {
     proxy: Option<PathBuf>,
     /// Full-size copy made for export, for files that preview through a proxy.
     master: Option<PathBuf>,
+    /// Copy that runs backwards, for preview.
+    reversed: Option<PathBuf>,
+    /// The same at full quality, for export.
+    reversed_master: Option<PathBuf>,
     /// Folder of an animated image's frames, `00000.png` onwards.
     frames: Option<PathBuf>,
 }
@@ -80,6 +84,8 @@ impl MediaRegistry {
                     original: path.to_path_buf(),
                     proxy: None,
                     master: None,
+                    reversed: None,
+                    reversed_master: None,
                     frames: None,
                 },
             );
@@ -137,6 +143,47 @@ impl MediaRegistry {
             && entry.generation == generation
         {
             entry.master = Some(master);
+        }
+    }
+
+    /// The reversed copy of an id, if one is ready.
+    pub fn reversed_path_of(&self, id: &str, full: bool) -> Option<PathBuf> {
+        let entries = self.entries.read().ok()?;
+        let entry = entries.get(id)?;
+        if full {
+            entry.reversed_master.clone()
+        } else {
+            entry.reversed.clone()
+        }
+    }
+
+    /// What a reversed copy is made from, and the registration it belongs to.
+    pub fn reverse_source(&self, id: &str, full: bool) -> Option<(PathBuf, u64)> {
+        let entries = self.entries.read().ok()?;
+        let entry = entries.get(id)?;
+        let best = entry
+            .master
+            .clone()
+            .unwrap_or_else(|| entry.original.clone());
+        let source = if full {
+            best
+        } else {
+            entry.proxy.clone().unwrap_or(best)
+        };
+        Some((source, entry.generation))
+    }
+
+    /// Attaches a finished reversed copy to a registration of an id.
+    pub fn set_reversed(&self, id: &str, generation: u64, full: bool, copy: PathBuf) {
+        if let Ok(mut entries) = self.entries.write()
+            && let Some(entry) = entries.get_mut(id)
+            && entry.generation == generation
+        {
+            if full {
+                entry.reversed_master = Some(copy);
+            } else {
+                entry.reversed = Some(copy);
+            }
         }
     }
 

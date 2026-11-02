@@ -71,6 +71,10 @@ export function splitClips(
         sourceIn:
           followsFileTime(draft, left) || left.speed?.rate === 0 ? sourceTimeAt(left, at) : 0,
       };
+      if (left.speed?.reversed) {
+        // Played backwards, the left half is the later part of the file.
+        [left.sourceIn, right.sourceIn] = [right.sourceIn, left.sourceIn];
+      }
       left.duration = offset;
       if (left.sound) left.sound.fadeOut = 0;
       draft.clips[right.id] = right;

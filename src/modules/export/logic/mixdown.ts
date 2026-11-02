@@ -39,9 +39,11 @@ function soundFields(sound: ClipSound, gain: number): Partial<SoundSegment> {
 }
 
 /** What a clip's speed adds to a segment; nothing at normal speed. */
-function speedFields({ rate, pitchCorrection }: ClipSpeed): Partial<SoundSegment> {
-  if (rate === 1) return {};
-  return { speed: rate, ...(!pitchCorrection && { keepPitch: false }) };
+function speedFields({ rate, pitchCorrection, reversed }: ClipSpeed): Partial<SoundSegment> {
+  return {
+    ...(reversed && { reversed }),
+    ...(rate !== 1 && { speed: rate, ...(!pitchCorrection && { keepPitch: false }) }),
+  };
 }
 
 function walk(
@@ -96,7 +98,8 @@ function walk(
       out.push({
         path: media.path,
         at: start + shift,
-        from: sourceTimeAt(clip, start),
+        // Reversed, the file's earliest moment of this stretch is the one heard last.
+        from: sourceTimeAt(clip, speedOf(clip).reversed ? stop : start),
         duration: stop - start,
         fadeIn: Math.max(fades.fadeIn, start === from ? edges.fadeIn : 0),
         fadeOut: Math.max(fades.fadeOut, stop === end ? edges.fadeOut : 0),

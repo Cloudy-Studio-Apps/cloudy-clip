@@ -28,6 +28,8 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
           mediaUrl: (id: string) => `fake://${id}`,
           prepareMaster: async () => false,
           masterUrl: (id: string) => `fake://${id}`,
+          prepareReversed: async () => undefined,
+          reversedUrl: (id: string) => `fake://${id}?reversed`,
           imageFrames: (id: string) => [`fake://${id}`],
           restore: async () => [],
           fileFacts: async () => ({}),

@@ -105,6 +105,15 @@ pub struct ProxyJobs {
 }
 
 impl ProxyJobs {
+    pub(super) fn cache_dir(&self) -> &Path {
+        &self.cache_dir
+    }
+
+    /// One encode at a time, for every kind of job.
+    pub(super) fn encoder(&self) -> &Semaphore {
+        &self.encoder
+    }
+
     pub fn new(cache_dir: PathBuf) -> Self {
         Self {
             cache_dir,

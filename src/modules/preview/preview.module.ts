@@ -46,6 +46,8 @@ export const previewModule = defineModule({
     const clock = createPlaybackClock(() => openComposition()?.duration ?? 0);
     const engineOptions = {
       mediaUrl: media.mediaUrl,
+      reversedUrl: (id: string) => media.reversedUrl(id, false),
+      fileDuration: (id: string) => media.getProbe(id)?.duration,
       imageFrames: media.imageFrames,
       elements,
       junctions,

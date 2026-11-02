@@ -108,8 +108,15 @@ async fn handle(
     if let Some(response) = turned_away(&state, &token, &method, &headers) {
         return response;
     }
-    let master = query.is_some_and(|q| q.split('&').any(|pair| pair == "master=1"));
-    let path = if master {
+    let asks = |what: &str| {
+        query
+            .as_deref()
+            .is_some_and(|q| q.split('&').any(|pair| pair == what))
+    };
+    let master = asks("master=1");
+    let path = if asks("reversed=1") {
+        state.registry.reversed_path_of(&id, master)
+    } else if master {
         state.registry.master_path_of(&id)
     } else {
         state.registry.playback_path_of(&id)

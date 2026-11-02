@@ -67,8 +67,8 @@ export class MediaSlotPool {
     clip: Clip & { mediaId: MediaId },
     kind: "video" | "audio",
     desired: number,
+    url: string,
   ): Slot | null {
-    const url = this.options.mediaUrl(clip.mediaId);
     const existing = this.assigned.get(path);
     if (existing) {
       if (existing.url !== url) this.load(existing, clip.mediaId, url);

@@ -73,6 +73,9 @@ pub struct SoundSegment {
     /// Keeps voices at their pitch at another speed.
     #[serde(default = "yes")]
     pub keep_pitch: bool,
+    /// Plays its part of the file backwards.
+    #[serde(default)]
+    pub reversed: bool,
 }
 
 fn one() -> f64 {
@@ -165,6 +168,9 @@ fn pan_filter(pan: f64) -> String {
 /// What a clip's sound settings add, in the preview's order. Empty at the defaults.
 fn effects(segment: &SoundSegment) -> String {
     let mut chain = String::new();
+    if segment.reversed {
+        chain.push_str(",areverse");
+    }
     if segment.speed != 1.0 {
         chain.push_str(&if segment.keep_pitch {
             tempo_steps(segment.speed)
@@ -403,6 +409,7 @@ mod sound_tests {
             pitch: 0.0,
             speed: 1.0,
             keep_pitch: true,
+            reversed: false,
         }
     }
 
@@ -413,6 +420,16 @@ mod sound_tests {
             db,
             q: 1.0,
         }
+    }
+
+    #[test]
+    fn a_reversed_segment_starts_with_areverse() {
+        let back = SoundSegment {
+            reversed: true,
+            speed: 2.0,
+            ..segment()
+        };
+        assert_eq!(effects(&back), ",areverse,atempo=2.000000");
     }
 
     #[test]

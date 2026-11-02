@@ -18,9 +18,9 @@ import {
   type MediaId,
   type ProjectFormat,
   type ProjectState,
-  sourceTimeAt,
   speedOf,
   type ClipSpeed,
+  elementTimeAt,
 } from "@/modules/project";
 import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
@@ -101,7 +101,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    options: EngineOptions,
+    private readonly options: EngineOptions,
   ) {
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("2D canvas is not available");
@@ -163,8 +163,10 @@ export class HtmlMediaEngine implements PreviewEngine {
         this.wantImage(media, 0);
         continue;
       }
-      const seconds = microsToSeconds(sourceTimeAt(clip, at));
-      const slot = this.pool.acquire(path, clip, track.kind, seconds);
+      const url = this.urlOf(clip.mediaId, speedOf(clip));
+      if (url === null) continue;
+      const seconds = microsToSeconds(this.elementTime(clip, at));
+      const slot = this.pool.acquire(path, clip, track.kind, seconds, url);
       if (!slot) continue;
       quietSlot(slot, track, this.sound);
       syncSlot(slot, seconds, false);
@@ -176,6 +178,17 @@ export class HtmlMediaEngine implements PreviewEngine {
     // Only paint complete frames: a layer still decoding would flash black. Keep the previous
     // picture instead; the controller retries until every layer has its frame.
     if (this.settled) this.draw(project, frame, transforms, propsOverrides);
+  }
+
+  /** The file a clip's element plays; null while its reversed copy isn't ready. */
+  private urlOf(mediaId: MediaId, { reversed }: ClipSpeed): string | null {
+    if (!reversed) return this.options.mediaUrl(mediaId);
+    return this.options.reversedUrl?.(mediaId) ?? null;
+  }
+
+  /** Where a clip's element should be at a time. */
+  private elementTime(clip: Clip & { mediaId: MediaId }, time: Micros): Micros {
+    return elementTimeAt(clip, time, this.options.fileDuration?.(clip.mediaId) ?? 0);
   }
 
   /**
@@ -217,10 +230,15 @@ export class HtmlMediaEngine implements PreviewEngine {
           continue;
         }
         const speed = (propsOverrides.get(clip.id)?.speed as ClipSpeed) ?? speedOf(clip);
-        const desired = microsToSeconds(sourceTimeAt({ ...clip, speed }, time));
+        const url = this.urlOf(clip.mediaId, speed);
+        if (url === null) {
+          this.settled = false; // Its reversed copy is on the way.
+          continue;
+        }
+        const desired = microsToSeconds(this.elementTime({ ...clip, speed }, time));
         // The track decides the element: pictures come from video tracks (always silent), sound
         // from audio tracks (a video file's sound plays through an <audio> on the same URL).
-        const slot = this.pool.acquire(path, clip, track.kind, desired);
+        const slot = this.pool.acquire(path, clip, track.kind, desired, url);
         if (!slot) continue;
         const heard = this.soundAtSpeed(sound, speed);
         voiceSlot(slot, track, own, silenced, heard, this.sound);

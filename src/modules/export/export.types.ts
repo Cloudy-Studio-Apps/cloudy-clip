@@ -32,6 +32,8 @@ export interface SoundSegment {
   speed?: number;
   /** False when its pitch moves with its speed. Missing is true. */
   keepPitch?: boolean;
+  /** Plays its part of the file backwards. */
+  reversed?: boolean;
 }
 
 /** What a file holds (mirrors `Format` in Rust). */
@@ -168,7 +170,10 @@ export interface EstimateInput {
 export interface RunnerDeps {
   queue: StoreApi<ExportQueueState>;
   preview: Pick<PreviewApi, "createRenderer" | "measureVideoLevels">;
-  media: Pick<MediaApi, "prepareMaster" | "masterUrl" | "getProbe">;
+  media: Pick<
+    MediaApi,
+    "prepareMaster" | "masterUrl" | "prepareReversed" | "reversedUrl" | "getProbe"
+  >;
   log: Logger;
 }
 

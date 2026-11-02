@@ -63,6 +63,16 @@ describe("mixdown", () => {
     expect(mixdown(state, "c1", everything, sounds)[0]).toMatchObject({ keepPitch: false });
   });
 
+  it("reads a reversed clip's stretch from its earliest moment in the file", () => {
+    const speed = { rate: 1, pitchCorrection: true, reversed: true };
+    const state = project([clip("a", "a1", { speed })]);
+    const window = { start: 1_000_000, duration: 1_000_000 };
+    expect(mixdown(state, "c1", window, sounds)[0]).toMatchObject({
+      from: 2_000_000,
+      reversed: true,
+    });
+  });
+
   it("adds no speed at 1x", () => {
     const state = project([clip("a", "a1")]);
     const [segment] = mixdown(state, "c1", everything, sounds);

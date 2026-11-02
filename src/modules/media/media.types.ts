@@ -180,6 +180,17 @@ export interface MediaApi {
   prepareMaster(id: MediaId, onProgress: (progress: number) => void): Promise<boolean>;
   /** URL of the sharpest picture the webview can decode: the master, otherwise the original. */
   masterUrl(id: MediaId): string;
+  /**
+   * Makes the copy of a file that runs backwards, reporting 0..1: for preview, or for export with
+   * `full`. Rejects if it can't be made. Asking again while it's being made joins that job.
+   */
+  prepareReversed(
+    id: MediaId,
+    full: boolean,
+    onProgress?: (progress: number) => void,
+  ): Promise<void>;
+  /** URL of that copy. Until it's ready, null, and it starts being made. */
+  reversedUrl(id: MediaId, full: boolean): string | null;
   /** The frames of an animated image, once they are ready; undefined for anything else. */
   animation(id: MediaId): ImageAnimation | undefined;
   /**
@@ -208,6 +219,8 @@ export interface MediaState extends Omit<
   | "mediaUrl"
   | "prepareMaster"
   | "masterUrl"
+  | "prepareReversed"
+  | "reversedUrl"
   | "imageFrames"
   | "restore"
   | "fileFacts"
@@ -235,6 +248,14 @@ export interface MediaService {
   frameUrl(id: MediaId, index: number): string;
   prepareMaster: MediaApi["prepareMaster"];
   masterUrl: MediaApi["masterUrl"];
+  /** Makes a reversed copy, reporting 0..1. */
+  prepareReversed(
+    id: MediaId,
+    full: boolean,
+    onProgress: (progress: number) => void,
+  ): Promise<void>;
+  /** URL of a reversed copy that exists. */
+  reversedFileUrl(id: MediaId, full: boolean): string;
 }
 
 /** Files of the document, in step with the native side. */

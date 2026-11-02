@@ -111,6 +111,25 @@ pub async fn media_prepare_master(
         .map_err(AppError::Unavailable)
 }
 
+/// Makes the copy of a file that runs backwards, for preview or, with `full`, for export.
+/// `on_progress` gets 0..1.
+#[tauri::command]
+pub async fn media_prepare_reversed(
+    id: String,
+    full: bool,
+    on_progress: Channel<f32>,
+    registry: State<'_, Arc<MediaRegistry>>,
+    proxies: State<'_, ProxyJobs>,
+) -> Result<(), AppError> {
+    let report = |progress: f32| {
+        let _ = on_progress.send(progress);
+    };
+    proxies
+        .prepare_reversed(&registry, &id, full, report)
+        .await
+        .map_err(AppError::Unavailable)
+}
+
 /// Base URL the webview streams media from: `<url>/<media id>`.
 #[tauri::command]
 pub async fn media_server_url(state: State<'_, MediaServerUrl>) -> Result<String, AppError> {

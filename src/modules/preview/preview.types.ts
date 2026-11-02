@@ -92,7 +92,7 @@ export interface PreviewCaptureDeps {
   createEngine(
     canvas: HTMLCanvasElement,
     ensureFont: (request: FontRequest) => boolean,
-    options?: Pick<FrameRendererOptions, "mediaUrl" | "videoLevels">,
+    options?: Pick<FrameRendererOptions, "mediaUrl" | "reversedUrl" | "videoLevels">,
   ): PreviewEngine;
 }
 
@@ -109,6 +109,8 @@ export interface FrameRendererOptions {
   compositionId: CompositionId;
   /** Where the pictures come from, when not from the files the preview plays. */
   mediaUrl?(id: MediaId): string;
+  /** Where reversed clips come from, when not from the preview's copies. */
+  reversedUrl?(id: MediaId): string | null;
   /** Corrects video layers drawn at these levels. Other layers are right as they are. */
   videoLevels?: VideoLevels;
 }
