@@ -199,6 +199,9 @@ const ICON = {
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />',
   group: '<rect x="3" y="3" width="18" height="18" stroke-dasharray="3 2" />',
   close: '<path d="M6 6l12 12M18 6 6 18" />',
+  fx: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" />',
+  trans: '<path d="M3 5l9 7-9 7zM21 5l-9 7 9 7z" />',
+  file: '<path d="M6 3h8l5 5v13H6zM14 3v5h5" />',
 };
 const svg = (name, cls = "") => `<svg class="ico ${cls}" viewBox="0 0 24 24">${ICON[name]}</svg>`;
 

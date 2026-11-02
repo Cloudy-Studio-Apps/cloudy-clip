@@ -146,7 +146,7 @@ svg {
 .app {
   display: grid;
   height: 100vh;
-  grid-template-columns: var(--left-w, 340px) minmax(0, 1fr) var(--right-w, 300px);
+  grid-template-columns: var(--left-w, 340px) minmax(0, 1fr) var(--right-w, 360px);
   grid-template-rows: 44px minmax(0, 1fr) var(--timeline-h, 38vh);
   grid-template-areas:
     "top top top"
@@ -2305,29 +2305,43 @@ body[data-tool="track"] .clip {
   font-size: 11px;
 }
 
+/* Icon tabs, like DaVinci Resolve: one strip for every clip, what doesn't apply greyed out */
 .i-tabs {
   display: flex;
-  gap: 2px;
-  padding: 0 8px;
+  padding: 0 4px;
+  background: var(--surface-sunken);
   border-bottom: 1px solid var(--border);
 }
 .i-tabs button {
-  height: 34px;
-  padding: 0 8px;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 7px 0 6px;
   background: none;
   border: 0;
   box-shadow: inset 0 -2px 0 transparent;
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
 }
-.i-tabs button:hover {
+.i-tabs .ico {
+  width: 17px;
+  height: 17px;
+}
+.i-tabs button:hover:not(:disabled) {
   color: var(--foreground);
 }
 .i-tabs button.is-active {
   color: var(--foreground);
   box-shadow: inset 0 -2px 0 var(--primary);
+}
+.i-tabs button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .i-scroll {
@@ -2337,71 +2351,89 @@ body[data-tool="track"] .clip {
   overflow-y: auto;
 }
 
-/* Collapsible sections, like Premiere's Effect Controls */
+/* Sections: a band with switch, title, keyframe and reset; click the title to fold */
 .i-sec {
   border-bottom: 1px solid var(--border);
 }
 .i-sec-head {
   display: flex;
   align-items: center;
-  padding: 0 6px 0 4px;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  background: color-mix(in oklab, var(--foreground) 5%, var(--surface));
+}
+.i-sec-sw {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  flex-shrink: 0;
+}
+.i-sec-sw .switch {
+  display: block;
+  width: 24px;
+  height: 13px;
+}
+.i-sec-sw .switch::after {
+  top: 1px;
+  left: 1px;
+  width: 9px;
+  height: 9px;
+}
+.i-sec-sw input:checked + .switch::after {
+  translate: 11px 0;
 }
 .i-sec-toggle {
-  display: flex;
   flex: 1;
-  align-items: center;
-  gap: 4px;
-  height: 34px;
-  padding: 0 4px;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
   background: none;
   border: 0;
+  color: var(--foreground);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
 }
-.i-sec-toggle svg {
-  width: 12px;
-  height: 12px;
-  fill: none;
-  stroke: var(--subtle-foreground);
-  stroke-width: 2.25;
-  rotate: 90deg;
-  transition: rotate var(--duration-fast) var(--easing-out);
+.i-sec.is-off .i-sec-toggle {
+  color: var(--muted-foreground);
 }
-.i-sec.is-closed .i-sec-toggle svg {
-  rotate: 0deg;
+.i-soon {
+  padding: 0 4px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-foreground);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
-.i-sec.is-closed .i-sec-body {
+.i-sec.is-closed .i-sec-body,
+.i-sec.is-off .i-sec-body {
   display: none;
-}
-.i-reset {
-  opacity: 0;
-}
-.i-sec:hover .i-reset {
-  opacity: 1;
 }
 .i-sec-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 2px 12px 12px;
+  gap: 6px;
+  padding: 10px 8px 12px;
 }
 
-/* Fields */
+/* Fields: name on the right of its column, values lined up, keyframe and reset at the end */
 .f-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 26px;
+  gap: 6px;
+  min-height: 24px;
 }
 .f-name {
   display: flex;
   flex-direction: column;
-  width: 76px;
+  width: 68px;
   flex-shrink: 0;
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: 11px;
+  text-align: right;
 }
 .f-name small {
   color: var(--subtle-foreground);
@@ -2410,16 +2442,116 @@ body[data-tool="track"] .clip {
 .f-toggle .f-name {
   flex: 1;
   width: auto;
+  text-align: left;
 }
 .f-range {
   flex: 1;
   min-width: 0;
+  height: 14px;
   accent-color: var(--primary);
 }
-.f-out {
-  width: 46px;
+.f-box {
+  display: flex;
+  align-items: center;
+  width: 62px;
+  height: 24px;
+  flex-shrink: 0;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--corner);
+}
+.f-box:focus-within {
+  border-color: var(--ring);
+}
+.f-box input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 0 0 0 6px;
+  background: none;
+  border: 0;
+  outline: 0;
+  color: var(--foreground);
+  font-family: var(--font-mono);
   font-size: 11px;
   text-align: right;
+  -moz-appearance: textfield;
+}
+.f-box input::-webkit-inner-spin-button {
+  display: none;
+}
+.f-box span {
+  min-width: 4px;
+  padding: 0 4px 0 2px;
+  color: var(--subtle-foreground);
+  font-size: 10px;
+}
+.f-pair {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  min-width: 0;
+}
+.f-reset {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.f-reset svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.f-reset:hover:not(:disabled) {
+  color: var(--foreground);
+}
+.f-reset:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.f-color {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px 0 3px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--corner);
+  font-size: 11px;
+  cursor: pointer;
+}
+.f-color i {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--corner-xs);
+}
+.f-color input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.f-letter {
+  width: 26px;
+  min-width: 26px;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .f-grid {

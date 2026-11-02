@@ -322,7 +322,7 @@ const SIZES_KEY = "cloudy-clip-prototype:sizes";
 
 const resizeRules = {
   left: { prop: "--left-w", min: 260, max: 600, initial: 340, axis: "x", sign: 1 },
-  right: { prop: "--right-w", min: 240, max: 520, initial: 300, axis: "x", sign: -1 },
+  right: { prop: "--right-w", min: 280, max: 560, initial: 360, axis: "x", sign: -1 },
   timeline: { prop: "--timeline-h", min: 140, max: () => window.innerHeight - 44 - 220, initial: null, axis: "y", sign: -1 },
 };
 

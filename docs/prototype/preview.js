@@ -19,7 +19,7 @@ window.addEventListener("timeline:selection", () => {
   for (const k of Object.keys(overrides)) delete overrides[k];
 });
 
-const pv = (clip, key) => overrides[clip.id]?.[key] ?? prop(clip, key);
+const pv = (clip, key) => overrides[clip.id]?.[key] ?? (isBypassed(clip, key) ? DEFAULTS[key] : prop(clip, key));
 
 // ── What is visible at a time, bottom track first ────────────────────
 function visibleAt(s, t, prefix = "") {
@@ -115,10 +115,26 @@ function styleLayer(el, clip, local, under) {
     el.style.fontFamily = pv(clip, "font") === "Inter" ? "" : `"${pv(clip, "font")}", var(--font-sans)`;
     el.style.fontWeight = { Regular: 400, Medium: 500, Bold: 700, Black: 900 }[pv(clip, "weight")];
     el.style.textAlign = pv(clip, "align");
-    el.style.color = pv(clip, "color");
+    const tint = (color, percent) => `color-mix(in srgb, ${color} ${percent}%, transparent)`;
+    const cqw = (px) => `${(px / FRAME_W) * 100}cqw`;
+    el.style.color = tint(pv(clip, "color"), pv(clip, "fillOpacity"));
+    el.style.fontStyle = pv(clip, "italic") ? "italic" : "";
+    el.style.textTransform = pv(clip, "upper") ? "uppercase" : "";
+    el.style.letterSpacing = cqw(pv(clip, "letters"));
+    el.style.lineHeight = pv(clip, "lines");
     el.classList.toggle("has-stroke", pv(clip, "stroke"));
     el.classList.toggle("has-highlight", pv(clip, "highlight"));
     el.classList.toggle("has-shadow", pv(clip, "shadow"));
+    span.style.webkitTextStroke = pv(clip, "stroke") ? `${cqw(pv(clip, "strokeWidth"))} ${pv(clip, "strokeColor")}` : "";
+    const boxed = pv(clip, "highlight");
+    span.style.background = boxed ? tint(pv(clip, "bgColor"), pv(clip, "bgOpacity")) : "";
+    span.style.padding = boxed ? cqw(pv(clip, "bgPad")) : "";
+    span.style.borderRadius = boxed ? cqw(pv(clip, "bgRadius")) : "";
+    const angle = (pv(clip, "shadowAngle") * Math.PI) / 180;
+    const dist = pv(clip, "shadowDist");
+    el.style.textShadow = pv(clip, "shadow")
+      ? `${cqw(Math.cos(angle) * dist)} ${cqw(Math.sin(angle) * dist)} ${cqw(pv(clip, "shadowBlur"))} ${tint(pv(clip, "shadowColor"), pv(clip, "shadowOpacity"))}`
+      : "";
   }
 }
 
