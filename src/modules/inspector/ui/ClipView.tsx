@@ -1,46 +1,25 @@
 import { useMemo } from "react";
 import { useStore } from "zustand";
-import { microsToSeconds, useModule } from "@/core";
+import { useModule } from "@/core";
 import { elementRef } from "@/modules/element";
 import { partnersOf, projectRef, type ClipId } from "@/modules/project";
 import { inspectorRef } from "../inspector.ref";
 import type { InspectorContext } from "../inspector.types";
 import { useClipPanel } from "./clip.panel.hook";
-import { InspectorHeader } from "./InspectorHeader";
 import { InspectorTabs } from "./InspectorTabs";
 import { TabBody } from "./TabBody";
 import { WarningRow } from "./WarningRow";
 
-/** The panel of a clip: a header, the strip of tabs and the open tab's sections. */
+/** The panel of a clip: the strip of tabs and the open tab's sections. No title: the timeline says what's selected. */
 function ClipPanelView({ context }: { context: InspectorContext }) {
-  const project = useModule(projectRef).store;
   const elements = useModule(elementRef);
   const view = useModule(inspectorRef).view;
-  const { clip, track } = context;
+  const { clip } = context;
   const panel = useClipPanel(context);
-  const media = useStore(project.api, (s) => (clip.mediaId ? s.media[clip.mediaId] : undefined));
-
   const element = elements.get(clip.kind)?.definition;
-  const display = element?.display(clip, { project: project.getState(), track });
-  const kindName =
-    element?.source === "media"
-      ? media?.kind === "image"
-        ? "Image"
-        : track.kind === "video"
-          ? "Video"
-          : "Audio"
-      : (element?.name ?? clip.kind);
-  const KindIcon = display?.icon;
 
   return (
     <>
-      <InspectorHeader
-        badge={KindIcon && <KindIcon />}
-        badgeClassName="text-white"
-        badgeColor={display && `var(--${display.color})`}
-        title={display?.label ?? clip.kind}
-        subtitle={`${kindName} · ${microsToSeconds(clip.duration).toFixed(1)}s`}
-      />
       <InspectorTabs
         tabs={panel.tabs}
         active={panel.active}

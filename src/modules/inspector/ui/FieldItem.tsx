@@ -3,7 +3,7 @@ import { getPath, propTypes, type PropSpec, type ResolvedItem } from "@/modules/
 import { propertyControls } from "../inspector.points";
 import type { PanelSubject, PropsLive } from "../inspector.types";
 import { isEnabled, isVisible } from "../logic/conditions";
-import { itemPaths } from "../logic/reset";
+import { differs, itemPaths } from "../logic/reset";
 import { FieldActions } from "./FieldActions";
 import { useWarnOnce } from "./panel.warn.hook";
 import { WarningRow } from "./WarningRow";
@@ -76,12 +76,18 @@ export function FieldItem({
     />
   );
   if (inRow) return drawn;
+  const paths = itemPaths(item, fields);
   return (
     <div className="flex min-w-0 items-center gap-1">
-      <div className="min-w-0 flex-1">{drawn}</div>
+      <div
+        data-changed={defaults && differs(paths, values, defaults) ? "" : undefined}
+        className="min-w-0 flex-1 data-[changed]:[&_input]:text-mark data-[changed]:[&_label]:border-mark"
+      >
+        {drawn}
+      </div>
       <FieldActions
         specs={[spec]}
-        paths={itemPaths(item, fields)}
+        paths={paths}
         values={values}
         defaults={defaults}
         live={live}

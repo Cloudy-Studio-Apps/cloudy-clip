@@ -21,7 +21,7 @@ export function InspectorHeader({
   subtitle,
 }: InspectorHeaderProps) {
   return (
-    <header className="flex shrink-0 items-center gap-2.5 border-b border-border px-3 py-2.5">
+    <header className="flex shrink-0 items-center gap-2.5 border-b border-border-strong px-3 py-2.5">
       <span
         className={cn(
           "grid size-[30px] shrink-0 place-items-center bg-muted text-muted-foreground [&_svg]:size-[15px]",
@@ -32,8 +32,8 @@ export function InspectorHeader({
         {badge}
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
-        <b className="truncate font-semibold">{title}</b>
-        <span className="truncate text-xs text-muted-foreground">{subtitle}</span>
+        <b className="truncate font-hand text-md font-bold">{title}</b>
+        <span className="truncate text-sm text-muted-foreground">{subtitle}</span>
       </div>
     </header>
   );

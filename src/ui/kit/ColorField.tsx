@@ -46,7 +46,7 @@ export function ColorField({
   );
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      {!bare && <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>}
+      {!bare && <span className="w-[74px] shrink-0 text-base text-muted-foreground">{label}</span>}
       {disabled ? (
         swatchButton
       ) : (

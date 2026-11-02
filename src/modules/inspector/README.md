@@ -47,7 +47,7 @@ bare?, component }`, for what isn't a property of an element, so any module can 
   `inspector.recents.store.ts`, `logic/recents.ts`). Exported for custom controls:
   `usePropsLive(clip)`, `FieldRow`, `InspectorSection`, `pathPatch`.
 - **Files:** `ui/InspectorPanel.tsx` picks the view (`ProjectView`, `ClipView`, `MultiView`);
-  `InspectorHeader` and `InspectorSection` (the band: `foldKey`, `leading` slot for a switch,
+  `InspectorHeader` (project, junction and multi-select views; a clip shows no title) and `InspectorSection` (the band: `foldKey`, `leading` slot for a switch,
   `actions`, its fold state in `InspectorApi.view`) are shared by them; `InfoList` comes from `@/ui`.
   The header shows the clip's element `display`.
   - `ui/ClipView.tsx`: the header, `InspectorTabs` and `TabBody`. `ui/clip.panel.hook.ts`
