@@ -8,7 +8,7 @@ export { clearKeys } from "./keyframe.commands";
 export { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
 /** Copy keys to your own clipboard and paste them onto clips. */
 export { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
-export { moveKeys, removeKeys, setKey, setKeyValues } from "./keyframe.edit.commands";
+export { moveKeys, removeKeys, setKey, setKeys, setKeyValues } from "./keyframe.edit.commands";
 /** Point: what can be keyed (the element's fields, a module's own). */
 export { keyTargets } from "./keyframe.points";
 export type {

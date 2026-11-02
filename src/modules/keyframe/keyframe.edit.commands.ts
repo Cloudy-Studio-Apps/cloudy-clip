@@ -11,8 +11,11 @@ import {
   timeOfContent,
   withoutKeys,
   writeKey,
+  type Clip,
+  type KeyEase,
   type KeyTrack,
   type KeyValue,
+  type ProjectState,
 } from "@/modules/project";
 import {
   checkKeyValue,
@@ -27,7 +30,31 @@ import {
   time,
 } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
+import type { KeyField } from "./keyframe.types";
 import { writeTracks, type TrackEdit } from "./keyframe.write";
+
+/** The field's track with a key at `at` (a timeline time inside the clip), and that key. */
+function keyedTrack(
+  state: ProjectState,
+  clip: Clip,
+  field: KeyField,
+  at: number,
+  value: KeyValue,
+  ease?: KeyEase,
+) {
+  const base: KeyTrack = clip.animation?.[field.path] ?? {
+    blend: field.blend,
+    ...(field.shared && { shared: true as const }),
+    ...(field.min !== undefined && { min: field.min }),
+    ...(field.max !== undefined && { max: field.max }),
+    keys: [],
+  };
+  const t = contentTime(clip, at);
+  const tolerance = Math.floor(frameDuration(formatOf(state, clip)) / 2);
+  const track = writeKey(base, t, value, tolerance, ease);
+  const key = track.keys.reduce((a, b) => (Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a));
+  return { track, key };
+}
 
 /** Adds a key, or updates the one on that frame. */
 export const setKey = defineCommand({
@@ -52,19 +79,35 @@ export const setKey = defineCommand({
       input.value === undefined
         ? field.read(animatedClip(clip, at))
         : checkKeyValue(field, input.value);
-    const base: KeyTrack = clip.animation?.[input.path] ?? {
-      blend: field.blend,
-      ...(field.shared && { shared: true as const }),
-      ...(field.min !== undefined && { min: field.min }),
-      ...(field.max !== undefined && { max: field.max }),
-      keys: [],
-    };
-    const t = contentTime(clip, at);
-    const tolerance = Math.floor(frameDuration(formatOf(state, clip)) / 2);
-    const track = writeKey(base, t, value, tolerance, input.ease);
-    const key = track.keys.reduce((a, b) => (Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a));
+    const { track, key } = keyedTrack(state, clip, field, at, value, input.ease);
     await writeTracks(ctx, [{ clipId: clip.id, tracks: { [input.path]: track } }]);
     return { key: key.id };
+  },
+});
+
+/** Adds keys to several fields of one clip at once. */
+export const setKeys = defineCommand({
+  id: "keyframe.setMany",
+  label: "Set keyframes",
+  description:
+    'Adds a key to each of a clip\'s fields at a timeline time ("at", microseconds; brought into the clip), or updates the one on that frame, each with the value the field has there. It is one step: if any path can\'t be keyed, nothing changes. Use it to key a row together, like "transform.x" and "transform.y". Returns { keys }, the keys\' ids by path.',
+  undoable: true,
+  input: z.object({ clipId: z.string(), paths: z.array(z.string()).min(1), at: time }),
+  async run(ctx, input) {
+    const state = ctx.require(projectRef).store.getState();
+    const clip = requireClip(state, input.clipId);
+    const api = ctx.require(keyframeRef);
+    const at = clampToClip(clip, input.at);
+    const tracks: Record<string, KeyTrack> = {};
+    const keys: Record<string, string> = {};
+    for (const path of new Set(input.paths)) {
+      const { field } = requireField(api, clip, path);
+      const made = keyedTrack(state, clip, field, at, field.read(animatedClip(clip, at)));
+      tracks[path] = made.track;
+      keys[path] = made.key.id;
+    }
+    await writeTracks(ctx, [{ clipId: clip.id, tracks }]);
+    return { keys };
   },
 });
 

@@ -5,7 +5,7 @@ import { requireClip, requireField, time } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
 import { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
 import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
-import { moveKeys, removeKeys, setKey, setKeyValues } from "./keyframe.edit.commands";
+import { moveKeys, removeKeys, setKey, setKeys, setKeyValues } from "./keyframe.edit.commands";
 import { writeTracks, type TrackEdit } from "./keyframe.write";
 
 /** Removes whole tracks. */
@@ -38,6 +38,7 @@ export const clearKeys = defineCommand({
 /** The keyframe module's commands. */
 export const keyframeCommands = [
   setKey,
+  setKeys,
   removeKeys,
   moveKeys,
   setKeyValues,

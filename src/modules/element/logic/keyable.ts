@@ -28,7 +28,7 @@ export function keyableFields(
   const out: KeyableField[] = [];
   for (const [path, spec] of element.fields) {
     const blend = blendOf(spec);
-    if (!blend || spec.readOnly || spec.keyframes === false) continue;
+    if (!blend || !isKeyable(spec)) continue;
     const group = element.groups.find((g) => path.startsWith(`${g.key}.`));
     if (group && clip && track && group.appliesTo && !group.appliesTo(clip, track)) continue;
     out.push({ path, spec, blend, shared: group !== undefined });

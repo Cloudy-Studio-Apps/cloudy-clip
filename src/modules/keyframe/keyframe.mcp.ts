@@ -4,7 +4,7 @@ import { EASE_PRESETS, animatedClip, projectRef } from "@/modules/project";
 import { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
 import { clearKeys } from "./keyframe.commands";
 import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
-import { moveKeys, removeKeys, setKey, setKeyValues } from "./keyframe.edit.commands";
+import { moveKeys, removeKeys, setKey, setKeys, setKeyValues } from "./keyframe.edit.commands";
 import { time } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
 
@@ -63,6 +63,7 @@ const listEases = defineMcpTool({
 /** Agents key and edit keys with the same commands as the user. */
 export const keyframeMcpTools = [
   commandTool(setKey, { name: "keyframe_set" }),
+  commandTool(setKeys, { name: "keyframe_set_many" }),
   commandTool(removeKeys, { name: "keyframe_remove" }),
   commandTool(moveKeys, { name: "keyframe_move" }),
   commandTool(setKeyValues, { name: "keyframe_set_values" }),

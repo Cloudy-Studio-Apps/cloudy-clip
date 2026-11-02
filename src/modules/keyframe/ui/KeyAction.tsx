@@ -7,7 +7,7 @@ import type { FieldAction, FieldActionProps } from "@/modules/inspector";
 import { previewRef, seek } from "@/modules/preview";
 import { clampToClip, contentTime, projectRef, timeOfContent } from "@/modules/project";
 import { IconButton } from "@/ui";
-import { removeKeys, setKey } from "../keyframe.edit.commands";
+import { removeKeys, setKeys } from "../keyframe.edit.commands";
 import { keyframeRef } from "../keyframe.ref";
 
 /** Whether the keyed paths have keys: none, some, or one on the playhead's frame. */
@@ -70,7 +70,7 @@ function KeyActionView({ clip: subject, paths, disabled }: FieldActionProps) {
       await bus.run(removeKeys, { keys: here });
       return;
     }
-    for (const path of keyed) await bus.run(setKey, { clipId: clip.id, path, at: time });
+    await bus.run(setKeys, { clipId: clip.id, paths: keyed, at: time });
   };
   const jump = (dir: "prev" | "next") => {
     const time = playback.getTime();

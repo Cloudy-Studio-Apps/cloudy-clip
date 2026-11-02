@@ -20,7 +20,7 @@ import {
 import { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
 import { clearKeys } from "./keyframe.commands";
 import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
-import { moveKeys, removeKeys, setKey } from "./keyframe.edit.commands";
+import { moveKeys, removeKeys, setKey, setKeys } from "./keyframe.edit.commands";
 import { keyframeModule } from "./keyframe.module";
 import { keyframeRef } from "./keyframe.ref";
 import type { KeyRef } from "./keyframe.types";
@@ -151,6 +151,18 @@ beforeEach(async () => {
     fixtures,
     keyframeModule,
   ]);
+});
+
+describe("keyframe.setMany", () => {
+  it("keys two fields in one undo step", async () => {
+    await run(
+      bus().run(setKeys, { clipId: "plain", paths: ["transform.x", "transform.y"], at: 3 * S }),
+    );
+    expect(clipOf("plain").animation).toHaveProperty(["transform.x"]);
+    expect(clipOf("plain").animation).toHaveProperty(["transform.y"]);
+    kernel.history.undo();
+    expect(clipOf("plain").animation).toBeUndefined();
+  });
 });
 
 describe("keyframe.set", () => {
