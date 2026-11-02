@@ -156,7 +156,11 @@ export function TimelinePanel() {
             <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
             {lanes.map(({ track, clips }, index) => (
               <Fragment key={track.id}>
-                <TrackInsert index={index} first={index === 0} />
+                <TrackInsert
+                  index={index}
+                  above={lanes[index - 1]?.track.kind}
+                  below={track.kind}
+                />
                 <div className="flex">
                   <TrackHeader track={track} />
                   <div style={{ width: contentWidth }}>
@@ -172,7 +176,9 @@ export function TimelinePanel() {
                 </div>
               </Fragment>
             ))}
-            {open && lanes.length > 0 && <TrackInsert index={lanes.length} />}
+            {open && lanes.length > 0 && (
+              <TrackInsert index={lanes.length} above={lanes.at(-1)?.track.kind} />
+            )}
             {open && content === 0 && (
               <p
                 className="pointer-events-none absolute text-sm text-subtle-foreground"

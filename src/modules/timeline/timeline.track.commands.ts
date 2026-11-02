@@ -10,18 +10,33 @@ import {
 } from "@/modules/project";
 import { requireTrack } from "./timeline.guards";
 
+/** Where a new track may go: video stays above the first audio track, audio below the last video. */
+function placeOf(
+  state: ProjectState,
+  compositionId: string,
+  kind: TrackKind,
+  index: number | undefined,
+): number {
+  const kinds = orderedTracks(state, compositionId).map((track) => track.kind);
+  if (kind === "video") {
+    const firstAudio = kinds.indexOf("audio");
+    return Math.min(index ?? 0, firstAudio === -1 ? kinds.length : firstAudio);
+  }
+  return Math.max(index ?? kinds.length, kinds.lastIndexOf("video") + 1);
+}
+
 function nextTrackName(state: ProjectState, compositionId: string, kind: TrackKind): string {
   const base = kind === "video" ? "Video" : "Audio";
   const count = orderedTracks(state, compositionId).filter((t) => t.kind === kind).length;
   return `${base} ${count + 1}`;
 }
 
-/** Adds an empty track at `index`; without one, video goes on top and audio at the bottom. */
+/** Adds an empty track at `index`; without one, video goes on top and audio at the bottom. Video always stays above audio. */
 export const addTrack = defineCommand({
   id: "timeline.addTrack",
   label: "Add track",
   description:
-    "Adds an empty track to your open composition, or to compositionId. Video tracks are added at the top (their picture is drawn above lower tracks) and audio tracks at the bottom, unless you pass index: its place in the track order, 0 being the top. Returns the new track id.",
+    "Adds an empty track to your open composition, or to compositionId. Video tracks are added at the top (their picture is drawn above lower tracks) and audio tracks at the bottom, unless you pass index: its place in the track order, 0 being the top. Video tracks always stay above audio tracks, so an index past that line stops at it. Returns the new track id.",
   undoable: true,
   input: z.object({
     kind: z.enum(["video", "audio"]),
@@ -46,9 +61,8 @@ export const addTrack = defineCommand({
         muted: false,
         hidden: false,
       };
-      const { trackOrder } = draft.compositions[home]!;
-      const at = index ?? (kind === "video" ? 0 : trackOrder.length);
-      trackOrder.splice(Math.min(at, trackOrder.length), 0, id);
+      const at = placeOf(project.store.getState(), home, kind, index);
+      draft.compositions[home]!.trackOrder.splice(at, 0, id);
     });
     return { trackId: id };
   },

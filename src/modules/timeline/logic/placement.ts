@@ -224,3 +224,14 @@ export function snapCandidates(
   }
   return candidates;
 }
+
+/**
+ * What a new track can be in a gap between tracks: video above, audio below, both where they meet.
+ * Missing means the edge of the list.
+ */
+export function insertKinds(above: TrackKind | undefined, below: TrackKind | undefined) {
+  const kinds: TrackKind[] = [];
+  if (above !== "audio") kinds.push("video");
+  if (below !== "video") kinds.push("audio");
+  return kinds.length > 0 ? kinds : (["video", "audio"] as TrackKind[]);
+}

@@ -146,6 +146,12 @@ describe("timeline commands", () => {
     expect(doc().compositions.c1!.trackOrder).toEqual(before);
   });
 
+  it("keeps video tracks above audio tracks, wherever an index points", async () => {
+    const video = await run(kernel.bus.run(addTrack, { kind: "video", index: 99 }));
+    const audio = await run(kernel.bus.run(addTrack, { kind: "audio", index: 0 }));
+    expect(doc().compositions.c1!.trackOrder).toEqual(["v1", video.trackId, audio.trackId, "a1"]);
+  });
+
   it("a video dropped on an audio track opens a video track when the first is busy", async () => {
     await place({ mediaId: "mv" });
     const { trackId } = await run(kernel.bus.run(addTrack, { kind: "audio" }));
