@@ -60,6 +60,8 @@ export type {
   ProjectState,
   Bin,
   BinId,
+  MediaInfo,
+  MediaTag,
   Solid,
   SolidId,
   SharedGroupValues,

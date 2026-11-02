@@ -50,6 +50,8 @@ Native side: `src-tauri/src/media/facts.rs` (`media_file_facts`: ffprobe on the 
 | `media.import`    | `media_import`      | Tool waits until metadata is read                                   |
 | `media.remove`    | `media_remove`      | Refuses while clips use the media                                   |
 | `media.relink`    | `media_relink`      | Keeps its clips. `media.wrong_kind`                                 |
+| `media.setInfo`   | `media_set_info`    | Metadata of the file; `null` clears a field                         |
+| `media.rename`    | `media_rename`      | The name in the library, not on disk                                |
 | `media.createBin` | `media_create_bin`  | In Master or inside `parentId`. `media.no_bin`                      |
 | `media.renameBin` | `media_rename_bin`  | `media.no_bin`                                                      |
 | `media.deleteBin` | `media_delete_bin`  | What it holds moves to its parent; nothing is lost                  |

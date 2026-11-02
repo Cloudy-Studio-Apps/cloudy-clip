@@ -3,6 +3,7 @@ import { commandTool, defineMcpTool, errorResult, textResult } from "@/core";
 import { projectRef, type MediaAsset } from "@/modules/project";
 import { createBin, deleteBin, moveToBin, renameBin } from "./media.bin.commands";
 import { importMedia, relinkMedia, removeMedia } from "./media.commands";
+import { renameMedia, setInfo } from "./media.info.commands";
 import { mediaRef } from "./media.ref";
 import type { ImportResult, MediaApi } from "./media.types";
 
@@ -43,7 +44,7 @@ const listTool = defineMcpTool({
   name: "media_list",
   readOnly: true,
   description:
-    "Lists imported media with metadata: kind (video, audio or image), duration (microseconds), width/height, frames (animated images only), status (pending, ready, error, or missing when the file is not where the project says: fix it with media_relink), and proxy (state, progress 0..1, message) for files being optimized for editing.",
+    "Lists imported media with metadata: binId (missing means Master), info (what's noted about the file, see media_set_info), kind (video, audio or image), duration (microseconds), width/height, frames (animated images only), status (pending, ready, error, or missing when the file is not where the project says: fix it with media_relink), and proxy (state, progress 0..1, message) for files being optimized for editing.",
   input: z.object({}),
   handler(_input, { require }) {
     const media = require(mediaRef);
@@ -62,6 +63,8 @@ export const mediaMcpTools = [
   listTool,
   commandTool(removeMedia, { name: "media_remove" }),
   commandTool(relinkMedia, { name: "media_relink" }),
+  commandTool(setInfo, { name: "media_set_info" }),
+  commandTool(renameMedia, { name: "media_rename" }),
   commandTool(createBin, { name: "media_create_bin" }),
   commandTool(renameBin, { name: "media_rename_bin" }),
   commandTool(deleteBin, { name: "media_delete_bin" }),

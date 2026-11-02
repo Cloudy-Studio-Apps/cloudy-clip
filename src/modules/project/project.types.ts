@@ -23,6 +23,23 @@ export interface MediaAsset {
   binId?: BinId;
   /** When it was imported, in ms since the epoch. Missing on older projects. */
   importedAt?: number;
+  /** What's noted about the file. All its clips share it. */
+  info?: MediaInfo;
+}
+
+/** How a file was judged. Untagged has no tag at all. */
+export type MediaTag = "good" | "rejected";
+
+/** What's noted about a file. Timecode and date are read from the file, so they aren't here. */
+export interface MediaInfo {
+  camera?: string;
+  reel?: string;
+  scene?: string;
+  shot?: string;
+  take?: string;
+  tag?: MediaTag;
+  color?: string;
+  comments?: string;
 }
 
 /** A folder of the media library. Master isn't one: what has no bin sits there. */

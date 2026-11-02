@@ -5,6 +5,7 @@ import { elements } from "@/modules/element";
 import { projectRef } from "@/modules/project";
 import { mediaBinCommands } from "./media.bin.commands";
 import { importMedia, mediaCommands } from "./media.commands";
+import { mediaInfoCommands } from "./media.info.commands";
 import { frameIndexesAt } from "./logic/animation";
 import { mediaElement } from "./media.element";
 import { mediaMcpTools } from "./media.mcp";
@@ -22,7 +23,7 @@ export const mediaModule = defineModule({
   name: "Media",
   tier: "core",
   requires: ["project", "element"],
-  commands: [...mediaCommands, ...mediaBinCommands],
+  commands: [...mediaCommands, ...mediaBinCommands, ...mediaInfoCommands],
   mcpTools: mediaMcpTools,
   async setup({ bus, log, contribute, require, onDispose }) {
     contribute(elements, mediaElement);
