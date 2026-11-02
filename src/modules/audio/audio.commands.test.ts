@@ -8,7 +8,6 @@ import { previewModule } from "@/modules/preview";
 import { createProjectModule, projectRef, seedProject, soundOf } from "@/modules/project";
 import { addClip, splitAt, timelineModule, trimClip } from "@/modules/timeline";
 import { resetSound, setSound } from "./audio.commands";
-import { audioModule } from "./audio.module";
 
 const S = 1_000_000;
 let kernel: Kernel;
@@ -34,7 +33,6 @@ beforeEach(async () => {
     createFakeFontsModule(),
     previewModule,
     timelineModule,
-    audioModule,
   ]);
 });
 
