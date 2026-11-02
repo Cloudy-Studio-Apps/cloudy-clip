@@ -15,6 +15,7 @@ export const THEME_TOKEN_NAMES = [
   "popover",
   "stage",
   "lane",
+  "dim",
   // Lines
   "border",
   "border-strong",

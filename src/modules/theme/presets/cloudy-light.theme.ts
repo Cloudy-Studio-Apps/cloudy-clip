@@ -37,6 +37,7 @@ export const CLOUDY_LIGHT: ThemeDefinition = {
     stage: "oklch(0.93 0.008 250)",
     popover: "oklch(1 0 0)",
     lane: "oklch(0.965 0.005 250)",
+    dim: "oklch(0.6 0.012 250 / 0.22)",
     "clip-video": "oklch(0.86 0.04 245)",
     "clip-audio": "oklch(0.88 0.04 155)",
     "clip-type": "oklch(0.9 0.07 87)",

@@ -35,10 +35,7 @@ export function EndMarker() {
 
   return (
     <>
-      <div
-        ref={dim}
-        className="pointer-events-none absolute inset-y-0 right-0 z-[12] bg-black/40"
-      />
+      <div ref={dim} className="pointer-events-none absolute inset-y-0 right-0 z-[12] bg-dim" />
       {/* The line takes no pointer: it sits on the last clip's edge, where drops and trims aim. */}
       <div
         ref={line}

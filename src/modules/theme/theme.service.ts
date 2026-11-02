@@ -4,7 +4,8 @@ import { themeCss } from "./logic/css";
 import { readTheme } from "./logic/read";
 import { applyTheme, shownAppearance } from "./theme.apply";
 import { themes } from "./theme.points";
-import type { ThemeApi, ThemeChoice, ThemeDefinition } from "./theme.types";
+import { setWindowAppearance } from "./theme.window";
+import type { ThemeApi, ThemeAppearance, ThemeChoice, ThemeDefinition } from "./theme.types";
 import type { StoreApi } from "zustand/vanilla";
 
 interface ThemeServiceDeps {
@@ -40,6 +41,7 @@ export function createThemeService({ points, store, log }: ThemeServiceDeps) {
   let contributed: readonly ThemeDefinition[] | null = null;
   let valid: ThemeDefinition[] = [];
   let shownCss: string | null = null;
+  let windowAppearance: ThemeAppearance | null | undefined;
 
   const list = () => {
     const current = points.get(themes);
@@ -55,7 +57,13 @@ export function createThemeService({ points, store, log }: ThemeServiceDeps) {
   const apply = () => {
     if (list().length === 0) return;
     const { definition, resolved } = active();
-    const css = themeCss(resolved, store.getState().density);
+    const { density, mode } = store.getState();
+    const nextWindow = mode === "system" ? null : resolved.appearance;
+    if (nextWindow !== windowAppearance) {
+      windowAppearance = nextWindow;
+      setWindowAppearance(nextWindow, log);
+    }
+    const css = themeCss(resolved, density);
     if (css === shownCss) return;
     shownCss = css;
     applyTheme(definition.id, resolved.appearance, css);

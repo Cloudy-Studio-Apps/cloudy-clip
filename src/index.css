@@ -110,6 +110,7 @@
   --color-stage: var(--stage);
   --color-popover: var(--popover);
   --color-lane: var(--lane);
+  --color-dim: var(--dim);
   --color-clip-video: var(--clip-video);
   --color-clip-audio: var(--clip-audio);
   --color-clip-type: var(--clip-type);
