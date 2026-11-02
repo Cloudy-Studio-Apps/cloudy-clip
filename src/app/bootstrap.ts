@@ -19,6 +19,7 @@ import { keyframeModule } from "@/modules/keyframe";
 import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
+import { settingsModule } from "@/modules/settings";
 import { solidModule } from "@/modules/solid";
 import { soundModule } from "@/modules/sound";
 import { speedModule } from "@/modules/speed";
@@ -35,6 +36,7 @@ const log = createLogger("app");
 
 /** Built-in modules, in any order: the kernel orders them by their dependencies. */
 const MODULES: AnyModuleDefinition[] = [
+  settingsModule,
   themeModule,
   projectModule,
   elementModule,
