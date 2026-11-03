@@ -8,7 +8,7 @@ use serde::Serialize;
 use tauri::State;
 
 use super::encoders::{Capabilities, capabilities};
-use super::job::Job;
+use super::job::{Job, script_option};
 use super::recipe::{ExportSpec, Format};
 use super::{FrameUrl, Jobs, PartialNotes};
 use crate::error::{AppError, AppResult};
@@ -118,7 +118,8 @@ pub async fn export_begin(
     }
     find_mono(&tools, &mut spec).await;
     let card = card_for(&spec).await;
-    let job = Job::start(&tools, &spec, card.as_deref()).map_err(AppError::Unavailable)?;
+    let option = script_option(&tools.ffmpeg).await;
+    let job = Job::start(&tools, &spec, card.as_deref(), option).map_err(AppError::Unavailable)?;
     let job_id = random_token()?;
     tokio::fs::create_dir_all(&notes.0).await?;
     let partial = job.partial.display().to_string();

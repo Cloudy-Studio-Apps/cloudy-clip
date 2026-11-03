@@ -11,7 +11,7 @@ use std::time::Duration;
 use tauri::async_runtime::JoinHandle;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, OnceCell};
 
 use super::recipe::{ExportSpec, ScriptOption, arguments, script_of};
 use crate::media::proxy::{Tools, command};
@@ -32,17 +32,19 @@ fn partial_of(output: &Path) -> PathBuf {
 }
 
 /// How this FFmpeg reads a filter graph from a file, by its `-version`. Unknown counts as new.
-fn script_option(ffmpeg: &Path) -> ScriptOption {
-    let mut probe = std::process::Command::new(ffmpeg);
-    probe.arg("-version").stdin(Stdio::null());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        probe.creation_flags(0x0800_0000);
-    }
-    let output = probe.output().ok();
-    let text = output.map(|o| String::from_utf8_lossy(&o.stdout).into_owned());
-    ScriptOption::from_version_line(text.as_deref().and_then(|t| t.lines().next()).unwrap_or(""))
+/// Asked once, without blocking the async runtime, and kept for the app's lifetime: the system
+/// FFmpeg is found once too (`find_tools`).
+pub async fn script_option(ffmpeg: &Path) -> ScriptOption {
+    static FOUND: OnceCell<ScriptOption> = OnceCell::const_new();
+    *FOUND
+        .get_or_init(|| async {
+            let output = command(ffmpeg).arg("-version").output().await.ok();
+            let text = output.map(|o| String::from_utf8_lossy(&o.stdout).into_owned());
+            ScriptOption::from_version_line(
+                text.as_deref().and_then(|t| t.lines().next()).unwrap_or(""),
+            )
+        })
+        .await
 }
 
 /// An export FFmpeg is working on.
@@ -62,12 +64,17 @@ pub struct Job {
 }
 
 impl Job {
-    /// Starts FFmpeg. With a picture, it waits for frames on stdin.
-    pub fn start(tools: &Tools, spec: &ExportSpec, card: Option<&str>) -> Result<Self, String> {
+    /// Starts FFmpeg. With a picture, it waits for frames on stdin. `option` is how this FFmpeg
+    /// reads a long filter graph from a file (`script_option`).
+    pub fn start(
+        tools: &Tools,
+        spec: &ExportSpec,
+        card: Option<&str>,
+        option: ScriptOption,
+    ) -> Result<Self, String> {
         let output = PathBuf::from(&spec.output);
         let partial = partial_of(&output);
         let picture = spec.format.has_picture();
-        let option = script_option(&tools.ffmpeg);
         let recipe = arguments(spec, &partial, card, option);
         let script = recipe.script.as_ref().map(|_| script_of(&partial));
         if let (Some(file), Some(graph)) = (&script, &recipe.script) {
