@@ -5,8 +5,11 @@ import type { MonitorState } from "@/modules/preview";
 
 /** What the Sound page shows and how the user listens, per kernel. Never in history. */
 export interface SoundViewState {
-  /** The track whose strip and header are marked, or null. A track, not clips. */
-  selectedTrack: TrackId | null;
+  /**
+   * The strip that is marked, or null: an audio track (its header is marked too) or the master. A
+   * track, not clips.
+   */
+  selected: MixTarget | null;
   /** Soloed tracks; none means every track sounds. Never in an export. */
   solo: TrackId[];
   /** The mixer takes the whole page (Expand all). */
@@ -19,8 +22,8 @@ export interface SoundViewState {
 export interface SoundApi {
   /** The page's view state. Solo and the monitor change through `sound.setSolo` / `sound.setMonitor`. */
   view: StoreApi<SoundViewState>;
-  /** Marks a track's strip and header, or none. */
-  selectTrack(trackId: TrackId | null): void;
+  /** Marks a track's strip and header, the master's strip, or none. */
+  select(target: MixTarget | null): void;
   /** Lets the mixer take the whole page, or gives the timeline its place back. */
   setExpanded(expanded: boolean): void;
 }
@@ -134,4 +137,13 @@ export interface SoundPreset {
   /** What it is for, one line. */
   description: string;
   effects: EffectSpec[];
+}
+
+/** A row of an effect chain dragged up or down. */
+export interface ChainDrag {
+  down: PointerEvent;
+  /** The row being moved; it follows the pointer through `style`. */
+  row: HTMLElement;
+  /** The release, with the travel; null when the pointer never moved (a click). */
+  onEnd(dy: number | null): void;
 }

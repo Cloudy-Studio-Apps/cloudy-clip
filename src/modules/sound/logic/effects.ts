@@ -1,10 +1,88 @@
 import {
   DEFAULT_SOUND,
+  SOUND_EFFECT_KINDS,
+  compositionMixOf,
+  trackMixOf,
+  type CompositionId,
+  type ProjectState,
   type SoundEffect,
   type SoundEffectKind,
   type TrackId,
 } from "@/modules/project";
-import type { EffectSpec } from "../sound.types";
+import type { EffectSpec, MixTarget } from "../sound.types";
+
+/** What each kind is called: in full (the Channel tab) and short (a strip's list). */
+export const EFFECT_NAMES: Record<SoundEffectKind, { name: string; short: string }> = {
+  eq: { name: "Equalizer", short: "EQ" },
+  compressor: { name: "Compressor", short: "Comp" },
+  gate: { name: "Noise gate", short: "Gate" },
+  deesser: { name: "De-esser", short: "De-ess" },
+  limiter: { name: "Limiter", short: "Limiter" },
+  denoise: { name: "Noise reduction", short: "Noise red." },
+  duck: { name: "Ducking", short: "Ducking" },
+};
+
+/**
+ * The kinds the user can add and edit on the page, in the order they're listed. Noise reduction
+ * is left out until its rendered files play: the page offers no control that does nothing.
+ */
+export const EDITABLE_KINDS: readonly SoundEffectKind[] = SOUND_EFFECT_KINDS.filter(
+  (kind) => kind !== "denoise",
+);
+
+/** The kinds `+ Effect` offers on a chain: those not in it yet, and no ducking on the master. */
+export function addableKinds(chain: readonly SoundEffect[], target: MixTarget): SoundEffectKind[] {
+  return EDITABLE_KINDS.filter(
+    (kind) => !chain.some((e) => e.kind === kind) && !(target === "master" && kind === "duck"),
+  );
+}
+
+/** No effects: one array, so a selector that finds none returns the same thing each time. */
+const NO_EFFECTS: readonly SoundEffect[] = [];
+
+/**
+ * The chain of a track or of a composition's master, as stored (the same array while it doesn't
+ * change); empty when it has none or doesn't exist.
+ */
+export function chainOf(
+  state: ProjectState,
+  target: MixTarget,
+  compositionId: CompositionId | undefined,
+): readonly SoundEffect[] {
+  if (target === "master") {
+    const composition = compositionId && state.compositions[compositionId];
+    return (composition && composition.mix?.master.effects) || NO_EFFECTS;
+  }
+  return state.tracks[target]?.mix?.effects ?? NO_EFFECTS;
+}
+
+/**
+ * Whether a track places a composition (at any depth) that has effects of its own. Those aren't
+ * heard from outside: the placement sounds through its inner clips only.
+ */
+export function placesUnheardEffects(state: ProjectState, trackId: TrackId): boolean {
+  const seen = new Set<CompositionId>();
+  const placedIn = (track: { clipIds: readonly string[] }): CompositionId[] =>
+    track.clipIds.flatMap((id) => {
+      const ref = state.clips[id]?.compositionRef;
+      return ref === undefined ? [] : [ref];
+    });
+  const stack = placedIn(state.tracks[trackId] ?? { clipIds: [] });
+  while (stack.length) {
+    const id = stack.pop()!;
+    const composition = state.compositions[id];
+    if (seen.has(id) || !composition) continue;
+    seen.add(id);
+    if (compositionMixOf(composition).master.effects?.length) return true;
+    for (const inner of composition.trackOrder) {
+      const track = state.tracks[inner];
+      if (!track) continue;
+      if (trackMixOf(track).effects?.length) return true;
+      stack.push(...placedIn(track));
+    }
+  }
+  return false;
+}
 
 /** The settings a new effect of this kind starts with (without an id). */
 export function defaultSpec(kind: SoundEffectKind): EffectSpec {

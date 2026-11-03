@@ -21,7 +21,7 @@ export function MixerPanel() {
   const open = useOpenComposition();
   const trackOrder = open?.trackOrder ?? NO_TRACKS;
   const tracksById = useStore(useModule(projectRef).store.api, (s) => s.tracks);
-  const selected = useStore(sound.view, (s) => s.selectedTrack);
+  const selected = useStore(sound.view, (s) => s.selected);
   const solo = useStore(sound.view, (s) => s.solo);
   const expanded = useStore(sound.view, (s) => s.expanded);
   const loop = useMeterLoop();

@@ -1,17 +1,22 @@
 import { memo, useEffect, useRef } from "react";
+import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { projectRef, trackMixOf, type Track } from "@/modules/project";
+import { projectRef, trackMixOf, type SoundEffect, type Track } from "@/modules/project";
 import { setTrackMuted } from "@/modules/timeline";
 import { cn } from "@/ui";
+import { placesUnheardEffects } from "../logic/effects";
 import { setTrackMix } from "../sound.mix.commands";
 import { setSolo } from "../sound.monitor.commands";
 import { soundRef } from "../sound.ref";
+import { EffectChain } from "./EffectChain";
 import { Fader } from "./Fader";
 import { Meter } from "./Meter";
 import { PanSlider } from "./PanSlider";
 import { StripLabel } from "./StripLabel";
 import { StripToggle } from "./StripToggle";
+
+const NO_EFFECTS: readonly SoundEffect[] = [];
 
 interface MixerStripProps {
   track: Track;
@@ -22,8 +27,9 @@ interface MixerStripProps {
 }
 
 /**
- * One audio track in the mixer: name, where it goes, pan, fader with its two meters, mute and solo.
- * A click marks the track (and its header on the timeline); when marked, it scrolls into view.
+ * One audio track in the mixer: name, its effects, where it goes, pan, fader with its two meters,
+ * mute and solo. A click marks the track (and its header on the timeline) and shows its chain in
+ * the Channel tab; when marked, it scrolls into view.
  */
 export const MixerStrip = memo(function MixerStrip({
   track,
@@ -36,6 +42,7 @@ export const MixerStrip = memo(function MixerStrip({
   const project = useModule(projectRef).store;
   const sound = useModule(soundRef);
   const ref = useRef<HTMLDivElement>(null);
+  const unheard = useStore(project.api, (s) => placesUnheardEffects(s, track.id));
 
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -53,7 +60,7 @@ export const MixerStrip = memo(function MixerStrip({
         "flex w-24 shrink-0 cursor-pointer flex-col gap-1.5 border-r border-dashed border-border-strong p-2",
         selected && "shadow-[inset_0_2px_0_var(--mark)]",
       )}
-      onClick={() => sound.selectTrack(track.id)}
+      onClick={() => sound.select(track.id)}
     >
       <div className="truncate text-center font-hand text-base font-bold leading-tight">
         {track.name}
@@ -61,6 +68,20 @@ export const MixerStrip = memo(function MixerStrip({
       <div className="-mt-1 text-center font-mono text-sm font-bold text-subtle-foreground">
         {code}
       </div>
+      <StripLabel>Effects</StripLabel>
+      <EffectChain
+        target={track.id}
+        compositionId={track.compositionId}
+        effects={trackMixOf(track).effects ?? NO_EFFECTS}
+      />
+      {unheard && (
+        <span
+          className="-mt-1 truncate text-2xs text-subtle-foreground"
+          title="A composition placed here has effects of its own. They aren't heard from outside: only its clips' sound is."
+        >
+          Inner effects not heard
+        </span>
+      )}
       <StripLabel>Sends to</StripLabel>
       <div className="truncate border-b border-border-strong font-mono text-sm text-muted-foreground">
         Master

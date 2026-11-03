@@ -9,7 +9,7 @@ import { SOUND_PAGE, soundRef } from "./sound.ref";
 import { createSoundView } from "./sound.store";
 import { SoundPage } from "./ui";
 
-/** The Sound page with its mixer, and the mix: track and master levels, mix A and B. */
+/** The Sound page with its mixer, and the mix: track and master levels, effects, mix A and B. */
 export const soundModule = defineModule({
   ref: soundRef,
   name: "Sound",
@@ -34,7 +34,7 @@ export const soundModule = defineModule({
     return {
       api: {
         view,
-        selectTrack: (selectedTrack) => view.setState({ selectedTrack }),
+        select: (selected) => view.setState({ selected }),
         setExpanded: (expanded) => view.setState({ expanded }),
       },
     };

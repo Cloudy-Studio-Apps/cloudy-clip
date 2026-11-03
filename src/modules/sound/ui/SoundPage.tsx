@@ -16,10 +16,11 @@ import { SoundTransport } from "./SoundTransport";
  */
 export function SoundPage() {
   const sound = useModule(soundRef);
-  const selected = useStore(sound.view, (s) => s.selectedTrack);
+  // The master has no header on the timeline.
+  const selected = useStore(sound.view, (s) => (s.selected === "master" ? null : s.selected));
   const expanded = useStore(sound.view, (s) => s.expanded);
   const focus = useMemo<TrackFocus>(
-    () => ({ selected, select: (trackId) => sound.selectTrack(trackId) }),
+    () => ({ selected, select: (trackId) => sound.select(trackId) }),
     [selected, sound],
   );
 
