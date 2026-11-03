@@ -9,7 +9,7 @@ The path was the real one. A scratch Vitest test built projects and ran the real
 which gave the `ExportSpec` JSON. A scratch crate included the real `recipe.rs`, `mixgraph.rs` and `soundfilters.rs`
 by `#[path]` and ran `arguments()` on it. FFmpeg ran those arguments with the output swapped for 32-bit float WAV
 (so the encoder doesn't colour the numbers), and `ebur128` and `astats` measured the file. Nothing scratch was committed.
-The sources were 48 kHz stereo sines (440, 660 and 880 Hz, 6 s, -18.75 LUFS each as the one-track case).
+The sources were 48 kHz stereo sines (440, 660 and 880 Hz, 8 s files of which each export plays the first 6 s; -18.75 LUFS as the one-track case).
 
 | Check                                                                                                     | Result                                                                                |
 | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -29,12 +29,12 @@ The sources were 48 kHz stereo sines (440, 660 and 880 Hz, 6 s, -18.75 LUFS each
 
 How the numbers read:
 
-- Every level step is exact to the 0.01 LU the meter resolves; the brief's 0.1 LU tolerance holds with room.
+- Every level step measured -6.00 LU (the integrated values differ by exactly 6.00 to the two decimals read), well inside the 0.5 LU the spec allows.
 - A pan of -1 puts the sum of both sides on the left: `StereoPannerNode`'s law for stereo sound, so a centred source
   is 6 dB louder on that side (base -18.06 dB, panned -12.04 dB). The export matches the preview's law on purpose
   (`pan_gains`); it is not a bug.
 - A placed composition folds its inner tracks into the clip (`soundInPlacement`): the -4 dB inner track of the combined
-  project reached the Rust side as `gain: 0.631` on a segment of the outer track 3, below that track's +2 dB fader.
+  project reached the Rust side as `gain: 0.631` on a segment of the outer track 3. That gain applies to the clip inside its own chain, before the outer track's bus sums it and applies the track's +2 dB fader, so the clip ends at -4 dB + 2 dB = -2 dB (the hand-written reference graph used -2 dB for it).
 - A default mix adds no `volume` and no `pan`, so its graph is the old one: one `amix` of every clip. That is why the
   samples are identical, not just close.
 - Not exported, by design: solo, Mono, Dim and the speaker volume (they live in the Sound page's view and never reach the document).
@@ -61,16 +61,18 @@ each line. Any "no" is a finding to write down with what was seen.
 2. **Faders, pan, solo, Mono, Dim, speaker, Mix A/B** on the Sound page, playing.
    - Drag a fader down: the level follows the drag with no zipper noise; release; Ctrl+Z restores it in one step.
    - Pan hard left: sound only in the left earphone; double-click the handle for centre.
-   - S on one track: the others go quiet; leave the page and come back: solo is off. M mutes without a blip.
+   - On a strip, press the "Solo track" button (it reads "Stop soloing" while on): the other tracks go quiet and the meters of
+     the others drop to nothing. Leave the Sound page and come back: solo is off. Press the "Mute track" button ("Unmute track" while on):
+     that track goes silent with no click. (S and M on the keyboard are Split and Marker, not these.)
    - Mono: both ears the same. Dim: 20 dB lower. The speaker knob changes the level; it stays after leaving the page.
    - Mix A/B: set a fader in A, switch to B (a copy of A the first time), set another, switch back: each keeps its own; one undo step per switch.
-3. **Meters move and stop.** Play: the strips and the master meter move with the sound, green below -6 dBFS, over that
-   brighter; pause: they empty. A muted or soloed-out track shows nothing.
+3. **Meters move and stop.** Play: the strips and the master meter move with the sound, in the `--on` colour up to -6 dBFS,
+   the `--foreground` colour from -6 to -1 dBFS, and the `--mark` colour above -1 dBFS; pause: they empty. A muted or soloed-out track shows nothing.
 4. **Live loudness against the export.** On a project with a few tracks, faders and a pan, press Reset in Loudness,
    play from 0:00 to the end without pausing, and note the integrated value (or call `sound_get_levels` from an agent
-   at the end). Export the same range as MP4 and run:
+   at the end). Export the same range as MP4 (Export page, Range "Whole timeline", which is the composition's full length) and run:
    `ffmpeg -i out.mp4 -af ebur128 -f null - 2>&1 | grep -A8 Summary`. Expected: the two integrated values within 0.5 LU.
-   (The preview counts from the last Reset; solo, Mono and Dim change what the meters see but not the export, so clear them first.)
+   (The preview counts from the last Reset. Solo changes the reading, since it silences the other tracks before the loudness tap, and the export ignores it, so leave it off. Mono, Dim and the speaker volume sit after the tap and don't change the reading.)
 5. **Edit and Sound mid-play.** Press play on Edit, switch to Sound and back several times while it plays: no gap or
    click in the sound, the loudness reading keeps counting (it doesn't restart), and the Edit viewer has its frames
    back each time (not black or frozen).
