@@ -36,7 +36,7 @@ import { LevelCorrection } from "./engine.levels";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { MediaSlotPool } from "./engine.slots";
-import { syncSlot } from "./engine.sync";
+import { RAMP_RATE_STEP, syncSlot } from "./engine.sync";
 import type {
   CachedPicture,
   EngineOptions,
@@ -265,7 +265,9 @@ export class HtmlMediaEngine implements PreviewEngine {
           speed.reversed && Number.isFinite(copyLength)
             ? copyLength - microsToSeconds(sourceTimeAt({ ...clip, speed }, time))
             : desired;
-        const heard = this.soundAtSpeed(sound, speed);
+        // The pitch of a ramp follows its rate now, in steps, since each rate keeps its own sound.
+        const heardRate = ramped ? Math.round(rate / RAMP_RATE_STEP) * RAMP_RATE_STEP : rate;
+        const heard = this.soundAtSpeed(sound, { ...speed, rate: heardRate });
         voiceSlot(slot, track, own, silenced, heard, this.sound);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
         const lead = pitched ? PITCH_LEAD_SECONDS * rate : 0;

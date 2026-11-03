@@ -5,7 +5,7 @@ import type { Slot } from "./engine.types";
 const log = createLogger("preview.engine");
 
 /** A ramp's rate moves every frame; a smaller change than this isn't worth setting. */
-const RAMP_RATE_STEP = 0.01;
+export const RAMP_RATE_STEP = 0.01;
 
 /**
  * Keeps the element on the clock: plays/pauses it and seeks only when needed. `rate` is the
