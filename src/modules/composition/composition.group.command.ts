@@ -1,20 +1,33 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
-import { contentTime, projectRef, type Clip, type TrackId } from "@/modules/project";
+import {
+  contentTime,
+  filePlayed,
+  projectRef,
+  speedOf,
+  type Clip,
+  type TrackId,
+} from "@/modules/project";
 import { addTrack, sortClipIds } from "@/modules/timeline";
 import type { GroupSpan } from "./composition.types";
 import { planGroup } from "./logic/group";
 
-/** Cuts a clip left beside the placement to the edge of `span`, on the placement's tracks. */
+/**
+ * Cuts a clip left beside the placement to the edge of `span`, on the placement's tracks. A cut
+ * start moves `sourceIn` by the file time it played (`filePlayed`), so a sped-up or ramped clip
+ * stays in sync; a reversed clip loses the end of its part of the file, so its `sourceIn` stays.
+ */
 function trimToSpan(clip: Clip, { start, end }: GroupSpan): void {
   const clipStop = clip.start + clip.duration;
   if (clip.start < start && clipStop > start) clip.duration = start - clip.start;
   else if (clip.start >= start && clip.start < end && clipStop > end) {
     const cut = end - clip.start;
+    const played = filePlayed(clip, cut);
+    const follows = clip.mediaId !== undefined || clip.compositionRef !== undefined;
     if (clip.animation) clip.animationOrigin = contentTime(clip, end);
     clip.start = end;
     clip.duration -= cut;
-    if (clip.mediaId !== undefined || clip.compositionRef !== undefined) clip.sourceIn += cut;
+    if (follows && !speedOf(clip).reversed) clip.sourceIn += played;
   }
 }
 
