@@ -5,9 +5,11 @@ import { previewRef, type LoudnessReading } from "@/modules/preview";
 import { formatDb } from "@/modules/project";
 import { Button } from "@/ui";
 import type { LoudnessHistoryHandle } from "../../sound.types";
+import { PanelCard, PanelValue } from "../card";
 import { LoudnessHistory } from "./LoudnessHistory";
 import { useLoudnessFeed } from "./loudness.hook";
-import { PanelCard } from "../card";
+import { PhaseCard } from "./PhaseCard";
+import { SpectrumCard } from "./SpectrumCard";
 
 /** The readouts, in the order they are drawn, with their units. */
 const ROWS = [
@@ -25,10 +27,11 @@ function text(reading: LoudnessReading | null, key: keyof LoudnessReading): stri
 
 /**
  * Live loudness of the master, as BS.1770 measures it while the timeline plays: integrated over
- * all the playing since Reset, momentary, short term, true peak and range, and the short-term history
- * of the last 60 s. One feed (`useLoudnessFeed`, 10 Hz while playing, nothing while paused) writes
- * the numbers through the DOM and feeds the history; stopping keeps them. `shown`: whether the tab
- * is the one showing, so the graph draws only then.
+ * all the playing since Reset (large), momentary, short term, true peak and range, and the
+ * short-term history of the last 60 s; then the frequency spectrum and the stereo phase, coming
+ * soon. One feed (`useLoudnessFeed`, 10 Hz while playing, nothing while paused) writes the numbers
+ * through the DOM and feeds the history; stopping keeps them. `shown`: whether the tab is the one
+ * showing, so the graph draws only then.
  */
 export function LoudnessTab({ shown }: { shown: boolean }) {
   const preview = useModule(previewRef);
@@ -53,7 +56,7 @@ export function LoudnessTab({ shown }: { shown: boolean }) {
   useLoudnessFeed(onReading);
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] content-start">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(216px,1fr))] content-start">
       <PanelCard
         title="Program loudness"
         className="row-span-2"
@@ -71,33 +74,27 @@ export function LoudnessTab({ shown }: { shown: boolean }) {
           </Button>
         }
       >
-        <div className="mb-1 font-mono text-md font-bold leading-none">
+        <div className="mb-1 font-mono text-display font-bold leading-none">
           <span ref={integratedRef}>—</span>
           <span className="ml-1 text-sm font-normal text-subtle-foreground">LUFS</span>
         </div>
         <p className="mb-1 text-sm text-subtle-foreground">Integrated, since Reset.</p>
         {ROWS.map(({ key, label, unit }) => (
-          <div
+          <PanelValue
             key={key}
-            className="flex min-h-[25px] items-center justify-between gap-2 text-muted-foreground"
-          >
-            <span>{label}</span>
-            <span className="min-w-[58px] whitespace-nowrap border-b border-border-strong py-px text-right font-mono text-base font-bold text-foreground">
-              <span
-                ref={(cell) => {
-                  valueRefs.current[key] = cell;
-                }}
-              >
-                —
-              </span>
-              <span className="ml-0.5 text-xs font-normal text-subtle-foreground">{unit}</span>
-            </span>
-          </div>
+            label={label}
+            unit={unit}
+            valueRef={(cell) => {
+              valueRefs.current[key] = cell;
+            }}
+          />
         ))}
       </PanelCard>
       <PanelCard title="Loudness over time">
         <LoudnessHistory ref={historyRef} shown={shown} />
       </PanelCard>
+      <SpectrumCard />
+      <PhaseCard />
     </div>
   );
 }
