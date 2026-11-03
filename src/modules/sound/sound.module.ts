@@ -14,7 +14,7 @@ export const soundModule = defineModule({
   ref: soundRef,
   name: "Sound",
   tier: "feature",
-  requires: ["project", "timeline", "preview", "inspector"],
+  requires: ["project", "timeline", "preview", "inspector", "audio"],
   commands: [...soundMixCommands, ...soundEffectCommands, ...soundMonitorCommands],
   mcpTools: soundMcpTools,
   setup({ bus, contribute, onDispose, require }) {

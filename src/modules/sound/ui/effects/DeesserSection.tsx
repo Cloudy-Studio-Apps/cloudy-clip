@@ -1,0 +1,50 @@
+import type { DeesserEffect } from "@/modules/project";
+import { defaultSpec } from "../../logic/effects";
+import type { EffectEdit } from "../../sound.types";
+import { EffectRow } from "./EffectRow";
+import { EffectSection } from "./EffectSection";
+
+const REST = defaultSpec("deesser") as Omit<DeesserEffect, "id">;
+
+interface DeesserSectionProps {
+  effect: DeesserEffect;
+  edit: EffectEdit;
+}
+
+/** The de-esser: where sibilance sits, and how much of it goes (shown in percent). */
+export function DeesserSection({ effect, edit }: DeesserSectionProps) {
+  return (
+    <EffectSection effect={effect} edit={edit}>
+      <EffectRow
+        label="Frequency"
+        value={effect.frequencyHz}
+        rest={REST.frequencyHz}
+        min={2000}
+        max={12000}
+        step={50}
+        unit="Hz"
+        disabled={!effect.on}
+        edit={edit}
+        write={(frequencyHz) => ({
+          effect: { ...effect, frequencyHz },
+          patch: { frequencyHz },
+        })}
+      />
+      <EffectRow
+        label="Amount"
+        value={Math.round(effect.amount * 100)}
+        rest={Math.round(REST.amount * 100)}
+        min={0}
+        max={100}
+        step={1}
+        unit="%"
+        disabled={!effect.on}
+        edit={edit}
+        write={(percent) => ({
+          effect: { ...effect, amount: percent / 100 },
+          patch: { amount: percent / 100 },
+        })}
+      />
+    </EffectSection>
+  );
+}

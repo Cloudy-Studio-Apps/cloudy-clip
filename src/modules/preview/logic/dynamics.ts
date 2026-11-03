@@ -1,4 +1,4 @@
-import type { CompressorParams, DuckEffect, GateEffect } from "@/modules/project";
+import type { CompressorEffect, CompressorParams, DuckEffect, GateEffect } from "@/modules/project";
 import type { DynamicsCurve, DynamicsState } from "../preview.types";
 
 // One dynamics core for the compressor, the gate and ducking: FFmpeg's detector and gain curve
@@ -170,3 +170,20 @@ export function dynamicsGain(state: DynamicsState, c: DynamicsCurve, level: numb
 /** One mono sample through a curve, its own key. */
 export const dynamicsStep = (state: DynamicsState, c: DynamicsCurve, input: number): number =>
   input * dynamicsGain(state, c, Math.abs(input));
+
+/**
+ * The level out for a level in held steady, in dBFS: where the detector settles for that level,
+ * through the same gain as `dynamicsGain` (makeup included). What the Sound page's transfer graph
+ * draws for a compressor or a gate.
+ */
+export function dynamicsTransfer(
+  effect: CompressorEffect | GateEffect,
+): (inputDb: number) => number {
+  // Attack and release only shape how fast it gets there, so any sample rate draws the same line.
+  const c =
+    effect.kind === "compressor" ? compressorCurve(effect.params, 48000) : gateCurve(effect, 48000);
+  return (inputDb) => {
+    const level = dbToLinear(inputDb);
+    return inputDb + 20 * Math.log10(dynamicsGain({ envelope: level }, c, level));
+  };
+}

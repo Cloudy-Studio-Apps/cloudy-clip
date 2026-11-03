@@ -1,13 +1,13 @@
 import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { SoundEffect, TrackId } from "@/modules/project";
+import type { CompressorEffect, GateEffect, SoundEffect, TrackId } from "@/modules/project";
 import type { MonitorState } from "@/modules/preview";
 
 /** What the Sound page shows and how the user listens, per kernel. Never in history. */
 export interface SoundViewState {
   /**
-   * The strip that is marked, or null: an audio track (its header is marked too) or the master. A
-   * track, not clips.
+   * The strip that is marked, or null: an audio track (its header is marked too) or the master. Its
+   * chain shows in the Channel tab. A track, not clips.
    */
   selected: MixTarget | null;
   /** Soloed tracks; none means every track sounds. Never in an export. */
@@ -107,7 +107,7 @@ export interface SliderOptions {
 }
 
 /** The tabs of the panel under the Sound page's timeline. */
-export type SoundPanelTab = "clip" | "loudness";
+export type SoundPanelTab = "clip" | "channel" | "loudness";
 
 /** What the Loudness tab tells its history graph. */
 export interface LoudnessHistoryHandle {
@@ -137,6 +137,25 @@ export interface SoundPreset {
   /** What it is for, one line. */
   description: string;
   effects: EffectSpec[];
+}
+
+/** The effects a transfer graph draws: level in against level out. */
+export type TransferEffect = CompressorEffect | GateEffect;
+
+/** What an effect's section tells the transfer graph while a value is dragged. */
+export interface TransferGraphHandle {
+  /** Draws the curve of these settings, without a React render. */
+  draw(effect: TransferEffect): void;
+}
+
+/** Changes to the effects of one chain: drag steps reach the preview only, a release is one command. */
+export interface EffectEdit {
+  /** Plays the chain with this effect in place of the saved one, until the next commit. */
+  live(effect: SoundEffect): void;
+  /** Sends `sound.setEffect` with the fields that change, then stops playing the live chain. */
+  commit(effectId: string, patch: Record<string, unknown>): Promise<void>;
+  /** Sends `sound.removeEffect`. */
+  remove(effectId: string): void;
 }
 
 /** A row of an effect chain dragged up or down. */

@@ -16,6 +16,8 @@ interface SoundRowProps {
   onCommit(value: number): void;
   onReset(): void;
   disabled?: boolean;
+  /** `log` spaces the line by ratios (times in ms). */
+  scale?: "linear" | "log";
   /** Makes the value keyable: the clip and the path of its keys. */
   keys?: { clip: PanelSubject; path: string; animated: boolean };
 }

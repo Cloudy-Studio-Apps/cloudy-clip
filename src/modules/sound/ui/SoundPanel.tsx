@@ -2,16 +2,19 @@ import { useState } from "react";
 import { ClipTabSections } from "@/modules/inspector";
 import { cn, EmptyState, SegmentedControl, type SegmentedOption } from "@/ui";
 import type { SoundPanelTab } from "../sound.types";
+import { ChannelTab } from "./ChannelTab";
 import { LoudnessTab } from "./LoudnessTab";
 
 const TABS: readonly SegmentedOption<SoundPanelTab>[] = [
   { value: "clip", label: "Clip" },
+  { value: "channel", label: "Channel" },
   { value: "loudness", label: "Loudness" },
 ];
 
 /**
  * The panel under the Sound page's timeline. Clip: the inspector's Audio sections of the selected
- * clip. Loudness: the live reading. Both stay mounted, so the loudness history goes on behind Clip.
+ * clip. Channel: the effects of the marked strip. Loudness: the live reading. All stay mounted, so
+ * the loudness history goes on behind the others.
  */
 export function SoundPanel() {
   const [tab, setTab] = useState<SoundPanelTab>("clip");
@@ -41,6 +44,9 @@ export function SoundPanel() {
             }
           />
         </div>
+      </div>
+      <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "channel" && "hidden")}>
+        <ChannelTab />
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "loudness" && "hidden")}>
         <LoudnessTab shown={tab === "loudness"} />
