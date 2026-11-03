@@ -33,7 +33,16 @@ export const TrackHeader = memo(function TrackHeader({ track }: { track: Track }
         focused && "bg-surface shadow-[inset_2px_0_0_var(--mark)]",
       )}
       style={{ width: headerWidth, height: trackHeight(track.kind) }}
-      onClick={focus ? () => focus.select(track.id) : undefined}
+      onClick={
+        focus
+          ? (e) => {
+              // Its buttons (mute, remove) act on the track without focusing it.
+              if (!(e.target instanceof Element && e.target.closest("button"))) {
+                focus.select(track.id);
+              }
+            }
+          : undefined
+      }
     >
       <KindIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate font-mono text-[13px] font-bold text-muted-foreground">

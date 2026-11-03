@@ -1,9 +1,10 @@
 import { RotateCcw } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { useModule } from "@/core";
 import { previewRef, type LoudnessReading } from "@/modules/preview";
 import { Button } from "@/ui";
 import { formatDb } from "../logic/meter";
+import type { LoudnessHistoryHandle } from "../sound.types";
 import { LoudnessHistory } from "./LoudnessHistory";
 import { useLoudnessFeed } from "./loudness.hook";
 import { PanelCard } from "./PanelCard";
@@ -17,7 +18,7 @@ const ROWS = [
 ] as const;
 
 /** A value of a reading for people; a dash before anything was measured. */
-function shown(reading: LoudnessReading | null, key: keyof LoudnessReading): string {
+function text(reading: LoudnessReading | null, key: keyof LoudnessReading): string {
   if (!reading) return "—";
   return key === "range" ? reading.range.toFixed(1) : formatDb(reading[key]);
 }
@@ -25,22 +26,30 @@ function shown(reading: LoudnessReading | null, key: keyof LoudnessReading): str
 /**
  * Live loudness of the master, as BS.1770 measures it while the timeline plays: integrated since
  * play started (or Reset), momentary, short term, true peak and range, and the short-term history
- * of the last 60 s. The numbers are written through the DOM at 10 Hz; stopping keeps them.
+ * of the last 60 s. One feed (`useLoudnessFeed`, 10 Hz while playing, nothing while paused) writes
+ * the numbers through the DOM and feeds the history; stopping keeps them. `shown`: whether the tab
+ * is the one showing, so the graph draws only then.
  */
-export function LoudnessTab() {
+export function LoudnessTab({ shown }: { shown: boolean }) {
   const preview = useModule(previewRef);
   const integratedRef = useRef<HTMLSpanElement>(null);
   const valueRefs = useRef<Partial<Record<keyof LoudnessReading, HTMLSpanElement | null>>>({});
-  // Bumped by Reset: the history remounts empty.
-  const [resets, setResets] = useState(0);
+  const historyRef = useRef<LoudnessHistoryHandle>(null);
 
-  const onReading = useCallback((reading: LoudnessReading | null) => {
-    if (integratedRef.current) integratedRef.current.textContent = shown(reading, "integrated");
+  const write = useCallback((reading: LoudnessReading | null) => {
+    if (integratedRef.current) integratedRef.current.textContent = text(reading, "integrated");
     for (const { key } of ROWS) {
       const cell = valueRefs.current[key];
-      if (cell) cell.textContent = shown(reading, key);
+      if (cell) cell.textContent = text(reading, key);
     }
   }, []);
+  const onReading = useCallback(
+    (reading: LoudnessReading | null, playing: boolean) => {
+      write(reading);
+      if (playing) historyRef.current?.push(reading?.shortTerm ?? -Infinity);
+    },
+    [write],
+  );
   useLoudnessFeed(onReading);
 
   return (
@@ -53,7 +62,8 @@ export function LoudnessTab() {
             size="sm"
             onClick={() => {
               preview.sound.resetLoudness();
-              setResets((n) => n + 1);
+              write(preview.sound.loudness());
+              historyRef.current?.clear();
             }}
           >
             <RotateCcw />
@@ -61,7 +71,7 @@ export function LoudnessTab() {
           </Button>
         }
       >
-        <div className="mb-1 font-mono text-display font-bold leading-none">
+        <div className="mb-1 font-mono text-md font-bold leading-none">
           <span ref={integratedRef}>—</span>
           <span className="ml-1 text-sm font-normal text-subtle-foreground">LUFS</span>
         </div>
@@ -86,7 +96,7 @@ export function LoudnessTab() {
         ))}
       </PanelCard>
       <PanelCard title="Loudness over time">
-        <LoudnessHistory key={resets} />
+        <LoudnessHistory ref={historyRef} shown={shown} />
       </PanelCard>
     </div>
   );

@@ -66,10 +66,11 @@ export function LineSlider({
     read,
   });
 
-  // Only when the document's value changes: a re-render for anything else (the strip being
-  // selected on release) must not move the handle back while its command is on its way.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- `place` writes refs only
-  useLayoutEffect(() => place(value), [value]);
+  // From the document, except while a drag or its command is under way: a re-render then (the
+  // strip being selected on release) must not move the handle back.
+  useLayoutEffect(() => {
+    if (!drag.busy()) place(value);
+  });
 
   return (
     <div

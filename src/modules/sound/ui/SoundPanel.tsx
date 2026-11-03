@@ -29,16 +29,21 @@ export function SoundPanel() {
         <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] content-start">
           <ClipTabSections
             tab="audio"
-            fallback={
-              <EmptyState title="No clip selected" className="col-span-full m-3">
-                Select a sound clip on the timeline to change its volume, fades, pitch and EQ.
+            noClip={
+              <EmptyState title="Select one clip" className="col-span-full m-3">
+                Its volume, fades, pitch and EQ show here.
+              </EmptyState>
+            }
+            noSections={
+              <EmptyState title="This clip has no sound" className="col-span-full m-3">
+                Select a clip on an audio track to change how it sounds.
               </EmptyState>
             }
           />
         </div>
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "loudness" && "hidden")}>
-        <LoudnessTab />
+        <LoudnessTab shown={tab === "loudness"} />
       </div>
     </div>
   );

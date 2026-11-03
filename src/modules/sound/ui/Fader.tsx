@@ -48,9 +48,11 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
     read,
   });
 
-  // Only when the document's value changes: a re-render for anything else (the strip being
-  // selected on release) must not move the handle back while its command is on its way.
-  useLayoutEffect(() => place(value), [value]);
+  // From the document, except while a drag or its command is under way: a re-render then (the
+  // strip being selected on release) must not move the handle back.
+  useLayoutEffect(() => {
+    if (!drag.busy()) place(value);
+  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-1.5">

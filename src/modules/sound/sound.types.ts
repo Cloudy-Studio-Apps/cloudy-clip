@@ -76,8 +76,8 @@ export interface FaderDrag {
   grabbed: boolean;
   /** Every move. */
   onMove(position: number): void;
-  /** The release, with the last position. */
-  onEnd(position: number): void;
+  /** The release, with the last position; null when the pointer never moved. */
+  onEnd(position: number | null): void;
 }
 
 /** A value set by dragging along a groove: a fader, the pan, the speaker volume. */
@@ -105,3 +105,17 @@ export interface SliderOptions {
 
 /** The tabs of the panel under the Sound page's timeline. */
 export type SoundPanelTab = "clip" | "loudness";
+
+/** What the Loudness tab tells its history graph. */
+export interface LoudnessHistoryHandle {
+  /** Adds a short-term reading (LUFS; `-Infinity` before one exists), sampled while playing. */
+  push(shortTerm: number): void;
+  /** Starts the history over (Reset). */
+  clear(): void;
+}
+
+/** Colours the loudness graph draws with, read from the theme's tokens. */
+export interface GraphColours {
+  grid: string;
+  line: string;
+}

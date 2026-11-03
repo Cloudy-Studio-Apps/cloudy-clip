@@ -26,6 +26,7 @@ import {
   pasteMenu,
 } from "./timeline.clipboard.menu";
 import { activeScope } from "./logic/scope";
+import { playheadSplit } from "./logic/split";
 import { clipMenu } from "./timeline.menu";
 import { clipActions, timelineDropHandlers, timelineMenuItems } from "./timeline.points";
 import { timelineRef } from "./timeline.ref";
@@ -102,16 +103,13 @@ export const timelineModule = defineModule({
       {
         id: "timeline.split",
         key: "s",
-        resolve: () => {
-          const selection = view.getState().selection;
-          return {
-            command: splitAt.id,
-            input: {
-              at: ctx.require(previewRef).playback.getTime(),
-              clipIds: selection.length > 0 ? selection : undefined,
-            },
-          };
-        },
+        resolve: () => ({
+          command: splitAt.id,
+          input: playheadSplit(
+            ctx.require(previewRef).playback.getTime(),
+            view.getState().selection,
+          ),
+        }),
       },
       { id: "timeline.delete", key: "delete", resolve: deleteSelection },
       { id: "timeline.delete-backspace", key: "backspace", resolve: deleteSelection },

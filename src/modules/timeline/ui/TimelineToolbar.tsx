@@ -6,6 +6,7 @@ import { previewRef } from "@/modules/preview";
 import { partnersOf, projectRef } from "@/modules/project";
 import { ToolbarButton, ToolbarSeparator } from "@/ui";
 import { inScope, kindInScope } from "../logic/scope";
+import { playheadSplit } from "../logic/split";
 import { timelineTools } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { addTrack, deleteClips, splitAt, unlinkClips } from "../timeline.commands";
@@ -45,12 +46,7 @@ export function TimelineToolbar() {
         <ToolbarButton
           icon={<Scissors />}
           title="Split at playhead (S)"
-          onClick={() =>
-            void bus.run(splitAt, {
-              at: playback.getTime(),
-              clipIds: selection.length > 0 ? selection : undefined,
-            })
-          }
+          onClick={() => void bus.run(splitAt, playheadSplit(playback.getTime(), selection))}
         >
           Split
         </ToolbarButton>

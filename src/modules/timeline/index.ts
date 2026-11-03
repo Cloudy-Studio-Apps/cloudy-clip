@@ -76,6 +76,11 @@ export { activeScope, clipsInScope, inScope } from "./logic/scope";
 export { useTimelineScope } from "./ui/scope.hook";
 /** Pixels from time 0 to a time at a zoom level, and back. */
 export { pxToTime, timeToPx } from "./logic/geometry";
+/**
+ * The input of a split at the playhead: the selected clips, or every clip under it when nothing is
+ * selected. For a page's own Cut, so it splits exactly as S and the toolbar do.
+ */
+export { playheadSplit } from "./logic/split";
 /** Snaps a time to the closest candidate within a threshold. */
 export { snapTime } from "./logic/placement";
 /** What drags snap to (clip edges, cuts, the playhead and `timelineSnapTargets`), as a hook. */

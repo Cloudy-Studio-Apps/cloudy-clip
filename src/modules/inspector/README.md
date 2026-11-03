@@ -45,12 +45,12 @@ bare?, component }`, for what isn't a property of an element, so any module can 
   in history (`inspector.view.store.ts`). `InspectorApi.recents`: the recent colors of every color field (`store` of `{ colors }`,
   `push(color)`), per kernel, saved in `localStorage` key `cloudy-clip.colors.recent` (max 12;
   `inspector.recents.store.ts`, `logic/recents.ts`). Exported for custom controls:
-  `PanelSubject` (a clip or a junction, what a panel is about), `ClipTabSections({ tab, fallback? })` (the selected clip's sections of one tab, drawn as here, for a page without the inspector: the Sound page's Clip tab), `usePropsLive(clip)`, `useClipAtPlayhead(clip)` (the clip with its keyed values at the playhead), `FieldRow`, `InspectorSection`, `pathPatch`.
+  `PanelSubject` (a clip or a junction, what a panel is about), `ClipTabSections({ tab, noClip?, noSections? })` (the selected clip's sections of one tab, drawn as here, for a page without the inspector: the Sound page's Clip tab), `usePropsLive(clip)`, `useClipAtPlayhead(clip)` (the clip with its keyed values at the playhead), `FieldRow`, `InspectorSection`, `pathPatch`.
 - **Files:** `ui/InspectorPanel.tsx` picks the view (`ProjectView`, `ClipView`, `MultiView`);
   `InspectorHeader` (project, junction and multi-select views; a clip shows no title) and `InspectorSection` (the band: `foldKey`, `leading` slot for a switch,
   `actions`, its fold state in `InspectorApi.view`) are shared by them; `InfoList` comes from `@/ui`.
   The header shows the clip's element `display`.
-  - `ui/ClipView.tsx`: the header, `InspectorTabs` and `TabBody`; `ui/clip.context.hook.ts` (`useClipContext`: the clip, its track and partner). `ui/ClipTabSections.tsx`: the selection subject (as `InspectorPanel`), then `useClipPanel(context, tab)` and `TabBody` for that one tab. `ui/clip.panel.hook.ts`
+  - `ui/ClipView.tsx`: the header, `InspectorTabs` and `TabBody`; `ui/clip.context.hook.ts` (`useClipContext`: the clip, its track and partner). `ui/ClipTabSections.tsx`: the selection subject (as `InspectorPanel`; `noClip` without one), then `ClipTab` (`useClipContext`) and `ClipTabBody` (`useClipPanel(context, tab)` and `TabBody` for that one tab; `noSections` when it has none). `ui/clip.panel.hook.ts`
     (`useClipPanel`, with an optional fixed tab): reads the `elements` point, so an element registered after the panel opened
     shows; `panelLayout` (`logic/layout.ts`: `resolveLayout`, controls by `defaultControl`, custom
     types' control from `propTypes`) of the clip and its partner, memoized per kind. Shared group

@@ -140,7 +140,10 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     return () => {
       if (done) return;
       done = true;
-      attached.splice(attached.lastIndexOf(canvas), 1);
+      const index = attached.lastIndexOf(canvas);
+      // Gone already: the controller was disposed, which emptied the list.
+      if (index === -1) return;
+      attached.splice(index, 1);
       drawOnTop();
     };
   }

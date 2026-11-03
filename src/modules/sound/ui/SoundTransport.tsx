@@ -1,7 +1,7 @@
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { PlayButton, previewRef, Timecode } from "@/modules/preview";
-import { splitAt, timelineRef } from "@/modules/timeline";
+import { playheadSplit, splitAt, timelineRef } from "@/modules/timeline";
 import { MixSwitch } from "./MixSwitch";
 import { MonitorControls } from "./MonitorControls";
 import { TransportSeparator } from "./TransportSeparator";
@@ -26,13 +26,12 @@ export function SoundTransport() {
       <TransportSeparator />
       <TransportTool
         title="Cut at the playhead (S)"
-        onClick={() => {
-          const selection = timeline.view.getState().selection;
-          void bus.run(splitAt, {
-            at: playback.getTime(),
-            clipIds: selection.length > 0 ? selection : undefined,
-          });
-        }}
+        onClick={() =>
+          void bus.run(
+            splitAt,
+            playheadSplit(playback.getTime(), timeline.view.getState().selection),
+          )
+        }
       >
         Cut
       </TransportTool>
