@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import {
   ErrorBoundary,
@@ -26,7 +26,7 @@ import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { inScope, trackInScope } from "../logic/scope";
 import { rowsAbove, TAIL_SECONDS } from "../timeline.layout";
-import type { TrackFocus } from "../timeline.types";
+import type { TimelineLane, TrackFocus } from "../timeline.types";
 import { useHeaderWidth } from "./header.width.hook";
 import { usePanelScroller } from "./panel.scroller.hook";
 import { MarksRow } from "./MarksRow";
@@ -35,9 +35,8 @@ import { TimelineScopeProvider } from "./scope.hook";
 import { TrackFocusProvider } from "./track.focus.hook";
 import { Ruler } from "./Ruler";
 import { TimelineToolbar } from "./TimelineToolbar";
-import { TrackHeader } from "./TrackHeader";
 import { TrackInsert } from "./TrackInsert";
-import { TrackLane } from "./TrackLane";
+import { TimelineLanes } from "./TimelineLanes";
 
 /** Room kept under the rows above the lanes for the scrollbar when the tracks are folded away. */
 const SCROLLBAR_HEIGHT = 12;
@@ -95,7 +94,7 @@ export function TimelinePanel({
     view.pageWidth,
   );
 
-  const lanes = useMemo(
+  const lanes = useMemo<TimelineLane[]>(
     () =>
       trackOrder.flatMap((id, index) => {
         const track = tracksById[id];
@@ -151,31 +150,15 @@ export function TimelinePanel({
                   width={contentWidth}
                 />
                 {scope === "sound" && <MarksRow pxPerSecond={pxPerSecond} width={contentWidth} />}
-                {lanes.map(({ track, index, clips }, position) => (
-                  <Fragment key={track.id}>
-                    <TrackInsert
-                      index={index}
-                      above={lanes[position - 1]?.track.kind}
-                      below={track.kind}
-                    />
-                    <div className="flex">
-                      <TrackHeader
-                        track={track}
-                        code={scope === "sound" ? `A${position + 1}` : undefined}
-                      />
-                      <div style={{ width: contentWidth }}>
-                        <TrackLane
-                          track={track}
-                          clips={clips}
-                          pxPerSecond={pxPerSecond}
-                          from={from}
-                          to={to}
-                          rootRef={scrollRef}
-                        />
-                      </div>
-                    </div>
-                  </Fragment>
-                ))}
+                <TimelineLanes
+                  lanes={lanes}
+                  scope={scope}
+                  contentWidth={contentWidth}
+                  pxPerSecond={pxPerSecond}
+                  from={from}
+                  to={to}
+                  rootRef={scrollRef}
+                />
                 {open && last && <TrackInsert index={last.index + 1} above={last.track.kind} />}
                 {open && content === 0 && (
                   <p

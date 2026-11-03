@@ -55,6 +55,15 @@ export interface TrackFocus {
   select(trackId: TrackId): void;
 }
 
+/** A track the panel lists, its place in the composition and the clips of it near the viewport. */
+export interface TimelineLane {
+  track: Track;
+  /** The track's index in the composition's track order. */
+  index: number;
+  /** Only the clips in the rendered pages (rule 26). */
+  clips: Clip[];
+}
+
 /** A junction not placed yet, shown on the cut it would land on. */
 export interface CutPreview {
   cut: Cut;
@@ -234,7 +243,7 @@ export interface ClipTrackMove extends ClipMove {
 /** What an actor copied. Copies, so later edits of the originals don't change them. */
 export interface ClipboardEntry {
   /** The clips and their partners. */
-  clips: readonly Clip[];
+  clips: Clip[];
   /** Earliest start among them. */
   origin: Micros;
   /** The kind of the tracks they came from, which may be gone by the paste. */

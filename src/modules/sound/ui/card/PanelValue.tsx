@@ -2,6 +2,7 @@ import type { Ref } from "react";
 import { cn } from "@/ui";
 import type { SoonId } from "../../sound.types";
 import { soon as soonProps } from "../soon";
+import { PanelRow } from "./PanelRow";
 
 interface PanelValueProps {
   label: string;
@@ -38,8 +39,7 @@ export function PanelValue({ label, value, unit, pick, tone, valueRef, soon }: P
     </>
   );
   return (
-    <div className="flex min-h-[25px] items-center justify-between gap-2 text-muted-foreground">
-      <span>{label}</span>
+    <PanelRow label={label}>
       {soon ? (
         <button
           type="button"
@@ -52,6 +52,6 @@ export function PanelValue({ label, value, unit, pick, tone, valueRef, soon }: P
       ) : (
         <span className={valueClass}>{content}</span>
       )}
-    </div>
+    </PanelRow>
   );
 }

@@ -10,7 +10,7 @@ import { applyPreset } from "../../sound.effects.commands";
 import { soundRef } from "../../sound.ref";
 import type { MixTarget, SoundPreset } from "../../sound.types";
 import { AddEffectMenu } from "../effects";
-import { PanelCard } from "../card";
+import { PanelCard, PanelRow } from "../card";
 import { PresetOthers } from "./PresetOthers";
 import { SavePresetForm } from "./SavePresetForm";
 
@@ -44,8 +44,7 @@ export function PresetCard({ target, compositionId, chain }: PresetCardProps) {
 
   return (
     <PanelCard title="Preset" className="row-span-2 flex flex-col">
-      <div className="flex min-h-[25px] items-center justify-between gap-2 text-muted-foreground">
-        <span>Sound</span>
+      <PanelRow label="Sound">
         <SelectField
           label="Preset"
           value=""
@@ -55,7 +54,7 @@ export function PresetCard({ target, compositionId, chain }: PresetCardProps) {
             if (presetId) apply(presetId);
           }}
         />
-      </div>
+      </PanelRow>
       <PresetOthers builtIn={builtIn} own={ownFitting} onApply={apply} />
       <div className="mt-2 flex flex-col gap-1.5">
         <Popover

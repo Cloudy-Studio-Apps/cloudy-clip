@@ -20,7 +20,7 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
 /** A ghost button's colours, one set per look, so no two utilities fight over a property. */
 function ghostLook(active: boolean | undefined, tone: IconButtonProps["tone"]): string {
   if (active)
-    return "bg-primary-soft text-primary-soft-foreground not-aria-disabled:hover:bg-primary-soft";
+    return "bg-primary-soft text-primary-soft-foreground not-aria-disabled:hover:bg-primary-soft not-aria-disabled:hover:text-foreground";
   switch (tone) {
     case "mark":
       return "text-mark not-aria-disabled:hover:bg-hover disabled:hover:bg-transparent";

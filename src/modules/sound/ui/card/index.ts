@@ -4,3 +4,4 @@
  */
 export { PanelCard } from "./PanelCard";
 export { PanelValue } from "./PanelValue";
+export { PanelRow } from "./PanelRow";

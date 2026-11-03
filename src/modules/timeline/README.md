@@ -40,7 +40,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   - `logic/`: pure functions: overlap checks, trim clamping, snapping, geometry, links
     (`links.ts`: `selectionSubject`; `partnersOf`/`withPartners` now live in `project`) and linked trims (`trim.ts`).
     `naming.ts`: `nextTrackName(state, compositionId, kind, base?)` (exported), the name `timeline.addTrack` gives a new track (`Audio 3`: one more than the tracks of that kind), or with a `base` the first free `<base> n` (`sound` names its new recording tracks `Voice 1`, `Voice 2`…). `trackHeight(kind)` (`timeline.layout.ts`) is exported too, for an overlay that draws a lane of its own.
-  - `ui/`: page-virtualized lanes (`TimelinePanel`; `panel.scroller.hook.ts` holds its scroller: visible page, attach, Ctrl+wheel zoom, media drop; `scope.hook.ts` the scope context), `clip.gesture.ts` (DOM feedback while dragging,
+  - `ui/`: page-virtualized lanes (`TimelinePanel`, with `TimelineLanes` for the track rows; `panel.scroller.hook.ts` holds its scroller: visible page, attach, Ctrl+wheel zoom, media drop; `scope.hook.ts` the scope context), `clip.gesture.ts` (DOM feedback while dragging,
     one command on release), the playhead positioned by `playhead.hook.ts` without renders.
     `Ruler.tsx`: press and drag scrubs (snapped unless Ctrl/Cmd), and each move asks `preview`
     for a slice of sound (`PreviewApi.scrub`), in both scopes. `MarksRow.tsx`: on the sound

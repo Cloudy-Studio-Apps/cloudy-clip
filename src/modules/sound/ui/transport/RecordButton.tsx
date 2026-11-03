@@ -61,7 +61,7 @@ export function RecordButton() {
       label={
         onto
           ? `Record onto ${onto.name} (armed) from the playhead`
-          : "Record onto a new Voice track from the playhead. To record onto a track of yours, arm it: R on its strip"
+          : "Record onto a new Voice track from the playhead. To record onto a track of yours, arm it: R on its track's header"
       }
       onClick={() => void sound.recorder.start(onto ? onto.id : null)}
     >

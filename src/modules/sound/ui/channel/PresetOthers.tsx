@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { PanelRow } from "../card";
 import type { SoundPreset } from "../../sound.types";
 
 interface PresetOthersProps {
@@ -19,7 +20,7 @@ export function PresetOthers({ builtIn, own, onApply }: PresetOthersProps) {
   if (links.length === 0) return null;
   return (
     <div className="flex flex-col">
-      <span className="flex min-h-[25px] items-center text-muted-foreground">Others</span>
+      <PanelRow label="Others" />
       <p className="text-sm text-subtle-foreground">
         {links.map(({ preset, name }, index) => (
           <Fragment key={preset.id}>
