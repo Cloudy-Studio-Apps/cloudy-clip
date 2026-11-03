@@ -38,10 +38,6 @@ src/modules/
     + ui/StripSilenceDialog.tsx, ui/MatchLevelDialog.tsx
     + sound.menu.ts                             Strip silence in the clip menu on Edit
     ~ ui/SoundTransport.tsx, sound.module.ts, sound.mcp.ts, README.md
-  timeline/
-    ~ logic/placement.ts                        snapping reads timelineSnapTargets
-    ~ timeline.points.ts, timeline.types.ts     timelineSnapTargets point
-    ~ README.md
 src-tauri/src/sound/
   + beats.rs                                    onset detection
   ~ analyze.rs                                  silencedetect, per-clip loudness
@@ -50,7 +46,7 @@ src-tauri/src/sound/
 
 ## Reuse
 
-- Snapping stays in `timeline/logic/placement.ts`; beats (and markers in Stage 7) reach it through one new point, `timelineSnapTargets`, not a second snapper.
+- Snapping already takes module targets through `timelineSnapTargets` (added by the markers project, `timeline/ui/snap.hook.ts`). Beats are one more contribution to it; nothing new in the timeline.
 - Strip silence runs `timeline.splitAt` and `timeline.deleteClips` (or `timeline.rippleDelete` with gaps closed) nested, with `soundOnly` from Stage 1, so linked clips, junctions and undo follow the timeline's own rules.
 - Match level writes through `audio.setSound`, and offsets keyed volume with `keyframe.setValues`.
 - The native analysis reuses Stage 5's `sound/analyze.rs` and the mix graph; per-clip loudness is the same `ebur128` parse on one file.
@@ -59,9 +55,9 @@ src-tauri/src/sound/
 
 ### Task 1: Find beats
 
-**Files:** Create `src-tauri/src/sound/beats.rs`, `sound.beats.store.ts`, `ui/BeatTicks.tsx`. Modify `sound/commands.rs`, `timeline.points.ts`, `timeline.types.ts`, timeline snapping, READMEs.
+**Files:** Create `src-tauri/src/sound/beats.rs`, `sound.beats.store.ts`, `ui/BeatTicks.tsx`. Modify `sound/commands.rs`, `sound.module.ts`, READMEs.
 
-**Interfaces:** Tauri `sound_beats({ path }) -> { beats: u64[] }` in file microseconds, cached by path and file size and mtime. A `timelineSnapTargets` point in `timeline` (`{ id; scopes?; times(compositionId, from, to): Micros[] }`), which `sound` contributes.
+**Interfaces:** Tauri `sound_beats({ path }) -> { beats: u64[] }` in file microseconds, cached by path and file size and mtime. `sound` contributes `sound.beats` to the existing `timelineSnapTargets` (`{ id; times(state, compositionId) }`).
 
 - [ ] **Step 1: Write the failing Rust tests:** a synthetic click track at 120 BPM gives beats every 500 ms ±10 ms; a sine gives none.
 - [ ] **Step 2:** Implement (spectral flux onsets, then a tempo estimate to drop strays) until PASS. Wire the ticks and snapping. Commit: `feat(sound): find beats`.

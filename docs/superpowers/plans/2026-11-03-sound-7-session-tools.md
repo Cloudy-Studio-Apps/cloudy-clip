@@ -8,11 +8,11 @@
 
 **Tech Stack:** TypeScript, React 19, Zod, Web Audio, `getUserMedia`, Vitest, Rust (Tauri 2).
 
-**Spec:** `docs/superpowers/specs/2026-11-02-sound-page-design.md`, "Session tools (stage 7)". Requires Stage 1, and Task 1 requires the timeline markers project to be built first (it isn't yet, as of 3 Nov 2026). **Owner's instruction:** stop before Task 1 and wait until the markers project is built and merged; don't build markers here and don't run its plan without being asked.
+**Spec:** `docs/superpowers/specs/2026-11-02-sound-page-design.md`, "Session tools (stage 7)". Requires Stage 1, and Task 1 requires the timeline markers project, merged on 3 Nov 2026 (`src/modules/marker`). Markers are merged, so Task 1 only opts them into the sound scope.
 
 ## Reuse
 
-- Markers, their commands, tools, flags and snapping are the timeline markers project's; this stage opts them into the sound scope. If markers add a snap-target mechanism first, Stage 6's beats use it instead of adding `timelineSnapTargets`.
+- Markers, their commands, tools, flags and snapping are the timeline markers project's; this stage opts them into the sound scope. Markers added `timelineSnapTargets`; Stage 6's beats use it.
 - Scrub plays through the Stage 1 graph, so slices are mixed and metered like playback.
 - A recording is imported with `media`'s import command and placed with `timeline.addClip`, nested in `sound.placeRecording`.
 - Writing the WAV reuses the media cache's folder handling where the project has no folder yet.
@@ -38,8 +38,8 @@
 docs/superpowers/specs/
   + 2026-11-03-microphone-check.md
 src/modules/
-  <the markers module>
-    ~ <name>.module.ts                          its flags, snapping and keys in both scopes
+  marker/
+    ~ marker.module.ts, README.md               flags in both scopes
   sound/
     + sound.record.ts                           capture, levels, stop
     + sound.record.commands.ts                  sound.placeRecording
@@ -64,9 +64,9 @@ src-tauri/
 
 Markers are built by the timeline markers project (`docs/superpowers/specs/2026-11-03-timeline-markers-design.md`): data, commands, tools, flags in the ruler, snapping, M and Shift+M. This stage writes none of that again.
 
-**Files:** Modify whichever module that project puts the flags and keys in (its `<name>.module.ts`), and `sound/README.md`.
+**Files:** Modify `src/modules/marker/marker.module.ts`, `marker/README.md`, `sound/README.md`.
 
-- [ ] **Step 1:** Opt the markers' ruler flags, snapping and keys into `scopes: ["all", "sound"]` (Stage 1's timeline scope), so they show and work on the Sound page.
+- [ ] **Step 1:** Opt `marker.flags` into `scopes: ["all", "sound"]`. Snapping and the M keys already work on every page that keeps playback.
 - [ ] **Step 2:** Full checks; check a marker added on Sound shows on Edit. Commit: `feat(sound): markers on the Sound page`.
 
 ### Task 2: Loop and scrub
