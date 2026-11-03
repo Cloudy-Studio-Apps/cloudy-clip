@@ -160,7 +160,9 @@ it("stores nothing at the defaults", async () => {
   expect(state().tracks[audio]!.mix).toBeUndefined();
 });
 it("refuses a video track", async () => {
-  await expect(run(setTrackMix, { trackId: video, pan: 0.5 })).rejects.toMatchObject({ code: "sound.not_audio" });
+  await expect(run(setTrackMix, { trackId: video, pan: 0.5 })).rejects.toMatchObject({
+    code: "sound.not_audio",
+  });
 });
 it("switches to B by copying A, and back to the same values", async () => {
   await run(setTrackMix, { trackId: audio, volumeDb: -6 });
@@ -172,7 +174,9 @@ it("switches to B by copying A, and back to the same values", async () => {
   await run(switchMix, { to: "b" });
   expect(state().tracks[audio]!.mix?.volumeDb).toBe(-12);
 });
-it("undoes a switch in one step", async () => { /* switch, undo, activeMix is "a" again and values are A's */ });
+it("undoes a switch in one step", async () => {
+  /* switch, undo, activeMix is "a" again and values are A's */
+});
 ```
 
 - [ ] **Step 2:** Run `pnpm vitest run src/modules/sound/sound.mix.commands.test.ts`. Expected: FAIL, `setTrackMix` is not defined.
@@ -212,7 +216,9 @@ it("moves only the sound with soundOnly", async () => {
   await run(moveClip, { clipId: sound, start: 2_000_000, soundOnly: true });
   expect(state().clips[picture]!.start).toBe(before);
 });
-it("still moves both without soundOnly", async () => { /* today's behaviour, pinned */ });
+it("still moves both without soundOnly", async () => {
+  /* today's behaviour, pinned */
+});
 ```
 
 - [ ] **Step 2:** Run `pnpm vitest run src/modules/timeline/timeline.commands.test.ts`. Expected: FAIL on `soundOnly`.

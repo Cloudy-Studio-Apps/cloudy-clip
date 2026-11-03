@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Markers, a loop region, audio scrub and voice recording onto a track.
+**Goal:** Markers on the Sound page, a loop region, audio scrub and voice recording onto a track.
 
-**Architecture:** Markers are document data on a composition, shared by both pages' rulers. The loop region and scrub are playback behaviour in `preview`, ephemeral. Recording starts with a check that a microphone opens at all in WebKitGTK and WebView2; it captures with `MediaRecorder` or an `AudioWorklet`, writes a WAV next to the project through a Tauri command, imports it and places it as a clip.
+**Architecture:** Markers come from the timeline markers project; this stage only shows them on the Sound page. The loop region and scrub are playback behaviour in `preview`, ephemeral. Recording starts with a check that a microphone opens at all in WebKitGTK and WebView2; it captures with `MediaRecorder` or an `AudioWorklet`, writes a WAV next to the project through a Tauri command, imports it and places it as a clip.
 
 **Tech Stack:** TypeScript, React 19, Zod, Web Audio, `getUserMedia`, Vitest, Rust (Tauri 2).
 
-**Spec:** `docs/superpowers/specs/2026-11-02-sound-page-design.md`, "Session tools (stage 7)". Requires Stage 1.
+**Spec:** `docs/superpowers/specs/2026-11-02-sound-page-design.md`, "Session tools (stage 7)". Requires Stage 1, and Task 1 requires the timeline markers project to be built first (it isn't yet, as of 3 Nov 2026). **Owner's instruction:** stop before Task 1 and wait until the markers project is built and merged; don't build markers here and don't run its plan without being asked.
 
 ## Reuse
 
-- Markers snap through Stage 6's `timelineSnapTargets`, and are drawn as a `timelineOverlay`.
+- Markers, their commands, tools, flags and snapping are the timeline markers project's; this stage opts them into the sound scope. If markers add a snap-target mechanism first, Stage 6's beats use it instead of adding `timelineSnapTargets`.
 - Scrub plays through the Stage 1 graph, so slices are mixed and metered like playback.
 - A recording is imported with `media`'s import command and placed with `timeline.addClip`, nested in `sound.placeRecording`.
 - Writing the WAV reuses the media cache's folder handling where the project has no folder yet.
@@ -20,7 +20,7 @@
 ## Global Constraints
 
 - `CLAUDE.md` rules apply; TypeScript and Rust checks pass; commits carry no `Co-Authored-By` line.
-- Markers are undoable and have MCP tools. Loop and scrub are view state.
+- Loop and scrub are view state.
 - Recording ships only on platforms where Task 3's check passes. Elsewhere the record button is absent.
 - The microphone permission is the user's: an agent can't start a recording.
 
@@ -28,7 +28,7 @@
 
 1. **Recording stopped by leaving the page or closing the project:** what was recorded is saved and placed, or the user is told why not. Checked in Task 4.
 2. **Loop shorter than a frame or past the composition's end:** refused or clamped. Tested in Task 2.
-3. **Markers after a ripple delete on Edit:** they stay at their time (not attached to clips). Tested in Task 1.
+3. **A marker added with M on the Sound page:** shows on Edit at the same time. Checked in Task 1.
 4. **Scrub over a clip with pitch or speed:** plays what the clip sounds like there. Checked in Task 2.
 5. **A record-armed track that's a group or muted:** not offered. Checked in Task 4.
 
@@ -38,12 +38,9 @@
 docs/superpowers/specs/
   + 2026-11-03-microphone-check.md
 src/modules/
-  project/
-    ~ project.types.ts                          Marker, Composition.markers
-    ~ README.md
+  <the markers module>
+    ~ <name>.module.ts                          its flags, snapping and keys in both scopes
   sound/
-    + sound.markers.commands.ts, sound.markers.commands.test.ts
-    + ui/MarkerFlags.tsx                        a timelineOverlay, both scopes
     + sound.record.ts                           capture, levels, stop
     + sound.record.commands.ts                  sound.placeRecording
     + ui/RecordButton.tsx, ui/ArmButton.tsx
@@ -63,14 +60,14 @@ src-tauri/
 
 ---
 
-### Task 1: Markers
+### Task 1: Markers on the Sound page
 
-**Files:** Create `sound.markers.commands.ts`, its test, `ui/MarkerFlags.tsx`. Modify `project.types.ts`, `sound.mcp.ts`, READMEs.
+Markers are built by the timeline markers project (`docs/superpowers/specs/2026-11-03-timeline-markers-design.md`): data, commands, tools, flags in the ruler, snapping, M and Shift+M. This stage writes none of that again.
 
-**Interfaces:** `Marker = { id; at: Micros; name: string }`; `Composition.markers?: Marker[]`, sorted. `sound.addMarker { at?; name }`, `sound.moveMarker`, `sound.renameMarker`, `sound.removeMarker`; tools for each. Markers snap.
+**Files:** Modify whichever module that project puts the flags and keys in (its `<name>.module.ts`), and `sound/README.md`.
 
-- [ ] **Step 1: Write the failing tests:** add at the playhead by default; a ripple delete leaves markers where they were; undo restores a removed marker.
-- [ ] **Step 2:** Implement until PASS. Commit: `feat(sound): markers`.
+- [ ] **Step 1:** Opt the markers' ruler flags, snapping and keys into `scopes: ["all", "sound"]` (Stage 1's timeline scope), so they show and work on the Sound page.
+- [ ] **Step 2:** Full checks; check a marker added on Sound shows on Edit. Commit: `feat(sound): markers on the Sound page`.
 
 ### Task 2: Loop and scrub
 

@@ -392,7 +392,8 @@ writing it down, since platforms change these.
 
 ### Session tools (stage 7)
 
-- **Markers:** named points on a composition, shared with the timeline on Edit. Undoable.
+- **Markers:** the timeline markers project (`2026-11-03-timeline-markers-design.md`) builds them; this stage opts
+  their flags, snapping and keys into the Sound page.
 - **Loop region:** a range on the ruler, ephemeral per composition. Loop plays it.
 - **Scrub:** dragging the playhead plays short slices of sound.
 - **Recording:** Record-arm on a track and the record button write a WAV next to the project and place it as a
@@ -420,21 +421,21 @@ figures from `sound_analyze_mix` in stage 5.
 The owner's rule: no second copy of anything the app already does. What this design reuses, moves or
 generalizes, before anything new is written:
 
-| Existing piece                                                   | How it's reused                                                         |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Zod schemas for volume, pan, EQ band in `audio.commands.ts`      | Moved to `project/logic/sound.schema.ts`; `audio` and `sound` import them |
-| `DEFAULT_SOUND.eq`, `EqBand`, `bandActive`, `dbToLinear`          | The track EQ effect is the same `{ on, bands }` shape and defaults       |
-| `setBand`, upmix and panner in `engine.audiograph.ts`             | Moved to `engine/engine.soundnodes.ts`; clip chains and buses build from them |
-| Pan, EQ, envelope and tempo filters in `recipe.rs`               | Moved unchanged to `export/soundfilters.rs`; segments and `mixgraph.rs` call them |
+| Existing piece                                                                          | How it's reused                                                                          |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Zod schemas for volume, pan, EQ band in `audio.commands.ts`                             | Moved to `project/logic/sound.schema.ts`; `audio` and `sound` import them                |
+| `DEFAULT_SOUND.eq`, `EqBand`, `bandActive`, `dbToLinear`                                | The track EQ effect is the same `{ on, bands }` shape and defaults                       |
+| `setBand`, upmix and panner in `engine.audiograph.ts`                                   | Moved to `engine/engine.soundnodes.ts`; clip chains and buses build from them            |
+| Pan, EQ, envelope and tempo filters in `recipe.rs`                                      | Moved unchanged to `export/soundfilters.rs`; segments and `mixgraph.rs` call them        |
 | `EqGraph`, `EqBandRow`, `SoundRow`, `eq.gesture.ts` (already take values and callbacks) | Exported from `audio`; `EqSection` becomes a thin wrapper over a new `EqEditor` both use |
-| The inspector's Audio sections                                   | The Clip tab renders them through `ClipTabSections`                       |
-| `KeyTrack`, `trackValue`, `keyMoments`, `envelope.ts`, `envelope_expr` | The track volume line is a `KeyTrack`; no new interpolation or envelope code |
-| `keyframe.*` commands and the Curves dock                         | The clip volume line edits clip keys through them                        |
-| `localStorage` load and save with Zod in `theme.store.ts`         | Moved to `core/store` as `createSavedStore`; theme and sound presets use it |
-| Reversed copies (`media.reversed.ts`, `reversed.rs`, `cache_path` in `proxy.rs`) | Generalized to derived files; noise reduction is one more kind of derived file |
-| `splitAt`, `deleteClips`, `rippleDelete`, `unlinkClips`          | Strip silence and sound-only edits run them nested, as one undo step     |
-| Timeline snapping in `timeline/logic/placement.ts`               | Beats and markers join it as snap targets through one point              |
-| Export queue, runner, `job.rs`                                    | Stems and analysis are jobs of the same queue                            |
+| The inspector's Audio sections                                                          | The Clip tab renders them through `ClipTabSections`                                      |
+| `KeyTrack`, `trackValue`, `keyMoments`, `envelope.ts`, `envelope_expr`                  | The track volume line is a `KeyTrack`; no new interpolation or envelope code             |
+| `keyframe.*` commands and the Curves dock                                               | The clip volume line edits clip keys through them                                        |
+| `localStorage` load and save with Zod in `theme.store.ts`                               | Moved to `core/store` as `createSavedStore`; theme and sound presets use it              |
+| Reversed copies (`media.reversed.ts`, `reversed.rs`, `cache_path` in `proxy.rs`)        | Generalized to derived files; noise reduction is one more kind of derived file           |
+| `splitAt`, `deleteClips`, `rippleDelete`, `unlinkClips`                                 | Strip silence and sound-only edits run them nested, as one undo step                     |
+| Timeline snapping in `timeline/logic/placement.ts`                                      | Beats and markers join it as snap targets through one point                              |
+| Export queue, runner, `job.rs`                                                          | Stems and analysis are jobs of the same queue                                            |
 
 `sound` requires `audio` for its editors, so the clip's and the track's EQ are one component. The two modules stay
 apart by concern: `audio` is how a clip sounds, `sound` is the mix and its page.
