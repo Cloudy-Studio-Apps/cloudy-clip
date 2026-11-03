@@ -68,6 +68,16 @@ export function cloneComposition(
       }),
     );
   }
+  // A copied duck listens to the copied tracks, not the original's.
+  const remap = (mix: { effects?: { kind: string; listensTo?: string[] }[] } | undefined) => {
+    for (const effect of mix?.effects ?? []) {
+      if (effect.kind === "duck" && effect.listensTo) {
+        effect.listensTo = effect.listensTo.flatMap((trackId) => tracks.get(trackId) ?? []);
+      }
+    }
+  };
+  for (const copyId of tracks.values()) remap(draft.tracks[copyId]!.mix);
+  for (const mix of Object.values(other?.tracks ?? {})) remap(mix);
   draft.compositionOrder.push(id);
   return id;
 }

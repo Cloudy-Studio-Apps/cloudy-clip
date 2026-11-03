@@ -12,13 +12,15 @@ export const volumeDbSchema = z.number().min(VOLUME_DB_MIN).max(VOLUME_DB_MAX);
 export const panSchema = z.number().min(-1).max(1);
 
 /** One band of an equalizer. */
-export const eqBandSchema = z.object({
-  on: z.boolean(),
-  shape: z.enum(["bell", "lowShelf", "highShelf", "lowCut", "highCut"]),
-  hz: z.number().min(20).max(20000),
-  db: z.number().min(-24).max(24),
-  q: z.number().min(0.1).max(10),
-});
+export const eqBandSchema = z
+  .object({
+    on: z.boolean(),
+    shape: z.enum(["bell", "lowShelf", "highShelf", "lowCut", "highCut"]),
+    hz: z.number().min(20).max(20000),
+    db: z.number().min(-24).max(24),
+    q: z.number().min(0.1).max(10),
+  })
+  .strict();
 
 /** An equalizer: on or off, and always six bands. */
 export const eqSchema = z.object({ on: z.boolean(), bands: z.array(eqBandSchema).length(6) });

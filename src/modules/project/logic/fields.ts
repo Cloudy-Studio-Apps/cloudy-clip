@@ -1,6 +1,6 @@
 import type { Draft } from "immer";
 import type { FieldChange, StorePolicy } from "@/core";
-import type { Clip, CompositionId, ProjectState, TrackId } from "../project.types";
+import type { Clip, CompositionId, ProjectState, SoundEffect, TrackId } from "../project.types";
 import { contains, settleCompositions } from "./compositions";
 import { findLayoutConflict, staleJunctions } from "./junctions";
 
@@ -136,13 +136,17 @@ function clampFades(draft: Draft<ProjectState>): void {
 
 /** A deleted track no longer lowers anything: it leaves every duck's `listensTo`. */
 function dropDeletedListens(draft: Draft<ProjectState>): void {
-  for (const track of Object.values(draft.tracks)) {
-    for (const effect of track.mix?.effects ?? []) {
+  const prune = (mix: { effects?: SoundEffect[] } | undefined) => {
+    for (const effect of mix?.effects ?? []) {
       if (effect.kind !== "duck") continue;
       if (effect.listensTo.some((id) => !draft.tracks[id])) {
         effect.listensTo = effect.listensTo.filter((id) => draft.tracks[id]);
       }
     }
+  };
+  for (const track of Object.values(draft.tracks)) prune(track.mix);
+  for (const composition of Object.values(draft.compositions)) {
+    for (const mix of Object.values(composition.mix?.otherMix?.tracks ?? {})) prune(mix);
   }
 }
 

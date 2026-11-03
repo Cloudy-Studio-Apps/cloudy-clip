@@ -225,6 +225,41 @@ describe("composition commands", () => {
     expect(state().compositions[compositionId]!.mix?.otherMix?.tracks[audio]).toBeDefined();
   });
 
+  it("a copy's ducks listen to the copied tracks", async () => {
+    const { compositionId } = await ok(createComposition, { name: "Intro" });
+    const [video, audio] = state().compositions[compositionId]!.trackOrder as [string, string];
+    const duck = (listensTo: string[]) => ({
+      id: "fx1",
+      kind: "duck" as const,
+      on: true,
+      listensTo,
+      depthDb: -9,
+      attackMs: 20,
+      releaseMs: 300,
+    });
+    write((draft) => {
+      draft.tracks[audio]!.mix = { volumeDb: 0, pan: 0, effects: [duck([video])] };
+      draft.compositions[compositionId]!.mix = {
+        master: { volumeDb: 0 },
+        activeMix: "a",
+        otherMix: {
+          master: { volumeDb: 0 },
+          tracks: { [audio]: { volumeDb: 0, pan: 0, effects: [duck([video])] } },
+        },
+      };
+    });
+    const copy = await ok(duplicateComposition, { compositionId });
+    const [copyVideo, copyAudio] = state().compositions[copy.compositionId]!.trackOrder as [
+      string,
+      string,
+    ];
+    const live = state().tracks[copyAudio]!.mix!.effects![0]!;
+    const held = state().compositions[copy.compositionId]!.mix!.otherMix!.tracks[copyAudio]!;
+    expect(live).toMatchObject({ listensTo: [copyVideo] });
+    expect(held.effects![0]).toMatchObject({ listensTo: [copyVideo] });
+    expect(state().tracks[audio]!.mix!.effects![0]).toMatchObject({ listensTo: [video] });
+  });
+
   describe("the automatic start", () => {
     const ready = (media: Record<string, MediaProbe>) =>
       kernel.modules.require(mediaRef).probes.setState({ probes: media });

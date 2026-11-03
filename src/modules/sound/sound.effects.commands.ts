@@ -28,14 +28,8 @@ function notFound(effectId: string): CommandFailure {
 }
 
 /** Checks a duck's `listensTo` and that it closes no loop. */
-function checkDuck(state: ProjectState, owner: TrackId | "master", effect: SoundEffect): void {
+function checkDuck(state: ProjectState, owner: TrackId, effect: SoundEffect): void {
   if (effect.kind !== "duck") return;
-  if (owner === "master") {
-    throw new CommandFailure(
-      "sound.duck_loop",
-      "The master cannot duck: every track feeds it, so whatever it listened to would loop.",
-    );
-  }
   const own = state.tracks[owner]!;
   for (const id of effect.listensTo) {
     const heard = state.tracks[id];
@@ -66,10 +60,19 @@ function editChain(
 ): void {
   const { store } = ctx.require(projectRef);
   const state = store.getState();
+  const noDuckOnMaster = (chain: SoundEffect[]) => {
+    if (chain.some((e) => e.kind === "duck")) {
+      throw new CommandFailure(
+        "sound.duck_on_master",
+        "The master cannot duck: every track feeds it, so whatever it listened to would loop.",
+      );
+    }
+    return chain;
+  };
   if (who === "master") {
     const id = targetComposition(ctx, compositionIdInput);
     const mix = compositionMixOf(state.compositions[id]!);
-    const effects = edit([...(mix.master.effects ?? [])], state);
+    const effects = noDuckOnMaster(edit([...(mix.master.effects ?? [])], state));
     ctx.mutate(store, (draft) =>
       writeComposition(draft.compositions[id]!, { ...mix, master: { ...mix.master, effects } }),
     );
@@ -85,7 +88,7 @@ export const addEffect = defineCommand({
   id: "sound.addEffect",
   label: "Add effect",
   description:
-    "Adds an effect to the chain of an audio track or of \"master\" (the open composition's, or compositionId). kind is eq, compressor, gate, deesser, limiter, denoise or duck; it starts at the kind's defaults (change it with sound_set_effect). `at` is the position in the chain (default: the end). A chain holds one effect of each kind: fails with sound.effect_exists. Returns { effectId }. Fails with sound.not_audio and sound.track_not_found.",
+    "Adds an effect to the chain of an audio track or of \"master\" (the open composition's, or compositionId). kind is eq, compressor, gate, deesser, limiter, denoise or duck; it starts at the kind's defaults (change it with sound_set_effect). `at` is the position in the chain (default: the end). A chain holds one effect of each kind: fails with sound.effect_exists. A duck on master fails with sound.duck_on_master. Returns { effectId }. Fails with sound.not_audio and sound.track_not_found.",
   undoable: true,
   input: z.object({
     target,
@@ -111,7 +114,7 @@ export const setEffect = defineCommand({
   id: "sound.setEffect",
   label: "Change effect",
   description:
-    'Changes the settings of an effect in the chain of an audio track or "master". patch holds only the fields to change, by kind: on (any); eq: bands (six); compressor: params { thresholdDb -60..0, ratio 1..20, attackMs, releaseMs, kneeDb 0..18, makeupDb 0..36 } (any of them); gate: thresholdDb -80..0, ratio 1..20, attackMs, releaseMs; deesser: frequencyHz 2000..12000, amount 0..1; limiter: ceilingDb -20..0, releaseMs 1..8000; denoise: amountDb 0..40, floorDb -80..-20; duck: listensTo (track ids), depthDb -40..0, attackMs, releaseMs. Out-of-range values and unknown fields fail with sound.effect_invalid; a duck that would make a loop fails with sound.duck_loop. Fails with sound.effect_not_found.',
+    'Changes the settings of an effect in the chain of an audio track or "master". patch holds only the fields to change, by kind: on (any); eq: bands (six); compressor: params { thresholdDb -60..0, ratio 1..20, attackMs, releaseMs, kneeDb 0..18, makeupDb 0..36 } (any of them); gate: thresholdDb -80..0, ratio 1..20, attackMs, releaseMs; deesser: frequencyHz 2000..12000, amount 0..1; limiter: ceilingDb -20..0, releaseMs 1..8000; denoise: amountDb 0..40, floorDb -80..-20; duck: listensTo (track ids), depthDb -40..0, attackMs, releaseMs. Out-of-range values, unknown fields (nested ones too) and a track listed twice fail with sound.effect_invalid; a duck that would make a loop fails with sound.duck_loop. Fails with sound.effect_not_found.',
   undoable: true,
   input: z.object({
     target,
@@ -124,17 +127,15 @@ export const setEffect = defineCommand({
       const index = chain.findIndex((e) => e.id === effectId);
       const current = chain[index];
       if (!current) throw notFound(effectId);
+      if ("id" in patch || "kind" in patch) {
+        throw new CommandFailure("sound.effect_invalid", "An effect's id and kind cannot change.");
+      }
       const { params, ...rest } = patch;
       const merged: Record<string, unknown> = { ...current, ...rest };
-      if (current.kind === "compressor" && params !== undefined) {
-        merged.params = { ...current.params, ...(params as object) };
-      } else if (params !== undefined) merged.params = params;
-      const unknown = Object.keys(merged).filter((key) => !(key in current));
-      if (unknown.length || "id" in patch || "kind" in patch) {
-        throw new CommandFailure(
-          "sound.effect_invalid",
-          `A ${current.kind} has no field ${[...unknown, ...("id" in patch ? ["id"] : []), ...("kind" in patch ? ["kind"] : [])].join(", ")} to change.`,
-        );
+      if (params !== undefined) {
+        const plain = typeof params === "object" && params !== null && !Array.isArray(params);
+        merged.params =
+          current.kind === "compressor" && plain ? { ...current.params, ...params } : params;
       }
       const parsed = effectSchemas[current.kind].safeParse(merged);
       if (!parsed.success) {
@@ -144,7 +145,7 @@ export const setEffect = defineCommand({
         );
       }
       const next = parsed.data as SoundEffect;
-      checkDuck(state, who, next);
+      if (who !== "master") checkDuck(state, who, next);
       chain[index] = next;
       return chain;
     });
