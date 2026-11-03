@@ -18,7 +18,7 @@ interface CurveGraphProps {
 
 /**
  * The Curves view: one canvas with every shown curve. It redraws in an animation frame when the
- * project, the view, the zoom, the scroll or the size change, never per playback frame (the
+ * project, the view, the zoom, the scroll, the size or the theme change, never per playback frame (the
  * playhead is DOM over it). With nothing shown it draws the primary row (or the first number row).
  */
 export function CurveGraph({ rows }: CurveGraphProps) {
@@ -84,6 +84,9 @@ export function CurveGraph({ rows }: CurveGraphProps) {
     redraw.current = request;
     const observer = new ResizeObserver(request);
     observer.observe(root);
+    // The colors come from theme tokens, which change with `data-theme` on <html>.
+    const theme = new MutationObserver(request);
+    theme.observe(document.documentElement, { attributeFilter: ["data-theme"] });
     const offs = [
       timeline.onScroll(request),
       timeline.view.subscribe(request),
@@ -95,6 +98,7 @@ export function CurveGraph({ rows }: CurveGraphProps) {
       cancelAnimationFrame(frame);
       redraw.current = () => undefined;
       observer.disconnect();
+      theme.disconnect();
       for (const off of offs) off();
     };
   }, [view, timeline, project, current]);

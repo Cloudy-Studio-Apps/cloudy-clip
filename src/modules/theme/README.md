@@ -51,6 +51,7 @@ contribute(
 - **Applying.** `theme.service.ts` re-applies when the choice, the OS appearance or the `themes` point changes. `theme.apply.ts` writes `<style id="cloudy-theme">`, sets `data-theme` and `data-appearance` on `<html>` and caches the CSS.
 - **Before first paint.** A script in `index.html` injects that cache, so the right theme shows from the first frame. The first run paints Cloudy Dark.
 - **A theme that isn't there.** It falls back to the built-in of its appearance. The saved id stays, so it returns with its plugin, and Settings says so.
+- **Drawing that reads tokens.** A canvas that reads colors when it draws redraws when `data-theme` on `<html>` changes (the keyframe curves do, with a `MutationObserver`), so it needs no dependency on this module. `onChange` is there for code that already requires it.
 - **The title bar.** `theme.window.ts` sets the OS title bar with the theme's appearance. In `system` mode it hands it back to the OS, because a set theme also changes what `prefers-color-scheme` reports and would hide the OS's changes.
 
 ## Files

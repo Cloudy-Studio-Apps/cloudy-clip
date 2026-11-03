@@ -25,7 +25,6 @@ export function TimelineToolbar() {
 
   return (
     <div className="relative flex h-[34px] shrink-0 items-center gap-1 overflow-x-auto border-b border-border-strong bg-muted px-2 [scrollbar-width:none]">
-      <PegBar />
       <div className="flex shrink-0 items-center gap-0.5">
         {ordered.length > 0 && (
           <>
@@ -81,7 +80,9 @@ export function TimelineToolbar() {
           Audio track
         </ToolbarButton>
       </div>
-      <div className="min-w-3 flex-1" />
+      <div className="@container relative min-w-3 flex-1 self-stretch">
+        <PegBar />
+      </div>
       <ZoomSlider />
     </div>
   );
