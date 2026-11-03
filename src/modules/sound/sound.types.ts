@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { TrackId } from "@/modules/project";
+import type { SoundEffect, TrackId } from "@/modules/project";
 import type { MonitorState } from "@/modules/preview";
 
 /** What the Sound page shows and how the user listens, per kernel. Never in history. */
@@ -118,4 +118,20 @@ export interface LoudnessHistoryHandle {
 export interface GraphColours {
   grid: string;
   line: string;
+}
+
+/** An effect without its id, as a preset holds it: each use gets a fresh id. */
+export type EffectSpec = SoundEffect extends infer E
+  ? E extends SoundEffect
+    ? Omit<E, "id">
+    : never
+  : never;
+
+/** A named chain of effects. Applying it writes plain values: a project never depends on a preset. */
+export interface SoundPreset {
+  id: string;
+  name: string;
+  /** What it is for, one line. */
+  description: string;
+  effects: EffectSpec[];
 }

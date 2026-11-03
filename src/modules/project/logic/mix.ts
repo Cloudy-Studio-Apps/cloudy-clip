@@ -21,7 +21,14 @@ export function compositionMixOf(composition: Pick<Composition, "mix">): Composi
 
 /** `mix`, or undefined when it's what a track has anyway, so defaults are never stored. */
 export function minimizeTrackMix(mix: TrackMix): TrackMix | undefined {
-  return minimize(mix, DEFAULT_TRACK_MIX);
+  const { effects, ...rest } = mix;
+  return minimize(effects?.length ? mix : rest, DEFAULT_TRACK_MIX);
+}
+
+/** `mix`, or undefined when it's what a composition has anyway; an empty master chain is dropped. */
+export function minimizeCompositionMix(mix: CompositionMix): CompositionMix | undefined {
+  const { effects, ...master } = mix.master;
+  return minimize(effects?.length ? mix : { ...mix, master }, DEFAULT_COMPOSITION_MIX);
 }
 
 /**

@@ -1,44 +1,19 @@
 import { z } from "zod";
-import { defineCommand, type CommandContext } from "@/core";
+import { defineCommand } from "@/core";
 import {
-  DEFAULT_COMPOSITION_MIX,
+  DEFAULT_TRACK_MIX,
   compositionMixOf,
-  minimize,
-  minimizeTrackMix,
   orderedTracks,
   panSchema,
   projectRef,
-  requireComposition,
   trackMixOf,
   volumeDbSchema,
   type CompositionId,
-  type CompositionMix,
   type MixSnapshot,
   type ProjectState,
-  type Track,
 } from "@/modules/project";
 import { audioTrack } from "./sound.guards";
-
-/** Writes a track's mix, or removes it at the defaults. */
-function writeTrack(track: Track, mix: Track["mix"]): void {
-  const next = mix && minimizeTrackMix(mix);
-  if (next) track.mix = next;
-  else delete track.mix;
-}
-
-/** Writes a composition's mix, or removes it at the defaults. */
-function writeComposition(composition: { mix?: CompositionMix }, mix: CompositionMix): void {
-  const next = minimize(mix, DEFAULT_COMPOSITION_MIX);
-  if (next) composition.mix = next;
-  else delete composition.mix;
-}
-
-/** The composition: given, or the one the actor has open. */
-function targetComposition(ctx: CommandContext, compositionId: CompositionId | undefined) {
-  const project = ctx.require(projectRef);
-  const id = compositionId ?? project.view.requireOpen(ctx.actor).id;
-  return requireComposition(project.store.getState(), id).id;
-}
+import { targetComposition, writeComposition, writeTrack } from "./sound.mix.write";
 
 /** The live mix of a composition: its audio tracks' mixes (those at the defaults left out). */
 function liveMix(state: ProjectState, compositionId: CompositionId): MixSnapshot {
@@ -78,13 +53,16 @@ export const resetTrackMix = defineCommand({
   id: "sound.resetTrackMix",
   label: "Reset track mix",
   description:
-    "Puts an audio track's volume and pan back to 0 dB and centre. Fails with sound.not_audio on a video track and sound.track_not_found.",
+    "Puts an audio track's volume and pan back to 0 dB and centre; its effects stay. Fails with sound.not_audio on a video track and sound.track_not_found.",
   undoable: true,
   input: z.object({ trackId: z.string() }),
   run(ctx, { trackId }) {
     const { store } = ctx.require(projectRef);
-    audioTrack(store.getState(), trackId);
-    ctx.mutate(store, (draft) => writeTrack(draft.tracks[trackId]!, undefined));
+    const track = audioTrack(store.getState(), trackId);
+    ctx.mutate(store, (draft) => {
+      const effects = trackMixOf(track).effects;
+      writeTrack(draft.tracks[trackId]!, effects && { ...DEFAULT_TRACK_MIX, effects });
+    });
   },
 });
 
@@ -113,7 +91,7 @@ export const switchMix = defineCommand({
   id: "sound.switchMix",
   label: "Switch mix",
   description:
-    'Switches your open composition (or compositionId) to mix "a" or "b": every audio track\'s volume and pan, and the master, are swapped with those of the other mix. The first time, B starts as a copy of A. Switching to the mix that is active does nothing.',
+    'Switches your open composition (or compositionId) to mix "a" or "b": every audio track\'s volume, pan and effects, and the master, are swapped with those of the other mix. The first time, B starts as a copy of A. Switching to the mix that is active does nothing.',
   undoable: true,
   input: z.object({ compositionId: z.string().optional(), to: z.enum(["a", "b"]) }),
   run(ctx, { compositionId, to }) {

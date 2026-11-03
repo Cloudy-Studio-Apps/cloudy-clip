@@ -134,6 +134,18 @@ function clampFades(draft: Draft<ProjectState>): void {
   }
 }
 
+/** A deleted track no longer lowers anything: it leaves every duck's `listensTo`. */
+function dropDeletedListens(draft: Draft<ProjectState>): void {
+  for (const track of Object.values(draft.tracks)) {
+    for (const effect of track.mix?.effects ?? []) {
+      if (effect.kind !== "duck") continue;
+      if (effect.listensTo.some((id) => !draft.tracks[id])) {
+        effect.listensTo = effect.listensTo.filter((id) => draft.tracks[id]);
+      }
+    }
+  }
+}
+
 function validate(state: ProjectState): string | null {
   const bins = binProblem(state);
   if (bins) return bins;
@@ -205,5 +217,6 @@ export const projectPolicy: StorePolicy<ProjectState> = {
   settle(draft) {
     settleCompositions(draft);
     clampFades(draft);
+    dropDeletedListens(draft);
   },
 };

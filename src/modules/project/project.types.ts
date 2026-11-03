@@ -94,12 +94,16 @@ export interface TrackMix {
   volumeDb: number;
   /** -1 (left) to 1 (right). */
   pan: number;
+  /** The effects after the fader, in order. Missing means none; an empty chain is never stored. */
+  effects?: SoundEffect[];
 }
 
 /** What the master does to the sound of a whole composition. */
 export interface MasterMix {
   /** -60 to 12. */
   volumeDb: number;
+  /** The effects after the fader, in order. Missing means none; an empty chain is never stored. */
+  effects?: SoundEffect[];
 }
 
 /** One of the two mixes of a composition: its audio tracks' mixes (those missing are at the defaults) and its master. */
@@ -322,6 +326,90 @@ export interface ClipSound {
   /** Always six bands. */
   eq: { on: boolean; bands: EqBand[] };
 }
+
+/** What every effect has: its id, and whether it works (off keeps the settings). */
+export interface SoundEffectBase {
+  id: string;
+  on: boolean;
+}
+
+/** An equalizer: the six bands of a clip's EQ. */
+export interface EqEffect extends SoundEffectBase {
+  kind: "eq";
+  bands: EqBand[];
+}
+
+/** A compressor (`acompressor`). */
+export interface CompressorEffect extends SoundEffectBase {
+  kind: "compressor";
+  params: CompressorParams;
+}
+
+/** A noise gate (`agate`): silences what stays under the threshold. */
+export interface GateEffect extends SoundEffectBase {
+  kind: "gate";
+  /** -80 to 0 dBFS. */
+  thresholdDb: number;
+  /** 1 to 20. */
+  ratio: number;
+  /** 0.01 to 2000 ms. */
+  attackMs: number;
+  /** 0.01 to 9000 ms. */
+  releaseMs: number;
+}
+
+/** A de-esser (`deesser`): tames sibilance. */
+export interface DeesserEffect extends SoundEffectBase {
+  kind: "deesser";
+  /** Where sibilance sits, 2000 to 12000 Hz. */
+  frequencyHz: number;
+  /** 0 (nothing) to 1 (most). */
+  amount: number;
+}
+
+/** A limiter (`alimiter`): nothing goes over the ceiling. */
+export interface LimiterEffect extends SoundEffectBase {
+  kind: "limiter";
+  /** -20 to 0 dBFS. */
+  ceilingDb: number;
+  /** 1 to 8000 ms. */
+  releaseMs: number;
+}
+
+/** Noise reduction (`afftdn`), rendered to a file rather than run live. */
+export interface DenoiseEffect extends SoundEffectBase {
+  kind: "denoise";
+  /** How much noise is taken away, 0 to 40 dB. */
+  amountDb: number;
+  /** The noise floor to remove, -80 to -20 dBFS. */
+  floorDb: number;
+}
+
+/** Ducking (`sidechaincompress`): lowers the track while other tracks sound. */
+export interface DuckEffect extends SoundEffectBase {
+  kind: "duck";
+  /** The tracks that lower this one; never a loop. */
+  listensTo: TrackId[];
+  /** How far they lower it, -40 to 0 dB. */
+  depthDb: number;
+  /** 0.01 to 2000 ms. */
+  attackMs: number;
+  /** 0.01 to 9000 ms. */
+  releaseMs: number;
+}
+
+/** One effect in a chain on a track or the master; `kind` says which. */
+export type SoundEffect =
+  | EqEffect
+  | CompressorEffect
+  | GateEffect
+  | DeesserEffect
+  | LimiterEffect
+  | DenoiseEffect
+  | DuckEffect;
+
+/** The kinds of effect. */
+export type SoundEffectKind = SoundEffect["kind"];
 
 /**
  * A compressor's settings, as FFmpeg's `acompressor` takes them but in dB and milliseconds

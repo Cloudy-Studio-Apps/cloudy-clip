@@ -88,6 +88,16 @@ export type {
   SharedGroupValues,
   ClipSound,
   CompressorParams,
+  CompressorEffect,
+  DeesserEffect,
+  DenoiseEffect,
+  DuckEffect,
+  EqEffect,
+  GateEffect,
+  LimiterEffect,
+  SoundEffect,
+  SoundEffectBase,
+  SoundEffectKind,
   CrossfadeLevels,
   CompositionMix,
   MasterMix,
@@ -128,6 +138,13 @@ export {
   pitchShift,
   soundOf,
 } from "./logic/sound";
+/** The schema of each kind of effect, and the list of kinds. */
+export {
+  SOUND_EFFECT_KINDS,
+  compressorParamsSchema,
+  effectSchemas,
+  soundEffectSchema,
+} from "./logic/effect.schema";
 /** The schemas of sound values, shared by every command that sets them. */
 export {
   VOLUME_DB_MAX,
@@ -143,6 +160,7 @@ export {
   DEFAULT_COMPOSITION_MIX,
   DEFAULT_TRACK_MIX,
   compositionMixOf,
+  minimizeCompositionMix,
   minimizeTrackMix,
   soundInPlacement,
   trackMixOf,

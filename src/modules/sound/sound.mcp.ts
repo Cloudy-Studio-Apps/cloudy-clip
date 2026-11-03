@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { commandTool, defineMcpTool, textResult } from "@/core";
 import { previewRef, type StereoLevel } from "@/modules/preview";
+import {
+  addEffect,
+  applyPreset,
+  moveEffect,
+  removeEffect,
+  setEffect,
+} from "./sound.effects.commands";
+import { BUILT_IN_PRESETS } from "./logic/presets";
 import { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
 
 /** A level for JSON: dBFS to a tenth, null for silence (JSON has no -Infinity). */
@@ -45,11 +53,35 @@ const getLevels = defineMcpTool({
   },
 });
 
+/** The presets that can be applied, with what they hold. */
+const listPresets = defineMcpTool({
+  name: "sound_list_presets",
+  readOnly: true,
+  description:
+    "Lists the sound presets that sound_apply_preset takes: id, name, what it is for and the effects it puts on a track or the master. The user's own presets are theirs and are not listed.",
+  input: z.object({}),
+  handler: () =>
+    textResult(
+      BUILT_IN_PRESETS.map(({ id, name, description, effects }) => ({
+        id,
+        name,
+        description,
+        effects,
+      })),
+    ),
+});
+
 /** Agents mix with the same commands as the user, and read the meters. Solo and monitoring stay the user's. */
 export const soundMcpTools = [
   commandTool(setTrackMix, { name: "sound_set_track_mix" }),
   commandTool(resetTrackMix, { name: "sound_reset_track_mix" }),
   commandTool(setMaster, { name: "sound_set_master" }),
   commandTool(switchMix, { name: "sound_switch_mix" }),
+  commandTool(addEffect, { name: "sound_add_effect" }),
+  commandTool(setEffect, { name: "sound_set_effect" }),
+  commandTool(removeEffect, { name: "sound_remove_effect" }),
+  commandTool(moveEffect, { name: "sound_move_effect" }),
+  commandTool(applyPreset, { name: "sound_apply_preset" }),
+  listPresets,
   getLevels,
 ];

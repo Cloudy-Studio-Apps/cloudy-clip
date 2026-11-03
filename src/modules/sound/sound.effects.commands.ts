@@ -1,0 +1,209 @@
+import { z } from "zod";
+import { CommandFailure, createId, defineCommand, type CommandContext } from "@/core";
+import {
+  SOUND_EFFECT_KINDS,
+  compositionMixOf,
+  effectSchemas,
+  projectRef,
+  trackMixOf,
+  type ProjectState,
+  type SoundEffect,
+  type TrackId,
+} from "@/modules/project";
+import { audioTrack } from "./sound.guards";
+import { targetComposition, writeComposition, writeTrack } from "./sound.mix.write";
+import { closesLoop, defaultSpec } from "./logic/effects";
+import { BUILT_IN_PRESETS } from "./logic/presets";
+
+const target = z
+  .union([z.string(), z.literal("master")])
+  .describe('An audio track id, or "master".');
+const compositionId = z
+  .string()
+  .optional()
+  .describe("For the master: the composition (default: your open one).");
+
+function notFound(effectId: string): CommandFailure {
+  return new CommandFailure("sound.effect_not_found", `No effect with id "${effectId}" there.`);
+}
+
+/** Checks a duck's `listensTo` and that it closes no loop. */
+function checkDuck(state: ProjectState, owner: TrackId | "master", effect: SoundEffect): void {
+  if (effect.kind !== "duck") return;
+  if (owner === "master") {
+    throw new CommandFailure(
+      "sound.duck_loop",
+      "The master cannot duck: every track feeds it, so whatever it listened to would loop.",
+    );
+  }
+  const own = state.tracks[owner]!;
+  for (const id of effect.listensTo) {
+    const heard = state.tracks[id];
+    if (!heard || heard.kind !== "audio" || heard.compositionId !== own.compositionId) {
+      throw new CommandFailure(
+        "sound.track_not_found",
+        `"${id}" is not an audio track of the same composition.`,
+      );
+    }
+  }
+  if (closesLoop(state.tracks, owner, effect.listensTo)) {
+    throw new CommandFailure(
+      "sound.duck_loop",
+      `Ducking "${own.name}" under those tracks would make a loop: one of them is "${own.name}" or is itself lowered by it.`,
+    );
+  }
+}
+
+/**
+ * Edits the chain of a track or the master in one step: `edit` gets the current chain and the
+ * state and returns the new chain (or throws). An empty chain is not stored.
+ */
+function editChain(
+  ctx: CommandContext,
+  who: TrackId | "master",
+  compositionIdInput: string | undefined,
+  edit: (chain: SoundEffect[], state: ProjectState) => SoundEffect[],
+): void {
+  const { store } = ctx.require(projectRef);
+  const state = store.getState();
+  if (who === "master") {
+    const id = targetComposition(ctx, compositionIdInput);
+    const mix = compositionMixOf(state.compositions[id]!);
+    const effects = edit([...(mix.master.effects ?? [])], state);
+    ctx.mutate(store, (draft) =>
+      writeComposition(draft.compositions[id]!, { ...mix, master: { ...mix.master, effects } }),
+    );
+    return;
+  }
+  const track = audioTrack(state, who);
+  const effects = edit([...(trackMixOf(track).effects ?? [])], state);
+  ctx.mutate(store, (draft) => writeTrack(draft.tracks[who]!, { ...trackMixOf(track), effects }));
+}
+
+/** Adds an effect of a kind, with its default settings, to a chain. */
+export const addEffect = defineCommand({
+  id: "sound.addEffect",
+  label: "Add effect",
+  description:
+    "Adds an effect to the chain of an audio track or of \"master\" (the open composition's, or compositionId). kind is eq, compressor, gate, deesser, limiter, denoise or duck; it starts at the kind's defaults (change it with sound_set_effect). `at` is the position in the chain (default: the end). A chain holds one effect of each kind: fails with sound.effect_exists. Returns { effectId }. Fails with sound.not_audio and sound.track_not_found.",
+  undoable: true,
+  input: z.object({
+    target,
+    compositionId,
+    kind: z.enum(SOUND_EFFECT_KINDS),
+    at: z.number().int().min(0).optional(),
+  }),
+  run(ctx, { target: who, compositionId: comp, kind, at }) {
+    const effect = { ...defaultSpec(kind), id: createId("fx") } as SoundEffect;
+    editChain(ctx, who, comp, (chain) => {
+      if (chain.some((e) => e.kind === kind)) {
+        throw new CommandFailure("sound.effect_exists", `The chain already has a ${kind}.`);
+      }
+      chain.splice(Math.min(at ?? chain.length, chain.length), 0, effect);
+      return chain;
+    });
+    return { effectId: effect.id };
+  },
+});
+
+/** Changes the settings of an effect. */
+export const setEffect = defineCommand({
+  id: "sound.setEffect",
+  label: "Change effect",
+  description:
+    'Changes the settings of an effect in the chain of an audio track or "master". patch holds only the fields to change, by kind: on (any); eq: bands (six); compressor: params { thresholdDb -60..0, ratio 1..20, attackMs, releaseMs, kneeDb 0..18, makeupDb 0..36 } (any of them); gate: thresholdDb -80..0, ratio 1..20, attackMs, releaseMs; deesser: frequencyHz 2000..12000, amount 0..1; limiter: ceilingDb -20..0, releaseMs 1..8000; denoise: amountDb 0..40, floorDb -80..-20; duck: listensTo (track ids), depthDb -40..0, attackMs, releaseMs. Out-of-range values and unknown fields fail with sound.effect_invalid; a duck that would make a loop fails with sound.duck_loop. Fails with sound.effect_not_found.',
+  undoable: true,
+  input: z.object({
+    target,
+    compositionId,
+    effectId: z.string(),
+    patch: z.record(z.string(), z.unknown()),
+  }),
+  run(ctx, { target: who, compositionId: comp, effectId, patch }) {
+    editChain(ctx, who, comp, (chain, state) => {
+      const index = chain.findIndex((e) => e.id === effectId);
+      const current = chain[index];
+      if (!current) throw notFound(effectId);
+      const { params, ...rest } = patch;
+      const merged: Record<string, unknown> = { ...current, ...rest };
+      if (current.kind === "compressor" && params !== undefined) {
+        merged.params = { ...current.params, ...(params as object) };
+      } else if (params !== undefined) merged.params = params;
+      const unknown = Object.keys(merged).filter((key) => !(key in current));
+      if (unknown.length || "id" in patch || "kind" in patch) {
+        throw new CommandFailure(
+          "sound.effect_invalid",
+          `A ${current.kind} has no field ${[...unknown, ...("id" in patch ? ["id"] : []), ...("kind" in patch ? ["kind"] : [])].join(", ")} to change.`,
+        );
+      }
+      const parsed = effectSchemas[current.kind].safeParse(merged);
+      if (!parsed.success) {
+        throw new CommandFailure(
+          "sound.effect_invalid",
+          parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+        );
+      }
+      const next = parsed.data as SoundEffect;
+      checkDuck(state, who, next);
+      chain[index] = next;
+      return chain;
+    });
+  },
+});
+
+/** Takes an effect out of a chain. */
+export const removeEffect = defineCommand({
+  id: "sound.removeEffect",
+  label: "Remove effect",
+  description:
+    'Removes an effect from the chain of an audio track or "master". Fails with sound.effect_not_found.',
+  undoable: true,
+  input: z.object({ target, compositionId, effectId: z.string() }),
+  run(ctx, { target: who, compositionId: comp, effectId }) {
+    editChain(ctx, who, comp, (chain) => {
+      if (!chain.some((e) => e.id === effectId)) throw notFound(effectId);
+      return chain.filter((e) => e.id !== effectId);
+    });
+  },
+});
+
+/** Moves an effect to another place in its chain. */
+export const moveEffect = defineCommand({
+  id: "sound.moveEffect",
+  label: "Move effect",
+  description:
+    'Moves an effect to position `to` (0 is first; past the end means last) in the chain of an audio track or "master". Fails with sound.effect_not_found.',
+  undoable: true,
+  input: z.object({ target, compositionId, effectId: z.string(), to: z.number().int().min(0) }),
+  run(ctx, { target: who, compositionId: comp, effectId, to }) {
+    editChain(ctx, who, comp, (chain) => {
+      const from = chain.findIndex((e) => e.id === effectId);
+      if (from < 0) throw notFound(effectId);
+      const [effect] = chain.splice(from, 1);
+      chain.splice(Math.min(to, chain.length), 0, effect!);
+      return chain;
+    });
+  },
+});
+
+/** Replaces a chain with a preset's. */
+export const applyPreset = defineCommand({
+  id: "sound.applyPreset",
+  label: "Apply sound preset",
+  description:
+    'Replaces the whole chain of an audio track or "master" with a preset\'s effects (list them with sound_list_presets). One undo step brings the old chain back. Fails with sound.preset_not_found.',
+  undoable: true,
+  input: z.object({ target, compositionId, presetId: z.string() }),
+  run(ctx, { target: who, compositionId: comp, presetId }) {
+    const preset = BUILT_IN_PRESETS.find((p) => p.id === presetId);
+    if (!preset) {
+      throw new CommandFailure("sound.preset_not_found", `No preset with id "${presetId}".`);
+    }
+    editChain(ctx, who, comp, () =>
+      preset.effects.map((spec) => structuredClone({ ...spec, id: createId("fx") }) as SoundEffect),
+    );
+  },
+});
+
+/** Every effect command, for the module. */
+export const soundEffectCommands = [addEffect, setEffect, removeEffect, moveEffect, applyPreset];
