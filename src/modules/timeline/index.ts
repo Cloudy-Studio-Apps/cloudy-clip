@@ -48,6 +48,7 @@ export {
   timelineMenuItems,
   timelineDocks,
   timelineOverlays,
+  timelineSnapTargets,
   timelineTabs,
   timelineTools,
 } from "./timeline.points";
@@ -73,8 +74,12 @@ export { activeScope, clipsInScope, inScope } from "./logic/scope";
  * draws inside the panel (a dock, an overlay) to list only what that scope may touch.
  */
 export { useTimelineScope } from "./ui/scope.hook";
-/** Pixels from time 0 to a time at a zoom level. */
-export { timeToPx } from "./logic/geometry";
+/** Pixels from time 0 to a time at a zoom level, and back. */
+export { pxToTime, timeToPx } from "./logic/geometry";
+/** Snaps a time to the closest candidate within a threshold. */
+export { snapTime } from "./logic/placement";
+/** What drags snap to (clip edges, cuts, the playhead and `timelineSnapTargets`), as a hook. */
+export { useSnapCandidates } from "./ui/snap.hook";
 /** The `timeline.overlap` failure for a spot taken by another clip, with where it is. */
 export { checkLayout, overlapError } from "./timeline.guards";
 /**
@@ -93,6 +98,8 @@ export type {
   TimelineDock,
   TimelineDropHandler,
   TimelineOverlay,
+  TimelineSnapTarget,
+  SnapCandidates,
   TimelineTool,
   CutPreview,
   DropTarget,

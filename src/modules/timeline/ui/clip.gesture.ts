@@ -4,11 +4,16 @@ import { partnersOf, type Clip, type ProjectState, compositionOf } from "@/modul
 import type { MediaApi } from "@/modules/media";
 import type { PlaybackClock } from "@/modules/preview";
 import { pxToTime, timeToPx } from "../logic/geometry";
-import { clampTrim, findOverlap, snapCandidates, snapSpan, snapTime } from "../logic/placement";
+import { clampTrim, findOverlap, snapSpan, snapTime } from "../logic/placement";
 import { linkedTrimEdge, trimLimits } from "../logic/trim";
 import { moveClip, trimClip } from "../timeline.commands";
 import { SNAP_PX, TRIM_HANDLE_PX } from "../timeline.layout";
-import type { ClipGestureMode, JunctionKindOf, TimelineViewState } from "../timeline.types";
+import type {
+  ClipGestureMode,
+  JunctionKindOf,
+  SnapCandidates,
+  TimelineViewState,
+} from "../timeline.types";
 
 /** Picks the gesture from where the clip was grabbed. */
 export function gestureMode(offsetX: number, width: number): ClipGestureMode {
@@ -49,8 +54,11 @@ export function startClipGesture(options: {
   kindOf: JunctionKindOf;
   /** Edit the sound alone: a linked sound is unlinked first and the picture stays (sound scope). */
   soundOnly?: boolean;
+  /** What the clip's edges snap to (`useSnapCandidates()`). */
+  snapCandidates: SnapCandidates;
 }): void {
-  const { bus, clip, element, root, down, view, playback, media, project, kindOf } = options;
+  const { bus, clip, element, root, down, view, playback, media, project, kindOf, snapCandidates } =
+    options;
   const soundOnly = options.soundOnly === true;
   const pxPerSecond = view.getState().pxPerSecond;
   const mode = gestureMode(down.offsetX, element.offsetWidth);

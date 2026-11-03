@@ -95,6 +95,22 @@ export interface TimelineOverlay extends Scoped {
   component: ComponentType;
 }
 
+/** Times a module adds to what moves, trims and the ruler scrub snap to (markers). */
+export interface TimelineSnapTarget {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  /** The times to snap to on a composition's timeline. */
+  times(state: ProjectState, compositionId: CompositionId): readonly Micros[];
+}
+
+/** Everything a drag snaps to on a composition: clip edges, cuts, the playhead and targets. */
+export type SnapCandidates = (
+  state: ProjectState,
+  compositionId: CompositionId,
+  playhead: Micros,
+  ignore?: ReadonlySet<ClipId>,
+) => Micros[];
+
 /** The timeline module's API for one kernel: its view state (zoom, selection). */
 export interface TimelineApi {
   /** Zoom and selection. Read with `useStore(api.view, selector)`. */

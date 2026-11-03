@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure } from "@/core";
-import type { KeyTrack, ProjectState } from "@/modules/project";
+import { MARKER_COLORS, type KeyTrack, type ProjectState } from "@/modules/project";
 import type { ProjectEnvelope } from "../workspace.types";
 
 const FORMAT = "cloudy-clip-project";
@@ -102,6 +102,19 @@ const documentSchema = z.looseObject({
       props: z.record(z.string(), z.unknown()),
     }),
   ),
+  // Files from before markers open with none.
+  markers: z
+    .record(
+      z.string(),
+      z.looseObject({
+        id: z.string(),
+        compositionId: z.string(),
+        time: z.number(),
+        note: z.string(),
+        color: z.enum(MARKER_COLORS),
+      }),
+    )
+    .default({}),
 });
 
 /** Whether any clip has keys, which only version 3 knows. */

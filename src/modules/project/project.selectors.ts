@@ -4,6 +4,7 @@ import type {
   Clip,
   Composition,
   CompositionId,
+  Marker,
   ProjectFormat,
   ProjectState,
   Track,
@@ -97,4 +98,14 @@ export function followsFileTime(state: Pick<ProjectState, "media">, clip: Clip):
 /** Whether any clip uses the media. */
 export function isMediaInUse(state: ProjectState, mediaId: string): boolean {
   return Object.values(state.clips).some((clip) => clip.mediaId === mediaId);
+}
+
+/** The markers of a composition, by time (ties by id, so the order never flickers). */
+export function compositionMarkers(
+  state: Pick<ProjectState, "markers">,
+  compositionId: CompositionId,
+): Marker[] {
+  return Object.values(state.markers)
+    .filter((marker) => marker.compositionId === compositionId)
+    .sort((a, b) => a.time - b.time || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }

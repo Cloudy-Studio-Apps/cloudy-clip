@@ -21,7 +21,7 @@ lives here, so every change is undoable and readable by agents.
   - `project.store.ts`: `DEFAULT_FORMAT`, `createEmptyProject()`.
   - `project.view.ts`: the view above. `project.testing.ts`: `seedProject(seed)`, one composition `c1` for test fixtures.
   - `logic/compositions.ts`: `contains(state, outer, inner)`, `settleCompositions` (the policy's `settle`, innermost first, inside every step: Extend to fit lengths, placements shortened to their composition, a transition that no longer fits removed with the left clip ending at the next one's start; it never moves a `start`).
-  - `logic/fields.ts`: `projectPolicy`, the store's `StorePolicy`: what lets a step be undone past others' newer steps. `diff` lists changes by field (one level into plain objects; a created or deleted entity is one change), `repair` rebuilds `clipIds`, each `trackOrder`, `compositionOrder`, `mediaOrder`, `binOrder` and `solidOrder`, and `validate` refuses a missing Main, tracks without a composition, a composition inside itself, missing tracks or media, overlaps, stale junctions, two junctions on a cut, an item or bin pointing at a missing bin, and a bin inside itself.
+  - `logic/fields.ts`: `projectPolicy`, the store's `StorePolicy`: what lets a step be undone past others' newer steps. `diff` lists changes by field (one level into plain objects; a created or deleted entity is one change), `repair` rebuilds `clipIds`, each `trackOrder`, `compositionOrder`, `mediaOrder`, `binOrder` and `solidOrder`, and `validate` refuses a missing Main, tracks without a composition, a composition inside itself, missing tracks or media, overlaps, stale junctions, two junctions on a cut, an item or bin pointing at a missing bin, a bin inside itself, and a marker without its composition. `markers` is a record compared field by field, so each marker undoes on its own.
   - `project.selectors.ts`: `requireComposition(state, id)` (the composition, or the `composition.not_found` failure: the one guard every command uses), `orderedTracks(state, compositionId)`, `trackClips`, `clipEnd`,
     `compositionOf`, `compositionClips`, `compositionContent`, `placementsOf`, `formatOf(state, clip)`,
     `formatOfTrack`, `frameDuration`, `isMediaInUse`, `followsFileTime(state, clip)` (false for text and
@@ -45,6 +45,7 @@ lives here, so every change is undoable and readable by agents.
   Video tracks hold pictures only; audio tracks hold sound (a video file's sound sits there as a
   clip of the same media). Clips sharing a `Clip.linkId` are linked (picture and sound of one
   video) and are edited together by the timeline until unlinked.
+- **Markers:** `ProjectState.markers` holds bookmarks on a composition's timeline (`Marker`: `compositionId`, `time`, `note`, `color`, one of `MARKER_COLORS`). `compositionMarkers(state, id)` lists one composition's, by time; `project_get_state` shows them per composition. The `marker` module owns their commands and UI.
 - **Junctions:** `ProjectState.junctions` holds things on the cut between two adjacent clips of one
   track (`Junction`: `kind`, `trackId`, `leftClipId`, `rightClipId`, `duration` = their overlap, `props`).
   Clips on a track overlap only by the `allowedOverlap` of the pair.

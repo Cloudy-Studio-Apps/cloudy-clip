@@ -24,8 +24,8 @@ What a timeline is. A composition is a size, a frame rate, a background, a lengt
 | `composition.createFromMedia` | `composition_create_from_media` | One undo step. Refuses `media.not_ready`, `composition.no_picture`                      |
 | `composition.setSettings`     | `composition_set_settings`      | A `duration` alone turns Extend to fit off; `resize: "scale"` keeps clips in proportion |
 | `composition.setMain`         | `composition_set_main`          |                                                                                         |
-| `composition.duplicate`       | `composition_duplicate`         | Compositions placed inside stay shared                                                  |
-| `composition.delete`          | `composition_delete`            | Refuses `composition.in_use`, `composition.main`                                        |
+| `composition.duplicate`       | `composition_duplicate`         | Copies markers too. Compositions placed inside stay shared                              |
+| `composition.delete`          | `composition_delete`            | Deletes its markers too. Refuses `composition.in_use`, `composition.main`               |
 | `composition.extendToFit`     | `composition_extend_to_fit`     | One-time fit                                                                            |
 | `composition.open`            | `composition_open`              | Not undoable. Sets the caller's own open composition, never the user's                  |
 | `composition.closeTab`        | —                               | Not undoable. The user's tabs                                                           |

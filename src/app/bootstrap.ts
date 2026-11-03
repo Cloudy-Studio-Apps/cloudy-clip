@@ -20,6 +20,7 @@ import { mediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
 import { settingsModule } from "@/modules/settings";
+import { markerModule } from "@/modules/marker";
 import { solidModule } from "@/modules/solid";
 import { soundModule } from "@/modules/sound";
 import { speedModule } from "@/modules/speed";
@@ -55,6 +56,7 @@ const MODULES: AnyModuleDefinition[] = [
   audioModule,
   speedModule,
   keyframeModule,
+  markerModule,
   collabModule,
   tintModule,
   soundModule,

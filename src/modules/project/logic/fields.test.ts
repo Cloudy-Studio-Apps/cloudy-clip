@@ -45,6 +45,7 @@ const before: ProjectState = {
   solids: {},
   solidOrder: [],
   junctions: {},
+  markers: {},
 };
 
 const paths = (after: ProjectState) => projectPolicy.diff(before, after).map((c) => c.path);
@@ -91,6 +92,26 @@ describe("project field changes", () => {
       mediaOrder: ["m1"],
     };
     expect(projectPolicy.diff(before, after)).toEqual([]);
+  });
+});
+
+describe("markers", () => {
+  const marker = { id: "m1", compositionId: "x", time: 5, note: "", color: "blue" } as const;
+  const marked: ProjectState = { ...before, markers: { m1: marker, m2: { ...marker, id: "m2" } } };
+
+  it("are records of their own, so each undoes on its own", () => {
+    const after = {
+      ...marked,
+      markers: { ...marked.markers, m2: { ...marker, id: "m2", note: "x" } },
+    };
+    expect(projectPolicy.diff(marked, after).map((c) => c.path)).toEqual([
+      ["markers", "m2", "note"],
+    ]);
+  });
+
+  it("refuses a marker without its composition", () => {
+    const after = { ...marked, markers: { m1: { ...marker, compositionId: "gone" } } };
+    expect(projectPolicy.validate(after)).toMatch(/marker/);
   });
 });
 

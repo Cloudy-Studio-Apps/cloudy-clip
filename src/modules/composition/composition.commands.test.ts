@@ -80,6 +80,7 @@ beforeEach(async () => {
     solids: {},
     solidOrder: [],
     junctions: {},
+    markers: {},
   };
   await kernel.modules.loadAll([
     createProjectModule(empty),
@@ -118,6 +119,29 @@ describe("composition commands", () => {
     await ok(deleteComposition, main);
     expect(state().mainCompositionId).toBeNull();
     expect(state().tracks).toEqual({});
+  });
+
+  it("deletes and duplicates a composition's markers with it, and undo brings them back", async () => {
+    const main = await ok(createComposition, {});
+    const other = await ok(createComposition, {});
+    const marker = (id: string, compositionId: string) =>
+      ({ id, compositionId, time: S, note: id, color: "blue" }) as const;
+    write((draft) => {
+      draft.markers.a = marker("a", main.compositionId);
+      draft.markers.b = marker("b", other.compositionId);
+    });
+    const copy = await ok(duplicateComposition, other);
+    const copied = Object.values(state().markers).filter(
+      (m) => m.compositionId === copy.compositionId,
+    );
+    expect(copied).toHaveLength(1);
+    expect(copied[0]!.id).not.toBe("b");
+    expect(copied[0]!.note).toBe("b");
+    await ok(deleteComposition, other);
+    expect(state().markers.b).toBeUndefined();
+    expect(state().markers.a).toBeDefined();
+    kernel.history.undo(LOCAL_ACTOR);
+    expect(state().markers.b).toEqual(marker("b", other.compositionId));
   });
 
   it("frees media with the composition that used it", async () => {

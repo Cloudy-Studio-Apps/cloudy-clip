@@ -2,7 +2,7 @@ import { z } from "zod";
 import { defineMcpTool, textResult } from "@/core";
 import { orderedJunctions } from "./logic/junctions";
 import { compositionMixOf, trackMixOf } from "./logic/mix";
-import { orderedTracks, trackClips } from "./project.selectors";
+import { compositionMarkers, orderedTracks, trackClips } from "./project.selectors";
 import { projectRef } from "./project.ref";
 
 /** The whole project in an agent-friendly shape: tracks in order with their clips inline. */
@@ -10,7 +10,7 @@ const getState = defineMcpTool({
   name: "project_get_state",
   readOnly: true,
   description:
-    "Returns the whole project: its description (what it's about, when given), the id of the main composition, the one you have open (`open`), each composition with its settings and mix (master, which of the two mixes is active and the other one), tracks (top to bottom, audio ones with their mix) with their clips in timeline order and junctions (transitions between adjacent clips, ordered by track then time), the imported media, bins and solid colors. Times are microseconds. Call this first.",
+    "Returns the whole project: its description (what it's about, when given), the id of the main composition, the one you have open (`open`), each composition with its settings and mix (master, which of the two mixes is active and the other one), tracks (top to bottom, audio ones with their mix) with their clips in timeline order, junctions (transitions between adjacent clips, ordered by track then time) and markers (bookmarks with a note and a color, by time), the imported media, bins and solid colors. Times are microseconds. Call this first.",
   input: z.object({}),
   handler(_input, ctx) {
     const { store, view } = ctx.require(projectRef);
@@ -42,6 +42,7 @@ const getState = defineMcpTool({
               clips: trackClips(state, track),
             })),
             junctions: orderedJunctions(state, id),
+            markers: compositionMarkers(state, id),
           },
         ];
       }),

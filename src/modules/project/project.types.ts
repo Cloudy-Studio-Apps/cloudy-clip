@@ -404,6 +404,28 @@ export interface ProjectState {
   clips: Record<ClipId, Clip>;
   /** Things on the cut between two adjacent clips of one track (transitions). */
   junctions: Record<JunctionId, Junction>;
+  /** Bookmarks on a composition's timeline, each its own record so each undoes on its own. */
+  markers: Record<MarkerId, Marker>;
+}
+
+/** Id of a marker, unique in the project. */
+export type MarkerId = string;
+
+/** The colors a marker can have, in picker order. Stored by name; the marker module draws them. */
+export const MARKER_COLORS = ["orange", "yellow", "green", "blue", "purple", "pink"] as const;
+
+/** One of {@link MARKER_COLORS}. */
+export type MarkerColor = (typeof MARKER_COLORS)[number];
+
+/** A bookmark at one moment of a composition: a colored flag in the ruler with an optional note. */
+export interface Marker {
+  id: MarkerId;
+  compositionId: CompositionId;
+  /** Where it sits on the composition's timeline. May lie past the composition's end. */
+  time: Micros;
+  /** What it is for; may be empty. */
+  note: string;
+  color: MarkerColor;
 }
 
 /** Id of a junction, unique in the project. */

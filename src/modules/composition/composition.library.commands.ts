@@ -9,7 +9,7 @@ export const duplicateComposition = defineCommand({
   id: "composition.duplicate",
   label: "Duplicate composition",
   description:
-    "Copies a composition with its tracks, clips and transitions. Compositions placed inside it stay shared with the original. Returns { compositionId }.",
+    "Copies a composition with its tracks, clips, transitions and markers. Compositions placed inside it stay shared with the original. Returns { compositionId }.",
   undoable: true,
   input: z.object({ compositionId }),
   run(ctx, { compositionId: id }) {
@@ -24,12 +24,12 @@ export const duplicateComposition = defineCommand({
   },
 });
 
-/** Deletes a composition and everything on its timeline. */
+/** Deletes a composition and everything on its timeline, markers included. */
 export const deleteComposition = defineCommand({
   id: "composition.delete",
   label: "Delete composition",
   description:
-    "Deletes a composition with its tracks, clips and transitions. Fails with composition.in_use while it is placed in another composition, and with composition.main while it is Main and others exist: move Main first.",
+    "Deletes a composition with its tracks, clips, transitions and markers. Fails with composition.in_use while it is placed in another composition, and with composition.main while it is Main and others exist: move Main first.",
   undoable: true,
   input: z.object({ compositionId }),
   run(ctx, { compositionId: id }) {
@@ -56,6 +56,9 @@ export const deleteComposition = defineCommand({
       }
       for (const junction of Object.values(draft.junctions)) {
         if (tracks.has(junction.trackId)) delete draft.junctions[junction.id];
+      }
+      for (const marker of Object.values(draft.markers)) {
+        if (marker.compositionId === id) delete draft.markers[marker.id];
       }
       for (const trackId of tracks) delete draft.tracks[trackId];
       delete draft.compositions[id];
