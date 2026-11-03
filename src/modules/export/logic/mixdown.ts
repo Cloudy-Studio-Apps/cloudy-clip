@@ -16,17 +16,22 @@ import {
   trackValue,
   type Clip,
   type ClipSound,
+  type EqBand,
+  type SoundEffect,
   type ClipSpeed,
   type KeyTrack,
   type CompositionId,
   type MediaId,
   type ProjectState,
   type Track,
+  type TrackId,
 } from "@/modules/project";
 import { envelope, keyMoments } from "./envelope";
 import type {
   ExportRange,
+  EqFilter,
   MixEdges,
+  MixEffect,
   MixNesting,
   MixWindow,
   Mixdown,
@@ -52,15 +57,17 @@ function overlapOf(project: ProjectState, left: Clip | undefined, right: Clip | 
   return overlap > 0 && allowedOverlap(project, left, right) > 0 ? overlap : 0;
 }
 
+/** The bands of an equalizer that change the sound, as filters. */
+const eqFilters = (bands: readonly EqBand[]): EqFilter[] =>
+  bands.filter(bandActive).map(({ shape, hz, db, q }) => ({ kind: shape, hz, db, q }));
+
 /** What a clip's sound adds to a segment; nothing at the defaults. */
 function soundFields(
   sound: ClipSound,
   { gain, pan }: Placed,
   keyed: Pick<SoundSegment, "gainEnvelope" | "panEnvelope">,
 ): Partial<SoundSegment> {
-  const eq = sound.eq.on
-    ? sound.eq.bands.filter(bandActive).map(({ shape, hz, db, q }) => ({ kind: shape, hz, db, q }))
-    : [];
+  const eq = sound.eq.on ? eqFilters(sound.eq.bands) : [];
   const pitch = pitchShift(sound);
   return {
     ...(keyed.gainEnvelope ? { gainEnvelope: keyed.gainEnvelope } : gain !== 1 && { gain }),
@@ -267,17 +274,70 @@ function walk(
   }
 }
 
-/** The mix of the composition's audio tracks, in order, and of its master, as linear levels. */
+/**
+ * The effects of a chain that change the sound, as the preview runs them: off ones, noise
+ * reduction (a rendered file) and an EQ without a working band are left out, and a duck listens
+ * to tracks by their index in `tracks` (one that isn't there keys nothing).
+ */
+function mixEffects(
+  effects: readonly SoundEffect[] | undefined,
+  tracks: readonly TrackId[],
+): MixEffect[] {
+  return (effects ?? []).flatMap((effect): MixEffect[] => {
+    if (!effect.on) return [];
+    switch (effect.kind) {
+      case "eq": {
+        const bands = eqFilters(effect.bands);
+        return bands.length > 0 ? [{ kind: "eq", bands }] : [];
+      }
+      case "compressor":
+        return [{ kind: "compressor", params: effect.params }];
+      case "gate": {
+        const { thresholdDb, ratio, attackMs, releaseMs } = effect;
+        return [{ kind: "gate", thresholdDb, ratio, attackMs, releaseMs }];
+      }
+      case "deesser":
+        return [{ kind: "deesser", frequencyHz: effect.frequencyHz, amount: effect.amount }];
+      case "limiter":
+        return [{ kind: "limiter", ceilingDb: effect.ceilingDb, releaseMs: effect.releaseMs }];
+      case "denoise":
+        return [];
+      case "duck": {
+        const { depthDb, attackMs, releaseMs } = effect;
+        const listensTo = effect.listensTo.flatMap((id) => {
+          const index = tracks.indexOf(id);
+          return index < 0 ? [] : [index];
+        });
+        return [{ kind: "duck", listensTo, depthDb, attackMs, releaseMs }];
+      }
+    }
+  });
+}
+
+/** `effects` when there are some, for a spec that leaves them out otherwise. */
+const withEffects = (effects: MixEffect[]) => (effects.length > 0 ? { effects } : {});
+
+/**
+ * The mix of the composition's audio tracks, in order, and of its master, as linear levels, with
+ * the effects that work. Muted tracks keep their place (their clips are left out, so a duck
+ * listening to one hears nothing).
+ */
 function mixOf(project: ProjectState, compositionId: CompositionId): Mixdown["mix"] {
   const composition = project.compositions[compositionId];
   if (!composition) return NO_MIX;
-  const tracks = composition.trackOrder.flatMap((id) => {
-    const track = project.tracks[id];
-    if (track?.kind !== "audio") return [];
-    const { volumeDb, pan } = trackMixOf(track);
-    return [{ gain: dbToLinear(volumeDb), pan }];
+  const audio = composition.trackOrder.filter((id) => project.tracks[id]?.kind === "audio");
+  const tracks = audio.map((id) => {
+    const { volumeDb, pan, effects } = trackMixOf(project.tracks[id]!);
+    return { gain: dbToLinear(volumeDb), pan, ...withEffects(mixEffects(effects, audio)) };
   });
-  return { tracks, master: { gain: dbToLinear(compositionMixOf(composition).master.volumeDb) } };
+  const master = compositionMixOf(composition).master;
+  return {
+    tracks,
+    master: {
+      gain: dbToLinear(master.volumeDb),
+      ...withEffects(mixEffects(master.effects, audio)),
+    },
+  };
 }
 
 /**

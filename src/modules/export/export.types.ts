@@ -2,7 +2,17 @@ import type { StoreApi } from "zustand/vanilla";
 import type { Logger, Micros } from "@/core";
 import type { MediaApi } from "@/modules/media";
 import type { PreviewApi } from "@/modules/preview";
-import type { CompositionId, EqBand, ProjectFormat, ProjectState } from "@/modules/project";
+import type {
+  CompositionId,
+  CompressorParams,
+  DeesserEffect,
+  DuckEffect,
+  EqBand,
+  GateEffect,
+  LimiterEffect,
+  ProjectFormat,
+  ProjectState,
+} from "@/modules/project";
 
 /** The part of a composition's timeline that gets exported. */
 export interface ExportRange {
@@ -51,19 +61,35 @@ export interface SoundSegment {
   tempoSteps?: TempoStep[];
 }
 
-/** How a track mixes its clips: a level and a pan on their sum (mirrors `TrackMixSpec` in Rust). */
+/**
+ * An effect that works, as the export applies it (mirrors `MixEffect` in Rust): the document's
+ * `SoundEffect` without its id and switch, the EQ as the bands that change the sound, and a
+ * duck's tracks as indexes into `SoundMix.tracks`. Noise reduction isn't one: it plays a file.
+ */
+export type MixEffect =
+  | { kind: "eq"; bands: EqFilter[] }
+  | { kind: "compressor"; params: CompressorParams }
+  | Pick<GateEffect, "kind" | "thresholdDb" | "ratio" | "attackMs" | "releaseMs">
+  | Pick<DeesserEffect, "kind" | "frequencyHz" | "amount">
+  | Pick<LimiterEffect, "kind" | "ceilingDb" | "releaseMs">
+  | (Pick<DuckEffect, "kind" | "depthDb" | "attackMs" | "releaseMs"> & { listensTo: number[] });
+
+/** How a track mixes its clips: effects, a pan and a level on their sum (mirrors `TrackMixSpec` in Rust). */
 export interface TrackMixSpec {
   /** Linear level. */
   gain: number;
   /** -1 (left) to 1 (right). */
   pan: number;
+  /** Before the pan and the level, in order. Missing when none works. */
+  effects?: MixEffect[];
 }
 
 /** How the tracks mix, then the master (mirrors `SoundMix` in Rust). Solo is never in it. */
 export interface SoundMix {
   /** The composition's audio tracks in order; a segment's `track` indexes this. */
   tracks: TrackMixSpec[];
-  master: { gain: number };
+  /** Its level, then its effects. */
+  master: { gain: number; effects?: MixEffect[] };
 }
 
 /** What sounds in an export: the stretches of files, and how the tracks they sit on mix. */

@@ -129,3 +129,30 @@ loud the key the track goes down by `depthDb` at most, and at 0 dB nothing happe
 and ratio (20) are fixed so the key reaches the depth soon after it speaks.
 
 Not run: RMS detection, upward modes, the limiter's `asc`, and the worklet in WebKitGTK (no one listened).
+
+## The export against the preview, end to end
+
+Checked on 3 Nov 2026 with the same `ffmpeg` n9.0.2, after effects reached the export (Stage 2, Task 4).
+Two 4 s stereo signals at 48 kHz, made by `aevalsrc` and written as 32-bit float WAV: a "voice" (300 Hz
+at 0.3 and 310 Hz at 0.25 from 1 to 2 s and 3 to 3.5 s, a 6.5 kHz burst from 1.2 to 1.4 s, a quiet floor
+otherwise) and "music" (1 kHz at 0.25 with a 120 Hz burst at 0.6 from 2.5 to 3 s on the left, 700 Hz
+dropping from 0.3 to 0.05 at 2 s on the right). The export spec put the voice on track 0 (gate −30 dB, 2,
+10 / 200 ms, then de-esser 6500 Hz, 0.5; pan −0.3, level 0.8) and the music on track 1 (compressor −20 dB,
+3, 20 / 250 ms, 9 dB knee, 2 dB makeup, then a duck listening to track 0, −12 dB, 20 / 300 ms; pan 0.2,
+level 0.7), the master at 1.2 with a limiter (−3 dB, 80 ms). Its graph came from the real `arguments()`
+(the spec deserialized as the frontend sends it), run by ffmpeg to `-map [mixed] -f f32le`. The same
+samples went through the preview's order with `createEffectRunner` (128-sample blocks): gate → de-esser →
+pan → level for track 0; compressor → duck keyed by track 0 after its level → pan → level for track 1;
+sum → master level → limiter.
+
+| Case                                   | Largest sample difference | Largest difference from a dry mix |
+| -------------------------------------- | ------------------------- | --------------------------------- |
+| Both clips 4 s                         | 3.6e-7                    | 1.250                             |
+| Voice clip ends at 2.5 s (tail padded) | 3.6e-7                    | 1.250                             |
+
+The difference is the pan and level written to six decimals and FFmpeg's 32-bit floats between filters.
+The check first found that the compressor's spec read its settings flat while the frontend sends them in
+`params`; fixed, and `mixeffects.rs` has a test that reads every kind as the frontend writes it.
+
+Not run: the EQ effect (the clip EQ's filters, checked in Stage 1), more than one key track, the app's own
+export path (the spec was written by hand to match `mixdown`'s output).

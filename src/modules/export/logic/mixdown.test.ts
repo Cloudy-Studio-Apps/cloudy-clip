@@ -315,6 +315,63 @@ describe("mixdown", () => {
     expect(mix.master.gain).toBeCloseTo(dbToLinear(6), 6);
   });
 
+  it("carries the effects that work, a duck listening by track index", () => {
+    const state = project([clip("a", "a1"), clip("b", "a3")]);
+    state.tracks.a3 = { ...state.tracks.a1!, id: "a3", name: "A3", clipIds: ["b"] };
+    state.tracks.a1!.clipIds = ["a"];
+    state.compositions.c1!.trackOrder = ["a1", "a3"];
+    const params = {
+      thresholdDb: -18,
+      ratio: 4,
+      attackMs: 20,
+      releaseMs: 250,
+      kneeDb: 9,
+      makeupDb: 0,
+    };
+    const flat = DEFAULT_SOUND.eq.bands.map((band) => ({ ...band, on: false }));
+    state.tracks.a3.mix = {
+      volumeDb: 0,
+      pan: 0,
+      effects: [
+        { id: "e1", on: true, kind: "compressor", params },
+        {
+          id: "e2",
+          on: false,
+          kind: "gate",
+          thresholdDb: -40,
+          ratio: 2,
+          attackMs: 1,
+          releaseMs: 9,
+        },
+        { id: "e3", on: true, kind: "denoise", amountDb: 12, floorDb: -50 },
+        { id: "e4", on: true, kind: "eq", bands: flat },
+        {
+          id: "e5",
+          on: true,
+          kind: "duck",
+          listensTo: ["a1", "gone"],
+          depthDb: -12,
+          attackMs: 20,
+          releaseMs: 300,
+        },
+      ],
+    };
+    state.compositions.c1!.mix = {
+      master: {
+        volumeDb: 0,
+        effects: [{ id: "e6", on: true, kind: "limiter", ceilingDb: -1, releaseMs: 50 }],
+      },
+      activeMix: "a",
+    };
+    const { mix } = mixdownWithMix(state, "c1", everything, sounds);
+    expect(mix.tracks[0]).toEqual({ gain: 1, pan: 0 });
+    expect(mix.tracks[1]!.effects).toEqual([
+      { kind: "compressor", params },
+      { kind: "duck", listensTo: [0], depthDb: -12, attackMs: 20, releaseMs: 300 },
+    ]);
+    expect(mix.master.effects).toEqual([{ kind: "limiter", ceilingDb: -1, releaseMs: 50 }]);
+  });
+
   it("sounds an inner clip through the outer track, with the inner track's mix folded in", () => {
     const state = withPlacement(project([]), { innerMuted: false });
     state.tracks.a2!.mix = { volumeDb: -6, pan: 0.25 };

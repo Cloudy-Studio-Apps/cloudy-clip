@@ -7,6 +7,7 @@ pub mod commands;
 pub mod encoders;
 mod frames;
 pub mod job;
+mod mixeffects;
 mod mixgraph;
 pub mod recipe;
 mod soundfilters;

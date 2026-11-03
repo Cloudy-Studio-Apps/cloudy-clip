@@ -1,4 +1,5 @@
 //! The FFmpeg filters of one clip's sound: tempo, pitch, equalizer, pan and keyed volume and pan.
+//! The equalizer is also the EQ effect's (`mixeffects`).
 //! Each builds a piece of a segment's chain; `recipe` assembles the segments and `mixgraph` mixes
 //! them.
 
@@ -215,6 +216,20 @@ pub(super) fn pan_envelope_filter(n: usize, points: &[EnvelopePoint]) -> String 
     text
 }
 
+/// The filters of equalizer bands, in order: a clip's EQ and the EQ effect of a track or master.
+pub(super) fn eq_filters(bands: &[EqFilter]) -> String {
+    bands
+        .iter()
+        .map(|EqFilter { kind, hz, db, q }| match kind {
+            EqKind::Bell => format!(",equalizer=f={hz:.2}:t=q:w={q:.2}:g={db:.2}"),
+            EqKind::LowShelf => format!(",bass=g={db:.2}:f={hz:.2}:t=s:w=1"),
+            EqKind::HighShelf => format!(",treble=g={db:.2}:f={hz:.2}:t=s:w=1"),
+            EqKind::LowCut => format!(",highpass=f={hz:.2}"),
+            EqKind::HighCut => format!(",lowpass=f={hz:.2}"),
+        })
+        .collect()
+}
+
 /// What a clip's sound settings add, in the preview's order. Empty at the defaults. `n` keeps the
 /// labels of one segment apart from the others'.
 pub(super) fn effects(n: usize, segment: &SoundSegment) -> String {
@@ -233,15 +248,7 @@ pub(super) fn effects(n: usize, segment: &SoundSegment) -> String {
         chain.push_str(&format!(",asetrate={rate:.3},aresample={SAMPLE_RATE}"));
         chain.push_str(&tempo_steps(1.0 / ratio));
     }
-    for EqFilter { kind, hz, db, q } in &segment.eq {
-        chain.push_str(&match kind {
-            EqKind::Bell => format!(",equalizer=f={hz:.2}:t=q:w={q:.2}:g={db:.2}"),
-            EqKind::LowShelf => format!(",bass=g={db:.2}:f={hz:.2}:t=s:w=1"),
-            EqKind::HighShelf => format!(",treble=g={db:.2}:f={hz:.2}:t=s:w=1"),
-            EqKind::LowCut => format!(",highpass=f={hz:.2}"),
-            EqKind::HighCut => format!(",lowpass=f={hz:.2}"),
-        });
-    }
+    chain.push_str(&eq_filters(&segment.eq));
     if segment.pan != 0.0 && segment.pan_envelope.is_empty() {
         chain.push_str(&pan_filter(segment.pan));
     }

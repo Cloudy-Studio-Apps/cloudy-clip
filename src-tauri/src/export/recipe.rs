@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
+use super::mixeffects::MixEffect;
 use super::mixgraph;
 use super::soundfilters::{STEP_LEAD, effects, gain_envelope_filter, pan_envelope_filter};
 
@@ -120,7 +121,7 @@ fn yes() -> bool {
 }
 
 /// The shape of an equalizer band.
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum EqKind {
     Bell,
@@ -131,7 +132,7 @@ pub enum EqKind {
 }
 
 /// One band of a clip's equalizer that changes the sound.
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub struct EqFilter {
     pub kind: EqKind,
     pub hz: f64,
@@ -139,8 +140,8 @@ pub struct EqFilter {
     pub q: f64,
 }
 
-/// How a track mixes its clips: a level and a pan on their sum.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+/// How a track mixes its clips: its effects, then a pan and a level, on their sum.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct TrackMixSpec {
     /// Linear level.
     #[serde(default = "one")]
@@ -148,6 +149,9 @@ pub struct TrackMixSpec {
     /// -1 (left) to 1 (right).
     #[serde(default)]
     pub pan: f64,
+    /// The effects before the pan and the level, in order.
+    #[serde(default)]
+    pub effects: Vec<MixEffect>,
 }
 
 impl TrackMixSpec {
@@ -155,18 +159,22 @@ impl TrackMixSpec {
     pub const DEFAULT: TrackMixSpec = TrackMixSpec {
         gain: 1.0,
         pan: 0.0,
+        effects: Vec::new(),
     };
 }
 
-/// The level of everything together.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+/// The level of everything together, then its effects.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct MasterMixSpec {
     /// Linear level.
     #[serde(default = "one")]
     pub gain: f64,
+    /// The effects after the level, in order. A duck here is ignored: the document refuses one.
+    #[serde(default)]
+    pub effects: Vec<MixEffect>,
 }
 
-/// How the tracks mix: each track's level and pan, then the master's level.
+/// How the tracks mix: each track's effects, pan and level, then the master's level and effects.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct SoundMix {
     pub tracks: Vec<TrackMixSpec>,
@@ -178,7 +186,10 @@ impl SoundMix {
     pub fn default_for(tracks: usize) -> Self {
         SoundMix {
             tracks: vec![TrackMixSpec::DEFAULT; tracks],
-            master: MasterMixSpec { gain: 1.0 },
+            master: MasterMixSpec {
+                gain: 1.0,
+                effects: Vec::new(),
+            },
         }
     }
 }
