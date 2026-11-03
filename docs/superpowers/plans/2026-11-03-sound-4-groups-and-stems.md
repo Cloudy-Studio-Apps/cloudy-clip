@@ -38,14 +38,18 @@
 ```
 src/modules/
   project/
-    ~ project.types.ts                          MixBus, BusId, TrackMix.busId, CompositionMix.buses
+    ~ project.types.ts                          MixBus, BusId, TrackMix.busId, CompositionMix.buses; CompositionMix.master gains pan and muted
     ~ logic/mix.ts, README.md
   sound/
     + sound.bus.commands.ts                     addBus, setBus, removeBus, sendTo
     + sound.bus.commands.test.ts
-    + ui/BusStrip.tsx
-    ~ ui/MixerPanel.tsx                         group strips, filters per group
-    ~ ui/MixerStrip.tsx                         Sends to picker
+    + ui/mixer/BusStrip.tsx
+    ~ ui/mixer/MixerPanel.tsx                   group strips
+    ~ ui/mixer/MixerFilter.tsx                  one filter per group
+    ~ ui/mixer/MixerStrip.tsx, ui/mixer/SendsTo.tsx   Sends to picker
+    ~ ui/mixer/MasterStrip.tsx, ui/mixer/MasterPan.tsx, ui/mixer/ReadButton.tsx   Pan, M and Read work
+    ~ ui/deliver/FormatCard.tsx, ui/deliver/StemsCard.tsx   formats and stems work
+    ~ ui/soon/soon.catalog.ts                   loses this stage's entries
     ~ sound.mix.commands.ts                     switchMix includes buses
     ~ sound.mcp.ts, README.md
   preview/
@@ -76,7 +80,7 @@ src-tauri/src/export/
 
 ### Task 2: Groups heard, exported and shown
 
-**Files:** Create `ui/BusStrip.tsx`. Modify `engine.mixbus.ts`, `mixdown.ts`, `mixdown.test.ts`, `export.types.ts`, `mixgraph.rs`, `MixerPanel.tsx`, `MixerStrip.tsx`.
+**Files:** Create `ui/mixer/BusStrip.tsx`. Modify `engine.mixbus.ts`, `mixdown.ts`, `mixdown.test.ts`, `export.types.ts`, `mixgraph.rs`, `ui/mixer/MixerPanel.tsx`, `ui/mixer/MixerStrip.tsx`, `ui/mixer/MixerFilter.tsx`.
 
 **Interfaces:** `TrackMixSpec.bus?: number` into `SoundMix.buses: BusMixSpec[]`.
 
@@ -100,3 +104,15 @@ src-tauri/src/export/
 
 - [ ] **Step 1: Write the failing Rust test:** two groups and a direct track give four outputs, each mapped once.
 - [ ] **Step 2:** Implement until PASS. Check by hand that the stems summed in a DAW or with `amix` equal the mix before Master. Update README. Commit: `feat(export): stems`.
+
+### Task 5: Master's Pan, M and Read
+
+Added by the layout work (owner's answer 3, `docs/superpowers/plans/2026-11-03-sound-layout.md`). The Master strip draws Pan, M and Read; they say "coming soon" until this task.
+
+**Files:** Modify `project.types.ts`, `logic/mix.ts`, `sound.mix.commands.ts`, `sound.mcp.ts`, the preview's `engine.mixbus.ts`, `export/logic/mixdown.ts`, `mixgraph.rs`, `ui/mixer/MasterStrip.tsx`, `ui/mixer/MasterPan.tsx`, `ui/mixer/ReadButton.tsx`, `ui/soon/soon.catalog.ts`, `sound/README.md`.
+
+**Interfaces:** `CompositionMix.master` gains `pan` and `muted` (default centre and false, never stored when default); `sound.setMaster` takes them. Read is the master's automation mode, offered once stage 3's modes exist.
+
+- [ ] **Step 1: Write the failing tests:** a mix with the default pan and not muted stores nothing; switching A and B swaps them; the mixdown's master gain is 0 when muted.
+- [ ] **Step 2:** Implement until PASS: preview and export hear the master's pan and mute; the strip's Pan, M and Read write through `sound.setMaster` and the automation mode.
+- [ ] **Step 3: Replace this stage's placeholders with the working controls and remove its entries from `ui/soon/soon.catalog.ts`**, with their `soon(…)` calls: `mixer.filter` (`ui/mixer/MixerFilter.tsx`, one filter per group), `master.pan` (`ui/mixer/MasterPan.tsx`), `master.mute` and `master.read` (`ui/mixer/MasterStrip.tsx`, `ui/mixer/ReadButton.tsx`), `deliver.format` (`ui/deliver/FormatCard.tsx`, Task 3) and `deliver.stems` (`ui/deliver/StemsCard.tsx`, Task 4). Update the README's Placeholders and Not yet. Full checks. Commit: `feat(sound): the master's pan, mute and read`.

@@ -34,10 +34,11 @@ src/modules/
     + sound.tools.commands.test.ts
     + logic/silence.ts, logic/silence.test.ts   silent stretches to cuts
     + sound.beats.store.ts                      beats per file
-    + ui/BeatTicks.tsx                          a timelineOverlay, both scopes
-    + ui/StripSilenceDialog.tsx, ui/MatchLevelDialog.tsx
+    + ui/lanes/BeatTicks.tsx                    a timelineOverlay, both scopes
+    + ui/transport/StripSilenceDialog.tsx, ui/transport/MatchLevelDialog.tsx
     + sound.menu.ts                             Strip silence in the clip menu on Edit
-    ~ ui/SoundTransport.tsx, sound.module.ts, sound.mcp.ts, README.md
+    ~ ui/transport/QuickTools.tsx, sound.module.ts, sound.mcp.ts, README.md
+    ~ ui/soon/soon.catalog.ts                   loses this stage's entries (the folder goes when it is empty)
 src-tauri/src/sound/
   + beats.rs                                    onset detection
   ~ analyze.rs                                  silencedetect, per-clip loudness
@@ -55,27 +56,28 @@ src-tauri/src/sound/
 
 ### Task 1: Find beats
 
-**Files:** Create `src-tauri/src/sound/beats.rs`, `sound.beats.store.ts`, `ui/BeatTicks.tsx`. Modify `sound/commands.rs`, `sound.module.ts`, READMEs.
+**Files:** Create `src-tauri/src/sound/beats.rs`, `sound.beats.store.ts`, `ui/lanes/BeatTicks.tsx`. Modify `ui/transport/QuickTools.tsx`. Modify `sound/commands.rs`, `sound.module.ts`, READMEs.
 
 **Interfaces:** Tauri `sound_beats({ path }) -> { beats: u64[] }` in file microseconds, cached by path and file size and mtime. `sound` contributes `sound.beats` to the existing `timelineSnapTargets` (`{ id; times(state, compositionId) }`).
 
 - [ ] **Step 1: Write the failing Rust tests:** a synthetic click track at 120 BPM gives beats every 500 ms ±10 ms; a sine gives none.
-- [ ] **Step 2:** Implement (spectral flux onsets, then a tempo estimate to drop strays) until PASS. Wire the ticks and snapping. Commit: `feat(sound): find beats`.
+- [ ] **Step 2:** Implement (spectral flux onsets, then a tempo estimate to drop strays) until PASS. Wire the ticks and snapping. Replace this task's placeholder with the working control: remove `transport.findBeats` from `ui/soon/soon.catalog.ts` and its `soon(…)` call in `ui/transport/QuickTools.tsx`. Commit: `feat(sound): find beats`.
 
 ### Task 2: Strip silence
 
-**Files:** Create `logic/silence.ts`, `silence.test.ts`, `sound.tools.commands.ts`, `sound.tools.commands.test.ts`, `ui/StripSilenceDialog.tsx`, `sound.menu.ts`. Modify `analyze.rs`, `sound/commands.rs`.
+**Files:** Create `logic/silence.ts`, `silence.test.ts`, `sound.tools.commands.ts`, `sound.tools.commands.test.ts`, `ui/transport/StripSilenceDialog.tsx`, `sound.menu.ts`. Modify `ui/transport/QuickTools.tsx`, Modify `analyze.rs`, `sound/commands.rs`.
 
 **Interfaces:** Tauri `sound_silences({ path, from, to, thresholdDb, minMs }) -> { stretches: [u64, u64][] }`. `cutsFor(clip, stretches, padMs): Cut[]` in timeline time. Command `sound.stripSilence { clipIds; thresholdDb; minMs; padMs; closeGaps }`; with `soundOnly` on the Sound page.
 
 - [ ] **Step 1: Write the failing tests:** stretches shorter than `minMs` are kept; padding keeps `padMs` of quiet each side; a clip at 2× maps stretches through `timeOfContent`; with `closeGaps` the clips after move left by the removed time; on the Sound page a linked clip's picture is untouched.
-- [ ] **Step 2:** Implement until PASS. The dialog previews the cuts on the lane, names tracks that would drift, and sends one command. Commit: `feat(sound): strip silence`.
+- [ ] **Step 2:** Implement until PASS. The dialog previews the cuts on the lane, names tracks that would drift, and sends one command. Replace this task's placeholder: remove `transport.stripSilence` from `ui/soon/soon.catalog.ts` and its `soon(…)` call in `ui/transport/QuickTools.tsx`. Commit: `feat(sound): strip silence`.
 
 ### Task 3: Match level
 
-**Files:** Modify `sound.tools.commands.ts`, its test, `analyze.rs`, `sound/commands.rs`. Create `ui/MatchLevelDialog.tsx`.
+**Files:** Modify `sound.tools.commands.ts`, its test, `analyze.rs`, `sound/commands.rs`. Create `ui/transport/MatchLevelDialog.tsx`. Modify `ui/transport/QuickTools.tsx`.
 
 **Interfaces:** Tauri `sound_clip_loudness({ path, from, to }) -> Option<f64>`. Command `sound.matchLevel { clipIds; targetLufs? }`: target defaults to the loudest selected clip.
 
 - [ ] **Step 1: Write the failing tests:** two clips at −20 and −26 LUFS with no target end with `volumeDb` differing by 6; a clip with volume keys gets all keys offset by the same dB.
-- [ ] **Step 2:** Implement until PASS. Commit: `feat(sound): match level`.
+- [ ] **Step 2:** Implement until PASS.
+- [ ] **Step 3: Replace this stage's last placeholder** and remove `transport.matchLevel` from `ui/soon/soon.catalog.ts`, with its `soon(…)` call. When the catalog is empty, delete `ui/soon/` (`soon.props.ts`, `soon.catalog.ts`, `index.ts`), `SoonEntry` and `SoonId` in `sound.types.ts`, and the README's Placeholders paragraph. Commit: `feat(sound): match level`.

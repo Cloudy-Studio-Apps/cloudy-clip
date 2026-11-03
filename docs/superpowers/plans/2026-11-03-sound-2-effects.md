@@ -170,3 +170,15 @@ src-tauri/src/
 - [ ] **Step 1: Write the failing Rust test:** the cache path changes with the settings and the recipe number, and not with anything else.
 - [ ] **Step 2:** Run `cargo test sound::denoise`. Expected: FAIL. Implement until PASS.
 - [ ] **Step 3:** Wire preview and export; check by hand on a noisy file, both during and after the render. Update READMEs. Commit: `feat(sound): noise reduction`.
+
+### Task 7: The compressor's live gain reduction
+
+Added by the layout work (owner's answer 3, `docs/superpowers/plans/2026-11-03-sound-layout.md`). The Channel tab's Compressor card draws a Reduction row that shows `—` and says "coming soon" until this task.
+
+**Files:** Modify `preview/engine/dynamics.worklet.ts`, `preview/engine/engine.dynamics.ts`, `preview/preview.types.ts`, `preview/README.md`, `sound/ui/effects/CompressorSection.tsx`, `sound/ui/soon/soon.catalog.ts`, `sound/README.md`.
+
+**Interfaces:** `PreviewSound` reports the reduction the dynamics worklet applies to a track (or the master), in dB, as a value read once a frame (like `levels()`), never as React state.
+
+- [ ] **Step 1:** The worklet posts its gain reduction; the preview keeps the latest per strip and exposes it through `PreviewSound`.
+- [ ] **Step 2:** The Reduction row in `ui/effects/CompressorSection.tsx` shows it through the DOM (a ref written by the page's meter loop, rule 24), `—` while nothing plays.
+- [ ] **Step 3:** Replace this task's placeholder with the working control and remove its entry from `ui/soon/soon.catalog.ts`: `compressor.reduction` (and its `soon("compressor.reduction")` call). Update the READMEs (`sound`: Placeholders, Not yet; `preview`). Full checks. Commit: `feat(sound): the compressor's live gain reduction`.

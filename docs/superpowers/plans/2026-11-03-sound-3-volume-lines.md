@@ -45,11 +45,14 @@ src/modules/
   sound/
     + sound.line.commands.ts                    setLine, addPoints, movePoints, removePoints, writePass
     + sound.line.commands.test.ts
-    + ui/ClipVolumeLine.tsx, ui/clipline.gesture.ts    a clipActions badge, both scopes
-    + ui/TrackVolumeLine.tsx, ui/trackline.gesture.ts  a timelineOverlay, both scopes
-    + ui/automation.hook.ts                     Touch and Latch while playing
-    ~ ui/SoundTransport.tsx                     Draw volume, automation mode
-    ~ ui/MixerStrip.tsx                         mode button, offset shown
+    + ui/lanes/ClipVolumeLine.tsx, ui/lanes/clipline.gesture.ts    a clipActions badge, both scopes
+    + ui/lanes/TrackVolumeLine.tsx, ui/lanes/trackline.gesture.ts  a timelineOverlay, both scopes
+    + ui/lanes/automation.hook.ts               Touch and Latch while playing
+    + ui/lanes/blade.gesture.ts, ui/lanes/fade.gesture.ts, ui/lanes/scrub.gesture.ts   the pointer tools
+    ~ ui/transport/PointerTools.tsx             the tools work (Select, Cut, Fade, Draw volume, Scrub)
+    ~ ui/lanes/DrawVolumeTool.tsx, ui/lanes/AutomationNote.tsx   the pen and the mode work
+    ~ ui/mixer/MixerStrip.tsx, ui/mixer/ReadButton.tsx   mode button, offset shown
+    ~ ui/soon/soon.catalog.ts                   loses this stage's entries
     ~ sound.store.ts, sound.module.ts, sound.mcp.ts, sound.types.ts, README.md
   preview/
     ~ engine/engine.mixbus.ts                   schedules the line on the bus gain
@@ -67,7 +70,7 @@ src-tauri/src/export/
 
 ### Task 1: The clip volume line
 
-**Files:** Create `ui/ClipVolumeLine.tsx`, `ui/clipline.gesture.ts`. Modify `sound.module.ts`, `sound/README.md`.
+**Files:** Create `ui/lanes/ClipVolumeLine.tsx`, `ui/lanes/clipline.gesture.ts`. Modify `sound.module.ts`, `sound/README.md`.
 
 **Interfaces:** Consumes `keyframe.set`, `keyframe.move`, `keyframe.remove`, `timeOfContent`, `contentTime` from `project`. Produces a `clipActions` badge `sound.clipLine`, `scopes: ["all", "sound"]`, on clips of audio tracks.
 
@@ -95,7 +98,7 @@ src-tauri/src/export/
 
 ### Task 4: Drawing and automation
 
-**Files:** Create `ui/TrackVolumeLine.tsx`, `ui/trackline.gesture.ts`, `ui/automation.hook.ts`. Modify `export/logic/envelope.ts`, `envelope.test.ts`, `SoundTransport.tsx`, `MixerStrip.tsx`, `sound.store.ts`, `sound.types.ts`.
+**Files:** Create `ui/lanes/TrackVolumeLine.tsx`, `ui/lanes/trackline.gesture.ts`, `ui/lanes/automation.hook.ts`. Modify `export/logic/envelope.ts`, `envelope.test.ts`, `ui/transport/PointerTools.tsx`, `ui/lanes/DrawVolumeTool.tsx`, `ui/lanes/AutomationNote.tsx`, `ui/mixer/MixerStrip.tsx`, `ui/mixer/ReadButton.tsx`, `sound.store.ts`, `sound.types.ts`.
 
 **Interfaces:** `simplify(points: EnvelopePoint[], tolerance: number): EnvelopePoint[]` extracted from `envelope()` in `envelope.ts`, which then calls it; strokes use it with 0.5 dB. `SoundViewState.automation: Record<TrackId, "read" | "touch" | "latch">` and `lineView: Record<TrackId, boolean>` (the track line in front). The track line is a `timelineOverlay` with `scopes: ["all", "sound"]`.
 
@@ -104,3 +107,18 @@ src-tauri/src/export/
 - [ ] **Step 3:** Draw volume: a drag over a lane draws on the track line when `lineView` is on, otherwise on the clip line; the stroke is thinned and sent as one `sound.writePass` or one `keyframe` batch.
 - [ ] **Step 4:** Automation: in Touch, holding the fader while playing records `{at, db}` each frame, and releasing stops the record; Latch keeps recording until stop. On stop (or page or composition change) one `sound.writePass` with the thinned points. Read plays the line only. A test: Touch released at 2 s of a pass from 0 to 4 s leaves the line after 2 s as it was.
 - [ ] **Step 5:** Full checks. Update READMEs. Commit: `feat(sound): draw volume and fader automation`.
+
+### Task 5: Pointer tools
+
+Added by the layout work (owner's answer 3, `docs/superpowers/plans/2026-11-03-sound-layout.md`). The transport row draws Select, Cut, Fade, Draw volume and Scrub; only Select and Snap work today, the others say "coming soon".
+
+**Files:** Create `ui/lanes/blade.gesture.ts`, `ui/lanes/fade.gesture.ts`, `ui/lanes/scrub.gesture.ts`, `ui/lanes/PointerLayer.tsx`. Modify `ui/transport/PointerTools.tsx`, `sound.store.ts`, `sound.types.ts`, `sound.module.ts`, `ui/soon/soon.catalog.ts`, `sound/README.md`.
+
+**Interfaces:** `SoundViewState.tool: "select" | "cut" | "fade" | "draw" | "scrub"` (view state, never in history). Scrub calls `PreviewApi.scrub`.
+
+- [ ] **Step 1: Select and the tool state.** Select is the default; choosing a tool is one `view` write, never a command.
+- [ ] **Step 2: Cut (the blade).** A click on a clip cuts it there: one `timeline.splitAt` at that time, snapping as a split does; Shift cuts every track. Cut at the playhead stays the toolbar's Split and S.
+- [ ] **Step 3: Fade.** Dragging on a clip's edge sets its fade through `audio.setSound`, one command on release (the clip's fade handles stay).
+- [ ] **Step 4: Draw volume.** The tool Task 4 built; the transport's pen and the toolbar's pen select it.
+- [ ] **Step 5: Scrub.** Dragging on the lanes plays slices through `PreviewApi.scrub`, as the ruler's scrub does; nothing is written.
+- [ ] **Step 6: Replace this stage's placeholders with the working controls and remove its entries from `ui/soon/soon.catalog.ts`**, with their `soon(…)` calls: `transport.cut`, `transport.fade`, `transport.drawVolume`, `transport.scrub` (`ui/transport/PointerTools.tsx`), `lanes.drawVolume` (`ui/lanes/DrawVolumeTool.tsx`), `lanes.automation` (`ui/lanes/AutomationNote.tsx`), `mixer.read` (`ui/mixer/ReadButton.tsx`, the strips' Read). Master's Read (`master.read`) is stage 4's. Update the README's Placeholders and Not yet. Full checks. Commit: `feat(sound): pointer tools`.

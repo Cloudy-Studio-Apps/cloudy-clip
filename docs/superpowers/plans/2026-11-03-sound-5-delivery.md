@@ -44,10 +44,12 @@ src/modules/
     + sound.delivery.commands.ts                setDelivery, analyzeMix, matchTarget
     + sound.delivery.commands.test.ts
     + sound.analysis.store.ts                   the last result per composition, stale flag
-    + ui/DeliverTab.tsx, ui/ProblemList.tsx
-    + ui/ProblemMarks.tsx                       a timelineOverlay, both scopes
-    + ui/SpectrumGraph.tsx, ui/PhaseMeter.tsx
-    ~ ui/SoundPanel.tsx, ui/LoudnessTab.tsx, sound.mcp.ts, sound.module.ts, README.md
+    + ui/deliver/ProblemList.tsx                the rows of ui/deliver/ProblemsCard.tsx
+    + ui/lanes/ProblemMarks.tsx                 a timelineOverlay, both scopes
+    + ui/loudness/SpectrumGraph.tsx, ui/loudness/PhaseMeter.tsx   the bodies of SpectrumCard and PhaseCard
+    ~ ui/deliver/DeliverTab.tsx, ui/deliver/StandardCard.tsx, ui/deliver/ProblemsCard.tsx   laid out already; they work now
+    ~ ui/panel/SoundPanel.tsx, ui/loudness/LoudnessTab.tsx, sound.mcp.ts, sound.module.ts, README.md
+    ~ ui/soon/soon.catalog.ts                   loses this stage's entries
   preview/
     ~ engine/engine.meters.ts                   master spectrum
     ~ engine/loudness.worklet.ts, logic/loudness.ts   correlation
@@ -91,10 +93,11 @@ src-tauri/src/
 
 ### Task 4: The Deliver tab, Problems, spectrum and phase
 
-**Files:** Create `ui/DeliverTab.tsx`, `ui/ProblemList.tsx`, `ui/ProblemMarks.tsx`, `ui/SpectrumGraph.tsx`, `ui/PhaseMeter.tsx`. Modify `SoundPanel.tsx`, `LoudnessTab.tsx`, `engine.meters.ts`, `loudness.worklet.ts`, `logic/loudness.ts`, `preview.types.ts`.
+**Files:** Create `ui/deliver/ProblemList.tsx`, `ui/lanes/ProblemMarks.tsx`, `ui/loudness/SpectrumGraph.tsx`, `ui/loudness/PhaseMeter.tsx`. Modify `ui/deliver/DeliverTab.tsx` (laid out by the layout work), `ui/deliver/StandardCard.tsx`, `ui/deliver/ProblemsCard.tsx`, `ui/panel/SoundPanel.tsx`, `ui/loudness/LoudnessTab.tsx`, `ui/loudness/SpectrumCard.tsx`, `ui/loudness/PhaseCard.tsx`, `engine.meters.ts`, `loudness.worklet.ts`, `logic/loudness.ts`, `preview.types.ts`.
 
 **Interfaces:** `LoudnessReading.correlation: number` (−1 to 1). `PreviewSound.spectrum(into: Float32Array): void`.
 
 - [ ] **Step 1:** Deliver tab: standard picker, target and limit (custom editable), Analyze whole mix with progress, the result with "stale" when it is, Match target, the Export form's audio settings shown and edited from here.
 - [ ] **Step 2:** Problems list; clicking seeks the user's clock. `ProblemMarks` draws red ticks on the ruler, both scopes.
-- [ ] **Step 3:** Spectrum and phase in the Loudness tab, drawn per frame through refs. Full checks. Commit: `feat(sound): the Deliver tab`.
+- [ ] **Step 3:** Spectrum and phase in the Loudness tab, drawn per frame through refs.
+- [ ] **Step 4: Replace this stage's placeholders with the working controls and remove its entries from `ui/soon/soon.catalog.ts`**, with their `soon(…)` calls: `deliver.standard` and `deliver.analyze` (`ui/deliver/StandardCard.tsx`), `loudness.spectrum` (`ui/loudness/SpectrumCard.tsx`) and `loudness.phase` (`ui/loudness/PhaseCard.tsx`). The Problems card's honest empty line becomes the list. Update the README's Placeholders and Not yet. Full checks. Commit: `feat(sound): the Deliver tab`.

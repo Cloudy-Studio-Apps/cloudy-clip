@@ -38,8 +38,10 @@ without leaving the app.
 
 ## Anti-goals
 
-- **A control that does nothing.** The mockup is the destination, not the first release. Each stage ships only
-  the controls that work. An unfinished tool is absent, not disabled.
+- **A control that does nothing, unlabelled.** The whole layout ships first (owner, 3 Nov 2026). What a later
+  stage builds shows as **Coming soon**: it looks as the mockup does, does nothing, says so in its tooltip, and
+  shows no example data (`docs/superpowers/plans/2026-11-03-sound-layout.md`, Ruling 1). Every such control is
+  listed with its stage in `sound/ui/soon/soon.catalog.ts`, and the stage removes it as it builds it.
 - **A preview that lies.** If an effect can't sound the same in preview and export, it doesn't ship.
 - **Clutter for simple users.** A project with one sound track must look calm. Empty effect chains show only
   `+ Effect`.
@@ -89,8 +91,9 @@ This design was written before these landed. The plans build on them:
 
 Layout B, decided by the owner. From the top: the app's top bar, a transport row, then the stage.
 
-- **Left column:** the timeline on top; below it the panel with tabs (Clip, Channel, Loudness, Deliver) and a
-  small preview. The tabs appear as their stages ship. Stage 1 has Clip and Loudness.
+- **Left column:** the timeline on top; below it the panel with tabs (Clip, Channel, Loudness, Deliver; it
+  opens on Channel) and a small preview. All four tabs are laid out from the start; what a stage hasn't built
+  shows as Coming soon.
 - **Clip tab:** this page has no inspector, so this tab shows the Audio tab's sections for the selected clip
   (`inspectorSections` on tab `audio`), so volume, fades, pitch and EQ of a clip can be changed here too, with the
   key diamonds of Volume and Pan as on Edit.
