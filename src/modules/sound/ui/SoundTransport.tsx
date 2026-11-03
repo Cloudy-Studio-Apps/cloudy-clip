@@ -1,0 +1,55 @@
+import { useStore } from "zustand";
+import { useKernel, useModule } from "@/core";
+import { PlayButton, previewRef, Timecode } from "@/modules/preview";
+import { splitAt, timelineRef } from "@/modules/timeline";
+import { MixSwitch } from "./MixSwitch";
+import { MonitorControls } from "./MonitorControls";
+import { TransportSeparator } from "./TransportSeparator";
+import { TransportTool } from "./TransportTool";
+
+/**
+ * The Sound page's transport row: the time and play, the timeline's tools (Select, Cut at the
+ * playhead, Snap), Mix A and B, and how the user listens.
+ */
+export function SoundTransport() {
+  const { bus } = useKernel();
+  const { playback } = useModule(previewRef);
+  const timeline = useModule(timelineRef);
+  const snaps = useStore(timeline.view, (s) => !s.unsnapped.includes("sound"));
+
+  return (
+    <div className="flex min-w-0 items-center gap-0.5 overflow-hidden border-b border-border-strong bg-surface px-3">
+      <span className="mr-3 shrink-0">
+        <Timecode />
+      </span>
+      <PlayButton />
+      <TransportSeparator />
+      <TransportTool current title="Select: click a clip to select it, drag to move or trim">
+        Select
+      </TransportTool>
+      <TransportTool
+        title="Cut at the playhead (S)"
+        onClick={() => {
+          const selection = timeline.view.getState().selection;
+          void bus.run(splitAt, {
+            at: playback.getTime(),
+            clipIds: selection.length > 0 ? selection : undefined,
+          });
+        }}
+      >
+        Cut
+      </TransportTool>
+      <TransportTool
+        pressed={snaps}
+        title={snaps ? "Snapping on: drags snap to edges, cuts and the playhead" : "Snapping off"}
+        onClick={() => timeline.setSnap("sound", !snaps)}
+      >
+        Snap
+      </TransportTool>
+      <span className="min-w-0 flex-1" />
+      <MixSwitch />
+      <TransportSeparator />
+      <MonitorControls />
+    </div>
+  );
+}

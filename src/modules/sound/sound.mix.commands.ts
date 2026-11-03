@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CommandFailure, defineCommand, type CommandContext } from "@/core";
+import { defineCommand, type CommandContext } from "@/core";
 import {
   DEFAULT_COMPOSITION_MIX,
   compositionMixOf,
@@ -16,21 +16,8 @@ import {
   type MixSnapshot,
   type ProjectState,
   type Track,
-  type TrackId,
 } from "@/modules/project";
-
-/** The audio track with this id, or the failure to throw. */
-function audioTrack(state: ProjectState, trackId: TrackId): Track {
-  const track = state.tracks[trackId];
-  if (!track) throw new CommandFailure("sound.track_not_found", `No track with id "${trackId}"`);
-  if (track.kind !== "audio") {
-    throw new CommandFailure(
-      "sound.not_audio",
-      `Track "${trackId}" is a video track: it has no mix.`,
-    );
-  }
-  return track;
-}
+import { audioTrack } from "./sound.guards";
 
 /** Writes a track's mix, or removes it at the defaults. */
 function writeTrack(track: Track, mix: Track["mix"]): void {
