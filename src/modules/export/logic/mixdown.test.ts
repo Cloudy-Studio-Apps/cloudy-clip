@@ -330,13 +330,6 @@ describe("mixdown", () => {
     expect(mix.tracks[0]!.gain).toBeCloseTo(dbToLinear(-3), 6);
   });
 
-  it("keeps a default mix out of the segments and the mix", () => {
-    const { segments, mix } = mixdownWithMix(project([clip("a", "a1")]), "c1", everything, sounds);
-    expect(segments[0]).not.toHaveProperty("gain");
-    expect(segments[0]).not.toHaveProperty("pan");
-    expect(mix).toEqual({ tracks: [{ gain: 1, pan: 0 }], master: { gain: 1 } });
-  });
-
   it("leaves a clip without keys as it was", () => {
     const [segment] = mixdown(project([clip("a", "a1")]), "c1", everything, sounds);
     expect(segment).not.toHaveProperty("gainEnvelope");

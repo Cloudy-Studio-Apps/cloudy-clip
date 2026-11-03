@@ -82,6 +82,15 @@ export interface MixNesting {
   pan: number;
 }
 
+/** A clip's gain and pan once the tracks around it are folded in (see `mixdown`). */
+export interface Placed {
+  gain: number;
+  pan: number;
+}
+
+/** Folds the tracks around a clip into its gain and pan. */
+export type Place = (gain: number, pan: number) => Placed;
+
 /** A stretch of a ramped segment played at one tempo (mirrors `TempoStep` in Rust). */
 export interface TempoStep {
   /** Where it starts in the file. */

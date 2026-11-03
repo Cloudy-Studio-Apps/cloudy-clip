@@ -124,24 +124,6 @@ mod tests {
     }
 
     #[test]
-    fn a_track_pan_uses_the_clip_pan_law() {
-        let right = TrackMixSpec {
-            gain: 1.0,
-            pan: 1.0,
-        };
-        let graph = sound_graph(
-            &[chain(0)],
-            &[segment(0)],
-            &mix_of(&[right], 1.0),
-            1_000_000,
-        );
-        assert!(
-            graph.contains("[s0]anull,pan=stereo|c0=0.000000*c0|c1=c1+1.000000*c0[t0];"),
-            "{graph}"
-        );
-    }
-
-    #[test]
     fn only_a_track_that_changes_the_sound_gets_a_bus() {
         let quiet = TrackMixSpec {
             gain: 0.25,

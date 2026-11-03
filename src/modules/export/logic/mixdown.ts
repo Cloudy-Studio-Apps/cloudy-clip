@@ -30,14 +30,15 @@ import type {
   MixNesting,
   MixWindow,
   Mixdown,
+  Place,
+  Placed,
+  SoundMix,
   SoundSegment,
   TempoStep,
 } from "../export.types";
 
-/** A level and a pan, once the tracks around a clip are folded in. */
-type Placed = ReturnType<typeof soundInPlacement>;
-/** Folds the tracks around a clip into its gain and pan. */
-type Place = (gain: number, pan: number) => Placed;
+/** The mix of a composition without audio tracks: nothing to mix, the master as it is. */
+export const NO_MIX: SoundMix = { tracks: [], master: { gain: 1 } };
 
 /** Timeline time a tempo step of a ramp covers, short enough that the steps aren't heard. */
 const TEMPO_STEP: Micros = 250_000;
@@ -269,7 +270,7 @@ function walk(
 /** The mix of the composition's audio tracks, in order, and of its master, as linear levels. */
 function mixOf(project: ProjectState, compositionId: CompositionId): Mixdown["mix"] {
   const composition = project.compositions[compositionId];
-  if (!composition) return { tracks: [], master: { gain: 1 } };
+  if (!composition) return NO_MIX;
   const tracks = composition.trackOrder.flatMap((id) => {
     const track = project.tracks[id];
     if (track?.kind !== "audio") return [];

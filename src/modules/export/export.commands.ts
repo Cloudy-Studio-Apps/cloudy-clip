@@ -3,7 +3,7 @@ import { createId, CommandFailure, defineCommand } from "@/core";
 import { mediaHasAudio, mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import { estimateBytes } from "./logic/estimate";
-import { mixdown } from "./logic/mixdown";
+import { NO_MIX, mixdown } from "./logic/mixdown";
 import {
   DEFAULT_EFFORT,
   DEFAULT_IF_EXISTS,
@@ -129,7 +129,7 @@ export const enqueue = defineCommand({
         effort: input.effort,
         hardware: input.hardware,
         sound,
-        mix: mixed?.mix ?? { tracks: [], master: { gain: 1 } },
+        mix: mixed?.mix ?? NO_MIX,
       },
     };
     api.queue.setState(({ jobs }) => ({ jobs: [...jobs, job] }));
