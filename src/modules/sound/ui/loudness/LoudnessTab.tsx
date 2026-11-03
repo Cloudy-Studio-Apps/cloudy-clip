@@ -7,7 +7,7 @@ import { Button } from "@/ui";
 import type { LoudnessHistoryHandle } from "../../sound.types";
 import { LoudnessHistory } from "./LoudnessHistory";
 import { useLoudnessFeed } from "./loudness.hook";
-import { PanelCard } from "../panel";
+import { PanelCard } from "../card";
 
 /** The readouts, in the order they are drawn, with their units. */
 const ROWS = [

@@ -7,7 +7,7 @@ import {
 } from "@/modules/project";
 import { defaultSpec } from "../../logic/effects";
 import type { EffectEdit, TransferGraphHandle } from "../../sound.types";
-import { PanelValue } from "../panel";
+import { PanelValue } from "../card";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 import { TransferGraph } from "./TransferGraph";

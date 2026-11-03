@@ -23,7 +23,7 @@ export function SoundPanel() {
   const [tab, setTab] = useState<SoundPanelTab>("channel");
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
-      <div className="flex h-9 shrink-0 items-center border-b border-border-strong px-3 pt-1">
+      <div className="flex h-[37px] shrink-0 items-center border-b border-border-strong px-3 pt-1">
         <SegmentedControl<SoundPanelTab>
           label="Panel"
           className="!h-8 !gap-0.5 [&_button]:w-24"

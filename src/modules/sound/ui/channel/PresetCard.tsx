@@ -10,7 +10,7 @@ import { applyPreset } from "../../sound.effects.commands";
 import { soundRef } from "../../sound.ref";
 import type { MixTarget, SoundPreset } from "../../sound.types";
 import { AddEffectMenu } from "../effects";
-import { PanelCard } from "../panel";
+import { PanelCard } from "../card";
 import { PresetOthers } from "./PresetOthers";
 import { SavePresetForm } from "./SavePresetForm";
 
