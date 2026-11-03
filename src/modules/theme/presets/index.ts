@@ -5,6 +5,7 @@ import { CATPPUCCIN_MOCHA } from "./catppuccin-mocha.theme";
 import { CLOUDY_DARK } from "./cloudy-dark.theme";
 import { CLOUDY_LIGHT } from "./cloudy-light.theme";
 import { DRACULA } from "./dracula.theme";
+import { EMBER } from "./ember.theme";
 import { GRUVBOX_DARK } from "./gruvbox-dark.theme";
 import { HIGH_CONTRAST_DARK } from "./high-contrast-dark.theme";
 import { HIGH_CONTRAST_LIGHT } from "./high-contrast-light.theme";
@@ -27,6 +28,7 @@ export const BUILT_IN_THEMES: readonly ThemeDefinition[] = [
   CLOUDY_DARK,
   CLOUDY_LIGHT,
   STUDIO,
+  EMBER,
   SAND,
   LILAC,
   ORANGE_LIGHT,
