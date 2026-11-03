@@ -11,3 +11,22 @@ export interface KeyedSound {
   min: number;
   max: number;
 }
+
+/** Which end of a clip a fade sits on. */
+export type FadeEdge = "in" | "out";
+
+/** What `startFadeGesture` needs. */
+export interface FadeGestureOptions {
+  /** The `pointerdown` on the handle. */
+  down: PointerEvent;
+  edge: FadeEdge;
+  /** The fade now, in microseconds. */
+  current: number;
+  /** The clip's length: a fade stays within it. */
+  duration: number;
+  pxPerSecond: number;
+  /** Shows a fade without writing it (direct DOM). Called again with `current` to put it back. */
+  onPreview(fade: number): void;
+  /** The release, with a changed fade. */
+  onDrop(fade: number): void;
+}

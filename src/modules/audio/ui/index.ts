@@ -1,2 +1,3 @@
 /** Public UI of the audio module. */
 export { audioSections } from "./sections";
+export { FadeHandles } from "./FadeHandles";

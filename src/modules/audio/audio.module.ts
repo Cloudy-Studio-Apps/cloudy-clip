@@ -7,7 +7,7 @@ import { audioCommands } from "./audio.commands";
 import { audioMcpTools } from "./audio.mcp";
 import { audioMenu } from "./audio.menu";
 import { audioRef } from "./audio.ref";
-import { audioSections } from "./ui";
+import { audioSections, FadeHandles } from "./ui";
 
 /** How a clip sounds: commands, tools and the inspector's Audio tab. */
 export const audioModule = defineModule({
@@ -22,6 +22,7 @@ export const audioModule = defineModule({
     contribute(inspectorSections, ...audioSections);
     contribute(keyTargets, audioKeys);
     contribute(clipActions, audioMenu(ctx, ctx.require(timelineRef).view));
+    contribute(clipActions, { id: "audio.fades", scopes: ["all", "sound"], badge: FadeHandles });
     return { api: {} };
   },
 });
