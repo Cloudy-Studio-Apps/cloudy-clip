@@ -8,7 +8,7 @@ import type {
   SoundEffect,
   TrackId,
 } from "@/modules/project";
-import type { MonitorState, PlaybackClock } from "@/modules/preview";
+import type { LoopRange, MonitorState, PreviewApi } from "@/modules/preview";
 import type { MediaApi } from "@/modules/media";
 import type { ProjectApi } from "@/modules/project";
 import type { WorkspaceApi } from "@/modules/workspace";
@@ -110,7 +110,7 @@ export interface Recorder {
 /** What the recorder needs. */
 export interface RecorderDeps {
   bus: CommandBus;
-  playback: PlaybackClock;
+  preview: PreviewApi;
   project: ProjectApi;
   media: MediaApi;
   workspace: WorkspaceApi;
@@ -128,6 +128,12 @@ export interface LiveTake {
   ending: boolean;
   /** The stop under way: finishing the file and placing it. */
   finishing: Promise<void> | null;
+  /** The composition recorded in. */
+  compositionId: CompositionId;
+  /** The loop set when the take started: off while it records, set again after. */
+  loop: LoopRange | null;
+  /** Lets audio scrub sound again (silenced while the microphone is open). */
+  releaseScrub: () => void;
   capture: Capture | null;
   file: TakeStarted | null;
   rate: number;

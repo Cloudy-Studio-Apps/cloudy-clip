@@ -10,6 +10,7 @@ export const SCRUB_SLICE_MS = 80;
  * Audio scrub: each slice plays `SCRUB_SLICE_MS` of sound through the engine's graph. A call
  * during a slice waits for it to end, and only the latest waiting time plays next, so a fast
  * drag never piles slices up. The last slice ending stops media and redraws the paused frame.
+ * While held (`hold()`), scrub does nothing.
  */
 export function createScrub(deps: ScrubDeps): Scrubber {
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -17,6 +18,7 @@ export function createScrub(deps: ScrubDeps): Scrubber {
   /** Where the slice playing started, and when. */
   let from: Micros = 0;
   let startedAt = 0;
+  let holds = 0;
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((listener) => listener());
 
@@ -62,8 +64,23 @@ export function createScrub(deps: ScrubDeps): Scrubber {
 
   return {
     scrub(time) {
+      if (holds > 0) return;
       if (timer !== null) pending = time;
       else if (start(time)) emit();
+    },
+    hold() {
+      holds += 1;
+      if (timer !== null) {
+        cancel();
+        deps.engine()?.pauseAll();
+        deps.redraw();
+      }
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        holds -= 1;
+      };
     },
     scrubbing: () => timer !== null,
     drawSlice() {

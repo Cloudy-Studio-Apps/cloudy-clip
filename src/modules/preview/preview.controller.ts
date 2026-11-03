@@ -161,6 +161,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     attachCanvas,
     redraw,
     scrub: (time) => scrub.scrub(time),
+    holdScrub: () => scrub.hold(),
     isScrubbing: () => scrub.scrubbing(),
     onScrubbingChange: (listener) => scrub.onChange(listener),
     captureAt: (time, compositionId) => deps.capture.captureAt(time, compositionId),

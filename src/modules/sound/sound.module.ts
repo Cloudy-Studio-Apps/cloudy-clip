@@ -53,10 +53,11 @@ export const soundModule = defineModule({
     const pages = require(pagesRef).store;
     onDispose(followSoundPageLeave(pages, () => void bus.run(clearListening, {})));
     const project = require(projectRef);
-    const { playback } = require(previewRef);
+    const preview = require(previewRef);
+    const { playback } = preview;
     const workspace = require(workspaceRef);
     const media = require(mediaRef);
-    const recorder = createRecorder({ bus, playback, project, media, workspace, view });
+    const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());
     onDispose(followRecordingEnds(recorder, pages, playback, project, workspace));
     contribute(appPages, {

@@ -1,6 +1,6 @@
 import { createStore } from "zustand/vanilla";
-import { createLogger, MICROS_PER_SECOND, notify, toAppError } from "@/core";
-import { pause, peakToDb, play } from "@/modules/preview";
+import { createLogger, LOCAL_ACTOR, MICROS_PER_SECOND, notify, toAppError } from "@/core";
+import { pause, peakToDb, play, setLoop } from "@/modules/preview";
 import type { TrackId } from "@/modules/project";
 import { canArm, folderOf, joinChunks, startFailure, takeStem, toPcm16 } from "./logic/record";
 import { openCapture } from "./sound.record.capture";
@@ -21,11 +21,13 @@ const reason = (error: unknown) => toAppError(error).message.replace(/\.$/, "");
  * the project (`sound_record_begin` / `sound_record_write`, a quarter of a second at a time). On
  * stop the file is read (`media.prepareFile`) outside the bus, then placed with
  * `sound.placeRecording`. The take starts where playback starts and runs on past the
- * composition's end; a loop wrapping playback doesn't wrap the take. Failures are told with the
+ * composition's end. The loop is off while it records (playback runs on through its end) and set
+ * again after; audio scrub is silenced while the microphone is open. Failures are told with the
  * file's path, so a take is never lost silently.
  */
 export function createRecorder(deps: RecorderDeps): Recorder {
-  const { bus, playback, project, media, workspace, view } = deps;
+  const { bus, preview, project, media, workspace, view } = deps;
+  const { playback } = preview;
   const state = createStore<RecorderState>(() => IDLE);
   let take: LiveTake | null = null;
 
@@ -65,9 +67,22 @@ export function createRecorder(deps: RecorderDeps): Recorder {
 
   /** Closes a take that never kept a sample: its empty file is deleted. */
   const drop = async (t: LiveTake) => {
+    await restore(t);
     await t.capture?.stop();
     if (t.file) await writeTake(t.file.id, NOTHING, true).catch((e) => log.warn("Drop", e));
     end(t);
+  };
+
+  /** Gives back what the take held: scrub, and the loop if its composition is still open. */
+  const restore = async (t: LiveTake) => {
+    t.releaseScrub();
+    const loop = t.loop;
+    t.loop = null;
+    const here = project.view.openFor(LOCAL_ACTOR) === t.compositionId;
+    if (loop && here && playback.getLoop() === null) {
+      const set = await bus.run(setLoop, { range: loop });
+      if (!set.ok) log.warn("The loop couldn't be set again", set.error);
+    }
   };
 
   /** The folder of the project, or the one a project without a file yet will be saved in. */
@@ -78,7 +93,8 @@ export function createRecorder(deps: RecorderDeps): Recorder {
 
   async function start(trackId: TrackId): Promise<void> {
     if (take) return;
-    if (!canArm(project.store.getState().tracks[trackId])) {
+    const track = project.store.getState().tracks[trackId];
+    if (!canArm(track)) {
       notify("error", "Recording goes onto an audio track that isn't muted. Arm one first.");
       return;
     }
@@ -88,6 +104,9 @@ export function createRecorder(deps: RecorderDeps): Recorder {
       keeping: false,
       ending: false,
       finishing: null,
+      compositionId: track.compositionId,
+      loop: null,
+      releaseScrub: preview.holdScrub(),
       capture: null,
       file: null,
       rate: 0,
@@ -110,6 +129,9 @@ export function createRecorder(deps: RecorderDeps): Recorder {
       notify("error", startFailure(error));
       return drop(t);
     }
+    // While the take records, playback runs on through the loop's end instead of wrapping.
+    t.loop = playback.getLoop();
+    if (t.loop && !t.ending) await bus.run(setLoop, { range: null });
     // An empty timeline doesn't play; the take is recorded all the same.
     if (!t.ending) await bus.run(play, {});
     if (t.ending) return drop(t);
@@ -132,6 +154,7 @@ export function createRecorder(deps: RecorderDeps): Recorder {
       await t.writes;
       await place(t);
     } finally {
+      await restore(t).catch((e) => log.warn("Restore", e));
       // Until the clip is there, the take stays drawn on its lane.
       end(t);
     }

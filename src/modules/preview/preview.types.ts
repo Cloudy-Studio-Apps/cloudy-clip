@@ -410,6 +410,8 @@ export interface ScrubDeps extends Pick<
 /** Audio scrub of one controller (`preview.scrub.ts`). */
 export interface Scrubber {
   scrub(time: Micros): void;
+  /** Silences scrub until the returned release is called (several holds may overlap). */
+  hold(): () => void;
   /** Whether a slice is playing. */
   scrubbing(): boolean;
   /**
@@ -445,6 +447,12 @@ export interface PreviewApi {
    * nothing).
    */
   scrub(time: Micros): void;
+  /**
+   * Silences audio scrub until the returned release is called: `scrub` does nothing meanwhile (a
+   * slice under way is cut). The Sound page holds it while a take records, so the open microphone
+   * never hears the speakers scrub. Holds may overlap.
+   */
+  holdScrub(): () => void;
   /** Whether a scrub slice is playing. */
   isScrubbing(): boolean;
   /** Subscribes to a scrub starting or ending. Compatible with `useSyncExternalStore`. */
