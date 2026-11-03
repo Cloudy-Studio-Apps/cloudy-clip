@@ -5,8 +5,9 @@ import { useHeaderWidth } from "./header.width.hook";
 import { usePlayheadX } from "./playhead.hook";
 
 /**
- * The playhead line across the lanes (its head is drawn by the ruler). Positioned from the
- * playback clock without React renders. While playing, the view follows it page by page.
+ * The playhead line across the lanes (its head is drawn by the ruler; on the Sound page the marks
+ * row under the ruler draws a bare `PlayheadHead`, so the line runs through it). Positioned from
+ * the playback clock without React renders. While playing, the view follows it page by page.
  */
 export function Playhead({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElement | null> }) {
   const { playback } = useModule(previewRef);

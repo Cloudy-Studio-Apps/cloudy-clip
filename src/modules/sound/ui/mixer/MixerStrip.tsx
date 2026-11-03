@@ -8,11 +8,12 @@ import { cn, LetterToggle } from "@/ui";
 import { chainOf, placesUnheardEffects } from "../../logic/effects";
 import { setTrackMix } from "../../sound.mix.commands";
 import { soundRef } from "../../sound.ref";
-import { ArmButton, SoloButton } from "../lanes";
+import { SoloButton } from "../lanes";
 import { EffectChain } from "../effects";
 import { Fader } from "./Fader";
 import { Meter } from "./Meter";
 import { PanSlider } from "./PanSlider";
+import { ReadButton } from "./ReadButton";
 import { StripLabel } from "./StripLabel";
 
 interface MixerStripProps {
@@ -24,9 +25,9 @@ interface MixerStripProps {
 
 /**
  * One audio track in the mixer: name, its effects, where it goes, pan, fader with its two meters
- * (the microphone's while a take is recorded onto it), mute, solo and record-arm. A click marks
- * the track (and its header on the timeline) and shows its chain in the Channel tab; when marked,
- * it scrolls into view.
+ * (the microphone's while a take is recorded onto it), mute, solo and Read (coming soon; R, the
+ * record-arm, is on the track's header). A click marks the track (and its header on the
+ * timeline) and shows its chain in the Channel tab; when marked, it scrolls into view.
  */
 export const MixerStrip = memo(function MixerStrip({ track, code, selected }: MixerStripProps) {
   const { bus } = useKernel();
@@ -105,7 +106,7 @@ export const MixerStrip = memo(function MixerStrip({ track, code, selected }: Mi
           M
         </LetterToggle>
         <SoloButton track={track} />
-        <ArmButton track={track} />
+        <ReadButton id="mixer.read" />
       </div>
     </div>
   );

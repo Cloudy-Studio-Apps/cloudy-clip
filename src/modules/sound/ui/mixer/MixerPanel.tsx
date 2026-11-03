@@ -1,20 +1,21 @@
-import { Maximize, Minimize } from "lucide-react";
 import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { projectRef, useOpenComposition, type Track, type TrackId } from "@/modules/project";
-import { Button, cn, EmptyState } from "@/ui";
+import { cn, EmptyState } from "@/ui";
 import { soundRef } from "../../sound.ref";
 import { MasterStrip } from "./MasterStrip";
 import { MeterLoopProvider } from "./meters.context";
+import { MixerBar } from "./MixerBar";
 import { useMeterLoop } from "./meters.hook";
 import { MixerStrip } from "./MixerStrip";
 
 const NO_TRACKS: readonly TrackId[] = [];
 
 /**
- * The mixer: a strip per audio track of the open composition in `trackOrder`, scrolling sideways,
- * and Master pinned at the right edge. Expand all lets it take the page.
+ * The mixer: its bar (`MixerBar`), a strip per audio track of the open composition in
+ * `trackOrder`, scrolling sideways, and Master pinned at the right edge. Expand all lets it take
+ * the page. It runs the page's one meter loop.
  */
 export function MixerPanel() {
   const sound = useModule(soundRef);
@@ -41,21 +42,7 @@ export function MixerPanel() {
           expanded ? "flex-1 border-l-0" : "w-[46vw] max-w-[860px] shrink-0",
         )}
       >
-        <header className="flex h-[34px] shrink-0 items-center gap-3.5 border-b border-border-strong bg-muted pl-3 pr-2">
-          <h3 className="font-hand text-md font-bold">Mixer</h3>
-          <span className="flex-1" />
-          <span className="whitespace-nowrap font-mono text-sm text-muted-foreground">
-            {tracks.length + 1} strips
-          </span>
-          <Button
-            size="sm"
-            variant={expanded ? "primary" : "secondary"}
-            onClick={() => sound.setExpanded(!expanded)}
-          >
-            {expanded ? <Minimize /> : <Maximize />}
-            {expanded ? "Back to timeline" : "Expand all"}
-          </Button>
-        </header>
+        <MixerBar strips={tracks.length + 1} />
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
             {tracks.length === 0 ? (
