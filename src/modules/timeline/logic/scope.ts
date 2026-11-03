@@ -1,6 +1,6 @@
 import { EDITOR_PAGE, type AppPage, type TimelineScopeName } from "@/core";
 import type { Clip, ProjectState, Track } from "@/modules/project";
-import { SOUND_HEADER_WIDTH } from "../timeline.layout";
+import { HEADER_WIDTH, SOUND_HEADER_WIDTH } from "../timeline.layout";
 import type { Scoped } from "../timeline.types";
 
 /** Whether an entry shows in a scope. An entry without `scopes` shows in `"all"` only. */
@@ -32,9 +32,12 @@ export function clipsInScope<C extends Clip>(
 }
 
 /**
- * Width of the track header column of a panel of a scope: a sound-scope panel has its own, and
- * the others the shared `headerWidth`. The one place that says so, for the panel and for zooming.
+ * Width of the track header column of a panel of a scope. The others use the shared `headerWidth`.
+ * A sound-scope panel has its own base width, but follows a module that widened the shared one
+ * (the keyframe dock), so what that module draws lines up with the lanes. The one place that says
+ * so, for the panel and for zooming.
  */
 export function headerWidthFor(scope: TimelineScopeName, shared: number): number {
-  return scope === "sound" ? SOUND_HEADER_WIDTH : shared;
+  if (scope !== "sound") return shared;
+  return shared > HEADER_WIDTH ? Math.max(SOUND_HEADER_WIDTH, shared) : SOUND_HEADER_WIDTH;
 }
