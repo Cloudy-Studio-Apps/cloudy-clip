@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { projectRef, type CompositionId } from "@/modules/project";
-import { chainOf } from "../logic/effects";
+import { chainOf, chainWhere } from "../logic/effects";
 import { removeEffect, setEffect } from "../sound.effects.commands";
 import type { EffectEdit, MixTarget } from "../sound.types";
 
@@ -19,7 +19,7 @@ export function useEffectEdit(
   const preview = useModule(previewRef);
   const project = useModule(projectRef).store;
   return useMemo(() => {
-    const where = { target, ...(target === "master" && compositionId && { compositionId }) };
+    const where = chainWhere(target, compositionId);
     return {
       live(effect) {
         const chain = chainOf(project.getState(), target, compositionId);

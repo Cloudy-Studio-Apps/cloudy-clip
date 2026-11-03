@@ -14,7 +14,7 @@ import { useDenoiseRendering } from "../denoise.hook";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 
-const REST = defaultSpec("denoise") as Omit<DenoiseEffect, "id">;
+const REST = defaultSpec("denoise");
 
 interface DenoiseSectionProps {
   effect: DenoiseEffect;

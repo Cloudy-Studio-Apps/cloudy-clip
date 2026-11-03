@@ -98,7 +98,7 @@ export const addEffect = defineCommand({
     at: z.number().int().min(0).optional(),
   }),
   run(ctx, { target: who, compositionId: comp, kind, at }) {
-    const effect = { ...defaultSpec(kind), id: createId("fx") } as SoundEffect;
+    const effect: SoundEffect = { ...defaultSpec(kind), id: createId("fx") };
     editChain(ctx, who, comp, (chain) => {
       if (chain.some((e) => e.kind === kind)) {
         throw new CommandFailure("sound.effect_exists", `The chain already has a ${kind}.`);
@@ -193,7 +193,7 @@ export const applyPreset = defineCommand({
   id: "sound.applyPreset",
   label: "Apply sound preset",
   description:
-    "Replaces the whole chain of an audio track or \"master\" with a preset's effects: a built-in one or one of the user's (list them with sound_list_presets). The values are written plainly, so the project never depends on the preset. One undo step brings the old chain back. Fails with sound.preset_not_found; a preset with ducking fails on master with sound.duck_on_master.",
+    "Replaces the whole chain of an audio track or \"master\" with a preset's effects: a built-in one or one of the user's (list them with sound_list_presets). The values are written plainly, so the project never depends on the preset. One undo step brings the old chain back. Fails with sound.preset_not_found; a preset with ducking fails on master with sound.duck_on_master, and on a track whose composition lacks the tracks it listens to (sound.track_not_found) or where it would loop (sound.duck_loop).",
   undoable: true,
   input: z.object({ target, compositionId, presetId: z.string() }),
   run(ctx, { target: who, compositionId: comp, presetId }) {
@@ -207,9 +207,14 @@ export const applyPreset = defineCommand({
     if (!preset) {
       throw new CommandFailure("sound.preset_not_found", `No preset with id "${presetId}".`);
     }
-    editChain(ctx, who, comp, () =>
-      preset.effects.map((spec) => structuredClone({ ...spec, id: createId("fx") }) as SoundEffect),
-    );
+    editChain(ctx, who, comp, (_chain, state) => {
+      const chain = preset.effects.map((spec): SoundEffect =>
+        structuredClone({ ...spec, id: createId("fx") }),
+      );
+      // A user's preset comes from storage the user can edit: its ducks are checked as any are.
+      if (who !== "master") for (const effect of chain) checkDuck(state, who, effect);
+      return chain;
+    });
   },
 });
 

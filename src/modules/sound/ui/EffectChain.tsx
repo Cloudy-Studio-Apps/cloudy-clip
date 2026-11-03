@@ -2,7 +2,7 @@ import { useKernel } from "@/core";
 import type { CompositionId, SoundEffect } from "@/modules/project";
 import { cn } from "@/ui";
 import { chainSlot } from "../logic/chain";
-import { EFFECT_NAMES } from "../logic/effects";
+import { chainWhere, EFFECT_NAMES } from "../logic/effects";
 import { moveEffect } from "../sound.effects.commands";
 import type { MixTarget } from "../sound.types";
 import { AddEffectMenu } from "./AddEffectMenu";
@@ -25,7 +25,7 @@ interface EffectChainProps {
  */
 export function EffectChain({ target, compositionId, effects }: EffectChainProps) {
   const { bus } = useKernel();
-  const where = { target, ...(target === "master" && compositionId && { compositionId }) };
+  const where = chainWhere(target, compositionId);
 
   return (
     <div

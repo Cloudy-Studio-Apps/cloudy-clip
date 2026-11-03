@@ -6,7 +6,7 @@ import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 import { TransferGraph } from "./TransferGraph";
 
-const REST = defaultSpec("gate") as Omit<GateEffect, "id">;
+const REST = defaultSpec("gate");
 
 interface GateSectionProps {
   effect: GateEffect;

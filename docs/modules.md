@@ -50,7 +50,7 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `settings`    | feature | —                                                                               | the Settings window and the `settingsSections` point                                                                       |
 | `theme`       | feature | `settings`                                                                      | themes: the `themes` point, the user's choice, applying it, the Appearance section                                         |
 | `tint`        | feature | —                                                                               | the Tint page, for colors, empty for now                                                                                   |
-| `sound`       | feature | `project`, `timeline`, `preview`, `inspector`, `audio`, `settings`              | the Sound page and its mixer, meters and live loudness; the mix: track and master levels, effects and presets, mix A and B |
+| `sound`       | feature | `project`, `timeline`, `preview`, `inspector`, `audio`, `settings`, `media`     | the Sound page and its mixer, meters and live loudness; the mix: track and master levels, effects and presets, mix A and B |
 | `export`      | feature | `project`, `media`, `preview`, `workspace`                                      | the Export page and queue, turning a composition into a file                                                               |
 
 The built-in `history` module (undo/redo) lives in `src/core/history`.

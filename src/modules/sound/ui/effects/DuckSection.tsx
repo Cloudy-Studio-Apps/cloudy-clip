@@ -15,7 +15,7 @@ import type { EffectEdit } from "../../sound.types";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 
-const REST = defaultSpec("duck") as Omit<DuckEffect, "id">;
+const REST = defaultSpec("duck");
 
 interface DuckSectionProps {
   effect: DuckEffect;

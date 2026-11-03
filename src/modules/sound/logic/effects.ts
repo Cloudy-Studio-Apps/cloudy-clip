@@ -9,7 +9,7 @@ import {
   type SoundEffectKind,
   type TrackId,
 } from "@/modules/project";
-import type { EffectSpec, MixTarget } from "../sound.types";
+import type { ChainWhere, EffectSpecOf, MixTarget } from "../sound.types";
 
 /** What each kind is called: in full (the Channel tab) and short (a strip's list). */
 export const EFFECT_NAMES: Record<SoundEffectKind, { name: string; short: string }> = {
@@ -76,35 +76,42 @@ export function placesUnheardEffects(state: ProjectState, trackId: TrackId): boo
   return false;
 }
 
+/**
+ * The input that says which chain a command acts on: the track, or the master of `compositionId`
+ * (left out when unknown, so the command takes the actor's open composition).
+ */
+export function chainWhere(
+  target: MixTarget,
+  compositionId: CompositionId | undefined,
+): ChainWhere {
+  return { target, ...(target === "master" && compositionId && { compositionId }) };
+}
+
+/** What each kind starts with: a fresh copy each call. */
+const DEFAULT_SPECS: { [K in SoundEffectKind]: () => EffectSpecOf<K> } = {
+  eq: () => ({ kind: "eq", on: true, bands: DEFAULT_SOUND.eq.bands.map((band) => ({ ...band })) }),
+  compressor: () => ({
+    kind: "compressor",
+    on: true,
+    params: { thresholdDb: -18, ratio: 3, attackMs: 10, releaseMs: 120, kneeDb: 6, makeupDb: 0 },
+  }),
+  gate: () => ({ kind: "gate", on: true, thresholdDb: -50, ratio: 4, attackMs: 5, releaseMs: 120 }),
+  deesser: () => ({ kind: "deesser", on: true, frequencyHz: 6500, amount: 0.5 }),
+  limiter: () => ({ kind: "limiter", on: true, ceilingDb: -1, releaseMs: 50 }),
+  denoise: () => ({ kind: "denoise", on: true, amountDb: 12, floorDb: -50 }),
+  duck: () => ({
+    kind: "duck",
+    on: true,
+    listensTo: [],
+    depthDb: -9,
+    attackMs: 20,
+    releaseMs: 300,
+  }),
+};
+
 /** The settings a new effect of this kind starts with (without an id). */
-export function defaultSpec(kind: SoundEffectKind): EffectSpec {
-  switch (kind) {
-    case "eq":
-      return { kind, on: true, bands: DEFAULT_SOUND.eq.bands.map((band) => ({ ...band })) };
-    case "compressor":
-      return {
-        kind,
-        on: true,
-        params: {
-          thresholdDb: -18,
-          ratio: 3,
-          attackMs: 10,
-          releaseMs: 120,
-          kneeDb: 6,
-          makeupDb: 0,
-        },
-      };
-    case "gate":
-      return { kind, on: true, thresholdDb: -50, ratio: 4, attackMs: 5, releaseMs: 120 };
-    case "deesser":
-      return { kind, on: true, frequencyHz: 6500, amount: 0.5 };
-    case "limiter":
-      return { kind, on: true, ceilingDb: -1, releaseMs: 50 };
-    case "denoise":
-      return { kind, on: true, amountDb: 12, floorDb: -50 };
-    case "duck":
-      return { kind, on: true, listensTo: [], depthDb: -9, attackMs: 20, releaseMs: 300 };
-  }
+export function defaultSpec<K extends SoundEffectKind>(kind: K): EffectSpecOf<K> {
+  return DEFAULT_SPECS[kind]();
 }
 
 /** Who each track listens to through its ducks, `except` left out (the track being changed). */

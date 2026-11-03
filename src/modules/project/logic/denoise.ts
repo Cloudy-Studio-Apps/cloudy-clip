@@ -34,6 +34,13 @@ export function heardDenoise(
  * preview and the export's mixdown hear it: clips of unmuted audio tracks that aren't disabled,
  * inside placed compositions too (with the outer track's), images left out. Once per file, effect
  * and direction. Whether a file has sound at all is the caller's to check.
+ *
+ * Keep in step: this is the third walk of which clips are heard, beside the export's `mixdown`
+ * (`walk` in `export/logic/mixdown.ts`) and the preview's `resolveFrame`
+ * (`preview/logic/frame.ts`). When one of them changes what it skips (muted or hidden tracks,
+ * disabled clips, placements, images), change the other two the same way. If they drift, the
+ * export still asks for the files it mixes itself, but the preview plays the original of a file
+ * this walk never had rendered.
  */
 export function denoiseNeeds(
   state: Pick<ProjectState, "compositions" | "tracks" | "clips" | "media">,

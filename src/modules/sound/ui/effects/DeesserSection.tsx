@@ -1,12 +1,11 @@
 import { EFFECT_RANGES, type DeesserEffect } from "@/modules/project";
-
-const AMOUNT = EFFECT_RANGES.deesser.amount;
 import { defaultSpec } from "../../logic/effects";
 import type { EffectEdit } from "../../sound.types";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 
-const REST = defaultSpec("deesser") as Omit<DeesserEffect, "id">;
+const AMOUNT = EFFECT_RANGES.deesser.amount;
+const REST = defaultSpec("deesser");
 
 interface DeesserSectionProps {
   effect: DeesserEffect;

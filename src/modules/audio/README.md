@@ -10,7 +10,7 @@ How a clip sounds: volume, pan, fades, equalizer and pitch, in preview and in ex
 - **Files:**
   - `audio.commands.ts`: the commands below. `logic/eq.ts`: `eqResponse`, the curve the graph draws, from the formulas `BiquadFilterNode` uses.
   - `ui/`: `FadeHandles`, `Fade` with `fade.gesture.ts`, `AudioSections`, `EqSection` (the inspector's section over `EqEditor`), `EqEditor` (`{ eq, disabled, onInput, onCommit }`: `EqGraph` with `eq.gesture.ts` and an `EqBandRow` per band, value in and callbacks out, exported so the Sound page's EQ effect draws the same editor), `SoundRow` (exported too), `sound.edit.hook.ts` (drag steps go to the preview through `previewProps`, the release is one `audio.setSound`).
-  - Sound itself: `preview/engine/engine.audiograph.ts` (pitch, six biquads, pan, level, per element, into its track's bus; see `preview/README.md`) and `export/logic/mixdown.ts` with `src-tauri/src/export/recipe.rs` (the same chain as FFmpeg filters, in the same order).
+  - Sound itself: `preview/engine/engine.soundchain.ts` (pitch, six biquads, pan, level, per element, into its track's bus; see `preview/README.md`) and `export/logic/mixdown.ts` with `src-tauri/src/export/recipe.rs` (the same chain as FFmpeg filters, in the same order).
 - **Invariants:** a value equal to the default is never stored, so an untouched clip has no `sound` and sounds exactly as it did. Linked clips: the sound clip takes the change.
 
 | Command            | MCP tool            | Notes                                                                           |

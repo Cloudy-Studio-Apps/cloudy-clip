@@ -11,7 +11,7 @@ import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 import { TransferGraph } from "./TransferGraph";
 
-const REST = (defaultSpec("compressor") as Omit<CompressorEffect, "id">).params;
+const REST = defaultSpec("compressor").params;
 
 interface CompressorSectionProps {
   effect: CompressorEffect;

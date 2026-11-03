@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useKernel } from "@/core";
 import type { CompositionId } from "@/modules/project";
 import { Button } from "@/ui";
+import { chainWhere } from "../logic/effects";
 import { savePreset } from "../sound.presets.commands";
 import type { MixTarget } from "../sound.types";
 
@@ -17,11 +18,7 @@ export function SavePresetForm({ target, compositionId, onSaved }: SavePresetFor
   const { bus } = useKernel();
   const [name, setName] = useState("");
   const save = async () => {
-    const result = await bus.run(savePreset, {
-      target,
-      ...(target === "master" && compositionId && { compositionId }),
-      name,
-    });
+    const result = await bus.run(savePreset, { ...chainWhere(target, compositionId), name });
     if (result.ok) onSaved();
   };
   return (

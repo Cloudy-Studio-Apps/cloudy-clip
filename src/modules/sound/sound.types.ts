@@ -1,6 +1,12 @@
 import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { CompressorEffect, GateEffect, SoundEffect, TrackId } from "@/modules/project";
+import type {
+  CompositionId,
+  CompressorEffect,
+  GateEffect,
+  SoundEffect,
+  TrackId,
+} from "@/modules/project";
 import type { MonitorState } from "@/modules/preview";
 
 /** What the Sound page shows and how the user listens, per kernel. Never in history. */
@@ -35,6 +41,12 @@ export interface SoundApi {
 
 /** What a mixer strip addresses: an audio track, or the master. */
 export type MixTarget = TrackId | "master";
+
+/** Where a chain command acts: a track, or the master of `compositionId` (default: the open one). */
+export interface ChainWhere {
+  target: MixTarget;
+  compositionId?: CompositionId;
+}
 
 /** The loudest level seen lately, held for a while so the eye can catch it. */
 export interface PeakHold {
@@ -134,6 +146,9 @@ export type EffectSpec = SoundEffect extends infer E
     ? Omit<E, "id">
     : never
   : never;
+
+/** The spec of one kind of effect. */
+export type EffectSpecOf<K extends SoundEffect["kind"]> = Extract<EffectSpec, { kind: K }>;
 
 /** A named chain of effects. Applying it writes plain values: a project never depends on a preset. */
 export interface SoundPreset {

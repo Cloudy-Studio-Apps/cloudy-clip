@@ -2,7 +2,7 @@ import { useState, type ReactElement } from "react";
 import { useKernel } from "@/core";
 import type { CompositionId, SoundEffect } from "@/modules/project";
 import { MenuList, Popover } from "@/ui";
-import { addableKinds, EFFECT_NAMES } from "../logic/effects";
+import { addableKinds, chainWhere, EFFECT_NAMES } from "../logic/effects";
 import { addEffect } from "../sound.effects.commands";
 import type { MixTarget } from "../sound.types";
 
@@ -22,12 +22,7 @@ export function AddEffectMenu({ target, compositionId, chain, trigger }: AddEffe
   if (kinds.length === 0) return null;
   const items = kinds.map((kind) => ({
     label: EFFECT_NAMES[kind].name,
-    onSelect: () =>
-      void bus.run(addEffect, {
-        target,
-        ...(target === "master" && compositionId && { compositionId }),
-        kind,
-      }),
+    onSelect: () => void bus.run(addEffect, { ...chainWhere(target, compositionId), kind }),
   }));
   return (
     <Popover trigger={trigger} open={open} onOpenChange={setOpen}>

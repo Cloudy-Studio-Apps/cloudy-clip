@@ -4,7 +4,7 @@ import type { EffectEdit } from "../../sound.types";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 
-const REST = defaultSpec("limiter") as Omit<LimiterEffect, "id">;
+const REST = defaultSpec("limiter");
 
 interface LimiterSectionProps {
   effect: LimiterEffect;

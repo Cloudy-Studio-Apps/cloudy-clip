@@ -4,6 +4,7 @@ import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import type { CompositionId, SoundEffect } from "@/modules/project";
 import { Button, Popover, SelectField } from "@/ui";
+import { chainWhere } from "../logic/effects";
 import { BUILT_IN_PRESETS } from "../logic/presets";
 import { applyPreset } from "../sound.effects.commands";
 import { soundRef } from "../sound.ref";
@@ -36,7 +37,7 @@ export function PresetCard({ title, target, compositionId, chain }: PresetCardPr
     ...BUILT_IN_PRESETS.filter(fits).map(({ id, name }) => ({ value: id, label: name })),
     ...own.filter(fits).map(({ id, name }) => ({ value: id, label: `${name} (yours)` })),
   ];
-  const where = { target, ...(target === "master" && compositionId && { compositionId }) };
+  const where = chainWhere(target, compositionId);
 
   return (
     <PanelCard title={title} className="flex flex-col gap-2">
