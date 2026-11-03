@@ -45,6 +45,21 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
     `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
     clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only).
+    **A `<video>` is never muted, not even for a moment.** WebKitGTK suspends a muted video that
+    isn't in the viewport (ours are never on the page) by setting its GStreamer pipeline to NULL,
+    and resumes it when unmuted. A suspend that lands while the pipeline is starting (after the
+    file's end, a seek, a resume) leaves GStreamer's `playsink` holding a `streamsynchronizer` pad
+    while the pad counter goes back to 0; the next start asks for a pad of the same name and the
+    web process aborts (`Padname sink_0 is not unique in element streamsynchronizer0`, then
+    `gstplaysink.c:3389: assertion failed: (it)`), freezing the app. `syncSlot` used to retry any
+    refused `play()` muted: the routine `AbortError` of an element restarted at its end and paused
+    when its clip ended (a take records past the composition's end) muted the picture, and Home
+    then Play unmuted it. Now only a `NotAllowedError` is retried muted, and only for an
+    `<audio>` (an audio element is never suspended). Checked on WebKitGTK 2.54.2 with GStreamer
+    1.28.8 in a scratch window: a playing off-page `<video>` muted and unmuted at random moments
+    aborts the web process with that exact message within seconds; the same element on the page,
+    or never muted, doesn't. The owner's two core dumps showed the crashed pipeline was the
+    `<video>` of the picture clip, half-way from READY to PAUSED.
     Images never take a media element: `engine.images.ts` (`ImageCache`) keeps decoded stills and
     frames of animated images by URL, up to a pixel budget, and rasterizes SVGs once. `imageFrames`
     (`media`) names the picture at the clip's own time, looped, and the second ahead is loaded early, so a stretched GIF

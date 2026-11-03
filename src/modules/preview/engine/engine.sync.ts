@@ -37,12 +37,15 @@ export function syncSlot(
     if (target !== null) seekSlot(slot, target);
     if (element.paused) {
       element.play().catch((error: unknown) => {
-        // Autoplay with sound can be refused (e.g. playback started by an agent). Retry muted.
-        if (!element.muted) {
-          log.warn("Playback with sound was blocked; playing muted", error);
-          element.muted = true;
-          element.play().catch(() => undefined);
-        }
+        // A pause or a new file aborting play() is routine (an element at its end restarts and is
+        // paused when its clip ends): only a refusal of autoplay with sound is retried muted, and
+        // only for sound. A picture is never muted: WebKitGTK stops a muted <video> that isn't on
+        // the page, and stopping one while it starts crashes the web process (see README.md).
+        if (!(error instanceof DOMException) || error.name !== "NotAllowedError") return;
+        if (slot.kind === "video" || element.muted) return;
+        log.warn("Playback with sound was blocked; playing muted", error);
+        element.muted = true;
+        element.play().catch(() => undefined);
       });
     }
     return;
