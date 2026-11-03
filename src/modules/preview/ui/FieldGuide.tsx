@@ -7,7 +7,7 @@ const CORNER = "absolute size-3.5 border-mark";
  */
 export function FieldGuide() {
   return (
-    <div aria-hidden className="absolute inset-0">
+    <div aria-hidden className="pointer-events-none absolute inset-0">
       <span className={`${LINE} right-full top-1/2 h-px w-screen`} />
       <span className={`${LINE} left-full top-1/2 h-px w-screen`} />
       <span className={`${LINE} bottom-full left-1/2 h-screen w-px`} />
