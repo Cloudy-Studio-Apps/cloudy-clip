@@ -241,19 +241,17 @@ export class HtmlMediaEngine implements PreviewEngine {
     silenced: boolean,
     nesting: Nesting | null,
   ): void {
-    // Sound clips crossfading under a junction (junction rule 4); others play at full volume.
+    // Sound clips crossfading under a junction (junction rule 4); fadeLevel folds them in.
     const gains = soundGains(project, composition, time);
     for (const { track, clips } of tracks) {
       // During a junction's overlap both clips are here, each on its own element (one per path),
       // and both frames must be ready before anything is painted.
       for (const { clip, path, inner } of clips) {
         const sound = (propsOverrides.get(clip.id)?.sound as ClipSound) ?? soundOf(clip);
-        const crossfade = gains.get(clip.id) ?? 1;
-        // The longer of a crossfade and the clip's own fade wins, as in export: a smaller share.
         const own =
           track.kind === "audio"
-            ? gain * Math.min(crossfade, fadeLevel(sound, clip, time)) * dbToLinear(sound.volumeDb)
-            : gain * crossfade;
+            ? gain * fadeLevel(sound, clip, time, gains.get(clip.id)) * dbToLinear(sound.volumeDb)
+            : gain;
         if (inner) {
           const { bus, gain: through, pan } = placeSound(track, nesting, own, 0);
           const quiet = silenced || track.muted;

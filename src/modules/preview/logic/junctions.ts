@@ -3,6 +3,7 @@ import {
   allowedOverlap,
   type ClipId,
   type Composition,
+  type CrossfadeLevels,
   type ProjectState,
   type TrackId,
 } from "@/modules/project";
@@ -35,16 +36,17 @@ export function crossfadeGains(progress: number): { left: number; right: number 
 }
 
 /**
- * Volume factors for sound clips crossfading under `time`: the overlapping pairs on audio tracks
- * that a junction covers (a picture junction's linked sounds, junction rule 4). Clips not in the map
- * play at full volume.
+ * Crossfade levels of sound clips under `time`: the overlapping pairs on audio tracks that a
+ * junction covers (a picture junction's linked sounds, junction rule 4), the left clip fading at
+ * its end and the right at its start. Clips not in the map have no crossfade.
  */
 export function soundGains(
   project: ProjectState,
   composition: Composition,
   time: Micros,
-): Map<ClipId, number> {
-  const gains = new Map<ClipId, number>();
+): Map<ClipId, CrossfadeLevels> {
+  const gains = new Map<ClipId, CrossfadeLevels>();
+  const at = (id: ClipId) => gains.get(id) ?? { in: 1, out: 1 };
   for (const trackId of composition.trackOrder) {
     const track = project.tracks[trackId];
     if (track?.kind !== "audio") continue;
@@ -57,8 +59,8 @@ export function soundGains(
       if (since < 0 || since >= overlap) continue;
       if (allowedOverlap(project, left, right) <= 0) continue;
       const { left: l, right: r } = crossfadeGains(since / overlap);
-      gains.set(left.id, l);
-      gains.set(right.id, r);
+      gains.set(left.id, { ...at(left.id), out: l });
+      gains.set(right.id, { ...at(right.id), in: r });
     }
   }
   return gains;

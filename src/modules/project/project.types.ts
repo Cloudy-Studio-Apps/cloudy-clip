@@ -323,6 +323,15 @@ export interface ClipSound {
   eq: { on: boolean; bands: EqBand[] };
 }
 
+/**
+ * The levels of the equal-power crossfades under junctions at a clip's start (`in`) and end
+ * (`out`) at one time; 1 where none is.
+ */
+export interface CrossfadeLevels {
+  in: number;
+  out: number;
+}
+
 /** How a clip plays its file. Missing means normally (`DEFAULT_SPEED`). */
 export interface ClipSpeed {
   /** 0.1 to 10; 0 holds one frame (Freeze frame). */

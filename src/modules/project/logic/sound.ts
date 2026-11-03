@@ -1,5 +1,5 @@
 import type { Micros } from "@/core";
-import type { Clip, ClipSound, EqBand } from "../project.types";
+import type { Clip, ClipSound, CrossfadeLevels, EqBand } from "../project.types";
 
 const bell = (hz: number): EqBand => ({ on: true, shape: "bell", hz, db: 0, q: 1 });
 
@@ -60,11 +60,22 @@ function fadeCurve(share: number): number {
   return Math.sin((Math.min(1, Math.max(0, share)) * Math.PI) / 2);
 }
 
-/** The level a clip's own fades leave at a time on its timeline. */
-export function fadeLevel(sound: ClipSound, clip: Pick<Clip, "start" | "duration">, time: Micros) {
+const NO_CROSSFADE: CrossfadeLevels = { in: 1, out: 1 };
+
+/**
+ * The level a clip's fades leave at a time on its timeline. At each end the longer of its own fade
+ * and a `crossfade` wins (the smaller level), and the two ends multiply, as the export's two
+ * `afade` filters do.
+ */
+export function fadeLevel(
+  sound: ClipSound,
+  clip: Pick<Clip, "start" | "duration">,
+  time: Micros,
+  crossfade: CrossfadeLevels = NO_CROSSFADE,
+): number {
   const since = time - clip.start;
   const left = clip.start + clip.duration - time;
   const fadeIn = sound.fadeIn > 0 ? fadeCurve(since / sound.fadeIn) : 1;
   const fadeOut = sound.fadeOut > 0 ? fadeCurve(left / sound.fadeOut) : 1;
-  return Math.min(fadeIn, fadeOut);
+  return Math.min(fadeIn, crossfade.in) * Math.min(fadeOut, crossfade.out);
 }
