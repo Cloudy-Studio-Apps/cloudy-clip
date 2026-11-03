@@ -96,10 +96,12 @@ export interface SoundGraph {
   mix(update: MixUpdate): void;
   /** Peaks now; silence before any sound went through. */
   levels(): MixLevels;
-  /** Loudness of the master since play started; null until the worklet has measured. */
+  /** Loudness of the master since the last reset, measured while playing; null until measured. */
   loudness(): LoudnessReading | null;
   /** Starts the loudness measurement over. */
   resetLoudness(): void;
+  /** Whether the engine plays: loudness is measured only then. Cheap to call per frame. */
+  setPlaying(playing: boolean): void;
   dispose(): void;
 }
 
@@ -131,6 +133,8 @@ export interface SoundMix {
   levels(): MixLevels;
   loudness(): LoudnessReading | null;
   resetLoudness(): void;
+  /** Whether the engine plays (`SoundGraph.setPlaying`). */
+  setPlaying(playing: boolean): void;
   dispose(): void;
 }
 
@@ -181,6 +185,8 @@ export interface LoudnessTap {
   read(): LoudnessReading | null;
   /** Starts over, ignoring readings made before. */
   reset(): void;
+  /** Measures only while active; inactive, the last reading stands. Posts only on a change. */
+  setActive(active: boolean): void;
   dispose(): void;
 }
 

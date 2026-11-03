@@ -1,4 +1,4 @@
-import type { LoudnessMessage, LoudnessReading } from "../preview.types";
+import type { LoudnessCommand, LoudnessMessage, LoudnessReading } from "../preview.types";
 import { NO_LOUDNESS } from "../logic/loudness";
 import type { LoudnessTap } from "./engine.types";
 import workletUrl from "./loudness.worklet.ts?worker&url";
@@ -8,7 +8,7 @@ import workletUrl from "./loudness.worklet.ts?worker&url";
  * worklet can't load or start; the caller reports that once and the rest of the graph goes on.
  * `onError` is called once if the processor fails later, after which the tap reads null.
  * The node is connected on to the destination only so the context keeps running it: it writes
- * no output, so nothing is heard.
+ * no output, so nothing is heard. It starts inactive: it measures only once `setActive(true)`.
  */
 export async function createLoudnessTap(
   context: AudioContext,
@@ -25,6 +25,8 @@ export async function createLoudnessTap(
   });
   let latest: LoudnessReading | null = null;
   let generation = 0;
+  let active = false;
+  const post = (command: LoudnessCommand) => node.port.postMessage(command);
   node.port.onmessage = (event: MessageEvent<LoudnessMessage>) => {
     if (event.data.generation === generation) latest = event.data.reading;
   };
@@ -45,7 +47,12 @@ export async function createLoudnessTap(
       generation += 1;
       // The worklet posts again within 100 ms; until then there's nothing, not the old reading.
       latest = NO_LOUDNESS;
-      node.port.postMessage({ reset: generation });
+      post({ reset: generation });
+    },
+    setActive(next) {
+      if (failed || next === active) return;
+      active = next;
+      post({ active });
     },
     dispose() {
       node.port.onmessage = null;

@@ -107,6 +107,8 @@ export function createSoundGraph(): SoundGraph {
   let unavailable = false;
   let update: MixUpdate | null = null;
   let loudness: LoudnessTap | null = null;
+  /** Whether the engine plays; a tap made later starts from it. */
+  let playing = false;
   let closed = false;
   let pitch: Promise<() => PitchNode> | null = null;
   const chains = new WeakMap<HTMLMediaElement, SoundChain>();
@@ -128,6 +130,7 @@ export function createSoundGraph(): SoundGraph {
     createLoudnessTap(audio, master, report).then((tap) => {
       if (closed) return tap.dispose();
       loudness = tap;
+      tap.setActive(playing);
     }, report);
   };
 
@@ -185,6 +188,10 @@ export function createSoundGraph(): SoundGraph {
     levels: () => buses?.levels() ?? NO_LEVELS,
     loudness: () => loudness?.read() ?? null,
     resetLoudness: () => loudness?.reset(),
+    setPlaying(next) {
+      playing = next;
+      loudness?.setActive(next);
+    },
     dispose() {
       closed = true;
       loudness?.dispose();

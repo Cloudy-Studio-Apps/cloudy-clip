@@ -148,6 +148,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>> = new Map(),
   ): void {
     this.sound.update(project, composition);
+    this.sound.setPlaying(playing);
     const frame = resolveFrame(project, composition.id, time, {
       pictureOnly: this.pictureOnly,
       preloadAhead: PRELOAD_AHEAD,
@@ -325,6 +326,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   pauseAll(): void {
     this.pool.pauseAll();
+    this.sound.setPlaying(false);
   }
 
   isSettled(): boolean {

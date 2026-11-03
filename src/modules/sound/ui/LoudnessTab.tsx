@@ -24,8 +24,8 @@ function text(reading: LoudnessReading | null, key: keyof LoudnessReading): stri
 }
 
 /**
- * Live loudness of the master, as BS.1770 measures it while the timeline plays: integrated since
- * play started (or Reset), momentary, short term, true peak and range, and the short-term history
+ * Live loudness of the master, as BS.1770 measures it while the timeline plays: integrated over
+ * all the playing since Reset, momentary, short term, true peak and range, and the short-term history
  * of the last 60 s. One feed (`useLoudnessFeed`, 10 Hz while playing, nothing while paused) writes
  * the numbers through the DOM and feeds the history; stopping keeps them. `shown`: whether the tab
  * is the one showing, so the graph draws only then.
@@ -75,7 +75,7 @@ export function LoudnessTab({ shown }: { shown: boolean }) {
           <span ref={integratedRef}>—</span>
           <span className="ml-1 text-sm font-normal text-subtle-foreground">LUFS</span>
         </div>
-        <p className="mb-1 text-sm text-subtle-foreground">Integrated, since play started.</p>
+        <p className="mb-1 text-sm text-subtle-foreground">Integrated, since Reset.</p>
         {ROWS.map(({ key, label, unit }) => (
           <div
             key={key}

@@ -13,7 +13,7 @@ const getLevels = defineMcpTool({
   name: "sound_get_levels",
   readOnly: true,
   description:
-    "Returns what the user hears right now in the preview: the peak of each audio track of their open composition and of the master (dBFS, null for silence), and the loudness of the master since play started (momentary, short term and integrated LUFS, range in LU, true peak in dBTP; null where not measured yet). Readings exist only while the user plays; when nothing plays you get a message and the loudness kept from the last play. Your own playhead plays nothing, so this never measures your edits by itself.",
+    "Returns what the user hears right now in the preview: the peak of each audio track of their open composition and of the master (dBFS, null for silence), and the loudness of the master over all the playing since the user last pressed Reset (momentary, short term and integrated LUFS, range in LU, true peak in dBTP; null where not measured yet). Readings exist only while the user plays; when nothing plays you get a message and the loudness kept from the last play. Your own playhead plays nothing, so this never measures your edits by itself.",
   input: z.object({}),
   handler(_input, ctx) {
     const preview = ctx.require(previewRef);

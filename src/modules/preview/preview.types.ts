@@ -70,7 +70,10 @@ export interface PreviewEngine {
   setSound(sound: LiveSound): void;
   /** Peaks of each track bus and the master now; silence when nothing went through the graph. */
   levels(): MixLevels;
-  /** Loudness of the master since play started or the last reset; null while it isn't measured. */
+  /**
+   * Loudness of the master, measured while playing, since the last reset; null while it isn't
+   * measured. Paused, the last reading stands.
+   */
   loudness(): LoudnessReading | null;
   /** Starts the loudness measurement over. */
   resetLoudness(): void;
@@ -105,7 +108,7 @@ export interface LoudnessReading {
   momentary: number;
   /** LUFS over the last 3 s. */
   shortTerm: number;
-  /** LUFS since play started, gated. */
+  /** LUFS over all the playing since the last reset, gated. */
   integrated: number;
   /** Loudness range in LU. */
   range: number;
@@ -143,7 +146,13 @@ export interface LoudnessHistogram {
   reset(): void;
 }
 
-/** What the loudness worklet posts every 100 ms. */
+/**
+ * What the loudness worklet is told: start over with readings carrying `reset`, or measure only
+ * while `active` (playing). Inactive, it neither measures nor posts, so its last reading stands.
+ */
+export type LoudnessCommand = { reset: number } | { active: boolean };
+
+/** What the loudness worklet posts every 100 ms while active. */
 export interface LoudnessMessage {
   /** The reset it has seen, so a reading from before a reset is ignored. */
   generation: number;
@@ -173,7 +182,10 @@ export interface PreviewSound {
   setSolo(trackIds: TrackId[]): void;
   /** Peaks now, of each track bus and the master. Read it per frame; it holds no peaks. */
   levels(): MixLevels;
-  /** Loudness of the master since play started; null while it isn't measured. */
+  /**
+   * Loudness of the master, measured while playing, since the last reset; null while it isn't
+   * measured. Paused, the last reading stands.
+   */
   loudness(): LoudnessReading | null;
   /** Starts the loudness measurement over. */
   resetLoudness(): void;

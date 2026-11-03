@@ -35,6 +35,7 @@ export function createSoundMix(pictureOnly: boolean): SoundMix {
     levels: () => graph?.levels() ?? NO_LEVELS,
     loudness: () => graph?.loudness() ?? null,
     resetLoudness: () => graph?.resetLoudness(),
+    setPlaying: (playing) => graph?.setPlaying(playing),
     dispose: () => graph?.dispose(),
   };
 }
