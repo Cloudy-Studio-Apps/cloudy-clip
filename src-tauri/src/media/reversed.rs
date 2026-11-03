@@ -7,13 +7,13 @@
 //!   it's encoded once: pieces of encoded sound each add a gap, and over minutes that drifts.
 //! - Each file gets a preview copy and, for export, a full-quality one. Both follow the proxy
 //!   rules: one video and one audio stream, no timecode or data tracks.
-//! - Cached beside the proxies and written under a temporary name, one encode at a time.
+//! - A derived file ([`super::derived`]): cached beside the proxies, one encode at a time.
 
+use std::future::Future;
 use std::path::{Path, PathBuf};
 
-use super::proxy::{
-    Probe, ProxyJobs, Tools, cache_path, command, ffprobe, find_tools, run_encoder,
-};
+use super::derived::{DerivedKind, quiet};
+use super::proxy::{Probe, Tools, ffprobe, run_encoder};
 use super::registry::MediaRegistry;
 
 /// Length of a piece, a size whose frames fit in memory at any resolution we expect.
@@ -104,12 +104,6 @@ fn join_args(picture: bool, sound: bool) -> Vec<&'static str> {
     args
 }
 
-fn quiet(tools: &Tools) -> tokio::process::Command {
-    let mut cmd = command(&tools.ffmpeg);
-    cmd.args(["-hide_banner", "-nostats", "-loglevel", "error", "-y"]);
-    cmd
-}
-
 /// The picture reversed piece by piece, first piece first.
 async fn reverse_picture(
     tools: &Tools,
@@ -117,7 +111,7 @@ async fn reverse_picture(
     folder: &Path,
     duration_us: u64,
     full: bool,
-    on_progress: &impl Fn(f32),
+    on_progress: &(dyn Fn(f32) + Sync),
 ) -> Result<Vec<PathBuf>, String> {
     let pieces = segments(duration_us);
     let mut parts = Vec::with_capacity(pieces.len());
@@ -192,7 +186,7 @@ async fn make_reversed(
     folder: &Path,
     probe: &Probe,
     full: bool,
-    on_progress: &impl Fn(f32),
+    on_progress: &(dyn Fn(f32) + Sync),
 ) -> Result<(), String> {
     let duration_us = probe
         .duration_us
@@ -230,7 +224,7 @@ async fn encode_reversed(
     target: &Path,
     probe: &Probe,
     full: bool,
-    on_progress: &impl Fn(f32),
+    on_progress: &(dyn Fn(f32) + Sync),
 ) -> Result<(), String> {
     let folder = target.with_extension("parts");
     tokio::fs::create_dir_all(&folder)
@@ -245,39 +239,36 @@ fn seconds(micros: u64) -> String {
     format!("{:.6}", micros as f64 / 1_000_000.0)
 }
 
-impl ProxyJobs {
-    /// Makes sure a file has a reversed copy, for preview or, with `full`, for export.
-    pub async fn prepare_reversed(
-        &self,
-        registry: &MediaRegistry,
-        id: &str,
-        full: bool,
-        on_progress: impl Fn(f32),
-    ) -> Result<(), String> {
-        let (source, generation) = registry
-            .reverse_source(id, full)
-            .ok_or("Unknown media id")?;
-        let tools = find_tools().ok_or("FFmpeg was not found")?;
-        let name = if full {
-            "reversed.master.mp4"
+/// The copy of a file that runs backwards: for preview, or at full quality for export.
+pub(crate) struct Reversed {
+    pub(crate) full: bool,
+}
+
+impl DerivedKind for Reversed {
+    fn name(&self) -> String {
+        if self.full {
+            "reversed.master.mp4".into()
         } else {
-            "reversed.mp4"
-        };
-        let target = cache_path(self.cache_dir(), &source, name).await?;
-        if !tokio::fs::try_exists(&target).await.unwrap_or(false) {
-            let _permit = self
-                .encoder()
-                .acquire()
-                .await
-                .map_err(|_| "Encoder unavailable".to_owned())?;
-            // Another job may have made it while this one waited.
-            if !tokio::fs::try_exists(&target).await.unwrap_or(false) {
-                let probe = ffprobe(&tools, &source, false).await?;
-                encode_reversed(&tools, &source, &target, &probe, full, &on_progress).await?;
-            }
+            "reversed.mp4".into()
         }
-        registry.set_reversed(id, generation, full, target);
-        Ok(())
+    }
+
+    fn source(&self, registry: &MediaRegistry, id: &str) -> Option<(PathBuf, u64)> {
+        registry.reverse_source(id, self.full)
+    }
+
+    fn make(
+        &self,
+        tools: &Tools,
+        source: &Path,
+        target: &Path,
+        on_progress: &(dyn Fn(f32) + Sync),
+    ) -> impl Future<Output = Result<(), String>> + Send {
+        let full = self.full;
+        async move {
+            let probe = ffprobe(tools, source, false).await?;
+            encode_reversed(tools, source, target, &probe, full, on_progress).await
+        }
     }
 }
 

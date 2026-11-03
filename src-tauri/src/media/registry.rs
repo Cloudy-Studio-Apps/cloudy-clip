@@ -53,10 +53,8 @@ struct Entry {
     proxy: Option<PathBuf>,
     /// Full-size copy made for export, for files that preview through a proxy.
     master: Option<PathBuf>,
-    /// Copy that runs backwards, for preview.
-    reversed: Option<PathBuf>,
-    /// The same at full quality, for export.
-    reversed_master: Option<PathBuf>,
+    /// Files made from this one (a reversed copy, …), by the name their kind gives them.
+    derived: HashMap<String, PathBuf>,
     /// Folder of an animated image's frames, `00000.png` onwards.
     frames: Option<PathBuf>,
 }
@@ -84,8 +82,7 @@ impl MediaRegistry {
                     original: path.to_path_buf(),
                     proxy: None,
                     master: None,
-                    reversed: None,
-                    reversed_master: None,
+                    derived: HashMap::new(),
                     frames: None,
                 },
             );
@@ -146,15 +143,10 @@ impl MediaRegistry {
         }
     }
 
-    /// The reversed copy of an id, if one is ready.
-    pub fn reversed_path_of(&self, id: &str, full: bool) -> Option<PathBuf> {
+    /// A derived file of an id, by name, if it's ready.
+    pub fn derived_path_of(&self, id: &str, name: &str) -> Option<PathBuf> {
         let entries = self.entries.read().ok()?;
-        let entry = entries.get(id)?;
-        if full {
-            entry.reversed_master.clone()
-        } else {
-            entry.reversed.clone()
-        }
+        entries.get(id)?.derived.get(name).cloned()
     }
 
     /// What a reversed copy is made from, and the registration it belongs to.
@@ -173,17 +165,13 @@ impl MediaRegistry {
         Some((source, entry.generation))
     }
 
-    /// Attaches a finished reversed copy to a registration of an id.
-    pub fn set_reversed(&self, id: &str, generation: u64, full: bool, copy: PathBuf) {
+    /// Attaches a finished derived file to a registration of an id.
+    pub fn set_derived(&self, id: &str, generation: u64, name: &str, file: PathBuf) {
         if let Ok(mut entries) = self.entries.write()
             && let Some(entry) = entries.get_mut(id)
             && entry.generation == generation
         {
-            if full {
-                entry.reversed_master = Some(copy);
-            } else {
-                entry.reversed = Some(copy);
-            }
+            entry.derived.insert(name.to_owned(), file);
         }
     }
 

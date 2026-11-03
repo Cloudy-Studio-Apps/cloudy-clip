@@ -14,7 +14,7 @@ import { mediaRef } from "./media.ref";
 import { createMediaFiles } from "./media.files";
 import { createMediaService, listDisks, readFileFacts, revealFile } from "./media.service";
 import { createMediaState } from "./media.store";
-import { createReversedCopies } from "./media.reversed";
+import { createDerivedFiles } from "./media.derived";
 import { createLibraryView } from "./media.view.store";
 import { MEDIA_PAGE } from "./media.ref";
 import { MediaLibrary, MediaPage } from "./ui";
@@ -109,7 +109,7 @@ export const mediaModule = defineModule({
         mediaUrl: service.mediaUrl,
         prepareMaster: service.prepareMaster,
         masterUrl: service.masterUrl,
-        ...createReversedCopies(service),
+        ...createDerivedFiles(service),
         animation: state.animation,
         imageFrames(id, elapsed, ahead) {
           const animation = state.animation(id);

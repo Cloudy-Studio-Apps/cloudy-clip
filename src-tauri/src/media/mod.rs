@@ -1,6 +1,7 @@
 //! Media module: file registration, editing proxies, and the loopback media server.
 
 pub mod commands;
+mod derived;
 pub mod disks;
 pub mod facts;
 mod image;

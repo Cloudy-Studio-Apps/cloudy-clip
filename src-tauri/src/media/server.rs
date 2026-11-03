@@ -24,7 +24,9 @@ use axum::routing::any;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio_util::io::ReaderStream;
 
+use super::derived::DerivedKind;
 use super::registry::{MediaRegistry, mime_of};
+use super::reversed::Reversed;
 use crate::error::{AppError, AppResult};
 
 /// Read buffer for streamed bodies.
@@ -115,7 +117,8 @@ async fn handle(
     };
     let master = asks("master=1");
     let path = if asks("reversed=1") {
-        state.registry.reversed_path_of(&id, master)
+        let name = Reversed { full: master }.name();
+        state.registry.derived_path_of(&id, &name)
     } else if master {
         state.registry.master_path_of(&id)
     } else {

@@ -10,6 +10,7 @@ use tauri::{AppHandle, State};
 use super::MediaServerUrl;
 use super::proxy::ProxyJobs;
 use super::registry::{MediaFile, MediaRegistry, RegisteredMedia, describe};
+use super::reversed::Reversed;
 use crate::error::AppError;
 
 /// A file to register, under the id the frontend gave it.
@@ -125,8 +126,9 @@ pub async fn media_prepare_reversed(
         let _ = on_progress.send(progress);
     };
     proxies
-        .prepare_reversed(&registry, &id, full, report)
+        .prepare(&registry, &id, &Reversed { full }, &report)
         .await
+        .map(|_| ())
         .map_err(AppError::Unavailable)
 }
 
