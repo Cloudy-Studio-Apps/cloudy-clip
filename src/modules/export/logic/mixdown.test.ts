@@ -250,12 +250,61 @@ describe("mixdown", () => {
     expect(segment).not.toHaveProperty("speed");
   });
 
+  it("keeps a short fade's key points on a long clip", () => {
+    const animation: Clip["animation"] = {
+      "sound.volumeDb": {
+        blend: "number",
+        keys: [
+          { id: "k1", t: 60_000_000, value: 0 },
+          { id: "k2", t: 60_300_000, value: -24 },
+        ],
+      },
+    };
+    const long = clip("a", "a1", { duration: 120_000_000, animation });
+    const window = { start: 0, duration: 120_000_000 };
+    const [segment] = mixdown(lengthened(project([long])), "c1", window, sounds);
+    const points = segment!.gainEnvelope!;
+    expect(points.find((p) => p.at === 60_000_000)?.value).toBeCloseTo(1);
+    expect(points.find((p) => p.at === 60_300_000)?.value).toBeCloseTo(dbToLinear(-24));
+    expect(points.at(-1)!.value).toBeCloseTo(dbToLinear(-24));
+  });
+
+  it("gives a long clip with a short ramp few tempo steps, still covering it", () => {
+    const ramp: KeyTrack = {
+      blend: "number",
+      shared: true,
+      min: 0.1,
+      max: 10,
+      keys: [
+        { id: "r1", t: 30_000_000, value: 1 },
+        { id: "r2", t: 31_000_000, value: 2 },
+      ],
+    };
+    const long = clip("a", "a1", {
+      duration: rampTimeAt(ramp, 0, 120_000_000),
+      animation: { [RAMP_PATH]: ramp },
+    });
+    const range = { start: 0, duration: long.duration };
+    const [segment] = mixdown(lengthened(project([long])), "c1", range, sounds);
+    const steps = segment!.tempoSteps!;
+    expect(steps.length).toBeLessThanOrEqual(6);
+    expect(steps.reduce((sum, s) => sum + s.duration, 0)).toBe(segment!.duration);
+    expect(steps[0]).toMatchObject({ from: 0, duration: 30_000_000, speed: 1 });
+    expect(steps.at(-1)!.speed).toBeCloseTo(2);
+  });
+
   it("leaves a clip without keys as it was", () => {
     const [segment] = mixdown(project([clip("a", "a1")]), "c1", everything, sounds);
     expect(segment).not.toHaveProperty("gainEnvelope");
     expect(segment).not.toHaveProperty("panEnvelope");
   });
 });
+
+/** The project with a composition long enough for a long clip. */
+function lengthened(state: ProjectState) {
+  state.compositions.c1!.duration = 200_000_000;
+  return state;
+}
 
 /** Puts composition `c2`, 5 s long with one 4 s sound clip of `n`, at 2 s of `c1` from its 1 s. */
 function withPlacement(state: ProjectState, { innerMuted }: { innerMuted: boolean }) {

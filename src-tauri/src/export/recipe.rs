@@ -276,7 +276,7 @@ fn pan_filter(pan: f64) -> String {
     }
 }
 
-/// A number for an expression, short because an envelope has up to 256 of them.
+/// A number for an expression, short because an envelope may have hundreds of them.
 fn compact(value: f64) -> String {
     let text = format!("{value:.5}");
     text.trim_end_matches('0').trim_end_matches('.').to_owned()
@@ -318,7 +318,7 @@ fn envelope_expr(points: &[(f64, f64)]) -> String {
 }
 
 /// The stretches as a balanced tree of `if`s: FFmpeg's expression parser refuses to nest deeper
-/// than 100 levels, which a chain of 256 would.
+/// than 100 levels, which a chain of hundreds would.
 fn stretch_tree(stretches: &[(f64, f64, f64)]) -> String {
     if let [(t0, v0, slope)] = stretches {
         if slope.abs() < 1e-5 {
