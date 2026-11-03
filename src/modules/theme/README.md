@@ -46,7 +46,7 @@ contribute(
 
 ## How it works
 
-- **The default.** `src/ui/styles/tokens.css` is Cloudy Dark, so the app paints correctly even without this module. The `cloudy-dark` preset lists no tokens. Cloudy Light sets every color, because what's under it is dark.
+- **The default.** `src/ui/styles/tokens.css` is Cloudy Dark, so the app paints correctly even without this module. The `cloudy-dark` preset lists no tokens. Cloudy Light sets every color, because what's under it is dark. Studio (neutral grays, from the Tint page's Studio prototype) lists only its grays over Cloudy Dark.
 - **Resolving.** `resolveTheme` merges the `extends` chain. A chain that loops or names a missing theme stops where it breaks. `themeCss` writes it as `html:root`, which beats `tokens.css`. Corners map to the `--radius-*` scale: `control / 2`, `control`, `card`, `max`.
 - **Applying.** `theme.service.ts` re-applies when the choice, the OS appearance or the `themes` point changes. `theme.apply.ts` writes `<style id="cloudy-theme">`, sets `data-theme` and `data-appearance` on `<html>` and caches the CSS.
 - **Before first paint.** A script in `index.html` injects that cache, so the right theme shows from the first frame. The first run paints Cloudy Dark.
