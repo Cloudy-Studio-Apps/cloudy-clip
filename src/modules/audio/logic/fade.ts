@@ -1,7 +1,9 @@
+import { MICROS_PER_SECOND } from "@/core";
 import { DEFAULT_SOUND, fadeLevel } from "@/modules/project";
+import { pxToTime } from "@/modules/timeline";
 import type { FadeEdge } from "../audio.types";
 
-const WHOLE = 1_000_000;
+const WHOLE = MICROS_PER_SECOND;
 const STEPS = 16;
 
 /**
@@ -38,6 +40,6 @@ export function draggedFade(
   pxPerSecond: number,
   duration: number,
 ): number {
-  const delta = Math.round(((edge === "in" ? dx : -dx) / pxPerSecond) * WHOLE);
+  const delta = pxToTime(edge === "in" ? dx : -dx, pxPerSecond);
   return Math.min(duration, Math.max(0, current + delta));
 }
