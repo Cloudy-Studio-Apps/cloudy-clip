@@ -134,8 +134,12 @@ export function createSoundGraph(): SoundGraph {
     }, report);
   };
 
-  /** The context with its buses, made on first use; null when Web Audio isn't there. */
+  /**
+   * The context with its buses, made on first use; null when Web Audio isn't there or the graph
+   * was disposed (no context is built after that).
+   */
   const open = (): AudioContext | null => {
+    if (closed) return null;
     if (context || unavailable) return context;
     unavailable = true;
     if (typeof AudioContext === "undefined") return null;
