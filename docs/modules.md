@@ -177,6 +177,7 @@ it, so does the UI, and it becomes a command.
 | `inspectorSections` | `inspector`  | `{ id, tab, title, order, appliesTo?, bare?, component }`, add to any clip's panel     |
 | `fieldActions`      | `inspector`  | `{ id, order, appliesTo?, component }`, the end of a field's row                       |
 | `timelineTools`     | `timeline`   | `{ id, order, component }`, a control at the left of the toolbar                       |
+| `clipActions`       | `timeline`   | `{ id, doubleClick?, items?, badge? }`, a clip's double click, menu entries and badge  |
 | `timelineDocks`     | `timeline`   | `{ id, order?, component }`, a panel docked under the tracks                           |
 | `keyTargets`        | `keyframe`   | `{ id, fields(clip, track), afterWrite? }`, the values of a clip that can be keyed     |
 
