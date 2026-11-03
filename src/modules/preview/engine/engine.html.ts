@@ -29,10 +29,12 @@ import {
 } from "@/modules/project";
 import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
+import { mixUpdateOf, NO_LIVE_SOUND, placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
-import type { PreviewEngine } from "../preview.types";
+import type { LiveSound, MixLevels, PreviewEngine } from "../preview.types";
 import { createSoundAtSpeed, quietSlot, voiceSlot } from "./engine.audio";
 import { createSoundGraph, PITCH_LEAD_SECONDS } from "./engine.audiograph";
+import { NO_LEVELS } from "./engine.meters";
 import { ImageCache } from "./engine.images";
 import { landLayer } from "./engine.composite";
 import { LevelCorrection } from "./engine.levels";
@@ -43,6 +45,7 @@ import { RAMP_RATE_STEP, syncSlot } from "./engine.sync";
 import type {
   CachedPicture,
   EngineOptions,
+  Nesting,
   PlacementTarget,
   ResolvedFrame,
   SoundGraph,
@@ -100,11 +103,15 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly mixCanvases: MixCanvases;
   private readonly nested = new NestedCanvases();
   private readonly pictureOnly: boolean;
-  /** Web Audio for clips with sound settings; a picture-only engine has no sound. */
+  /** Web Audio for every sound element; a picture-only engine has no sound. */
   private readonly sound: SoundGraph | null;
+  /** Live mix values, solo and the monitor, from the controller. */
+  private live: LiveSound = NO_LIVE_SOUND;
+  /** What the buses were last set from, so they change only when one of these does. */
+  private mixed: { project: ProjectState; composition: Composition; live: LiveSound } | null = null;
   private readonly soundAtSpeed = createSoundAtSpeed();
   private readonly awaited = new Set<MediaId>();
-  private readonly levels: LevelCorrection | null;
+  private readonly levelCorrection: LevelCorrection | null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -122,7 +129,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.mixCanvases = new MixCanvases(canvas);
     this.pictureOnly = options.pictureOnly ?? false;
     this.sound = this.pictureOnly ? null : createSoundGraph();
-    this.levels = options.videoLevels ? new LevelCorrection(options.videoLevels) : null;
+    this.levelCorrection = options.videoLevels ? new LevelCorrection(options.videoLevels) : null;
   }
 
   render(
@@ -133,6 +140,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>> = new Map(),
   ): void {
+    this.remix(project, composition);
     const frame = resolveFrame(project, composition.id, time, {
       pictureOnly: this.pictureOnly,
       preloadAhead: PRELOAD_AHEAD,
@@ -155,7 +163,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.nested.release(placements);
 
     this.settled = true;
-    this.prepare(project, frame, playing, propsOverrides, 1, false);
+    this.prepare(project, frame, playing, propsOverrides, 1, false, null);
 
     for (const { path, clip, track, time: at } of frame.upcoming) {
       if (!hasMedia(clip)) {
@@ -187,6 +195,25 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (this.settled) this.draw(project, frame, transforms, propsOverrides);
   }
 
+  setSound(live: LiveSound): void {
+    this.live = live;
+    if (this.mixed) this.remix(this.mixed.project, this.mixed.composition);
+  }
+
+  levels(): MixLevels {
+    return this.sound?.levels() ?? NO_LEVELS;
+  }
+
+  /** Sets the buses when the tracks, the open composition or the live sound changed. */
+  private remix(project: ProjectState, composition: Composition): void {
+    if (!this.sound) return;
+    const last = this.mixed;
+    const same = last?.composition === composition && last.live === this.live;
+    if (same && last.project.tracks === project.tracks) return;
+    this.mixed = { project, composition, live: this.live };
+    this.sound.mix(mixUpdateOf(project, composition, this.live));
+  }
+
   /** The file a clip's element plays; null while its reversed copy isn't ready. */
   private urlOf(mediaId: MediaId, { reversed }: ClipSpeed): string | null {
     if (!reversed) return this.options.mediaUrl(mediaId);
@@ -209,8 +236,8 @@ export class HtmlMediaEngine implements PreviewEngine {
   }
 
   /**
-   * Gets every element of a frame in place, at any depth, and checks what can be painted. `gain`
-   * and `silenced` come from the tracks around a placement.
+   * Gets every element of a frame in place, at any depth, and checks what can be painted. `gain`,
+   * `silenced` and `nesting` come from the tracks around a placement.
    */
   private prepare(
     project: ProjectState,
@@ -219,6 +246,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
     gain: number,
     silenced: boolean,
+    nesting: Nesting | null,
   ): void {
     // Sound clips crossfading under a junction (junction rule 4); others play at full volume.
     const gains = soundGains(project, composition, time);
@@ -234,7 +262,9 @@ export class HtmlMediaEngine implements PreviewEngine {
             ? gain * Math.min(crossfade, fadeLevel(sound, clip, time)) * dbToLinear(sound.volumeDb)
             : gain * crossfade;
         if (inner) {
-          this.prepare(project, inner, playing, propsOverrides, own, silenced || track.muted);
+          const { bus, gain: through, pan } = placeSound(track, nesting, own, 0);
+          const quiet = silenced || track.muted;
+          this.prepare(project, inner, playing, propsOverrides, through, quiet, { bus, pan });
           continue;
         }
         if (!hasMedia(clip)) continue; // drawn from the document, no media element
@@ -271,7 +301,9 @@ export class HtmlMediaEngine implements PreviewEngine {
         // The pitch of a ramp follows its rate now, in steps, since each rate keeps its own sound.
         const heardRate = ramped ? Math.round(rate / RAMP_RATE_STEP) * RAMP_RATE_STEP : rate;
         const heard = this.soundAtSpeed(sound, { ...speed, rate: heardRate });
-        voiceSlot(slot, track, own, silenced, heard, this.sound);
+        const placed = placeSound(track, nesting, own, heard.pan);
+        const voice = { ...placed, silenced, sound: heard, name: media.name };
+        voiceSlot(slot, track, track.kind === "audio" ? voice : null, this.sound);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
         const lead = pitched ? PITCH_LEAD_SECONDS * rate : 0;
         syncSlot(slot, exact + lead, playing && rate > 0, rate, ramped);
@@ -484,7 +516,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) return;
 
     const size = { width: element.videoWidth, height: element.videoHeight };
-    const frame = this.levels?.correct(element, size.width, size.height) ?? element;
+    const frame = this.levelCorrection?.correct(element, size.width, size.height) ?? element;
     land(target, frame, clipPlacement(format, size, transform), kx, ky);
   }
 

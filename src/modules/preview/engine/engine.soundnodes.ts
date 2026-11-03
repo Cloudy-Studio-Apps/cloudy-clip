@@ -1,5 +1,7 @@
 import { bandActive, type EqBand } from "@/modules/project";
 
+/** How smoothly a change lands, in seconds. Short enough to follow, long enough not to click. */
+export const GLIDE = 0.01;
 /** Web Audio's cut filters take Q in dB: this is the plain 12 dB/octave slope FFmpeg's have. */
 const CUT_Q_DB = -3.01;
 

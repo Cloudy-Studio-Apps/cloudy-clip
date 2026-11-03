@@ -7,13 +7,21 @@ export { HtmlMediaEngine } from "./engine/engine.html";
 /** Layers drawn over the preview frame; contribute with `ctx.contribute(previewOverlays, …)`. */
 export { previewOverlays } from "./preview.points";
 export { MAX_ZOOM, MIN_ZOOM } from "./preview.viewport";
+/** How the user listens until told otherwise: stereo, not dimmed, speakers at 0 dB. */
+export { DEFAULT_MONITOR } from "./logic/mix";
 export type {
   FrameRenderer,
   FrameRendererOptions,
+  LiveSound,
+  LoudnessReading,
+  MixLevels,
+  MonitorState,
   PlaybackClock,
   PreviewApi,
   PreviewEngine,
   PreviewOverlay,
+  PreviewSound,
+  StereoLevel,
   TimeListener,
   VideoLevels,
   ViewportApi,

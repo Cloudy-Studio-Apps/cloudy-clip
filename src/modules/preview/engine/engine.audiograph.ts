@@ -1,12 +1,12 @@
-import { createLogger } from "@/core";
+import { createLogger, notify } from "@/core";
 import { pitchShift, type ClipSound } from "@/modules/project";
-import { createEqFilters, createPanner, createUpmix, setBand } from "./engine.soundnodes";
-import type { SoundChain, SoundGraph } from "./engine.types";
+import { NO_LEVELS } from "./engine.meters";
+import { createMixBus } from "./engine.mixbus";
+import { createEqFilters, createPanner, createUpmix, GLIDE, setBand } from "./engine.soundnodes";
+import type { MixBus, MixUpdate, SoundChain, SoundGraph } from "./engine.types";
 
 const log = createLogger("preview.engine");
 
-/** How smoothly a change lands, in seconds. Short enough to follow, long enough not to click. */
-const GLIDE = 0.01;
 /**
  * What the pitch worklet holds back, in seconds, measured on WebKitGTK (see
  * `docs/superpowers/specs/2026-11-02-audio-preview-check.md`). Pitched sound runs this far ahead
@@ -26,7 +26,7 @@ async function loadPitch(context: AudioContext): Promise<() => PitchNode> {
   return () => new SoundTouchNode({ context }) as unknown as PitchNode;
 }
 
-/** The Web Audio chain of one element: pitch, equalizer, pan, then level. */
+/** The Web Audio chain of one element: pitch, equalizer, pan, then level, into a bus. */
 function createChain(
   context: AudioContext,
   element: HTMLMediaElement,
@@ -40,9 +40,10 @@ function createChain(
   source.connect(input);
   const nodes: AudioNode[] = [input, ...filters, panner, level];
   nodes.slice(1).forEach((node, i) => nodes[i]!.connect(node));
-  level.connect(context.destination);
 
   let shown: ClipSound | null = null;
+  let shownPan: number | null = null;
+  let bus: AudioNode | null = null;
   let pitch: PitchNode | null = null;
   let wanted = 0;
 
@@ -74,16 +75,26 @@ function createChain(
   };
 
   return {
-    apply(sound, gain) {
+    apply(sound, gain, pan = sound.pan) {
       // Never awaited: on an idle context it only settles once media plays.
       if (context.state === "suspended") void context.resume();
       const now = context.currentTime;
       level.gain.setTargetAtTime(gain, now, GLIDE);
+      if (pan !== shownPan) {
+        shownPan = pan;
+        panner.pan.setTargetAtTime(pan, now, GLIDE);
+      }
       if (sound === shown) return;
       shown = sound;
-      panner.pan.setTargetAtTime(sound.pan, now, GLIDE);
       filters.forEach((filter, i) => setBand(filter, sound.eq.bands[i]!, sound.eq.on));
       setPitch(pitchShift(sound));
+    },
+    routeTo(next) {
+      // The pool hands an element to clips of any track, so its chain follows the slot.
+      if (next === bus) return;
+      if (bus) level.disconnect(bus);
+      level.connect(next);
+      bus = next;
     },
   };
 }
@@ -91,17 +102,27 @@ function createChain(
 /** Web Audio for the sound elements of one engine, made the first time one needs it. */
 export function createSoundGraph(): SoundGraph {
   let context: AudioContext | null = null;
+  let buses: MixBus | null = null;
+  let update: MixUpdate | null = null;
   let pitch: Promise<() => PitchNode> | null = null;
   const chains = new WeakMap<HTMLMediaElement, SoundChain>();
   const failed = new WeakSet<HTMLMediaElement>();
 
+  const busesOf = (audio: AudioContext) => {
+    if (buses) return buses;
+    buses = createMixBus(audio);
+    if (update) buses.mix(update);
+    return buses;
+  };
+
   return {
     chainOf: (element) => chains.get(element),
-    attach(element) {
+    attach(element, name) {
       const known = chains.get(element);
       if (known || failed.has(element) || typeof AudioContext === "undefined") return known;
       try {
         const audio = (context ??= new AudioContext());
+        busesOf(audio);
         const chain = createChain(audio, element, () => (pitch ??= loadPitch(audio)));
         chains.set(element, chain);
         return chain;
@@ -109,10 +130,25 @@ export function createSoundGraph(): SoundGraph {
         // An element takes one source, ever, so don't try again.
         failed.add(element);
         log.warn("This sound can't go through Web Audio", error);
+        notify(
+          "error",
+          `"${name}" can't go through the mixer, so it plays at its own level: track volume, solo and meters don't reach it.`,
+        );
         return undefined;
       }
     },
+    busOf(trackId) {
+      context ??= new AudioContext();
+      return busesOf(context).inputOf(trackId);
+    },
+    mix(next) {
+      update = next;
+      buses?.mix(next);
+    },
+    levels: () => buses?.levels() ?? NO_LEVELS,
     dispose() {
+      buses?.dispose();
+      buses = null;
       void context?.close();
       context = null;
     },

@@ -1,6 +1,7 @@
 import { createLogger, LOCAL_ACTOR, type ActorId } from "@/core";
 import type { ClipId, ClipTransform } from "@/modules/project";
 import { createVirtualClock } from "./logic/virtual.clock";
+import { createPreviewSound } from "./preview.sound";
 import type {
   PlaybackClock,
   PreviewController,
@@ -34,6 +35,9 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
 
   /** Collaborators' playheads, made when first used. */
   const clocks = new Map<ActorId, PlaybackClock>();
+
+  /** Live mix values, solo and the monitor: the engine attached later starts with them too. */
+  const sound = createPreviewSound(() => engine);
 
   function renderNow(): void {
     redrawQueued = false;
@@ -77,6 +81,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   function attachCanvas(canvas: HTMLCanvasElement): () => void {
     detachCurrent?.();
     const current = deps.createEngine(canvas, requestRedraw);
+    current.setSound(sound.current());
     engine = current;
 
     const offTime = clock.onTime(() => {
@@ -147,6 +152,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     },
     propsOverride: (clipId) => propsOverrides.get(clipId),
     viewport: createViewport(),
+    sound: sound.sound,
     dispose() {
       clock.pause();
       detachCurrent?.();

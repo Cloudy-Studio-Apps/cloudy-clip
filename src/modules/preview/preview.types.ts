@@ -10,6 +10,8 @@ import type {
   Junction,
   MediaId,
   ProjectState,
+  TrackId,
+  TrackMix,
 } from "@/modules/project";
 
 /** Called on every frame while playing, and once per seek while paused. */
@@ -59,7 +61,76 @@ export interface PreviewEngine {
   captureFrame(): Promise<string>;
   /** The canvas as RGBA bytes, row by row from the top. */
   readPixels(): Uint8ClampedArray;
+  /** What the user hears beside the document; applied at once, not on the next frame. */
+  setSound(sound: LiveSound): void;
+  /** Peaks of each track bus and the master now; silence when nothing went through the graph. */
+  levels(): MixLevels;
   dispose(): void;
+}
+
+/** How the user listens: never in the document, never in an export. */
+export interface MonitorState {
+  /** Left and right summed to both speakers. */
+  mono: boolean;
+  /** 20 dB down. */
+  dim: boolean;
+  /** Speaker volume in dB. */
+  speakerDb: number;
+}
+
+/** The peak of each side, in dBFS; `-Infinity` for silence. */
+export interface StereoLevel {
+  left: number;
+  right: number;
+}
+
+/** Peaks of the open composition's audio tracks and of its master. */
+export interface MixLevels {
+  tracks: Record<TrackId, StereoLevel>;
+  master: StereoLevel;
+}
+
+/** Loudness of the master, as BS.1770 measures it. */
+export interface LoudnessReading {
+  /** LUFS over the last 400 ms. */
+  momentary: number;
+  /** LUFS over the last 3 s. */
+  shortTerm: number;
+  /** LUFS since play started, gated. */
+  integrated: number;
+  /** Loudness range in LU. */
+  range: number;
+  /** dBTP. */
+  truePeak: number;
+}
+
+/** What the user hears beside the document: live drag values, solo and the monitor. */
+export interface LiveSound {
+  /** Live values of tracks and the master (`"master"`), drawn over the saved ones. */
+  mix: ReadonlyMap<TrackId | "master", Partial<TrackMix>>;
+  /** Tracks soloed; none means every track sounds. */
+  solo: TrackId[];
+  monitor: MonitorState;
+}
+
+/** What the user hears in the preview, beside the document. Ephemeral: never in history. */
+export interface PreviewSound {
+  /**
+   * Plays a track (or the master) with this live patch of its mix, without changing the project
+   * (feedback while a fader or pan is dragged). Pass null to go back to the saved mix. The edit
+   * commits with `sound.setTrackMix` or `sound.setMaster`.
+   */
+  previewMix(target: TrackId | "master", patch: Partial<TrackMix> | null): void;
+  /** How the user listens: mono, dim and speaker volume. */
+  setMonitor(state: MonitorState): void;
+  /** Silences every other track's bus; an empty list lets every track sound. */
+  setSolo(trackIds: TrackId[]): void;
+  /** Peaks now, of each track bus and the master. Read it per frame; it holds no peaks. */
+  levels(): MixLevels;
+  /** Loudness of the master since play started; null while it isn't measured. */
+  loudness(): LoudnessReading | null;
+  /** Starts the loudness measurement over. */
+  resetLoudness(): void;
 }
 
 /** What the preview controller needs from the rest of the app. Injected so it can be tested. */
@@ -177,6 +248,8 @@ export interface PreviewApi {
   propsOverride(clipId: ClipId): Record<string, unknown> | undefined;
   /** Zoom and pan of the viewer. View state only: not in the project, not undoable. */
   readonly viewport: ViewportApi;
+  /** What the user hears: live mix values, solo, the monitor and the meters. Ephemeral. */
+  readonly sound: PreviewSound;
 }
 
 /** Zoom and pan of the preview viewer. */

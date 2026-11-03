@@ -4,15 +4,18 @@ import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
 import type { MediaApi } from "@/modules/media";
 import type { Micros } from "@/core";
-import type { VideoLevels } from "../preview.types";
+import type { MixLevels, MonitorState, StereoLevel, VideoLevels } from "../preview.types";
 import type {
   Clip,
   ClipSound,
   Composition,
+  MasterMix,
   MediaId,
   ProjectFormat,
   ProjectState,
   Track,
+  TrackId,
+  TrackMix,
 } from "@/modules/project";
 
 /** One pooled media element and what it is currently showing. */
@@ -41,16 +44,101 @@ export interface Slot {
 
 /** The Web Audio chain of one sound element. */
 export interface SoundChain {
-  /** Sets the sound, and the level as a factor: volume, fades, crossfade and mute together. */
-  apply(sound: ClipSound, gain: number): void;
+  /**
+   * Sets the sound, the level as a factor (volume, fades, crossfade and mute together) and the pan,
+   * which is the sound's own unless inner tracks of a placement add theirs.
+   */
+  apply(sound: ClipSound, gain: number, pan?: number): void;
+  /** Sends the chain into a bus; does nothing when it already goes there. */
+  routeTo(bus: AudioNode): void;
+}
+
+/** One audio track of the open composition in a mix update. */
+export interface MixTrack {
+  id: TrackId;
+  mix: TrackMix;
+  muted: boolean;
+}
+
+/** Everything the buses play by: the document's mix with live values over it, solo and monitor. */
+export interface MixUpdate {
+  /** The open composition's audio tracks, top to bottom. */
+  tracks: MixTrack[];
+  master: MasterMix;
+  /** Tracks soloed; none means every track sounds. */
+  solo: TrackId[];
+  monitor: MonitorState;
 }
 
 /** Web Audio for one engine. An element takes one `MediaElementSource`, ever. */
 export interface SoundGraph {
-  /** Connects a sound element once; it stays connected for the element's life. */
-  attach(element: HTMLMediaElement): SoundChain | undefined;
+  /**
+   * Connects a sound element once; it stays connected for the element's life. When it can't,
+   * the element plays plain and the user is told once, by `name` (the file's).
+   */
+  attach(element: HTMLMediaElement, name: string): SoundChain | undefined;
   /** The element's chain, if it has one. */
   chainOf(element: HTMLMediaElement): SoundChain | undefined;
+  /** Where a clip sounding through this top-level track goes: its bus, else the master. */
+  busOf(trackId: TrackId): AudioNode;
+  /** Makes and drops track buses and sets every level. Call it on a change, not per frame. */
+  mix(update: MixUpdate): void;
+  /** Peaks now; silence before any sound went through. */
+  levels(): MixLevels;
+  dispose(): void;
+}
+
+/** What a placement passes to the clips inside it. */
+export interface Nesting {
+  /** The top-level track the placement sits on, whose bus its sound goes through. */
+  bus: TrackId;
+  /** The pan of the inner tracks above, summed. */
+  pan: number;
+}
+
+/** Where a clip sounds from: the bus, and its gain and pan once inner tracks apply. */
+export interface Placed {
+  bus: TrackId;
+  gain: number;
+  pan: number;
+}
+
+/** How one active clip of an audio track sounds, worked out by the engine. */
+export interface Voice {
+  /** Volume, fades, crossfade, placements around it and inner tracks' volume, as a factor. */
+  gain: number;
+  /** Its pan, with the pans of inner tracks it sits in. */
+  pan: number;
+  /** A muted track above it, around a placement. */
+  silenced: boolean;
+  sound: ClipSound;
+  /** The top-level track it sounds through: its own, or the one its placement sits on. */
+  bus: TrackId;
+  /** The file's name, for the report when its element can't enter the graph. */
+  name: string;
+}
+
+/** Peak meter of one bus. */
+export interface Meter {
+  /** The peak of each side over the last few hundredths of a second. */
+  read(): StereoLevel;
+  dispose(): void;
+}
+
+/** One audio track's bus: upmix, pan, fader, and a meter after the fader. */
+export interface TrackBus {
+  input: GainNode;
+  panner: StereoPannerNode;
+  fader: GainNode;
+  meter: Meter;
+}
+
+/** The buses of one context: a track bus per audio track, the master and the monitor. */
+export interface MixBus {
+  /** The input of a track's bus, or the master's when the track has none. */
+  inputOf(trackId: TrackId): AudioNode;
+  mix(update: MixUpdate): void;
+  levels(): MixLevels;
   dispose(): void;
 }
 
