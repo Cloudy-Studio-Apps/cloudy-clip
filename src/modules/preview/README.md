@@ -79,7 +79,12 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     under the playhead with their `progress` and `elapsed`; `crossfadeGains(progress)`;
     `soundGains(project, composition, time)`), `random.ts` (`seededRandom(seed)`), `drift.ts`
     (`driftSeek(state)`: where to seek a playing element, or `null`), `db.ts` (`peakToDb(peak)`:
-    a linear peak in dBFS, `-Infinity` for silence, shared by the meters and the true peak).
+    a linear peak in dBFS, `-Infinity` for silence, shared by the meters and the true peak),
+    `dynamics.ts` (`compressorStep(state, input, params, sampleRate)` with `createDynamicsState()`:
+    one sample through a port of FFmpeg's `acompressor`, downward, peak detection, pure and
+    allocation-free for a worklet; matches ffmpeg n9.0.2 to float precision, see
+    `docs/superpowers/specs/2026-11-03-sound-dynamics-check.md`. Export must pass `detection=peak`,
+    since FFmpeg's default is RMS).
   - `logic/frame.ts`: `resolveFrame(project, compositionId, time, options)`: a composition at a time as a tree, descending into placements at their local time (`sourceIn + time - start`). Every clip has a `path` of placement ids (`outer/inner`), because one original can be on screen twice: slots, needed sets and canvases key on it, never the bare clip id. A placement on a video track shows only pictures, on an audio track only sound; a hidden track shows nothing inside.
   - `engine/engine.nested.ts`: `NestedCanvases`: one transparent canvas per placement on screen (capped at the preview's size), with its own `MixCanvases`, since a transition inside a placement must not share canvases with one around it. Inner clips draw as saved: live gestures only touch the open composition. The background colour only fills the top level. Above 12 elements in a frame, inner clips are left out and the user is told once.
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it runs in

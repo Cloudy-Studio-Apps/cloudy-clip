@@ -87,6 +87,7 @@ export type {
   SolidId,
   SharedGroupValues,
   ClipSound,
+  CompressorParams,
   CrossfadeLevels,
   CompositionMix,
   MasterMix,

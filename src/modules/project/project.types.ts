@@ -324,6 +324,25 @@ export interface ClipSound {
 }
 
 /**
+ * A compressor's settings, as FFmpeg's `acompressor` takes them but in dB and milliseconds
+ * (peak detection, `level_in` and `mix` at 1). Preview and export run the same formula.
+ */
+export interface CompressorParams {
+  /** Where gain reduction starts, -60 to 0 dBFS (`threshold`). */
+  thresholdDb: number;
+  /** Input dB above the threshold per output dB, 1 to 20 (`ratio`). */
+  ratio: number;
+  /** How fast the detector rises, 0.01 to 2000 ms (`attack`). */
+  attackMs: number;
+  /** How fast the detector falls, 0.01 to 9000 ms (`release`). */
+  releaseMs: number;
+  /** Width of the soft knee around the threshold, 0 to about 18 dB (`knee`, linear 1 to 8). */
+  kneeDb: number;
+  /** Gain added after compression, 0 to about 36 dB (`makeup`, linear 1 to 64). */
+  makeupDb: number;
+}
+
+/**
  * The levels of the equal-power crossfades under junctions at a clip's start (`in`) and end
  * (`out`) at one time; 1 where none is.
  */

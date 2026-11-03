@@ -102,6 +102,14 @@ export interface MixLevels {
   master: StereoLevel;
 }
 
+/**
+ * What a compressor carries from one sample to the next (`logic/dynamics.ts`): the detector's
+ * envelope, linear. Starts at 0.
+ */
+export interface DynamicsState {
+  envelope: number;
+}
+
 /** Loudness of the master, as BS.1770 measures it. */
 export interface LoudnessReading {
   /** LUFS over the last 400 ms. */
