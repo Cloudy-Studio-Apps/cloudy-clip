@@ -1,4 +1,4 @@
-import type { Micros } from "@/core";
+import { CommandFailure, type Micros } from "@/core";
 import { DEFAULT_FORMAT } from "./project.store";
 import type {
   Clip,
@@ -24,6 +24,15 @@ export function frameDuration(format: ProjectFormat): Micros {
 export function compositionOf(state: ProjectState, track: Track): Composition {
   const composition = state.compositions[track.compositionId];
   if (!composition) throw new Error(`Track "${track.id}" has no composition`);
+  return composition;
+}
+
+/** The composition, or a `composition.not_found` failure. */
+export function requireComposition(state: ProjectState, id: CompositionId): Composition {
+  const composition = state.compositions[id];
+  if (!composition) {
+    throw new CommandFailure("composition.not_found", `No composition with id "${id}"`);
+  }
   return composition;
 }
 

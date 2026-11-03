@@ -5,6 +5,7 @@ import {
   findLayoutConflict,
   orderedTracks,
   projectRef,
+  requireComposition,
   type ProjectState,
   type TrackKind,
 } from "@/modules/project";
@@ -48,9 +49,7 @@ export const addTrack = defineCommand({
     const id = createId("track");
     const project = ctx.require(projectRef);
     const home = compositionId ?? project.view.requireOpen(ctx.actor).id;
-    if (!project.store.getState().compositions[home]) {
-      throw new CommandFailure("composition.not_found", `No composition with id "${home}"`);
-    }
+    requireComposition(project.store.getState(), home);
     ctx.mutate(project.store, (draft) => {
       draft.tracks[id] = {
         id,

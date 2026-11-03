@@ -183,6 +183,24 @@ describe("composition commands", () => {
     expect([junction.leftClipId, junction.rightClipId]).toEqual([cl, cr]);
   });
 
+  it("a copy keeps the other mix's track levels under its own track ids", async () => {
+    const { compositionId } = await ok(createComposition, { name: "Intro" });
+    const audio = state().compositions[compositionId]!.trackOrder[1]!;
+    write((draft) => {
+      draft.compositions[compositionId]!.mix = {
+        master: { volumeDb: 0 },
+        activeMix: "a",
+        otherMix: { master: { volumeDb: 0 }, tracks: { [audio]: { volumeDb: -6, pan: 0 } } },
+      };
+    });
+    const copy = await ok(duplicateComposition, { compositionId });
+    const made = state().compositions[copy.compositionId]!;
+    const copyAudio = made.trackOrder[1]!;
+    expect(copyAudio).not.toBe(audio);
+    expect(made.mix?.otherMix?.tracks).toEqual({ [copyAudio]: { volumeDb: -6, pan: 0 } });
+    expect(state().compositions[compositionId]!.mix?.otherMix?.tracks[audio]).toBeDefined();
+  });
+
   describe("the automatic start", () => {
     const ready = (media: Record<string, MediaProbe>) =>
       kernel.modules.require(mediaRef).probes.setState({ probes: media });

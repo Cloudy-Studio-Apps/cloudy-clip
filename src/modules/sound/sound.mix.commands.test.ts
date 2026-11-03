@@ -86,6 +86,14 @@ describe("mix A and B", () => {
     expect(compositionMixOf(state().compositions.c1!).otherMix?.tracks.gone).toBeUndefined();
   });
 
+  it("switching to the active mix changes nothing and leaves no step", async () => {
+    await ok(setTrackMix, { trackId: "a1", volumeDb: -6 });
+    const before = kernel.history.getSnapshot().past.length;
+    await ok(switchMix, { to: "a" });
+    expect(kernel.history.getSnapshot().past.length).toBe(before);
+    expect(state().compositions.c1!.mix).toBeUndefined();
+  });
+
   it("undoes a switch in one step", async () => {
     await ok(setTrackMix, { trackId: "a1", volumeDb: -6 });
     await ok(switchMix, { to: "b" });

@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, type Micros } from "@/core";
-import {
-  frameDuration,
-  type Composition,
-  type ProjectFormat,
-  type ProjectState,
-} from "@/modules/project";
+import { frameDuration, type ProjectFormat } from "@/modules/project";
 
 /** Smallest and largest side of a composition, in pixels. */
 const MIN_SIDE = 2;
@@ -17,15 +12,6 @@ export const formatInput = z.object({
   height: z.number().int().describe("Pixels, 2 to 8192"),
   fps: z.number().positive().max(240).describe("Frames per second, 30000/1001 for 29.97"),
 });
-
-/** The composition, or a `composition.not_found` failure. */
-export function requireComposition(state: ProjectState, id: string): Composition {
-  const composition = state.compositions[id];
-  if (!composition) {
-    throw new CommandFailure("composition.not_found", `No composition with id "${id}"`);
-  }
-  return composition;
-}
 
 /** Refuses a length under one frame, which would shrink every placement to nothing. */
 export function checkLength(duration: Micros, format: ProjectFormat): void {

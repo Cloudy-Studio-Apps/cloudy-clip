@@ -7,14 +7,9 @@ import {
   frameDuration,
   IDENTITY_TRANSFORM,
   projectRef,
-} from "@/modules/project";
-import {
-  checkFormat,
-  checkLength,
-  compositionId,
   requireComposition,
-  settings,
-} from "./composition.guards";
+} from "@/modules/project";
+import { checkFormat, checkLength, compositionId, settings } from "./composition.guards";
 import { scaleKeys, scaleTransform } from "./logic/resize";
 
 /** Changes a composition's name, format, background or length. */

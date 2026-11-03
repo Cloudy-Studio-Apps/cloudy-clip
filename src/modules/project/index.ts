@@ -18,6 +18,7 @@ export {
   isMediaInUse,
   orderedTracks,
   placementsOf,
+  requireComposition,
   trackClips,
 } from "./project.selectors";
 /** The blend modes, in menu order. */

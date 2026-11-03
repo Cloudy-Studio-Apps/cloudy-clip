@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
-import { placementsOf, projectRef } from "@/modules/project";
-import { compositionId, requireComposition } from "./composition.guards";
+import { placementsOf, projectRef, requireComposition } from "@/modules/project";
+import { compositionId } from "./composition.guards";
 import { cloneComposition, copyName } from "./logic/clone";
 
 /** Copies a composition. Compositions placed inside it stay shared. */

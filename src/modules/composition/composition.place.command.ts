@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
-import { contains, projectRef, type Clip, type TrackId, type TrackKind } from "@/modules/project";
+import {
+  contains,
+  projectRef,
+  requireComposition,
+  type Clip,
+  type TrackId,
+  type TrackKind,
+} from "@/modules/project";
 import {
   addTrack,
   findOverlap,
@@ -10,7 +17,6 @@ import {
   sortClipIds,
   trackEnd,
 } from "@/modules/timeline";
-import { requireComposition } from "./composition.guards";
 
 /**
  * Places a composition as a clip: a picture and a linked sound clip, always both, because

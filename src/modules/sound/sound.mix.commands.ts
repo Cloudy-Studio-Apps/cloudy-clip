@@ -8,6 +8,7 @@ import {
   orderedTracks,
   panSchema,
   projectRef,
+  requireComposition,
   trackMixOf,
   volumeDbSchema,
   type CompositionId,
@@ -46,16 +47,10 @@ function writeComposition(composition: { mix?: CompositionMix }, mix: Compositio
 }
 
 /** The composition: given, or the one the actor has open. */
-function targetComposition(
-  ctx: CommandContext,
-  compositionId: CompositionId | undefined,
-): CompositionId {
+function targetComposition(ctx: CommandContext, compositionId: CompositionId | undefined) {
   const project = ctx.require(projectRef);
   const id = compositionId ?? project.view.requireOpen(ctx.actor).id;
-  if (!project.store.getState().compositions[id]) {
-    throw new CommandFailure("composition.not_found", `No composition with id "${id}"`);
-  }
-  return id;
+  return requireComposition(project.store.getState(), id).id;
 }
 
 /** The live mix of a composition: its audio tracks' mixes (those at the defaults left out). */

@@ -54,6 +54,15 @@ export function cloneComposition(
     name,
     trackOrder: original.trackOrder.map((trackId) => tracks.get(trackId)!),
   };
+  const other = draft.compositions[id]!.mix?.otherMix;
+  if (other) {
+    other.tracks = Object.fromEntries(
+      Object.entries(other.tracks).flatMap(([trackId, mix]) => {
+        const copyId = tracks.get(trackId);
+        return copyId ? [[copyId, mix]] : [];
+      }),
+    );
+  }
   draft.compositionOrder.push(id);
   return id;
 }
