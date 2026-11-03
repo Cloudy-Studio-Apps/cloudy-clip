@@ -15,6 +15,8 @@ const MINOR_PER_STEP = 5;
 
 interface RulerProps {
   pxPerSecond: number;
+  /** The loop band sits on the ruler (`"all"`) or in the marks row under it (`"sound"`). */
+  loop: boolean;
   /** Rendered window (ticks outside it are skipped). */
   from: Micros;
   to: Micros;
@@ -24,9 +26,10 @@ interface RulerProps {
 /**
  * Time ruler. Press and drag on it to scrub: the playhead snaps to clip edges, cuts and markers
  * unless Ctrl (Cmd) is held, and each move plays a slice of sound (`PreviewApi.scrub`). The loop
- * region sits on it (`LoopBand`). Sticks to the top while scrolling.
+ * region sits on it (`LoopBand`) unless the marks row holds it (`loop` false). Sticks to the top
+ * while scrolling.
  */
-export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: RulerProps) {
+export const Ruler = memo(function Ruler({ pxPerSecond, loop, from, to, width }: RulerProps) {
   const preview = useModule(previewRef);
   const { playback } = preview;
   const project = useModule(projectRef).store;
@@ -97,7 +100,7 @@ export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: Ruler
             </div>
           );
         })}
-        <LoopBand pxPerSecond={pxPerSecond} />
+        {loop && <LoopBand pxPerSecond={pxPerSecond} />}
         <PlayheadHead />
       </div>
     </div>

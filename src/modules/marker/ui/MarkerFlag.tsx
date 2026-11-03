@@ -5,9 +5,9 @@ import { previewRef, seek } from "@/modules/preview";
 import { frameDuration, projectRef, type Marker } from "@/modules/project";
 import {
   pxToTime,
-  RULER_HEIGHT,
   SNAP_PX,
   timeToPx,
+  useFlagRow,
   useHeaderWidth,
   useSnapCandidates,
 } from "@/modules/timeline";
@@ -24,7 +24,8 @@ interface MarkerFlagProps {
 }
 
 /**
- * One marker: a flag in the ruler and a faint line down the lanes. Click seeks to it, drag moves
+ * One marker: a flag in the row the timeline gives flags (`useFlagRow`: the ruler, or the marks row
+ * on the Sound page) and a faint line down the lanes. Click seeks to it, drag moves
  * it, double-click edits its note and color, right-click offers Edit and Delete.
  */
 export const MarkerFlag = memo(function MarkerFlag({ marker, pxPerSecond }: MarkerFlagProps) {
@@ -35,6 +36,7 @@ export const MarkerFlag = memo(function MarkerFlag({ marker, pxPerSecond }: Mark
   const editing = useStore(ui, (s) => s.editing === marker.id);
   const headerWidth = useHeaderWidth();
   const snapCandidates = useSnapCandidates();
+  const row = useFlagRow();
   const line = useRef<HTMLDivElement>(null);
   const left = (time: Micros) => `${headerWidth + timeToPx(time, pxPerSecond)}px`;
   const edit = (open: boolean) => ui.setState({ editing: open ? marker.id : null });
@@ -51,7 +53,8 @@ export const MarkerFlag = memo(function MarkerFlag({ marker, pxPerSecond }: Mark
         className="absolute inset-y-0 left-0 w-px opacity-40"
         style={{ backgroundColor: color }}
       />
-      <div className="sticky top-0" style={{ height: RULER_HEIGHT }}>
+      {/* Sticks at its row's top, and starts there too (the margin), so it scrolls with nothing. */}
+      <div className="sticky" style={{ top: row.top, marginTop: row.top, height: row.height }}>
         <ContextMenu
           items={[
             { label: "Edit marker", onSelect: () => edit(true) },
@@ -76,7 +79,7 @@ export const MarkerFlag = memo(function MarkerFlag({ marker, pxPerSecond }: Mark
                 onDoubleClick={() => edit(true)}
                 onPointerDown={(event) => {
                   if (event.button !== 0) return;
-                  // The ruler under the flag would scrub.
+                  // The ruler under the flag would scrub (the marks row takes no scrub).
                   event.stopPropagation();
                   const state = project.getState();
                   const composition = state.compositions[marker.compositionId];

@@ -4,7 +4,7 @@ Bookmarks on a composition's timeline: small colored flags in the ruler, each wi
 
 - **Tier:** feature
 - **Requires:** `project`, `timeline`, `preview`
-- **Contributes:** keybindings `marker.add` (M), `marker.next` (Shift+M), `marker.previous` (Ctrl/Cmd+Shift+M); `timelineSnapTargets` `marker.times`; `timelineOverlays` `marker.flags` (scopes `["all", "sound"]`: a marker dropped with M on the Sound page shows there too); `timelineMenuItems` `marker.menu` (Add marker here, where you right-clicked a lane; Add marker at playhead); `clipActions` `marker.clipMenu` (Add marker at playhead, in the timing group)
+- **Contributes:** keybindings `marker.add` (M), `marker.next` (Shift+M), `marker.previous` (Ctrl/Cmd+Shift+M); `timelineSnapTargets` `marker.times`; `timelineOverlays` `marker.flags` (scopes `["all", "sound"]`: a marker dropped with M on the Sound page shows there too; each flag head sits in the row `timeline`'s `useFlagRow()` gives: the ruler on Edit, the marks row under it on Sound, its line down the lanes either way); `timelineMenuItems` `marker.menu` (Add marker here, where you right-clicked a lane; Add marker at playhead); `clipActions` `marker.clipMenu` (Add marker at playhead, in the timing group)
 - **Points it owns:** —
 - **API** (`useModule(markerRef)`): `ui`, the view state: `lastColor` (what a new marker takes) and `editing` (the marker whose editor is open)
 - **Files:**
@@ -12,7 +12,7 @@ Bookmarks on a composition's timeline: small colored flags in the ruler, each wi
   - `marker.menu.ts`: the right-click entries of the timeline and of clips.
   - `marker.keys.ts`: the keybindings. The jumps resolve to `preview.seek`.
   - `logic/markers.ts`: the colors' hex values (fixed: a marker's color is the user's label, not chrome), next/previous, frame flooring.
-  - `ui/`: `MarkerFlags` (the overlay), `MarkerFlag` (one flag: click seeks, drag moves, double-click edits, right-click removes), `flag.gesture.ts`, `MarkerEditor` (note and color).
+  - `ui/`: `MarkerFlags` (the overlay), `MarkerFlag` (one flag, its sticky head placed with `useFlagRow()`: click seeks, drag moves, double-click edits, right-click removes), `flag.gesture.ts`, `MarkerEditor` (note and color).
 - **Invariants:** a marker added at the playhead lands on the start of the frame the playhead shows. A marker may sit past the composition's end; it is kept and drawn. Markers stay put when clips ripple. Two markers may share a time; next/previous step past it.
 - **Not yet:** range markers, markers on clips or media, a marker list, exporting markers as chapters.
 

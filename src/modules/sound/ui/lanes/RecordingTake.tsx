@@ -4,11 +4,12 @@ import { useModule } from "@/core";
 import { projectRef, useOpenComposition } from "@/modules/project";
 import {
   nextTrackName,
-  RULER_HEIGHT,
+  rowsAbove,
   timelineRef,
   timeToPx,
   trackHeight,
   useHeaderWidth,
+  useTimelineScope,
 } from "@/modules/timeline";
 import { VOICE_TRACK } from "../../logic/record";
 import { soundRef } from "../../sound.ref";
@@ -28,6 +29,7 @@ export function RecordingTake() {
   const project = useModule(projectRef).store;
   const open = useOpenComposition();
   const headerWidth = useHeaderWidth();
+  const lanesTop = rowsAbove(useTimelineScope());
   // Drawn until the take is placed, so it never blinks out before its clip is there.
   const recording = useStore(
     recorder.state,
@@ -68,7 +70,7 @@ export function RecordingTake() {
       const last = lanes[lanes.length - 1];
       const top = last
         ? last.getBoundingClientRect().bottom - content.getBoundingClientRect().top
-        : RULER_HEIGHT;
+        : lanesTop;
       show({ top, height: trackHeight("audio") });
     };
     const measure = () => {
@@ -108,7 +110,7 @@ export function RecordingTake() {
       cancelAnimationFrame(frame);
       resized.disconnect();
     };
-  }, [recording, trackId, at, headerWidth, recorder, timeline.view]);
+  }, [recording, trackId, at, headerWidth, lanesTop, recorder, timeline.view]);
 
   if (!recording) return null;
   return (

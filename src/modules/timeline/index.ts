@@ -66,6 +66,17 @@ export { HEADER_WIDTH, RULER_HEIGHT, SNAP_PX } from "./timeline.layout";
 /** The height of a track's lane by kind, in px, for an overlay that draws a lane of its own. */
 export { trackHeight } from "./timeline.layout";
 /**
+ * Height of the rows above the first lane in px, by scope: the ruler, plus the marks row on
+ * `"sound"`. The one answer to where the lanes start, for an overlay that measures from there.
+ */
+export { rowsAbove } from "./timeline.layout";
+/**
+ * Where flags go in the panel a component sits in (`{ top, height }`, px from the top of the
+ * content): the ruler on the editor's timeline, the marks row under it on a sound-scope one. A
+ * `timelineOverlays` entry that draws a flag or a mark in time places itself with it.
+ */
+export { useFlagRow } from "./ui/flag.row.hook";
+/**
  * The width of the track header column in px, as a hook: where time 0 starts in the timeline's
  * content. A timeline overlay positions itself with it, not with `HEADER_WIDTH`, which is only
  * the default.
@@ -104,6 +115,7 @@ export { selectionSubject } from "./logic/links";
 export type {
   ClipActions,
   ClipboardEntry,
+  FlagRow,
   ClipMenuEntry,
   ClipMenuGroup,
   Scoped,

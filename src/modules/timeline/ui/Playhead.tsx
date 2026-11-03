@@ -34,8 +34,8 @@ export function Playhead({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElem
   );
 }
 
-/** The playhead's head, on the ruler. */
-export function PlayheadHead() {
+/** The playhead's head, on the ruler; `bare`, only its line (through the marks row). */
+export function PlayheadHead({ bare = false }: { bare?: boolean }) {
   const ref = useRef<HTMLElement>(null);
   usePlayheadX(ref, 0);
   return (
@@ -43,7 +43,9 @@ export function PlayheadHead() {
       ref={ref}
       className="pointer-events-none absolute left-0 top-0 z-10 h-full w-0 border-l-2 border-mark will-change-transform"
     >
-      <b className="absolute -left-[7px] top-0 h-[15px] w-[13px] bg-mark [clip-path:polygon(0_0,100%_0,100%_55%,50%_100%,0_55%)]" />
+      {!bare && (
+        <b className="absolute -left-[7px] top-0 h-[15px] w-[13px] bg-mark [clip-path:polygon(0_0,100%_0,100%_55%,50%_100%,0_55%)]" />
+      )}
     </i>
   );
 }

@@ -9,7 +9,7 @@ import { loopAround } from "../../logic/loop";
 
 /**
  * Loop in the transport row, an icon drawn in `--on` while on: on, it loops the selected clips (the whole composition when none is
- * selected); off, it clears the loop. The ends are moved on the ruler.
+ * selected); off, it clears the loop. The ends are moved in the marks row under the ruler.
  */
 export function LoopToggle() {
   const { bus } = useKernel();
@@ -27,7 +27,7 @@ export function LoopToggle() {
       disabled={!loop && (!composition || composition.duration < frameDuration(composition.format))}
       label={
         loop
-          ? "Looping: drag its ends on the ruler. Click to stop looping"
+          ? "Looping: drag its ends under the ruler. Click to stop looping"
           : "Loop the selected clips, or the whole timeline when none is selected"
       }
       onClick={() => {

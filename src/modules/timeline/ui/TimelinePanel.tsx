@@ -25,10 +25,11 @@ import {
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { inScope, trackInScope } from "../logic/scope";
-import { RULER_HEIGHT, TAIL_SECONDS } from "../timeline.layout";
+import { rowsAbove, TAIL_SECONDS } from "../timeline.layout";
 import type { TrackFocus } from "../timeline.types";
 import { useHeaderWidth } from "./header.width.hook";
 import { usePanelScroller } from "./panel.scroller.hook";
+import { MarksRow } from "./MarksRow";
 import { Playhead } from "./Playhead";
 import { TimelineScopeProvider } from "./scope.hook";
 import { TrackFocusProvider } from "./track.focus.hook";
@@ -38,7 +39,7 @@ import { TrackHeader } from "./TrackHeader";
 import { TrackInsert } from "./TrackInsert";
 import { TrackLane } from "./TrackLane";
 
-/** Room kept under the ruler for the horizontal scrollbar when the tracks are folded away. */
+/** Room kept under the rows above the lanes for the scrollbar when the tracks are folded away. */
 const SCROLLBAR_HEIGHT = 12;
 
 const NO_TRACKS: readonly TrackId[] = [];
@@ -53,6 +54,7 @@ const NO_TRACKS: readonly TrackId[] = [];
  * `scope` is what this timeline is for: `"all"` (the default) is the editor's, `"sound"` lists audio
  * tracks only and shows only what modules opted in with `scopes`. `focus` is a track the page keeps
  * in focus: its header is marked and scrolled into view, and a header click reports its track.
+ * A sound-scope timeline has a marks row under the ruler (`MarksRow`) for markers and the loop.
  */
 export function TimelinePanel({
   scope = "all",
@@ -135,13 +137,20 @@ export function TimelinePanel({
                 "relative bg-lane",
                 tracksHidden ? "overflow-x-auto overflow-y-hidden" : "min-h-0 flex-1 overflow-auto",
               )}
-              style={tracksHidden ? { height: RULER_HEIGHT + SCROLLBAR_HEIGHT } : undefined}
+              style={tracksHidden ? { height: rowsAbove(scope) + SCROLLBAR_HEIGHT } : undefined}
             >
               <div
                 className="relative"
                 style={{ width: headerWidth + contentWidth, minHeight: "100%" }}
               >
-                <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
+                <Ruler
+                  pxPerSecond={pxPerSecond}
+                  loop={scope !== "sound"}
+                  from={from}
+                  to={to}
+                  width={contentWidth}
+                />
+                {scope === "sound" && <MarksRow pxPerSecond={pxPerSecond} width={contentWidth} />}
                 {lanes.map(({ track, index, clips }, position) => (
                   <Fragment key={track.id}>
                     <TrackInsert

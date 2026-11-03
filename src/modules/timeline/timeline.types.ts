@@ -349,3 +349,9 @@ export interface ScrollerPage {
   page: number;
   pageWidth: number;
 }
+
+/** The row flags go in, in px from the top of the timeline's content (`useFlagRow`). */
+export interface FlagRow {
+  top: number;
+  height: number;
+}
