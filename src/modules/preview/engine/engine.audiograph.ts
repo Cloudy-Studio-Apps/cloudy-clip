@@ -1,27 +1,18 @@
 import { createLogger } from "@/core";
-import { bandActive, pitchShift, type ClipSound, type EqBand } from "@/modules/project";
+import { pitchShift, type ClipSound } from "@/modules/project";
+import { createEqFilters, createPanner, createUpmix, setBand } from "./engine.soundnodes";
 import type { SoundChain, SoundGraph } from "./engine.types";
 
 const log = createLogger("preview.engine");
 
 /** How smoothly a change lands, in seconds. Short enough to follow, long enough not to click. */
 const GLIDE = 0.01;
-/** Web Audio's cut filters take Q in dB: this is the plain 12 dB/octave slope FFmpeg's have. */
-const CUT_Q_DB = -3.01;
 /**
  * What the pitch worklet holds back, in seconds, measured on WebKitGTK (see
  * `docs/superpowers/specs/2026-11-02-audio-preview-check.md`). Pitched sound runs this far ahead
  * of the clock to land on time.
  */
 export const PITCH_LEAD_SECONDS = 0.125;
-
-const BIQUAD_TYPE: Record<EqBand["shape"], BiquadFilterType> = {
-  bell: "peaking",
-  lowShelf: "lowshelf",
-  highShelf: "highshelf",
-  lowCut: "highpass",
-  highCut: "lowpass",
-};
 
 type PitchNode = AudioWorkletNode & { pitch: AudioParam };
 
@@ -35,19 +26,6 @@ async function loadPitch(context: AudioContext): Promise<() => PitchNode> {
   return () => new SoundTouchNode({ context }) as unknown as PitchNode;
 }
 
-function setBand(filter: BiquadFilterNode, band: EqBand, on: boolean): void {
-  if (!on || !bandActive(band)) {
-    filter.type = "peaking";
-    filter.gain.value = 0;
-    return;
-  }
-  const cut = band.shape === "lowCut" || band.shape === "highCut";
-  filter.type = BIQUAD_TYPE[band.shape];
-  filter.frequency.value = band.hz;
-  filter.Q.value = cut ? CUT_Q_DB : band.q;
-  filter.gain.value = band.db;
-}
-
 /** The Web Audio chain of one element: pitch, equalizer, pan, then level. */
 function createChain(
   context: AudioContext,
@@ -55,18 +33,9 @@ function createChain(
   pitchNodes: () => Promise<() => PitchNode>,
 ): SoundChain {
   const source = context.createMediaElementSource(element);
-  // Up to stereo first: a panner would take 3 dB off a mono file at centre.
-  const input = context.createGain();
-  input.channelCount = 2;
-  input.channelCountMode = "explicit";
-  input.channelInterpretation = "speakers";
-  const filters = Array.from({ length: 6 }, () => {
-    const filter = context.createBiquadFilter();
-    filter.type = "peaking";
-    filter.gain.value = 0;
-    return filter;
-  });
-  const panner = context.createStereoPanner();
+  const input = createUpmix(context);
+  const filters = createEqFilters(context);
+  const panner = createPanner(context);
   const level = context.createGain();
   source.connect(input);
   const nodes: AudioNode[] = [input, ...filters, panner, level];
