@@ -5,9 +5,9 @@ import { PreviewStage } from "@/modules/preview";
 import { TimelinePanel, type TrackFocus } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { soundRef } from "../sound.ref";
-import { MixerPanel } from "./MixerPanel";
-import { SoundPanel } from "./SoundPanel";
-import { SoundTransport } from "./SoundTransport";
+import { MixerPanel } from "./mixer";
+import { SoundPanel } from "./panel";
+import { SoundTransport } from "./transport";
 
 /**
  * The Sound page: the transport row; on the left the audio-only timeline over the panel and a small

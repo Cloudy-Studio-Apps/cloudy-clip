@@ -10,7 +10,7 @@ import { Button, ProgressBar } from "@/ui";
 import { defaultSpec } from "../../logic/effects";
 import { measureFloor } from "../../sound.denoise.commands";
 import type { EffectEdit } from "../../sound.types";
-import { useDenoiseRendering } from "../denoise.hook";
+import { useDenoiseRendering } from "./denoise.hook";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 
