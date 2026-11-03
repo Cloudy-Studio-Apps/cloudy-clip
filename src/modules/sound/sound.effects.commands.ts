@@ -14,6 +14,7 @@ import { audioTrack } from "./sound.guards";
 import { targetComposition, writeComposition, writeTrack } from "./sound.mix.write";
 import { closesLoop, defaultSpec } from "./logic/effects";
 import { BUILT_IN_PRESETS } from "./logic/presets";
+import { soundRef } from "./sound.ref";
 
 const target = z
   .union([z.string(), z.literal("master")])
@@ -192,11 +193,17 @@ export const applyPreset = defineCommand({
   id: "sound.applyPreset",
   label: "Apply sound preset",
   description:
-    'Replaces the whole chain of an audio track or "master" with a preset\'s effects (list them with sound_list_presets). One undo step brings the old chain back. Fails with sound.preset_not_found.',
+    "Replaces the whole chain of an audio track or \"master\" with a preset's effects: a built-in one or one of the user's (list them with sound_list_presets). The values are written plainly, so the project never depends on the preset. One undo step brings the old chain back. Fails with sound.preset_not_found; a preset with ducking fails on master with sound.duck_on_master.",
   undoable: true,
   input: z.object({ target, compositionId, presetId: z.string() }),
   run(ctx, { target: who, compositionId: comp, presetId }) {
-    const preset = BUILT_IN_PRESETS.find((p) => p.id === presetId);
+    // The built-in ones first: they need nothing but this module's code.
+    const preset =
+      BUILT_IN_PRESETS.find((p) => p.id === presetId) ??
+      ctx
+        .require(soundRef)
+        .presets.getState()
+        .presets.find((p) => p.id === presetId);
     if (!preset) {
       throw new CommandFailure("sound.preset_not_found", `No preset with id "${presetId}".`);
     }

@@ -2,7 +2,14 @@
  * Sound module: the Sound page with its mixer, and the mix of tracks and master.
  * @module sound
  */
-export type { EffectSpec, MixTarget, SoundPreset, SoundApi, SoundViewState } from "./sound.types";
+export type {
+  EffectSpec,
+  MixTarget,
+  SoundPreset,
+  SoundApi,
+  SoundViewState,
+  UserPresets,
+} from "./sound.types";
 
 /** Mix commands: a track's volume and pan, the master, and switching between mix A and B. */
 export { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
@@ -14,6 +21,11 @@ export {
   removeEffect,
   setEffect,
 } from "./sound.effects.commands";
+/**
+ * The user's own presets: keep a chain as one, rename it, remove it. Not undoable and no MCP tools:
+ * they belong to the user, outside any project.
+ */
+export { removePreset, renamePreset, savePreset } from "./sound.presets.commands";
 /** The presets that come with the app. */
 export { BUILT_IN_PRESETS } from "./logic/presets";
 /**

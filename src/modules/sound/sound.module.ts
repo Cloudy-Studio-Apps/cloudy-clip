@@ -1,24 +1,33 @@
 import { AudioLines } from "lucide-react";
 import { appPages, defineModule, pagesRef } from "@/core";
+import { settingsSections } from "@/modules/settings";
 import { soundMcpTools } from "./sound.mcp";
 import { soundEffectCommands } from "./sound.effects.commands";
 import { soundMixCommands } from "./sound.mix.commands";
 import { followSoundPageLeave } from "./sound.leave";
 import { clearListening, soundMonitorCommands } from "./sound.monitor.commands";
+import { soundPresetCommands } from "./sound.presets.commands";
+import { createUserPresets } from "./sound.presets.store";
 import { SOUND_PAGE, soundRef } from "./sound.ref";
 import { createSoundView } from "./sound.store";
-import { SoundPage } from "./ui";
+import { PresetsSection, SoundPage } from "./ui";
 
 /** The Sound page with its mixer, and the mix: track and master levels, effects, mix A and B. */
 export const soundModule = defineModule({
   ref: soundRef,
   name: "Sound",
   tier: "feature",
-  requires: ["project", "timeline", "preview", "inspector", "audio"],
-  commands: [...soundMixCommands, ...soundEffectCommands, ...soundMonitorCommands],
+  requires: ["project", "timeline", "preview", "inspector", "audio", "settings"],
+  commands: [
+    ...soundMixCommands,
+    ...soundEffectCommands,
+    ...soundPresetCommands,
+    ...soundMonitorCommands,
+  ],
   mcpTools: soundMcpTools,
   setup({ bus, contribute, onDispose, require }) {
     const view = createSoundView();
+    const presets = createUserPresets();
     onDispose(
       followSoundPageLeave(require(pagesRef).store, () => void bus.run(clearListening, {})),
     );
@@ -31,9 +40,16 @@ export const soundModule = defineModule({
       keepsPlayback: true,
       timelineScope: "sound",
     });
+    contribute(settingsSections, {
+      id: "sound.presets",
+      label: "Sound presets",
+      order: 20,
+      component: PresetsSection,
+    });
     return {
       api: {
         view,
+        presets,
         select: (selected) => view.setState({ selected }),
         setExpanded: (expanded) => view.setState({ expanded }),
       },

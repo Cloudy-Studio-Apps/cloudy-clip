@@ -24,6 +24,11 @@ export interface SoundApi {
   view: StoreApi<SoundViewState>;
   /** Marks a track's strip and header, the master's strip, or none. */
   select(target: MixTarget | null): void;
+  /**
+   * The user's own presets, kept in `localStorage`. Changed by `sound.savePreset`,
+   * `sound.renamePreset` and `sound.removePreset`.
+   */
+  presets: StoreApi<UserPresets>;
   /** Lets the mixer take the whole page, or gives the timeline its place back. */
   setExpanded(expanded: boolean): void;
 }
@@ -137,6 +142,11 @@ export interface SoundPreset {
   /** What it is for, one line. */
   description: string;
   effects: EffectSpec[];
+}
+
+/** The user's own presets, outside the project (`localStorage`, `cloudy-clip.sound-presets`). */
+export interface UserPresets {
+  presets: SoundPreset[];
 }
 
 /** The effects a transfer graph draws: level in against level out. */

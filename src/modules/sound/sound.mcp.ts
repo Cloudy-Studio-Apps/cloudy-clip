@@ -9,6 +9,7 @@ import {
   setEffect,
 } from "./sound.effects.commands";
 import { BUILT_IN_PRESETS } from "./logic/presets";
+import { soundRef } from "./sound.ref";
 import { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
 
 /** A level for JSON: dBFS to a tenth, null for silence (JSON has no -Infinity). */
@@ -58,17 +59,21 @@ const listPresets = defineMcpTool({
   name: "sound_list_presets",
   readOnly: true,
   description:
-    "Lists the sound presets that sound_apply_preset takes: id, name, what it is for and the effects it puts on a track or the master. The user's own presets are theirs and are not listed.",
+    "Lists the sound presets that sound_apply_preset takes: id, name, what it is for and the effects it puts on a track or the master. The built-in ones come first; those with own: true are the user's, saved by them (you can apply them, not change them).",
   input: z.object({}),
-  handler: () =>
-    textResult(
-      BUILT_IN_PRESETS.map(({ id, name, description, effects }) => ({
+  handler: (_input, ctx) =>
+    textResult([
+      ...BUILT_IN_PRESETS.map(({ id, name, description, effects }) => ({
         id,
         name,
         description,
         effects,
       })),
-    ),
+      ...ctx
+        .require(soundRef)
+        .presets.getState()
+        .presets.map(({ id, name, effects }) => ({ id, name, own: true, effects })),
+    ]),
 });
 
 /** Agents mix with the same commands as the user, and read the meters. Solo and monitoring stay the user's. */
