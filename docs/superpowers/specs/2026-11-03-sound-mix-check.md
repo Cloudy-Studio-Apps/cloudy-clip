@@ -29,7 +29,7 @@ The sources were 48 kHz stereo sines (440, 660 and 880 Hz, 8 s files of which ea
 
 How the numbers read:
 
-- Every level step measured -6.00 LU (the integrated values differ by exactly 6.00 to the two decimals read), well inside the 0.5 LU the spec allows.
+- Every level step measured -6.00 LU (the integrated values differ by exactly 6.00 to the two decimals read), well inside the 0.5 LU that `docs/superpowers/specs/2026-11-02-sound-page-design.md` allows.
 - A pan of -1 puts the sum of both sides on the left: `StereoPannerNode`'s law for stereo sound, so a centred source
   is 6 dB louder on that side (base -18.06 dB, panned -12.04 dB). The export matches the preview's law on purpose
   (`pan_gains`); it is not a bug.
@@ -70,9 +70,9 @@ each line. Any "no" is a finding to write down with what was seen.
    the `--foreground` colour from -6 to -1 dBFS, and the `--mark` colour above -1 dBFS; pause: they empty. A muted or soloed-out track shows nothing.
 4. **Live loudness against the export.** On a project with a few tracks, faders and a pan, press Reset in Loudness,
    play from 0:00 to the end without pausing, and note the integrated value (or call `sound_get_levels` from an agent
-   at the end). Export the same range as MP4 (Export page, Range "Whole timeline", which is the composition's full length) and run:
+   at the end). Export the same range as MP4 (Export page, the "Export" row, "What part to export" set to "Whole timeline", which is the composition's full length) and run:
    `ffmpeg -i out.mp4 -af ebur128 -f null - 2>&1 | grep -A8 Summary`. Expected: the two integrated values within 0.5 LU.
-   (The preview counts from the last Reset. Solo changes the reading, since it silences the other tracks before the loudness tap, and the export ignores it, so leave it off. Mono, Dim and the speaker volume sit after the tap and don't change the reading.)
+   (The preview counts from the last Reset. Solo changes the reading, since it silences the other tracks before the loudness tap, and the export ignores it, so leave it off. Mono, Dim and the speaker volume are fed by the master beside the loudness tap, not after it, so they don't change the reading.)
 5. **Edit and Sound mid-play.** Press play on Edit, switch to Sound and back several times while it plays: no gap or
    click in the sound, the loudness reading keeps counting (it doesn't restart), and the Edit viewer has its frames
    back each time (not black or frozen).

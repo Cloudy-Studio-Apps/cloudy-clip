@@ -247,8 +247,8 @@ element -> clip chain (pitch, EQ, pan, level)      existing, per element
 - **Meters** are peak, −60 to 0 dBFS, with a peak hold line for 1.5 s, read from `AnalyserNode`s and drawn with
   direct DOM writes (rule 24). No React state per frame. Meters read nothing while the page is closed.
 - **Live loudness** is an `AudioWorklet` on Master doing BS.1770 K-weighting: momentary, short term, integrated
-  since play started, range, and true peak. Stopping keeps the numbers, Reset clears them. The arithmetic goes
-  in `logic/` and is pure.
+  over all the playing since Reset, range, and true peak. It measures only while the preview plays: stopping keeps
+  the numbers, Reset clears them. The arithmetic goes in `preview/logic/` and is pure.
 - Drags send values to the graph directly, through a preview API in the spirit of `previewProps`, and one
   command on release (rule 15).
 
@@ -401,8 +401,10 @@ writing it down, since platforms change these.
 
 ## Agents
 
-Every command has a tool (rule 18): `sound_set_track_mix`, `sound_set_master`, `sound_set_mix`, and those of later
-stages. `project_get_state` shows the mix (rule 19). `sound_get_levels` returns the latest meter and loudness
+Every command that edits the project has a tool (rule 18): `sound_set_track_mix`, `sound_reset_track_mix`,
+`sound_set_master`, `sound_switch_mix`, and those of later stages. `sound.setSolo`, `sound.setMonitor` and
+`sound.clearListening` have none: they act on how the user listens (solo, Mono, Dim, the speaker), which is the
+user's own and never in the document or an export. `project_get_state` shows the mix (rule 19). `sound_get_levels` returns the latest meter and loudness
 readings, which exist only while the user plays. Since an agent's clock draws and plays nothing, agents get true
 figures from `sound_analyze_mix` in stage 5.
 
@@ -451,24 +453,35 @@ docs/prototype/designs/
 src/app/
   ~ app.keybindings.ts                 1: plain keys on pages that keep playback
 src/core/shell/
-  ~ shell.types.ts                     1: keepsPlayback, timelineScope on AppPage
-src/modules/keyframe/, audio/, collab/
+  ~ shell.types.ts                     1: keepsPlayback, timelineScope (TimelineScopeName) on AppPage
+src/modules/keyframe/, audio/, collab/, marker/
   ~ <name>.module.ts                   1: scopes on what they add to the timeline
+src/modules/keyframe/
+  + logic/scope.ts                     1: keysInScope (F9 on the Sound page eases only sound clips' keys)
+  ~ ui/panel.rows.hook.ts, ui/panel.actions.hook.ts   1: the dock lists and pastes onto sound clips only
 src/modules/project/
-  ~ project.types.ts                   1: TrackMix, CompositionMix. 2: SoundEffect. 3: volumeLine (a KeyTrack). 4: MixBus
-  ~ project.selectors.ts               1: trackMixOf, compositionMixOf
-  + logic/mix.ts                       1: defaults, minimize, nestedSound
-  + logic/sound.schema.ts              1: volume, pan and EQ band schemas, moved from audio.commands.ts
-  ~ project.mcp.ts, index.ts, README.md
+  ~ project.types.ts                   1: TrackMix, CompositionMix, MixSnapshot, CrossfadeLevels. 2: SoundEffect.
+                                       3: volumeLine (a KeyTrack). 4: MixBus
+  ~ project.selectors.ts               1: requireComposition
+  + logic/mix.ts                       1: defaults, trackMixOf, compositionMixOf, minimizeTrackMix, soundInPlacement
+  + logic/sound.schema.ts              1: volume (VOLUME_DB_MIN / MAX), pan and EQ band schemas, moved from
+                                          audio.commands.ts
+  ~ logic/sound.ts                     1: fadeLevel with crossfades (the ends multiply, as export), panSide
+  ~ project.store.ts, project.mcp.ts, index.ts, README.md
 src/modules/sound/
   ~ sound.module.ts, sound.ref.ts, sound.types.ts, index.ts, README.md
   + sound.store.ts                     1: selected track, solo, expanded, monitor. 3: automation modes
   + sound.mix.commands.ts              1: track mix, master, Mix A/B
+  + sound.monitor.commands.ts          1: solo, monitor, clearListening (not undoable, no tools)
+  + sound.guards.ts, sound.leave.ts    1: the audio track or its failure; clearing the listening on leaving
   + sound.mcp.ts                       1, and each stage's tools
-  + logic/meter.ts, logic/loudness.ts  1: dB scale, BS.1770 arithmetic
+  + logic/meter.ts, logic/fader.ts     1: dB scale and peak hold, the fader taper and pan
   ~ ui/SoundPage.tsx                   1: the page
-  + ui/SoundTransport.tsx, MixerPanel.tsx, MixerStrip.tsx, MasterStrip.tsx, Fader.tsx, PanSlider.tsx, Meter.tsx
-  + ui/SoundPanelTabs.tsx, ClipTab.tsx, LoudnessTab.tsx                                               1
+  + ui/SoundTransport.tsx, TransportTool.tsx, TransportSeparator.tsx, MonitorControls.tsx, MixSwitch.tsx    1
+  + ui/MixerPanel.tsx, MixerStrip.tsx, MasterStrip.tsx, StripLabel.tsx, StripToggle.tsx, Fader.tsx,
+    PanSlider.tsx, LineSlider.tsx, Meter.tsx, fader.gesture.ts, slider.hook.ts,
+    meters.context.ts, meters.hook.ts, meters.loop.ts                                                 1
+  + ui/SoundPanel.tsx, PanelCard.tsx, LoudnessTab.tsx, LoudnessHistory.tsx, loudness.hook.ts           1
   + sound.effects.commands.ts, sound.presets.store.ts, ui/ChannelTab.tsx, ui/EffectChain.tsx, ui/effects/,
     ui/PresetsSection.tsx (Settings)                                                                  2
   + sound.line.commands.ts, ui/ClipVolumeLine.tsx, ui/TrackVolumeLine.tsx, ui/automation.hook.ts      3
@@ -476,28 +489,44 @@ src/modules/sound/
   + sound.delivery.commands.ts, logic/standards.ts, ui/DeliverTab.tsx, ui/ProblemList.tsx             5
   + sound.tools.commands.ts, ui/StripSilencePreview.tsx                                               6
   + sound.markers.commands.ts, sound.record.ts                                                        7
+src/modules/inspector/
+  + ui/ClipTabSections.tsx, ClipTab.tsx, ClipTabBody.tsx, clip.context.hook.ts   1: the Clip tab's sections
+  ~ ui/ClipView.tsx, ui/clip.panel.hook.ts, index.ts, README.md
 src/modules/preview/
-  ~ engine/engine.audiograph.ts        1: track buses, master, monitor; every element in the graph
+  ~ engine/engine.audiograph.ts        1: every element in the graph; opens buses and the loudness tap
   ~ engine/engine.audio.ts             1: the old invariant goes
-  ~ engine/engine.html.ts, engine.types.ts, preview.module.ts, preview.types.ts, index.ts, README.md
-  ~ ui/index.ts                        1: export PreviewStage
+  + engine/engine.mixbus.ts            1: track buses, master, monitor
+  + engine/engine.soundnodes.ts        1: upmix, EQ filters, panner, glide, shared by chains and buses
+  + engine/engine.soundmix.ts          1: the engine's sound side
   + engine/engine.meters.ts            1: analysers
-  + engine/worklets/loudness.worklet.ts       1
-  + engine/worklets/dynamics.worklet.ts       2: compressor, gate, de-esser, limiter, ducking
-  + logic/volumeline.ts                       3: scheduling the line on the graph
+  + engine/engine.loudness.ts, engine/loudness.worklet.ts                                             1
+  + engine/dynamics.worklet.ts         2: compressor, gate, de-esser, limiter, ducking
+  + logic/loudness.ts, kweight.ts, gating.ts, truepeak.ts, db.ts   1: the BS.1770 arithmetic, dB of a peak
+  + logic/mix.ts                       1: the mix update of a composition, placeSound
+  ~ logic/junctions.ts                 1: soundGains says which end each crossfade is on
+  + preview.sound.ts                   1: live mix, solo, monitor, levels, loudness (PreviewSound)
+  ~ engine/engine.html.ts, engine.types.ts, preview.controller.ts, preview.module.ts, preview.types.ts,
+    index.ts, README.md
+  ~ ui/index.ts, PreviewStage.tsx      1: export PreviewStage, bare
+  + logic/volumeline.ts                3: scheduling the line on the graph
 src/modules/timeline/
-  ~ timeline.types.ts                  1: TimelineScope, scopes on point entries
-  ~ ui/TimelinePanel.tsx, TrackHeader.tsx, TimelineClip.tsx, TimelineToolbar.tsx                         1
-  ~ timeline.move.commands.ts, timeline.split.commands.ts, timeline.keys.ts                             1: soundOnly
+  ~ timeline.types.ts                  1: scopes on point entries, activeScope() (TimelineScopeName is in core)
+  + logic/scope.ts, logic/split.ts     1: what a scope lists, the split at the playhead
+  + timeline.sound.ts                  1: soundOnly edits (unlink first, leave pictures alone)
+  ~ timeline.move.commands.ts, timeline.split.commands.ts, timeline.clipboard.menu.ts                   1: soundOnly
+  ~ ui/TimelinePanel.tsx, TrackHeader.tsx, TimelineClip.tsx, TimelineToolbar.tsx, TrackLane.tsx         1
+  + ui/scope.hook.ts, snap.hook.ts, panel.scroller.hook.ts, track.focus.hook.ts                         1
   ~ README.md, index.ts
 src/modules/audio/
   ~ README.md                          1: the old invariant goes
-  ~ ui/index.ts, index.ts              1: fade handles and sections the Clip tab reuses
+  + logic/fade.ts, ui/Fade.tsx, ui/FadeHandles.tsx, ui/fade.gesture.ts   1: fade handles on clips
+  ~ ui/AudioSections.tsx, ui/index.ts, index.ts   1: sections the Clip tab reuses
 src/modules/export/
   ~ logic/mixdown.ts, logic/mixdown.test.ts, export.types.ts, export.runner.ts, README.md   1 to 5
   ~ logic/presets.ts, ui/                                                                   4: formats, stems
 src-tauri/src/export/
   ~ recipe.rs, mod.rs                  1: calls the mix graph. 4: formats
+  + soundfilters.rs                    1: pan, EQ, envelope and tempo filters, moved from recipe.rs
   + mixgraph.rs                        1: the tree. 2: effects. 3: track line. 4: buses, stems
   ~ commands.rs, job.rs                4: stem jobs. 5: analysis passes
 src-tauri/src/sound/
