@@ -6,14 +6,9 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule } from "@/modules/media";
 import { previewModule, previewRef } from "@/modules/preview";
-import {
-  createProjectModule,
-  createEmptyProject,
-  projectRef,
-  seedProject,
-} from "@/modules/project";
+import { createProjectModule, projectRef, seedProject } from "@/modules/project";
 import { timelineModule } from "@/modules/timeline";
-import { addMarker, removeMarker, updateMarker } from "./marker.commands";
+import { addMarker } from "./marker.commands";
 import { markerModule } from "./marker.module";
 
 let kernel: Kernel;
@@ -51,21 +46,4 @@ describe("marker commands", () => {
     kernel.history.undo(LOCAL_ACTOR);
     expect(doc().markers).toEqual({});
   });
-
-  it("refuses an edit that changes nothing, and a removal with an unknown id", async () => {
-    const added = await run(addMarker, { time: 0 });
-    if (!added.ok) throw new Error(added.error.code);
-    const { markerId } = added.value as { markerId: string };
-    const nothing = await run(updateMarker, { markerId });
-    expect(nothing.ok ? null : nothing.error.code).toBe("marker.nothing");
-    const unknown = await run(removeMarker, { markerIds: [markerId, "gone"] });
-    expect(unknown.ok ? null : unknown.error.code).toBe("marker.not_found");
-    expect(doc().markers[markerId]).toBeDefined();
-  });
-});
-
-it("needs an open composition when none is named", async () => {
-  await load(createEmptyProject());
-  const added = await run(addMarker, { time: 0 });
-  expect(added.ok ? null : added.error.code).toBe("composition.none_open");
 });

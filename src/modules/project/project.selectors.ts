@@ -101,7 +101,10 @@ export function isMediaInUse(state: ProjectState, mediaId: string): boolean {
 }
 
 /** The markers of a composition, by time (ties by id, so the order never flickers). */
-export function compositionMarkers(state: ProjectState, compositionId: CompositionId): Marker[] {
+export function compositionMarkers(
+  state: Pick<ProjectState, "markers">,
+  compositionId: CompositionId,
+): Marker[] {
   return Object.values(state.markers)
     .filter((marker) => marker.compositionId === compositionId)
     .sort((a, b) => a.time - b.time || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));

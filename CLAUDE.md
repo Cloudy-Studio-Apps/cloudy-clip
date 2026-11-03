@@ -54,7 +54,7 @@ These are the rules, and they are strict. How things work is described in the `R
 10. A feature owns its whole surface: its commands, MCP tools, UI and contributions live in its folder, even when the data it edits lives in `project`. Don't add a feature's command to another module.
 11. `<name>.module.ts` is wiring only: `defineModule`, `ctx.contribute`, creating stores and services. No logic.
 12. **No module-level singletons** for state or services. `setup(ctx)` runs once per kernel and creates them (store factories in `<name>.store.ts`), registering each cleanup with `ctx.onDispose` right after acquiring it.
-13. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels`, `keybindings`, `topBarItems`, `appOverlays`, `appPages`, `appPageGroups` and `appMenuItems`; the timeline reads `timelineOverlays`, `timelineTabs`, `timelineTools` and `timelineDocks`; `media` reads `librarySections` and `libraryKinds`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls`, `sectionLayouts`, `inspectorTabs`, `inspectorSections` and `fieldActions`; `sticker` reads `stickerPacks` and `stickerStyles`; `settings` reads `settingsSections`; `theme` reads `themes`; `keyframe` reads `keyTargets`.
+13. A point lives in the module that reads it (`<name>.points.ts`). The shell reads `layoutPanels`, `keybindings`, `topBarItems`, `appOverlays`, `appPages`, `appPageGroups` and `appMenuItems`; the timeline reads `timelineOverlays`, `timelineTabs`, `timelineTools`, `timelineDocks` and `timelineSnapTargets`; `media` reads `librarySections` and `libraryKinds`; the preview reads `previewOverlays`; `element` reads `elements`, `sharedGroups` and `propTypes`; the inspector reads `propertyControls`, `sectionLayouts`, `inspectorTabs`, `inspectorSections` and `fieldActions`; `sticker` reads `stickerPacks` and `stickerStyles`; `settings` reads `settingsSections`; `theme` reads `themes`; `keyframe` reads `keyTargets`.
 
 **Commands and state**
 
@@ -126,6 +126,7 @@ src/
     solid/      solid colors and gradients: the element, library items, the dialog (feature)
     settings/   the Settings window, filled by sections other modules contribute (feature)
     theme/      themes for the interface: colors, fonts, corners, the Appearance section (feature)
+    marker/     bookmarks on a composition's timeline: flags in the ruler, notes, colors, snapping, M keys (feature)
     collab/     agents as collaborators: presence, access, pointer, Follow (feature)
     tint/       the Tint page, for colors, empty for now (feature)
     sound/      the Sound page, empty for now (feature)
