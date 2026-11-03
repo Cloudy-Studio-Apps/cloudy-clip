@@ -84,6 +84,40 @@ export interface Track {
   muted: boolean;
   /** Hides the track's picture from the preview (video tracks). */
   hidden: boolean;
+  /** How the track sounds in the mix, on audio tracks. Missing means the defaults (`DEFAULT_TRACK_MIX`). */
+  mix?: TrackMix;
+}
+
+/** What an audio track does to the sound of its clips. Never stored at the defaults. */
+export interface TrackMix {
+  /** -60 to 12. */
+  volumeDb: number;
+  /** -1 (left) to 1 (right). */
+  pan: number;
+}
+
+/** What the master does to the sound of a whole composition. */
+export interface MasterMix {
+  /** -60 to 12. */
+  volumeDb: number;
+}
+
+/** One of the two mixes of a composition: its audio tracks' mixes (those missing are at the defaults) and its master. */
+export interface MixSnapshot {
+  tracks: Record<TrackId, TrackMix>;
+  master: MasterMix;
+}
+
+/**
+ * The mix of a composition. The live values are on the tracks (`Track.mix`) and in `master`;
+ * `otherMix` holds the mix that is not active, swapped in by switching between A and B.
+ */
+export interface CompositionMix {
+  master: MasterMix;
+  /** Which of the two mixes the live values are. */
+  activeMix: "a" | "b";
+  /** The mix that is not active; missing until the first switch. */
+  otherMix?: MixSnapshot;
 }
 
 /**
@@ -341,6 +375,8 @@ export interface Composition {
    * lower ones.
    */
   trackOrder: TrackId[];
+  /** Its master and its two mixes. Missing means the defaults (`DEFAULT_COMPOSITION_MIX`). */
+  mix?: CompositionMix;
 }
 
 /**

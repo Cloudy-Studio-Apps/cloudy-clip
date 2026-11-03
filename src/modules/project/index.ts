@@ -82,6 +82,10 @@ export type {
   SolidId,
   SharedGroupValues,
   ClipSound,
+  CompositionMix,
+  MasterMix,
+  MixSnapshot,
+  TrackMix,
   ClipSpeed,
   EasePresetId,
   EqBand,
@@ -118,6 +122,16 @@ export {
 } from "./logic/sound";
 /** The schemas of sound values, shared by every command that sets them. */
 export { eqBandSchema, eqSchema, panSchema, volumeDbSchema } from "./logic/sound.schema";
+
+/** The mix of an audio track and of a composition: defaults, reading them, and the nested level. */
+export {
+  DEFAULT_COMPOSITION_MIX,
+  DEFAULT_TRACK_MIX,
+  compositionMixOf,
+  minimizeTrackMix,
+  nestedSound,
+  trackMixOf,
+} from "./logic/mix";
 
 /** Key curves: the ease presets and how far along an ease a segment is. */
 export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";
