@@ -36,7 +36,7 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     that `except`s fields: the box hides the corners without `scale` and the rotate handle without
     `rotation`, and a picture without `x` and `y` is selected by a click but not dragged.
 - **Keys:** `visibleLayers` reads each clip through `animatedClip(clip, time)`, so the box sits on the picture the engine draws; the live `transform` patch still goes over it.
-- **Not yet:** keyframes editing, crop, flip, opacity.
+- **Not yet:** crop, flip, opacity.
 
 | Command                                 | MCP tool                                 |
 | --------------------------------------- | ---------------------------------------- |

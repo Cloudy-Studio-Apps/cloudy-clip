@@ -43,7 +43,8 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `transition`  | feature | `project`, `element`, `junction`, `timeline`, `inspector`                       | the `transition` junction kind, the `transitionPresets` point, `transition.apply`                          |
 | `sticker`     | feature | `project`, `element`, `preview`, `timeline`, `transform`, `inspector`           | the `sticker` element, Stickers tab, `stickerPacks` and `stickerStyles`, `sticker.add`                     |
 | `collab`      | feature | `project`, `preview`, `timeline`                                                | presence, access, the agent pointer and playhead, Follow                                                   |
-| `audio`       | feature | `project`, `inspector`, `preview`, `timeline`                                   | how a clip sounds: volume, pan, fades, EQ, pitch, and the Audio tab                                        |
+| `audio`       | feature | `project`, `inspector`, `preview`, `timeline`, `keyframe`                       | how a clip sounds: volume, pan, fades, EQ, pitch, and the Audio tab                                        |
+| `keyframe`    | feature | `project`, `element`, `preview`, `inspector`, `timeline`                        | keys on a clip's values: `keyframe.*` commands, diamonds, the Keyframes and Curves panel, motion path      |
 | `speed`       | feature | `project`, `junction`, `media`, `timeline`, `preview`, `inspector`, `keyframe`  | how fast a clip plays: `speed.set`, the box over the clip, the Speed section, Freeze frame, Reverse, ramps |
 | `solid`       | feature | `project`, `element`, `media`, `transform`                                      | solid colors: the element, library items with their smart bin, the dialog                                  |
 | `tint`        | feature | —                                                                               | the Tint page, for colors, empty for now                                                                   |
@@ -175,6 +176,9 @@ it, so does the UI, and it becomes a command.
 | `inspectorTabs`     | `inspector`  | `{ id, label, icon, order, contextual? }`, available when a section lands in it        |
 | `inspectorSections` | `inspector`  | `{ id, tab, title, order, appliesTo?, bare?, component }`, add to any clip's panel     |
 | `fieldActions`      | `inspector`  | `{ id, order, appliesTo?, component }`, the end of a field's row                       |
+| `timelineTools`     | `timeline`   | `{ id, order, component }`, a control at the left of the toolbar                       |
+| `timelineDocks`     | `timeline`   | `{ id, order?, component }`, a panel docked under the tracks                           |
+| `keyTargets`        | `keyframe`   | `{ id, fields(clip, track), afterWrite? }`, the values of a clip that can be keyed     |
 
 `side` panels become tabs of the left rail (`title` + `icon`). Keybindings always resolve to a
 command, so shortcuts, buttons and agents share one path.
