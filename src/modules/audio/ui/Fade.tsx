@@ -5,29 +5,29 @@ import { timeToPx } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { setSound } from "../audio.commands";
 import type { FadeEdge } from "../audio.types";
-import { FADE_AREA, FADE_LINE } from "../logic/fade";
+import { FADE_AREA, FADE_LINE, handleOffset } from "../logic/fade";
 import { startFadeGesture } from "./fade.gesture";
-
-/** Side of the handle in pixels (`size-2.5`). */
-const HANDLE_PX = 10;
 
 /** One fade of a clip: its slope and the handle that drags it. */
 export function Fade(props: {
   edge: FadeEdge;
   fade: number;
+  /** The other fade of the clip. */
+  other: number;
   bus: CommandBus;
   clip: Clip;
   pxPerSecond: number;
   width: number;
   selected: boolean;
 }) {
-  const { edge, fade, bus, clip, pxPerSecond, width, selected } = props;
+  const { edge, fade, other, bus, clip, pxPerSecond, width, selected } = props;
   const slope = useRef<SVGSVGElement>(null);
   const handle = useRef<HTMLDivElement>(null);
   const side = edge === "in" ? "left" : "right";
   const px = (micros: number) => Math.min(width, timeToPx(micros, pxPerSecond));
-  // The slope shows the true fade; the handle stays inside the clip (the clip hides what is outside).
-  const at = (micros: number) => Math.max(0, Math.min(px(micros), width - HANDLE_PX));
+  // The slope shows the true fade; the handle stays inside the clip and clear of the other.
+  const at = (micros: number) =>
+    handleOffset(edge, timeToPx(micros, pxPerSecond), timeToPx(other, pxPerSecond), width);
 
   const show = (micros: number) => {
     const size = `${px(micros)}px`;

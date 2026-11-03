@@ -18,8 +18,8 @@ export function FadeHandles({ clip, selected }: { clip: Clip; selected: boolean 
   const shared = { bus, clip, pxPerSecond, width, selected };
   return (
     <>
-      <Fade edge="in" fade={sound.fadeIn} {...shared} />
-      <Fade edge="out" fade={sound.fadeOut} {...shared} />
+      <Fade edge="in" fade={sound.fadeIn} other={sound.fadeOut} {...shared} />
+      <Fade edge="out" fade={sound.fadeOut} other={sound.fadeIn} {...shared} />
     </>
   );
 }
