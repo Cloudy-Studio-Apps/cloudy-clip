@@ -134,6 +134,7 @@ export {
   bandActive,
   dbToLinear,
   fadeLevel,
+  formatDb,
   minimize,
   panSide,
   pitchShift,

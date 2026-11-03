@@ -8,6 +8,7 @@ import type {
   TimelineSnapTarget,
   TimelineTabs,
   TimelineTool,
+  TimelineTrackControl,
 } from "./timeline.types";
 
 /** Layers over the lanes (collaborators' playheads). The timeline panel reads them. */
@@ -35,7 +36,7 @@ export const clipActions = definePoint<ClipActions>("timeline.clipActions", {
   keyOf: (actions) => actions.id,
 });
 
-/** Tools at the left of the timeline's toolbar, by `order`. The toolbar reads them. */
+/** Tools in the timeline's toolbar, by `slot` and `order`. The toolbar reads them. */
 export const timelineTools = definePoint<TimelineTool>("timeline.tools", {
   keyOf: (tool) => tool.id,
 });
@@ -48,4 +49,9 @@ export const timelineSnapTargets = definePoint<TimelineSnapTarget>("timeline.sna
 /** Strips under the tracks. The timeline panel reads them. */
 export const timelineDocks = definePoint<TimelineDock>("timeline.docks", {
   keyOf: (dock) => dock.id,
+});
+
+/** Controls on a track's header (solo, record-arm), by `order`. Each track header reads them. */
+export const timelineTrackControls = definePoint<TimelineTrackControl>("timeline.trackControls", {
+  keyOf: (control) => control.id,
 });

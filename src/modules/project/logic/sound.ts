@@ -50,6 +50,17 @@ export function panSide(pan: number): "L" | "C" | "R" {
   return pan === 0 ? "C" : pan < 0 ? "L" : "R";
 }
 
+/**
+ * A level for people (the mixer, the meters, a clip's gain badge): one decimal, a real minus
+ * sign, a plus above 0 and "−∞" for silence. With `digits` 0, whole numbers.
+ */
+export function formatDb(db: number, digits = 1): string {
+  if (db === -Infinity) return "−∞";
+  const text = Math.abs(db).toFixed(digits);
+  if (Number(text) === 0) return (0).toFixed(digits);
+  return `${db < 0 ? "−" : "+"}${text}`;
+}
+
 /** Whether pitch changes anything, with the shift in semitones. */
 export function pitchShift({ pitch }: ClipSound): number {
   return pitch.on ? pitch.semitones + pitch.cents / 100 : 0;

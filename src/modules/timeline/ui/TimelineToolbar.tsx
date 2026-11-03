@@ -1,5 +1,5 @@
 import { Film, Music, Scissors, Trash, Unlink } from "lucide-react";
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { useStore } from "zustand";
 import { ErrorBoundary, useKernel, useModule, usePoint } from "@/core";
 import { previewRef } from "@/modules/preview";
@@ -12,19 +12,26 @@ import { timelineRef } from "../timeline.ref";
 import { addTrack, deleteClips, splitAt, unlinkClips } from "../timeline.commands";
 import { PegBar } from "./PegBar";
 import { useTimelineScope } from "./scope.hook";
+import { ToolbarAction } from "./ToolbarAction";
 import { ZoomSlider } from "./ZoomSlider";
 
-/** Edit actions and zoom. Every button runs a command, exactly like shortcuts and agents. */
+/**
+ * Edit actions and zoom, with the tools modules add at the start and at the end (`slot`). Every
+ * button runs a command, exactly like shortcuts and agents.
+ */
 export function TimelineToolbar() {
   const { playback } = useModule(previewRef);
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const tools = usePoint(timelineTools);
   const scope = useTimelineScope();
-  const ordered = useMemo(
-    () => tools.filter((tool) => inScope(tool, scope)).sort((a, b) => a.order - b.order),
-    [tools, scope],
-  );
+  const [start, end] = useMemo(() => {
+    const ordered = tools.filter((tool) => inScope(tool, scope)).sort((a, b) => a.order - b.order);
+    return [
+      ordered.filter((tool) => tool.slot !== "end"),
+      ordered.filter((tool) => tool.slot === "end"),
+    ];
+  }, [tools, scope]);
   const selection = useStore(timeline.view, (s) => s.selection);
   const canUnlink = useStore(useModule(projectRef).store.api, (s) =>
     selection.some((id) => partnersOf(s, id).length > 0),
@@ -33,9 +40,9 @@ export function TimelineToolbar() {
   return (
     <div className="relative flex h-[34px] shrink-0 items-center gap-1 overflow-x-auto border-b border-border-strong bg-muted px-2 [scrollbar-width:none]">
       <div className="flex shrink-0 items-center gap-0.5">
-        {ordered.length > 0 && (
+        {start.length > 0 && (
           <>
-            {ordered.map(({ id, component: Tool }) => (
+            {start.map(({ id, component: Tool }) => (
               <ErrorBoundary key={id} name={id}>
                 <Tool />
               </ErrorBoundary>
@@ -43,23 +50,23 @@ export function TimelineToolbar() {
             <ToolbarSeparator />
           </>
         )}
-        <ToolbarButton
+        <ToolbarAction
           icon={<Scissors />}
-          title="Split at playhead (S)"
+          label="Split at playhead (S)"
           onClick={() => void bus.run(splitAt, playheadSplit(playback.getTime(), selection))}
         >
           Split
-        </ToolbarButton>
-        <ToolbarButton
+        </ToolbarAction>
+        <ToolbarAction
           icon={<Trash />}
-          title="Delete selected (Delete)"
+          label="Delete selected (Delete)"
           disabled={selection.length === 0}
           onClick={() =>
             void bus.run(deleteClips, { clipIds: selection, soundOnly: scope === "sound" })
           }
         >
           Delete
-        </ToolbarButton>
+        </ToolbarAction>
         {scope !== "sound" && (
           <ToolbarButton
             icon={<Unlink />}
@@ -80,17 +87,25 @@ export function TimelineToolbar() {
             Video track
           </ToolbarButton>
         )}
-        <ToolbarButton
+        <ToolbarAction
           icon={<Music />}
-          title="Add audio track"
+          label="Add audio track"
           onClick={() => void bus.run(addTrack, { kind: "audio" })}
         >
           Audio track
-        </ToolbarButton>
+        </ToolbarAction>
       </div>
       <div className="@container relative min-w-3 flex-1 self-stretch">
         <PegBar />
       </div>
+      {end.map(({ id, component: Tool }) => (
+        <Fragment key={id}>
+          <ErrorBoundary name={id}>
+            <Tool />
+          </ErrorBoundary>
+          <ToolbarSeparator />
+        </Fragment>
+      ))}
       <ZoomSlider />
     </div>
   );

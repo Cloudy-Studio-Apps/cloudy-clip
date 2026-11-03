@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
-import { VOLUME_DB_MAX, VOLUME_DB_MIN } from "@/modules/project";
+import { formatDb, VOLUME_DB_MAX, VOLUME_DB_MIN } from "@/modules/project";
 import { faderDb, faderPosition } from "../../logic/fader";
-import { formatDb } from "../../logic/meter";
 import { useSliderDrag } from "../controls";
 
 interface FaderProps {

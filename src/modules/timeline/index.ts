@@ -53,6 +53,12 @@ export {
   timelineTools,
 } from "./timeline.points";
 /**
+ * Point: controls on a track's header after its own buttons (`sound`'s solo and record-arm), by
+ * `order`, each given its track. Scoped like every timeline contribution: unset means the editor
+ * only.
+ */
+export { timelineTrackControls } from "./timeline.points";
+/**
  * `HEADER_WIDTH` is the default width of the track headers; `RULER_HEIGHT` is the ruler's height;
  * `SNAP_PX` is how near, in px, a drag must come to a target to snap to it.
  */
@@ -110,6 +116,7 @@ export type {
   TimelineSnapTarget,
   SnapCandidates,
   TimelineTool,
+  TimelineTrackControl,
   CutPreview,
   DropTarget,
   JunctionKindOf,

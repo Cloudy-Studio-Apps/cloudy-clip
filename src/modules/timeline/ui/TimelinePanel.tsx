@@ -150,7 +150,10 @@ export function TimelinePanel({
                       below={track.kind}
                     />
                     <div className="flex">
-                      <TrackHeader track={track} />
+                      <TrackHeader
+                        track={track}
+                        code={scope === "sound" ? `A${position + 1}` : undefined}
+                      />
                       <div style={{ width: contentWidth }}>
                         <TrackLane
                           track={track}

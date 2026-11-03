@@ -7,7 +7,8 @@ import { canRecordHere } from "../../sound.record.capture";
 import { soundRef } from "../../sound.ref";
 
 /**
- * R on a strip: arms the track for recording, or disarms it. Record records onto the armed track,
+ * R on a track's header (`timelineTrackControls`) and, until the mixer's own buttons change, on
+ * its strip: arms the track for recording, or disarms it. Record records onto the armed track,
  * or onto a new Voice track when none is armed. Offered only on an audio track that
  * isn't muted, and only where recording works (`RECORDING_CHECKED`).
  */

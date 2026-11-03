@@ -13,6 +13,7 @@ import type {
   Junction,
   JunctionId,
   ProjectState,
+  Track,
   TrackId,
   TrackKind,
 } from "@/modules/project";
@@ -263,12 +264,28 @@ export interface TimelineTabs extends Scoped {
   component: ComponentType;
 }
 
-/** A tool in the timeline's toolbar, drawn before Split, lowest `order` first. */
+/** A tool in the timeline's toolbar, lowest `order` first within its slot. */
 export interface TimelineTool extends Scoped {
   /** Unique id, `<module>.<name>`. */
   id: string;
   order: number;
+  /**
+   * Where it sits: `start` (the default) at the left, before Split; `end` at the right, after the
+   * peg bar and before the zoom.
+   */
+  slot?: "start" | "end";
   component: ComponentType;
+}
+
+/**
+ * A control on a track's header (solo, record-arm), after the header's own buttons, lowest
+ * `order` first. It is given the track; it decides itself whether it shows for it.
+ */
+export interface TimelineTrackControl extends Scoped {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  order: number;
+  component: ComponentType<{ track: Track }>;
 }
 
 /** A strip under the tracks, inside the timeline panel. */

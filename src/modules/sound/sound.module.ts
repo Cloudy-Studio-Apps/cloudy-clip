@@ -3,7 +3,7 @@ import { appPages, defineModule, pagesRef } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import { settingsSections } from "@/modules/settings";
-import { timelineOverlays } from "@/modules/timeline";
+import { timelineOverlays, timelineTools, timelineTrackControls } from "@/modules/timeline";
 import { previewRef } from "@/modules/preview";
 import { workspaceRef } from "@/modules/workspace";
 import { soundMcpTools } from "./sound.mcp";
@@ -20,7 +20,16 @@ import { followRecordingEnds } from "./sound.record.follow";
 import { createUserPresets } from "./sound.presets.store";
 import { SOUND_PAGE, soundRef } from "./sound.ref";
 import { createSoundView } from "./sound.store";
-import { PresetsSection, RecordingTake, SoundPage } from "./ui";
+import {
+  ArmButton,
+  AutomationNote,
+  DrawVolumeTool,
+  PresetsSection,
+  RecordingTake,
+  SheetNote,
+  SoloButton,
+  SoundPage,
+} from "./ui";
 
 /** The Sound page with its mixer, and the mix: track and master levels, effects, mix A and B. */
 export const soundModule = defineModule({
@@ -74,6 +83,23 @@ export const soundModule = defineModule({
       scopes: ["sound"],
       component: RecordingTake,
     });
+    contribute(
+      timelineTrackControls,
+      { id: "sound.solo", order: 10, scopes: ["sound"], component: SoloButton },
+      { id: "sound.arm", order: 20, scopes: ["sound"], component: ArmButton },
+    );
+    contribute(
+      timelineTools,
+      { id: "sound.drawVolume", order: 10, scopes: ["sound"], component: DrawVolumeTool },
+      {
+        id: "sound.automation",
+        order: 10,
+        slot: "end",
+        scopes: ["sound"],
+        component: AutomationNote,
+      },
+      { id: "sound.sheetNote", order: 20, slot: "end", scopes: ["sound"], component: SheetNote },
+    );
     contribute(settingsSections, {
       id: "sound.presets",
       label: "Sound presets",

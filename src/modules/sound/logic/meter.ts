@@ -26,14 +26,3 @@ export function holdPeak(previous: PeakHold | null, now: number, at: number): Pe
   if (!previous || now >= previous.db || at - previous.at > PEAK_HOLD_MS) return { db: now, at };
   return previous;
 }
-
-/**
- * A level for people: one decimal, a real minus sign, a plus above 0 and "−∞" for silence. With
- * `digits` 0, whole numbers.
- */
-export function formatDb(db: number, digits = 1): string {
-  if (db === -Infinity) return "−∞";
-  const text = Math.abs(db).toFixed(digits);
-  if (Number(text) === 0) return (0).toFixed(digits);
-  return `${db < 0 ? "−" : "+"}${text}`;
-}
