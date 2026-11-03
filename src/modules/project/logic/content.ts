@@ -1,10 +1,7 @@
 import type { Micros } from "@/core";
-import type { Clip } from "../project.types";
+import type { Clip, Timed } from "../project.types";
 import { rampOf, rampRate, rampTimeAt } from "./ramp";
 import { filePlayed, speedOf } from "./speed";
-
-/** What the content functions read of a clip. */
-type Timed = Pick<Clip, "start" | "duration" | "speed" | "animation" | "animationOrigin">;
 
 /**
  * A clip's own time at a timeline time: how long its picture has played since its first frame,

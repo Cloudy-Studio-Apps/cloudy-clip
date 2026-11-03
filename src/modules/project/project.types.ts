@@ -124,6 +124,9 @@ export interface Clip extends Partial<SharedGroupValues> {
   animationOrigin?: Micros;
 }
 
+/** What the content-time functions read of a clip. */
+export type Timed = Pick<Clip, "start" | "duration" | "speed" | "animation" | "animationOrigin">;
+
 /** A value a key can hold. */
 export type KeyValue = number | string | boolean;
 

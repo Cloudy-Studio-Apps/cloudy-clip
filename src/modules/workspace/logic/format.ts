@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { CommandFailure } from "@/core";
-import type { ProjectState } from "@/modules/project";
+import type { KeyTrack, ProjectState } from "@/modules/project";
 import type { ProjectEnvelope } from "../workspace.types";
 
 const FORMAT = "cloudy-clip-project";
 /** Bump when the document changes shape, and teach `decodeProject` to upgrade the older one. */
 const VERSION = 3;
+/** What a project without keys is saved as, so an older app still opens it. */
+const UNANIMATED_VERSION = 2;
 
 const envelope = z.object({
   format: z.literal(FORMAT),
@@ -102,11 +104,34 @@ const documentSchema = z.looseObject({
   ),
 });
 
-/** The text of a project file. */
+/** Whether any clip has keys, which only version 3 knows. */
+function isAnimated(document: ProjectState): boolean {
+  return Object.values(document.clips).some(
+    (clip) => clip.animation && Object.keys(clip.animation).length > 0,
+  );
+}
+
+/** The document without key tracks that have no keys, which nothing can play. */
+function withoutEmptyTracks(document: ProjectState): ProjectState {
+  for (const clip of Object.values(document.clips)) {
+    if (!clip.animation) continue;
+    const kept = Object.entries(clip.animation).filter(
+      ([, track]: [string, KeyTrack | undefined]) => (track?.keys?.length ?? 0) > 0,
+    );
+    if (kept.length > 0) clip.animation = Object.fromEntries(kept);
+    else delete clip.animation;
+  }
+  return document;
+}
+
+/**
+ * The text of a project file: version 3 when a clip has keys, else version 2, so a project that
+ * never used keys opens in an app from before them.
+ */
 export function encodeProject(document: ProjectState, appVersion: string, now: Date): string {
   const file: ProjectEnvelope = {
     format: FORMAT,
-    version: VERSION,
+    version: isAnimated(document) ? VERSION : UNANIMATED_VERSION,
     appVersion,
     savedAt: now.toISOString(),
     document,
@@ -115,8 +140,9 @@ export function encodeProject(document: ProjectState, appVersion: string, now: D
 }
 
 /**
- * Reads a project file. Throws `workspace.not_a_project`, `workspace.too_new` or
- * `workspace.damaged`. The document's rules are checked when it replaces the store.
+ * Reads a project file of any version up to 3. Throws `workspace.not_a_project`,
+ * `workspace.too_new` or `workspace.damaged`. Key tracks without keys are dropped. The document's
+ * rules are checked when it replaces the store.
  */
 export function decodeProject(text: string): ProjectState {
   let json: unknown;
@@ -139,5 +165,5 @@ export function decodeProject(text: string): ProjectState {
   if (!document.success) {
     throw new CommandFailure("workspace.damaged", "This project file is damaged.");
   }
-  return document.data as unknown as ProjectState;
+  return withoutEmptyTracks(document.data as unknown as ProjectState);
 }
