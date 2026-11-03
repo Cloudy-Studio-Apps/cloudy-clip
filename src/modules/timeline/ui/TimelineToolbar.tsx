@@ -5,10 +5,12 @@ import { ErrorBoundary, useKernel, useModule, usePoint } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { partnersOf, projectRef } from "@/modules/project";
 import { ToolbarButton, ToolbarSeparator } from "@/ui";
+import { inScope } from "../logic/scope";
 import { timelineTools } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { addTrack, deleteClips, splitAt, unlinkClips } from "../timeline.commands";
 import { PegBar } from "./PegBar";
+import { useTimelineScope } from "./scope.hook";
 import { ZoomSlider } from "./ZoomSlider";
 
 /** Edit actions and zoom. Every button runs a command, exactly like shortcuts and agents. */
@@ -17,7 +19,11 @@ export function TimelineToolbar() {
   const timeline = useModule(timelineRef);
   const { bus } = useKernel();
   const tools = usePoint(timelineTools);
-  const ordered = useMemo(() => [...tools].sort((a, b) => a.order - b.order), [tools]);
+  const scope = useTimelineScope();
+  const ordered = useMemo(
+    () => tools.filter((tool) => inScope(tool, scope)).sort((a, b) => a.order - b.order),
+    [tools, scope],
+  );
   const selection = useStore(timeline.view, (s) => s.selection);
   const canUnlink = useStore(useModule(projectRef).store.api, (s) =>
     selection.some((id) => partnersOf(s, id).length > 0),
@@ -52,7 +58,9 @@ export function TimelineToolbar() {
           icon={<Trash />}
           title="Delete selected (Delete)"
           disabled={selection.length === 0}
-          onClick={() => void bus.run(deleteClips, { clipIds: selection })}
+          onClick={() =>
+            void bus.run(deleteClips, { clipIds: selection, soundOnly: scope === "sound" })
+          }
         >
           Delete
         </ToolbarButton>
@@ -65,13 +73,15 @@ export function TimelineToolbar() {
           Unlink
         </ToolbarButton>
         <ToolbarSeparator />
-        <ToolbarButton
-          icon={<Film />}
-          title="Add video track"
-          onClick={() => void bus.run(addTrack, { kind: "video" })}
-        >
-          Video track
-        </ToolbarButton>
+        {scope !== "sound" && (
+          <ToolbarButton
+            icon={<Film />}
+            title="Add video track"
+            onClick={() => void bus.run(addTrack, { kind: "video" })}
+          >
+            Video track
+          </ToolbarButton>
+        )}
         <ToolbarButton
           icon={<Music />}
           title="Add audio track"

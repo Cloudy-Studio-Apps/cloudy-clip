@@ -25,6 +25,7 @@ export function createTimelineView(
     junctionSelection: [],
     cutPreview: null,
     headerWidth: HEADER_WIDTH,
+    soundUnlinkTold: false,
     tracksHidden: false,
   }));
   let scroller: HTMLElement | null = null;

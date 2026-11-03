@@ -29,6 +29,7 @@ import {
   junctionKindOf,
   junctionsOverlapping,
 } from "./timeline.junctions";
+import { editSoundOnly } from "./timeline.sound";
 import type { JunctionKindOf } from "./timeline.types";
 
 /** `state` with the clips split at a time: the right halves stay linked, junctions are kept. */
@@ -154,14 +155,15 @@ export const deleteClips = defineCommand({
   id: "timeline.deleteClips",
   label: "Delete",
   description:
-    "Deletes clips from the timeline (the media stays in the library). Linked clips (a video's picture and sound) are deleted together. Junctions (transitions) on their cuts are removed; the other clips stay where they are. Returns { deleted, removedJunctions }.",
+    "Deletes clips from the timeline (the media stays in the library). Linked clips (a video's picture and sound) are deleted together. Junctions (transitions) on their cuts are removed; the other clips stay where they are. Returns { deleted, removedJunctions }. With soundOnly, linked clips on audio tracks are unlinked first and deleted alone, so their pictures stay (one undo step).",
   undoable: true,
-  input: z.object({ clipIds: z.array(z.string()).min(1) }),
-  run(ctx, { clipIds }) {
-    const state = ctx.require(projectRef).store.getState();
-    clipIds.forEach((id) => requireClip(state, id));
-    return removeClips(ctx, state, withPartners(state, clipIds));
-  },
+  input: z.object({ clipIds: z.array(z.string()).min(1), soundOnly: z.boolean().optional() }),
+  run: (ctx, { clipIds, soundOnly }) =>
+    editSoundOnly(ctx, clipIds, soundOnly, () => {
+      const state = ctx.require(projectRef).store.getState();
+      clipIds.forEach((id) => requireClip(state, id));
+      return removeClips(ctx, state, withPartners(state, clipIds));
+    }),
 });
 
 /** `state` without the clips and the junctions on their cuts; nothing shifts. */

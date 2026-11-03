@@ -419,6 +419,52 @@ describe("linked clips", () => {
     expect(!result.ok && result.error.code).toBe("timeline.not_linked");
   });
 
+  describe("soundOnly", () => {
+    it("deletes only the sound of a linked pair, in one undo step", async () => {
+      const { video, audio } = await pair();
+      const before = doc();
+      await run(kernel.bus.run(deleteClips, { clipIds: [audio.id], soundOnly: true }));
+      expect(doc().clips[video.id]).toBeDefined();
+      expect(doc().clips[video.id]!.linkId).toBeUndefined();
+      expect(doc().clips[audio.id]).toBeUndefined();
+      kernel.history.undo();
+      expect(doc()).toEqual(before);
+    });
+
+    it("moves only the sound, in one undo step", async () => {
+      const { video, audio } = await pair();
+      const before = doc();
+      await run(kernel.bus.run(moveClip, { clipId: audio.id, start: 2 * S, soundOnly: true }));
+      expect(doc().clips[video.id]!.start).toBe(0);
+      expect(doc().clips[audio.id]!.start).toBe(2 * S);
+      expect(doc().clips[audio.id]!.linkId).toBeUndefined();
+      kernel.history.undo();
+      expect(doc()).toEqual(before);
+    });
+
+    it("trims only the sound", async () => {
+      const { video, audio } = await pair();
+      await run(
+        kernel.bus.run(trimClip, { clipId: audio.id, edge: "end", time: 4 * S, soundOnly: true }),
+      );
+      expect(doc().clips[audio.id]!.duration).toBe(4 * S);
+      expect(doc().clips[video.id]!.duration).toBe(10 * S);
+    });
+
+    it("still moves both without it", async () => {
+      const { video, audio } = await pair();
+      await run(kernel.bus.run(moveClip, { clipId: audio.id, start: 2 * S }));
+      expect(doc().clips[video.id]!.start).toBe(2 * S);
+      expect(doc().clips[audio.id]!.linkId).toBe(doc().clips[video.id]!.linkId);
+    });
+
+    it("leaves a sound that was never linked as it is", async () => {
+      const sound = await place({ mediaId: "ma" });
+      await run(kernel.bus.run(moveClip, { clipId: sound.id, start: S, soundOnly: true }));
+      expect(doc().clips[sound.id]!.start).toBe(S);
+    });
+  });
+
   it("a clip whose partner's track was removed edits alone", async () => {
     const { video, audio } = await pair();
     await run(kernel.bus.run(removeTrack, { trackId: audio.trackId }));

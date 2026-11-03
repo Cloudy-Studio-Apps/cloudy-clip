@@ -1,4 +1,4 @@
-import type { ActorId, Micros } from "@/core";
+import type { ActorId, Micros, TimelineScopeName } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { Cut, JunctionKindDefinition } from "@/modules/junction";
@@ -17,6 +17,12 @@ import type {
   TrackKind,
 } from "@/modules/project";
 
+/** Anything a module adds to the timeline that can name the scopes it shows in. */
+export interface Scoped {
+  /** Unset means `["all"]`. */
+  scopes?: readonly TimelineScopeName[];
+}
+
 /** Ephemeral view state of the timeline. Not part of the undo history. */
 export interface TimelineViewState {
   /** Zoom level. */
@@ -29,6 +35,8 @@ export interface TimelineViewState {
   cutPreview: CutPreview | null;
   /** Width of the track header column, in px. `HEADER_WIDTH` unless a module widened it. */
   headerWidth: number;
+  /** The first sound-only edit of a session has said it unlinked a sound from its picture. */
+  soundUnlinkTold: boolean;
   /** Only the ruler shows: the tracks are folded away, zoom and scroll stay. */
   tracksHidden: boolean;
 }
@@ -81,6 +89,11 @@ export interface ScreenBox {
 export interface TimelineOverlay {
   /** Unique id, `<module>.<name>`. */
   id: string;
+  /**
+   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
+   * contribution can't reach a picture from a sound-only page by accident.
+   */
+  scopes?: TimelineScopeName[];
   component: ComponentType;
 }
 
@@ -219,6 +232,11 @@ export interface TimelineTabs {
 export interface TimelineTool {
   /** Unique id, `<module>.<name>`. */
   id: string;
+  /**
+   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
+   * contribution can't reach a picture from a sound-only page by accident.
+   */
+  scopes?: TimelineScopeName[];
   order: number;
   component: ComponentType;
 }
@@ -227,12 +245,22 @@ export interface TimelineTool {
 export interface TimelineDock {
   /** Unique id, `<module>.<name>`. */
   id: string;
+  /**
+   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
+   * contribution can't reach a picture from a sound-only page by accident.
+   */
+  scopes?: TimelineScopeName[];
   component: ComponentType;
 }
 
 /** Entries a module adds to the timeline's right-click menu. */
 export interface TimelineMenuItems {
   id: string;
+  /**
+   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
+   * contribution can't reach a picture from a sound-only page by accident.
+   */
+  scopes?: TimelineScopeName[];
   /** Asked when the menu opens, with the lane and time under the click (null off the lanes). */
   items(at: DropTarget | null): MenuItem[];
 }
@@ -256,6 +284,11 @@ export interface TimelineDropHandler {
 /** What a module does with a clip. */
 export interface ClipActions {
   id: string;
+  /**
+   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
+   * contribution can't reach a picture from a sound-only page by accident.
+   */
+  scopes?: TimelineScopeName[];
   /** A double click. True when it took care of it. */
   doubleClick?(clip: Clip): boolean;
   /** Entries of the clip's right-click menu. The clip is selected by then: act on the selection. */
@@ -276,4 +309,6 @@ export interface ClipMenuEntry extends Omit<MenuItem, "group"> {
   group: ClipMenuGroup;
   /** Lower comes first within the group. Defaults to 0. */
   order?: number;
+  /** The scopes this entry shows in; unset means `["all"]`. Checked entry by entry. */
+  scopes?: TimelineScopeName[];
 }

@@ -1,4 +1,12 @@
-import { appMenuItems, defineModule, keybindings, layoutPanels, LOCAL_ACTOR } from "@/core";
+import {
+  appMenuItems,
+  appPages,
+  defineModule,
+  keybindings,
+  layoutPanels,
+  LOCAL_ACTOR,
+  pagesRef,
+} from "@/core";
 import { removeJunction } from "@/modules/junction";
 import { partnersOf, projectRef } from "@/modules/project";
 import { previewRef } from "@/modules/preview";
@@ -17,6 +25,7 @@ import {
   clipboardMenuItems,
   pasteMenu,
 } from "./timeline.clipboard.menu";
+import { activeScope } from "./logic/scope";
 import { clipMenu } from "./timeline.menu";
 import { clipActions, timelineDropHandlers, timelineMenuItems } from "./timeline.points";
 import { timelineRef } from "./timeline.ref";
@@ -76,7 +85,11 @@ export const timelineModule = defineModule({
     const deleteSelection = () => {
       const { selection: clipIds, junctionSelection: junctionIds } = view.getState();
       if (junctionIds.length > 0) return { command: removeJunction.id, input: { junctionIds } };
-      return clipIds.length > 0 ? { command: deleteClips.id, input: { clipIds } } : null;
+      if (clipIds.length === 0) return null;
+      // On a sound-only page a delete leaves the pictures of linked clips alone.
+      const { active } = ctx.require(pagesRef).store.getState();
+      const soundOnly = activeScope(ctx.points.get(appPages), active) === "sound";
+      return { command: deleteClips.id, input: { clipIds, ...(soundOnly && { soundOnly }) } };
     };
     ctx.contribute(
       keybindings,

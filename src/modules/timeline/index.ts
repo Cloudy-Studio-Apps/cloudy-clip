@@ -62,6 +62,11 @@ export { HEADER_WIDTH, RULER_HEIGHT, SNAP_PX } from "./timeline.layout";
  * the default.
  */
 export { useHeaderWidth } from "./ui/header.width.hook";
+/**
+ * Whether an entry of a timeline point shows in a scope (its `scopes`, `["all"]` when unset), and
+ * the scope of the active page worked out from the `appPages` point.
+ */
+export { activeScope, inScope } from "./logic/scope";
 /** Pixels from time 0 to a time at a zoom level. */
 export { timeToPx } from "./logic/geometry";
 /** The `timeline.overlap` failure for a spot taken by another clip, with where it is. */
@@ -76,6 +81,7 @@ export type {
   ClipboardEntry,
   ClipMenuEntry,
   ClipMenuGroup,
+  Scoped,
   ScreenBox,
   TimelineDrop,
   TimelineDock,

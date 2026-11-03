@@ -4,7 +4,7 @@ Connected agents as collaborators, shaped so people can join later (`Collaborato
 
 - **Tier:** feature
 - **Requires:** `project` (who has which composition open), `preview` (`clockFor`, `dropClock`), `timeline` (selection for `collab_get_user_context`)
-- **Contributes:** `topBarItems` (`collab.status`, `collab.avatars`), `appOverlays` (`collab.pointers`), `timelineOverlays` (`collab.playheads`), the commands and tool below; `ctx.mcp.observe`; `history.scopeUndo` (from here on Ctrl+Z means the user's own steps) and `history.nameActors`.
+- **Contributes:** `topBarItems` (`collab.status`, `collab.avatars`), `appOverlays` (`collab.pointers`), `timelineOverlays` (`collab.playheads`, `scopes: ["all", "sound"]`), the commands and tool below; `ctx.mcp.observe`; `history.scopeUndo` (from here on Ctrl+Z means the user's own steps) and `history.nameActors`.
 - **API:** `CollabApi`: `store` (`CollabState`: `collaborators`, `blocked`, `followed`).
 - **Commands:** `collab.setAccess { actor, access }`, `collab.setPaused { actor, paused }`, `collab.setBlocked { actor, blocked }`, `collab.follow { actor | null }`. Not MCP tools: only the user decides these.
 - **Tools:** `collab_get_user_context`: the user's open composition, playhead, whether they are playing, their selection.

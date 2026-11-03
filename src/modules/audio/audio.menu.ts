@@ -20,6 +20,7 @@ const hasSound = (state: ProjectState, id: ClipId) => {
 export function audioMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>): ClipActions {
   return {
     id: "audio.clip",
+    scopes: ["all", "sound"],
     items(clip) {
       const state = ctx.require(projectRef).store.getState();
       if (!hasSound(state, clip.id)) return [];
@@ -28,6 +29,7 @@ export function audioMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>)
         {
           group: "reset",
           order: 10,
+          scopes: ["all", "sound"],
           icon: Volume2,
           label: "Reset sound",
           onSelect: () => void ctx.bus.run(resetSound, { clipIds }),

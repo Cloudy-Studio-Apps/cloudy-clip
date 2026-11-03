@@ -33,6 +33,12 @@ export interface TopBarItem {
   component: ComponentType;
 }
 
+/**
+ * What a page's timeline may edit: `"all"` on the editor, `"sound"` on a page that works on sound
+ * only (audio tracks, and edits that leave pictures alone).
+ */
+export type TimelineScopeName = "all" | "sound";
+
 /** A page of the app, with a tab of its own in the top bar. */
 export interface AppPage {
   /** Unique id, `<module>.<name>`. */
@@ -47,6 +53,13 @@ export interface AppPage {
   order?: number;
   /** Takes the place of the editor below the top bar. Only the editor's own page has none. */
   component?: ComponentType;
+  /**
+   * Keeps what plays while the page covers the editor, and lets plain keys (Space, S, Delete) work
+   * on it. Without it, playback pauses when the page opens and plain keys wait for the editor.
+   */
+  keepsPlayback?: boolean;
+  /** The scope of the timeline on this page. Unset means `"all"`. */
+  timelineScope?: TimelineScopeName;
 }
 
 /** Tabs that belong together. A divider separates groups in the top bar. */

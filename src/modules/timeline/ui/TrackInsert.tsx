@@ -6,6 +6,7 @@ import { cn } from "@/ui";
 import { insertKinds } from "../logic/placement";
 import { addTrack } from "../timeline.commands";
 import { useHeaderWidth } from "./header.width.hook";
+import { useTimelineScope } from "./scope.hook";
 
 function AddButton({
   label,
@@ -42,7 +43,9 @@ interface TrackInsertProps {
 export function TrackInsert({ index, above, below }: TrackInsertProps) {
   const { bus } = useKernel();
   const headerWidth = useHeaderWidth();
-  const kinds = insertKinds(above, below);
+  const scope = useTimelineScope();
+  // A sound-scope timeline offers sound tracks only.
+  const kinds = insertKinds(above, below).filter((kind) => scope !== "sound" || kind === "audio");
   const add = (kind: TrackKind) => void bus.run(addTrack, { kind, index });
   return (
     <div className="sticky left-0 z-[25] h-0" style={{ width: headerWidth }}>

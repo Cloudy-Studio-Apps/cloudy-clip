@@ -2,6 +2,8 @@ import type { TrackKind } from "@/modules/project";
 
 /** Width of the track header column, in px. */
 export const HEADER_WIDTH = 148;
+/** Width of the track header column on a sound-scope timeline, in px. */
+export const SOUND_HEADER_WIDTH = 132;
 /** Height of the ruler, in px. */
 export const RULER_HEIGHT = 28;
 /** Pointer distance (px) within which edits snap to edges and the playhead. */

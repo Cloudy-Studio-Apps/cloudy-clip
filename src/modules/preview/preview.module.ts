@@ -2,6 +2,7 @@ import {
   defineModule,
   EDITOR_PAGE,
   appMenuItems,
+  appPages,
   keybindings,
   layoutPanels,
   LOCAL_ACTOR,
@@ -107,10 +108,13 @@ export const previewModule = defineModule({
     ctx.onDispose(project.subscribe(followOpen));
     // A font arriving (or failing) changes how text is drawn and measured.
     ctx.onDispose(fonts.onLoaded(() => controller.redraw()));
-    // Another page covers the preview, so nothing should keep playing behind it.
+    // Another page covers the preview, so nothing should keep playing behind it, unless the page
+    // asks to keep playback going.
     ctx.onDispose(
       ctx.require(pagesRef).store.subscribe(({ active }) => {
-        if (active !== EDITOR_PAGE) clock.pause();
+        if (active === EDITOR_PAGE) return;
+        const page = ctx.points.get(appPages).find((p) => p.id === active);
+        if (!page?.keepsPlayback) clock.pause();
       }),
     );
     ctx.onDispose(() => {

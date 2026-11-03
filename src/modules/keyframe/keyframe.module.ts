@@ -1,4 +1,4 @@
-import { defineModule, keybindings, type ActorId } from "@/core";
+import { defineModule, keybindings, type ActorId, type TimelineScopeName } from "@/core";
 import { previewOverlays } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { clipActions, timelineDocks, timelineTools } from "@/modules/timeline";
@@ -37,9 +37,11 @@ export const keyframeModule = defineModule({
     );
     ctx.contribute(keyTargets, elementTarget(ctx));
     ctx.contribute(fieldActions, keyAction);
-    ctx.contribute(timelineTools, { id: "keyframe.mode", order: 0, component: ModeSwitch });
-    ctx.contribute(timelineDocks, { id: "keyframe.panel", component: KeyPanel });
-    ctx.contribute(clipActions, { id: "keyframe.badge", badge: ClipBadge });
+    // Volume and pan keys are sound, so the mode switch, panel and badge also show on the Sound page.
+    const scopes: TimelineScopeName[] = ["all", "sound"];
+    ctx.contribute(timelineTools, { id: "keyframe.mode", order: 0, scopes, component: ModeSwitch });
+    ctx.contribute(timelineDocks, { id: "keyframe.panel", scopes, component: KeyPanel });
+    ctx.contribute(clipActions, { id: "keyframe.badge", scopes, badge: ClipBadge });
     ctx.contribute(previewOverlays, { id: "keyframe.motionPath", component: MotionPath });
     ctx.contribute(keybindings, {
       id: "keyframe.toggle-mode",

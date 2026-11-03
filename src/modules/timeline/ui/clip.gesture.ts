@@ -47,14 +47,17 @@ export function startClipGesture(options: {
   project: PatchableStore<ProjectState>;
   /** The junction kinds, so a move that resizes a joined overlap within limits stays valid. */
   kindOf: JunctionKindOf;
+  /** Edit the sound alone: a linked sound is unlinked first and the picture stays (sound scope). */
+  soundOnly?: boolean;
 }): void {
   const { bus, clip, element, root, down, view, playback, media, project, kindOf } = options;
+  const soundOnly = options.soundOnly === true;
   const pxPerSecond = view.getState().pxPerSecond;
   const mode = gestureMode(down.offsetX, element.offsetWidth);
   const state = project.getState();
   const threshold = pxToTime(SNAP_PX, pxPerSecond);
-  // Linked clips (a video's picture and sound) follow the dragged one.
-  const partners = partnersOf(state, clip.id).map((partner) => ({
+  // Linked clips (a video's picture and sound) follow the dragged one, unless only the sound edits.
+  const partners = (soundOnly ? [] : partnersOf(state, clip.id)).map((partner) => ({
     clip: partner,
     element: root.querySelector<HTMLElement>(`[data-clip-id="${partner.id}"]`),
   }));
@@ -115,6 +118,7 @@ export function startClipGesture(options: {
               clipId: clip.id,
               start,
               trackId: targetTrackId === clip.trackId ? undefined : targetTrackId,
+              ...(soundOnly && { soundOnly }),
             })
         : null;
       return;
@@ -132,7 +136,8 @@ export function startClipGesture(options: {
     };
     show(clip, element);
     for (const partner of partners) show(partner.clip, partner.element);
-    pending = () => void bus.run(trimClip, { clipId: clip.id, edge, time: to });
+    pending = () =>
+      void bus.run(trimClip, { clipId: clip.id, edge, time: to, ...(soundOnly && { soundOnly }) });
   }
 
   function onEnd(e: PointerEvent): void {

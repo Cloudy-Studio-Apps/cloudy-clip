@@ -66,6 +66,7 @@ export type {
   AppPage,
   AppPageGroup,
   AppMenuItem,
+  TimelineScopeName,
   Keybinding,
   KeybindingAction,
   KeyPress,

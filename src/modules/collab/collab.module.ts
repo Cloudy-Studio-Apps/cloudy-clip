@@ -48,7 +48,11 @@ export const collabModule = defineModule({
       { id: "collab.avatars", slot: "right", component: CollabAvatars },
     );
     ctx.contribute(appOverlays, { id: "collab.pointers", component: AgentPointers });
-    ctx.contribute(timelineOverlays, { id: "collab.playheads", component: AgentPlayheads });
+    ctx.contribute(timelineOverlays, {
+      id: "collab.playheads",
+      scopes: ["all", "sound"],
+      component: AgentPlayheads,
+    });
     return { api: { store } };
   },
 });

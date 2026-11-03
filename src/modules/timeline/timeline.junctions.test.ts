@@ -300,6 +300,14 @@ describe("unlinking joined clips", () => {
     expect(!result.ok && result.error.code).toBe("timeline.unlink_joined");
     expect(doc()).toBe(before);
   });
+
+  it("a sound-only delete of a sound that overlaps under the junction fails the same way, changing nothing", async () => {
+    await joined();
+    const before = doc();
+    const result = await kernel.bus.run(deleteClips, { clipIds: ["sA"], soundOnly: true });
+    expect(!result.ok && result.error.code).toBe("timeline.unlink_joined");
+    expect(doc()).toBe(before);
+  });
 });
 
 describe("splitting and deleting joined clips", () => {

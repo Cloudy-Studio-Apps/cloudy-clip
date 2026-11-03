@@ -19,8 +19,10 @@ import { clipActions } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { timeToPx } from "../logic/geometry";
 import { arrangeMenu } from "../logic/menu";
+import { inScope } from "../logic/scope";
 import { ClipBody } from "./ClipBody";
 import { gestureMode, startClipGesture } from "./clip.gesture";
+import { useTimelineScope } from "./scope.hook";
 
 interface TimelineClipProps {
   clip: Clip;
@@ -76,7 +78,9 @@ export const TimelineClip = memo(function TimelineClip({
     mediaId ? s.probes[mediaId]?.posterUrl : undefined,
   );
   const linked = useStore(project.api, (s) => partnersOf(s, clip.id).length > 0);
-  const actions = usePoint(clipActions);
+  const scope = useTimelineScope();
+  const allActions = usePoint(clipActions);
+  const actions = useMemo(() => allActions.filter((a) => inScope(a, scope)), [allActions, scope]);
   const { rate, reversed } = speedOf(clip);
   const speedLabel = speedText(clip);
   const badges = useMemo(
@@ -88,7 +92,9 @@ export const TimelineClip = memo(function TimelineClip({
     <ContextMenu
       items={() => {
         if (!timeline.view.getState().selection.includes(clip.id)) timeline.selectClip(clip.id);
-        return arrangeMenu(actions.flatMap((action) => action.items?.(clip) ?? []));
+        return arrangeMenu(
+          actions.flatMap((action) => action.items?.(clip).filter((e) => inScope(e, scope)) ?? []),
+        );
       }}
     >
       <div
@@ -128,6 +134,7 @@ export const TimelineClip = memo(function TimelineClip({
             media,
             project,
             kindOf: (kind) => junctions.get(kind)?.definition,
+            soundOnly: scope === "sound",
           });
         }}
       >
