@@ -10,16 +10,18 @@ use crate::media::derived::{DerivedKind, quiet, write_whole};
 use crate::media::proxy::{Tools, ffprobe};
 
 /// Bump when the rendering changes, so files made the old way are made again.
-pub(crate) const DENOISE_RECIPE: u32 = 1;
+pub(crate) const DENOISE_RECIPE: u32 = 2;
 
-/// `afftdn` takes at least this much away; an amount of 0 is never rendered.
-const LEAST_AMOUNT_DB: f64 = 0.01;
+/// What `afftdn` accepts for its reduction (`nr`), in dB. An amount of 0 is never rendered.
+pub(crate) const AFFTDN_NR: (f64, f64) = (0.01, 97.0);
+/// What `afftdn` accepts for its noise floor (`nf`), in dBFS.
+pub(crate) const AFFTDN_NF: (f64, f64) = (-80.0, -20.0);
 
 /// A file's sound with its noise taken away.
 pub(crate) struct Denoised {
-    /// How much noise is taken away, 0 to 40 dB.
+    /// How much noise is taken away, in dB (within [`AFFTDN_NR`]).
     pub(crate) amount_db: f64,
-    /// The noise floor to remove, -80 to -20 dBFS.
+    /// The noise floor to remove, in dBFS (within [`AFFTDN_NF`]).
     pub(crate) floor_db: f64,
 }
 
@@ -28,9 +30,10 @@ fn name_of(recipe: u32, amount_db: f64, floor_db: f64) -> String {
     format!("denoised.{recipe}.nr{amount_db}.nf{floor_db}.wav")
 }
 
-/// What FFmpeg does to the sound, after its input: the first sound stream, as plain samples.
+/// What FFmpeg does to the sound, after its input: the first sound stream, as 32-bit float samples
+/// (nothing of a 24-bit or float source is lost), in RF64 once past WAV's 4 GB.
 fn render_args(amount_db: f64, floor_db: f64) -> Vec<String> {
-    let filter = format!("afftdn=nr={}:nf={floor_db}", amount_db.max(LEAST_AMOUNT_DB));
+    let filter = format!("afftdn=nr={amount_db}:nf={floor_db}");
     [
         "-map_metadata",
         "-1",
@@ -44,7 +47,7 @@ fn render_args(amount_db: f64, floor_db: f64) -> Vec<String> {
     .into_iter()
     .map(str::to_owned)
     .chain([filter])
-    .chain(["-c:a", "pcm_s16le", "-f", "wav"].map(str::to_owned))
+    .chain(["-c:a", "pcm_f32le", "-rf64", "auto", "-f", "wav"].map(str::to_owned))
     .collect()
 }
 

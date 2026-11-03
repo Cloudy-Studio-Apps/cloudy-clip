@@ -33,6 +33,7 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
           reversedUrl: (id: string) => `fake://${id}?reversed`,
           denoised: (id: string) => `fake://${id}?denoised`,
           denoisedUrl: (id: string) => `fake://${id}?denoised`,
+          wantDenoised: () => undefined,
           denoising: createStore<DenoiseJobs>(() => ({ jobs: [] })),
           measureFloor: async () => -50,
           imageFrames: (id: string) => [`fake://${id}`],

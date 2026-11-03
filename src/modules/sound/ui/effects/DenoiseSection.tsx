@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useKernel } from "@/core";
 import {
   EFFECT_RANGES,
@@ -25,20 +25,31 @@ interface DenoiseSectionProps {
 
 /**
  * Noise reduction: how much goes and the floor it takes away, which Measure floor reads from a
- * second of the track at the playhead. Its files render after each change, and say how far along
- * they are; the originals play until then.
+ * second of the track at the playhead. It's rendered into each file, so it applies first, wherever
+ * it sits in the chain (on Master: per file, for the tracks without their own). Its files render a
+ * moment after a change and say how far along they are; the originals play until then.
  */
 export function DenoiseSection({ effect, owner, edit }: DenoiseSectionProps) {
   const { bus } = useKernel();
   const open = useOpenComposition();
   const rendering = useDenoiseRendering(owner?.id ?? "master", open?.id, effect);
   const [measuring, setMeasuring] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const measure = async () => {
     if (!owner) return;
     setMeasuring(true);
-    await bus.run(measureFloor, { trackId: owner.id });
-    setMeasuring(false);
+    try {
+      await bus.run(measureFloor, { trackId: owner.id });
+    } finally {
+      if (mounted.current) setMeasuring(false);
+    }
   };
 
   return (
@@ -65,6 +76,11 @@ export function DenoiseSection({ effect, owner, edit }: DenoiseSectionProps) {
         edit={edit}
         write={(floorDb) => ({ effect: { ...effect, floorDb }, patch: { floorDb } })}
       />
+      <p className="py-1 text-xs text-subtle-foreground">
+        {owner
+          ? "Applies before the rest of the chain, whatever its place."
+          : "Applies to each file of the tracks without their own, before anything else."}
+      </p>
       <div className="flex items-center gap-2 py-1">
         {owner && (
           <Button

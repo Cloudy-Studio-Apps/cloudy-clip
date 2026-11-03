@@ -123,7 +123,11 @@ async fn handle(
     let path = if let Some(name) = derived {
         state.registry.derived_path_of(&id, name)
     } else if asks("reversed=1") {
-        let name = Reversed { full: master }.name();
+        let name = Reversed {
+            full: master,
+            of: None,
+        }
+        .name();
         state.registry.derived_path_of(&id, &name)
     } else if master {
         state.registry.master_path_of(&id)

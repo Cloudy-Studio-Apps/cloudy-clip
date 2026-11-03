@@ -172,6 +172,14 @@ impl MediaRegistry {
         Some((source, entry.generation))
     }
 
+    /// A derived file of an id, by name, with the registration it belongs to: what another derived
+    /// file is made from.
+    pub fn derived_source(&self, id: &str, name: &str) -> Option<(PathBuf, u64)> {
+        let entries = self.entries.read().ok()?;
+        let entry = entries.get(id)?;
+        Some((entry.derived.get(name)?.clone(), entry.generation))
+    }
+
     /// Attaches a finished derived file to a registration of an id.
     pub fn set_derived(&self, id: &str, generation: u64, name: &str, file: PathBuf) {
         if let Ok(mut entries) = self.entries.write()

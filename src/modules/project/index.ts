@@ -91,6 +91,7 @@ export type {
   CompressorEffect,
   DeesserEffect,
   DenoiseEffect,
+  DenoiseNeed,
   DuckEffect,
   EqEffect,
   GateEffect,
@@ -161,12 +162,14 @@ export {
   DEFAULT_COMPOSITION_MIX,
   DEFAULT_TRACK_MIX,
   compositionMixOf,
-  heardDenoise,
   minimizeCompositionMix,
   minimizeTrackMix,
   soundInPlacement,
   trackMixOf,
 } from "./logic/mix";
+
+/** Noise reduction: which one a track's clips are heard through, and the files that need it. */
+export { denoiseNeeds, heardDenoise } from "./logic/denoise";
 
 /** Key curves: the ease presets and how far along an ease a segment is. */
 export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";

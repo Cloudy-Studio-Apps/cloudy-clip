@@ -126,7 +126,7 @@ pub async fn media_prepare_reversed(
         let _ = on_progress.send(progress);
     };
     proxies
-        .prepare(&registry, &id, &Reversed { full }, &report)
+        .prepare(&registry, &id, &Reversed { full, of: None }, &report)
         .await
         .map(|_| ())
         .map_err(AppError::Unavailable)

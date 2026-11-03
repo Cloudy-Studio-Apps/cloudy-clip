@@ -1,9 +1,11 @@
 import { createStore } from "zustand/vanilla";
 import { createLogger, notify, toAppError } from "@/core";
 import type { MediaId } from "@/modules/project";
+import { Superseded, createDerivedJobs, createSerialQueue } from "./media.jobs";
 import type {
   DenoiseJob,
   DenoiseJobs,
+  DenoiseRequest,
   DenoiseSettings,
   DerivedFile,
   MediaApi,
@@ -13,48 +15,16 @@ import type {
 const log = createLogger("media");
 
 /**
- * The jobs making one kind of derived file in this kernel, by key: asking again while one runs
- * joins it, and what's made is remembered, so a file is never made twice.
- */
-function createDerivedJobs<T>() {
-  const running = new Map<string, Promise<T>>();
-  const made = new Map<string, T>();
-  const failed = new Set<string>();
-  return {
-    run(key: string, make: () => Promise<T>): Promise<T> {
-      const job = running.get(key);
-      if (job) return job;
-      const started = make().then(
-        (result) => {
-          made.set(key, result);
-          running.delete(key);
-          return result;
-        },
-        (error: unknown) => {
-          running.delete(key);
-          throw error;
-        },
-      );
-      running.set(key, started);
-      return started;
-    },
-    /** What a finished job made; undefined while it runs or before. */
-    madeBy: (key: string) => made.get(key),
-    isMade: (key: string) => made.has(key),
-    /** Whether it's neither running nor known to fail, so it may start. */
-    canStart: (key: string) => !running.has(key) && !failed.has(key),
-    fail: (key: string) => failed.add(key),
-  };
-}
-
-/**
  * The derived files of this kernel: copies made from the files, reversed or without noise. Each
  * is known by the file's revision too, so one relinked to another file gets its own.
  */
 export function createDerivedFiles(
   service: Pick<MediaService, "prepareReversed" | "reversedFileUrl" | "denoise" | "derivedFileUrl">,
   revisionOf: (id: MediaId) => number | undefined,
-): Pick<MediaApi, "prepareReversed" | "reversedUrl" | "denoised" | "denoisedUrl" | "denoising"> {
+): Pick<
+  MediaApi,
+  "prepareReversed" | "reversedUrl" | "denoised" | "denoisedUrl" | "wantDenoised" | "denoising"
+> {
   const fileKey = (id: MediaId) => `${id}@${revisionOf(id) ?? 0}`;
   const reversed = createDerivedJobs<void>();
   const reversedKey = (id: MediaId, full: boolean) => `${fileKey(id)}|${full ? "full" : "preview"}`;
@@ -64,24 +34,31 @@ export function createDerivedFiles(
 
   const denoised = createDerivedJobs<DerivedFile>();
   const denoising = createStore<DenoiseJobs>(() => ({ jobs: [] }));
-  const denoisedKey = (id: MediaId, { amountDb, floorDb }: DenoiseSettings) =>
-    `${fileKey(id)}|${amountDb}|${floorDb}`;
+  const denoisedKey = (id: MediaId, { amountDb, floorDb }: DenoiseSettings, backwards: boolean) =>
+    `${fileKey(id)}|${amountDb}|${floorDb}|${backwards ? "reversed" : "forward"}`;
+  /** What the follower of the document wants now, and what was asked for outright (export). */
+  let wanted = new Set<string>();
+  const asked = new Set<string>();
+  const queue = createSerialQueue((key) => wanted.has(key) || asked.has(key));
 
-  /** Starts (or joins) a rendering, following its progress; a failure is told once. */
-  const denoise = (mediaId: MediaId, settings: DenoiseSettings): Promise<DerivedFile> => {
-    const key = denoisedKey(mediaId, settings);
-    const { amountDb, floorDb } = settings;
+  /** Queues (or joins) a rendering, following its progress; a failure is told once. */
+  const denoise = (request: DenoiseRequest): Promise<DerivedFile> => {
+    const { mediaId, amountDb, floorDb, reversed: backwards } = request;
+    const key = denoisedKey(mediaId, request, backwards);
     return denoised.run(key, () => {
-      const job = { mediaId, amountDb, floorDb };
       const mine = (j: DenoiseJob) =>
-        j.mediaId === mediaId && j.amountDb === amountDb && j.floorDb === floorDb;
+        j.mediaId === mediaId &&
+        j.amountDb === amountDb &&
+        j.floorDb === floorDb &&
+        j.reversed === backwards;
       const others = () => denoising.getState().jobs.filter((j) => !mine(j));
       const report = (progress: number) =>
-        denoising.setState({ jobs: [...others(), { ...job, progress }] });
+        denoising.setState({ jobs: [...others(), { ...request, progress }] });
       report(0);
-      const rendering = service.denoise(mediaId, { amountDb, floorDb }, report);
+      const rendering = queue(key, () => service.denoise(mediaId, request, report));
       rendering
         .catch((error: unknown) => {
+          if (error instanceof Superseded) return;
           denoised.fail(key);
           log.warn("No denoised file", error);
           notify(
@@ -89,7 +66,10 @@ export function createDerivedFiles(
             `The noise of this file can't be taken away: ${toAppError(error).message}`,
           );
         })
-        .finally(() => denoising.setState({ jobs: others() }));
+        .finally(() => {
+          asked.delete(key);
+          denoising.setState({ jobs: others() });
+        });
       return rendering;
     });
   };
@@ -104,21 +84,30 @@ export function createDerivedFiles(
         prepareReversed(id, full).catch((error: unknown) => {
           reversed.fail(key);
           log.warn("No reversed copy", error);
-          notify("error", `This clip can't play backwards: ${String(error)}`);
+          notify("error", `This clip can't play backwards: ${toAppError(error).message}`);
         });
       }
       return null;
     },
     denoised(id, settings) {
-      const file = denoised.madeBy(denoisedKey(id, settings));
-      return file ? file.path : denoise(id, settings).then(({ path }) => path);
-    },
-    denoisedUrl(id, settings) {
-      const key = denoisedKey(id, settings);
+      const key = denoisedKey(id, settings, false);
       const file = denoised.madeBy(key);
-      if (file) return service.derivedFileUrl(id, file.name);
-      if (denoised.canStart(key)) void denoise(id, settings).catch(() => undefined);
-      return null;
+      if (file) return file.path;
+      asked.add(key);
+      return denoise({ mediaId: id, ...settings, reversed: false }).then(({ path }) => path);
+    },
+    denoisedUrl(id, settings, backwards) {
+      const file = denoised.madeBy(denoisedKey(id, settings, backwards));
+      return file ? service.derivedFileUrl(id, file.name) : null;
+    },
+    wantDenoised(requests) {
+      wanted = new Set(requests.map((r) => denoisedKey(r.mediaId, r, r.reversed)));
+      for (const request of requests) {
+        const key = denoisedKey(request.mediaId, request, request.reversed);
+        if (!denoised.isMade(key) && denoised.canStart(key)) {
+          void denoise(request).catch(() => undefined);
+        }
+      }
     },
     denoising,
   };

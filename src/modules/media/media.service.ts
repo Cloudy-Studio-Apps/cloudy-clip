@@ -41,6 +41,18 @@ export function revealFile(path: string): Promise<void> {
 /** Creates the media server connection, writing proxy progress into `state`. */
 export function createMediaService(state: MediaState): MediaService {
   let baseUrl: string | null = null;
+  /**
+   * The URL of a registered file, or of what the server serves for it (`suffix`, `params`), with
+   * its revision, so media elements reload once a file is relinked.
+   */
+  const fileUrl = (id: string, params: Record<string, string>, suffix = ""): string => {
+    if (!baseUrl) throw new Error("The media server is not ready");
+    const query = new URLSearchParams(params);
+    const revision = state.getProbe(id)?.revision;
+    if (revision) query.set("file", String(revision));
+    const version = query.size > 0 ? `?${query}` : "";
+    return `${baseUrl}/${encodeURIComponent(id)}${suffix}${version}`;
+  };
   return {
     async init() {
       baseUrl = await invoke<string>("media_server_url");
@@ -61,45 +73,27 @@ export function createMediaService(state: MediaState): MediaService {
       channel.onmessage = onProgress;
       return invoke("media_prepare_reversed", { id, full, onProgress: channel });
     },
-    denoise(id, { amountDb, floorDb }, onProgress) {
+    denoise(id, { amountDb, floorDb, reversed }, onProgress) {
       const channel = new Channel<number>();
       channel.onmessage = onProgress;
-      return invoke<DerivedFile>("sound_denoise", { id, amountDb, floorDb, onProgress: channel });
+      return invoke<DerivedFile>("sound_denoise", {
+        id,
+        amountDb,
+        floorDb,
+        reversed,
+        onProgress: channel,
+      });
     },
-    derivedFileUrl(id, name) {
-      if (!baseUrl) throw new Error("The media server is not ready");
-      const revision = state.getProbe(id)?.revision;
-      const version = revision ? `&file=${revision}` : "";
-      return `${baseUrl}/${encodeURIComponent(id)}?derived=${encodeURIComponent(name)}${version}`;
-    },
+    derivedFileUrl: (id, name) => fileUrl(id, { derived: name }),
     measureFloor(id, from, to) {
       return invoke<number>("sound_measure_floor", { id, from, to });
     },
-    reversedFileUrl(id, full) {
-      if (!baseUrl) throw new Error("The media server is not ready");
-      const master = full ? "&master=1" : "";
-      return `${baseUrl}/${encodeURIComponent(id)}?reversed=1${master}`;
-    },
-    masterUrl(id) {
-      if (!baseUrl) throw new Error("The media server is not ready");
-      const revision = state.getProbe(id)?.revision;
-      const version = revision ? `&file=${revision}` : "";
-      return `${baseUrl}/${encodeURIComponent(id)}?master=1${version}`;
-    },
-    frameUrl(id, index) {
-      if (!baseUrl) throw new Error("The media server is not ready");
-      const revision = state.getProbe(id)?.revision;
-      const version = revision ? `?file=${revision}` : "";
-      return `${baseUrl}/${encodeURIComponent(id)}/frames/${index}${version}`;
-    },
+    reversedFileUrl: (id, full) => fileUrl(id, { reversed: "1", ...(full && { master: "1" }) }),
+    masterUrl: (id) => fileUrl(id, { master: "1" }),
+    frameUrl: (id, index) => fileUrl(id, {}, `/frames/${index}`),
     mediaUrl(id) {
-      if (!baseUrl) throw new Error("The media server is not ready");
-      const probe = state.getProbe(id);
-      const query = new URLSearchParams();
-      if (probe?.proxy?.state === "ready") query.set("proxy", "1");
-      if (probe?.revision) query.set("file", String(probe.revision));
-      const version = query.size > 0 ? `?${query}` : "";
-      return `${baseUrl}/${encodeURIComponent(id)}${version}`;
+      const ready = state.getProbe(id)?.proxy?.state === "ready";
+      return fileUrl(id, ready ? { proxy: "1" } : {});
     },
   };
 }

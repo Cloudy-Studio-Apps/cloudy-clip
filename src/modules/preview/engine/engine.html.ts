@@ -187,7 +187,8 @@ export class HtmlMediaEngine implements PreviewEngine {
         this.wantImage(media, 0);
         continue;
       }
-      const denoise = track.kind === "audio" ? heardDenoise(track, composition) : undefined;
+      const denoise =
+        track.kind === "audio" ? this.denoiseOf(project, composition, path) : undefined;
       const url = elementUrl(this.options, clip.mediaId, speedOf(clip), denoise);
       if (url === null) continue;
       const seconds = microsToSeconds(this.elementTime(clip, at));
@@ -209,6 +210,16 @@ export class HtmlMediaEngine implements PreviewEngine {
   levels = (): MixLevels => this.sound.levels();
   loudness = (): LoudnessReading | null => this.sound.loudness();
   resetLoudness = (): void => this.sound.resetLoudness();
+
+  /**
+   * The noise reduction a clip at `path` is heard through: that of the top-level track its path
+   * starts on (a placement's clips sound through the outer track), by `heardDenoise`.
+   */
+  private denoiseOf(project: ProjectState, composition: Composition, path: string) {
+    const top = project.clips[path.split("/")[0]!];
+    const track = top && project.tracks[top.trackId];
+    return track?.kind === "audio" ? heardDenoise(track, composition) : undefined;
+  }
 
   /** Redraws once a reversed copy is ready. */
   private awaitReversed(mediaId: MediaId): void {
@@ -250,7 +261,8 @@ export class HtmlMediaEngine implements PreviewEngine {
             ? gain * fadeLevel(sound, clip, time, gains.get(clip.id)) * dbToLinear(sound.volumeDb)
             : gain;
         // Inside a placement, the clips get the noise reduction of the track it sits on.
-        const denoise = nesting ? nesting.denoise : heardDenoise(track, composition);
+        const trackDenoise = track.kind === "audio" ? heardDenoise(track, composition) : undefined;
+        const denoise = nesting ? nesting.denoise : trackDenoise;
         if (inner) {
           const { bus, gain: through, pan } = placeSound(track, nesting, own, 0);
           const quiet = silenced || track.muted;

@@ -15,9 +15,14 @@ import type {
 /** How a file's noise is taken away: the settings of a `denoise` effect. */
 export type DenoiseSettings = Pick<DenoiseEffect, "amountDb" | "floorDb">;
 
-/** A file whose noise is being taken away, with how far along it is (0..1). */
-export interface DenoiseJob extends DenoiseSettings {
+/** A file's sound to render without noise: with which settings, and whether backwards (for a reversed clip). */
+export interface DenoiseRequest extends DenoiseSettings {
   mediaId: MediaId;
+  reversed: boolean;
+}
+
+/** A file whose noise is being taken away (or waits its turn), with how far along it is (0..1). */
+export interface DenoiseJob extends DenoiseRequest {
   progress: number;
 }
 
@@ -214,13 +219,21 @@ export interface MediaApi {
   reversedUrl(id: MediaId, full: boolean): string | null;
   /**
    * The file's sound with its noise taken away (`afftdn`, rendered once per file and settings to
-   * a WAV): its path once it's made; until then a promise of it, and it starts being made. Asking
-   * again while it's being made joins that job. A failure is reported to the user.
+   * a WAV): its path once it's made; until then a promise of it, and it starts being made (export
+   * asks this way). Asking again while it's being made joins that job. A failure is told to the user.
    */
   denoised(id: MediaId, settings: DenoiseSettings): string | Promise<string>;
-  /** URL of that file. Until it's ready, null, and it starts being made. */
-  denoisedUrl(id: MediaId, settings: DenoiseSettings): string | null;
-  /** The files whose noise is being taken away now, with their progress. */
+  /**
+   * URL of that file, or with `reversed` of a copy of it that runs backwards; null until it's
+   * made. Never starts a rendering: `wantDenoised` does.
+   */
+  denoisedUrl(id: MediaId, settings: DenoiseSettings, reversed: boolean): string | null;
+  /**
+   * The renderings wanted now, all of them: those not made yet are queued and rendered one at a
+   * time, and a queued one that isn't wanted any more is dropped before it takes the encoder.
+   */
+  wantDenoised(requests: readonly DenoiseRequest[]): void;
+  /** The files whose noise is being taken away or waits its turn, with their progress. */
   readonly denoising: StoreApi<DenoiseJobs>;
   /**
    * The noise floor of `from..to` of a file's sound (file time), in dBFS, rounded and within
@@ -259,6 +272,7 @@ export interface MediaState extends Omit<
   | "reversedUrl"
   | "denoised"
   | "denoisedUrl"
+  | "wantDenoised"
   | "denoising"
   | "measureFloor"
   | "imageFrames"
@@ -296,10 +310,10 @@ export interface MediaService {
   ): Promise<void>;
   /** URL of a reversed copy that exists. */
   reversedFileUrl(id: MediaId, full: boolean): string;
-  /** Renders a file's sound with its noise taken away, reporting 0..1. */
+  /** Renders a file's sound with its noise taken away (and backwards, if asked), reporting 0..1. */
   denoise(
     id: MediaId,
-    settings: DenoiseSettings,
+    request: DenoiseSettings & { reversed: boolean },
     onProgress: (progress: number) => void,
   ): Promise<DerivedFile>;
   /** URL of a derived file that exists, by the name it's served under. */

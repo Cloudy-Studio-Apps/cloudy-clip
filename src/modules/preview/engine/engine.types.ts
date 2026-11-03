@@ -251,8 +251,11 @@ export interface EngineOptions {
   reversedUrl?(id: MediaId): string | null;
   /** Calls `done` once that copy is ready. */
   whenReversed?(id: MediaId, done: () => void): void;
-  /** URL of the file's sound with its noise taken away, or null until that file is ready. */
-  denoisedUrl?(id: MediaId, settings: DenoiseSettings): string | null;
+  /**
+   * URL of the file's sound with its noise taken away (with `reversed`, backwards), or null until
+   * that file is ready.
+   */
+  denoisedUrl?(id: MediaId, settings: DenoiseSettings, reversed: boolean): string | null;
   /** Length of a file. */
   fileDuration?(id: MediaId): Micros | undefined;
   /** URLs of an image's picture at a moment of its clip, then those up to `ahead` later. */

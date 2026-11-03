@@ -21,6 +21,7 @@ export { libraryKinds } from "./media.points";
 export type {
   DenoiseJob,
   DenoiseJobs,
+  DenoiseRequest,
   DenoiseSettings,
   DiskInfo,
   FileFacts,

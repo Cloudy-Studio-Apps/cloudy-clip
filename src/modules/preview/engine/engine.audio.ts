@@ -10,10 +10,10 @@ import {
 import type { EngineOptions, Slot, SoundGraph, Voice } from "./engine.types";
 
 /**
- * The file a clip's element plays. A reversed clip plays its reversed copy, null until that's
- * ready (the clip is left out meanwhile). Sound under noise reduction plays its rendered file
- * once that's ready, the original until then, so nothing goes quiet while it renders. A reversed
- * clip isn't reduced: its copy is made from the original.
+ * The file a clip's element plays. Sound heard through noise reduction plays its rendered file
+ * once that's ready (backwards for a reversed clip: the denoised file reversed, as the export
+ * denoises then reverses). Until then, and for everything else, a reversed clip plays its reversed
+ * copy, null until that's ready (the clip is left out meanwhile), and any other clip its file.
  */
 export function elementUrl(
   options: Pick<EngineOptions, "mediaUrl" | "reversedUrl" | "denoisedUrl">,
@@ -21,9 +21,10 @@ export function elementUrl(
   { reversed }: ClipSpeed,
   denoise: DenoiseSettings | undefined,
 ): string | null {
+  const denoised = denoise && options.denoisedUrl?.(mediaId, denoise, reversed);
+  if (denoised) return denoised;
   if (reversed) return options.reversedUrl?.(mediaId) ?? null;
-  const denoised = denoise && options.denoisedUrl?.(mediaId, denoise);
-  return denoised ?? options.mediaUrl(mediaId);
+  return options.mediaUrl(mediaId);
 }
 
 /**

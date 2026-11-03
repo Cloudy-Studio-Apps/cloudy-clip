@@ -235,22 +235,29 @@ fn seconds(micros: u64) -> String {
     format!("{:.6}", micros as f64 / 1_000_000.0)
 }
 
-/// The copy of a file that runs backwards: for preview, or at full quality for export.
+/// The copy of a file that runs backwards: for preview, or at full quality for export. `of` names
+/// another derived file of the same media to reverse instead of the file itself (a sound with its
+/// noise taken away), so derived kinds compose: that one is made first, through the same
+/// [`super::derived`] run, and this copy is named after it.
 pub(crate) struct Reversed {
     pub(crate) full: bool,
+    pub(crate) of: Option<String>,
 }
 
 impl DerivedKind for Reversed {
     fn name(&self) -> String {
-        if self.full {
-            "reversed.master.mp4".into()
-        } else {
-            "reversed.mp4".into()
+        let quality = if self.full { ".master" } else { "" };
+        match &self.of {
+            None => format!("reversed{quality}.mp4"),
+            Some(inner) => format!("reversed{quality}.{inner}.mp4"),
         }
     }
 
     fn source(&self, registry: &MediaRegistry, id: &str) -> Option<(PathBuf, u64)> {
-        registry.reverse_source(id, self.full)
+        match &self.of {
+            None => registry.reverse_source(id, self.full),
+            Some(inner) => registry.derived_source(id, inner),
+        }
     }
 
     fn make(

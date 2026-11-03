@@ -6,16 +6,12 @@ use serde::Serialize;
 use tauri::State;
 use tauri::ipc::Channel;
 
-use super::denoise::{Denoised, MEASURE_ARGS, parse_floor, stretch_args};
+use super::denoise::{AFFTDN_NF, AFFTDN_NR, Denoised, MEASURE_ARGS, parse_floor, stretch_args};
 use crate::error::AppError;
 use crate::media::MediaRegistry;
 use crate::media::derived::DerivedKind;
 use crate::media::proxy::{ProxyJobs, command, find_tools};
-
-/// How much noise reduction takes away, in dB (the document's `EFFECT_RANGES.denoise`).
-const AMOUNT_DB: (f64, f64) = (0.0, 40.0);
-/// The noise floors it removes, in dBFS: what `afftdn` accepts.
-const FLOOR_DB: (f64, f64) = (-80.0, -20.0);
+use crate::media::reversed::Reversed;
 
 /// A rendered file: where it is for export, and the name the media server streams it under.
 #[derive(Serialize)]
@@ -35,35 +31,57 @@ fn within(value: f64, (min, max): (f64, f64), what: &str) -> Result<f64, AppErro
 }
 
 /// Renders a file's sound with its noise taken away (`afftdn`), once per file and settings, and
-/// returns it. The media server streams it at `<url>/<id>?derived=<name>`. `on_progress` gets 0..1.
+/// returns it; with `reversed`, then a copy of that which runs backwards (for a reversed clip, so it
+/// sounds as export's denoise-then-reverse). The media server streams it at
+/// `<url>/<id>?derived=<name>`. `on_progress` gets 0..1 over both steps.
 #[tauri::command]
 pub async fn sound_denoise(
     id: String,
     amount_db: f64,
     floor_db: f64,
+    reversed: bool,
     on_progress: Channel<f32>,
     registry: State<'_, Arc<MediaRegistry>>,
     proxies: State<'_, ProxyJobs>,
 ) -> Result<DenoisedFile, AppError> {
-    let kind = Denoised {
-        amount_db: within(amount_db, AMOUNT_DB, "amount")?,
-        floor_db: within(floor_db, FLOOR_DB, "noise floor")?,
+    let denoised = Denoised {
+        amount_db: within(amount_db, AFFTDN_NR, "amount")?,
+        floor_db: within(floor_db, AFFTDN_NF, "noise floor")?,
     };
-    let report = |progress: f32| {
-        let _ = on_progress.send(progress);
+    let steps = if reversed { 2.0 } else { 1.0 };
+    let channel = &on_progress;
+    let report = |step: f32| {
+        move |progress: f32| {
+            let _ = channel.send((step + progress) / steps);
+        }
+    };
+    let failed = AppError::Unavailable;
+    let path = proxies
+        .prepare(&registry, &id, &denoised, &report(0.0))
+        .await
+        .map_err(failed)?;
+    if !reversed {
+        return Ok(DenoisedFile {
+            path: path.display().to_string(),
+            name: denoised.name(),
+        });
+    }
+    let backwards = Reversed {
+        full: false,
+        of: Some(denoised.name()),
     };
     let path = proxies
-        .prepare(&registry, &id, &kind, &report)
+        .prepare(&registry, &id, &backwards, &report(1.0))
         .await
-        .map_err(AppError::Unavailable)?;
+        .map_err(failed)?;
     Ok(DenoisedFile {
         path: path.display().to_string(),
-        name: kind.name(),
+        name: backwards.name(),
     })
 }
 
 /// The noise floor of `from..to` (microseconds) of a file's sound, in dBFS, within what noise
-/// reduction accepts: the stretch should hold only the noise.
+/// reduction (`afftdn`) accepts: the stretch should hold only the noise.
 #[tauri::command]
 pub async fn sound_measure_floor(
     id: String,
@@ -94,6 +112,6 @@ pub async fn sound_measure_floor(
         )));
     }
     // Digital silence has no floor: the lowest one noise reduction takes.
-    let floor = parse_floor(&stderr).unwrap_or(FLOOR_DB.0);
-    Ok(floor.round().clamp(FLOOR_DB.0, FLOOR_DB.1))
+    let floor = parse_floor(&stderr).unwrap_or(AFFTDN_NF.0);
+    Ok(floor.round().clamp(AFFTDN_NF.0, AFFTDN_NF.1))
 }

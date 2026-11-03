@@ -7,7 +7,7 @@ pub mod facts;
 mod image;
 pub mod proxy;
 pub mod registry;
-mod reversed;
+pub(crate) mod reversed;
 pub mod server;
 
 use std::sync::{Arc, RwLock};

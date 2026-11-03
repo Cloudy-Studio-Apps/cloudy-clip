@@ -1,11 +1,7 @@
 import {
   DEFAULT_SOUND,
   SOUND_EFFECT_KINDS,
-  compositionClips,
   compositionMixOf,
-  trackClips,
-  type Clip,
-  type MediaId,
   trackMixOf,
   type CompositionId,
   type ProjectState,
@@ -78,35 +74,6 @@ export function placesUnheardEffects(state: ProjectState, trackId: TrackId): boo
     }
   }
   return false;
-}
-
-/**
- * The files heard through a track's chain or a composition's master: the clips' own, and those
- * of the compositions they place, at any depth.
- */
-export function heardMedia(
-  state: ProjectState,
-  target: MixTarget,
-  compositionId: CompositionId | undefined,
-): Set<MediaId> {
-  const files = new Set<MediaId>();
-  const seen = new Set<CompositionId>();
-  const visit = (clips: readonly Clip[]) => {
-    for (const clip of clips) {
-      if (clip.mediaId !== undefined) files.add(clip.mediaId);
-      const placed = clip.compositionRef;
-      if (placed === undefined || seen.has(placed)) continue;
-      seen.add(placed);
-      visit(compositionClips(state, placed));
-    }
-  };
-  if (target !== "master") {
-    const track = state.tracks[target];
-    if (track) visit(trackClips(state, track));
-  } else if (compositionId !== undefined) {
-    visit(compositionClips(state, compositionId));
-  }
-  return files;
 }
 
 /** The settings a new effect of this kind starts with (without an id). */

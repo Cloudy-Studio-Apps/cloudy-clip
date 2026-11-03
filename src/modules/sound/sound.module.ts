@@ -1,9 +1,12 @@
 import { AudioLines } from "lucide-react";
 import { appPages, defineModule, pagesRef } from "@/core";
+import { mediaRef } from "@/modules/media";
+import { projectRef } from "@/modules/project";
 import { settingsSections } from "@/modules/settings";
 import { soundMcpTools } from "./sound.mcp";
 import { soundEffectCommands } from "./sound.effects.commands";
 import { soundDenoiseCommands } from "./sound.denoise.commands";
+import { followDenoiseNeeds } from "./sound.denoise.follow";
 import { soundMixCommands } from "./sound.mix.commands";
 import { followSoundPageLeave } from "./sound.leave";
 import { clearListening, soundMonitorCommands } from "./sound.monitor.commands";
@@ -30,6 +33,7 @@ export const soundModule = defineModule({
   setup({ bus, contribute, onDispose, require }) {
     const view = createSoundView();
     const presets = createUserPresets();
+    onDispose(followDenoiseNeeds(require(projectRef).store.api, require(mediaRef)));
     onDispose(
       followSoundPageLeave(require(pagesRef).store, () => void bus.run(clearListening, {})),
     );

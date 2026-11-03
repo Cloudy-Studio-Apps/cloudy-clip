@@ -385,6 +385,13 @@ export interface DenoiseEffect extends SoundEffectBase {
   floorDb: number;
 }
 
+/** A file heard through noise reduction: which, with which effect, and whether it plays backwards. */
+export interface DenoiseNeed {
+  mediaId: MediaId;
+  denoise: DenoiseEffect;
+  reversed: boolean;
+}
+
 /** Ducking (`sidechaincompress`): lowers the track while other tracks sound. */
 export interface DuckEffect extends SoundEffectBase {
   kind: "duck";
