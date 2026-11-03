@@ -54,7 +54,7 @@ Each stage gets its own plan and can ship alone. This is the agreed order, with 
 | ----- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | The page and mix | Layout B, timeline with Select, Cut, Fade and Snap, Clip tab, mixer, Expand all, Master, meters, live loudness with its history, Mix A/B, monitor |
 | 2     | Effects          | Channel tab, effect chains, EQ, compressor, gate, de-esser, limiter, noise reduction, ducking, presets                                            |
-| 3     | Keyframes        | Volume lines on the timeline, Draw volume, automation modes                                                                                       |
+| 3     | Keyframes        | Volume lines on clips (their keys), Draw volume, track automation with modes                                                                      |
 | 4     | Groups and stems | Group tracks, Sends to, filters per group, audio formats, stem export                                                                             |
 | 5     | Delivery         | Deliver tab, standards, Analyze whole mix, Problems, match target, spectrum, stereo phase                                                         |
 | 6     | Quick tools      | Find beats, Strip silence, Match level                                                                                                            |
@@ -63,9 +63,27 @@ Each stage gets its own plan and can ship alone. This is the agreed order, with 
 Stage 7 wasn't in the owner's list of five. It holds what the mockup shows that the app doesn't have yet. It
 also starts with a check that a microphone can be opened at all in WebKitGTK and WebView2.
 
-Clip speed has landed in `mixdown.ts` and the engine, and is a clip's business, so it changes nothing here. The
-keyframes project (`docs/superpowers/specs/2026-11-02-keyframes-design.md`) runs alongside this one: see
-Keyframes below.
+## What the code already has (checked 3 Nov 2026)
+
+This design was written before these landed. The plans build on them:
+
+- **Clip speed and speed ramps** are in `mixdown.ts`, the engine and `recipe.rs`. A clip's business; nothing here
+  changes them.
+- **Keyframes** (`keyframe` module): keys on a clip's values, eases, the Keyframes and Curves dock under the
+  tracks, a mode switch in the timeline's tools, a badge on clips. **`sound.volumeDb` and `sound.pan` can already be
+  keyed on audio clips**: the engine reads them per frame, and export turns them into `gainEnvelope` and
+  `panEnvelope` (`export/logic/envelope.ts`) and `volume`/`pan` expressions in `recipe.rs`.
+- **Long filter graphs** already go in a file (`INLINE_GRAPH_LIMIT`, `ScriptOption` in `recipe.rs`), probed from
+  `ffmpeg -version`. Stage 3 no longer needs that step.
+- **Themes** (`theme` module) change every token. Rule 34: app chrome never hard-codes a colour. The mockup's
+  colours are Cloudy Dark's; meters, faders and graphs use tokens (`--on`, `--mark`, `--foreground`,
+  `--surface-sunken`), so they follow any theme.
+- **Settings** (`settings` module, `settingsSections`): the user's own choices, outside the project, kept in
+  `localStorage` as `theme.store.ts` does. CLAUDE.md now says a user's app settings stay the user's alone, which
+  decides where sound presets live (stage 2).
+- **Timeline points** `timelineTools`, `timelineDocks` and `clipActions.badge`: `keyframe` adds a tool, a dock and a
+  badge; `speed` adds a box over clips through its clip actions. See "The timeline on this page".
+- `recipe.rs` is over 1,000 lines, so the mix graph goes in a new file next to it (rule 27).
 
 ## The page
 
@@ -74,13 +92,15 @@ Layout B, decided by the owner. From the top: the app's top bar, a transport row
 - **Left column:** the timeline on top; below it the panel with tabs (Clip, Channel, Loudness, Deliver) and a
   small preview. The tabs appear as their stages ship. Stage 1 has Clip and Loudness.
 - **Clip tab:** this page has no inspector, so this tab shows the Audio tab's sections for the selected clip
-  (`inspectorSections` on tab `audio`), so volume, fades, pitch and EQ of a clip can be changed here too.
+  (`inspectorSections` on tab `audio`), so volume, fades, pitch and EQ of a clip can be changed here too, with the
+  key diamonds of Volume and Pan as on Edit.
 - **Right column:** the mixer. Track strips scroll sideways. Master stays pinned at the right edge and never
   scrolls.
 - **Expand all** (mixer header, right): hides the left column so the mixer takes the page, and turns into
   "Back to timeline". The transport row stays. It's a view state, not in history.
-- The Mesa look (rule 34 to 36): exposure-sheet timeline, peg bar, pencil tabs, dashed dividers between strips,
-  blue for what is merely on, red for values you changed. A fader at 0 dB shows white; moved, its value is red.
+- The Mesa look (rule 34 to 36), in tokens so every theme works: exposure-sheet timeline, peg bar, pencil tabs,
+  dashed dividers between strips, `--on` for what is merely on, `--mark` for values you changed. A fader at 0 dB
+  shows in `--foreground`; moved, its value is `--mark`.
 - Clicking a track selects its strip and scrolls it into view, and the reverse. This selection is `sound`'s own
   view state: a track, not clips.
 
@@ -121,8 +141,26 @@ Three things stop the Sound page working today, and stage 1 changes them:
   the Sound page mounts its own small `PreviewStage`, exported from `preview`, and the Edit canvas takes over
   again when the page closes. The builder checks that two mounted canvases don't fight.
 
-`TimelinePanel` gains a way to show audio tracks only. The timeline stays virtualized (rule 26), and its
-selection, zoom and playhead are shared with Edit, so moving between pages keeps your place.
+### The timeline on this page
+
+`TimelinePanel` takes a scope: `"all"` on Edit, `"sound"` here, where it shows audio tracks only. The timeline
+stays virtualized (rule 26), and its selection, zoom and playhead are shared with Edit, so moving between pages
+keeps your place. The header column on this page is its own width; it doesn't change Edit's `headerWidth`.
+
+What modules add to the timeline is shown on the Sound page **only when it says so**, so a new contribution can't
+reach a picture by accident:
+
+- `clipActions`, `timelineTools`, `timelineDocks`, `timelineOverlays` and `timelineMenuItems` entries take an
+  optional `scopes` list. Missing means Edit only.
+- A `ClipMenuEntry` opts in the same way, so a module's menu can offer some entries here and not others.
+- Opted in: `keyframe`'s mode switch, dock and badge (volume and pan keys are sound); `audio`'s menu;
+  `collab`'s playheads; `timeline`'s Cut. Not: `speed`'s box and menu, `transform`, `composition`, copy and paste,
+  ripple delete.
+
+The page tells the timeline it's on the Sound page through `AppPage`. Pages get two optional flags:
+`keepsPlayback` (the preview doesn't pause, plain keys work) and `timelineScope: "sound"` (plain keys and commands
+run from this page edit sound only). The timeline reads the active page's flags from `appPages`, a core point, so
+it never knows the `sound` module.
 
 **Fade tool:** clips of audio tracks get fade handles on the timeline, dragged to set `Clip.sound` fades through
 `audio.setSound`. The handles belong to `timeline`, or to `audio` through a timeline point, and show on Edit too.
@@ -142,7 +180,8 @@ feature owns everything else.
 | `export`  | Turning the mix into a structured spec; `recipe.rs` turns the spec into FFmpeg arguments     |
 | `audio`   | Stays as is: per-clip sound and the inspector's Audio tab                                    |
 
-`sound` stays `tier: feature` and requires `project`, `timeline`, `preview`.
+`sound` stays `tier: feature` and requires `project`, `timeline`, `preview`, `inspector` (the Clip tab), and later
+`settings` (presets, stage 2), `keyframe` (stage 3) and `export` (stems and delivery, stages 4 and 5).
 
 ### The document
 
@@ -226,10 +265,8 @@ all                 -> amix -> master effects, fader -> [mixed]
 - `mixdown.ts` returns segments per track plus the track's mix values. `SoundSegment` keeps what it has.
 - The existing order inside a segment stays. A default track adds no filter, so a project with no mix produces
   the same filter graph as today, apart from nesting. The existing Rust tests pin this down.
-- Graphs get long once automation arrives. Stage 3 moves the graph out of the command line into a file, because
-  Windows limits a command line to about 32,000 characters. `-filter_complex_script` and `-/filter_complex`
-  differ by FFmpeg version, and FFmpeg is the user's own system binary, so the builder picks by probing, in
-  `encoders.rs`.
+- The graph already goes in a file when it's long, so nothing changes there. The tree is built in a new
+  `src-tauri/src/export/mixgraph.rs`; `recipe.rs` keeps the per-segment chain and calls it.
 
 ### Placed compositions
 
@@ -276,24 +313,28 @@ threshold and ratio tried, and attack and release within 10%. Stage 2 builds thi
 and it decides the rest. If a port can't meet it, that effect is cut and the owner is told. No effect ships on a
 promise.
 
-**Presets** are a named set of values for a chain: Clear voice, Podcast, Phone, Radio, Warm, and the user's own,
-kept in the app's settings across projects. Applying one is one command and writes plain values, so a project
-never depends on a preset.
+**Presets** are a named set of values for a chain: Clear voice, Podcast, Phone, Radio, Warm, and the user's own.
+The user's own are kept outside the project in `localStorage`, as the theme is, and listed in a Settings section
+(`settingsSections`, "Sound presets") where they're renamed and removed. Applying one is one command and writes
+plain values, so a project never depends on a preset. Agents can apply any preset (`sound_apply_preset`) and list
+them, but can't save, rename or remove the user's own: those are the user's settings (CLAUDE.md, idea 1).
 
 ### Keyframes (stage 3)
 
-The keyframes project adds `Keyframe` and `KeyTrack` to `project`: keys on a clip, on content time, with eases,
-and in its Stage 6, `sound.volumeDb` and `sound.pan` keys on clips. This is a different thing and both exist, as in
-Fairlight: clip keys travel with the clip, a track's volume line stays put when clips move. So they don't share a
-type. This stage adds `VolumePoint`, `{ at: Micros, db: number }`, on timeline time, linear between points, in
-`TrackMix.volumeLine`. They stack in signal order: clip keys in the clip chain, then the line in the track bus.
-Neither project waits for the other. An interpolation function in `project/logic/` is the one source of truth for
-preview and export. It gets tests (rule 3: document integrity).
+Two kinds of volume line exist, as in Fairlight and Premiere, and both show on the lanes:
 
-- `timelineOverlays` draws the line over each audio lane. Points drag; one command on release.
-- **The line lives on the track, not the clip,** so moving or splitting a clip doesn't move it. This is how
-  Fairlight's track automation works, and it's what the mockup shows.
-- **Draw volume** adds points by dragging, thinned so a stroke isn't thousands of points.
+- **Clip volume line** (first): the clip's `sound.volumeDb` keys, which already exist, drawn as a line over the
+  clip on both pages. Points drag, double-click adds one, and every change goes through `keyframe.*` commands, so
+  preview, export and the Curves dock already agree. It travels with the clip. Nothing new in the document.
+- **Track automation** (second): a line on the track that stays put when clips move. It **is a `KeyTrack`**, the
+  same type clip keys use, stored in `TrackMix.volumeLine` with its keys' `t` on timeline time (a track's own time
+  is the timeline's). So nothing new is written to evaluate it: `trackValue` reads it, `keyMoments` and
+  `envelope.ts` turn it into an export envelope, `envelope_expr` into FFmpeg, and eases come for free. In signal
+  order, clip keys act in the clip chain, then the line in the track bus.
+- `timelineOverlays` (scoped to both pages) draws the track line over each audio lane, behind the clip lines.
+  Points drag; one command on release.
+- **Draw volume** draws on the clip line by default and on the track line when the track is in automation view,
+  thinned so a stroke isn't thousands of points.
 - **Automation modes** per track: Read plays the line; Touch writes while you hold the fader and returns to the
   line when you let go; Latch writes from the first touch until stop. The mode is view state. One pass while
   playing is one undo step, sent on stop (rule 15).
@@ -374,6 +415,30 @@ figures from `sound_analyze_mix` in stage 5.
 - **WebView2 (Windows) has never been checked for this audio path.** Stage 1 includes that check. Until it passes,
   Windows keeps the risk the Audio tab already carries.
 
+## Reuse
+
+The owner's rule: no second copy of anything the app already does. What this design reuses, moves or
+generalizes, before anything new is written:
+
+| Existing piece                                                   | How it's reused                                                         |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Zod schemas for volume, pan, EQ band in `audio.commands.ts`      | Moved to `project/logic/sound.schema.ts`; `audio` and `sound` import them |
+| `DEFAULT_SOUND.eq`, `EqBand`, `bandActive`, `dbToLinear`          | The track EQ effect is the same `{ on, bands }` shape and defaults       |
+| `setBand`, upmix and panner in `engine.audiograph.ts`             | Moved to `engine/engine.soundnodes.ts`; clip chains and buses build from them |
+| Pan, EQ, envelope and tempo filters in `recipe.rs`               | Moved unchanged to `export/soundfilters.rs`; segments and `mixgraph.rs` call them |
+| `EqGraph`, `EqBandRow`, `SoundRow`, `eq.gesture.ts` (already take values and callbacks) | Exported from `audio`; `EqSection` becomes a thin wrapper over a new `EqEditor` both use |
+| The inspector's Audio sections                                   | The Clip tab renders them through `ClipTabSections`                       |
+| `KeyTrack`, `trackValue`, `keyMoments`, `envelope.ts`, `envelope_expr` | The track volume line is a `KeyTrack`; no new interpolation or envelope code |
+| `keyframe.*` commands and the Curves dock                         | The clip volume line edits clip keys through them                        |
+| `localStorage` load and save with Zod in `theme.store.ts`         | Moved to `core/store` as `createSavedStore`; theme and sound presets use it |
+| Reversed copies (`media.reversed.ts`, `reversed.rs`, `cache_path` in `proxy.rs`) | Generalized to derived files; noise reduction is one more kind of derived file |
+| `splitAt`, `deleteClips`, `rippleDelete`, `unlinkClips`          | Strip silence and sound-only edits run them nested, as one undo step     |
+| Timeline snapping in `timeline/logic/placement.ts`               | Beats and markers join it as snap targets through one point              |
+| Export queue, runner, `job.rs`                                    | Stems and analysis are jobs of the same queue                            |
+
+`sound` requires `audio` for its editors, so the clip's and the track's EQ are one component. The two modules stay
+apart by concern: `audio` is how a clip sounds, `sound` is the mix and its page.
+
 ## File tree
 
 Every stage, at the level of folders and main files. `+` is new, `~` is edited. Each plan has its own full tree,
@@ -385,11 +450,14 @@ docs/prototype/designs/
 src/app/
   ~ app.keybindings.ts                 1: plain keys on pages that keep playback
 src/core/shell/
-  ~ shell.types.ts                     1: the page flag
+  ~ shell.types.ts                     1: keepsPlayback, timelineScope on AppPage
+src/modules/keyframe/, audio/, collab/
+  ~ <name>.module.ts                   1: scopes on what they add to the timeline
 src/modules/project/
-  ~ project.types.ts                   1: TrackMix, CompositionMix. 2: SoundEffect. 3: VolumePoint. 4: MixBus
+  ~ project.types.ts                   1: TrackMix, CompositionMix. 2: SoundEffect. 3: volumeLine (a KeyTrack). 4: MixBus
   ~ project.selectors.ts               1: trackMixOf, compositionMixOf
-  + logic/mix.ts                       1: defaults. 3: the volume line's interpolation
+  + logic/mix.ts                       1: defaults, minimize, nestedSound
+  + logic/sound.schema.ts              1: volume, pan and EQ band schemas, moved from audio.commands.ts
   ~ project.mcp.ts, index.ts, README.md
 src/modules/sound/
   ~ sound.module.ts, sound.ref.ts, sound.types.ts, index.ts, README.md
@@ -400,8 +468,9 @@ src/modules/sound/
   ~ ui/SoundPage.tsx                   1: the page
   + ui/SoundTransport.tsx, MixerPanel.tsx, MixerStrip.tsx, MasterStrip.tsx, Fader.tsx, PanSlider.tsx, Meter.tsx
   + ui/SoundPanelTabs.tsx, ClipTab.tsx, LoudnessTab.tsx                                               1
-  + sound.effects.commands.ts, sound.presets.ts, ui/ChannelTab.tsx, ui/EffectChain.tsx, ui/effects/   2
-  + sound.line.commands.ts, ui/VolumeLine.tsx, ui/volume.gesture.ts, logic/thinning.ts                3
+  + sound.effects.commands.ts, sound.presets.store.ts, ui/ChannelTab.tsx, ui/EffectChain.tsx, ui/effects/,
+    ui/PresetsSection.tsx (Settings)                                                                  2
+  + sound.line.commands.ts, ui/ClipVolumeLine.tsx, ui/TrackVolumeLine.tsx, ui/automation.hook.ts      3
   + sound.bus.commands.ts, ui/BusStrip.tsx                                                            4
   + sound.delivery.commands.ts, logic/standards.ts, ui/DeliverTab.tsx, ui/ProblemList.tsx             5
   + sound.tools.commands.ts, ui/StripSilencePreview.tsx                                               6
@@ -416,7 +485,9 @@ src/modules/preview/
   + engine/worklets/dynamics.worklet.ts       2: compressor, gate, de-esser, limiter, ducking
   + logic/volumeline.ts                       3: scheduling the line on the graph
 src/modules/timeline/
-  ~ ui/TimelinePanel.tsx, TrackHeader.tsx, TimelineClip.tsx, timeline.move.commands.ts, split, ripple   1
+  ~ timeline.types.ts                  1: TimelineScope, scopes on point entries
+  ~ ui/TimelinePanel.tsx, TrackHeader.tsx, TimelineClip.tsx, TimelineToolbar.tsx                         1
+  ~ timeline.move.commands.ts, timeline.split.commands.ts, timeline.keys.ts                             1: soundOnly
   ~ README.md, index.ts
 src/modules/audio/
   ~ README.md                          1: the old invariant goes
@@ -425,8 +496,8 @@ src/modules/export/
   ~ logic/mixdown.ts, logic/mixdown.test.ts, export.types.ts, export.runner.ts, README.md   1 to 5
   ~ logic/presets.ts, ui/                                                                   4: formats, stems
 src-tauri/src/export/
-  ~ recipe.rs                          1: tree graph. 2: effects. 3: line, graph in a file. 4: buses, formats
-  ~ encoders.rs                        3: probe how FFmpeg takes a graph file
+  ~ recipe.rs, mod.rs                  1: calls the mix graph. 4: formats
+  + mixgraph.rs                        1: the tree. 2: effects. 3: track line. 4: buses, stems
   ~ commands.rs, job.rs                4: stem jobs. 5: analysis passes
 src-tauri/src/sound/
   + mod.rs, commands.rs                2: Tauri commands of this module
