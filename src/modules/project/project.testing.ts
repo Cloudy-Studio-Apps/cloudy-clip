@@ -1,6 +1,7 @@
 import type {
   Clip,
   Junction,
+  Marker,
   MediaAsset,
   ProjectFormat,
   ProjectState,
@@ -15,6 +16,7 @@ export interface ProjectSeed {
   clips?: Record<string, Clip>;
   junctions?: Record<string, Junction>;
   media?: Record<string, MediaAsset>;
+  markers?: Record<string, Marker>;
   mediaOrder?: string[];
 }
 
@@ -53,5 +55,6 @@ export function seedProject(seed: ProjectSeed = {}): ProjectState {
     solids: {},
     solidOrder: [],
     junctions: seed.junctions ?? {},
+    markers: seed.markers ?? {},
   };
 }

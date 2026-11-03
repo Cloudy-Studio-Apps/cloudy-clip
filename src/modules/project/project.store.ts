@@ -20,6 +20,7 @@ export function createEmptyProject(): ProjectState {
     tracks: {},
     clips: {},
     junctions: {},
+    markers: {},
   };
 }
 

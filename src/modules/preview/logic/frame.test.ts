@@ -87,6 +87,7 @@ function project(
     solids: {},
     solidOrder: [],
     junctions: {},
+    markers: {},
   };
 }
 

@@ -138,6 +138,7 @@ describe("placements", () => {
       solids: {},
       solidOrder: [],
       junctions: {},
+      markers: {},
     };
   }
 

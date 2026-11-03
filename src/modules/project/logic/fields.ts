@@ -5,7 +5,15 @@ import { contains, settleCompositions } from "./compositions";
 import { findLayoutConflict, staleJunctions } from "./junctions";
 
 /** Collections of records compared field by field. */
-const RECORDS = ["compositions", "clips", "tracks", "junctions", "bins", "solids"] as const;
+const RECORDS = [
+  "compositions",
+  "clips",
+  "tracks",
+  "junctions",
+  "bins",
+  "solids",
+  "markers",
+] as const;
 
 /** Derived from `clip.trackId`, `clip.start` and `track.compositionId`, so never fields of their own. */
 const DERIVED_FIELDS = new Set(["clipIds", "trackOrder"]);
@@ -152,6 +160,11 @@ function validate(state: ProjectState): string | null {
     }
     if (clip.mediaId !== undefined && !state.media[clip.mediaId]) {
       return "a clip would be left without its media";
+    }
+  }
+  for (const marker of Object.values(state.markers)) {
+    if (!state.compositions[marker.compositionId]) {
+      return "a marker would be left without its composition";
     }
   }
   if (findLayoutConflict(state)) return "clips would overlap";

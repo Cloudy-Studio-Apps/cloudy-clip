@@ -10,6 +10,7 @@ export {
   clipEnd,
   compositionClips,
   compositionContent,
+  compositionMarkers,
   compositionOf,
   formatOf,
   formatOfTrack,
@@ -21,8 +22,8 @@ export {
   requireComposition,
   trackClips,
 } from "./project.selectors";
-/** The blend modes, in menu order. */
-export { BLEND_MODES } from "./project.types";
+/** The blend modes, in menu order, and the marker colors, in picker order. */
+export { BLEND_MODES, MARKER_COLORS } from "./project.types";
 /** Whether a composition holds another, at any depth. */
 export { contains } from "./logic/compositions";
 /** The composition open in the editor, and its format, for React. */
@@ -69,6 +70,9 @@ export type {
   CompositionView,
   CompositionViewState,
   PictureSize,
+  Marker,
+  MarkerColor,
+  MarkerId,
   MediaAsset,
   MediaId,
   MediaKind,
