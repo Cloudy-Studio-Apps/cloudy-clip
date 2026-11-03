@@ -12,7 +12,7 @@
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
-use super::derived::{DerivedKind, quiet};
+use super::derived::{DerivedKind, quiet, write_whole};
 use super::proxy::{Probe, Tools, ffprobe, run_encoder};
 use super::registry::MediaRegistry;
 
@@ -202,7 +202,6 @@ async fn make_reversed(
     } else {
         Vec::new()
     };
-    let partial = target.with_extension("partial.mp4");
     let mut cmd = quiet(tools);
     if picture {
         add_list(&mut cmd, folder, "picture.txt", &frames).await?;
@@ -210,11 +209,8 @@ async fn make_reversed(
     if sound {
         add_list(&mut cmd, folder, "sound.txt", &samples).await?;
     }
-    cmd.args(join_args(picture, sound)).arg(&partial);
-    run_encoder(cmd, Some(duration_us), |_| {}).await?;
-    tokio::fs::rename(&partial, target)
-        .await
-        .map_err(|e| format!("Could not save the reversed copy: {e}"))
+    cmd.args(join_args(picture, sound));
+    write_whole(cmd, target, Some(duration_us), &|_| {}).await
 }
 
 /// Reverses a file into `target`, reporting 0..1.

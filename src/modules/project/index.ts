@@ -161,6 +161,7 @@ export {
   DEFAULT_COMPOSITION_MIX,
   DEFAULT_TRACK_MIX,
   compositionMixOf,
+  heardDenoise,
   minimizeCompositionMix,
   minimizeTrackMix,
   soundInPlacement,

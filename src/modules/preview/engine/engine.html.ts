@@ -8,6 +8,7 @@ import {
   type Clip,
   dbToLinear,
   fadeLevel,
+  heardDenoise,
   pitchShift,
   soundOf,
   type ClipComposite,
@@ -32,7 +33,7 @@ import { soundGains } from "../logic/junctions";
 import { placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
 import type { LiveSound, LoudnessReading, MixLevels, PreviewEngine } from "../preview.types";
-import { quietSlot, voiceSlot } from "./engine.audio";
+import { elementUrl, quietSlot, voiceSlot } from "./engine.audio";
 import { PITCH_LEAD_SECONDS } from "./engine.soundchain";
 import { ImageCache } from "./engine.images";
 import { landLayer } from "./engine.composite";
@@ -186,7 +187,8 @@ export class HtmlMediaEngine implements PreviewEngine {
         this.wantImage(media, 0);
         continue;
       }
-      const url = this.urlOf(clip.mediaId, speedOf(clip));
+      const denoise = track.kind === "audio" ? heardDenoise(track, composition) : undefined;
+      const url = elementUrl(this.options, clip.mediaId, speedOf(clip), denoise);
       if (url === null) continue;
       const seconds = microsToSeconds(this.elementTime(clip, at));
       const slot = this.pool.acquire(path, clip, track.kind, seconds, url);
@@ -207,12 +209,6 @@ export class HtmlMediaEngine implements PreviewEngine {
   levels = (): MixLevels => this.sound.levels();
   loudness = (): LoudnessReading | null => this.sound.loudness();
   resetLoudness = (): void => this.sound.resetLoudness();
-
-  /** The file a clip's element plays; null while its reversed copy isn't ready. */
-  private urlOf(mediaId: MediaId, { reversed }: ClipSpeed): string | null {
-    if (!reversed) return this.options.mediaUrl(mediaId);
-    return this.options.reversedUrl?.(mediaId) ?? null;
-  }
 
   /** Redraws once a reversed copy is ready. */
   private awaitReversed(mediaId: MediaId): void {
@@ -253,10 +249,13 @@ export class HtmlMediaEngine implements PreviewEngine {
           track.kind === "audio"
             ? gain * fadeLevel(sound, clip, time, gains.get(clip.id)) * dbToLinear(sound.volumeDb)
             : gain;
+        // Inside a placement, the clips get the noise reduction of the track it sits on.
+        const denoise = nesting ? nesting.denoise : heardDenoise(track, composition);
         if (inner) {
           const { bus, gain: through, pan } = placeSound(track, nesting, own, 0);
           const quiet = silenced || track.muted;
-          this.prepare(project, inner, playing, propsOverrides, through, quiet, { bus, pan });
+          const around = { bus, pan, denoise };
+          this.prepare(project, inner, playing, propsOverrides, through, quiet, around);
           continue;
         }
         if (!hasMedia(clip)) continue; // drawn from the document, no media element
@@ -273,7 +272,8 @@ export class HtmlMediaEngine implements PreviewEngine {
         const override = ramped ? undefined : (propsOverrides.get(clip.id)?.speed as ClipSpeed);
         const speed = override ?? speedOf(clip);
         const rate = ramped ? rateAt(clip, time) : speed.rate;
-        const url = this.urlOf(clip.mediaId, speed);
+        const heardFrom = track.kind === "audio" ? denoise : undefined;
+        const url = elementUrl(this.options, clip.mediaId, speed, heardFrom);
         if (url === null) {
           // Its reversed copy is on the way: the rest of the frame doesn't wait for it.
           this.awaitReversed(clip.mediaId);

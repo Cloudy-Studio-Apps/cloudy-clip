@@ -1,10 +1,10 @@
 import { CommandFailure, type CommandContext } from "@/core";
-import { mediaRef } from "@/modules/media";
+import { mediaRef, type MediaApi } from "@/modules/media";
 import { projectRef, type Composition } from "@/modules/project";
 import { joinPath, numberedName } from "./logic/presets";
 import { usedMedia } from "./logic/sources";
 import { uniquePath } from "./export.service";
-import type { ExportJob, ExportRange } from "./export.types";
+import type { ExportJob, ExportRange, SoundFile } from "./export.types";
 
 /** The stretch to export, or why it can't be. */
 export function rangeOf(composition: Composition, range: ExportRange | undefined): ExportRange {
@@ -35,6 +35,37 @@ export function checkSources(
       throw new CommandFailure("export.mediaNotReady", `${name} is still being prepared.`);
     }
   }
+}
+
+/**
+ * The files sound is mixed from (for `mixdown`): under noise reduction, the rendered ones. Asking
+ * starts a rendering that hasn't been; the names of files whose rendering isn't done yet are
+ * kept in `pending`, for `checkDenoised`.
+ */
+export function denoisedFiles(media: Pick<MediaApi, "denoised">): {
+  soundFile: SoundFile;
+  pending: Set<string>;
+} {
+  const pending = new Set<string>();
+  const soundFile: SoundFile = (asset, denoise) => {
+    if (!denoise) return asset.path;
+    const file = media.denoised(asset.id, denoise);
+    if (typeof file === "string") return file;
+    // The user hears about a failure from media; the export is refused below either way.
+    file.catch(() => undefined);
+    pending.add(asset.name);
+    return asset.path;
+  };
+  return { soundFile, pending };
+}
+
+/** Refuses an export while the noise reduction of some of its files is still rendering. */
+export function checkDenoised(pending: ReadonlySet<string>): void {
+  if (pending.size === 0) return;
+  throw new CommandFailure(
+    "export.denoise_pending",
+    `Noise reduction is still being rendered for ${[...pending].join(", ")}. Export again once it's done.`,
+  );
 }
 
 /** Where the file goes, as `ifExists` says, keeping clear of what's queued. */

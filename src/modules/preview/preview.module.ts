@@ -50,6 +50,7 @@ export const previewModule = defineModule({
       reversedUrl: (id: string) => media.reversedUrl(id, false),
       whenReversed: (id: string, done: () => void) =>
         void media.prepareReversed(id, false).then(done, () => undefined),
+      denoisedUrl: media.denoisedUrl,
       fileDuration: (id: string) => media.getProbe(id)?.duration,
       imageFrames: media.imageFrames,
       elements,

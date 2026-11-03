@@ -1,11 +1,30 @@
+import type { DenoiseSettings } from "@/modules/media";
 import {
   DEFAULT_SOUND,
   pitchShift,
   type ClipSound,
   type ClipSpeed,
+  type MediaId,
   type Track,
 } from "@/modules/project";
-import type { Slot, SoundGraph, Voice } from "./engine.types";
+import type { EngineOptions, Slot, SoundGraph, Voice } from "./engine.types";
+
+/**
+ * The file a clip's element plays. A reversed clip plays its reversed copy, null until that's
+ * ready (the clip is left out meanwhile). Sound under noise reduction plays its rendered file
+ * once that's ready, the original until then, so nothing goes quiet while it renders. A reversed
+ * clip isn't reduced: its copy is made from the original.
+ */
+export function elementUrl(
+  options: Pick<EngineOptions, "mediaUrl" | "reversedUrl" | "denoisedUrl">,
+  mediaId: MediaId,
+  { reversed }: ClipSpeed,
+  denoise: DenoiseSettings | undefined,
+): string | null {
+  if (reversed) return options.reversedUrl?.(mediaId) ?? null;
+  const denoised = denoise && options.denoisedUrl?.(mediaId, denoise);
+  return denoised ?? options.mediaUrl(mediaId);
+}
 
 /**
  * A clip's sound with what its speed adds. WebKitGTK always keeps the pitch at any rate (see

@@ -2,6 +2,7 @@ import type { SoundEffect, Track } from "@/modules/project";
 import type { EffectEdit } from "../../sound.types";
 import { CompressorSection } from "./CompressorSection";
 import { DeesserSection } from "./DeesserSection";
+import { DenoiseSection } from "./DenoiseSection";
 import { DuckSection } from "./DuckSection";
 import { EqEffectSection } from "./EqEffectSection";
 import { GateSection } from "./GateSection";
@@ -14,7 +15,7 @@ interface EffectBodyProps {
   edit: EffectEdit;
 }
 
-/** The section of an effect, by its kind. Noise reduction has none until its files are rendered. */
+/** The section of an effect, by its kind. */
 export function EffectBody({ effect, owner, edit }: EffectBodyProps) {
   switch (effect.kind) {
     case "eq":
@@ -30,6 +31,6 @@ export function EffectBody({ effect, owner, edit }: EffectBodyProps) {
     case "duck":
       return owner ? <DuckSection effect={effect} owner={owner} edit={edit} /> : null;
     case "denoise":
-      return null;
+      return <DenoiseSection effect={effect} owner={owner} edit={edit} />;
   }
 }

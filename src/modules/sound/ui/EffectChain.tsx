@@ -2,11 +2,12 @@ import { useKernel } from "@/core";
 import type { CompositionId, SoundEffect } from "@/modules/project";
 import { cn } from "@/ui";
 import { chainSlot } from "../logic/chain";
-import { EDITABLE_KINDS, EFFECT_NAMES } from "../logic/effects";
+import { EFFECT_NAMES } from "../logic/effects";
 import { moveEffect } from "../sound.effects.commands";
 import type { MixTarget } from "../sound.types";
 import { AddEffectMenu } from "./AddEffectMenu";
 import { startChainDrag } from "./chain.gesture";
+import { DenoiseMark } from "./DenoiseMark";
 
 /** The height of a row, in px; a drag counts rows by it. */
 const ROW = 19;
@@ -19,13 +20,12 @@ interface EffectChainProps {
 
 /**
  * A strip's effects in signal order, each with a dot in `--on` while it works, and `+ Effect`. A
- * row dragged up or down moves the effect there with one `sound.moveEffect` on release. Kinds the
- * page doesn't edit yet (noise reduction) aren't listed, and keep their place in the chain.
+ * row dragged up or down moves the effect there with one `sound.moveEffect` on release. Noise
+ * reduction says how far its files are rendered.
  */
 export function EffectChain({ target, compositionId, effects }: EffectChainProps) {
   const { bus } = useKernel();
   const where = { target, ...(target === "master" && compositionId && { compositionId }) };
-  const shown = effects.filter((effect) => EDITABLE_KINDS.includes(effect.kind));
 
   return (
     <div
@@ -33,7 +33,7 @@ export function EffectChain({ target, compositionId, effects }: EffectChainProps
       aria-label="Effects"
       className="flex h-[98px] shrink-0 flex-col overflow-y-auto"
     >
-      {shown.map((effect, index) => (
+      {effects.map((effect, index) => (
         <div
           key={effect.id}
           role="listitem"
@@ -47,10 +47,8 @@ export function EffectChain({ target, compositionId, effects }: EffectChainProps
               row: event.currentTarget,
               onEnd(dy) {
                 if (dy === null) return;
-                const slot = chainSlot(index, dy, ROW, shown.length);
-                if (slot === index) return;
-                // Into the place of the row it lands on, counted in the whole chain.
-                const to = effects.indexOf(shown[slot]!);
+                const to = chainSlot(index, dy, ROW, effects.length);
+                if (to === index) return;
                 void bus.run(moveEffect, { ...where, effectId: effect.id, to });
               },
             });
@@ -66,6 +64,9 @@ export function EffectChain({ target, compositionId, effects }: EffectChainProps
           <span className={cn("truncate", !effect.on && "text-subtle-foreground")}>
             {EFFECT_NAMES[effect.kind].short}
           </span>
+          {effect.kind === "denoise" && (
+            <DenoiseMark target={target} compositionId={compositionId} effect={effect} />
+          )}
         </div>
       ))}
       <AddEffectMenu

@@ -115,8 +115,14 @@ async fn handle(
             .as_deref()
             .is_some_and(|q| q.split('&').any(|pair| pair == what))
     };
+    // A derived file is found by name among those made for this id, never by a path.
+    let derived = query
+        .as_deref()
+        .and_then(|q| q.split('&').find_map(|pair| pair.strip_prefix("derived=")));
     let master = asks("master=1");
-    let path = if asks("reversed=1") {
+    let path = if let Some(name) = derived {
+        state.registry.derived_path_of(&id, name)
+    } else if asks("reversed=1") {
         let name = Reversed { full: master }.name();
         state.registry.derived_path_of(&id, &name)
     } else if master {

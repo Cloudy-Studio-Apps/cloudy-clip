@@ -1,4 +1,11 @@
-import type { Composition, CompositionMix, Track, TrackMix } from "../project.types";
+import type {
+  Composition,
+  CompositionMix,
+  DenoiseEffect,
+  SoundEffect,
+  Track,
+  TrackMix,
+} from "../project.types";
 import { dbToLinear, minimize } from "./sound";
 
 /** How an audio track mixes until it's changed: as its clips sound. */
@@ -48,4 +55,23 @@ export function soundInPlacement(
     gain: gain * dbToLinear(inner.volumeDb),
     pan: Math.min(1, Math.max(-1, pan + nestingPan + inner.pan)),
   };
+}
+
+/** A chain's noise reduction when it takes some noise away: on, with an amount above 0. */
+function workingDenoise(chain: readonly SoundEffect[] | undefined): DenoiseEffect | undefined {
+  const denoise = chain?.find((effect) => effect.kind === "denoise");
+  return denoise?.on && denoise.amountDb > 0 ? denoise : undefined;
+}
+
+/**
+ * The noise reduction the clips heard through a top-level track get: the track's own, otherwise
+ * the master's of its composition; undefined when neither takes any noise away. It's rendered
+ * into each file, so a clip is reduced once, and inside a placement the outer track's counts.
+ * The preview and the export's mixdown both read it here, so they hear the same files.
+ */
+export function heardDenoise(
+  track: Pick<Track, "mix">,
+  composition: Pick<Composition, "mix">,
+): DenoiseEffect | undefined {
+  return workingDenoise(track.mix?.effects) ?? workingDenoise(composition.mix?.master.effects);
 }

@@ -2,6 +2,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import type {
+  DerivedFile,
   MediaFile,
   MediaService,
   MediaState,
@@ -59,6 +60,20 @@ export function createMediaService(state: MediaState): MediaService {
       const channel = new Channel<number>();
       channel.onmessage = onProgress;
       return invoke("media_prepare_reversed", { id, full, onProgress: channel });
+    },
+    denoise(id, { amountDb, floorDb }, onProgress) {
+      const channel = new Channel<number>();
+      channel.onmessage = onProgress;
+      return invoke<DerivedFile>("sound_denoise", { id, amountDb, floorDb, onProgress: channel });
+    },
+    derivedFileUrl(id, name) {
+      if (!baseUrl) throw new Error("The media server is not ready");
+      const revision = state.getProbe(id)?.revision;
+      const version = revision ? `&file=${revision}` : "";
+      return `${baseUrl}/${encodeURIComponent(id)}?derived=${encodeURIComponent(name)}${version}`;
+    },
+    measureFloor(id, from, to) {
+      return invoke<number>("sound_measure_floor", { id, from, to });
     },
     reversedFileUrl(id, full) {
       if (!baseUrl) throw new Error("The media server is not ready");

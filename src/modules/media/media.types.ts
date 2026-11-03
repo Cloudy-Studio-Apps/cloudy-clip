@@ -5,11 +5,32 @@ import type {
   Bin,
   BinId,
   CompositionId,
+  DenoiseEffect,
   MediaAsset,
   MediaId,
   MediaKind,
   ProjectState,
 } from "@/modules/project";
+
+/** How a file's noise is taken away: the settings of a `denoise` effect. */
+export type DenoiseSettings = Pick<DenoiseEffect, "amountDb" | "floorDb">;
+
+/** A file whose noise is being taken away, with how far along it is (0..1). */
+export interface DenoiseJob extends DenoiseSettings {
+  mediaId: MediaId;
+  progress: number;
+}
+
+/** The files whose noise is being taken away now. */
+export interface DenoiseJobs {
+  jobs: readonly DenoiseJob[];
+}
+
+/** A file the native side made from a registered one: its path, and the name it's served under. */
+export interface DerivedFile {
+  path: string;
+  name: string;
+}
 
 /** Progress of reading a file's metadata. `missing`: the file isn't where the project says. */
 export type ProbeStatus = "pending" | "ready" | "error" | "missing";
@@ -191,6 +212,21 @@ export interface MediaApi {
   ): Promise<void>;
   /** URL of that copy. Until it's ready, null, and it starts being made. */
   reversedUrl(id: MediaId, full: boolean): string | null;
+  /**
+   * The file's sound with its noise taken away (`afftdn`, rendered once per file and settings to
+   * a WAV): its path once it's made; until then a promise of it, and it starts being made. Asking
+   * again while it's being made joins that job. A failure is reported to the user.
+   */
+  denoised(id: MediaId, settings: DenoiseSettings): string | Promise<string>;
+  /** URL of that file. Until it's ready, null, and it starts being made. */
+  denoisedUrl(id: MediaId, settings: DenoiseSettings): string | null;
+  /** The files whose noise is being taken away now, with their progress. */
+  readonly denoising: StoreApi<DenoiseJobs>;
+  /**
+   * The noise floor of `from..to` of a file's sound (file time), in dBFS, rounded and within
+   * what noise reduction accepts (-80 to -20). Rejects if it can't be measured.
+   */
+  measureFloor(id: MediaId, from: Micros, to: Micros): Promise<number>;
   /** The frames of an animated image, once they are ready; undefined for anything else. */
   animation(id: MediaId): ImageAnimation | undefined;
   /**
@@ -221,6 +257,10 @@ export interface MediaState extends Omit<
   | "masterUrl"
   | "prepareReversed"
   | "reversedUrl"
+  | "denoised"
+  | "denoisedUrl"
+  | "denoising"
+  | "measureFloor"
   | "imageFrames"
   | "restore"
   | "fileFacts"
@@ -256,6 +296,15 @@ export interface MediaService {
   ): Promise<void>;
   /** URL of a reversed copy that exists. */
   reversedFileUrl(id: MediaId, full: boolean): string;
+  /** Renders a file's sound with its noise taken away, reporting 0..1. */
+  denoise(
+    id: MediaId,
+    settings: DenoiseSettings,
+    onProgress: (progress: number) => void,
+  ): Promise<DerivedFile>;
+  /** URL of a derived file that exists, by the name it's served under. */
+  derivedFileUrl(id: MediaId, name: string): string;
+  measureFloor: MediaApi["measureFloor"];
 }
 
 /** Files of the document, in step with the native side. */

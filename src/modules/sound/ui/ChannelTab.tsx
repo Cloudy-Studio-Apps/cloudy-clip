@@ -2,7 +2,7 @@ import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { projectRef, useOpenComposition } from "@/modules/project";
 import { EmptyState } from "@/ui";
-import { chainOf, EDITABLE_KINDS } from "../logic/effects";
+import { chainOf } from "../logic/effects";
 import { soundRef } from "../sound.ref";
 import { useEffectEdit } from "./effect.edit.hook";
 import { EffectBody } from "./effects/EffectBody";
@@ -32,7 +32,6 @@ export function ChannelTab() {
       </EmptyState>
     );
   }
-  const shown = chain.filter((effect) => EDITABLE_KINDS.includes(effect.kind));
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] content-start">
       <PresetCard
@@ -41,7 +40,7 @@ export function ChannelTab() {
         compositionId={open.id}
         chain={chain}
       />
-      {shown.map((effect) => (
+      {chain.map((effect) => (
         <div key={effect.id} className="min-w-0 border-r border-dashed border-border-strong">
           <EffectBody effect={effect} owner={track} edit={edit} />
         </div>

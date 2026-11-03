@@ -5,6 +5,7 @@ import {
   contentTime,
   compositionMixOf,
   dbToLinear,
+  heardDenoise,
   pitchShift,
   rampOf,
   soundOf,
@@ -37,10 +38,14 @@ import type {
   Mixdown,
   Place,
   Placed,
+  SoundFile,
   SoundMix,
   SoundSegment,
   TempoStep,
 } from "../export.types";
+
+/** Every clip sounds from its own file. */
+const ITS_OWN_FILE: SoundFile = (asset) => asset.path;
 
 /** The mix of a composition without audio tracks: nothing to mix, the master as it is. */
 export const NO_MIX: SoundMix = { tracks: [], master: { gain: 1 } };
@@ -193,6 +198,7 @@ function walk(
   edges: MixEdges,
   nesting: MixNesting | null,
   hasSound: (id: MediaId) => boolean,
+  soundFile: SoundFile,
   out: SoundSegment[],
 ): void {
   const composition = project.compositions[compositionId];
@@ -210,6 +216,8 @@ function walk(
     const place: Place = (gain, pan) =>
       nesting ? soundInPlacement(track, nesting.pan, gain, pan) : { gain, pan };
     const through = nesting?.gain ?? 1;
+    // Inside a placement, the clips get the noise reduction of the track it sits on.
+    const denoise = nesting ? nesting.denoise : heardDenoise(track, composition);
     const clips = track.clipIds.map((id) => project.clips[id]);
     clips.forEach((clip, i) => {
       if (!clip || clip.disabled) return;
@@ -244,8 +252,9 @@ function walk(
           clip.compositionRef,
           inner,
           fades,
-          { track: index, ...placed },
+          { track: index, ...placed, denoise },
           hasSound,
+          soundFile,
           out,
         );
         return;
@@ -255,7 +264,7 @@ function walk(
       if (!media || media.kind === "image") return;
       const ramp = rampOf(clip);
       out.push({
-        path: media.path,
+        path: soundFile(media, denoise),
         at: start + shift,
         // Reversed, the file's earliest moment of this stretch is the one heard last.
         from: sourceTimeAt(clip, speedOf(clip).reversed ? stop : start),
@@ -345,16 +354,19 @@ function mixOf(project: ProjectState, compositionId: CompositionId): Mixdown["mi
  * depth, and how the tracks they sit on mix: the sound the preview plays. A clip sounds through
  * its top-level track (`track`); inside a placement, the inner tracks' volume and pan are folded
  * into the clip's own, as the preview does. Muted tracks are left out, also around a placement.
- * Clips under a junction crossfade. Solo is never here: it isn't in the document.
+ * Clips under a junction crossfade. Solo is never here: it isn't in the document. A clip heard
+ * through noise reduction (`heardDenoise`) is mixed from the file `soundFile` gives for it.
  */
 export function mixdown(
   project: ProjectState,
   compositionId: CompositionId,
   range: ExportRange,
   hasSound: (id: MediaId) => boolean,
+  soundFile: SoundFile = ITS_OWN_FILE,
 ): Mixdown {
   const segments: SoundSegment[] = [];
   const window = { from: range.start, to: range.start + range.duration, shift: -range.start };
-  walk(project, compositionId, window, { fadeIn: 0, fadeOut: 0 }, null, hasSound, segments);
+  const edges = { fadeIn: 0, fadeOut: 0 };
+  walk(project, compositionId, window, edges, null, hasSound, soundFile, segments);
   return { segments, mix: mixOf(project, compositionId) };
 }

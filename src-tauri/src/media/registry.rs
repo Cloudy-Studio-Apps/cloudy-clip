@@ -125,6 +125,13 @@ impl MediaRegistry {
         Some(entry.master.clone().unwrap_or_else(original))
     }
 
+    /// The original and registration of an id.
+    pub fn original_of(&self, id: &str) -> Option<(PathBuf, u64)> {
+        let entries = self.entries.read().ok()?;
+        let entry = entries.get(id)?;
+        Some((entry.original.clone(), entry.generation))
+    }
+
     /// The original and registration of an id that previews through a proxy.
     pub fn proxied_original(&self, id: &str) -> Option<(PathBuf, u64)> {
         let entries = self.entries.read().ok()?;

@@ -109,7 +109,8 @@ export const mediaModule = defineModule({
         mediaUrl: service.mediaUrl,
         prepareMaster: service.prepareMaster,
         masterUrl: service.masterUrl,
-        ...createDerivedFiles(service),
+        ...createDerivedFiles(service, (id) => getProbe(id)?.revision),
+        measureFloor: service.measureFloor,
         animation: state.animation,
         imageFrames(id, elapsed, ahead) {
           const animation = state.animation(id);

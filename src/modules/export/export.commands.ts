@@ -16,7 +16,7 @@ import {
 } from "./logic/presets";
 import { saveFolder } from "./export.store";
 import { exportRef } from "./export.ref";
-import { checkSources, outputPath, rangeOf } from "./export.guards";
+import { checkDenoised, checkSources, denoisedFiles, outputPath, rangeOf } from "./export.guards";
 import { readCapabilities } from "./export.service";
 import type { ExportJob } from "./export.types";
 
@@ -51,7 +51,7 @@ export const enqueue = defineCommand({
   id: "export.enqueue",
   label: "Add to export queue",
   description:
-    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. Fails with export.noFfmpeg, export.formatUnavailable, export.noComposition, export.emptyRange, export.noSound, export.missingMedia, export.mediaNotReady, export.badName or export.fileExists.",
+    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. Fails with export.noFfmpeg, export.formatUnavailable, export.noComposition, export.emptyRange, export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName or export.fileExists.",
   undoable: false,
   input: ENQUEUE_INPUT,
   async run(ctx, input) {
@@ -82,8 +82,12 @@ export const enqueue = defineCommand({
 
     const info = formatInfo(input.format);
     const hasSound = (mediaId: string) => mediaHasAudio(media.getProbe(mediaId));
+    const { soundFile, pending } = denoisedFiles(media);
     const mixed =
-      info.sound && input.sound ? mixdown(project, composition.id, range, hasSound) : null;
+      info.sound && input.sound
+        ? mixdown(project, composition.id, range, hasSound, soundFile)
+        : null;
+    checkDenoised(pending);
     const sound = mixed?.segments ?? [];
     if (!info.picture && sound.length === 0) {
       throw new CommandFailure("export.noSound", "This part of the timeline has no sound.");

@@ -277,7 +277,7 @@ pub(crate) struct Probe {
     /// Channels of the first sound stream.
     pub(crate) audio_channels: Option<u64>,
     bit_rate: u64,
-    pub(super) duration_us: Option<u64>,
+    pub(crate) duration_us: Option<u64>,
     pub(super) fps: Option<f64>,
     /// Frames ffprobe counted, when asked to.
     pub(super) frames: Option<u64>,

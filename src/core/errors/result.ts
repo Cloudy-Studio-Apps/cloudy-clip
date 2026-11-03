@@ -37,5 +37,10 @@ export function toAppError(error: unknown): AppError {
       : { code: error.code, message: error.message, details: error.details };
   }
   if (error instanceof Error) return { code: "internal", message: error.message };
+  // The native side rejects with a plain `{ code, message }`.
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const code = "code" in error ? String(error.code) : "internal";
+    return { code, message: String(error.message) };
+  }
   return { code: "internal", message: String(error) };
 }

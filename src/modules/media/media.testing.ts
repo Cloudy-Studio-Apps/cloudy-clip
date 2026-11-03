@@ -1,10 +1,11 @@
+import { createStore } from "zustand/vanilla";
 import { defineModule } from "@/core";
 import { elements } from "@/modules/element";
 import { mediaElement } from "./media.element";
 import { mediaRef } from "./media.ref";
 import { createMediaState } from "./media.store";
 import { createLibraryView } from "./media.view.store";
-import type { MediaProbe } from "./media.types";
+import type { DenoiseJobs, MediaProbe } from "./media.types";
 
 /**
  * For tests: a media module with the given probes and no native calls. It uses the real
@@ -30,6 +31,10 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
           masterUrl: (id: string) => `fake://${id}`,
           prepareReversed: async () => undefined,
           reversedUrl: (id: string) => `fake://${id}?reversed`,
+          denoised: (id: string) => `fake://${id}?denoised`,
+          denoisedUrl: (id: string) => `fake://${id}?denoised`,
+          denoising: createStore<DenoiseJobs>(() => ({ jobs: [] })),
+          measureFloor: async () => -50,
           imageFrames: (id: string) => [`fake://${id}`],
           restore: async () => [],
           fileFacts: async () => ({}),

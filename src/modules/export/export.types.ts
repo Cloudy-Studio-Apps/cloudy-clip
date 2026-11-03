@@ -6,10 +6,12 @@ import type {
   CompositionId,
   CompressorParams,
   DeesserEffect,
+  DenoiseEffect,
   DuckEffect,
   EqBand,
   GateEffect,
   LimiterEffect,
+  MediaAsset,
   ProjectFormat,
   ProjectState,
 } from "@/modules/project";
@@ -106,7 +108,15 @@ export interface MixNesting {
   gain: number;
   /** The pan of the inner tracks above, summed. */
   pan: number;
+  /** The noise reduction of that track (or its master), which the clips inside get. */
+  denoise: DenoiseEffect | undefined;
 }
+
+/**
+ * The file a clip's sound is mixed from: the file itself, or the one rendered with `denoise`, the
+ * noise reduction it's heard through.
+ */
+export type SoundFile = (asset: MediaAsset, denoise: DenoiseEffect | undefined) => string;
 
 /** A clip's gain and pan once the tracks around it are folded in (see `mixdown`). */
 export interface Placed {

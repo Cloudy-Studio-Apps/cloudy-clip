@@ -3,6 +3,7 @@ import { appPages, defineModule, pagesRef } from "@/core";
 import { settingsSections } from "@/modules/settings";
 import { soundMcpTools } from "./sound.mcp";
 import { soundEffectCommands } from "./sound.effects.commands";
+import { soundDenoiseCommands } from "./sound.denoise.commands";
 import { soundMixCommands } from "./sound.mix.commands";
 import { followSoundPageLeave } from "./sound.leave";
 import { clearListening, soundMonitorCommands } from "./sound.monitor.commands";
@@ -17,10 +18,11 @@ export const soundModule = defineModule({
   ref: soundRef,
   name: "Sound",
   tier: "feature",
-  requires: ["project", "timeline", "preview", "inspector", "audio", "settings"],
+  requires: ["project", "timeline", "preview", "inspector", "audio", "settings", "media"],
   commands: [
     ...soundMixCommands,
     ...soundEffectCommands,
+    ...soundDenoiseCommands,
     ...soundPresetCommands,
     ...soundMonitorCommands,
   ],

@@ -2,7 +2,7 @@ import type { ElementApi } from "@/modules/element";
 import type { MixCanvases } from "./engine.mix";
 import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
-import type { MediaApi } from "@/modules/media";
+import type { DenoiseSettings, MediaApi } from "@/modules/media";
 import type { Micros } from "@/core";
 import type {
   DynamicsCommand,
@@ -113,6 +113,8 @@ export interface Nesting {
   bus: TrackId;
   /** The pan of the inner tracks above, summed. */
   pan: number;
+  /** The noise reduction of that track (or its master), which the clips inside get. */
+  denoise: DenoiseSettings | undefined;
 }
 
 /** Where a clip sounds from: the bus, and its gain and pan once inner tracks apply. */
@@ -249,6 +251,8 @@ export interface EngineOptions {
   reversedUrl?(id: MediaId): string | null;
   /** Calls `done` once that copy is ready. */
   whenReversed?(id: MediaId, done: () => void): void;
+  /** URL of the file's sound with its noise taken away, or null until that file is ready. */
+  denoisedUrl?(id: MediaId, settings: DenoiseSettings): string | null;
   /** Length of a file. */
   fileDuration?(id: MediaId): Micros | undefined;
   /** URLs of an image's picture at a moment of its clip, then those up to `ahead` later. */

@@ -9,6 +9,7 @@ import {
   setEffect,
 } from "./sound.effects.commands";
 import { BUILT_IN_PRESETS } from "./logic/presets";
+import { measureFloor } from "./sound.denoise.commands";
 import { soundRef } from "./sound.ref";
 import { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
 
@@ -87,6 +88,7 @@ export const soundMcpTools = [
   commandTool(removeEffect, { name: "sound_remove_effect" }),
   commandTool(moveEffect, { name: "sound_move_effect" }),
   commandTool(applyPreset, { name: "sound_apply_preset" }),
+  commandTool(measureFloor, { name: "sound_measure_floor" }),
   listPresets,
   getLevels,
 ];

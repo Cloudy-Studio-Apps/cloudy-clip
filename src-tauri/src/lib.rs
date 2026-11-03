@@ -5,6 +5,7 @@ mod export;
 mod fonts;
 mod mcp;
 mod media;
+mod sound;
 mod webview;
 mod workspace;
 
@@ -41,6 +42,8 @@ pub fn run() {
             mcp::commands::mcp_register_tools,
             mcp::commands::mcp_respond,
             mcp::commands::mcp_status,
+            sound::commands::sound_denoise,
+            sound::commands::sound_measure_floor,
             workspace::commands::workspace_exists,
             workspace::commands::workspace_read,
             workspace::commands::workspace_recents_read,

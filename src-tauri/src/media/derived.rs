@@ -4,14 +4,14 @@
 //!
 //! - cached beside the proxies, under the source file's version and the kind's name, so a kind
 //!   whose settings or recipe change gets a new file;
-//! - written under a temporary name by the kind, one encode at a time (the proxies' encoder);
+//! - written under a temporary name ([`write_whole`]), one encode at a time (the proxies' encoder);
 //! - attached to the registration it was made for, so a file replaced meanwhile changes nothing;
 //! - progress reported as 0..1.
 
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
-use super::proxy::{ProxyJobs, Tools, cache_path, command, find_tools};
+use super::proxy::{ProxyJobs, Tools, cache_path, command, find_tools, run_encoder};
 use super::registry::MediaRegistry;
 
 /// A kind of derived file, with its settings.
@@ -39,6 +39,27 @@ pub(crate) fn quiet(tools: &Tools) -> tokio::process::Command {
     let mut cmd = command(&tools.ffmpeg);
     cmd.args(["-hide_banner", "-nostats", "-loglevel", "error", "-y"]);
     cmd
+}
+
+/// Runs `cmd`, an `ffmpeg` whose output is still to be named, into a temporary file beside
+/// `target`, and moves that to `target` once it's whole; nothing is left behind when it fails.
+/// The error is what FFmpeg said.
+pub(crate) async fn write_whole(
+    mut cmd: tokio::process::Command,
+    target: &Path,
+    duration_us: Option<u64>,
+    on_progress: &(dyn Fn(f32) + Sync),
+) -> Result<(), String> {
+    let extension = target.extension().and_then(|e| e.to_str()).unwrap_or("tmp");
+    let partial = target.with_extension(format!("partial.{extension}"));
+    cmd.arg(&partial);
+    if let Err(detail) = run_encoder(cmd, duration_us, on_progress).await {
+        let _ = tokio::fs::remove_file(&partial).await;
+        return Err(detail);
+    }
+    tokio::fs::rename(&partial, target)
+        .await
+        .map_err(|e| format!("Could not save the file: {e}"))
 }
 
 impl ProxyJobs {
