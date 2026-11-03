@@ -65,7 +65,7 @@ These are the rules, and they are strict. How things work is described in the `R
 
 **MCP**
 
-18. A module's tools live in its `<name>.mcp.ts`, nothing outside the module defines them. Tool names are `snake_case` and start with the module id (`timeline_split`, `transform_set_clip_transform`). Editing tools are `commandTool(command, { name })`: a thin wrapper with no logic of its own.
+18. A module's tools live in its `<name>.mcp.ts`, nothing outside the module defines them. Tool names are `snake_case` and start with the module id (`timeline_split`, `transform_reset`). Editing tools are `commandTool(command, { name })`: a thin wrapper with no logic of its own.
 19. The project must stay readable as structured data (`project_get_state`), so an agent can inspect everything the UI shows.
 
 **Media and preview** (hard-won; see `src/modules/media/README.md` and `src/modules/preview/README.md`)
