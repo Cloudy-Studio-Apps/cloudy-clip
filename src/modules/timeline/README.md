@@ -66,7 +66,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   goes through that rule: `findOverlap(…, self)`, `neighbourBounds` (a joined neighbour bounds a
   clip at its own edge, except on the edge being trimmed), `checkLayout`; move/add fail with `timeline.overlap`. Trims are clamped
   to the source media, neighbours and a one-frame minimum; clips only move between tracks of the
-  same kind; a split keeps the clip's transform on both halves; only audio tracks can be muted.
+  same kind; a split keeps the clip's transform and composite on both halves; only audio tracks can be muted.
   `snapCandidates` include each junction's cut (the middle of its overlap).
 - **Junctions** (junction rules 2, 7, 10): after every clip command no junction is stale
   (`staleJunctions` is empty).

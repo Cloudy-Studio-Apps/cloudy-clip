@@ -280,6 +280,17 @@ describe("keys on a clip", () => {
     expect(contentTime(right, 5 * S)).toBe(contentTime(clipOf(id), 5 * S));
     expect(contentTime(right, 5 * S)).toBe(3 * S);
   });
+
+  it("gives both halves of a split the same composite", async () => {
+    const id = await keyed();
+    const composite = { mode: "screen", opacity: 0.5 } as const;
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: { ...s.clips, [id]: { ...s.clips[id]!, composite } },
+    }));
+    const { created } = await run(kernel.bus.run(splitAt, { at: 5 * S, clipIds: [id] }));
+    expect(clipOf(created[0]!).composite).toEqual(composite);
+    expect(clipOf(created[0]!).composite).not.toBe(clipOf(id).composite);
+  });
 });
 
 describe("text clips", () => {

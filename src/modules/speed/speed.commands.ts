@@ -7,6 +7,7 @@ import {
   animatedClip,
   applyMoves,
   canChangeSpeed,
+  clipComposite,
   clipTransform,
   partnersOf,
   projectRef,
@@ -185,6 +186,7 @@ export const freezeFrame = defineCommand({
       speed: { ...DEFAULT_SPEED, rate: 0 },
       ...(clip.mediaId !== undefined && { mediaId: clip.mediaId }),
       ...(baked.transform && { transform: { ...clipTransform(baked) } }),
+      ...(baked.composite && { composite: { ...clipComposite(baked) } }),
     };
     const moved = applyMoves(split, rippleMoves(split, right, FREEZE_LENGTH));
     const next = produce(moved, (draft) => {

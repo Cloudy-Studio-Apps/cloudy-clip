@@ -56,6 +56,7 @@ export function splitClips(
         start: at,
         duration: left.duration - offset,
         ...(left.transform && { transform: { ...left.transform } }),
+        ...(left.composite && { composite: { ...left.composite } }),
         ...(left.speed && { speed: { ...left.speed } }),
         // Both halves keep the curve, and the right one starts where the cut is on the picture.
         ...(target.animation && {
