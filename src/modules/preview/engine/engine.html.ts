@@ -31,7 +31,7 @@ import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
 import { placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
-import type { LiveSound, MixLevels, PreviewEngine } from "../preview.types";
+import type { LiveSound, LoudnessReading, MixLevels, PreviewEngine } from "../preview.types";
 import { quietSlot, voiceSlot } from "./engine.audio";
 import { PITCH_LEAD_SECONDS } from "./engine.audiograph";
 import { ImageCache } from "./engine.images";
@@ -192,6 +192,8 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   setSound = (live: LiveSound): void => this.sound.setSound(live);
   levels = (): MixLevels => this.sound.levels();
+  loudness = (): LoudnessReading | null => this.sound.loudness();
+  resetLoudness = (): void => this.sound.resetLoudness();
 
   /** The file a clip's element plays; null while its reversed copy isn't ready. */
   private urlOf(mediaId: MediaId, { reversed }: ClipSpeed): string | null {

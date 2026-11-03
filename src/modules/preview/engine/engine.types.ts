@@ -6,6 +6,7 @@ import type { MediaApi } from "@/modules/media";
 import type { Micros } from "@/core";
 import type {
   LiveSound,
+  LoudnessReading,
   MixLevels,
   MonitorState,
   StereoLevel,
@@ -95,6 +96,10 @@ export interface SoundGraph {
   mix(update: MixUpdate): void;
   /** Peaks now; silence before any sound went through. */
   levels(): MixLevels;
+  /** Loudness of the master since play started; null until the worklet has measured. */
+  loudness(): LoudnessReading | null;
+  /** Starts the loudness measurement over. */
+  resetLoudness(): void;
   dispose(): void;
 }
 
@@ -124,6 +129,8 @@ export interface SoundMix {
   /** New live sound from the controller, applied at once. */
   setSound(live: LiveSound): void;
   levels(): MixLevels;
+  loudness(): LoudnessReading | null;
+  resetLoudness(): void;
   dispose(): void;
 }
 
@@ -161,8 +168,19 @@ export interface TrackBus {
 export interface MixBus {
   /** The input of a track's bus, or the master's when the track has none. */
   inputOf(trackId: TrackId): AudioNode;
+  /** The master after its fader, before the monitor: what loudness is measured on. */
+  readonly master: AudioNode;
   mix(update: MixUpdate): void;
   levels(): MixLevels;
+  dispose(): void;
+}
+
+/** The loudness worklet listening to the master (`createLoudnessTap`). */
+export interface LoudnessTap {
+  /** The latest reading; null until the first arrives. */
+  read(): LoudnessReading | null;
+  /** Starts over, ignoring readings made before. */
+  reset(): void;
   dispose(): void;
 }
 

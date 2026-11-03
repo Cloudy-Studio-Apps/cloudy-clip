@@ -66,8 +66,11 @@ export function createMixBus(context: BaseAudioContext): MixBus {
   const masterMeter = createMeter(context, master);
   const monitor = createMonitor(context, master);
   const buses = new Map<TrackId, TrackBus>();
+  /** The first mix sets the master's level outright, so it never glides in from unity. */
+  let started = false;
 
   return {
+    master,
     inputOf: (trackId) => buses.get(trackId)?.input ?? master,
     mix({ tracks, master: masterMix, solo, monitor: monitorState }) {
       const wanted = new Set(tracks.map((track) => track.id));
@@ -88,7 +91,10 @@ export function createMixBus(context: BaseAudioContext): MixBus {
         glide(bus.panner.pan, mix.pan, context);
         glide(bus.fader.gain, level, context);
       }
-      glide(master.gain, dbToLinear(masterMix.volumeDb), context);
+      const masterLevel = dbToLinear(masterMix.volumeDb);
+      if (started) glide(master.gain, masterLevel, context);
+      else master.gain.value = masterLevel;
+      started = true;
       monitor(monitorState);
     },
     levels(): MixLevels {

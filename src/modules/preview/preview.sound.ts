@@ -24,9 +24,9 @@ export function createPreviewSound(engine: () => PreviewEngine | null) {
     setMonitor: (monitor) => change({ monitor }),
     setSolo: (solo) => change({ solo: [...solo] }),
     levels: () => engine()?.levels() ?? NO_LEVELS,
-    // Measured by the loudness worklet on the master, which isn't wired yet.
-    loudness: () => null,
-    resetLoudness: () => undefined,
+    // Measured by the loudness worklet on the master; null until it has, and without an engine.
+    loudness: () => engine()?.loudness() ?? null,
+    resetLoudness: () => engine()?.resetLoudness(),
   };
   return { sound, current: () => live };
 }

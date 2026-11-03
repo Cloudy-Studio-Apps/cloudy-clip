@@ -65,6 +65,10 @@ export interface PreviewEngine {
   setSound(sound: LiveSound): void;
   /** Peaks of each track bus and the master now; silence when nothing went through the graph. */
   levels(): MixLevels;
+  /** Loudness of the master since play started or the last reset; null while it isn't measured. */
+  loudness(): LoudnessReading | null;
+  /** Starts the loudness measurement over. */
+  resetLoudness(): void;
   dispose(): void;
 }
 
@@ -102,6 +106,43 @@ export interface LoudnessReading {
   range: number;
   /** dBTP. */
   truePeak: number;
+}
+
+/** A BS.1770 meter for a stereo signal (`createLoudnessMeter`). */
+export interface LoudnessMeter {
+  /** Takes the next samples of both sides (equal lengths, any size). */
+  push(left: Float32Array, right: Float32Array): void;
+  /** Everything measured since the start or the last `reset`; `-Infinity` until a window fills. */
+  read(): LoudnessReading;
+  /** Starts the measurement over. */
+  reset(): void;
+}
+
+/** The coefficients of a biquad, with `a0` taken as 1. */
+export interface Biquad {
+  b0: number;
+  b1: number;
+  b2: number;
+  a1: number;
+  a2: number;
+}
+
+/** Gated blocks counted by loudness (`createHistogram`), in memory that doesn't grow. */
+export interface LoudnessHistogram {
+  /** Counts a block of this mean-square energy; below the absolute gate it's dropped. */
+  add(energy: number): void;
+  /** The mean energy of the blocks above a gate `relative` LU under their own mean; 0 with none. */
+  gatedEnergy(relative: number): number;
+  /** The loudness below which each fraction (0..1) of the blocks above that gate lies. */
+  percentiles(fractions: number[], relative: number): number[];
+  reset(): void;
+}
+
+/** What the loudness worklet posts every 100 ms. */
+export interface LoudnessMessage {
+  /** The reset it has seen, so a reading from before a reset is ignored. */
+  generation: number;
+  reading: LoudnessReading;
 }
 
 /** What the user hears beside the document: live drag values, solo and the monitor. */

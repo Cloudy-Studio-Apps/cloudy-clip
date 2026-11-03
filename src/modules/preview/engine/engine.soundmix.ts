@@ -33,6 +33,8 @@ export function createSoundMix(pictureOnly: boolean): SoundMix {
       if (mixed) update(mixed.project, mixed.composition);
     },
     levels: () => graph?.levels() ?? NO_LEVELS,
+    loudness: () => graph?.loudness() ?? null,
+    resetLoudness: () => graph?.resetLoudness(),
     dispose: () => graph?.dispose(),
   };
 }

@@ -1,9 +1,10 @@
 import { createLogger, notify } from "@/core";
 import { pitchShift, type ClipSound } from "@/modules/project";
 import { NO_LEVELS } from "./engine.meters";
+import { createLoudnessTap } from "./engine.loudness";
 import { createMixBus } from "./engine.mixbus";
 import { createEqFilters, createPanner, createUpmix, glide, setBand } from "./engine.soundnodes";
-import type { MixBus, MixUpdate, SoundChain, SoundGraph } from "./engine.types";
+import type { LoudnessTap, MixBus, MixUpdate, SoundChain, SoundGraph } from "./engine.types";
 
 const log = createLogger("preview.engine");
 
@@ -105,9 +106,32 @@ export function createSoundGraph(): SoundGraph {
   /** The context or its buses couldn't be made: told once, never tried again. */
   let unavailable = false;
   let update: MixUpdate | null = null;
+  let loudness: LoudnessTap | null = null;
+  let closed = false;
   let pitch: Promise<() => PitchNode> | null = null;
   const chains = new WeakMap<HTMLMediaElement, SoundChain>();
   const failed = new WeakSet<HTMLMediaElement>();
+
+  /**
+   * Starts listening to the master, once per engine. The worklet loads in the background; when it
+   * can't, loudness stays null, the user is told once and the rest of the graph goes on.
+   */
+  const measureLoudness = (audio: AudioContext, master: AudioNode) => {
+    createLoudnessTap(audio, master).then(
+      (tap) => {
+        if (closed) return tap.dispose();
+        loudness = tap;
+      },
+      (error: unknown) => {
+        if (closed) return;
+        log.warn("The loudness meter isn't available", error);
+        notify(
+          "error",
+          "The preview can't measure loudness here, so the loudness readout stays empty. Playback and the level meters are unaffected.",
+        );
+      },
+    );
+  };
 
   /** The context with its buses, made on first use; null when Web Audio isn't there. */
   const open = (): AudioContext | null => {
@@ -121,6 +145,7 @@ export function createSoundGraph(): SoundGraph {
       if (update) buses.mix(update);
       context = audio;
       unavailable = false;
+      measureLoudness(audio, buses.master);
     } catch (error) {
       void audio?.close();
       log.warn("The preview has no Web Audio", error);
@@ -160,7 +185,12 @@ export function createSoundGraph(): SoundGraph {
       buses?.mix(next);
     },
     levels: () => buses?.levels() ?? NO_LEVELS,
+    loudness: () => loudness?.read() ?? null,
+    resetLoudness: () => loudness?.reset(),
     dispose() {
+      closed = true;
+      loudness?.dispose();
+      loudness = null;
       buses?.dispose();
       buses = null;
       void context?.close();
