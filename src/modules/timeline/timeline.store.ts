@@ -103,6 +103,7 @@ export function createTimelineView(
         scroller.scrollLeft = Math.max(0, x - 40);
       }
     },
+    activeScope,
     attachScroller(element, scope = "all") {
       scrollers.set(scope, element);
       const notify = () => scrollListeners.forEach((listener) => listener());

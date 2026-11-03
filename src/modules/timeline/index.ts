@@ -63,12 +63,8 @@ export { HEADER_WIDTH, RULER_HEIGHT, SNAP_PX } from "./timeline.layout";
  * the default.
  */
 export { useHeaderWidth } from "./ui/header.width.hook";
-/**
- * Whether an entry of a timeline point shows in a scope (its `scopes`, `["all"]` when unset), the
- * scope of the active page worked out from the `appPages` point, and the clips a scope lists
- * (`"sound"`: those on audio tracks).
- */
-export { activeScope, clipsInScope, inScope } from "./logic/scope";
+/** The clips a scope lists (`"sound"`: those on audio tracks). */
+export { clipsInScope } from "./logic/scope";
 /**
  * The scope of the timeline panel a component sits in (`"all"` outside one), for what a module
  * draws inside the panel (a dock, an overlay) to list only what that scope may touch.

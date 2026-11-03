@@ -1,13 +1,14 @@
 import { defineModule, keybindings, type ActorId, type TimelineScopeName } from "@/core";
 import { previewOverlays } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
-import { clipActions, timelineDocks, timelineTools } from "@/modules/timeline";
+import { clipActions, timelineDocks, timelineRef, timelineTools } from "@/modules/timeline";
 import { ClipBadge, KeyPanel, keyAction, ModeSwitch, MotionPath } from "./ui";
 import { setEase } from "./keyframe.ease.commands";
 import { keyframeCommands } from "./keyframe.commands";
 import { createKeyframeApi, elementTarget } from "./keyframe.fields";
 import { fieldActions } from "@/modules/inspector";
 import { keyTargets } from "./keyframe.points";
+import { keysInScope } from "./logic/scope";
 import { keyframeMcpTools } from "./keyframe.mcp";
 import { keyframeRef } from "./keyframe.ref";
 import type { CopiedKeys, KeyframeClipboard } from "./keyframe.types";
@@ -51,8 +52,11 @@ export const keyframeModule = defineModule({
     ctx.contribute(keybindings, {
       id: "keyframe.ease-selected",
       key: "f9",
+      // On the Sound page only the selected keys of sound clips: the selection is shared with Edit.
       resolve: () => {
-        const { mode, selection: keys } = view.getState();
+        const { mode, selection } = view.getState();
+        const scope = ctx.require(timelineRef).activeScope();
+        const keys = keysInScope(project.getState(), selection, scope);
         return mode === "normal" || keys.length === 0
           ? null
           : { command: setEase.id, input: { changes: keys.map((key) => ({ key, ease: "ease" })) } };

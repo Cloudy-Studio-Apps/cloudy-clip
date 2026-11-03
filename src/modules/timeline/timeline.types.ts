@@ -157,6 +157,11 @@ export interface TimelineApi {
   /** Brings a time into view. */
   scrollToTime(time: Micros): void;
   /**
+   * The scope of the active page's timeline (`AppPage.timelineScope`, `"all"` on the editor), for
+   * what acts outside a panel (a shortcut) to touch only what that page may.
+   */
+  activeScope(): TimelineScopeName;
+  /**
    * Registers the scrolling element of the panel of a scope (default `"all"`); there is one per
    * scope, and scrolling and zooming act on the active page's. For the timeline panel. Returns
    * the detach.
