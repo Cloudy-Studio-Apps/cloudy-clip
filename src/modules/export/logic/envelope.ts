@@ -24,7 +24,7 @@ export function keyMoments(track: KeyTrack, from: Micros, to: Micros): Micros[] 
   const offsets = plain.map((t) => t - first.t);
   const period = track.after === "loop" ? span : 2 * span;
   if (track.after === "pingpong") offsets.push(...offsets.map((o) => period - o));
-  const moments = plain.filter((t) => t >= from && t < first.t);
+  const moments: Micros[] = [];
   const startLap = Math.max(0, Math.floor((from - first.t) / period));
   for (let lap = startLap; first.t + lap * period <= to; lap++) {
     for (const offset of offsets) {
