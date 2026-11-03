@@ -80,9 +80,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     `soundGains(project, composition, time)`), `random.ts` (`seededRandom(seed)`), `drift.ts`
     (`driftSeek(state)`: where to seek a playing element, or `null`), `db.ts` (`peakToDb(peak)`:
     a linear peak in dBFS, `-Infinity` for silence, shared by the meters and the true peak),
-    `dynamics.ts` (`compressorStep(state, input, params, sampleRate)` with `createDynamicsState()`:
-    one sample through a port of FFmpeg's `acompressor`, downward, peak detection, pure and
-    allocation-free for a worklet; matches ffmpeg n9.0.2 to float precision, see
+    `dynamics.ts` (the one dynamics core, a port of FFmpeg's detector and gain curve: `compressorCurve(params, sampleRate)` works out a `DynamicsCurve` once per settings change; `dynamicsGain(state, curve, level)` moves the detector (`createDynamicsState()`) by one level and gives the factor for the whole frame, so stereo is linked as FFmpeg's `link=average` (`linkedLevel(left, right)`); `dynamicsStep(state, curve, input)` is one mono sample; pure and allocation-free for a worklet; `acompressor` matches ffmpeg n9.0.2 to float precision, see
     `docs/superpowers/specs/2026-11-03-sound-dynamics-check.md`. Export must pass `detection=peak`,
     since FFmpeg's default is RMS).
   - `logic/frame.ts`: `resolveFrame(project, compositionId, time, options)`: a composition at a time as a tree, descending into placements at their local time (`sourceIn + time - start`). Every clip has a `path` of placement ids (`outer/inner`), because one original can be on screen twice: slots, needed sets and canvases key on it, never the bare clip id. A placement on a video track shows only pictures, on an audio track only sound; a hidden track shows nothing inside.

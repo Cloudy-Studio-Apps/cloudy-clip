@@ -103,11 +103,38 @@ export interface MixLevels {
 }
 
 /**
- * What a compressor carries from one sample to the next (`logic/dynamics.ts`): the detector's
- * envelope, linear. Starts at 0.
+ * What a compressor, gate or duck carries from one sample to the next (`logic/dynamics.ts`): the
+ * detector's envelope, linear. Starts at 0.
  */
 export interface DynamicsState {
   envelope: number;
+}
+
+/**
+ * A detector and gain curve worked out once from an effect's settings (`compressorCurve`,
+ * `gateCurve`, `duckCurve`), as FFmpeg's `config_input` does: levels in natural logs, a soft knee
+ * from `kneeStart` to `kneeStop`, coefficients of the one-pole detector.
+ */
+export interface DynamicsCurve {
+  /** `compress` lowers what is over the threshold; `expand` lowers what is under it (a gate). */
+  mode: "compress" | "expand";
+  attack: number;
+  release: number;
+  ratio: number;
+  /** The knee, linear (1 is none). */
+  knee: number;
+  thres: number;
+  kneeStart: number;
+  kneeStop: number;
+  linKneeStart: number;
+  linKneeStop: number;
+  /** Where the curve meets the knee's far end: FFmpeg's compressed knee stop, or the gate's knee start. */
+  kneeTarget: number;
+  /** The gate's floor, linear (0 for none). */
+  range: number;
+  makeup: number;
+  /** How much of the processed sound is heard, 0 to 1; the rest is dry. */
+  mix: number;
 }
 
 /** Loudness of the master, as BS.1770 measures it. */

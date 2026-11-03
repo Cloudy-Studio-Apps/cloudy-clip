@@ -1,11 +1,12 @@
 import type { CompressorParams } from "@/modules/project";
 import { describe, expect, it } from "vitest";
-import { compressorStep, createDynamicsState } from "./dynamics";
+import { compressorCurve, createDynamicsState, dynamicsStep } from "./dynamics";
 
-// Parity with FFmpeg's `acompressor` (docs/superpowers/specs/2026-11-03-sound-dynamics-check.md).
-// Figures from ffmpeg n9.0.2. The bar: steady level within 0.5 dB, attack and release within 10 %.
+// Parity with FFmpeg n9.0.2 (docs/superpowers/specs/2026-11-03-sound-dynamics-check.md): `acompressor`. The bar: steady level within 0.5 dB, attack and release within 10 %.
+// The signals are FFmpeg's `aevalsrc` at 48 kHz; outputs were written with `-f f32le -ac 1`.
 
 const RATE = 48_000;
+const MS = RATE / 1000;
 const LOUD = 10 ** (-6 / 20);
 const QUIET = 10 ** (-30 / 20);
 
@@ -35,52 +36,57 @@ const FFMPEG_STEADY_RMS_DB = -17.25402;
 const FFMPEG_ATTACK_MS = 19.77;
 const FFMPEG_RELEASE_MS = 86.77;
 
-function compress(input: Float32Array, params: CompressorParams): Float32Array {
-  const state = createDynamicsState();
-  return input.map((x) => compressorStep(state, x, params, RATE));
-}
-
-function tone(seconds: number, amplitudeAt: (t: number) => number): Float32Array {
+function tone(seconds: number, hz: number, amplitudeAt: (t: number) => number): Float32Array {
   const out = new Float32Array(Math.round(seconds * RATE));
-  return out.map((_, i) => amplitudeAt(i / RATE) * Math.sin((2 * Math.PI * 1000 * i) / RATE));
+  return out.map((_, i) => amplitudeAt(i / RATE) * Math.sin((2 * Math.PI * hz * i) / RATE));
 }
 
-/** Gain reduction in dB over the 1 ms (one period) ending at a sample. */
+const step = (t: number, inside: number, outside: number) => (t >= 1 && t <= 2 ? inside : outside);
+
+/** Gain reduction in dB over the 1 ms ending at a sample. */
 function reductionAt(output: Float32Array, input: Float32Array, end: number): number {
   let peakIn = 0;
   let peakOut = 0;
-  for (let i = end - RATE / 1000; i < end; i++) {
+  for (let i = end - MS; i < end; i++) {
     peakIn = Math.max(peakIn, Math.abs(input[i] ?? 0));
     peakOut = Math.max(peakOut, Math.abs(output[i] ?? 0));
   }
   return 20 * Math.log10(peakIn / peakOut);
 }
 
-/** Attack (to 90 % of the settled reduction) and release (down to 10 %), in ms. */
-function stepTimings(output: Float32Array, input: Float32Array, up: number, down: number) {
-  const settled = reductionAt(output, input, down);
-  let attack = up + RATE / 1000;
-  while (reductionAt(output, input, attack) < 0.9 * settled) attack++;
-  let release = down + RATE / 1000;
-  while (reductionAt(output, input, release) > 0.1 * settled) release++;
-  const ms = (samples: number) => ((samples - RATE / 1000) * 1000) / RATE;
-  return { attackMs: ms(attack - up), releaseMs: ms(release - down) };
+/**
+ * The reduction settled just before `off`, the time after `on` to reach 90 % of it and the time
+ * after `off` to fall to 10 % of it, in ms.
+ */
+function stepTimings(output: Float32Array, input: Float32Array, on: number, off: number) {
+  const settledDb = reductionAt(output, input, off);
+  let rise = on + MS;
+  while (reductionAt(output, input, rise) < 0.9 * settledDb) rise++;
+  let fall = off + MS;
+  while (reductionAt(output, input, fall) > 0.1 * settledDb) fall++;
+  const ms = (samples: number) => ((samples - MS) * 1000) / RATE;
+  return { settledDb, riseMs: ms(rise - on), fallMs: ms(fall - off) };
 }
 
-describe("compressorStep (FFmpeg acompressor parity)", () => {
+const near = (value: number, expected: number) => Math.abs(value / expected - 1);
+
+describe("compressor (FFmpeg acompressor parity)", () => {
+  const compress = (input: Float32Array) => {
+    const state = createDynamicsState();
+    const curve = compressorCurve(PARAMS, RATE);
+    return input.map((x) => dynamicsStep(state, curve, x));
+  };
+
   it("settles a −6 dBFS sine at FFmpeg's level within 0.5 dB", () => {
-    const output = compress(
-      tone(2, () => LOUD),
-      PARAMS,
-    ).subarray(RATE);
+    const output = compress(tone(2, 1000, () => LOUD)).subarray(RATE);
     const rms = Math.sqrt(output.reduce((sum, x) => sum + x * x, 0) / output.length);
     expect(Math.abs(20 * Math.log10(rms) - FFMPEG_STEADY_RMS_DB)).toBeLessThan(0.5);
   });
 
   it("attacks and releases within 10 % of FFmpeg's times", () => {
-    const input = tone(3, (t) => (t >= 1 && t <= 2 ? LOUD : QUIET));
-    const { attackMs, releaseMs } = stepTimings(compress(input, PARAMS), input, RATE, 2 * RATE);
-    expect(Math.abs(attackMs / FFMPEG_ATTACK_MS - 1)).toBeLessThan(0.1);
-    expect(Math.abs(releaseMs / FFMPEG_RELEASE_MS - 1)).toBeLessThan(0.1);
+    const input = tone(3, 1000, (t) => step(t, LOUD, QUIET));
+    const { riseMs, fallMs } = stepTimings(compress(input), input, RATE, 2 * RATE);
+    expect(near(riseMs, FFMPEG_ATTACK_MS)).toBeLessThan(0.1);
+    expect(near(fallMs, FFMPEG_RELEASE_MS)).toBeLessThan(0.1);
   });
 });
