@@ -26,7 +26,7 @@ interface FieldsProps {
 }
 
 function Fields({ clip, edit, bare }: FieldsProps) {
-  const { ripple, joined, refused, live, commit, setRipple } = edit;
+  const { ripple, joined, refused, live, commit, commitKey, setRipple } = edit;
   const { pitchCorrection, reversed } = speedOf(clip);
   const ramped = rampOf(clip) !== undefined;
   const shown = speedOf(useClipAtPlayhead(clip)).rate;
@@ -34,6 +34,8 @@ function Fields({ clip, edit, bare }: FieldsProps) {
   const changed = rate !== DEFAULT_SPEED.rate ? "" : undefined;
   const blocked = joined && !ripple;
   const locked = blocked || ramped;
+  // On a ramp, the slider and presets write a key at the playhead instead of one rate.
+  const setRate = (next: number) => void (ramped ? commitKey(next) : commit({ rate: next }));
   return (
     <div className="flex w-full min-w-0 flex-col gap-1.5">
       <div data-field-row className="flex min-w-0 items-center gap-1">
@@ -48,9 +50,9 @@ function Fields({ clip, edit, bare }: FieldsProps) {
             unit="x"
             scale="log"
             bare={bare}
-            disabled={locked}
-            onInput={live}
-            onCommit={(next) => void commit({ rate: next })}
+            disabled={blocked}
+            onInput={ramped ? () => undefined : live}
+            onCommit={setRate}
           />
         </div>
         <KeyAction clip={clip} paths={[RAMP_PATH]} disabled={blocked || reversed} />
@@ -59,9 +61,9 @@ function Fields({ clip, edit, bare }: FieldsProps) {
         label="Speed presets"
         options={OPTIONS}
         value={String(rate)}
-        disabled={locked}
+        disabled={blocked}
         className="justify-between"
-        onChange={(next) => void commit({ rate: Number(next) })}
+        onChange={(next) => setRate(Number(next))}
       />
       <div className="flex min-w-0 items-center gap-2">
         <span className="w-[74px] shrink-0 text-base text-muted-foreground">Duration</span>
@@ -82,7 +84,8 @@ function Fields({ clip, edit, bare }: FieldsProps) {
       )}
       {ramped && (
         <p className="text-xs text-muted-foreground">
-          This clip has a speed ramp. Its keys set its speed; clear them to set one speed.
+          This clip has a speed ramp. Speed sets a key at the playhead; clear the keys to set one
+          speed.
         </p>
       )}
       <ToggleRow

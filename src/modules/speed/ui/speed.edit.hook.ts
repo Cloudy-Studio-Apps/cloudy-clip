@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
 import { notify, useKernel, useModule } from "@/core";
+import { setKey } from "@/modules/keyframe";
 import { previewRef } from "@/modules/preview";
 import {
+  RAMP_PATH,
   junctionsOfClip,
   partnersOf,
   projectRef,
@@ -62,6 +64,18 @@ export function useSpeedEdit(clipId: ClipId) {
           ripple: view.getState().ripple,
         });
         clear();
+        if (result.ok) return;
+        notify("error", result.error.message);
+        setRefused((count) => count + 1);
+      },
+      /** On a ramped clip, the rate at the playhead as a key of its ramp. */
+      async commitKey(rate: number) {
+        const result = await bus.run(setKey, {
+          clipId,
+          path: RAMP_PATH,
+          at: preview.playback.getTime(),
+          value: rate,
+        });
         if (result.ok) return;
         notify("error", result.error.message);
         setRefused((count) => count + 1);
