@@ -2,13 +2,14 @@ import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { PlayButton, previewRef, Timecode } from "@/modules/preview";
 import { playheadSplit, splitAt, timelineRef } from "@/modules/timeline";
+import { LoopToggle } from "./LoopToggle";
 import { MixSwitch } from "./MixSwitch";
 import { MonitorControls } from "./MonitorControls";
 import { TransportSeparator } from "./TransportSeparator";
 import { TransportTool } from "./TransportTool";
 
 /**
- * The Sound page's transport row: the time and play, Cut at the playhead and Snap, Mix A and B,
+ * The Sound page's transport row: the time and play, Loop, Cut at the playhead and Snap, Mix A and B,
  * and how the user listens. Select joins when there is a second pointer tool to choose from.
  */
 export function SoundTransport() {
@@ -23,6 +24,7 @@ export function SoundTransport() {
         <Timecode />
       </span>
       <PlayButton />
+      <LoopToggle />
       <TransportSeparator />
       <TransportTool
         title="Cut at the playhead (S)"

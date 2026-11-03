@@ -12,7 +12,7 @@ import { elementRef } from "@/modules/element";
 import { fontsRef } from "@/modules/fonts";
 import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
-import { projectRef } from "@/modules/project";
+import { frameDuration, projectRef } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/engine.html";
 import { rememberPlayheads } from "./logic/playheads";
 import { createCapture, createFrameRenderer } from "./preview.capture";
@@ -44,7 +44,13 @@ export const previewModule = defineModule({
       const id = view.openFor(actor);
       return id === null ? null : (project.getState().compositions[id] ?? null);
     };
-    const clock = createPlaybackClock(() => openComposition()?.duration ?? 0);
+    const clock = createPlaybackClock(
+      () => openComposition()?.duration ?? 0,
+      () => {
+        const open = openComposition();
+        return open ? frameDuration(open.format) : 0;
+      },
+    );
     const engineOptions = {
       mediaUrl: media.mediaUrl,
       reversedUrl: (id: string) => media.reversedUrl(id, false),
@@ -94,16 +100,20 @@ export const previewModule = defineModule({
       createRenderer: (options) => createFrameRenderer(captureDeps, options),
       measureVideoLevels,
     });
-    // Each composition keeps its playhead: a switch stops playback and goes where this one was.
+    // Each composition keeps its playhead and loop: a switch stops playback and goes where this
+    // one was.
     const playheads = rememberPlayheads();
     let shown = view.openFor(LOCAL_ACTOR);
     const followOpen = () => {
       const next = view.openFor(LOCAL_ACTOR);
       if (next === shown) return;
-      const time = playheads.switchTo(shown, next, clock.getTime());
+      const left = { time: clock.getTime(), loop: clock.getLoop() };
+      const { time, loop } = playheads.switchTo(shown, next, left);
       shown = next;
       clock.pause();
       clock.seek(time);
+      // One that no longer fits (shortened meanwhile) goes.
+      if (!clock.setLoop(loop)) clock.setLoop(null);
     };
     ctx.onDispose(view.store.subscribe(followOpen));
     ctx.onDispose(project.subscribe(followOpen));

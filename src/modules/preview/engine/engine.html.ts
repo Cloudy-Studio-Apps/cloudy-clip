@@ -206,6 +206,21 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (this.settled) this.draw(project, frame, transforms, propsOverrides);
   }
 
+  playSlice(
+    project: ProjectState,
+    composition: Composition,
+    time: Micros,
+    start: boolean,
+    transforms?: ReadonlyMap<ClipId, ClipTransform>,
+    propsOverrides?: ReadonlyMap<ClipId, Record<string, unknown>>,
+  ): void {
+    // Paused first, so every element seeks exactly there: a playing one would aim ahead of it.
+    if (start) this.render(project, composition, time, false, transforms, propsOverrides);
+    this.render(project, composition, time, true, transforms, propsOverrides);
+    // Heard and metered as playback is, but the loudness reading counts real playback only.
+    this.sound.setPlaying(false);
+  }
+
   setSound = (live: LiveSound): void => this.sound.setSound(live);
   levels = (): MixLevels => this.sound.levels();
   loudness = (): LoudnessReading | null => this.sound.loudness();

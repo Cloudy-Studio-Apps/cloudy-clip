@@ -65,4 +65,29 @@ export const seek = defineCommand({
   },
 });
 
-export const previewCommands = [play, pause, togglePlay, seek];
+/**
+ * Sets the loop region of the user's playhead, or clears it (null). View state: never in the
+ * project or history, and no MCP tool (an agent's clock plays nothing).
+ */
+export const setLoop = defineCommand({
+  id: "preview.setLoop",
+  label: "Set loop",
+  description:
+    "Sets the user's loop region (microseconds) in the open composition, or clears it with null. Playing, crossing `to` goes back to `from`. Ends are clamped to the composition; fails with preview.loop_too_short under one frame.",
+  undoable: false,
+  input: z.object({
+    range: z
+      .object({ from: z.number().int().min(0), to: z.number().int().min(0) })
+      .nullable()
+      .describe("Microseconds; null clears the loop"),
+  }),
+  run(ctx, { range }) {
+    const { playback } = ctx.require(previewRef);
+    if (!playback.setLoop(range)) {
+      throw new CommandFailure("preview.loop_too_short", "A loop must be at least one frame long");
+    }
+    return { loop: playback.getLoop() };
+  },
+});
+
+export const previewCommands = [play, pause, togglePlay, seek, setLoop];

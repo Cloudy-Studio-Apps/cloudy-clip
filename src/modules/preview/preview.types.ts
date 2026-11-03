@@ -18,6 +18,18 @@ import type {
 /** Called on every frame while playing, and once per seek while paused. */
 export type TimeListener = (time: Micros) => void;
 
+/** A stretch of the timeline that playback repeats: reaching `to` goes back to `from`. */
+export interface LoopRange {
+  from: Micros;
+  to: Micros;
+}
+
+/** Where a composition's playhead was left, kept for when it's opened again. */
+export interface PlayheadPlace {
+  time: Micros;
+  loop: LoopRange | null;
+}
+
 /**
  * The single source of truth for the playhead. Driven by `requestAnimationFrame`, never by
  * React state, so playback causes no re-renders.
@@ -34,6 +46,16 @@ export interface PlaybackClock {
   onTime(listener: TimeListener): () => void;
   /** Subscribes to play/pause changes. Compatible with `useSyncExternalStore`. */
   onPlayingChange(listener: () => void): () => void;
+  /** The loop region, or null. View state: never in the project or history. */
+  getLoop(): LoopRange | null;
+  /**
+   * Sets the loop region, or clears it (null). The ends are put in order and clamped to the
+   * composition; a range shorter than one frame is refused: returns false and nothing changes.
+   * While playing, crossing `to` goes back to `from`; playing from past `to` plays on.
+   */
+  setLoop(range: LoopRange | null): boolean;
+  /** Subscribes to loop changes. Compatible with `useSyncExternalStore`. */
+  onLoopChange(listener: () => void): () => void;
   dispose(): void;
 }
 
@@ -51,6 +73,20 @@ export interface PreviewEngine {
     composition: Composition,
     time: Micros,
     playing: boolean,
+    transforms?: ReadonlyMap<ClipId, ClipTransform>,
+    propsOverrides?: ReadonlyMap<ClipId, Record<string, unknown>>,
+  ): void;
+  /**
+   * Plays a short slice of sound at `time` (audio scrub) through the sound graph, so it is mixed
+   * and metered like playback; the loudness reading doesn't count it. `start` seeks every element
+   * exactly there first (a slice beginning); without it, the slice goes on and its frame is drawn
+   * once decoded. `pauseAll` ends it.
+   */
+  playSlice(
+    project: ProjectState,
+    composition: Composition,
+    time: Micros,
+    start: boolean,
     transforms?: ReadonlyMap<ClipId, ClipTransform>,
     propsOverrides?: ReadonlyMap<ClipId, Record<string, unknown>>,
   ): void;
@@ -357,6 +393,25 @@ export interface FrameRenderer {
   dispose(): void;
 }
 
+/** What audio scrub needs from the controller. */
+export interface ScrubDeps {
+  /** Starts a slice at `time`; false when nothing can play (playing already, no engine). */
+  playSlice(time: Micros): boolean;
+  /** Ends the last slice: media stops and the paused frame is drawn again. */
+  stop(): void;
+}
+
+/** Audio scrub of one controller (`preview.scrub.ts`). */
+export interface Scrubber {
+  scrub(time: Micros): void;
+  /** Where the slice playing has got to, null when none is. */
+  at(): Micros | null;
+  /** Drops the slice and any waiting one without stopping media (playback took over). */
+  cancel(): void;
+  onChange(listener: () => void): () => void;
+  dispose(): void;
+}
+
 /** Offscreen capture, owned by the preview controller. */
 export interface PreviewCapture {
   captureAt(time: Micros, compositionId: CompositionId): Promise<string>;
@@ -374,6 +429,17 @@ export interface PreviewApi {
   clockFor(actor: ActorId): PlaybackClock;
   /** Forgets a collaborator's playhead. */
   dropClock(actor: ActorId): void;
+  /**
+   * Audio scrub: plays 80 ms of sound from `time` through the mix, as playback would sound there.
+   * Calls during a slice wait for it, and only the latest plays next, so a fast drag never piles
+   * slices up. Does nothing while playing. The user's preview only (an agent's clock plays
+   * nothing).
+   */
+  scrub(time: Micros): void;
+  /** Whether a scrub slice is playing. */
+  isScrubbing(): boolean;
+  /** Subscribes to a scrub starting or ending. Compatible with `useSyncExternalStore`. */
+  onScrubbingChange(listener: () => void): () => void;
   /**
    * Attaches a preview canvas. Returns a detach function. Only the newest attached canvas is drawn
    * on (a page's own stage over the editor's); when it detaches, the one under it is drawn on again.

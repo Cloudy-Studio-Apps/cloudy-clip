@@ -41,6 +41,13 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     (`links.ts`: `selectionSubject`; `partnersOf`/`withPartners` now live in `project`) and linked trims (`trim.ts`).
   - `ui/`: page-virtualized lanes (`TimelinePanel`; `panel.scroller.hook.ts` holds its scroller: visible page, attach, Ctrl+wheel zoom, media drop; `scope.hook.ts` the scope context), `clip.gesture.ts` (DOM feedback while dragging,
     one command on release), the playhead positioned by `playhead.hook.ts` without renders.
+    `Ruler.tsx`: press and drag scrubs (snapped unless Ctrl/Cmd), and each move asks `preview`
+    for a slice of sound (`PreviewApi.scrub`), in both scopes. `LoopBand.tsx`: the loop region
+    of `preview`'s clock on the ruler, in both scopes (a band in `--on` at 15%, a bar along the
+    bottom, a handle at each end); dragging a handle moves that end (`loop.gesture.ts`, DOM only,
+    snapped like the scrub with the playhead as a target, Ctrl/Cmd free) and sends one
+    `preview.setLoop` on release; double-clicking a handle clears the loop. Loops are made by the
+    Sound page's Loop button (`sound`); one made there shows, plays and is edited on Edit too.
     `CreateTiles.tsx` lists every element's `create` entries for a panel; `create.gesture.ts`:
     click-or-drag on a tile (DOM ghost, no renders), a click adds at the playhead, a drop goes
     through `dropTarget` (the lane under the pointer when the element may sit there, else only the

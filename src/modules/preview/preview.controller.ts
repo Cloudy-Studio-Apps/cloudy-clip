@@ -1,6 +1,7 @@
 import { createLogger, LOCAL_ACTOR, type ActorId } from "@/core";
-import type { ClipId, ClipTransform } from "@/modules/project";
+import { frameDuration, type ClipId, type ClipTransform } from "@/modules/project";
 import { createVirtualClock } from "./logic/virtual.clock";
+import { createScrub } from "./preview.scrub";
 import { createPreviewSound } from "./preview.sound";
 import type {
   PlaybackClock,
@@ -41,6 +42,21 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   /** Live mix values, solo and the monitor: the engine attached later starts with them too. */
   const sound = createPreviewSound(() => engine);
 
+  /** Audio scrub: a slice plays from the engine; the last one ending redraws the paused frame. */
+  const scrub = createScrub({
+    playSlice(time) {
+      const composition = deps.getComposition();
+      if (!engine || !composition || clock.isPlaying()) return false;
+      const project = deps.getProject();
+      engine.playSlice(project, composition, time, true, transforms, propsOverrides);
+      return true;
+    },
+    stop() {
+      engine?.pauseAll();
+      requestRedraw();
+    },
+  });
+
   function renderNow(): void {
     redrawQueued = false;
     if (!engine) return;
@@ -49,18 +65,19 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
       engine.pauseAll();
       return;
     }
+    // A scrub slice goes on where it has got to, drawing its frame once decoded; playing ends it.
+    const slice = scrub.at();
+    if (slice !== null && clock.isPlaying()) scrub.cancel();
+    const sliced = slice !== null && !clock.isPlaying();
+    const project = deps.getProject();
+    const time = clock.getTime();
     try {
-      engine.render(
-        deps.getProject(),
-        composition,
-        clock.getTime(),
-        clock.isPlaying(),
-        transforms,
-        propsOverrides,
-      );
+      if (sliced) engine.playSlice(project, composition, slice, false, transforms, propsOverrides);
+      else engine.render(project, composition, time, clock.isPlaying(), transforms, propsOverrides);
     } catch (error) {
       log.error("Render failed", error);
     }
+    if (sliced) return;
     // A layer is still decoding: try again next frame (bounded, so a stuck file can't spin).
     if (!clock.isPlaying() && !engine.isSettled() && settleRetries < MAX_SETTLE_RETRIES) {
       settleRetries++;
@@ -101,6 +118,9 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     const offProject = deps.subscribeProject(() => {
       const duration = deps.getDuration();
       if (clock.getTime() > duration) clock.seek(duration);
+      // A loop past a shortened end is clamped, or goes when less than a frame is left.
+      const loop = clock.getLoop();
+      if (loop && loop.to > duration && !clock.setLoop(loop)) clock.setLoop(null);
       requestRedraw();
     });
     // A proxy becoming ready changes a file's URL; redraw so the engine reloads it.
@@ -154,7 +174,11 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
       if (actor === LOCAL_ACTOR) return clock;
       let virtual = clocks.get(actor);
       if (!virtual) {
-        virtual = createVirtualClock(() => deps.getDuration(actor), clock.getTime());
+        const frame = () => {
+          const open = deps.getComposition(actor);
+          return open ? frameDuration(open.format) : 0;
+        };
+        virtual = createVirtualClock(() => deps.getDuration(actor), clock.getTime(), frame);
         clocks.set(actor, virtual);
       }
       return virtual;
@@ -165,6 +189,9 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     },
     attachCanvas,
     redraw: requestRedraw,
+    scrub: (time) => scrub.scrub(time),
+    isScrubbing: () => scrub.at() !== null,
+    onScrubbingChange: (listener) => scrub.onChange(listener),
     captureAt: (time, compositionId) => deps.capture.captureAt(time, compositionId),
     createRenderer: (options) => deps.createRenderer(options),
     measureVideoLevels: (url) => deps.measureVideoLevels(url),
@@ -187,6 +214,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     viewport: createViewport(),
     sound: sound.sound,
     dispose() {
+      scrub.dispose();
       clock.pause();
       attached.length = 0;
       drawOnTop();

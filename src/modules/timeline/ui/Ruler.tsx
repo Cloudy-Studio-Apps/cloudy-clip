@@ -6,6 +6,7 @@ import { pxToTime, rulerStep, timeToPx } from "../logic/geometry";
 import { snapTime } from "../logic/placement";
 import { RULER_HEIGHT, SNAP_PX } from "../timeline.layout";
 import { useHeaderWidth } from "./header.width.hook";
+import { LoopBand } from "./LoopBand";
 import { PlayheadHead } from "./Playhead";
 import { useSnapCandidates } from "./snap.hook";
 
@@ -21,11 +22,13 @@ interface RulerProps {
 }
 
 /**
- * Time ruler. Press and drag on it to scrub; the playhead snaps to clip edges, cuts and markers
- * unless Ctrl (Cmd) is held. Sticks to the top while scrolling.
+ * Time ruler. Press and drag on it to scrub: the playhead snaps to clip edges, cuts and markers
+ * unless Ctrl (Cmd) is held, and each move plays a slice of sound (`PreviewApi.scrub`). The loop
+ * region sits on it (`LoopBand`). Sticks to the top while scrolling.
  */
 export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: RulerProps) {
-  const { playback } = useModule(previewRef);
+  const preview = useModule(previewRef);
+  const { playback } = preview;
   const project = useModule(projectRef).store;
   const compositionId = useOpenComposition()?.id;
   const snapCandidates = useSnapCandidates();
@@ -44,6 +47,7 @@ export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: Ruler
     );
     const free = event.ctrlKey || event.metaKey;
     playback.seek(free ? time : snapTime(time, candidates, pxToTime(SNAP_PX, pxPerSecond)));
+    preview.scrub(playback.getTime());
   };
 
   return (
@@ -93,6 +97,7 @@ export const Ruler = memo(function Ruler({ pxPerSecond, from, to, width }: Ruler
             </div>
           );
         })}
+        <LoopBand pxPerSecond={pxPerSecond} />
         <PlayheadHead />
       </div>
     </div>

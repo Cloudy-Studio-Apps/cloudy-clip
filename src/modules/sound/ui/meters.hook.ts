@@ -5,19 +5,22 @@ import type { MeterLoop } from "../sound.types";
 import { createMeterLoop } from "./meters.loop";
 
 /**
- * The page's one meter loop: it reads the levels on every frame while the timeline plays and the
- * component that holds it is mounted, and nothing otherwise.
+ * The page's one meter loop: it reads the levels on every frame while the timeline plays (or a
+ * scrub slice sounds) and the component that holds it is mounted, and nothing otherwise.
  */
 export function useMeterLoop(): MeterLoop {
   const preview = useModule(previewRef);
   const loop = useMemo(() => createMeterLoop(preview.sound), [preview]);
   useEffect(() => {
     const { playback } = preview;
-    const follow = () => (playback.isPlaying() ? loop.start() : loop.stop());
+    const sounding = () => playback.isPlaying() || preview.isScrubbing();
+    const follow = () => (sounding() ? loop.start() : loop.stop());
     follow();
     const off = playback.onPlayingChange(follow);
+    const offScrub = preview.onScrubbingChange(follow);
     return () => {
       off();
+      offScrub();
       loop.stop();
     };
   }, [loop, preview]);

@@ -1,14 +1,21 @@
-import type { Micros } from "@/core";
 import type { CompositionId } from "@/modules/project";
+import type { PlayheadPlace } from "../preview.types";
 
-/** Remembers where the playhead was in each composition. */
+/** Nowhere yet: the start, no loop. */
+const START: PlayheadPlace = { time: 0, loop: null };
+
+/** Remembers where the playhead was in each composition, and its loop. */
 export function rememberPlayheads() {
-  const times = new Map<CompositionId, Micros>();
+  const places = new Map<CompositionId, PlayheadPlace>();
   return {
-    /** Stores `time` for `from` and returns where the playhead goes in `to`. */
-    switchTo(from: CompositionId | null, to: CompositionId | null, time: Micros): Micros {
-      if (from !== null) times.set(from, time);
-      return to === null ? 0 : (times.get(to) ?? 0);
+    /** Stores `place` for `from` and returns where the playhead goes in `to`. */
+    switchTo(
+      from: CompositionId | null,
+      to: CompositionId | null,
+      place: PlayheadPlace,
+    ): PlayheadPlace {
+      if (from !== null) places.set(from, place);
+      return to === null ? START : (places.get(to) ?? START);
     },
   };
 }

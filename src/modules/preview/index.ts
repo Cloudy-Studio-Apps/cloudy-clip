@@ -2,7 +2,7 @@
  * Preview module: the playback clock, the preview engine, and the preview panel.
  * @module preview
  */
-export { pause, play, seek, togglePlay } from "./preview.commands";
+export { pause, play, seek, setLoop, togglePlay } from "./preview.commands";
 export { HtmlMediaEngine } from "./engine/engine.html";
 /** Layers drawn over the preview frame; contribute with `ctx.contribute(previewOverlays, …)`. */
 export { previewOverlays } from "./preview.points";
@@ -18,6 +18,7 @@ export type {
   FrameRenderer,
   FrameRendererOptions,
   LiveSound,
+  LoopRange,
   LoudnessReading,
   MixLevels,
   MonitorState,
