@@ -249,7 +249,7 @@ export interface SliderOptions {
 }
 
 /** The tabs of the panel under the Sound page's timeline. */
-export type SoundPanelTab = "clip" | "channel" | "loudness";
+export type SoundPanelTab = "clip" | "channel" | "loudness" | "deliver";
 
 /** What the Loudness tab tells its history graph. */
 export interface LoudnessHistoryHandle {

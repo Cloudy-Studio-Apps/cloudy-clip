@@ -12,6 +12,7 @@ import { Fader } from "./Fader";
 import { MasterPan } from "./MasterPan";
 import { Meter } from "./Meter";
 import { ReadButton } from "./ReadButton";
+import { SendsTo } from "./SendsTo";
 import { StripLabel } from "./StripLabel";
 
 /**
@@ -48,10 +49,7 @@ export function MasterStrip({ compositionId }: { compositionId: CompositionId | 
       </div>
       <StripLabel>Effects</StripLabel>
       <EffectChain target="master" compositionId={compositionId} effects={effects} />
-      <StripLabel>Sends to</StripLabel>
-      <div className="truncate border-b border-border-strong font-mono text-sm text-muted-foreground">
-        Output 1-2
-      </div>
+      <SendsTo to="Output 1-2" />
       <StripLabel>Pan</StripLabel>
       <MasterPan />
       <Fader

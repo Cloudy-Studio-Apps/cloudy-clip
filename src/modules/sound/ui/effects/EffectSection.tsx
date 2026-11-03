@@ -1,45 +1,48 @@
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
-import { InspectorSection } from "@/modules/inspector";
 import type { SoundEffect } from "@/modules/project";
-import { IconButton, Switch } from "@/ui";
+import { cn, IconButton, Switch } from "@/ui";
 import { EFFECT_NAMES } from "../../logic/effects";
 import type { EffectEdit } from "../../sound.types";
+import { PanelCard } from "../panel";
 
 interface EffectSectionProps {
   effect: SoundEffect;
   edit: EffectEdit;
+  /** `row-span-2` for a tall card (EQ, Compressor). */
+  className?: string;
   children: ReactNode;
 }
 
 /**
- * One effect of the chain as a section of the Channel tab: its switch, its name (a click folds
- * it, as in the inspector), a button that takes it out, and its values.
+ * One effect of the chain as a card of the Channel tab: its name, a button that takes it out
+ * (shown on hover and focus), its switch at the right, and its values, at 40 % while it's off.
  */
-export function EffectSection({ effect, edit, children }: EffectSectionProps) {
+export function EffectSection({ effect, edit, className, children }: EffectSectionProps) {
   const { name } = EFFECT_NAMES[effect.kind];
   return (
-    <InspectorSection
+    <PanelCard
       title={name}
-      foldKey={`sound.effect.${effect.kind}`}
-      leading={
-        <Switch
-          label={name}
-          checked={effect.on}
-          onChange={(on) => void edit.commit(effect.id, { on })}
-        />
-      }
+      dim={!effect.on}
+      className={cn("group/effect", className)}
       actions={
-        <IconButton
-          label={`Remove ${name.toLowerCase()}`}
-          className="!size-[22px] [&_svg]:!size-3.5"
-          onClick={() => edit.remove(effect.id)}
-        >
-          <X />
-        </IconButton>
+        <span className="flex shrink-0 items-center gap-1.5">
+          <IconButton
+            label={`Remove ${name.toLowerCase()}`}
+            className="!size-[22px] opacity-0 focus-visible:opacity-100 group-hover/effect:opacity-100 [&_svg]:!size-3.5"
+            onClick={() => edit.remove(effect.id)}
+          >
+            <X />
+          </IconButton>
+          <Switch
+            label={name}
+            checked={effect.on}
+            onChange={(on) => void edit.commit(effect.id, { on })}
+          />
+        </span>
       }
     >
-      {children}
-    </InspectorSection>
+      <div className="flex flex-col gap-1.5">{children}</div>
+    </PanelCard>
   );
 }

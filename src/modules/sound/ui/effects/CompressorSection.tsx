@@ -7,6 +7,7 @@ import {
 } from "@/modules/project";
 import { defaultSpec } from "../../logic/effects";
 import type { EffectEdit, TransferGraphHandle } from "../../sound.types";
+import { PanelValue } from "../panel";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 import { TransferGraph } from "./TransferGraph";
@@ -18,7 +19,10 @@ interface CompressorSectionProps {
   edit: EffectEdit;
 }
 
-/** The compressor: its transfer graph and six values. */
+/**
+ * The compressor: its transfer graph, six values, and Reduction, how far it turns the sound down
+ * as it plays: `—` and coming soon (`soon("compressor.reduction")`, a stage 2 follow-up).
+ */
 export function CompressorSection({ effect, edit }: CompressorSectionProps) {
   const graph = useRef<TransferGraphHandle>(null);
   const row = (
@@ -42,7 +46,7 @@ export function CompressorSection({ effect, edit }: CompressorSectionProps) {
     />
   );
   return (
-    <EffectSection effect={effect} edit={edit}>
+    <EffectSection effect={effect} edit={edit} className="row-span-2">
       <TransferGraph effect={effect} ref={graph} />
       {row("thresholdDb", "Threshold", { step: 0.5, unit: "dB" })}
       {row("ratio", "Ratio", { step: 0.1, unit: ":1" })}
@@ -50,6 +54,7 @@ export function CompressorSection({ effect, edit }: CompressorSectionProps) {
       {row("attackMs", "Attack", { step: 0.01, unit: "ms", scale: "log" })}
       {row("releaseMs", "Release", { step: 0.01, unit: "ms", scale: "log" })}
       {row("makeupDb", "Makeup", { step: 0.5, unit: "dB" })}
+      <PanelValue label="Reduction" unit="dB" soon="compressor.reduction" />
     </EffectSection>
   );
 }

@@ -11,7 +11,7 @@ interface EqEffectSectionProps {
 /** The EQ effect: the same editor as a clip's Equalizer, on the chain's six bands. */
 export function EqEffectSection({ effect, edit }: EqEffectSectionProps) {
   return (
-    <EffectSection effect={effect} edit={edit}>
+    <EffectSection effect={effect} edit={edit} className="row-span-2">
       <EqEditor
         eq={effect}
         onInput={({ bands }) => edit.live({ ...effect, bands })}

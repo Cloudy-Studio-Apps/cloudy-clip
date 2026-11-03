@@ -14,6 +14,7 @@ import { Fader } from "./Fader";
 import { Meter } from "./Meter";
 import { PanSlider } from "./PanSlider";
 import { ReadButton } from "./ReadButton";
+import { SendsTo } from "./SendsTo";
 import { StripLabel } from "./StripLabel";
 
 interface MixerStripProps {
@@ -78,10 +79,7 @@ export const MixerStrip = memo(function MixerStrip({ track, code, selected }: Mi
           Inner effects not heard
         </span>
       )}
-      <StripLabel>Sends to</StripLabel>
-      <div className="truncate border-b border-border-strong font-mono text-sm text-muted-foreground">
-        Master
-      </div>
+      <SendsTo to="Master" />
       <StripLabel>Pan</StripLabel>
       <PanSlider track={track} />
       <Fader

@@ -10,8 +10,8 @@ import { PresetCard } from "./PresetCard";
 
 /**
  * The chain of the marked strip (an audio track of the open composition, or its master): the
- * preset card, then a section per effect in signal order, each with its switch. Drags play live;
- * a release is one command.
+ * preset card, then a card per effect in signal order, each with its switch, in a grid of 216 px
+ * columns (the preset, EQ and compressor two rows tall). Drags play live; a release is one command.
  */
 export function ChannelTab() {
   const sound = useModule(soundRef);
@@ -33,17 +33,10 @@ export function ChannelTab() {
     );
   }
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] content-start">
-      <PresetCard
-        title={track?.name ?? "Master"}
-        target={target}
-        compositionId={open.id}
-        chain={chain}
-      />
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(216px,1fr))] content-start">
+      <PresetCard target={target} compositionId={open.id} chain={chain} />
       {chain.map((effect) => (
-        <div key={effect.id} className="min-w-0 border-r border-dashed border-border-strong">
-          <EffectBody effect={effect} owner={track} edit={edit} />
-        </div>
+        <EffectBody key={effect.id} effect={effect} owner={track} edit={edit} />
       ))}
     </div>
   );
