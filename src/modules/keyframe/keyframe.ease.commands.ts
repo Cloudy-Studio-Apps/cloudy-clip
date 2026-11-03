@@ -15,7 +15,8 @@ import {
 } from "@/modules/project";
 import { grouped, invalidValue, keyEase, keyRef, requireClip, requireKey } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
-import { writeTracks, type TrackEdit } from "./keyframe.write";
+import type { TrackEdit } from "./keyframe.types";
+import { writeTracks } from "./keyframe.write";
 
 const presetIds = EASE_PRESETS.map((p) => p.id) as [EasePresetId, ...EasePresetId[]];
 

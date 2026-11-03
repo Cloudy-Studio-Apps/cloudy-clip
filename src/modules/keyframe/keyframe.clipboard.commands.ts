@@ -11,7 +11,8 @@ import {
 import { checkKeyValue, keyRef, requireClip, requireKey, time } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
 import type { CopiedKey } from "./keyframe.types";
-import { writeTracks, type TrackEdit } from "./keyframe.write";
+import type { TrackEdit } from "./keyframe.types";
+import { writeTracks } from "./keyframe.write";
 
 /** Copies keys to your own clipboard. Changes nothing in the project. */
 export const copyKeys = defineCommand({

@@ -33,3 +33,10 @@ export function pruneSelection(
   const kept = selection.filter((ref) => exists(clips, ref));
   if (kept.length !== selection.length) view.setState({ selection: kept });
 }
+
+/** Drops the selected keys of clips the panel doesn't list. */
+export function keepListed(view: StoreApi<KeyframeViewState>, listed: ReadonlySet<string>): void {
+  const { selection } = view.getState();
+  const kept = selection.filter((ref) => listed.has(ref.clipId));
+  if (kept.length !== selection.length) view.setState({ selection: kept });
+}

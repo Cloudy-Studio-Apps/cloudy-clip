@@ -13,6 +13,37 @@ import type {
   Track,
 } from "@/modules/project";
 
+/** The new state of some tracks of one clip; undefined removes the track. */
+export interface TrackEdit {
+  clipId: string;
+  tracks: Record<string, KeyTrack | undefined>;
+  /** Where a track is gone: the value its field keeps as the static value. */
+  statics?: Record<string, KeyValue>;
+}
+
+/** A cubic bezier ease: the shape the curve handles edit. */
+export type Bezier = Extract<KeyEase, { kind: "bezier" }>;
+
+/** Whether the keyed paths of a row have keys: none, some, or one on the playhead's frame. */
+export type KeyState = "off" | "animated" | "on-key";
+
+/** What the panel's buttons, keys and menus do to the selected keys. Each reports a failure with `notify`. */
+export interface KeyActions {
+  copy(): void;
+  remove(): void;
+  /** Flips the selection around its middle, reversing its curves. */
+  reverse(): void;
+  /** Gives every selected key a preset curve. */
+  ease(id: EasePresetId): void;
+}
+
+/** What the panel's buttons and keys do to the key selection. Each reports a failure with `notify`. */
+export interface PanelActions extends KeyActions {
+  paste(): void;
+  selectAll(): void;
+  fit(): void;
+}
+
 /** One key of one track of one clip. */
 export interface KeyRef {
   clipId: ClipId;
@@ -333,6 +364,8 @@ export interface MotionDragOptions {
   /** The diamond that moves, and where it starts. */
   diamond: HTMLElement;
   at: FramePoint;
+  /** The axes with a key here; the diamond moves only along those, as the keys will. */
+  axes: { x: boolean; y: boolean };
   /** On release with the move in output pixels (never 0, 0). */
   onDrop(delta: FramePoint): void;
 }

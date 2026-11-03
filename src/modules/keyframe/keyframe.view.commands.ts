@@ -18,7 +18,8 @@ export const toggleMode = defineCommand({
     const state = view.getState();
     const next = mode ?? (state.mode === "normal" ? state.last : "normal");
     if (next === "normal") {
-      view.setState({ mode: next, maximized: false });
+      // The panel is gone, so its keys no longer take Delete and the shortcuts.
+      view.setState({ mode: next, maximized: false, focused: false, selection: [] });
       timeline.setTracksHidden(false);
       timeline.setHeaderWidth(null);
     } else {

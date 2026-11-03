@@ -12,7 +12,7 @@ import { PresetStrip } from "./PresetStrip";
 import { StretchBracket } from "./StretchBracket";
 import { useKeyMenus } from "./key.menu.hook";
 import { usePanelActions } from "./panel.actions.hook";
-import { usePanelKeys } from "./panel.keys.hook";
+import { usePanelKeys, usePanelSelection } from "./panel.keys.hook";
 import { usePanelRows } from "./panel.rows.hook";
 import { usePanelScroll, usePanelWindow } from "./panel.scroll.hook";
 
@@ -39,6 +39,7 @@ function OpenPanel() {
   usePanelScroll(root);
   const actions = usePanelActions(rows, root);
   usePanelKeys(root, actions);
+  usePanelSelection(rows);
   const selectedIds = useMemo(
     () => new Set(selection.map((ref) => `${ref.clipId}|${ref.path}|${ref.keyId}`)),
     [selection],

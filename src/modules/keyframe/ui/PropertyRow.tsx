@@ -16,7 +16,7 @@ import { keyframeRef } from "../keyframe.ref";
 import type { KeyField, PanelWindow } from "../keyframe.types";
 import { KeyBand } from "./KeyBand";
 import { parseRef, refId } from "../logic/picking";
-import { KeyControls } from "./KeyAction";
+import { KeyControls } from "./KeyControls";
 import { useKeyMenus } from "./key.menu.hook";
 
 /** A value as the row shows it: numbers to two decimals, colors as they are. */

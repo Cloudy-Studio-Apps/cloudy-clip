@@ -2,6 +2,7 @@ import { MICROS_PER_SECOND } from "@/core";
 import { timeOfContent } from "@/modules/project";
 import type { Clip, KeyEase, Keyframe } from "@/modules/project";
 import type {
+  Bezier,
   CurveSource,
   EaseChange,
   HandleSpot,
@@ -14,8 +15,6 @@ import type {
 } from "../keyframe.types";
 import { keyPoint } from "./graph";
 import { refId } from "./picking";
-
-type Bezier = Extract<KeyEase, { kind: "bezier" }>;
 
 /** The bezier that moves exactly as a linear ease does: what Smooth handles turns a linear segment into. */
 export const LINEAR_BEZIER: Bezier = { kind: "bezier", x1: 1 / 3, y1: 1 / 3, x2: 2 / 3, y2: 2 / 3 };

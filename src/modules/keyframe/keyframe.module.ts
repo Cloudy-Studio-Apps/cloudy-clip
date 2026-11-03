@@ -50,8 +50,8 @@ export const keyframeModule = defineModule({
       id: "keyframe.ease-selected",
       key: "f9",
       resolve: () => {
-        const keys = view.getState().selection;
-        return keys.length === 0
+        const { mode, selection: keys } = view.getState();
+        return mode === "normal" || keys.length === 0
           ? null
           : { command: setEase.id, input: { changes: keys.map((key) => ({ key, ease: "ease" })) } };
       },

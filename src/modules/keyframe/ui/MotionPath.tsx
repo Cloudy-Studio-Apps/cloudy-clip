@@ -58,6 +58,10 @@ export function MotionPath() {
       size: format,
       diamond,
       at: key.at,
+      axes: {
+        x: key.ref.some((ref) => ref.path === "transform.x"),
+        y: key.ref.some((ref) => ref.path === "transform.y"),
+      },
       onDrop(delta) {
         const keys = key.ref.map((ref) => ({
           ...ref,

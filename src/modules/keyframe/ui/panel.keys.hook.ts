@@ -4,11 +4,12 @@ import { projectRef, clipEnd, timeOfContent } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { moveKeys } from "../keyframe.edit.commands";
 import { keyframeRef } from "../keyframe.ref";
-import type { KeyBox, KeyRef } from "../keyframe.types";
+import type { KeyBox, KeyRef, PanelActions, PanelClip } from "../keyframe.types";
+import { keepListed } from "../keyframe.view.store";
 import { keysAtTime, keysInBox, parseRef, refId, toggled } from "../logic/picking";
 import { startBoxSelect } from "./box.gesture";
 import { startKeyDrag } from "./key.gesture";
-import { report, type PanelActions } from "./panel.actions.hook";
+import { report } from "./panel.actions.hook";
 import { useKeySnap } from "./snap.hook";
 
 /** Whether a key press belongs to a text field (the same rule as the app's keybindings). */
@@ -148,4 +149,16 @@ export function usePanelKeys(root: RefObject<HTMLElement | null>, actions: Panel
       window.removeEventListener("keydown", onKey, true);
     };
   }, [root, bus, view, project, timeline, actions, snapFor]);
+}
+
+/**
+ * Keeps the key selection to the clips the panel lists, as the timeline selection, the scope or
+ * the clips change, and lets go of the keys and the shortcuts when the panel goes.
+ */
+export function usePanelSelection(rows: readonly PanelClip[]): void {
+  const { view } = useModule(keyframeRef);
+  useEffect(() => {
+    keepListed(view, new Set(rows.map((row) => row.clip.id)));
+  }, [rows, view]);
+  useEffect(() => () => view.setState({ focused: false, selection: [] }), [view]);
 }

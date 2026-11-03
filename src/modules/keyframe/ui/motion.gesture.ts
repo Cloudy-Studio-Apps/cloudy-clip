@@ -4,9 +4,9 @@ import type { MotionDragOptions } from "../keyframe.types";
 const DRAG_THRESHOLD = 3;
 
 /**
- * Drags one diamond of the motion path: it follows the pointer straight in the DOM, and on
- * release one `onDrop` with the move in output pixels. A press that barely moves does nothing.
- * Escape cancels.
+ * Drags one diamond of the motion path: it follows the pointer straight in the DOM, along only
+ * the axes that have a key there, and on release one `onDrop` with the move in output pixels. A
+ * press that barely moves does nothing. Escape cancels.
  */
 export function startMotionDrag({
   event,
@@ -14,6 +14,7 @@ export function startMotionDrag({
   size,
   diamond,
   at,
+  axes,
   onDrop,
 }: MotionDragOptions): void {
   const box = frame.getBoundingClientRect();
@@ -39,8 +40,8 @@ export function startMotionDrag({
   function move(e: PointerEvent) {
     if (!dragging && Math.hypot(e.clientX - startX, e.clientY - startY) < DRAG_THRESHOLD) return;
     dragging = true;
-    dx = (e.clientX - startX) * scaleX;
-    dy = (e.clientY - startY) * scaleY;
+    dx = axes.x ? (e.clientX - startX) * scaleX : 0;
+    dy = axes.y ? (e.clientY - startY) * scaleY : 0;
     show(dx, dy);
   }
   function up() {

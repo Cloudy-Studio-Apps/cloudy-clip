@@ -22,7 +22,8 @@ import { setEase } from "../keyframe.ease.commands";
 import { setKeys } from "../keyframe.edit.commands";
 import { allSmooth, smoothChanges } from "../logic/handles";
 import type { PanelClip } from "../keyframe.types";
-import { report, type PanelActions } from "./panel.actions.hook";
+import type { PanelActions } from "../keyframe.types";
+import { report } from "./panel.actions.hook";
 
 /** The row Add key works on: the primary one when it is listed, else the first. */
 function targetRow(rows: readonly PanelClip[], primary: string | null) {

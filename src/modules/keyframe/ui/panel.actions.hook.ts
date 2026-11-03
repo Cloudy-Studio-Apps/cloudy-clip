@@ -8,14 +8,14 @@ import {
   type Result,
 } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { clipEnd, projectRef, type EasePresetId } from "@/modules/project";
+import { clipEnd, projectRef } from "@/modules/project";
 import { timelineRef, timeToPx } from "@/modules/timeline";
 import { copyKeys, pasteKeys } from "../keyframe.clipboard.commands";
 import { setEase, scaleKeys } from "../keyframe.ease.commands";
 import { removeKeys } from "../keyframe.edit.commands";
 import { PANEL_HEADER_WIDTH } from "../keyframe.layout";
 import { keyframeRef } from "../keyframe.ref";
-import type { KeyRef, PanelClip } from "../keyframe.types";
+import type { KeyActions, KeyRef, PanelActions, PanelClip } from "../keyframe.types";
 import { selectionSpan } from "../logic/stretch";
 
 /** Room left around the clips when Fit zooms to them, in px. */
@@ -24,23 +24,6 @@ const FIT_MARGIN = 24;
 /** Tells the user when a command failed (rule 32). */
 export function report(result: Result<unknown, AppError>): void {
   if (!result.ok) notify("error", result.error.message);
-}
-
-/** What the panel's buttons, keys and menus do to the selected keys. Each reports a failure with `notify`. */
-export interface KeyActions {
-  copy(): void;
-  remove(): void;
-  /** Flips the selection around its middle, reversing its curves. */
-  reverse(): void;
-  /** Gives every selected key a preset curve. */
-  ease(id: EasePresetId): void;
-}
-
-/** What the panel's buttons and keys do to the key selection. Each reports a failure with `notify`. */
-export interface PanelActions extends KeyActions {
-  paste(): void;
-  selectAll(): void;
-  fit(): void;
 }
 
 /** The actions on the selected keys, for the panel and the menus. Commands run on the bus. */

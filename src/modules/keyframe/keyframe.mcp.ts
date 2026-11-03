@@ -50,6 +50,36 @@ const sample = defineMcpTool({
   },
 });
 
+/** Lists every field of a clip that can hold keys, its own and those other modules add. */
+const listFields = defineMcpTool({
+  name: "keyframe_list_fields",
+  readOnly: true,
+  description:
+    'Returns every field of a clip that can hold keys, as [{ path, label, blend, min, max, values, loops, animated }]: the element\'s fields and those other modules add, like "sound.volumeDb", "sound.pan" and "speed.rate". Pass "path" to keyframe_set. "blend" is how values move between keys (number, color or step), "values" the allowed values of a step field, "loops" false where keyframe_set_after can\'t loop the track, "animated" whether it has keys.',
+  input: z.object({ clipId: z.string() }),
+  handler(input, ctx) {
+    const clip = ctx.require(projectRef).store.getState().clips[input.clipId];
+    if (!clip) {
+      return errorResult({ code: "keyframe.clip_not_found", message: `No clip "${input.clipId}"` });
+    }
+    return textResult(
+      ctx
+        .require(keyframeRef)
+        .fieldsOf(clip)
+        .map(({ path, label, blend, min, max, values, loops }) => ({
+          path,
+          label,
+          blend,
+          ...(min !== undefined && { min }),
+          ...(max !== undefined && { max }),
+          ...(values && { values }),
+          loops: loops ?? true,
+          animated: clip.animation?.[path] !== undefined,
+        })),
+    );
+  },
+});
+
 /** Lists the ease presets by name. */
 const listEases = defineMcpTool({
   name: "keyframe_list_eases",
@@ -74,5 +104,6 @@ export const keyframeMcpTools = [
   commandTool(copyKeys, { name: "keyframe_copy" }),
   commandTool(pasteKeys, { name: "keyframe_paste" }),
   sample,
+  listFields,
   listEases,
 ];
