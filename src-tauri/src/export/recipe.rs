@@ -191,12 +191,19 @@ fn speed_filter(speed: f64, keep_pitch: bool) -> String {
     }
 }
 
+/// Timeline time two neighbouring tempo steps overlap: each step but the last plays on this much
+/// past its end, and the next one fades in over it from its own start, so no boundary jumps, the
+/// steps stay on the picture and the segment keeps its length. Measured on tones against 8 and
+/// 10 ms: the shortest overlap dips least where the two sides meet out of phase.
+const STEP_CROSSFADE: u64 = 5_000;
+
 /// A ramped segment's tempo steps: the input is split, each step trims its own part of the file,
-/// changes its speed and is cut to its length, and the steps are joined in order. `n` keeps the
-/// labels of one segment apart from the others'.
+/// changes its speed and is cut to its length (plus the crossfade, but the last), and the steps
+/// are crossfaded in order. `n` keeps the labels of one segment apart from the others'.
 fn tempo_steps_filter(n: usize, segment: &SoundSegment) -> String {
     let steps = &segment.tempo_steps;
     let count = steps.len();
+    let crossfade = samples(STEP_CROSSFADE as f64);
     let mut text = format!(",asplit={count}");
     for k in 0..count {
         text.push_str(&format!("[step{n}_{k}]"));
@@ -208,17 +215,25 @@ fn tempo_steps_filter(n: usize, segment: &SoundSegment) -> String {
         let read = (step.duration + STEP_LEAD) as f64 * step.speed;
         let first = samples(into_file);
         let last = samples(into_file + read);
-        let length = samples((elapsed + step.duration) as f64) - samples(elapsed as f64);
+        let own = samples((elapsed + step.duration) as f64) - samples(elapsed as f64);
+        let length = if k + 1 < count { own + crossfade } else { own };
         elapsed += step.duration;
         text.push_str(&format!(
             "[step{n}_{k}]atrim=start_sample={first}:end_sample={last},asetpts=PTS-STARTPTS{},apad=whole_len={length},atrim=end_sample={length}[tempo{n}_{k}];",
             speed_filter(step.speed, segment.keep_pitch)
         ));
     }
-    for k in 0..count {
-        text.push_str(&format!("[tempo{n}_{k}]"));
+    // One pair at a time: `acrossfade` takes more than two inputs only from FFmpeg 7.1. Both
+    // sides hold nearly the same sound, so the gains add up to 1 (`hsin`), not their powers
+    // (`qsin` swells by up to 3 dB where they meet in phase).
+    let mut joined = format!("tempo{n}_0");
+    for k in 1..count {
+        text.push_str(&format!(
+            "[{joined}][tempo{n}_{k}]acrossfade=ns={crossfade}:c1=hsin:c2=hsin[join{n}_{k}];"
+        ));
+        joined = format!("join{n}_{k}");
     }
-    text.push_str(&format!("concat=n={count}:v=0:a=1"));
+    text.push_str(&format!("[{joined}]anull"));
     text
 }
 
@@ -1010,10 +1025,24 @@ mod sound_tests {
     }
 
     #[test]
-    fn tempo_steps_trim_and_join() {
+    fn tempo_steps_trim_and_crossfade() {
         let chain = sound_graph(&[ramped_segment()], 1, 2_000_000);
         assert!(chain.contains("atrim="));
-        assert!(chain.contains("concat="));
+        assert!(chain.contains("acrossfade="));
+        assert!(!chain.contains("concat="));
+    }
+
+    #[test]
+    fn crossfaded_steps_keep_the_segment_length() {
+        let chain = sound_graph(&[ramped_segment()], 1, 2_000_000);
+        let lengths: u64 = chain
+            .split("whole_len=")
+            .skip(1)
+            .map(|rest| rest.split(',').next().unwrap().parse::<u64>().unwrap())
+            .sum();
+        let joins = chain.matches("acrossfade=").count() as u64;
+        assert_eq!(joins, 7);
+        assert_eq!(lengths - joins * samples(STEP_CROSSFADE as f64), 96_000);
     }
 
     #[test]
