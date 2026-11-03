@@ -1,4 +1,4 @@
-import type { MouseEvent, RefObject } from "react";
+import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { CommandBus, Micros } from "@/core";
 import type {
@@ -363,10 +363,10 @@ export interface SoonEntry {
   stage: "2-followup" | 3 | 4 | 5 | 6;
 }
 
-/** The props a placeholder spreads: dimmed for screen readers, its tooltip, no hover, a click that does nothing. */
+/** The props a placeholder spreads: dimmed for screen readers, its tooltip, an arrow pointer, a click that does nothing. */
 export interface SoonProps {
   "aria-disabled": true;
   title: string;
   className: string;
-  onClick(event: MouseEvent<HTMLElement>): void;
+  onClick(): void;
 }

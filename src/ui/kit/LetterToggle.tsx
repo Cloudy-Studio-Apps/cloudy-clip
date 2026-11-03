@@ -33,9 +33,9 @@ export function LetterToggle({
       onClick={onToggle}
       {...rest}
       className={cn(
-        "grid h-[18px] min-w-5 cursor-pointer place-items-center rounded-xs px-[3px] font-mono text-xs font-bold",
+        "grid h-[18px] min-w-5 cursor-pointer place-items-center aria-disabled:cursor-default rounded-xs px-[3px] font-mono text-xs font-bold",
         !on &&
-          "text-subtle-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] hover:text-foreground",
+          "text-subtle-foreground shadow-[inset_0_0_0_1px_var(--border-strong)] not-aria-disabled:hover:text-foreground",
         on && tone === "mark" && "bg-mark text-mark-foreground",
         on && tone === "ink" && "bg-foreground text-surface",
         className,

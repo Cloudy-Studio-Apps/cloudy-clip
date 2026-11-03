@@ -8,9 +8,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS = {
-  primary: "bg-foreground text-surface enabled:hover:bg-ink-hover",
-  secondary: "border-border-strong enabled:hover:border-subtle-foreground enabled:hover:bg-muted",
-  mark: "bg-mark text-mark-foreground enabled:hover:bg-mark-hover",
+  primary: "bg-foreground text-surface enabled:not-aria-disabled:hover:bg-ink-hover",
+  secondary:
+    "border-border-strong enabled:not-aria-disabled:hover:border-subtle-foreground enabled:not-aria-disabled:hover:bg-muted",
+  mark: "bg-mark text-mark-foreground enabled:not-aria-disabled:hover:bg-mark-hover",
 } as const;
 
 const SIZES = {
@@ -30,7 +31,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[3px] border border-transparent font-hand font-bold transition-colors duration-150 ease-out disabled:cursor-default disabled:opacity-40",
+        "inline-flex shrink-0 cursor-pointer items-center aria-disabled:cursor-default justify-center gap-1.5 rounded-[3px] border border-transparent font-hand font-bold transition-colors duration-150 ease-out disabled:cursor-default disabled:opacity-40",
         VARIANTS[variant],
         SIZES[size],
         className,

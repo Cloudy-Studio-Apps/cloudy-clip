@@ -26,11 +26,12 @@ export function IconButton({
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        "inline-grid shrink-0 cursor-pointer place-items-center rounded-[3px] transition-colors duration-150 ease-out disabled:cursor-default disabled:opacity-35",
+        "inline-grid shrink-0 cursor-pointer place-items-center aria-disabled:cursor-default rounded-[3px] transition-colors duration-150 ease-out disabled:cursor-default disabled:opacity-35",
         variant === "solid"
-          ? "size-9 bg-foreground text-background hover:opacity-90 [&_svg]:size-4 [&_svg]:fill-current"
-          : "size-[30px] text-muted-foreground hover:bg-hover hover:text-foreground disabled:hover:bg-transparent disabled:hover:text-muted-foreground [&_svg]:size-4",
-        active && "bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft",
+          ? "size-9 bg-foreground text-background not-aria-disabled:hover:opacity-90 [&_svg]:size-4 [&_svg]:fill-current"
+          : "size-[30px] text-muted-foreground not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground disabled:hover:bg-transparent disabled:hover:text-muted-foreground [&_svg]:size-4",
+        active &&
+          "bg-primary-soft text-primary-soft-foreground not-aria-disabled:hover:bg-primary-soft",
         className,
       )}
       {...props}

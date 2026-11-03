@@ -18,7 +18,7 @@ export function ToolbarButton({
     <button
       type={type}
       className={cn(
-        "inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[3px] px-2 font-hand text-[13px] font-bold text-muted-foreground transition-colors duration-150 ease-out hover:bg-hover hover:text-foreground disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground [&_svg]:size-[15px]",
+        "inline-flex h-7 shrink-0 cursor-pointer items-center aria-disabled:cursor-default gap-1.5 whitespace-nowrap rounded-[3px] px-2 font-hand text-[13px] font-bold text-muted-foreground transition-colors duration-150 ease-out not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground [&_svg]:size-[15px]",
         className,
       )}
       {...props}

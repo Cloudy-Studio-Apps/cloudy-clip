@@ -18,8 +18,8 @@ export function TransportTool({
       type={type}
       aria-pressed={pressed}
       className={cn(
-        "shrink-0 cursor-pointer whitespace-nowrap rounded-xs px-2 py-1.5 font-hand text-base font-bold leading-none text-muted-foreground hover:text-foreground",
-        pressed && "text-on hover:text-on",
+        "shrink-0 cursor-pointer whitespace-nowrap aria-disabled:cursor-default rounded-xs px-2 py-1.5 font-hand text-base font-bold leading-none text-muted-foreground not-aria-disabled:hover:text-foreground",
+        pressed && "text-on not-aria-disabled:hover:text-on",
         className,
       )}
       {...props}

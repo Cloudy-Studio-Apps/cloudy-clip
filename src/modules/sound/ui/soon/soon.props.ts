@@ -1,29 +1,26 @@
-import type { MouseEvent } from "react";
 import type { SoonId, SoonProps } from "../../sound.types";
 import { SOON } from "./soon.catalog";
 
-/**
- * Hover keeps the resting look: no background, and the muted ink the transport's tools and icon
- * buttons rest in. The pointer stays an arrow.
- */
-const SOON_CLASS = "cursor-default hover:bg-transparent! hover:text-muted-foreground!";
-
 /** A click on a placeholder does nothing: no command, no store, no fake data. */
-function nothing(event: MouseEvent<HTMLElement>): void {
-  event.preventDefault();
-}
+function nothing(): void {}
 
 /**
  * The props a control that a later stage makes work spreads (Ruling 1): `aria-disabled`, the
- * tooltip "<label>: coming soon. <what>" from `SOON`, no hover highlight, and a click that only
- * prevents default. It keeps its normal look otherwise; never `disabled`, which dims it.
+ * tooltip "<label>: coming soon. <what>" from `SOON`, an arrow pointer, and a click that does
+ * nothing. It keeps its normal look: the kit's buttons (`IconButton`, `ToolbarButton`, `Button`,
+ * `LetterToggle`) and `TransportTool` drop their hover while `aria-disabled`. Never `disabled`,
+ * which dims it.
+ *
+ * Spread it **after** the control's own `title` and `onClick`/`onToggle` props, or onto a
+ * component that spreads extra props after its own (as `LetterToggle` and `IconButton` do), so
+ * the tooltip and the do-nothing click are the ones that stay.
  */
 export function soon(id: SoonId): SoonProps {
   const { label, what } = SOON[id];
   return {
     "aria-disabled": true,
     title: `${label}: coming soon. ${what}`,
-    className: SOON_CLASS,
+    className: "cursor-default",
     onClick: nothing,
   };
 }

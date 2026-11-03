@@ -26,7 +26,7 @@ export function RecordButton() {
   if (status === "recording") {
     return (
       <TransportTool
-        className="flex items-center gap-1.5 bg-mark text-mark-foreground hover:bg-mark-hover hover:text-mark-foreground"
+        className="flex items-center gap-1.5 bg-mark text-mark-foreground hover:bg-mark-hover not-aria-disabled:hover:text-mark-foreground"
         title="Stop recording and place the take"
         onClick={() => void sound.recorder.stop()}
       >
@@ -41,7 +41,7 @@ export function RecordButton() {
     return (
       <TransportTool
         disabled
-        className="flex cursor-default items-center gap-1.5 text-mark hover:text-mark"
+        className="flex cursor-default items-center gap-1.5 text-mark not-aria-disabled:hover:text-mark"
         title={starting ? "Opening the microphone" : "Saving the take"}
       >
         <RecordDot pulsing={starting} />

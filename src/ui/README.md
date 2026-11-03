@@ -55,4 +55,6 @@ Anything merely on uses `on`, blue pencil.
 | `SealMark`                                          | The foca watona; `rough` adds its blue construction lines, large sizes only. Light touches, never clutter                                                                                                                                                                    |
 | `cn`                                                | Joins class names                                                                                                                                                                                                                                                            |
 
+`IconButton`, `ToolbarButton`, `Button` and `LetterToggle` honour `aria-disabled="true"` for a control that is shown but doesn't work yet: no hover change, an arrow pointer, otherwise the normal look (unlike `disabled`, which dims). The caller supplies the tooltip and a click that does nothing.
+
 Fields (`SliderField`, `NumberField`, `SelectField`, `SegmentedControl`, `ColorField`, `HexInput`, `Switch`, `ToggleRow`) take `disabled`: dimmed, nothing can be changed, and a disabled `ColorField` opens no picker.
