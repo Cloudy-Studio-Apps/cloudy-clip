@@ -76,7 +76,10 @@ export function pasteMenu(ctx: ModuleContext, timeline: TimelineApi): TimelineMe
   };
 }
 
-/** The clipboard's shortcuts. They run on every page, so off the editor they do nothing. */
+/**
+ * The clipboard's shortcuts. They run on every page, so off the editor they do nothing: on a
+ * sound-only page nothing is copied or pasted, since that could reach a picture.
+ */
 export function clipboardKeys(ctx: ModuleContext, view: StoreApi<TimelineViewState>): Keybinding[] {
   const onEditor = () => ctx.require(pagesRef).store.getState().active === EDITOR_PAGE;
   const onSelection = (command: string) => () => {

@@ -9,7 +9,7 @@ import {
 } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { clipEnd, projectRef } from "@/modules/project";
-import { timelineRef, timeToPx } from "@/modules/timeline";
+import { clipsInScope, timelineRef, timeToPx, useTimelineScope } from "@/modules/timeline";
 import { copyKeys, pasteKeys } from "../keyframe.clipboard.commands";
 import { setEase, scaleKeys } from "../keyframe.ease.commands";
 import { removeKeys } from "../keyframe.edit.commands";
@@ -69,13 +69,18 @@ export function usePanelActions(
   const { view } = useModule(keyframeRef);
   const { playback } = useModule(previewRef);
   const timeline = useModule(timelineRef);
+  const project = useModule(projectRef).store;
+  const scope = useTimelineScope();
   const keyActions = useKeyActions();
 
   return useMemo(() => {
     return {
       ...keyActions,
       paste() {
-        const clipIds = timeline.view.getState().selection;
+        // Onto the selected clips this timeline may touch: on a sound-scope one, no picture.
+        const state = project.getState();
+        const selected = timeline.view.getState().selection.flatMap((id) => state.clips[id] ?? []);
+        const clipIds = clipsInScope(state, selected, scope).map((clip) => clip.id);
         if (clipIds.length === 0) return notify("info", "Select a clip to paste the keys onto.");
         void bus.run(pasteKeys, { at: playback.getTime(), clipIds }).then(report);
       },
@@ -103,5 +108,5 @@ export function usePanelActions(
         timeline.setScrollLeft(Math.max(0, timeToPx(start, zoom) - FIT_MARGIN));
       },
     };
-  }, [bus, view, playback, timeline, rows, root, keyActions]);
+  }, [bus, view, playback, timeline, project, scope, rows, root, keyActions]);
 }

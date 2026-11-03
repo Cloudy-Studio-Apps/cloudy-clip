@@ -1,9 +1,10 @@
 import { createStore } from "zustand/vanilla";
-import type { ActorId } from "@/core";
+import type { ActorId, TimelineScopeName } from "@/core";
 import type { ClipId, CompositionId, ProjectState } from "@/modules/project";
 import { cutAtX } from "./logic/cut";
 import { laneDropTarget } from "./logic/drop";
 import { pxToTime, timeToPx } from "./logic/geometry";
+import { headerWidthFor } from "./logic/scope";
 import { CUT_SNAP_PX, HEADER_WIDTH } from "./timeline.layout";
 import type { ClipboardEntry, LaneBox, TimelineApi, TimelineViewState } from "./timeline.types";
 
@@ -29,6 +30,7 @@ export function createTimelineView(
     tracksHidden: false,
   }));
   let scroller: HTMLElement | null = null;
+  let scrollerScope: TimelineScopeName = "all";
   const scrollListeners = new Set<() => void>();
   const places = new Map<CompositionId, { pxPerSecond: number; scrollLeft: number }>();
   const copied = new Map<ActorId, ClipboardEntry>();
@@ -95,8 +97,9 @@ export function createTimelineView(
         scroller.scrollLeft = Math.max(0, x - 40);
       }
     },
-    attachScroller(element) {
+    attachScroller(element, scope = "all") {
       scroller = element;
+      scrollerScope = scope;
       const notify = () => scrollListeners.forEach((listener) => listener());
       element.addEventListener("scroll", notify, { passive: true });
       return () => {
@@ -122,7 +125,10 @@ export function createTimelineView(
         return;
       }
       const { pxPerSecond: before, headerWidth } = view.getState();
-      const pointerX = clientX - scroller.getBoundingClientRect().left - headerWidth;
+      const pointerX =
+        clientX -
+        scroller.getBoundingClientRect().left -
+        headerWidthFor(scrollerScope, headerWidth);
       const anchor = pxToTime(scroller.scrollLeft + pointerX, before);
       setZoom(pxPerSecond);
       const after = view.getState().pxPerSecond;

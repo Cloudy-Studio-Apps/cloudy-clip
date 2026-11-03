@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { z } from "zod";
-import { createKernel, type Kernel } from "@/core";
+import { Volume2 } from "lucide-react";
+import {
+  appPages,
+  createKernel,
+  defineModule,
+  defineModuleRef,
+  keybindings,
+  showPage,
+  type Kernel,
+} from "@/core";
 import { elementModule } from "@/modules/element";
 import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule, mediaRef } from "@/modules/media";
@@ -33,6 +42,7 @@ import {
   unlinkClips,
 } from "./timeline.commands";
 import { timelineModule } from "./timeline.module";
+import { timelineRef } from "./timeline.ref";
 
 const S = 1_000_000;
 let kernel: Kernel;
@@ -685,5 +695,51 @@ describe("linking clips", () => {
     await run(kernel.bus.run(trimClip, { clipId: audio.id, edge: "end", time: 5 * S }));
     const result = await kernel.bus.run(linkClips, { clipIds: [video.id, audio.id] });
     expect(result).toMatchObject({ ok: false, error: { code: "timeline.link_mismatch" } });
+  });
+});
+
+describe("keys on a sound-only page", () => {
+  const pressed = (id: string) =>
+    kernel.points
+      .get(keybindings)
+      .find((binding) => binding.id === id)
+      ?.resolve();
+
+  beforeEach(async () => {
+    await kernel.modules.load(
+      defineModule({
+        ref: defineModuleRef<Record<string, never>>("test-sound-page"),
+        name: "Sound page",
+        tier: "feature",
+        commands: [],
+        mcpTools: [],
+        setup({ contribute }) {
+          contribute(appPages, {
+            id: "test.sound",
+            label: "Sound",
+            icon: Volume2,
+            keepsPlayback: true,
+            timelineScope: "sound",
+          });
+          return { api: {} };
+        },
+      }),
+    );
+    const { audio } = await pair();
+    kernel.modules.require(timelineRef).selectClip(audio.id);
+  });
+
+  it("copy, cut and duplicate do nothing, so no picture is copied", async () => {
+    expect(pressed("timeline.copy")).not.toBeNull();
+    await run(kernel.bus.run(showPage, { page: "test.sound" }));
+    for (const id of ["timeline.copy", "timeline.cut", "timeline.duplicate", "timeline.paste"]) {
+      expect(pressed(id)).toBeNull();
+    }
+  });
+
+  it("Delete deletes the sound alone", async () => {
+    expect(pressed("timeline.delete")?.input).not.toHaveProperty("soundOnly");
+    await run(kernel.bus.run(showPage, { page: "test.sound" }));
+    expect(pressed("timeline.delete")?.input).toMatchObject({ soundOnly: true });
   });
 });

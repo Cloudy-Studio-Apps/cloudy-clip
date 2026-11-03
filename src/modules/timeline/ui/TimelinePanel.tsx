@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import {
   ErrorBoundary,
@@ -8,7 +8,6 @@ import {
   type Micros,
   type TimelineScopeName,
 } from "@/core";
-import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { cn, ContextMenu } from "@/ui";
 import {
   compositionContent,
@@ -25,9 +24,10 @@ import {
 } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
-import { inScope } from "../logic/scope";
+import { inScope, trackInScope } from "../logic/scope";
 import { RULER_HEIGHT, TAIL_SECONDS } from "../timeline.layout";
 import { useHeaderWidth } from "./header.width.hook";
+import { usePanelScroller } from "./panel.scroller.hook";
 import { Playhead } from "./Playhead";
 import { TimelineScopeProvider } from "./scope.hook";
 import { Ruler } from "./Ruler";
@@ -64,77 +64,18 @@ export function TimelinePanel({ scope = "all" }: { scope?: TimelineScopeName }) 
   const clipsById = useStore(project.api, (s) => s.clips);
   const content = useStore(project.api, (s) => (open ? compositionContent(s, open.id) : 0));
   const duration = Math.max(open?.duration ?? 0, content);
-  const [view, setView] = useState({ page: 0, pageWidth: 1200 });
+  const view = usePanelScroller(scrollRef, scope, headerWidth, pxPerSecond);
   const allOverlays = usePoint(timelineOverlays);
-  const tabs = usePoint(timelineTabs);
+  const allTabs = usePoint(timelineTabs);
   const allMenus = usePoint(timelineMenuItems);
   const allDocks = usePoint(timelineDocks);
   const overlays = useMemo(
     () => allOverlays.filter((o) => inScope(o, scope)),
     [allOverlays, scope],
   );
+  const tabs = useMemo(() => allTabs.filter((t) => inScope(t, scope)), [allTabs, scope]);
   const menus = useMemo(() => allMenus.filter((m) => inScope(m, scope)), [allMenus, scope]);
   const docks = useMemo(() => allDocks.filter((d) => inScope(d, scope)), [allDocks, scope]);
-
-  // Track which page is visible; only page changes cause a render.
-  const measure = useCallback(() => {
-    const scroller = scrollRef.current;
-    if (!scroller) return;
-    const pageWidth = Math.max(200, scroller.clientWidth - headerWidth);
-    const page = Math.floor(scroller.scrollLeft / pageWidth);
-    setView((v) => (v.page === page && v.pageWidth === pageWidth ? v : { page, pageWidth }));
-  }, [headerWidth]);
-
-  useEffect(() => {
-    const scroller = scrollRef.current;
-    if (!scroller) return;
-    let frame = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(measure);
-    };
-    scroller.addEventListener("scroll", onScroll, { passive: true });
-    const observer = new ResizeObserver(measure);
-    observer.observe(scroller);
-    measure();
-    const detach = timeline.attachScroller(scroller);
-    return () => {
-      detach();
-      cancelAnimationFrame(frame);
-      scroller.removeEventListener("scroll", onScroll);
-      observer.disconnect();
-    };
-  }, [measure, timeline]);
-
-  useEffect(measure, [pxPerSecond, headerWidth, measure]);
-
-  // Ctrl/Cmd + wheel zooms around the pointer.
-  useEffect(() => {
-    const scroller = scrollRef.current;
-    if (!scroller) return;
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
-      e.preventDefault();
-      const before = timeline.view.getState().pxPerSecond;
-      timeline.zoomAt(e.clientX, before * Math.exp(-e.deltaY * 0.002));
-    };
-    scroller.addEventListener("wheel", onWheel, { passive: false });
-    return () => scroller.removeEventListener("wheel", onWheel);
-  }, [timeline]);
-
-  // Media dropped below the tracks goes to the default track of its kind.
-  useEffect(() => {
-    const scroller = scrollRef.current;
-    if (!scroller) return;
-    const onDrop = (event: Event) => {
-      const { item, clientX } = (event as CustomEvent<MediaDragDetail>).detail;
-      const x = clientX - scroller.getBoundingClientRect().left - headerWidth + scroller.scrollLeft;
-      const pps = timeline.view.getState().pxPerSecond;
-      timeline.drop({ item, start: Math.max(0, pxToTime(x, pps)) });
-    };
-    scroller.addEventListener(MEDIA_DROP, onDrop);
-    return () => scroller.removeEventListener(MEDIA_DROP, onDrop);
-  }, [timeline, headerWidth]);
 
   const from: Micros = Math.max(0, pxToTime((view.page - 1) * view.pageWidth, pxPerSecond));
   const to: Micros = pxToTime((view.page + 2) * view.pageWidth, pxPerSecond);
@@ -147,7 +88,7 @@ export function TimelinePanel({ scope = "all" }: { scope?: TimelineScopeName }) 
     () =>
       trackOrder.flatMap((id, index) => {
         const track = tracksById[id];
-        if (!track || (scope === "sound" && track.kind !== "audio")) return [];
+        if (!track || !trackInScope(track, scope)) return [];
         const visible: Clip[] = [];
         for (const clipId of track.clipIds) {
           const clip = clipsById[clipId];

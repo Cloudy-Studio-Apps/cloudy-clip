@@ -132,8 +132,11 @@ export interface TimelineApi {
   onScroll(listener: () => void): () => void;
   /** Brings a time into view. */
   scrollToTime(time: Micros): void;
-  /** Registers the scrolling element. For the timeline panel. Returns the detach. */
-  attachScroller(element: HTMLElement): () => void;
+  /**
+   * Registers the scrolling element and the scope of its panel (default `"all"`), which says how
+   * wide its header column is, for `zoomAt`. For the timeline panel. Returns the detach.
+   */
+  attachScroller(element: HTMLElement, scope?: TimelineScopeName): () => void;
   /** Keeps `from`'s zoom and scroll, restores `to`'s, and clears the selection. */
   switchComposition(from: CompositionId | null, to: CompositionId | null): void;
   /** Puts something on the timeline: the handlers first, then the usual placement. */
@@ -225,6 +228,8 @@ export interface PastePlacement {
 /** A strip between the toolbar and the ruler. */
 export interface TimelineTabs {
   id: string;
+  /** The timeline scopes it shows in. Unset means `["all"]`. */
+  scopes?: TimelineScopeName[];
   component: ComponentType;
 }
 

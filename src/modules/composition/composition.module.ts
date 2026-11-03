@@ -40,7 +40,11 @@ export const compositionModule = defineModule({
   setup(ctx) {
     ctx.contribute(elements, compositionElement);
     ctx.contribute(librarySections, { id: "composition.section", component: CompositionSection });
-    ctx.contribute(timelineTabs, { id: "composition.tabs", component: CompositionTabs });
+    ctx.contribute(timelineTabs, {
+      id: "composition.tabs",
+      scopes: ["all", "sound"],
+      component: CompositionTabs,
+    });
     ctx.contribute(
       timelineOverlays,
       { id: "composition.empty", component: EmptyStart },

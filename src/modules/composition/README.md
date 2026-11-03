@@ -4,7 +4,7 @@ What a timeline is. A composition is a size, a frame rate, a background, a lengt
 
 - **Tier:** core
 - **Requires:** `project`, `element`, `media`, `timeline`
-- **Contributes:** element `composition` (`composition.element.ts`: `picture: { fit: "contain", source: "composition" }`, sits on video and audio tracks); `librarySections` (`CompositionSection`), `timelineTabs` (`CompositionTabs`), `timelineOverlays` (`EmptyStart`, `EndMarker`), `timelineMenuItems` (Composition Settings, Extend to fit), `timelineDropHandlers` (`composition.drop.ts`), `clipActions` (double-click opens the original; right-click Group into composition, Make unique), `appOverlays` (`CompositionDialogHost`)
+- **Contributes:** element `composition` (`composition.element.ts`: `picture: { fit: "contain", source: "composition" }`, sits on video and audio tracks); `librarySections` (`CompositionSection`), `timelineTabs` (`CompositionTabs`, `scopes: ["all", "sound"]`), `timelineOverlays` (`EmptyStart`, `EndMarker`), `timelineMenuItems` (Composition Settings, Extend to fit), `timelineDropHandlers` (`composition.drop.ts`), `clipActions` (double-click opens the original; right-click Group into composition, Make unique), `appOverlays` (`CompositionDialogHost`)
 - **Points it owns:** —
 - **API** (`CompositionApi`): `ui` (open dialog and selected tile, not in history), `openNew`, `openSettings(id)`, `closeDialog`, `select(id)`, `cancelWaiting`, `landPending`.
 - **Files:**

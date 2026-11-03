@@ -1,6 +1,6 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
-import { SOUND_HEADER_WIDTH } from "../timeline.layout";
+import { headerWidthFor } from "../logic/scope";
 import { timelineRef } from "../timeline.ref";
 import { useTimelineScope } from "./scope.hook";
 
@@ -12,5 +12,5 @@ import { useTimelineScope } from "./scope.hook";
 export function useHeaderWidth(): number {
   const scope = useTimelineScope();
   const shared = useStore(useModule(timelineRef).view, (s) => s.headerWidth);
-  return scope === "sound" ? SOUND_HEADER_WIDTH : shared;
+  return headerWidthFor(scope, shared);
 }
