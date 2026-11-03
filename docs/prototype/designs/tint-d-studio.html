@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cloudy Clip, Tint page D: Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Courier+Prime:wght@400;700&family=Shantell+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tint-shared.css">
+<style>
+  /* Layout A, Workbench: grade and viewer on top, clips in the middle, tools and scopes along the bottom (Resolve's arrangement) */
+  #page{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) 112px 318px;gap:1px;background:var(--rule-2)}
+  .upper{min-height:0;display:grid;grid-template-columns:360px minmax(0,1fr);gap:1px;transition:grid-template-columns .25s}
+  body.leader .upper{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+  .lower{min-height:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:1px}
+  .tbody{flex:1;min-height:0;overflow:auto;padding:12px 14px}
+  .scopes{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:1px;background:var(--rule)}
+  .scopes>div{position:relative;display:flex;min-height:0}
+  .scopes .scope[hidden]{display:none}
+  .looks-pane{flex:1;min-height:0;display:flex;flex-direction:column}
+  .basics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr);gap:28px}
+  .bh{font:700 13px var(--hand);color:var(--ink-3);margin-bottom:6px;padding-bottom:4px;border-bottom:1px dashed var(--rule-2)}
+  .quick{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  body.shownew .new{outline:1.5px dashed var(--red);outline-offset:1px}
+  .mark{font:700 12px var(--hand);color:var(--ink-3);padding:4px 8px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .mark.on{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+  .seg{display:inline-flex;padding:1px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .seg button{height:22px;padding:0 8px;font:700 12px var(--hand);color:var(--ink-3);border-radius:2px}
+  .seg button.on{background:var(--paper-2);color:var(--ink)}
+  .ptab{padding:0 7px}
+  .wtop{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .cmix{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,.9fr);gap:24px}
+  .dots{display:flex;gap:6px;margin-bottom:10px}
+  .dots button{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 1px var(--rule-2)}
+  .dots button.on{box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink)}
+  .bars{display:flex;gap:6px;align-items:flex-end;height:96px;padding:6px;background:var(--table);border-radius:3px}
+  .bars i{flex:1;display:block;border-radius:2px 2px 0 0;opacity:.85}
+  .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+  .mwheel{display:flex;gap:16px}
+  .matrix{display:grid;grid-template-columns:52px repeat(3,1fr);gap:4px;align-items:center}
+  .matrix b{font:700 11px var(--mono);color:var(--ink-3);text-align:center}
+  .matrix span{font:400 12px var(--mono);background:var(--table);padding:3px 6px;border-radius:2px;text-align:right;border-bottom:2px solid var(--c)}
+  .later{font:700 10.5px var(--mono);color:#e8b86b;box-shadow:inset 0 0 0 1px #8a6a38;padding:1px 5px;border-radius:2px;margin-left:6px}
+  .guides{position:absolute;inset:5% 5%;border:1px dashed rgb(236 239 241/.55);z-index:3;pointer-events:none;display:none}
+  .guides::after{content:"";position:absolute;inset:6% 6%;border:1px dashed rgb(236 239 241/.35)}
+  .guides.on{display:block}
+  .fc-legend{position:absolute;left:8px;bottom:8px;z-index:3;display:none;gap:0;font:700 10px var(--mono)}
+  .fc-legend.on{display:flex}
+  .fc-legend span{padding:2px 5px;color:#0e1013}
+  .ptab.ic .lb{display:none}
+  .ptab.ic.on .lb{display:inline}
+  .ptab.ic{padding:0 8px}
+  .ptab.ic.on{color:var(--ink)}
+  .icon.lit{color:var(--blue);background:rgb(111 183 230/.1)}
+  .seg.ic button{width:28px;padding:0;display:grid;place-items:center}
+  .vchip{height:24px;padding:0 7px;border-radius:3px;font:700 12px var(--mono);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--rule-2);display:inline-flex;align-items:center;gap:4px}
+  .info{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;color:var(--ink-3);vertical-align:-3px;cursor:help}
+  .info:hover{color:var(--ink)}
+  .info .ico{width:14px;height:14px}
+  .bh{display:flex;align-items:center}
+  .quick{flex-direction:row!important;flex-wrap:wrap}
+  .quick .btn{width:40px;height:34px;padding:0;justify-content:center}
+  .quick .btn .ico{width:18px;height:18px}
+  #tip{position:fixed;z-index:100;max-width:270px;padding:7px 10px 8px;background:var(--paper-2);border-radius:5px;box-shadow:0 0 0 1px var(--rule-2),0 8px 24px rgb(0 0 0/.55);font:400 12px/1.4 var(--body);color:var(--ink-2);pointer-events:none;opacity:0;transition:opacity .08s}
+  #tip.on{opacity:1}
+  #tip b{display:block;font:700 13px var(--hand);color:var(--ink);margin-bottom:2px}
+  #tip kbd{font:700 10.5px var(--mono);padding:0 4px;border-radius:2px;box-shadow:inset 0 0 0 1px var(--rule-2);color:var(--ink);margin-left:6px}
+</style>
+<style id="breathe">
+  /* D, Studio: the same colors and fonts as C. Only the layout changes: panels float on the table with gutters,
+     tools get a rail of their own, controls sit in measured columns, and every row has room. */
+  #page{padding:8px;gap:8px;background:var(--table);grid-template-rows:minmax(0,1fr) 172px 330px}
+  .upper,.lower{gap:8px}
+  .upper{grid-template-columns:372px minmax(0,1fr)}
+  body.leader .upper{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+  .panel{border-radius:6px;overflow:hidden;box-shadow:0 0 0 1px var(--rule)}
+  .ph{height:38px;padding:0 8px 0 14px;gap:4px;background:var(--paper);border-bottom:1px solid var(--rule)}
+  .ph .t{margin-right:10px}
+  .ph .who{margin-left:2px}
+  .ph .sep{margin:0 8px}
+  .icon{width:30px;height:30px}
+  /* layers: room between rows, larger thumbs */
+  .layers{padding:10px 12px;gap:6px}
+  .layer{padding:6px 10px 6px 8px;gap:10px;grid-template-columns:12px 22px 64px minmax(0,1fr) auto}
+  .layer .thumb{width:64px;height:36px}
+  .layer .meta{margin-top:5px}
+  .group{padding:6px 8px 8px}
+  .group-h{padding:4px 2px 8px}
+  .kids{gap:6px;padding-left:12px}
+  .group .hint{padding-top:8px!important}
+  .sealed{padding:8px}
+  .flow{padding:4px 4px}
+  .addrow{padding:10px 12px}
+  /* viewer: a wider margin around the picture */
+  .shot{width:min(100cqw - 64px,(100cqh - 56px)*16/9)}
+  .vbar{height:40px;padding:0 12px;gap:6px}
+  /* clips */
+  .strip{padding:10px 12px 4px;gap:10px}
+  .sclip{width:128px}
+  .sclip .meta{font:400 10.5px var(--mono);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-tl{flex:none;height:22px;position:relative;margin:2px 12px 10px;background:var(--table);border-radius:3px}
+  .mini-tl i{position:absolute;height:6px;border-radius:1px;background:var(--rule-2)}
+  .mini-tl i.v2{top:3px}.mini-tl i.v1{top:12px}
+  .mini-tl i.sel{background:var(--blue)}
+  .mini-tl b{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--red)}
+  .mini-tl span{position:absolute;right:6px;top:4px;font:400 10.5px var(--mono);color:var(--ink-3)}
+  /* tools: a vertical rail, then a header that names the tool, then measured columns */
+  .tpanel{flex-direction:row!important}
+  .rail{width:52px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:var(--paper-2);border-right:1px solid var(--rule);overflow:auto}
+  .rail .ptab{width:38px;height:36px;padding:0;justify-content:center;border-radius:4px}
+  .rail .ptab .lb{display:none!important}
+  .rail .ptab.on{background:var(--paper);box-shadow:inset 3px 0 0 var(--red)}
+  .rail .sep{width:22px;height:0;border-left:0;border-top:1px dashed var(--rule-2);margin:6px 0}
+  .tmain{flex:1;min-width:0;display:flex;flex-direction:column}
+  .tmain .ph .t{font-size:14px}
+  .tbody{padding:16px 24px 16px}
+  .sl{min-height:32px;grid-template-columns:96px minmax(120px,1fr) 60px;gap:12px}
+  .sl output{padding:3px 7px;cursor:ew-resize;user-select:none}
+  .sl label{user-select:none;position:relative}
+  .sl.chg label::before{content:"";position:absolute;left:-10px;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:var(--blue)}
+  .bh{margin-bottom:12px;padding-bottom:7px}
+  .basics,.three,.two,.cmix{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important;gap:20px 44px!important;max-width:1180px}
+  .wrow{display:grid;grid-template-columns:auto minmax(260px,400px);gap:48px;align-items:start}
+  .wrow .wheels{grid-template-columns:repeat(4,128px);gap:22px}
+  .wrow .nums span{min-width:28px;font-size:10px;padding:1px 2px}
+  .wrow{gap:40px}
+  .prims>div{grid-template-columns:1fr!important;gap:0!important;margin:0!important}
+  .wtop{margin-bottom:16px}
+  .wheels{gap:24px;max-width:1000px}
+  .nums{margin-top:2px}
+  .wheel{gap:9px}
+  .quick{gap:10px!important}
+  .quick .btn{width:46px;height:40px}
+  .curves{grid-template-columns:minmax(0,560px) 180px;gap:24px}
+  .curve-box{min-height:220px}
+  .lut-list{gap:4px}
+  .lut-list button{padding:7px 10px}
+  .dots{gap:10px;margin-bottom:16px}
+  .matrix{gap:8px}
+  /* scopes: breathing room around each trace */
+  .scopes{gap:8px;padding:8px;background:var(--paper)}
+  .scopes>div{border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px var(--rule)}
+  .addrow{align-items:center;gap:8px}
+  .zones{display:grid;grid-template-columns:repeat(6,84px);gap:14px}
+  .zones .nums span{min-width:40px}
+  .zones input[type=range]{width:78px}
+  .limrow{display:grid;grid-template-columns:repeat(3,minmax(240px,1fr));gap:20px 44px;max-width:1180px}
+  .lhead{display:flex;align-items:center;gap:8px;margin-bottom:8px;font:700 13px var(--hand)}
+  .lhead .btn{height:24px;padding:0 8px}
+  .chart{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;padding:6px;background:var(--table-2);border-radius:3px;margin-bottom:10px;max-width:200px}
+  .chart i{display:block;aspect-ratio:1;border-radius:1px}
+  .col-btns{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  .warp{display:grid;grid-template-columns:232px minmax(240px,360px);gap:44px;align-items:start}
+  .wbox{width:232px;height:232px;border-radius:50%;touch-action:none;background:radial-gradient(circle,#d9dde0 0,rgb(217 221 224/0) 72%),conic-gradient(from 90deg,hsl(0 70% 55%),hsl(60 70% 55%),hsl(120 60% 50%),hsl(180 60% 50%),hsl(240 65% 60%),hsl(300 65% 58%),hsl(360 70% 55%));box-shadow:0 0 0 1px var(--rule-2)}
+  .wbox svg{width:100%;height:100%;overflow:visible}
+  .wbox line,.wbox polygon{stroke:rgb(20 23 27/.7);stroke-width:1;fill:none}
+  .wbox circle{fill:var(--ink);stroke:var(--table);stroke-width:1.5;cursor:grab}
+  .wbox circle.moved{fill:var(--red)}
+  .shot.sampling{cursor:crosshair}
+  .probe{position:absolute;z-index:6;pointer-events:none;padding:4px 7px;background:rgb(14 16 19/.9);border-radius:3px;font:400 11px var(--mono);white-space:nowrap;display:none}
+  .pin{position:absolute;z-index:5;width:14px;height:14px;margin:-7px 0 0 -7px;border:1.5px solid var(--ink);border-radius:50%;pointer-events:none;box-shadow:0 0 0 1px #000}
+  .pin b{position:absolute;left:12px;top:-13px;font:700 10px var(--mono);color:var(--ink);text-shadow:0 0 3px #000}
+  .pins{position:absolute;left:8px;top:8px;z-index:5;display:flex;flex-direction:column;gap:2px;font:400 11px var(--mono)}
+  .pins div{background:rgb(14 16 19/.85);padding:2px 6px;border-radius:2px}
+  .pins span{color:var(--ink-3)}
+  .tag.bypass{left:50%;transform:translateX(-50%);color:var(--red)}
+  body.cinema .upper>section:last-child{position:fixed;inset:0;z-index:80;border-radius:0}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:120;padding:9px 14px;background:var(--paper-2);border-radius:5px;box-shadow:0 0 0 1px var(--rule-2),0 10px 30px rgb(0 0 0/.5);font:400 12.5px var(--body);display:none}
+  .toast.on{display:block}
+  #ppmenu{position:fixed}
+  .limrow .sl{grid-template-columns:84px minmax(60px,1fr) 56px}
+  #ppmenu button .toggle{margin-right:2px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="seal" viewBox="0 0 120 100">
+    <g fill="none" stroke="#6fb7e6" stroke-width="0.9" opacity="0.8"><circle cx="60" cy="50" r="46"/><path d="M6 50c20 8 88 8 108 0M60 2c-8 30-8 66 0 96"/></g>
+    <path d="M60 6c30 0 54 20 54 49 0 25-24 39-54 39S6 80 6 55C6 26 30 6 60 6z" fill="#dfe5e9" stroke="#eceff1" stroke-width="2.2"/>
+    <ellipse cx="40" cy="49" rx="6.4" ry="4.4" transform="rotate(10 40 49)" fill="#22272e"/>
+    <ellipse cx="80" cy="49" rx="6.4" ry="4.4" transform="rotate(-10 80 49)" fill="#22272e"/>
+    <path d="M60 58c-7-1-16 1-16 8 0 6 10 9 16 4 6 5 16 2 16-4 0-7-9-9-16-8z" fill="#f7f9fa" stroke="#22272e" stroke-width="1.9"/>
+    <path d="M55.5 56.5h9l-4.5 5z" fill="#22272e" stroke="#22272e" stroke-width="1.6" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="leader" viewBox="0 0 120 110">
+    <path d="M38 22l8-18 14 12 14-12 8 18z" fill="#ff5f52" stroke="#ff5f52" stroke-width="2" stroke-linejoin="round"/>
+    <use href="#seal" y="10" width="120" height="100"/>
+  </symbol>
+</svg>
+<div id="app">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 120 100"><use href="#seal"/></svg><span class="word">cloudy clip</span><span class="project">Golden hour</span>
+      <span class="layout-tag">Layout D · Studio · <a href="tint-a-workbench.html">A</a> · <a href="tint-b-darkroom.html">B</a> · <a href="tint-c-hybrid.html">C</a></span></div>
+    <nav class="pages">
+      <button class="pg" data-ic="image">Media</button>
+      <button class="pg" data-ic="scissors">Edit</button>
+      <button class="pg is-active" data-ic="palette">Tint</button>
+      <button class="pg" data-ic="lines">Sound</button>
+      <button class="pg" data-ic="upload">Export</button>
+    </nav>
+    <div class="right">
+      <div class="seals" data-tip="Baby Seal or Leader Seal|The same grade, shown as layers or as nodes. Switch any time; nothing changes.">
+        <button class="baby on" data-mode="baby"><svg viewBox="0 0 120 100"><use href="#seal"/></svg>Baby Seal <small>layers</small></button>
+        <button data-mode="leader"><svg viewBox="0 0 120 110"><use href="#leader"/></svg>Leader Seal <small>nodes</small></button>
+      </div>
+      <button id="newbtn" class="mark">Mark new tools</button><span class="av">M</span><span class="av claude">✳</span>
+    </div>
+  </header>
+
+  <main id="page">
+    <div class="upper">
+      <section class="panel">
+        <div class="ph">
+          <button class="ptab ic on" data-left="grade" data-tip="Grade|The corrections on this clip, top to bottom."><span class="baby-only" data-ic="list"></span><span class="leader-only" data-ic="nodes"></span><span class="lb baby-only">Layers</span><span class="lb leader-only">Nodes</span></button>
+          <button class="ptab ic" data-left="looks" data-tip="Looks|Stills you grabbed and saved looks. Click one to apply it." data-ic="still"><span class="lb">Looks</span></button>
+          <span class="who">02 Plaza wide</span><span class="grow"></span>
+          <button class="icon" data-tip="Copy grade|Copy every correction on this clip.<kbd>Ctrl C</kbd>" data-ic="copy"></button><button class="icon" data-tip="Paste grade|Replace this clip&#39;s grade with the copied one.<kbd>Ctrl V</kbd>" data-ic="paste"></button><button class="icon" data-tip="Reset grade|Remove every correction from this clip." data-ic="reset"></button>
+        </div>
+        <div data-leftbody="grade" style="flex:1;min-height:0;display:flex;flex-direction:column">
+          <div class="baby-only" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="layers" id="layers"></div>
+            <div class="addrow"><button class="btn primary" data-add data-tip="Add|A correction, a group or a look, above the selected layer. Top runs first; drag to reorder.<kbd>Alt S</kbd>">+ Add</button><div id="addhost"></div></div>
+          </div>
+          <div class="graph leader-only" id="graph"></div>
+        </div>
+        <div class="looks-pane" data-leftbody="looks" hidden>
+          <div class="looks" id="looks"></div>
+          <div class="addrow"><button class="btn primary" data-tip="Grab still|Save this frame and its grade as a look.">Grab still</button><button class="btn" data-tip="Apply to selected clips|Paste this look onto every selected clip.">Apply to selected</button></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="ph"><span class="t">Viewer</span><span class="who">02 Plaza wide · 0:04.12</span><span class="grow"></span>
+          <button class="icon" id="cmp" data-ic="split" data-tip="Before / after|Wipe between the original and the grade. Drag the line.<kbd>\\</kbd>"></button><button class="icon" data-ic="side" data-tip="Side by side|This clip next to another clip or a still, to match them."></button><button class="icon new" id="bybtn" data-ic="power" data-tip="Bypass grades|See every clip with no grade at all, to judge what you changed.<kbd>Shift D</kbd>"></button><span class="sep"></span><button class="icon new" id="smbtn" data-ic="crosshair" data-tip="Sample points|Hover the picture to read its color. Click to pin up to three points and watch them while you grade."></button><button class="icon" id="fcbtn" data-ic="falsecolor" data-tip="False color|Paints brightness as colors: crushed blacks, skin level and clipping at a glance."></button><button class="icon" id="gdbtn" data-ic="guides" data-tip="Guides|Safe areas for titles and action."></button><button class="icon new" id="wnbtn" data-ic="zebra" data-tip="Clip warning|Marks blown-out areas in magenta, so you see what detail is lost."></button><span class="sep"></span>
+          <span class="cs" data-tip="Color space|Camera S-Log3, shown as Rec.709. Change it in LUT and color.">S-Log3 → 709</span><span class="cs" style="margin-left:4px" data-tip="Zoom|Fit to the viewer.<kbd>Shift Z</kbd>">44%</span><span class="sep"></span><button class="icon new" id="cnbtn" data-ic="maximize" data-tip="Clean viewer|Only the picture, full screen. Esc to leave. Right-click to send it to a second screen.<kbd>Ctrl F</kbd>"></button>
+        </div>
+        <div class="viewer" id="viewer"></div>
+        <div class="vbar"><span class="tc">0:24<span>.14</span></span><span class="sep"></span>
+          <button class="icon" data-ic="back" data-tip="Previous clip|<kbd>↑</kbd>"></button><button class="tp-play" data-ic="play" data-tip="Play|<kbd>Space</kbd>"></button><button class="icon" data-ic="fwd" data-tip="Next clip|<kbd>↓</kbd>"></button><button class="icon lit" data-ic="loop" data-tip="Loop|Repeat the clip while you grade."></button>
+          <span class="grow"></span><button class="icon" data-tip="Grab still|Save this frame and its grade to Looks.<kbd>Ctrl Alt G</kbd>" data-ic="still"></button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="ph"><span class="t">Clips</span><span class="who">8 in Main · 3 graded</span><span class="grow"></span>
+        <span class="seg ic"><button class="on" data-ic="square" data-tip="This clip|The grade applies to this clip only."></button><button data-ic="folder" data-tip="Shot group|One grade shared by every Plaza shot, under each clip&#39;s own."></button><button data-ic="timeline" data-tip="Whole timeline|A grade over the finished edit, after every clip, like an adjustment layer."></button></span>
+        <button class="vchip" style="margin-left:6px" data-tip="Versions|Keep several grades on a clip and flip between them."><span data-ic="version"></span>A ▾</button><span class="sep"></span>
+        <button class="icon" data-ic="copy" data-tip="Copy grade|<kbd>Ctrl C</kbd>"></button><button class="icon" data-ic="paste" data-tip="Paste grade|Onto the selected clips.<kbd>Ctrl V</kbd>"></button><button class="icon new" id="ppbtn" data-ic="pastepart" data-tip="Paste part of a grade|Choose what to paste: only the balance, only the wheels, only the LUT…"></button><button class="icon" data-ic="pasteall" data-tip="Paste to all|Onto every clip in the strip."></button><button class="icon new" data-ic="wand" data-tip="Match all to this|Match every selected clip to this one in one click."></button><button class="icon" data-ic="folder" data-tip="Make a shot group|Group the selected clips so they share one grade."></button>
+      </div>
+      <div class="strip" id="strip"></div>
+    </section>
+
+    <div class="lower">
+      <section class="panel tpanel">
+        <div class="rail" id="rail"></div>
+        <div class="tmain">
+        <div class="ph" id="tph"><span class="t" id="tname">Basics</span>
+          <button class="ptab ic on" data-tool="basics" data-ic="sun" data-tip="Basics|Exposure, contrast and white balance. Start here.<kbd>1</kbd>"><span class="lb">Basics</span></button><span class="sep"></span><button class="ptab ic" data-tool="wheels" data-ic="wheel" data-tip="Color wheels|Lift, gamma, gain and offset: push color into the darks, mids and brights.<kbd>2</kbd>"><span class="lb">Wheels</span></button><button class="ptab ic" data-tool="curves" data-ic="curve" data-tip="Curves|Bend brightness and color with points. Hue curves change one color only.<kbd>3</kbd>"><span class="lb">Curves</span></button><button class="ptab ic" data-tool="cmix" data-ic="cmix" data-tip="Color mix|Change one color family, like grass, sky or skin, without a mask.<kbd>4</kbd>"><span class="lb">Color mix</span></button><button class="ptab ic new" data-tool="warper" data-ic="grid" data-tip="Color warper|A grid over the colors. Drag a point to bend a hue or its strength; the rest follows smoothly."><span class="lb">Warper</span></button><button class="ptab ic" data-tool="creative" data-ic="sparkle" data-tip="Creative|Split toning, faded film and vignette.<kbd>5</kbd>"><span class="lb">Creative</span></button><button class="ptab ic" data-tool="limit" data-ic="focus" data-tip="Limit|Apply this correction only to some colors or some brightness. Without a limit it changes the whole frame.<kbd>6</kbd>"><span class="lb">Limit</span></button><button class="ptab ic" data-tool="luts" data-ic="cube" data-tip="LUT and color space|Convert camera log footage and add film looks.<kbd>7</kbd>"><span class="lb">LUT and color</span></button><button class="ptab ic" data-tool="match" data-ic="wand" data-tip="Match|Auto balance, pick white, match this shot to another.<kbd>8</kbd>"><span class="lb">Match</span></button><button class="ptab ic" data-tool="mixer" data-ic="sliders" data-tip="RGB mixer|Mix the red, green and blue channels into each other. Good for black and white.<kbd>9</kbd>"><span class="lb">RGB mixer</span></button><button class="ptab ic" data-tool="detail" data-ic="zoom" data-tip="Detail|Sharpen and noise reduction. Picture effects, after v1."><span class="lb">Detail</span></button>
+          <span class="grow"></span><span class="who" id="who"></span>
+          <button class="icon" data-tip="Keyframe|Animate this correction over time.<kbd>K</kbd>" data-ic="diamond"></button><button class="icon" data-tip="Reset this correction|Back to neutral; the layer stays." data-ic="reset"></button>
+        </div>
+        <div class="tbody" id="tools"></div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="ph"><span class="t">Scopes</span>
+          <button class="ptab ic on" data-scope="parade" data-ic="parade" data-tip="Parade|Red, green and blue brightness side by side. Level lines mean neutral."><span class="lb">Parade</span></button><button class="ptab ic" data-scope="wave" data-ic="wave" data-tip="Waveform|Brightness across the picture, bottom is black, top is white."><span class="lb">Waveform</span></button><button class="ptab ic" data-scope="hist" data-ic="hist" data-tip="Histogram|How many pixels sit at each brightness."><span class="lb">Histogram</span></button>
+          <span class="grow"></span><span class="who" data-tip="Vectorscope|Color and how strong it is. The gold line is where skin should sit.">Vectorscope</span>
+        </div>
+        <div class="scopes"><div id="mainscope"></div><div id="vecscope"></div></div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="tint-frame.js"></script>
+<script src="tint-shared.js"></script>
+<script>
+(function(){
+  var T=Tint,tab='basics';
+  T.addIcons({
+    power:'<path d="M12 3v8M6.3 6.3a8 8 0 1011.4 0"/>',
+    crosshair:'<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',
+    zebra:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 14l10-10M7 20L21 6M13 20l8-8"/>',
+    maximize:'<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
+    grid:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>',
+    pastepart:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12h3M9 16h6" />',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    wheel:'<circle cx="12" cy="12" r="9"/><circle cx="14.5" cy="9.5" r="2.2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21"/>',
+    curve:'<path d="M3 3v18h18" opacity=".45"/><path d="M4 20C10 20 10 4 20 4"/>',
+    cmix:'<circle cx="9" cy="9" r="5"/><circle cx="15" cy="9" r="5"/><circle cx="12" cy="15" r="5"/>',
+    sparkle:'<path d="M11 3l1.8 5.2L18 10l-5.2 1.8L11 17l-1.8-5.2L4 10l5.2-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+    focus:'<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3.5"/>',
+    cube:'<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z"/><path d="M12 21.5V12M20.5 7.3L12 12 3.5 7.3"/>',
+    sliders:'<path d="M5 21v-6M5 11V3M12 21v-8M12 9V3M19 21v-4M19 13V3M2 15h6M9 9h6M16 17h6"/>',
+    zoom:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4M11 8v6M8 11h6"/>',
+    side:'<rect x="2" y="5" width="9" height="14" rx="1"/><rect x="13" y="5" width="9" height="14" rx="1"/>',
+    falsecolor:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.3h18M3 14.6h18"/><path d="M8 4v5.3M14 9.3v5.3M10 14.6V20"/>',
+    guides:'<rect x="2" y="4" width="20" height="16" rx="1"/><rect x="5.5" y="7.5" width="13" height="9" stroke-dasharray="2 2"/>',
+    parade:'<path d="M3 20h18"/><path d="M5 17V8M9 17V5M15 17V9M19 17V6"/>',
+    wave:'<path d="M2 12c2.5-7 4.5-7 6.5 0s4 7 6.5 0 4-7 7 0"/>',
+    hist:'<path d="M3 20h18M5 20v-4M9 20v-9M13 20V6M17 20v-7"/>',
+    timeline:'<path d="M3 6h12M3 12h18M3 18h8"/>',
+    pasteall:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>',
+    version:'<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="8" r="2.5"/><path d="M6 8.5v7M18 10.5c0 4-6 3-11 6"/>'
+  });
+  (function(){var tip=document.createElement('div');tip.id='tip';document.body.appendChild(tip);var cur=null;
+    document.addEventListener('mouseover',function(e){var el=e.target.closest('[data-tip],[title]');if(el&&el.hasAttribute('title')){el.setAttribute('data-tip',el.getAttribute('title'));el.removeAttribute('title');}
+      if(el===cur){return;}cur=el;if(!el){tip.classList.remove('on');return;}
+      var t=el.getAttribute('data-tip').split('|');tip.innerHTML='<b>'+t[0]+'</b>'+(t[1]||'');
+      var r=el.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight,x=Math.max(6,Math.min(innerWidth-w-6,r.left+r.width/2-w/2)),y=r.bottom+8;if(y+h>innerHeight-6){y=r.top-h-8;}
+      tip.style.left=x+'px';tip.style.top=y+'px';tip.classList.add('on');});
+    document.addEventListener('mousedown',function(){tip.classList.remove('on');cur=null;});})();
+  document.getElementById('addhost').outerHTML=T.addMenu();
+  T.boot();
+  var layers=document.getElementById('layers'),graph=document.getElementById('graph'),tools=document.getElementById('tools');
+  T.wireLayers(layers);T.wireGraph(graph);T.renderViewer(document.getElementById('viewer'));T.renderStrip(document.getElementById('strip'));T.renderLooks(document.getElementById('looks'));
+
+  var main=document.getElementById('mainscope'),S={};
+  ['parade','wave','hist'].forEach(function(k){var d=document.createElement('div');d.className='scope';main.appendChild(d);S[k]=d;T.addScope(d,k);d.hidden=k!=='parade';});
+  var v=document.createElement('div');v.className='scope';document.getElementById('vecscope').appendChild(v);T.addScope(v,'vector');
+  document.querySelectorAll('[data-scope]').forEach(function(b){b.addEventListener('click',function(){var k=b.getAttribute('data-scope');
+    document.querySelectorAll('[data-scope]').forEach(function(x){x.classList.toggle('on',x===b);});Object.keys(S).forEach(function(n){S[n].hidden=n!==k;});T.paintScopes();});});
+
+  function renderTools(){
+    var n=T.cur(),sel=T.N[T.state.sel],word=T.state.mode==='leader'?'Node':'Layer';
+    document.getElementById('who').textContent=n?word+' '+n.no+' '+n.name:(sel.kind==='group'?'Group ':'Sealed ')+sel.name;
+    document.querySelectorAll('[data-tool]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tool')===tab);b.style.visibility=n?'':'hidden';});
+    if(!n){tools.innerHTML=T.tools.groupInfo();T.icons(tools);return;}
+    tools.innerHTML=tab==='basics'?basics():tab==='wheels'?wheelsTab():X[tab]?X[tab]():T.tools[tab]();
+    if(tab==='warper'){drawWarp();}
+  }
+  function basics(){var s=T.tools.slider,F=T.tools.F,ico=T.ico;
+    function col(t,h){return '<div><div class="bh">'+t+'</div>'+h+'</div>';}
+    function inf(t){return '<span class="info" data-tip="'+t+'">'+ico('info')+'</span>';}
+    return '<div class="basics">'+
+      col('Light',s('exp','Exposure',-1,1,.01,F.ev)+s('con','Contrast',.5,1.6,.01,F.x)+s('hi','Highlights',-100,100,1,F.i)+s('sh','Shadows',-100,100,1,F.i)+'<div class="">'+s('wh','Whites',-100,100,1,F.i)+s('bl','Blacks',-100,100,1,F.i)+'</div><div class="new" data-tip="Highlight rolloff|Eases the brightest parts down so blown skies and windows get their detail back.">'+s('soft','Highlight rolloff',0,100,1,F.i)+'</div>')+
+      col('Color',s('temp','Temperature',-100,100,1,F.i,'tr-temp')+s('tint','Tint',-100,100,1,F.i,'tr-tint')+s('vib','Vibrance',-100,100,1,F.i,'tr-sat')+s('sat','Saturation',0,2,.01,F.pct,'tr-sat')+'<div class="sl new" data-tip="Protect skin|Vibrance and Saturation leave faces alone, so skin never turns orange."><label>Protect skin</label><span class="toggle on" data-tg></span><span></span></div>')+
+      col('One click'+inf('Linked|Basics and Wheels change the same grade. Move a slider here and the wheels follow.'),'<div class="quick"><button class="btn" data-tip="Auto balance|Neutral whites and even exposure in one click.">'+ico('wand')+'</button><button class="btn" data-tip="Pick something white|Click a white or gray spot in the viewer to set white balance.">'+ico('drop')+'</button><button class="btn" data-tip="Match to another clip|Click a clip in the strip; this one takes on its colors.">'+ico('copy')+'</button><button class="btn" data-tip="Apply a look|Open Looks and pick one.">'+ico('still')+'</button></div>')+'</div>';}
+  var wmode='primary',mixc=1;
+  var mwm=/wm=(\w+)/.exec(location.hash);if(mwm){wmode=mwm[1];}
+  function inf(t){return '<span class="info" data-tip="'+t+'">'+T.ico('info')+'</span>';}
+  function wheelsTab(){var h='<div class="wrow"><div>'+T.tools.wheels(112)+'</div><div class="prims">'+T.tools.primaries()+'</div></div>';
+    if(wmode==='zones'){var zn=T.cur();h='<div class="wrow"><div class="zones">'+['Black','Dark','Shadow','Light','Highlight','Specular'].map(function(l,i){var k='z'+i,p=zn.g.wheel[k];
+      return '<div class="wheel"><h5>'+l+'</h5><div class="disc" data-w="'+k+'" style="--wd:78px"><span class="puck" style="left:'+(50+p[0]*40)+'%;top:'+(50+p[1]*40)+'%"></span></div><div class="nums"><span>'+(p[0]*.1).toFixed(2)+'</span></div><input type="range" min="0" max="100" value="'+[6,20,38,62,82,96][i]+'" data-tip="Zone range|Where this band sits, from black to white."></div>';}).join('')+'</div><div class="prims">'+T.tools.primaries()+'</div></div>';}
+    if(wmode==='log'){h=h.replace('>Lift<','>Shadow<').replace('>Gamma<','>Midtone<').replace('>Gain<','>Highlight<');}
+    return '<div class="wtop"><span class="seg"><button data-wm="primary" class="'+(wmode==='primary'?'on':'')+'">Primary</button><button data-wm="log" class="'+(wmode==='log'?'on':'')+'">Log</button><button data-wm="bars" class="'+(wmode==='bars'?'on':'')+'">Bars</button><button data-wm="zones" class="new '+(wmode==='zones'?'on':'')+'">Zones</button></span>'+
+      inf(wmode==='log'?'Log|Shadow, midtone and highlight wheels touch narrow ranges. For footage shot flat.':wmode==='zones'?'Zones|Six wheels, each for a narrow band of brightness: black, dark, shadow, light, highlight and specular. For HDR and fine work.':wmode==='bars'?'Bars|The same controls as sliders per channel.':'Primary|Lift, gamma and gain overlap across the whole picture, from dark to bright.')+'</div>'+h;}
+  var COLS=[['Reds','#e0545a'],['Oranges','#f0a04b'],['Yellows','#e8d35a'],['Greens','#4fbf6a'],['Aquas','#4fc4c4'],['Blues','#4d8fe0'],['Purples','#9a6ae0'],['Magentas','#d45ad0']];
+  function plain(lbl,v,tr,out){return '<div class="sl"><label>'+lbl+'</label><input type="range" class="'+(tr||'')+'" min="-100" max="100" value="'+v+'"><output>'+(out===undefined?v:out)+'</output></div>';}
+  function rng(lbl,bg,a,b){return '<div class="sl" style="grid-template-columns:84px 1fr 64px"><label>'+lbl+'</label><div class="range-wrap"><div class="range" style="background:'+bg+'"><span class="win" style="left:'+a+'%;width:'+(b-a)+'%"></span></div></div><output>'+a+'–'+b+'</output></div>';}
+  var CHART=['#735244','#c29682','#627a9d','#576c43','#8580b1','#67bdaa','#d67e2c','#505ba6','#c15a63','#5e3c6c','#9dbc40','#e0a32e','#383d96','#469449','#af363c','#e7c71f','#bb5695','#0885a1','#f3f3f2','#c8c8c8','#a0a0a0','#7a7a79','#555555','#343434'];
+  var X={
+    limit:function(){var n=T.cur(),key=n.limit==='key',ico=T.ico;
+      return '<div class="limrow"><div><div class="bh">By color'+inf('By color|Pick a color in the picture with the dropper; only those colors change. Use + and − to add or leave out more.')+'</div>'+
+        '<div class="lhead"><span class="toggle'+(key?' on':'')+'" data-tg></span><span class="grow"></span><button class="btn on" data-tip="Pick|Click a color in the viewer.">'+ico('drop')+'</button><button class="btn" data-tip="Add|Click more colors to include them.">+</button><button class="btn" data-tip="Leave out|Click colors to remove them.">−</button></div>'+
+        rng('Hue','linear-gradient(90deg,red,#ff0,lime,cyan,blue,#f0f,red)',4,14)+rng('Saturation','linear-gradient(90deg,#888,#e05a3a)',22,64)+rng('Luminance','linear-gradient(90deg,#000,#fff)',30,82)+'</div>'+
+        '<div class="new"><div class="bh">By brightness'+inf('By brightness|Only the darks, only the brights, or a band in between. No picking needed.')+'</div>'+
+        '<div class="lhead"><span class="toggle" data-tg></span><span class="grow"></span><span class="seg"><button data-tip="Shadows only">Darks</button><button data-tip="Midtones only">Mids</button><button class="on" data-tip="Highlights only">Brights</button></span></div>'+
+        rng('Range','linear-gradient(90deg,#000,#fff)',70,100)+plain('Softness',30)+'</div>'+
+        '<div><div class="bh">Refine'+inf('Refine|Soften and clean the edge of what was picked, then check it.')+'</div>'+plain('Softness',30)+plain('Clean up',20)+
+        '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn'+(T.state.matte?' on':'')+'" data-matte data-tip="Show what is picked|Picked areas white, the rest black.">'+ico('eye')+'Show</button><button class="btn" data-tip="Invert|Change everything except what was picked.">Invert</button></div></div></div>';},
+    match:function(){var ico=T.ico;
+      return '<div class="limrow" style="grid-template-columns:repeat(4,minmax(190px,1fr));gap:20px 32px">'+
+        '<div><div class="bh">Balance</div><div class="col-btns"><button class="btn" data-tip="Auto balance|Neutral whites and even exposure in one click.">'+ico('wand')+'Auto</button><button class="btn" data-tip="Pick white|Click something white in the viewer.">'+ico('drop')+'White</button><button class="btn" data-tip="Pick gray|Click something gray in the viewer.">'+ico('drop')+'Gray</button></div></div>'+
+        '<div><div class="bh">Another shot'+inf('Match another shot|Click a clip in the strip; this one takes on its colors.')+'</div><div class="col-btns"><button class="btn on">Match to 01 Plaza</button><button class="btn new" data-tip="Match all to this|Every selected clip takes on this clip&#39;s colors.">'+ico('wand')+'Match all to this</button></div></div>'+
+        '<div class="new"><div class="bh">Color chart'+inf('Color chart|Film a 24-patch color chart at the start of a shoot. Cloudy Clip finds it in the picture and calibrates the clip.')+'</div>'+
+          '<div class="chart">'+CHART.map(function(c){return '<i style="background:'+c+'"></i>';}).join('')+'</div><div style="display:flex;gap:8px"><button class="btn" data-tip="Find chart|Look for the chart in this frame.">Find</button><button class="btn" data-tip="Calibrate|Correct the clip so every patch reads right.">Calibrate</button></div></div>'+
+        '<div><div class="bh">Skin'+inf('Skin|Pulls faces toward the skin line on the vectorscope.')+'</div>'+plain('Amount',35)+'<div class="sl"><label>Protect skin</label><span class="toggle on" data-tg></span><span></span></div></div></div>';},
+    warper:function(){return '<div class="warp new"><div class="wbox"><svg id="wsvg" viewBox="-120 -120 240 240"></svg></div><div><div class="bh">Color warper'+inf('Color warper|Each point is a color. Drag it toward another hue to shift that color, or in and out to change its strength. Neighbors follow smoothly.')+'</div>'+
+      '<span class="seg" style="margin-bottom:12px;display:inline-flex"><button class="on" data-tip="Hue and saturation|Around the circle is hue, out from the middle is strength.">Hue · strength</button><button data-tip="Color and brightness|Bend colors and their brightness together.">Color · brightness</button></span>'+
+      plain('Smoothing',50)+plain('Grid',12,'',12)+'<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-tip="Pin|Lock a point so dragging others leaves it alone.">Pin</button><button class="btn" data-wwreset data-tip="Reset|Put every point back.">Reset</button></div></div></div>';},
+    cmix:function(){var c=COLS[mixc];return '<div class="cmix"><div><div class="bh">Color family'+inf('Color mix|Change one color family without masking: greener grass, a calmer sky, warmer skin.')+'</div><div class="dots">'+COLS.map(function(k,i){return '<button data-mc="'+i+'" title="'+k[0]+'" class="'+(i===mixc?'on':'')+'" style="background:'+k[1]+'"></button>';}).join('')+'</div>'+
+      '<button class="btn" data-tip="Pick from the picture|Click a color in the viewer to choose its family.">'+T.ico('drop')+'Pick</button></div>'+
+      '<div><div class="bh">'+c[0]+'</div>'+plain('Hue',mixc===1?-6:0,'tr-hue')+plain('Saturation',mixc===1?12:0,'tr-sat')+plain('Luminance',mixc===1?4:0)+'<div style="height:6px"></div>'+plain('Range',0)+'</div>'+
+      '<div><div class="bh">All families · saturation</div><div class="bars">'+COLS.map(function(k,i){return '<i style="background:'+k[1]+';height:'+(50+(i===1?12:i===5?-18:i===3?-10:0))+'%"></i>';}).join('')+'</div></div></div>';},
+    creative:function(){var s=T.tools.slider,F=T.tools.F,n=T.cur(),p1=n.g.wheel.shtint,p2=n.g.wheel.hltint;
+      function mini(k,lbl,p){return '<div class="wheel"><h5>'+lbl+'</h5><div class="disc" data-w="'+k+'" style="--wd:84px"><span class="puck" style="left:'+(50+p[0]*40)+'%;top:'+(50+p[1]*40)+'%"></span></div></div>';}
+      return '<div class="three"><div><div class="bh">Split toning'+inf('Split toning|Tint the shadows and the highlights with different colors, like teal shadows and warm highlights.')+'</div><div class="mwheel">'+mini('shtint','Shadow tint',p1)+mini('hltint','Highlight tint',p2)+'</div>'+plain('Balance',0)+'</div>'+
+      '<div><div class="bh">Film'+inf('Grain|Grain adds pixels, so it is a picture effect and comes after v1.')+'</div>'+s('fade','Faded film',0,100,1,F.i)+plain('Grain',0)+'<div style="height:8px"></div>'+s('vib','Vibrance',-100,100,1,F.i,'tr-sat')+'</div>'+
+      '<div><div class="bh">Vignette'+inf('Vignette|Darken or lighten the edges to pull the eye to the middle.')+'</div>'+s('vig','Amount',-100,100,1,F.i)+plain('Midpoint',50)+plain('Roundness',0)+plain('Feather',50)+'</div></div>';},
+    mixer:function(){function row(c,col,v){return '<b style="color:'+col+'">'+c+'</b>'+v.map(function(x,i){return '<span style="--c:'+['#e0545a','#4fbf6a','#4d8fe0'][i]+'">'+x.toFixed(2)+'</span>';}).join('');}
+      return '<div class="three"><div><div class="bh">Output from input'+inf('RGB mixer|Black and white from chosen channels, fixing one bad channel, cleaner skies by borrowing from green.')+'</div><div class="matrix"><b></b><b>R in</b><b>G in</b><b>B in</b>'+row('R out','#e0545a',[1,0,0])+row('G out','#4fbf6a',[0,1,0])+row('B out','#4d8fe0',[0,.05,.95])+'</div></div>'+
+      '<div><div class="bh">Options</div><div style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;gap:8px;align-items:center"><span class="toggle on"></span>Keep brightness</span><span style="display:flex;gap:8px;align-items:center"><span class="toggle"></span>Monochrome</span><span style="display:flex;gap:8px;align-items:center"><span class="toggle"></span>Swap channels</span></div></div>'+
+      '</div>';},
+    detail:function(){return '<div class="three"><div><div class="bh">Sharpen and soften<span class="later">after v1</span>'+inf('Why later|These change pixels, not colors, so they are picture effects. v1 leaves them out; the tab shows where they go.')+'</div>'+plain('Sharpen',0)+plain('Radius',20)+plain('Soften skin',0)+'</div>'+
+      '<div><div class="bh">Noise reduction<span class="later">after v1</span></div>'+plain('Amount',0)+plain('Over time',0)+plain('Keep detail',60)+'</div>'+
+      '</div>';}
+  };
+  tools.addEventListener('click',function(e){var w=e.target.closest('[data-wm]');if(w){wmode=w.getAttribute('data-wm');renderTools();return;}var m=e.target.closest('[data-mc]');if(m){mixc=Number(m.getAttribute('data-mc'));renderTools();}});
+  T.wireTools(tools,renderTools);
+  document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){tab=b.getAttribute('data-tool');renderTools();});});
+  document.querySelectorAll('[data-left]').forEach(function(b){b.addEventListener('click',function(){var k=b.getAttribute('data-left');
+    document.querySelectorAll('[data-left]').forEach(function(x){x.classList.toggle('on',x===b);});document.querySelectorAll('[data-leftbody]').forEach(function(x){x.hidden=x.getAttribute('data-leftbody')!==k;});});});
+  var cmp=document.getElementById('cmp');cmp.addEventListener('click',function(){T.state.compare=!T.state.compare;cmp.classList.toggle('on',T.state.compare);T.paintAll(true);});
+
+  T.painters.push(function(){T.renderLayers(layers);T.renderGraph(graph);});
+  Object.keys(T.N).forEach(function(id){var n=T.N[id];if(n.kind!=='corr'){return;}['wh','bl','fade','vig','soft'].forEach(function(k){if(n.g[k]===undefined){n.g[k]=0;}});n.g.wheel.shtint=n.g.wheel.shtint||[0,0];n.g.wheel.hltint=n.g.wheel.hltint||[0,0];for(var z=0;z<6;z++){n.g.wheel['z'+z]=n.g.wheel['z'+z]||[0,0];}});
+  T.N.n4.limit='key';T.N.n4.limitLabel='Color key';T.N.n5.g.fade=12;T.N.n5.g.vig=-28;T.N.n5.g.wheel.shtint=[-.35,.3];T.N.n5.g.wheel.hltint=[.25,-.3];
+  document.body.insertAdjacentHTML('beforeend','<svg width="0" height="0" style="position:absolute"><filter id="fc" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".2126 .7152 .0722 0 0 .2126 .7152 .0722 0 0 .2126 .7152 .0722 0 0 0 0 0 1 0"/>'+
+    '<feComponentTransfer><feFuncR type="discrete" tableValues="0.55 0.35 0.35 0.35 0.35 0.35 0.35 0.3 0.3 0.3 0.95 0.95 0.95 0.6 0.6 0.6 0.6 0.6 0.95 1"/><feFuncG type="discrete" tableValues="0.1 0.35 0.35 0.35 0.35 0.35 0.35 0.75 0.75 0.75 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.85 0.1"/><feFuncB type="discrete" tableValues="0.85 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.7 0.7 0.7 0.6 0.6 0.6 0.6 0.6 0.2 0.1"/></feComponentTransfer></filter></svg>');
+  var graded=document.querySelector('.shot .graded'),shot=document.getElementById('shot');
+  graded.insertAdjacentHTML('beforeend','<div id="fadeov" style="position:absolute;inset:0;pointer-events:none;background:rgb(70 66 60);mix-blend-mode:lighten"></div><div id="vigov" style="position:absolute;inset:0;pointer-events:none"></div>');
+  shot.insertAdjacentHTML('beforeend','<div class="guides" id="guides"></div><div class="fc-legend" id="fcl"><span style="background:#8c1ad9;color:#eceff1">crushed</span><span style="background:#595959;color:#eceff1">shadow</span><span style="background:#4dbf59">mid gray</span><span style="background:#f299b3">skin</span><span style="background:#999">light</span><span style="background:#f2d933">near clip</span><span style="background:#ff1a1a">clipped</span></div>');
+  var fcOn=false;
+  T.painters.push(function(){var fade=0,vig=0,wb=0;['n1','n2','n3','n4','n5'].forEach(function(id){var n=T.N[id];if(!n.on){return;}var w=n.op/100;fade+=n.g.fade*w;vig+=n.g.vig*w;wb+=(n.g.wh-n.g.bl*.5)*w;});
+    var img=document.getElementById('gimg');if(wb){img.style.filter+=' brightness('+(1+wb/400).toFixed(3)+')';}
+    if(fcOn){img.style.filter+=' url(#fc)';for(var i=0;i<3;i++){document.getElementById('ov'+i).style.background='none';}}
+    document.getElementById('fadeov').style.opacity=fcOn?0:Math.min(fade/100,1)*.9;
+    var a=Math.min(Math.abs(vig)/100,1)*.85;document.getElementById('vigov').style.background=fcOn?'none':'radial-gradient(ellipse at center,transparent 45%,'+(vig<0?'rgb(0 0 0/'+a+')':'rgb(255 255 255/'+a*.6+')')+' 100%)';});
+  var fcb=document.getElementById('fcbtn');fcb.addEventListener('click',function(){fcOn=!fcOn;fcb.classList.toggle('on',fcOn);document.getElementById('fcl').classList.toggle('on',fcOn);T.paintAll(true);});
+  var gdb=document.getElementById('gdbtn');gdb.addEventListener('click',function(){gdb.classList.toggle('on',document.getElementById('guides').classList.toggle('on'));});
+  var nb=document.getElementById('newbtn');nb.addEventListener('click',function(){nb.classList.toggle('on',document.body.classList.toggle('shownew'));});
+  T.on(function(){renderTools();T.paintAll();});
+  var hs=location.hash;var mt=/tool=(\w+)/.exec(hs);if(mt){tab=mt[1];}if(/fc/.test(hs)){fcb.click();}if(/new/.test(hs)){nb.click();}
+  /* tool tabs live in the rail; the header names the open tool */
+  var rail=document.getElementById('rail'),tph=document.getElementById('tph');
+  tph.querySelectorAll('[data-tool]').forEach(function(b,i){rail.appendChild(b);if(i===0){var sp=document.createElement('span');sp.className='sep';rail.appendChild(sp);}});
+  tph.querySelectorAll(':scope>.sep').forEach(function(x){x.remove();});
+  function nameTool(){var b=rail.querySelector('[data-tool].on');document.getElementById('tname').textContent=b?b.getAttribute('data-tip').split('|')[0]:'';}
+  rail.addEventListener('click',function(){setTimeout(nameTool,0);});
+  /* drag a number left or right to change it (Shift for fine); double-click a label to reset */
+  var DEF={con:1,sat:1,pivot:.435};
+  document.addEventListener('pointerdown',function(e){var o=e.target.closest('.sl output');if(!o){return;}var inp=o.parentNode.querySelector('input[type=range]');if(!inp){return;}e.preventDefault();
+    var x0=e.clientX,v0=Number(inp.value),span=Number(inp.max)-Number(inp.min);
+    function mv(ev){inp.value=v0+(ev.clientX-x0)/300*span*(ev.shiftKey?.1:1);inp.dispatchEvent(new Event('input',{bubbles:true}));}
+    function up(){removeEventListener('pointermove',mv);removeEventListener('pointerup',up);}addEventListener('pointermove',mv);addEventListener('pointerup',up);});
+  document.addEventListener('dblclick',function(e){var l=e.target.closest('.sl label');if(!l){return;}var inp=l.parentNode.querySelector('input[type=range]');if(!inp){return;}var k=inp.getAttribute('data-k');
+    inp.value=k&&DEF[k]!==undefined?DEF[k]:0;inp.dispatchEvent(new Event('input',{bubbles:true}));l.parentNode.classList.remove('chg');});
+  /* clip details and a timeline overview */
+  var META=['ProRes 422 HQ · 25p','ProRes 422 HQ · 25p','H.265 · 50p','ProRes 4444 · 25p','DNxHR HQ · 25p','H.264 · 30p','H.265 · 50p','DNxHR HQ · 25p'];
+  var strip=document.getElementById('strip');strip.querySelectorAll('.sclip').forEach(function(c,i){c.insertAdjacentHTML('beforeend','<div class="meta">'+META[i]+'</div>');});
+  var tl='<div class="mini-tl" data-tip="Timeline overview|Where each clip sits in the edit. Click to jump.">';[[0,12],[12,14],[26,13],[39,12],[51,13],[64,12],[76,13],[89,11]].forEach(function(b,i){tl+='<i class="v1'+(i===1?' sel':'')+'" style="left:'+b[0]+'%;width:'+(b[1]-.4)+'%"></i>';});
+  tl+='<i class="v2" style="left:30%;width:9%"></i><i class="v2" style="left:70%;width:6%"></i><b style="left:15.5%"></b><span>0:36 · 8 clips</span></div>';
+  strip.insertAdjacentHTML('afterend',tl);
+  /* the shape option is not part of this version: corrections change the whole frame or the colors you pick */
+  document.querySelectorAll('#addmenu button').forEach(function(b){if(/shape/.test(b.textContent)){b.remove();}});
+  document.addEventListener('click',function(e){var t=e.target.closest('[data-tg]');if(t){t.classList.toggle('on');}});
+  var shot=document.getElementById('shot'),gimg=document.getElementById('gimg'),graded=shot.querySelector('.graded');
+  document.body.insertAdjacentHTML('beforeend','<svg width="0" height="0" style="position:absolute"><filter id="warn" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 .15 0 0 0 0 .85 .2126 .7152 .0722 0 0"/><feComponentTransfer><feFuncA type="discrete" tableValues="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .85"/></feComponentTransfer></filter></svg><div class="toast" id="toast"></div>'+
+    '<div class="menu" id="ppmenu"><div class="mh">Paste only</div>'+['Basics','Wheels','Curves','Color mix','Creative','Limit','LUT and color'].map(function(l,i){return '<button data-keep><span class="toggle'+(i<2?' on':'')+'" data-tg></span>'+l+'</button>';}).join('')+'<hr><button data-pp>'+T.ico('paste')+'Paste onto selected clips</button></div>');
+  graded.insertAdjacentHTML('beforeend','<img id="warnimg" src="footage/plaza.jpg" alt="" style="display:none">');
+  shot.insertAdjacentHTML('beforeend','<span class="tag bypass" id="bytag" style="display:none">Grades off</span><div class="probe" id="probe"></div><div class="pins" id="pins"></div>');
+  function toast(t){var el=document.getElementById('toast');el.innerHTML=t;el.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(function(){el.classList.remove('on');},3200);}
+  /* bypass */
+  var by=false,bybtn=document.getElementById('bybtn');
+  function setBy(v){by=v;bybtn.classList.toggle('on',by);document.getElementById('bytag').style.display=by?'':'none';T.paintAll(true);}
+  bybtn.addEventListener('click',function(){setBy(!by);});
+  /* clip warning */
+  var wn=false,wnbtn=document.getElementById('wnbtn'),warnimg=document.getElementById('warnimg');
+  wnbtn.addEventListener('click',function(){wn=!wn;wnbtn.classList.toggle('on',wn);T.paintAll(true);});
+  /* clean viewer */
+  var cnbtn=document.getElementById('cnbtn');cnbtn.addEventListener('click',function(){cnbtn.classList.toggle('on',document.body.classList.toggle('cinema'));});
+  addEventListener('keydown',function(e){if(e.target.tagName==='INPUT'){return;}if(e.key==='Escape'){document.body.classList.remove('cinema');cnbtn.classList.remove('on');}if(e.shiftKey&&(e.key==='D'||e.key==='d')){setBy(!by);}});
+  /* sample points */
+  var sm=false,pins=[],smbtn=document.getElementById('smbtn'),probe=document.getElementById('probe');
+  function read(x,y){var d=T.sampleNow(),i=((Math.min(d.height-1,y*d.height|0))*d.width+Math.min(d.width-1,x*d.width|0))*4,a=d.data;function c(v){return Math.max(0,Math.min(255,Math.round(v)));}
+    var r=c(a[i]),g=c(a[i+1]),b=c(a[i+2]);if(by){}return 'R '+r+' G '+g+' B '+b+' <span>· '+Math.round((.2126*r+.7152*g+.0722*b)/2.55)+'%</span>';}
+  smbtn.addEventListener('click',function(){sm=!sm;smbtn.classList.toggle('on',sm);shot.classList.toggle('sampling',sm);probe.style.display='none';if(!sm){pins=[];drawPins();}});
+  shot.addEventListener('mousemove',function(e){if(!sm){return;}var r=shot.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+    probe.style.display='block';probe.innerHTML=read(x,y);probe.style.left=Math.min(r.width-170,(e.clientX-r.left)+14)+'px';probe.style.top=((e.clientY-r.top)+14)+'px';});
+  shot.addEventListener('mouseleave',function(){probe.style.display='none';});
+  shot.addEventListener('click',function(e){if(!sm){return;}var r=shot.getBoundingClientRect();pins.push([(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]);if(pins.length>3){pins.shift();}drawPins();});
+  function drawPins(){shot.querySelectorAll('.pin').forEach(function(p){p.remove();});var list='';
+    pins.forEach(function(p,i){shot.insertAdjacentHTML('beforeend','<span class="pin" style="left:'+p[0]*100+'%;top:'+p[1]*100+'%"><b>'+(i+1)+'</b></span>');list+='<div>'+(i+1)+'  '+read(p[0],p[1])+'</div>';});
+    document.getElementById('pins').innerHTML=list;}
+  /* paste part of a grade */
+  var ppm=document.getElementById('ppmenu');
+  document.getElementById('ppbtn').addEventListener('click',function(e){e.stopPropagation();var r=e.currentTarget.getBoundingClientRect();ppm.style.left=Math.min(innerWidth-220,r.left)+'px';ppm.style.top=(r.bottom+6)+'px';ppm.classList.toggle('open');});
+  document.addEventListener('click',function(e){if(!e.target.closest('#ppmenu')){ppm.classList.remove('open');}if(e.target.closest('[data-pp]')){ppm.classList.remove('open');toast('Pasted Basics and Wheels onto 2 clips · <b>Ctrl Z</b> to undo');}});
+  /* color warper */
+  var WP=[];(function(){WP.push({x:0,y:0,ox:0,oy:0});for(var ri=1;ri<=3;ri++){for(var a=0;a<12;a++){var an=a/12*Math.PI*2,x=Math.cos(an)*ri*36,y=Math.sin(an)*ri*36;WP.push({x:x,y:y,ox:x,oy:y,r:ri,a:a});}}
+    var sk=WP[1+12+4];sk.x+=9;sk.y-=6;})();
+  function drawWarp(){var svg=document.getElementById('wsvg');if(!svg){return;}var h='';function P(r,a){return r===0?WP[0]:WP[1+(r-1)*12+a];}
+    for(var r=1;r<=3;r++){var pts=[];for(var a=0;a<12;a++){var q=P(r,a);pts.push(q.x+','+q.y);}h+='<polygon points="'+pts.join(' ')+'"/>';}
+    for(var a2=0;a2<12;a2++){var prev=P(0,0);for(var r2=1;r2<=3;r2++){var q2=P(r2,a2);h+='<line x1="'+prev.x+'" y1="'+prev.y+'" x2="'+q2.x+'" y2="'+q2.y+'"/>';prev=q2;}}
+    WP.forEach(function(q,i){var mv=Math.abs(q.x-q.ox)+Math.abs(q.y-q.oy)>.5;h+='<circle data-pi="'+i+'" cx="'+q.x+'" cy="'+q.y+'" r="'+(i===0?4.5:3.8)+'" class="'+(mv?'moved':'')+'"/>';});svg.innerHTML=h;}
+  tools.addEventListener('pointerdown',function(e){var c=e.target.closest('[data-pi]');if(!c){return;}e.preventDefault();var svg=document.getElementById('wsvg'),q=WP[Number(c.getAttribute('data-pi'))];
+    function mv(ev){var pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;var p=pt.matrixTransform(svg.getScreenCTM().inverse());q.x=p.x;q.y=p.y;drawWarp();}
+    function up(){removeEventListener('pointermove',mv);removeEventListener('pointerup',up);}addEventListener('pointermove',mv);addEventListener('pointerup',up);});
+  tools.addEventListener('click',function(e){if(e.target.closest('[data-wwreset]')){WP.forEach(function(q){q.x=q.ox;q.y=q.oy;});drawWarp();}});
+  /* the last painter: bypass, rolloff and the clip warning sit on top of everything else */
+  T.painters.push(function(){var soft=0;['n1','n2','n3','n4','n5'].forEach(function(id){var n=T.N[id];if(n.on){soft+=n.g.soft*n.op/100;}});
+    if(soft&&!by){gimg.style.filter+=' contrast('+(1-soft/700).toFixed(3)+')';}
+    if(by){gimg.style.filter='none';for(var i=0;i<3;i++){document.getElementById('ov'+i).style.background='none';}document.getElementById('fadeov').style.opacity=0;document.getElementById('vigov').style.background='none';}
+    if(wn){warnimg.style.display='';warnimg.style.filter=gimg.style.filter.replace(/\s*url\(#fc\)/,'')+' url(#warn)';}else{warnimg.style.display='none';}
+    if(pins.length){drawPins();}});
+  renderTools();T.paintAll();nameTool();
+})();
+</script>
+</body>
+</html>

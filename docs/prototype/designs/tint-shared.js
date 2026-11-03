@@ -346,7 +346,7 @@
     if(location.hash==='#leader'){setMode('leader');}
   }
 
-  window.Tint={addIcons:function(o){Object.assign(I,o);},ico:ico,icons:icons,N:N,state:state,on:on,sel:sel,cur:cur,setMode:setMode,boot:boot,paintAll:paintAll,painters:painters,
+  window.Tint={STACK:STACK,sampleNow:function(){return sample(compose());},addIcons:function(o){Object.assign(I,o);},ico:ico,icons:icons,N:N,state:state,on:on,sel:sel,cur:cur,setMode:setMode,boot:boot,paintAll:paintAll,painters:painters,
     renderLayers:renderLayers,wireLayers:wireLayers,renderGraph:renderGraph,wireGraph:wireGraph,addMenu:addMenu,renderViewer:renderViewer,
     addScope:addScope,paintScopes:paintScopes,renderStrip:renderStrip,renderLooks:renderLooks,wireTools:wireTools,
     tools:{slider:slider,F:F,wheels:wheels,primaries:primaries,basics:basics,curves:curves,limit:limit,luts:luts,match:match,groupInfo:groupInfo}};

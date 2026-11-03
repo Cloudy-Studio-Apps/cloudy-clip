@@ -45,6 +45,24 @@
   .fc-legend{position:absolute;left:8px;bottom:8px;z-index:3;display:none;gap:0;font:700 10px var(--mono)}
   .fc-legend.on{display:flex}
   .fc-legend span{padding:2px 5px;color:#0e1013}
+  .ptab.ic .lb{display:none}
+  .ptab.ic.on .lb{display:inline}
+  .ptab.ic{padding:0 8px}
+  .ptab.ic.on{color:var(--ink)}
+  .icon.lit{color:var(--blue);background:rgb(111 183 230/.1)}
+  .seg.ic button{width:28px;padding:0;display:grid;place-items:center}
+  .vchip{height:24px;padding:0 7px;border-radius:3px;font:700 12px var(--mono);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--rule-2);display:inline-flex;align-items:center;gap:4px}
+  .info{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;color:var(--ink-3);vertical-align:-3px;cursor:help}
+  .info:hover{color:var(--ink)}
+  .info .ico{width:14px;height:14px}
+  .bh{display:flex;align-items:center}
+  .quick{flex-direction:row!important;flex-wrap:wrap}
+  .quick .btn{width:40px;height:34px;padding:0;justify-content:center}
+  .quick .btn .ico{width:18px;height:18px}
+  #tip{position:fixed;z-index:100;max-width:270px;padding:7px 10px 8px;background:var(--paper-2);border-radius:5px;box-shadow:0 0 0 1px var(--rule-2),0 8px 24px rgb(0 0 0/.55);font:400 12px/1.4 var(--body);color:var(--ink-2);pointer-events:none;opacity:0;transition:opacity .08s}
+  #tip.on{opacity:1}
+  #tip b{display:block;font:700 13px var(--hand);color:var(--ink);margin-bottom:2px}
+  #tip kbd{font:700 10.5px var(--mono);padding:0 4px;border-radius:2px;box-shadow:inset 0 0 0 1px var(--rule-2);color:var(--ink);margin-left:6px}
 </style>
 </head>
 <body>
@@ -65,7 +83,7 @@
 <div id="app">
   <header class="top">
     <div class="brand"><svg viewBox="0 0 120 100"><use href="#seal"/></svg><span class="word">cloudy clip</span><span class="project">Golden hour</span>
-      <span class="layout-tag">Layout C · A + Basics · <a href="tint-a-workbench.html">A</a> · <a href="tint-b-darkroom.html">B</a></span></div>
+      <span class="layout-tag">Layout C · A + Basics · <a href="tint-a-workbench.html">A</a> · <a href="tint-b-darkroom.html">B</a> · <a href="tint-d-studio.html">D</a></span></div>
     <nav class="pages">
       <button class="pg" data-ic="image">Media</button>
       <button class="pg" data-ic="scissors">Edit</button>
@@ -74,7 +92,7 @@
       <button class="pg" data-ic="upload">Export</button>
     </nav>
     <div class="right">
-      <div class="seals" title="Same grade, two ways to see it">
+      <div class="seals" data-tip="Baby Seal or Leader Seal|The same grade, shown as layers or as nodes. Switch any time; nothing changes.">
         <button class="baby on" data-mode="baby"><svg viewBox="0 0 120 100"><use href="#seal"/></svg>Baby Seal <small>layers</small></button>
         <button data-mode="leader"><svg viewBox="0 0 120 110"><use href="#leader"/></svg>Leader Seal <small>nodes</small></button>
       </div>
@@ -86,41 +104,42 @@
     <div class="upper">
       <section class="panel">
         <div class="ph">
-          <button class="ptab on" data-left="grade"><span class="baby-only" data-ic="list"></span><span class="leader-only" data-ic="nodes"></span><span class="baby-only">Layers</span><span class="leader-only">Nodes</span></button>
-          <button class="ptab" data-left="looks" data-ic="still">Looks</button>
+          <button class="ptab ic on" data-left="grade" data-tip="Grade|The corrections on this clip, top to bottom."><span class="baby-only" data-ic="list"></span><span class="leader-only" data-ic="nodes"></span><span class="lb baby-only">Layers</span><span class="lb leader-only">Nodes</span></button>
+          <button class="ptab ic" data-left="looks" data-tip="Looks|Stills you grabbed and saved looks. Click one to apply it." data-ic="still"><span class="lb">Looks</span></button>
           <span class="who">02 Plaza wide</span><span class="grow"></span>
-          <button class="icon" title="Copy grade" data-ic="copy"></button><button class="icon" title="Paste grade" data-ic="paste"></button><button class="icon" title="Reset grade" data-ic="reset"></button>
+          <button class="icon" data-tip="Copy grade|Copy every correction on this clip.<kbd>Ctrl C</kbd>" data-ic="copy"></button><button class="icon" data-tip="Paste grade|Replace this clip&#39;s grade with the copied one.<kbd>Ctrl V</kbd>" data-ic="paste"></button><button class="icon" data-tip="Reset grade|Remove every correction from this clip." data-ic="reset"></button>
         </div>
         <div data-leftbody="grade" style="flex:1;min-height:0;display:flex;flex-direction:column">
           <div class="baby-only" style="flex:1;min-height:0;display:flex;flex-direction:column">
             <div class="layers" id="layers"></div>
-            <div class="addrow"><button class="btn primary" data-add>+ Add</button><span class="hint" style="align-self:center">Top runs first. Drag to reorder.</span><div id="addhost"></div></div>
+            <div class="addrow"><button class="btn primary" data-add data-tip="Add|A correction, a group or a look, above the selected layer. Top runs first; drag to reorder.<kbd>Alt S</kbd>">+ Add</button><div id="addhost"></div></div>
           </div>
           <div class="graph leader-only" id="graph"></div>
         </div>
         <div class="looks-pane" data-leftbody="looks" hidden>
           <div class="looks" id="looks"></div>
-          <div class="addrow"><button class="btn primary">Grab still</button><button class="btn">Apply to selected clips</button></div>
+          <div class="addrow"><button class="btn primary" data-tip="Grab still|Save this frame and its grade as a look.">Grab still</button><button class="btn" data-tip="Apply to selected clips|Paste this look onto every selected clip.">Apply to selected</button></div>
         </div>
       </section>
 
       <section class="panel">
         <div class="ph"><span class="t">Viewer</span><span class="who">02 Plaza wide · 0:04.12</span><span class="grow"></span>
-          <button class="btn" id="cmp">Before / after</button><button class="btn new" title="This clip next to another clip or a still">Side by side</button><span class="sep"></span><button class="btn new" id="fcbtn" title="Paints brightness as colors to spot crushed blacks, skin level and clipping">False color</button><button class="btn new" id="gdbtn">Guides</button><span class="sep"></span>
-          <span class="cs">S-Log3 → Rec.709</span><span class="sep"></span><span class="cs">Fit 44%</span>
+          <button class="icon" id="cmp" data-ic="split" data-tip="Before / after|Wipe between the original and the grade. Drag the line.<kbd>\\</kbd>"></button><button class="icon new" data-ic="side" data-tip="Side by side|This clip next to another clip or a still, to match them."></button><span class="sep"></span><button class="icon new" id="fcbtn" data-ic="falsecolor" data-tip="False color|Paints brightness as colors: crushed blacks, skin level and clipping at a glance."></button><button class="icon new" id="gdbtn" data-ic="guides" data-tip="Guides|Safe areas for titles and action."></button><span class="sep"></span>
+          <span class="cs" data-tip="Color space|Camera S-Log3, shown as Rec.709. Change it in LUT and color.">S-Log3 → 709</span><span class="cs" style="margin-left:4px" data-tip="Zoom|Fit to the viewer.<kbd>Shift Z</kbd>">44%</span>
         </div>
         <div class="viewer" id="viewer"></div>
         <div class="vbar"><span class="tc">0:24<span>.14</span></span><span class="sep"></span>
-          <button class="icon" data-ic="back"></button><button class="tp-play" data-ic="play"></button><button class="icon" data-ic="fwd"></button><button class="icon on" data-ic="loop"></button>
-          <span class="grow"></span><button class="icon" title="Grab still" data-ic="still"></button><button class="icon" title="Split screen" data-ic="split"></button>
+          <button class="icon" data-ic="back" data-tip="Previous clip|<kbd>↑</kbd>"></button><button class="tp-play" data-ic="play" data-tip="Play|<kbd>Space</kbd>"></button><button class="icon" data-ic="fwd" data-tip="Next clip|<kbd>↓</kbd>"></button><button class="icon lit" data-ic="loop" data-tip="Loop|Repeat the clip while you grade."></button>
+          <span class="grow"></span><button class="icon" data-tip="Grab still|Save this frame and its grade to Looks.<kbd>Ctrl Alt G</kbd>" data-ic="still"></button>
         </div>
       </section>
     </div>
 
     <section class="panel">
       <div class="ph"><span class="t">Clips</span><span class="who">8 in Main · 3 graded</span><span class="grow"></span>
-        <span class="hint" style="margin-right:4px">Grade the</span><span class="seg new" title="Where this grade applies"><button class="on">Clip</button><button>Shot group</button><button>Whole timeline</button></span><button class="btn new" style="margin:0 4px" title="Keep several versions of a grade and flip between them">Version A ▾</button><span class="sep"></span>
-        <button class="btn">Copy grade</button><button class="btn">Paste grade</button><button class="btn">Paste to all</button><span class="sep"></span><button class="btn">Group: Plaza shots</button>
+        <span class="seg ic new"><button class="on" data-ic="square" data-tip="This clip|The grade applies to this clip only."></button><button data-ic="folder" data-tip="Shot group|One grade shared by every Plaza shot, under each clip&#39;s own."></button><button data-ic="timeline" data-tip="Whole timeline|A grade over the finished edit, after every clip, like an adjustment layer."></button></span>
+        <button class="vchip new" style="margin-left:6px" data-tip="Versions|Keep several grades on a clip and flip between them."><span data-ic="version"></span>A ▾</button><span class="sep"></span>
+        <button class="icon" data-ic="copy" data-tip="Copy grade|<kbd>Ctrl C</kbd>"></button><button class="icon" data-ic="paste" data-tip="Paste grade|Onto the selected clips.<kbd>Ctrl V</kbd>"></button><button class="icon" data-ic="pasteall" data-tip="Paste to all|Onto every clip in the strip."></button><button class="icon" data-ic="folder" data-tip="Make a shot group|Group the selected clips so they share one grade."></button>
       </div>
       <div class="strip" id="strip"></div>
     </section>
@@ -128,17 +147,16 @@
     <div class="lower">
       <section class="panel">
         <div class="ph">
-          <button class="ptab on" data-tool="basics">Basics</button><span class="sep"></span><button class="ptab" data-tool="wheels">Wheels</button><button class="ptab" data-tool="curves">Curves</button><button class="ptab new" data-tool="cmix">Color mix</button><button class="ptab new" data-tool="creative">Creative</button><button class="ptab" data-tool="limit">Limit</button>
-          <button class="ptab" data-tool="luts">LUT and color</button><button class="ptab" data-tool="match">Match</button><button class="ptab new" data-tool="mixer">RGB mixer</button><button class="ptab new" data-tool="detail">Detail</button>
+          <button class="ptab ic on" data-tool="basics" data-ic="sun" data-tip="Basics|Exposure, contrast and white balance. Start here.<kbd>1</kbd>"><span class="lb">Basics</span></button><span class="sep"></span><button class="ptab ic" data-tool="wheels" data-ic="wheel" data-tip="Color wheels|Lift, gamma, gain and offset: push color into the darks, mids and brights.<kbd>2</kbd>"><span class="lb">Wheels</span></button><button class="ptab ic" data-tool="curves" data-ic="curve" data-tip="Curves|Bend brightness and color with points. Hue curves change one color only.<kbd>3</kbd>"><span class="lb">Curves</span></button><button class="ptab ic new" data-tool="cmix" data-ic="cmix" data-tip="Color mix|Change one color family, like grass, sky or skin, without a mask.<kbd>4</kbd>"><span class="lb">Color mix</span></button><button class="ptab ic new" data-tool="creative" data-ic="sparkle" data-tip="Creative|Split toning, faded film and vignette.<kbd>5</kbd>"><span class="lb">Creative</span></button><button class="ptab ic" data-tool="limit" data-ic="focus" data-tip="Limit|Apply this correction to part of the picture, picked by color or drawn as a shape.<kbd>6</kbd>"><span class="lb">Limit</span></button><button class="ptab ic" data-tool="luts" data-ic="cube" data-tip="LUT and color space|Convert camera log footage and add film looks.<kbd>7</kbd>"><span class="lb">LUT and color</span></button><button class="ptab ic" data-tool="match" data-ic="wand" data-tip="Match|Auto balance, pick white, match this shot to another.<kbd>8</kbd>"><span class="lb">Match</span></button><button class="ptab ic new" data-tool="mixer" data-ic="sliders" data-tip="RGB mixer|Mix the red, green and blue channels into each other. Good for black and white.<kbd>9</kbd>"><span class="lb">RGB mixer</span></button><button class="ptab ic new" data-tool="detail" data-ic="zoom" data-tip="Detail|Sharpen and noise reduction. Picture effects, after v1."><span class="lb">Detail</span></button>
           <span class="grow"></span><span class="who" id="who"></span>
-          <button class="icon" title="Keyframe this correction" data-ic="diamond"></button><button class="icon" title="Reset this correction" data-ic="reset"></button>
+          <button class="icon" data-tip="Keyframe|Animate this correction over time.<kbd>K</kbd>" data-ic="diamond"></button><button class="icon" data-tip="Reset this correction|Back to neutral; the layer stays." data-ic="reset"></button>
         </div>
         <div class="tbody" id="tools"></div>
       </section>
       <section class="panel">
         <div class="ph"><span class="t">Scopes</span>
-          <button class="ptab on" data-scope="parade">Parade</button><button class="ptab" data-scope="wave">Waveform</button><button class="ptab" data-scope="hist">Histogram</button>
-          <span class="grow"></span><span class="who">Vectorscope →</span>
+          <button class="ptab ic on" data-scope="parade" data-ic="parade" data-tip="Parade|Red, green and blue brightness side by side. Level lines mean neutral."><span class="lb">Parade</span></button><button class="ptab ic" data-scope="wave" data-ic="wave" data-tip="Waveform|Brightness across the picture, bottom is black, top is white."><span class="lb">Waveform</span></button><button class="ptab ic" data-scope="hist" data-ic="hist" data-tip="Histogram|How many pixels sit at each brightness."><span class="lb">Histogram</span></button>
+          <span class="grow"></span><span class="who" data-tip="Vectorscope|Color and how strong it is. The gold line is where skin should sit.">Vectorscope</span>
         </div>
         <div class="scopes"><div id="mainscope"></div><div id="vecscope"></div></div>
       </section>
@@ -150,6 +168,34 @@
 <script>
 (function(){
   var T=Tint,tab='basics';
+  T.addIcons({
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    wheel:'<circle cx="12" cy="12" r="9"/><circle cx="14.5" cy="9.5" r="2.2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21"/>',
+    curve:'<path d="M3 3v18h18" opacity=".45"/><path d="M4 20C10 20 10 4 20 4"/>',
+    cmix:'<circle cx="9" cy="9" r="5"/><circle cx="15" cy="9" r="5"/><circle cx="12" cy="15" r="5"/>',
+    sparkle:'<path d="M11 3l1.8 5.2L18 10l-5.2 1.8L11 17l-1.8-5.2L4 10l5.2-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+    focus:'<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3.5"/>',
+    cube:'<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z"/><path d="M12 21.5V12M20.5 7.3L12 12 3.5 7.3"/>',
+    sliders:'<path d="M5 21v-6M5 11V3M12 21v-8M12 9V3M19 21v-4M19 13V3M2 15h6M9 9h6M16 17h6"/>',
+    zoom:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4M11 8v6M8 11h6"/>',
+    side:'<rect x="2" y="5" width="9" height="14" rx="1"/><rect x="13" y="5" width="9" height="14" rx="1"/>',
+    falsecolor:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.3h18M3 14.6h18"/><path d="M8 4v5.3M14 9.3v5.3M10 14.6V20"/>',
+    guides:'<rect x="2" y="4" width="20" height="16" rx="1"/><rect x="5.5" y="7.5" width="13" height="9" stroke-dasharray="2 2"/>',
+    parade:'<path d="M3 20h18"/><path d="M5 17V8M9 17V5M15 17V9M19 17V6"/>',
+    wave:'<path d="M2 12c2.5-7 4.5-7 6.5 0s4 7 6.5 0 4-7 7 0"/>',
+    hist:'<path d="M3 20h18M5 20v-4M9 20v-9M13 20V6M17 20v-7"/>',
+    timeline:'<path d="M3 6h12M3 12h18M3 18h8"/>',
+    pasteall:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>',
+    version:'<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="8" r="2.5"/><path d="M6 8.5v7M18 10.5c0 4-6 3-11 6"/>'
+  });
+  (function(){var tip=document.createElement('div');tip.id='tip';document.body.appendChild(tip);var cur=null;
+    document.addEventListener('mouseover',function(e){var el=e.target.closest('[data-tip],[title]');if(el&&el.hasAttribute('title')){el.setAttribute('data-tip',el.getAttribute('title'));el.removeAttribute('title');}
+      if(el===cur){return;}cur=el;if(!el){tip.classList.remove('on');return;}
+      var t=el.getAttribute('data-tip').split('|');tip.innerHTML='<b>'+t[0]+'</b>'+(t[1]||'');
+      var r=el.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight,x=Math.max(6,Math.min(innerWidth-w-6,r.left+r.width/2-w/2)),y=r.bottom+8;if(y+h>innerHeight-6){y=r.top-h-8;}
+      tip.style.left=x+'px';tip.style.top=y+'px';tip.classList.add('on');});
+    document.addEventListener('mousedown',function(){tip.classList.remove('on');cur=null;});})();
   document.getElementById('addhost').outerHTML=T.addMenu();
   T.boot();
   var layers=document.getElementById('layers'),graph=document.getElementById('graph'),tools=document.getElementById('tools');
@@ -170,35 +216,36 @@
   }
   function basics(){var s=T.tools.slider,F=T.tools.F,ico=T.ico;
     function col(t,h){return '<div><div class="bh">'+t+'</div>'+h+'</div>';}
+    function inf(t){return '<span class="info" data-tip="'+t+'">'+ico('info')+'</span>';}
     return '<div class="basics">'+
       col('Light',s('exp','Exposure',-1,1,.01,F.ev)+s('con','Contrast',.5,1.6,.01,F.x)+s('hi','Highlights',-100,100,1,F.i)+s('sh','Shadows',-100,100,1,F.i)+'<div class="new">'+s('wh','Whites',-100,100,1,F.i)+s('bl','Blacks',-100,100,1,F.i)+'</div>')+
       col('Color',s('temp','Temperature',-100,100,1,F.i,'tr-temp')+s('tint','Tint',-100,100,1,F.i,'tr-tint')+s('vib','Vibrance',-100,100,1,F.i,'tr-sat')+s('sat','Saturation',0,2,.01,F.pct,'tr-sat'))+
-      col('One click','<div class="quick"><button class="btn">'+ico('wand')+'Auto balance</button><button class="btn">'+ico('drop')+'Pick something white</button><button class="btn">'+ico('copy')+'Match to another clip</button><button class="btn">'+ico('still')+'Apply a look</button></div>'+
-        '<div class="hint" style="margin-top:10px">Basics drives the same values as Wheels. Move a slider here and the wheels follow.</div>')+'</div>';}
+      col('One click'+inf('Linked|Basics and Wheels change the same grade. Move a slider here and the wheels follow.'),'<div class="quick"><button class="btn" data-tip="Auto balance|Neutral whites and even exposure in one click.">'+ico('wand')+'</button><button class="btn" data-tip="Pick something white|Click a white or gray spot in the viewer to set white balance.">'+ico('drop')+'</button><button class="btn" data-tip="Match to another clip|Click a clip in the strip; this one takes on its colors.">'+ico('copy')+'</button><button class="btn" data-tip="Apply a look|Open Looks and pick one.">'+ico('still')+'</button></div>')+'</div>';}
   var wmode='primary',mixc=1;
+  function inf(t){return '<span class="info" data-tip="'+t+'">'+T.ico('info')+'</span>';}
   function wheelsTab(){var h=T.tools.primaries()+T.tools.wheels(112);
     if(wmode==='log'){h=h.replace('>Lift<','>Shadow<').replace('>Gamma<','>Midtone<').replace('>Gain<','>Highlight<');}
     return '<div class="wtop new"><span class="seg"><button data-wm="primary" class="'+(wmode==='primary'?'on':'')+'">Primary</button><button data-wm="log" class="'+(wmode==='log'?'on':'')+'">Log</button><button data-wm="bars" class="'+(wmode==='bars'?'on':'')+'">Bars</button></span>'+
-      '<span class="hint">'+(wmode==='log'?'Log wheels touch narrow tonal ranges, for footage shot flat.':'Primary wheels move the whole picture from dark to bright.')+'</span></div>'+h;}
+      inf(wmode==='log'?'Log|Shadow, midtone and highlight wheels touch narrow ranges. For footage shot flat.':wmode==='bars'?'Bars|The same controls as sliders per channel.':'Primary|Lift, gamma and gain overlap across the whole picture, from dark to bright.')+'</div>'+h;}
   var COLS=[['Reds','#e0545a'],['Oranges','#f0a04b'],['Yellows','#e8d35a'],['Greens','#4fbf6a'],['Aquas','#4fc4c4'],['Blues','#4d8fe0'],['Purples','#9a6ae0'],['Magentas','#d45ad0']];
   function plain(lbl,v,tr,out){return '<div class="sl"><label>'+lbl+'</label><input type="range" class="'+(tr||'')+'" min="-100" max="100" value="'+v+'"><output>'+(out===undefined?v:out)+'</output></div>';}
   var X={
-    cmix:function(){var c=COLS[mixc];return '<div class="cmix"><div><div class="bh">Pick a color family</div><div class="dots">'+COLS.map(function(k,i){return '<button data-mc="'+i+'" title="'+k[0]+'" class="'+(i===mixc?'on':'')+'" style="background:'+k[1]+'"></button>';}).join('')+'</div>'+
-      '<button class="btn">'+T.ico('drop')+'Pick from the picture</button><div class="hint" style="margin-top:8px">Change one family without masking: greener grass, a calmer sky, warmer skin.</div></div>'+
+    cmix:function(){var c=COLS[mixc];return '<div class="cmix"><div><div class="bh">Color family'+inf('Color mix|Change one color family without masking: greener grass, a calmer sky, warmer skin.')+'</div><div class="dots">'+COLS.map(function(k,i){return '<button data-mc="'+i+'" title="'+k[0]+'" class="'+(i===mixc?'on':'')+'" style="background:'+k[1]+'"></button>';}).join('')+'</div>'+
+      '<button class="btn" data-tip="Pick from the picture|Click a color in the viewer to choose its family.">'+T.ico('drop')+'Pick</button></div>'+
       '<div><div class="bh">'+c[0]+'</div>'+plain('Hue',mixc===1?-6:0,'tr-hue')+plain('Saturation',mixc===1?12:0,'tr-sat')+plain('Luminance',mixc===1?4:0)+'<div style="height:6px"></div>'+plain('Range',0)+'</div>'+
       '<div><div class="bh">All families · saturation</div><div class="bars">'+COLS.map(function(k,i){return '<i style="background:'+k[1]+';height:'+(50+(i===1?12:i===5?-18:i===3?-10:0))+'%"></i>';}).join('')+'</div></div></div>';},
     creative:function(){var s=T.tools.slider,F=T.tools.F,n=T.cur(),p1=n.g.wheel.shtint,p2=n.g.wheel.hltint;
       function mini(k,lbl,p){return '<div class="wheel"><h5>'+lbl+'</h5><div class="disc" data-w="'+k+'" style="--wd:84px"><span class="puck" style="left:'+(50+p[0]*40)+'%;top:'+(50+p[1]*40)+'%"></span></div></div>';}
-      return '<div class="three"><div><div class="bh">Split toning</div><div class="mwheel">'+mini('shtint','Shadow tint',p1)+mini('hltint','Highlight tint',p2)+'</div>'+plain('Balance',0)+'</div>'+
-      '<div><div class="bh">Film</div>'+s('fade','Faded film',0,100,1,F.i)+plain('Grain',0)+'<span class="later">grain is a picture effect, after v1</span><div style="height:8px"></div>'+s('vib','Vibrance',-100,100,1,F.i,'tr-sat')+'</div>'+
-      '<div><div class="bh">Vignette</div>'+s('vig','Amount',-100,100,1,F.i)+plain('Midpoint',50)+plain('Roundness',0)+plain('Feather',50)+'</div></div>';},
+      return '<div class="three"><div><div class="bh">Split toning'+inf('Split toning|Tint the shadows and the highlights with different colors, like teal shadows and warm highlights.')+'</div><div class="mwheel">'+mini('shtint','Shadow tint',p1)+mini('hltint','Highlight tint',p2)+'</div>'+plain('Balance',0)+'</div>'+
+      '<div><div class="bh">Film'+inf('Grain|Grain adds pixels, so it is a picture effect and comes after v1.')+'</div>'+s('fade','Faded film',0,100,1,F.i)+plain('Grain',0)+'<div style="height:8px"></div>'+s('vib','Vibrance',-100,100,1,F.i,'tr-sat')+'</div>'+
+      '<div><div class="bh">Vignette'+inf('Vignette|Darken or lighten the edges to pull the eye to the middle.')+'</div>'+s('vig','Amount',-100,100,1,F.i)+plain('Midpoint',50)+plain('Roundness',0)+plain('Feather',50)+'</div></div>';},
     mixer:function(){function row(c,col,v){return '<b style="color:'+col+'">'+c+'</b>'+v.map(function(x,i){return '<span style="--c:'+['#e0545a','#4fbf6a','#4d8fe0'][i]+'">'+x.toFixed(2)+'</span>';}).join('');}
-      return '<div class="three"><div><div class="bh">Output from input</div><div class="matrix"><b></b><b>R in</b><b>G in</b><b>B in</b>'+row('R out','#e0545a',[1,0,0])+row('G out','#4fbf6a',[0,1,0])+row('B out','#4d8fe0',[0,.05,.95])+'</div></div>'+
+      return '<div class="three"><div><div class="bh">Output from input'+inf('RGB mixer|Black and white from chosen channels, fixing one bad channel, cleaner skies by borrowing from green.')+'</div><div class="matrix"><b></b><b>R in</b><b>G in</b><b>B in</b>'+row('R out','#e0545a',[1,0,0])+row('G out','#4fbf6a',[0,1,0])+row('B out','#4d8fe0',[0,.05,.95])+'</div></div>'+
       '<div><div class="bh">Options</div><div style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;gap:8px;align-items:center"><span class="toggle on"></span>Keep brightness</span><span style="display:flex;gap:8px;align-items:center"><span class="toggle"></span>Monochrome</span><span style="display:flex;gap:8px;align-items:center"><span class="toggle"></span>Swap channels</span></div></div>'+
-      '<div><div class="bh">Good for</div><div class="hint">Black and white from chosen channels, fixing one bad channel, cleaner skies by borrowing from green.</div></div></div>';},
-    detail:function(){return '<div class="three"><div><div class="bh">Sharpen and soften<span class="later">after v1</span></div>'+plain('Sharpen',0)+plain('Radius',20)+plain('Soften skin',0)+'</div>'+
+      '</div>';},
+    detail:function(){return '<div class="three"><div><div class="bh">Sharpen and soften<span class="later">after v1</span>'+inf('Why later|These change pixels, not colors, so they are picture effects. v1 leaves them out; the tab shows where they go.')+'</div>'+plain('Sharpen',0)+plain('Radius',20)+plain('Soften skin',0)+'</div>'+
       '<div><div class="bh">Noise reduction<span class="later">after v1</span></div>'+plain('Amount',0)+plain('Over time',0)+plain('Keep detail',60)+'</div>'+
-      '<div><div class="bh">Why later</div><div class="hint">These change pixels, not colors, so they are picture effects. v1 leaves them out; the tab shows where they will go.</div></div></div>';}
+      '</div>';}
   };
   tools.addEventListener('click',function(e){var w=e.target.closest('[data-wm]');if(w){wmode=w.getAttribute('data-wm');renderTools();return;}var m=e.target.closest('[data-mc]');if(m){mixc=Number(m.getAttribute('data-mc'));renderTools();}});
   T.wireTools(tools,renderTools);
