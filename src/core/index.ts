@@ -28,6 +28,8 @@ export type { History, HistoryEntry, HistorySnapshot } from "./history/history.t
 
 // Document stores
 export { createPatchableStore } from "./store/store.patchable";
+/** A store of the user's own choices, kept in `localStorage` (outside the project and history). */
+export { createSavedStore } from "./store/store.saved";
 export type { FieldChange, PatchableStore, StoreChange, StorePolicy } from "./store/store.types";
 
 // Modules

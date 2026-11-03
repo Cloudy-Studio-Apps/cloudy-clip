@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createStore } from "zustand/vanilla";
+import { createSavedStore } from "@/core";
 import { BASE_THEME_ID } from "./logic/resolve";
 import type { ThemeChoice } from "./theme.types";
 
@@ -21,26 +21,7 @@ const saved = z.object({
   density: z.enum(["compact", "default", "comfortable"]).nullable(),
 });
 
-function load(): ThemeChoice {
-  try {
-    const raw: unknown = JSON.parse(localStorage.getItem(CHOICE_KEY) ?? "null");
-    return saved.parse(raw);
-  } catch {
-    return DEFAULTS;
-  }
-}
-
-function save(choice: ThemeChoice): void {
-  try {
-    localStorage.setItem(CHOICE_KEY, JSON.stringify(choice));
-  } catch {
-    // Storage can be blocked; the choice then lives for this session only.
-  }
-}
-
 /** Creates the theme choice of one kernel, read from `localStorage` and saved on each change. */
 export function createThemeChoice() {
-  const store = createStore<ThemeChoice>()(() => load());
-  store.subscribe(save);
-  return store;
+  return createSavedStore<ThemeChoice>(CHOICE_KEY, saved, DEFAULTS);
 }
