@@ -78,6 +78,13 @@ function land(
   target.drawImage(source, -place.width / 2, -place.height / 2, place.width, place.height);
 }
 
+/** The opaque 2D context the engine draws a frame on. */
+function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
+  const ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) throw new Error("2D canvas is not available");
+  return ctx;
+}
+
 /**
  * Preview engine built on HTML media elements and a 2D canvas.
  *
@@ -92,7 +99,7 @@ function land(
  *   two clips of a track are drawn offscreen and combined by the junction kind's `mix`.
  */
 export class HtmlMediaEngine implements PreviewEngine {
-  private readonly ctx: CanvasRenderingContext2D;
+  private ctx: CanvasRenderingContext2D;
   private readonly pool: MediaSlotPool;
   private readonly images: ImageCache;
   private readonly imageFrames: EngineOptions["imageFrames"];
@@ -109,12 +116,10 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly levelCorrection: LevelCorrection | null;
 
   constructor(
-    private readonly canvas: HTMLCanvasElement,
+    private canvas: HTMLCanvasElement,
     private readonly options: EngineOptions,
   ) {
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (!ctx) throw new Error("2D canvas is not available");
-    this.ctx = ctx;
+    this.ctx = context2d(canvas);
     this.pool = new MediaSlotPool(options);
     this.images = new ImageCache(options.onFrameReady);
     this.imageFrames = options.imageFrames;
@@ -125,6 +130,13 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.pictureOnly = options.pictureOnly ?? false;
     this.sound = createSoundMix(this.pictureOnly);
     this.levelCorrection = options.videoLevels ? new LevelCorrection(options.videoLevels) : null;
+  }
+
+  setCanvas(canvas: HTMLCanvasElement): void {
+    if (canvas === this.canvas) return;
+    this.ctx = context2d(canvas);
+    this.canvas = canvas;
+    this.mixCanvases.setMain(canvas);
   }
 
   render(

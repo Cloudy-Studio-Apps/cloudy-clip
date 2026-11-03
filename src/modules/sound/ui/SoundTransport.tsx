@@ -8,8 +8,8 @@ import { TransportSeparator } from "./TransportSeparator";
 import { TransportTool } from "./TransportTool";
 
 /**
- * The Sound page's transport row: the time and play, the timeline's tools (Select, Cut at the
- * playhead, Snap), Mix A and B, and how the user listens.
+ * The Sound page's transport row: the time and play, Cut at the playhead and Snap, Mix A and B,
+ * and how the user listens. Select joins when there is a second pointer tool to choose from.
  */
 export function SoundTransport() {
   const { bus } = useKernel();
@@ -24,9 +24,6 @@ export function SoundTransport() {
       </span>
       <PlayButton />
       <TransportSeparator />
-      <TransportTool current title="Select: click a clip to select it, drag to move or trim">
-        Select
-      </TransportTool>
       <TransportTool
         title="Cut at the playhead (S)"
         onClick={() => {

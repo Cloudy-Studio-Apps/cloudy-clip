@@ -53,5 +53,28 @@ export const setMonitor = defineCommand({
   },
 });
 
+/**
+ * Lets every soloed track go and turns Mono and Dim off; the speaker volume stays, like a knob on
+ * the desk. Run when the user leaves the Sound page, since nothing elsewhere shows them.
+ */
+export const clearListening = defineCommand({
+  id: "sound.clearListening",
+  label: "Stop soloing and dimming",
+  description:
+    "Lets every soloed track go and turns Mono and Dim off. The speaker volume stays. Not saved, not exported.",
+  undoable: false,
+  input: z.object({}),
+  run(ctx) {
+    const { view } = ctx.require(soundRef);
+    const { solo, monitor } = view.getState();
+    if (solo.length === 0 && !monitor.mono && !monitor.dim) return;
+    const next = { ...monitor, mono: false, dim: false };
+    view.setState({ solo: [], monitor: next });
+    const { sound } = ctx.require(previewRef);
+    sound.setSolo([]);
+    sound.setMonitor(next);
+  },
+});
+
 /** Every listening command, for the module. */
-export const soundMonitorCommands = [setSolo, setMonitor];
+export const soundMonitorCommands = [setSolo, setMonitor, clearListening];

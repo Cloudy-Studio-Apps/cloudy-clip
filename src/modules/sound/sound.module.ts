@@ -1,8 +1,9 @@
 import { AudioLines } from "lucide-react";
-import { appPages, defineModule } from "@/core";
+import { appPages, defineModule, pagesRef } from "@/core";
 import { soundMcpTools } from "./sound.mcp";
 import { soundMixCommands } from "./sound.mix.commands";
-import { soundMonitorCommands } from "./sound.monitor.commands";
+import { followSoundPageLeave } from "./sound.leave";
+import { clearListening, soundMonitorCommands } from "./sound.monitor.commands";
 import { SOUND_PAGE, soundRef } from "./sound.ref";
 import { createSoundView } from "./sound.store";
 import { SoundPage } from "./ui";
@@ -15,8 +16,11 @@ export const soundModule = defineModule({
   requires: ["project", "timeline", "preview", "inspector"],
   commands: [...soundMixCommands, ...soundMonitorCommands],
   mcpTools: soundMcpTools,
-  setup({ contribute }) {
+  setup({ bus, contribute, onDispose, require }) {
     const view = createSoundView();
+    onDispose(
+      followSoundPageLeave(require(pagesRef).store, () => void bus.run(clearListening, {})),
+    );
     contribute(appPages, {
       id: SOUND_PAGE,
       label: "Sound",

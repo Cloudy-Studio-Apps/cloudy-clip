@@ -18,7 +18,12 @@ export class MixCanvases {
   reported = false;
   private readonly contexts: Array<CanvasRenderingContext2D | undefined> = [];
 
-  constructor(private readonly main: HTMLCanvasElement) {}
+  constructor(private main: HTMLCanvasElement) {}
+
+  /** Sizes the offscreen canvases after another main canvas from now on. */
+  setMain(main: HTMLCanvasElement): void {
+    this.main = main;
+  }
 
   /** The first picture's canvas (the left clip), cleared and sized like the main canvas. */
   a(): CanvasRenderingContext2D {

@@ -24,7 +24,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   let engine: PreviewEngine | null = null;
   /** Canvases attached, oldest first. Only the newest is drawn on, so two never fight. */
   const attached: HTMLCanvasElement[] = [];
-  let drawing: { canvas: HTMLCanvasElement; stop: () => void } | null = null;
+  let stopEngine: (() => void) | null = null;
   let redrawQueued = false;
   let settleRetries = 0;
   /** Live transforms of a gesture in progress, drawn instead of the saved ones. */
@@ -80,7 +80,10 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     scheduleRedraw();
   }
 
-  /** Draws on a canvas until `stop` is called: a fresh engine, following the clock and the project. */
+  /**
+   * Makes the kernel's one engine, on its first canvas, following the clock and the project.
+   * Returns what stops it, when no canvas is left (the app going away).
+   */
   function start(canvas: HTMLCanvasElement): () => void {
     const current = deps.createEngine(canvas, requestRedraw);
     current.setSound(sound.current());
@@ -102,7 +105,6 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     });
     // A proxy becoming ready changes a file's URL; redraw so the engine reloads it.
     const offMedia = deps.subscribeMedia(requestRedraw);
-    requestRedraw();
 
     return () => {
       offTime();
@@ -114,12 +116,21 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     };
   }
 
-  /** Draws on the newest canvas only; the one under it takes over again when it goes. */
+  /**
+   * The engine draws on the newest attached canvas only, so two never fight. Moving to another
+   * canvas keeps the engine, its media elements and its sound graph: playback goes on without a
+   * gap and the loudness keeps counting. The engine goes only when no canvas is left.
+   */
   function drawOnTop(): void {
     const top = attached.at(-1);
-    if (top === drawing?.canvas) return;
-    drawing?.stop();
-    drawing = top ? { canvas: top, stop: start(top) } : null;
+    if (!top) {
+      stopEngine?.();
+      stopEngine = null;
+      return;
+    }
+    if (engine) engine.setCanvas(top);
+    else stopEngine = start(top);
+    requestRedraw();
   }
 
   function attachCanvas(canvas: HTMLCanvasElement): () => void {

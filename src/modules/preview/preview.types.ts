@@ -55,6 +55,11 @@ export interface PreviewEngine {
   ): void;
   /** Stops all media without forgetting state (e.g. on pause). */
   pauseAll(): void;
+  /**
+   * Draws on another canvas from the next frame on. Media elements, images and the sound graph
+   * stay as they are, so what plays goes on without a gap.
+   */
+  setCanvas(canvas: HTMLCanvasElement): void;
   /** Whether every visible layer has its frame for the last rendered time. */
   isSettled(): boolean;
   /** The canvas as a base64 PNG (no `data:` prefix). */

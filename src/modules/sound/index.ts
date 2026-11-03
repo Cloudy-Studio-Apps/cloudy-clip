@@ -6,8 +6,11 @@ export type { MixTarget, SoundApi, SoundViewState } from "./sound.types";
 
 /** Mix commands: a track's volume and pan, the master, and switching between mix A and B. */
 export { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
-/** Listening commands: solo a track, and Mono, Dim and the speaker volume. Never undone or exported. */
-export { setMonitor, setSolo } from "./sound.monitor.commands";
+/**
+ * Listening commands: solo a track; Mono, Dim and the speaker volume; and clearing solo, Mono and
+ * Dim (run when the Sound page closes). Never undone or exported.
+ */
+export { clearListening, setMonitor, setSolo } from "./sound.monitor.commands";
 
 /** Module definition, loaded by the app shell. */
 export { soundModule } from "./sound.module";
