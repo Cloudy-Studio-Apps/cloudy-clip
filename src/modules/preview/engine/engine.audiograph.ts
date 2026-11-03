@@ -2,7 +2,7 @@ import { createLogger, notify } from "@/core";
 import { pitchShift, type ClipSound } from "@/modules/project";
 import { NO_LEVELS } from "./engine.meters";
 import { createMixBus } from "./engine.mixbus";
-import { createEqFilters, createPanner, createUpmix, GLIDE, setBand } from "./engine.soundnodes";
+import { createEqFilters, createPanner, createUpmix, glide, setBand } from "./engine.soundnodes";
 import type { MixBus, MixUpdate, SoundChain, SoundGraph } from "./engine.types";
 
 const log = createLogger("preview.engine");
@@ -78,11 +78,10 @@ function createChain(
     apply(sound, gain, pan = sound.pan) {
       // Never awaited: on an idle context it only settles once media plays.
       if (context.state === "suspended") void context.resume();
-      const now = context.currentTime;
-      level.gain.setTargetAtTime(gain, now, GLIDE);
+      glide(level.gain, gain, context);
       if (pan !== shownPan) {
         shownPan = pan;
-        panner.pan.setTargetAtTime(pan, now, GLIDE);
+        glide(panner.pan, pan, context);
       }
       if (sound === shown) return;
       shown = sound;
@@ -103,26 +102,44 @@ function createChain(
 export function createSoundGraph(): SoundGraph {
   let context: AudioContext | null = null;
   let buses: MixBus | null = null;
+  /** The context or its buses couldn't be made: told once, never tried again. */
+  let unavailable = false;
   let update: MixUpdate | null = null;
   let pitch: Promise<() => PitchNode> | null = null;
   const chains = new WeakMap<HTMLMediaElement, SoundChain>();
   const failed = new WeakSet<HTMLMediaElement>();
 
-  const busesOf = (audio: AudioContext) => {
-    if (buses) return buses;
-    buses = createMixBus(audio);
-    if (update) buses.mix(update);
-    return buses;
+  /** The context with its buses, made on first use; null when Web Audio isn't there. */
+  const open = (): AudioContext | null => {
+    if (context || unavailable) return context;
+    unavailable = true;
+    if (typeof AudioContext === "undefined") return null;
+    let audio: AudioContext | null = null;
+    try {
+      audio = new AudioContext();
+      buses = createMixBus(audio);
+      if (update) buses.mix(update);
+      context = audio;
+      unavailable = false;
+    } catch (error) {
+      void audio?.close();
+      log.warn("The preview has no Web Audio", error);
+      notify(
+        "error",
+        "The preview's sound can't go through the mixer, so clips play at their own level: track volume, solo and meters don't reach them.",
+      );
+    }
+    return context;
   };
 
   return {
     chainOf: (element) => chains.get(element),
     attach(element, name) {
       const known = chains.get(element);
-      if (known || failed.has(element) || typeof AudioContext === "undefined") return known;
+      if (known || failed.has(element)) return known;
+      const audio = open();
+      if (!audio) return undefined;
       try {
-        const audio = (context ??= new AudioContext());
-        busesOf(audio);
         const chain = createChain(audio, element, () => (pitch ??= loadPitch(audio)));
         chains.set(element, chain);
         return chain;
@@ -137,10 +154,7 @@ export function createSoundGraph(): SoundGraph {
         return undefined;
       }
     },
-    busOf(trackId) {
-      context ??= new AudioContext();
-      return busesOf(context).inputOf(trackId);
-    },
+    busOf: (trackId) => buses?.inputOf(trackId),
     mix(next) {
       update = next;
       buses?.mix(next);

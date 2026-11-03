@@ -1,22 +1,27 @@
 import { dbToLinear, type TrackId } from "@/modules/project";
 import type { MixLevels, MonitorState, StereoLevel } from "../preview.types";
 import { createMeter } from "./engine.meters";
-import { createPanner, createUpmix, GLIDE } from "./engine.soundnodes";
+import { createPanner, createUpmix, glide } from "./engine.soundnodes";
 import type { MixBus, TrackBus } from "./engine.types";
 
 /** How far Dim takes the monitor down, in dB. */
 const DIM_DB = -20;
 
-/** Moves a parameter to a value without a click. */
-function glide(param: AudioParam, value: number, context: BaseAudioContext): void {
-  param.setTargetAtTime(value, context.currentTime, GLIDE);
-}
-
-/** One audio track's bus: upmix, pan, fader, and a meter after the fader. */
-function createTrackBus(context: BaseAudioContext, output: AudioNode): TrackBus {
+/**
+ * One audio track's bus: upmix, pan, fader, and a meter after the fader. It starts at its pan and
+ * level, so a muted or soloed-out track never sounds while it's made.
+ */
+function createTrackBus(
+  context: BaseAudioContext,
+  output: AudioNode,
+  pan: number,
+  level: number,
+): TrackBus {
   const input = createUpmix(context);
   const panner = createPanner(context);
+  panner.pan.value = pan;
   const fader = context.createGain();
+  fader.gain.value = level;
   input.connect(panner).connect(fader).connect(output);
   return { input, panner, fader, meter: createMeter(context, fader) };
 }
@@ -72,15 +77,16 @@ export function createMixBus(context: BaseAudioContext): MixBus {
         buses.delete(id);
       }
       for (const { id, mix, muted } of tracks) {
-        let bus = buses.get(id);
-        if (!bus) {
-          bus = createTrackBus(context, master);
-          buses.set(id, bus);
-        }
         // Solo silences the other buses, never their elements, so they stay in sync.
         const heard = !muted && (solo.length === 0 || solo.includes(id));
+        const level = heard ? dbToLinear(mix.volumeDb) : 0;
+        const bus = buses.get(id);
+        if (!bus) {
+          buses.set(id, createTrackBus(context, master, mix.pan, level));
+          continue;
+        }
         glide(bus.panner.pan, mix.pan, context);
-        glide(bus.fader.gain, heard ? dbToLinear(mix.volumeDb) : 0, context);
+        glide(bus.fader.gain, level, context);
       }
       glide(master.gain, dbToLinear(masterMix.volumeDb), context);
       monitor(monitorState);

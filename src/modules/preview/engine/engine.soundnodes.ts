@@ -1,7 +1,13 @@
 import { bandActive, type EqBand } from "@/modules/project";
 
 /** How smoothly a change lands, in seconds. Short enough to follow, long enough not to click. */
-export const GLIDE = 0.01;
+const GLIDE = 0.01;
+
+/** Moves a parameter to a value over `GLIDE`, without a click. */
+export function glide(param: AudioParam, value: number, context: BaseAudioContext): void {
+  param.setTargetAtTime(value, context.currentTime, GLIDE);
+}
+
 /** Web Audio's cut filters take Q in dB: this is the plain 12 dB/octave slope FFmpeg's have. */
 const CUT_Q_DB = -3.01;
 

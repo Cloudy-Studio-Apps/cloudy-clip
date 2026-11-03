@@ -48,9 +48,10 @@ export function voiceSlot(
     return;
   }
   const chain = graph?.attach(element, voice.name);
-  if (chain && graph) {
+  const bus = chain && graph?.busOf(voice.bus);
+  if (chain && bus) {
     element.volume = 1;
-    chain.routeTo(graph.busOf(voice.bus));
+    chain.routeTo(bus);
     chain.apply(voice.sound, off ? 0 : voice.gain, voice.pan);
   } else {
     element.volume = Math.min(1, voice.gain);

@@ -27,7 +27,10 @@ export function mixUpdateOf(
     return [{ id, mix: { ...trackMixOf(track), ...mix.get(id) }, muted: track.muted }];
   });
   const master = { ...compositionMixOf(composition).master, ...mix.get("master") };
-  return { tracks, master: { volumeDb: master.volumeDb }, solo, monitor };
+  // Solo outlives a deleted track and a switch of composition: only this one's tracks count, so a
+  // solo of none of them is no solo, not silence.
+  const soloed = solo.filter((id) => tracks.some((track) => track.id === id));
+  return { tracks, master: { volumeDb: master.volumeDb }, solo: soloed, monitor };
 }
 
 /**

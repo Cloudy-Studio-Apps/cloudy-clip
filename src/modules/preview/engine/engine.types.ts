@@ -4,10 +4,17 @@ import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
 import type { MediaApi } from "@/modules/media";
 import type { Micros } from "@/core";
-import type { MixLevels, MonitorState, StereoLevel, VideoLevels } from "../preview.types";
+import type {
+  LiveSound,
+  MixLevels,
+  MonitorState,
+  StereoLevel,
+  VideoLevels,
+} from "../preview.types";
 import type {
   Clip,
   ClipSound,
+  ClipSpeed,
   Composition,
   MasterMix,
   MediaId,
@@ -79,8 +86,11 @@ export interface SoundGraph {
   attach(element: HTMLMediaElement, name: string): SoundChain | undefined;
   /** The element's chain, if it has one. */
   chainOf(element: HTMLMediaElement): SoundChain | undefined;
-  /** Where a clip sounding through this top-level track goes: its bus, else the master. */
-  busOf(trackId: TrackId): AudioNode;
+  /**
+   * Where a clip sounding through this top-level track goes: its bus, else the master; nothing
+   * before the context exists.
+   */
+  busOf(trackId: TrackId): AudioNode | undefined;
   /** Makes and drops track buses and sets every level. Call it on a change, not per frame. */
   mix(update: MixUpdate): void;
   /** Peaks now; silence before any sound went through. */
@@ -101,6 +111,20 @@ export interface Placed {
   bus: TrackId;
   gain: number;
   pan: number;
+}
+
+/** The sound side of one engine: its graph, the live sound, and when the buses are set. */
+export interface SoundMix {
+  /** Null on a picture-only engine. */
+  readonly graph: SoundGraph | null;
+  /** A clip's sound with what its speed adds (`createSoundAtSpeed`). */
+  heard(sound: ClipSound, speed: ClipSpeed): ClipSound;
+  /** At each frame: sets the buses when the tracks, the composition or the live sound changed. */
+  update(project: ProjectState, composition: Composition): void;
+  /** New live sound from the controller, applied at once. */
+  setSound(live: LiveSound): void;
+  levels(): MixLevels;
+  dispose(): void;
 }
 
 /** How one active clip of an audio track sounds, worked out by the engine. */
