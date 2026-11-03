@@ -5,12 +5,13 @@ import { playheadSplit, splitAt, timelineRef } from "@/modules/timeline";
 import { LoopToggle } from "./LoopToggle";
 import { MixSwitch } from "./MixSwitch";
 import { MonitorControls } from "./MonitorControls";
+import { RecordButton } from "./RecordButton";
 import { TransportSeparator } from "./TransportSeparator";
 import { TransportTool } from "./TransportTool";
 
 /**
- * The Sound page's transport row: the time and play, Loop, Cut at the playhead and Snap, Mix A and B,
- * and how the user listens. Select joins when there is a second pointer tool to choose from.
+ * The Sound page's transport row: the time and play, Loop, Record, Cut at the playhead and Snap,
+ * Mix A and B, and how the user listens. Select joins when there is a second pointer tool to choose from.
  */
 export function SoundTransport() {
   const { bus } = useKernel();
@@ -25,6 +26,7 @@ export function SoundTransport() {
       </span>
       <PlayButton />
       <LoopToggle />
+      <RecordButton />
       <TransportSeparator />
       <TransportTool
         title="Cut at the playhead (S)"

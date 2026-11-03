@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
+import type { CommandBus, Micros } from "@/core";
 import type {
   CompositionId,
   CompressorEffect,
@@ -7,7 +8,9 @@ import type {
   SoundEffect,
   TrackId,
 } from "@/modules/project";
-import type { MonitorState } from "@/modules/preview";
+import type { MonitorState, PlaybackClock } from "@/modules/preview";
+import type { ProjectApi } from "@/modules/project";
+import type { LeaveRun, WorkspaceSession } from "@/modules/workspace";
 
 /** What the Sound page shows and how the user listens, per kernel. Never in history. */
 export interface SoundViewState {
@@ -22,6 +25,8 @@ export interface SoundViewState {
   expanded: boolean;
   /** Mono, Dim and the speaker volume. Never in an export. */
   monitor: MonitorState;
+  /** The track a recording goes onto: an audio track that isn't muted. */
+  armed: TrackId | null;
 }
 
 /** The sound module's API, per kernel. */
@@ -37,6 +42,94 @@ export interface SoundApi {
   presets: StoreApi<UserPresets>;
   /** Lets the mixer take the whole page, or gives the timeline its place back. */
   setExpanded(expanded: boolean): void;
+  /** Arms a track for recording, or none. Refused (nothing changes) while a take is recorded. */
+  arm(trackId: TrackId | null): void;
+  /** Records the microphone onto the armed track. */
+  recorder: Recorder;
+}
+
+/** Where the webview runs, for what has been checked there. */
+export type RecordPlatform = "linux" | "windows" | "macos";
+
+/** The microphone, open and feeding the recorder. */
+export interface Capture {
+  /** The rate the samples come at: the capture context's own. */
+  sampleRate: number;
+  /** Closes the microphone and the context. */
+  stop(): void;
+}
+
+/** Where a take's file was started (`sound_record_begin`). */
+export interface TakeStarted {
+  /** For `sound_record_write`. */
+  id: string;
+  path: string;
+}
+
+/** What a write left on disk (`sound_record_write`). */
+export interface TakeWritten {
+  /** Null once a take with no samples was finished: its file is deleted. */
+  path: string | null;
+  samples: number;
+}
+
+/** What the recorder is doing. View state, never in history. */
+export interface RecorderState {
+  /** `starting`: opening the microphone and the file; `stopping`: writing the end and placing it. */
+  status: "idle" | "starting" | "recording" | "stopping";
+  trackId: TrackId | null;
+  /** Where the take starts on the timeline. */
+  at: Micros;
+}
+
+/** Records the microphone into a WAV beside the project and places it as a clip. One take at a time. */
+export interface Recorder {
+  state: StoreApi<RecorderState>;
+  /** Opens the microphone, starts playback and records onto `trackId`. Tells the user when it can't. */
+  start(trackId: TrackId): Promise<void>;
+  /**
+   * Stops the take and places it (`sound.placeRecording`), or tells the user why not, naming the
+   * file. `run` runs the commands (default: the bus). Returns at once when a stop is already under way.
+   */
+  stop(run?: LeaveRun): Promise<void>;
+  /** The latest input peak in dBFS, `-Infinity` when not recording. Read per frame. */
+  level(): number;
+  /** How long the take is so far. Read per frame. */
+  length(): Micros;
+}
+
+/** What the recorder needs. */
+export interface RecorderDeps {
+  bus: CommandBus;
+  playback: PlaybackClock;
+  project: ProjectApi;
+  session: StoreApi<WorkspaceSession>;
+}
+
+/** A take as the recorder keeps it. */
+export interface LiveTake {
+  trackId: TrackId;
+  at: Micros;
+  /** Samples are kept (after playback started) until the take stops. */
+  keeping: boolean;
+  /** Stop was asked for. While still starting, `start` closes the take itself. */
+  ending: boolean;
+  capture: Capture | null;
+  file: TakeStarted | null;
+  rate: number;
+  /** Samples not sent yet. */
+  chunks: Int16Array[];
+  chunked: number;
+  /** Samples kept, sent or not. */
+  samples: number;
+  /** The latest input peak, dBFS. */
+  level: number;
+  /** The writes, one after another. */
+  writes: Promise<void>;
+  /** The last answer from the native side. */
+  written: TakeWritten | null;
+  /** The first write that failed. */
+  failure: unknown;
 }
 
 /** What a mixer strip addresses: an audio track, or the master. */
@@ -56,9 +149,12 @@ export interface PeakHold {
   at: number;
 }
 
+/** What a meter shows: a track's or the master's level, or the microphone while recording. */
+export type MeterTarget = MixTarget | "input";
+
 /** One side of one meter, registered with the meter loop. */
 export interface MeterSide {
-  target: MixTarget;
+  target: MeterTarget;
   side: "left" | "right";
   /** Drawn from the bottom up to the level. */
   bar: HTMLElement;

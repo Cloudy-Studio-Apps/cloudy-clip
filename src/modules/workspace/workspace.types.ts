@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { ActorId, Micros, PatchableStore } from "@/core";
+import type { ActorId, CommandContext, Micros, PatchableStore } from "@/core";
 import type { MediaApi } from "@/modules/media";
 import type { MediaAsset, ProjectApi, ProjectState } from "@/modules/project";
 import type { PreviewApi } from "@/modules/preview";
@@ -62,6 +62,15 @@ export interface Recents {
   refresh(): Promise<void>;
 }
 
+/**
+ * Runs a command in the step that leaves the project: nested in the command that opens another
+ * (the bus is busy with it), or through the bus when the window closes. Throws its failure.
+ */
+export type LeaveRun = CommandContext["execute"];
+
+/** Work a module finishes before the project is left, with `run` for its commands. */
+export type LeaveTask = (run: LeaveRun) => Promise<void>;
+
 /** The project file, as written. */
 export interface ProjectEnvelope {
   format: string;
@@ -113,8 +122,18 @@ export interface WorkspaceCore {
   readonly session: StoreApi<WorkspaceSession>;
   readonly ui: StoreApi<WorkspaceUi>;
   readonly recents: Recents;
-  /** Writes everything and refreshes the thumbnail. Throws `workspace.save_failed`. */
-  leave(): Promise<void>;
+  /**
+   * Runs the `beforeLeave` tasks with `run`, then writes everything and refreshes the thumbnail.
+   * Throws `workspace.save_failed`.
+   */
+  leave(run: LeaveRun): Promise<void>;
+  /**
+   * Adds work done each time the project is left (another opened, a new one started, the window
+   * closed), before it is written: a recording stopped and placed. Tasks run in the order added; one
+   * that throws is logged and the leaving goes on, so a task tells the user itself. Returns what
+   * removes it.
+   */
+  beforeLeave(task: LeaveTask): () => void;
   /** Writes now, even a blank project. Throws `workspace.save_failed`. */
   save(): Promise<WorkspaceSession>;
   /** Writes to `path`, and autosave follows it. Throws `workspace.save_failed`. */

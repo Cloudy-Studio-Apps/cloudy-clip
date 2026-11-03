@@ -19,16 +19,22 @@ function write(entry: MeterEntry, db: number, now: number): void {
 }
 
 /**
- * The meters' loop: while started, one `requestAnimationFrame` reads `levels()` once and writes
- * every registered meter side through the DOM, with its peak hold. No React (rule 24).
+ * The meters' loop: while started, one `requestAnimationFrame` reads `levels()` and `input()` (the
+ * microphone while recording, both sides) once and writes every registered meter side through the
+ * DOM, with its peak hold. No React (rule 24).
  */
-export function createMeterLoop(sound: PreviewSound): MeterLoop {
+export function createMeterLoop(sound: PreviewSound, input: () => number): MeterLoop {
   const entries = new Set<MeterEntry>();
   let frame = 0;
 
   const tick = (now: number) => {
     const levels = sound.levels();
+    const heard = input();
     for (const entry of entries) {
+      if (entry.target === "input") {
+        write(entry, heard, now);
+        continue;
+      }
       const level = entry.target === "master" ? levels.master : levels.tracks[entry.target];
       write(entry, level?.[entry.side] ?? -Infinity, now);
     }

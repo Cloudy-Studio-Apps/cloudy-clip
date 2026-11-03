@@ -30,7 +30,7 @@ export const newProject = defineCommand({
     if (name !== undefined && !isValidName(name)) {
       throw new CommandFailure("workspace.bad_name", "A name can't use / \\ : * ? \" < > |");
     }
-    await workspace.leave();
+    await workspace.leave(ctx.execute.bind(ctx));
     const about = input.description?.trim();
     const document = { ...createEmptyProject(), ...(about ? { description: about } : {}) };
     ctx.replace(store, document);
@@ -54,7 +54,7 @@ export const openProject = defineCommand({
   async run(ctx, { path }) {
     const workspace = ctx.require(workspaceRef);
     const { store, view } = ctx.require(projectRef);
-    await workspace.leave();
+    await workspace.leave(ctx.execute.bind(ctx));
     const { document, missing } = await workspace.prepare(path);
     ctx.replace(store, document);
     view.reset();

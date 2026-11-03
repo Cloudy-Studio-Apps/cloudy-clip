@@ -5,6 +5,8 @@
 export type {
   EffectSpec,
   MixTarget,
+  Recorder,
+  RecorderState,
   SoundPreset,
   SoundApi,
   SoundViewState,
@@ -33,6 +35,12 @@ export { BUILT_IN_PRESETS } from "./logic/presets";
  * Dim (run when the Sound page closes). Never undone or exported.
  */
 export { clearListening, setMonitor, setSolo } from "./sound.monitor.commands";
+
+/**
+ * Places a recorded take: imports the file and puts it on an audio track, one undo step. Recording
+ * itself is the recorder's (`SoundApi.recorder`), with no command or tool: the microphone is the user's.
+ */
+export { placeRecording } from "./sound.record.commands";
 
 /** Module definition, loaded by the app shell. */
 export { soundModule } from "./sound.module";

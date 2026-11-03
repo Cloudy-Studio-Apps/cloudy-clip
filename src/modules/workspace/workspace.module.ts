@@ -1,4 +1,12 @@
-import { appMenuItems, appOverlays, defineModule, keybindings, notify, topBarItems } from "@/core";
+import {
+  appMenuItems,
+  appOverlays,
+  CommandFailure,
+  defineModule,
+  keybindings,
+  notify,
+  topBarItems,
+} from "@/core";
 import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
@@ -15,7 +23,7 @@ import { workspaceMcpTools } from "./workspace.mcp";
 import { workspaceRef } from "./workspace.ref";
 import { onWindowClose } from "./workspace.service";
 import { createWorkspace } from "./workspace.session";
-import type { WorkspaceApi } from "./workspace.types";
+import type { LeaveRun, WorkspaceApi } from "./workspace.types";
 import { ProjectTitle, RelinkHost, StartDialogHost } from "./ui";
 
 /** The open project: the start dialog, saving, opening, the recent list. */
@@ -37,10 +45,16 @@ export const workspaceModule = defineModule({
     const api: WorkspaceApi = { ...core, ...createPickers(bus, core) };
     void core.recents.load();
 
+    // Closing the window runs no command, so work before leaving goes through the bus.
+    const run: LeaveRun = async (command, input) => {
+      const result = await bus.run(command, input);
+      if (!result.ok) throw new CommandFailure(result.error.code, result.error.message);
+      return result.value;
+    };
     let warned = false;
     try {
       const stop = await onWindowClose(async () => {
-        const left = await core.leave().then(
+        const left = await core.leave(run).then(
           () => true,
           () => false,
         );

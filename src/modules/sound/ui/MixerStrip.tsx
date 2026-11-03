@@ -9,6 +9,7 @@ import { chainOf, placesUnheardEffects } from "../logic/effects";
 import { setTrackMix } from "../sound.mix.commands";
 import { setSolo } from "../sound.monitor.commands";
 import { soundRef } from "../sound.ref";
+import { ArmButton } from "./ArmButton";
 import { EffectChain } from "./EffectChain";
 import { Fader } from "./Fader";
 import { Meter } from "./Meter";
@@ -25,9 +26,10 @@ interface MixerStripProps {
 }
 
 /**
- * One audio track in the mixer: name, its effects, where it goes, pan, fader with its two meters,
- * mute and solo. A click marks the track (and its header on the timeline) and shows its chain in
- * the Channel tab; when marked, it scrolls into view.
+ * One audio track in the mixer: name, its effects, where it goes, pan, fader with its two meters
+ * (the microphone's while a take is recorded onto it), mute, solo and record-arm. A click marks
+ * the track (and its header on the timeline) and shows its chain in the Channel tab; when marked,
+ * it scrolls into view.
  */
 export const MixerStrip = memo(function MixerStrip({
   track,
@@ -42,6 +44,12 @@ export const MixerStrip = memo(function MixerStrip({
   const ref = useRef<HTMLDivElement>(null);
   const unheard = useStore(project.api, (s) => placesUnheardEffects(s, track.id));
   const effects = useStore(project.api, (s) => chainOf(s, track.id, track.compositionId));
+  // While a take is recorded onto this track, its meters show the microphone.
+  const recording = useStore(
+    sound.recorder.state,
+    (s) => s.status === "recording" && s.trackId === track.id,
+  );
+  const metered = recording ? "input" : track.id;
 
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -92,8 +100,8 @@ export const MixerStrip = memo(function MixerStrip({
         }
         read={read}
       >
-        <Meter target={track.id} side="left" />
-        <Meter target={track.id} side="right" />
+        <Meter target={metered} side="left" />
+        <Meter target={metered} side="right" />
       </Fader>
       <div className="flex justify-center gap-0.5">
         <StripToggle
@@ -112,6 +120,7 @@ export const MixerStrip = memo(function MixerStrip({
         >
           S
         </StripToggle>
+        <ArmButton track={track} />
       </div>
     </div>
   );

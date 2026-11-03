@@ -6,7 +6,7 @@ Which project is open and where it lives: the start dialog, saving and autosave,
 - **Requires:** `project`, `media`, `preview`, `composition`
 - **Contributes:** `appOverlays` (`StartDialogHost`, `RelinkHost`), `topBarItems` (`ProjectTitle`, left), keybindings `workspace.save` (Ctrl/Cmd+S), `workspace.save-as` (Ctrl/Cmd+Shift+S), `workspace.open` (Ctrl/Cmd+O), `workspace.home` (Ctrl/Cmd+N)
 - **Points it owns:** —
-- **API** (`WorkspaceApi`): `session` (`path`, `name`, `status`: `blank`, `saved`, `saving`, `failed`), `ui` (start dialog, relink dialog), `recents`, `leave`, `save`, `saveAs`, `rename`, `prepare`, `opened`, `announce`, `folder`, `askOpen`, `askSaveAs`.
+- **API** (`WorkspaceApi`): `session` (`path`, `name`, `status`: `blank`, `saved`, `saving`, `failed`), `ui` (start dialog, relink dialog), `recents`, `leave(run)`, `beforeLeave(task)`, `save`, `saveAs`, `rename`, `prepare`, `opened`, `announce`, `folder`, `askOpen`, `askSaveAs`.
 - **Files:**
   - `logic/format.ts`: the `.cclip` file, JSON: `{ format, version, appVersion, savedAt, document }`. `decodeProject` checks the shape; the document's rules are checked by `ctx.replace`. A version bump goes here with its upgrade. Version 3 adds `Clip.animation` and `Clip.animationOrigin` (kept as they are: the loose clip schema passes them, and an older file simply has none). A project is saved as version 3 only when a clip has keys, else as version 2, so a project that never used keys still opens in an older app; both open here. Decoding drops key tracks with no keys.
   - `logic/names.ts`: `isBlank`, `isEmpty`, paths and names. `logic/labels.ts`: `ratioLabel`, `agoLabel`.
@@ -20,7 +20,7 @@ Which project is open and where it lives: the start dialog, saving and autosave,
   - The file holds the document only. History, selection, playheads, probes and tabs aren't saved; Main opens first.
   - Media stays where it is: the file keeps paths. On open, a file not found at its path is looked for by name next to the project, then marked `missing`.
   - A project with no media, no clips and no description isn't autosaved, so one opened and abandoned leaves no file.
-  - Before another project opens, and on window close, pending changes are written. If that fails, opening is refused with `workspace.save_failed`, and closing asks for a second try.
+  - Before another project opens, and on window close, the `beforeLeave` tasks run first (another module's work that must land in this project: `sound` stops a recording and places it), each given `run` for its commands: `ctx.execute` of the command that opens the other project, since the bus is busy with it, or the bus itself when the window closes. A task that throws is logged and the leaving goes on. Then pending changes are written. If that fails, opening is refused with `workspace.save_failed`, and closing asks for a second try.
   - A project with no clips opens on Media, any other on Edit. Only the local actor moves the page: an agent's `workspace_open` leaves the user where they are.
   - The start dialog closes when an empty project gets content, so an agent's work isn't hidden behind it.
   - New, open, save, save as and rename can't be undone but do change the project, so their tools set `writes`: an agent on view only is refused.

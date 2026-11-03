@@ -25,6 +25,7 @@ import {
 } from "./workspace.service";
 import { shrinkFrame } from "./workspace.thumbnail";
 import type {
+  LeaveTask,
   PreparedProject,
   WorkspaceCore,
   WorkspaceDeps,
@@ -115,6 +116,8 @@ export function createWorkspace({ project, media, preview, nameOf }: WorkspaceDe
     }
   }
 
+  const leaving = new Set<LeaveTask>();
+
   const saveFailed = () =>
     new CommandFailure("workspace.save_failed", "The project could not be saved.");
 
@@ -122,9 +125,16 @@ export function createWorkspace({ project, media, preview, nameOf }: WorkspaceDe
     session,
     ui,
     recents,
-    async leave() {
+    async leave(run) {
+      for (const task of [...leaving]) {
+        await task(run).catch((error: unknown) => log.warn("A task before leaving failed", error));
+      }
       if (!(await autosave.flush())) throw saveFailed();
       await refreshThumbnail();
+    },
+    beforeLeave(task) {
+      leaving.add(task);
+      return () => void leaving.delete(task);
     },
     async save() {
       if (!(await autosave.save())) throw saveFailed();
