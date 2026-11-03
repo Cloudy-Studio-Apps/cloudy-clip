@@ -3,3 +3,11 @@ export type AudioApi = Record<string, never>;
 
 /** A part of a clip's sound that resets on its own. */
 export type SoundSection = "volume" | "pan" | "fades" | "pitch" | "eq";
+
+/** A value of a clip's sound that can be keyed: the part of `ClipSound` it is, and its range. */
+export interface KeyedSound {
+  key: "volumeDb" | "pan";
+  label: string;
+  min: number;
+  max: number;
+}
