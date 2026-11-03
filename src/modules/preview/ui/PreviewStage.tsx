@@ -5,12 +5,23 @@ import { previewRef } from "../preview.ref";
 import { useStageLayout } from "./stage.layout.hook";
 import { useStageNavigation } from "./stage.navigation.hook";
 
+interface PreviewStageProps {
+  /**
+   * Only the picture, fitted: no overlays (so no canvas tools), and the viewer's zoom and pan
+   * neither apply nor change. For a page's own small preview.
+   */
+  bare?: boolean;
+}
+
 /**
  * The dark stage around the frame. The frame (canvas + overlays) is placed imperatively from the
  * viewer's zoom and pan, so zooming and panning cause no React renders.
  * Ctrl + wheel zooms, wheel or middle-drag pans.
+ *
+ * Only the newest mounted stage is drawn on (`attachCanvas`): a page that mounts its own takes the
+ * frames while it is open, and the editor's stage gets them back when it closes.
  */
-export function PreviewStage() {
+export function PreviewStage({ bare = false }: PreviewStageProps) {
   const preview = useModule(previewRef);
   const overlays = usePoint(previewOverlays);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -23,8 +34,8 @@ export function PreviewStage() {
     return preview.attachCanvas(canvas);
   }, [preview]);
 
-  useStageLayout(stageRef, frameRef, canvasRef);
-  useStageNavigation(stageRef);
+  useStageLayout(stageRef, frameRef, canvasRef, !bare);
+  useStageNavigation(stageRef, !bare);
 
   return (
     <div ref={stageRef} className="relative min-h-0 flex-1 overflow-hidden bg-stage">
@@ -35,13 +46,14 @@ export function PreviewStage() {
           ref={canvasRef}
           className="block size-full bg-black shadow-[0_0_0_1px_var(--border-strong)]"
         />
-        {overlays.map(({ id, component: Overlay }) => (
-          <div key={id} className="pointer-events-none absolute inset-0">
-            <ErrorBoundary name={id}>
-              <Overlay />
-            </ErrorBoundary>
-          </div>
-        ))}
+        {!bare &&
+          overlays.map(({ id, component: Overlay }) => (
+            <div key={id} className="pointer-events-none absolute inset-0">
+              <ErrorBoundary name={id}>
+                <Overlay />
+              </ErrorBoundary>
+            </div>
+          ))}
       </div>
     </div>
   );

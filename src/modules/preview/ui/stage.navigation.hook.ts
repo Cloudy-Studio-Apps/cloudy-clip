@@ -5,13 +5,19 @@ import { previewRef } from "../preview.ref";
 /** Wheel zoom speed: the zoom changes by e^(-deltaY × this). */
 const WHEEL_ZOOM_SPEED = 0.002;
 
-/** Viewer navigation on the stage: Ctrl/Cmd + wheel zooms at the pointer, wheel and middle-drag pan. */
-export function useStageNavigation(stageRef: RefObject<HTMLDivElement | null>): void {
+/**
+ * Viewer navigation on the stage: Ctrl/Cmd + wheel zooms at the pointer, wheel and middle-drag pan.
+ * Nothing while `enabled` is false.
+ */
+export function useStageNavigation(
+  stageRef: RefObject<HTMLDivElement | null>,
+  enabled = true,
+): void {
   const { viewport } = useModule(previewRef);
 
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage) return;
+    if (!stage || !enabled) return;
 
     const fromCenter = (clientX: number, clientY: number) => {
       const rect = stage.getBoundingClientRect();
@@ -54,5 +60,5 @@ export function useStageNavigation(stageRef: RefObject<HTMLDivElement | null>): 
       stage.removeEventListener("wheel", onWheel);
       stage.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [stageRef, viewport]);
+  }, [stageRef, viewport, enabled]);
 }

@@ -252,7 +252,10 @@ export interface PreviewApi {
   clockFor(actor: ActorId): PlaybackClock;
   /** Forgets a collaborator's playhead. */
   dropClock(actor: ActorId): void;
-  /** Attaches the preview canvas. Returns a detach function. */
+  /**
+   * Attaches a preview canvas. Returns a detach function. Only the newest attached canvas is drawn
+   * on (a page's own stage over the editor's); when it detaches, the one under it is drawn on again.
+   */
   attachCanvas(canvas: HTMLCanvasElement): () => void;
   /** Redraws on the next frame (e.g. after the canvas was resized). */
   redraw(): void;

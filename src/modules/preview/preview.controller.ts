@@ -22,7 +22,9 @@ const MAX_SETTLE_RETRIES = 180;
 export function createPreviewController(deps: PreviewControllerDeps): PreviewController {
   const { clock } = deps;
   let engine: PreviewEngine | null = null;
-  let detachCurrent: (() => void) | null = null;
+  /** Canvases attached, oldest first. Only the newest is drawn on, so two never fight. */
+  const attached: HTMLCanvasElement[] = [];
+  let drawing: { canvas: HTMLCanvasElement; stop: () => void } | null = null;
   let redrawQueued = false;
   let settleRetries = 0;
   /** Live transforms of a gesture in progress, drawn instead of the saved ones. */
@@ -78,8 +80,8 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     scheduleRedraw();
   }
 
-  function attachCanvas(canvas: HTMLCanvasElement): () => void {
-    detachCurrent?.();
+  /** Draws on a canvas until `stop` is called: a fresh engine, following the clock and the project. */
+  function start(canvas: HTMLCanvasElement): () => void {
     const current = deps.createEngine(canvas, requestRedraw);
     current.setSound(sound.current());
     engine = current;
@@ -100,10 +102,9 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     });
     // A proxy becoming ready changes a file's URL; redraw so the engine reloads it.
     const offMedia = deps.subscribeMedia(requestRedraw);
+    requestRedraw();
 
-    const detach = () => {
-      if (detachCurrent !== detach) return;
-      detachCurrent = null;
+    return () => {
       offTime();
       offPlaying();
       offProject();
@@ -111,8 +112,26 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
       if (engine === current) engine = null;
       current.dispose();
     };
-    detachCurrent = detach;
-    return detach;
+  }
+
+  /** Draws on the newest canvas only; the one under it takes over again when it goes. */
+  function drawOnTop(): void {
+    const top = attached.at(-1);
+    if (top === drawing?.canvas) return;
+    drawing?.stop();
+    drawing = top ? { canvas: top, stop: start(top) } : null;
+  }
+
+  function attachCanvas(canvas: HTMLCanvasElement): () => void {
+    attached.push(canvas);
+    drawOnTop();
+    let done = false;
+    return () => {
+      if (done) return;
+      done = true;
+      attached.splice(attached.lastIndexOf(canvas), 1);
+      drawOnTop();
+    };
   }
 
   return {
@@ -155,7 +174,8 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     sound: sound.sound,
     dispose() {
       clock.pause();
-      detachCurrent?.();
+      attached.length = 0;
+      drawOnTop();
       deps.capture.dispose();
       for (const virtual of clocks.values()) virtual.dispose();
       clocks.clear();

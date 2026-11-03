@@ -28,6 +28,12 @@ export type {
   ViewportState,
 } from "./preview.types";
 
+/**
+ * Pieces of the preview for a page of its own: the stage with the frame (`bare` for a small one
+ * with no canvas tools; only the newest mounted stage is drawn on), play/pause, and the timecode.
+ */
+export { PlayButton, PreviewStage, Timecode } from "./ui";
+
 /** Module definition, loaded by the app shell. */
 export { previewModule } from "./preview.module";
 /** Handle for `require(previewRef)` / `useModule(previewRef)`. */

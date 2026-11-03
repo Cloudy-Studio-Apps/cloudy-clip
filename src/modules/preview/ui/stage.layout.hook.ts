@@ -6,15 +6,20 @@ import { previewRef } from "../preview.ref";
 /** Space kept around the frame when it fits the stage, in px. */
 const STAGE_PADDING = 20;
 
+/** The frame fitted to the stage, centred. */
+const FITTED = { zoom: 1, panX: 0, panY: 0 };
+
 /**
  * Sizes and places the frame from the stage size, the project format and the viewer's zoom and
  * pan. The canvas backing store matches the displayed size × device pixel ratio, capped at the
- * project resolution, so it is sharp without wasting fill rate.
+ * project resolution, so it is sharp without wasting fill rate. Without `followViewport` the frame
+ * just fits the stage.
  */
 export function useStageLayout(
   stageRef: RefObject<HTMLDivElement | null>,
   frameRef: RefObject<HTMLDivElement | null>,
   canvasRef: RefObject<HTMLCanvasElement | null>,
+  followViewport = true,
 ): void {
   const preview = useModule(previewRef);
   const format = useOpenFormat();
@@ -29,7 +34,7 @@ export function useStageLayout(
       const width = stage.clientWidth - STAGE_PADDING * 2;
       const height = stage.clientHeight - STAGE_PADDING * 2;
       if (width <= 0 || height <= 0) return;
-      const { zoom, panX, panY } = preview.viewport.store.getState();
+      const { zoom, panX, panY } = followViewport ? preview.viewport.store.getState() : FITTED;
       const fit = Math.min(width / format.width, height / format.height);
       const cssWidth = Math.max(1, format.width * fit * zoom);
       const cssHeight = Math.max(1, format.height * fit * zoom);
@@ -50,10 +55,10 @@ export function useStageLayout(
     layout();
     const observer = new ResizeObserver(layout);
     observer.observe(stage);
-    const offViewport = preview.viewport.store.subscribe(layout);
+    const offViewport = followViewport ? preview.viewport.store.subscribe(layout) : undefined;
     return () => {
       observer.disconnect();
-      offViewport();
+      offViewport?.();
     };
-  }, [format, preview, stageRef, frameRef, canvasRef]);
+  }, [format, preview, stageRef, frameRef, canvasRef, followViewport]);
 }
