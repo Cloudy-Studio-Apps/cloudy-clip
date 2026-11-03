@@ -73,10 +73,10 @@ export interface PagesApi {
 export interface AppMenuItem {
   /** Unique id, `<module>.<name>`. */
   id: string;
-  /** The submenu it sits in, such as `File`. */
-  menu: string;
+  /** The submenu it sits in, such as `File`. Unset: an entry of the menu itself, after the submenus. */
+  menu?: string;
   label: string;
-  /** Lower comes first within the submenu. Defaults to 0. */
+  /** Lower comes first within the submenu, or among the menu's own entries. Defaults to 0. */
   order?: number;
   /** Id of a keybinding: shows its shortcut, and is what runs without `run`. */
   keybinding?: string;

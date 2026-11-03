@@ -44,18 +44,22 @@ function entryOf(item: AppMenuItem, source: AppMenuSource): MenuItem {
   return { ...entry, onSelect: item.run ?? (() => action && source.execute(action)) };
 }
 
-/** The logo's menu: what modules contribute by submenu, then a way to each page. */
+/** The logo's menu: what modules contribute by submenu, a way to each page, then entries of its own. */
 export function buildAppMenu(source: AppMenuSource): MenuItem[] {
-  const names = [...new Set([...MENU_ORDER, ...source.items.map(({ menu }) => menu)])];
+  const byOrder = (a: AppMenuItem, b: AppMenuItem) => (a.order ?? 0) - (b.order ?? 0);
+  const named = source.items.flatMap(({ menu }) => (menu === undefined ? [] : [menu]));
+  const names = [...new Set([...MENU_ORDER, ...named])];
   const menus = names.flatMap((name): MenuItem[] => {
-    const here = source.items
-      .filter(({ menu }) => menu === name)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const here = source.items.filter(({ menu }) => menu === name).sort(byOrder);
     if (here.length === 0) return [];
-    return [{ label: name, items: here.map((item) => entryOf(item, source)) }];
+    return [{ label: name, group: "menus", items: here.map((item) => entryOf(item, source)) }];
   });
   const pages = groupPages(source.pages, source.groups)
     .flat()
     .map(({ id, label }) => ({ label, onSelect: () => source.showPage(id) }));
-  return [...menus, { label: "Go to", items: pages }];
+  const own = source.items
+    .filter(({ menu }) => menu === undefined)
+    .sort(byOrder)
+    .map((item) => ({ ...entryOf(item, source), group: "app" }));
+  return [...menus, { label: "Go to", group: "menus", items: pages }, ...own];
 }

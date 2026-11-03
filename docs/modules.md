@@ -166,7 +166,7 @@ it, so does the UI, and it becomes a command.
 | `layoutPanels`      | core (shell) | `{ id, title, slot: "side"\|"main"\|"inspector"\|"bottom", icon?, order?, component }` |
 | `appPages`          | core (shell) | `{ id, label, icon, group?, order?, component? }`, a page with a tab in the top bar    |
 | `appPageGroups`     | core (shell) | `{ id, order? }`, tabs that belong together; a divider separates groups                |
-| `appMenuItems`      | core (shell) | `{ id, menu, label, order?, keybinding?, run?, enabled?, items? }`, the logo's menu    |
+| `appMenuItems`      | core (shell) | `{ id, menu?, label, order?, keybinding?, run?, enabled?, items? }`, the logo's menu   |
 | `keybindings`       | core (shell) | `{ id, key, mod?, shift?, resolve() → { command, input } \| null }`                    |
 | `libraryKinds`      | `media`      | `{ type, label, icon, useEntries, Tile, CreateButton? }`, items besides files          |
 | `previewOverlays`   | `preview`    | `{ id, component }`, drawn over the frame, in % of it                                  |

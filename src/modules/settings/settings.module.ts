@@ -22,7 +22,6 @@ export const settingsModule = defineModule({
     });
     contribute(appMenuItems, {
       id: "settings.open",
-      menu: "File",
       label: "Settings",
       order: 90,
       keybinding: "settings.open",
