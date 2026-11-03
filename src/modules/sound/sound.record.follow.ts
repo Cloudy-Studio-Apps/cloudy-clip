@@ -6,6 +6,9 @@ import type { WorkspaceApi } from "@/modules/workspace";
 import { followSoundPageLeave } from "./sound.leave";
 import type { Recorder } from "./sound.types";
 
+/** How far ahead of the time passed the playhead may be before it counts as a jump (µs). */
+const FORWARD_SLACK_US = 250_000;
+
 /**
  * Stops a take, and places it, when the user leaves it behind: the Sound page closes, another
  * composition opens, the project is about to be left (the workspace's `beforeLeave`: another
@@ -36,8 +39,12 @@ export function followRecordingEnds(
       const composition = open === null ? undefined : project.store.getState().compositions[open];
       if (status() !== "recording" || !composition) return;
       // A seek or any other jump puts the playhead out of time with the take: it ends there.
+      // Forward, the clock's time (from the frame's timestamp) can run ahead of `moved` (from
+      // when this listener ran) by however long a slow frame held it, so a jump ahead must also
+      // be past FORWARD_SLACK_US to count.
       const frame = frameDuration(composition.format);
-      if (time < before - frame || time > before + moved + frame) void recorder.stop();
+      const ahead = Math.max(frame, FORWARD_SLACK_US);
+      if (time < before - frame || time > before + moved + ahead) void recorder.stop();
     }),
     followSoundPageLeave(pages, () => void recorder.stop()),
     project.view.store.subscribe(() => {
