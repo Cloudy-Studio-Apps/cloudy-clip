@@ -3,13 +3,16 @@ import {
   allowedOverlap,
   bandActive,
   contentTime,
+  compositionMixOf,
   dbToLinear,
   pitchShift,
   rampOf,
   soundOf,
   sourceTimeAt,
+  soundInPlacement,
   speedOf,
   timeOfContent,
+  trackMixOf,
   trackValue,
   type Clip,
   type ClipSound,
@@ -21,7 +24,20 @@ import {
   type Track,
 } from "@/modules/project";
 import { envelope, keyMoments } from "./envelope";
-import type { ExportRange, MixEdges, MixWindow, SoundSegment, TempoStep } from "../export.types";
+import type {
+  ExportRange,
+  MixEdges,
+  MixNesting,
+  MixWindow,
+  Mixdown,
+  SoundSegment,
+  TempoStep,
+} from "../export.types";
+
+/** A level and a pan, once the tracks around a clip are folded in. */
+type Placed = ReturnType<typeof soundInPlacement>;
+/** Folds the tracks around a clip into its gain and pan. */
+type Place = (gain: number, pan: number) => Placed;
 
 /** Timeline time a tempo step of a ramp covers, short enough that the steps aren't heard. */
 const TEMPO_STEP: Micros = 250_000;
@@ -38,7 +54,7 @@ function overlapOf(project: ProjectState, left: Clip | undefined, right: Clip | 
 /** What a clip's sound adds to a segment; nothing at the defaults. */
 function soundFields(
   sound: ClipSound,
-  gain: number,
+  { gain, pan }: Placed,
   keyed: Pick<SoundSegment, "gainEnvelope" | "panEnvelope">,
 ): Partial<SoundSegment> {
   const eq = sound.eq.on
@@ -47,9 +63,7 @@ function soundFields(
   const pitch = pitchShift(sound);
   return {
     ...(keyed.gainEnvelope ? { gainEnvelope: keyed.gainEnvelope } : gain !== 1 && { gain }),
-    ...(keyed.panEnvelope
-      ? { panEnvelope: keyed.panEnvelope }
-      : sound.pan !== 0 && { pan: sound.pan }),
+    ...(keyed.panEnvelope ? { panEnvelope: keyed.panEnvelope } : pan !== 0 && { pan }),
     ...(eq.length > 0 && { eq }),
     ...(pitch !== 0 && { pitch }),
   };
@@ -58,6 +72,7 @@ function soundFields(
 /** The envelopes of a clip's keyed volume and pan over the part of it that sounds. */
 function keyedFields(
   clip: Clip,
+  place: Place,
   parentGain: number,
   start: Micros,
   stop: Micros,
@@ -73,14 +88,14 @@ function keyedFields(
   return {
     ...(volume?.keys.length && {
       gainEnvelope: envelope(
-        (time) => parentGain * dbToLinear(read(volume, time)),
+        (time) => place(parentGain * dbToLinear(read(volume, time)), 0).gain,
         start,
         stop,
         breaks(volume),
       ),
     }),
     ...(pan?.keys.length && {
-      panEnvelope: envelope((time) => read(pan, time), start, stop, breaks(pan)),
+      panEnvelope: envelope((time) => place(1, read(pan, time)).pan, start, stop, breaks(pan)),
     }),
   };
 }
@@ -168,16 +183,25 @@ function walk(
   compositionId: CompositionId,
   { from, to, shift }: MixWindow,
   edges: MixEdges,
-  gain: number,
+  nesting: MixNesting | null,
   hasSound: (id: MediaId) => boolean,
   out: SoundSegment[],
 ): void {
   const composition = project.compositions[compositionId];
   if (!composition) return;
   const end = Math.min(to, composition.duration);
+  let audioIndex = -1;
   for (const trackId of composition.trackOrder) {
     const track: Track | undefined = project.tracks[trackId];
-    if (track?.kind !== "audio" || track.muted) continue;
+    if (track?.kind !== "audio") continue;
+    audioIndex++;
+    if (track.muted) continue;
+    // Top-level, a track's own mix is its bus's, applied once there; inside a placement, the
+    // clips sound through the outer track's bus, with this track's mix folded in as the preview does.
+    const index = nesting ? nesting.track : audioIndex;
+    const place: Place = (gain, pan) =>
+      nesting ? soundInPlacement(track, nesting.pan, gain, pan) : { gain, pan };
+    const through = nesting?.gain ?? 1;
     const clips = track.clipIds.map((id) => project.clips[id]);
     clips.forEach((clip, i) => {
       if (!clip || clip.disabled) return;
@@ -189,7 +213,7 @@ function walk(
       const skipped = start - clip.start;
       const dropped = clipEnd - stop;
       const sound = soundOf(clip);
-      const level = gain * dbToLinear(sound.volumeDb);
+      const level = through * dbToLinear(sound.volumeDb);
       // The longer of a crossfade and the clip's own fade wins.
       const fades = {
         fadeIn: Math.max(
@@ -206,7 +230,16 @@ function walk(
       if (clip.compositionRef !== undefined) {
         const local = clip.sourceIn - clip.start;
         const inner = { from: start + local, to: stop + local, shift: shift - local };
-        walk(project, clip.compositionRef, inner, fades, level, hasSound, out);
+        const placed = place(level, 0);
+        walk(
+          project,
+          clip.compositionRef,
+          inner,
+          fades,
+          { track: index, ...placed },
+          hasSound,
+          out,
+        );
         return;
       }
       if (clip.mediaId === undefined || !hasSound(clip.mediaId)) return;
@@ -219,28 +252,48 @@ function walk(
         // Reversed, the file's earliest moment of this stretch is the one heard last.
         from: sourceTimeAt(clip, speedOf(clip).reversed ? stop : start),
         duration: stop - start,
+        track: index,
         fadeIn: Math.max(fades.fadeIn, start === from ? edges.fadeIn : 0),
         fadeOut: Math.max(fades.fadeOut, stop === end ? edges.fadeOut : 0),
-        ...soundFields(sound, level, keyedFields(clip, gain, start, stop)),
+        ...soundFields(
+          sound,
+          place(level, sound.pan),
+          keyedFields(clip, place, through, start, stop),
+        ),
         ...(ramp ? rampFields(clip, ramp, start, stop) : speedFields(speedOf(clip))),
       });
     });
   }
 }
 
+/** The mix of the composition's audio tracks, in order, and of its master, as linear levels. */
+function mixOf(project: ProjectState, compositionId: CompositionId): Mixdown["mix"] {
+  const composition = project.compositions[compositionId];
+  if (!composition) return { tracks: [], master: { gain: 1 } };
+  const tracks = composition.trackOrder.flatMap((id) => {
+    const track = project.tracks[id];
+    if (track?.kind !== "audio") return [];
+    const { volumeDb, pan } = trackMixOf(track);
+    return [{ gain: dbToLinear(volumeDb), pan }];
+  });
+  return { tracks, master: { gain: dbToLinear(compositionMixOf(composition).master.volumeDb) } };
+}
+
 /**
  * What sounds in a stretch of a composition, as stretches of files on the export's clock, at any
- * depth: the sound the preview plays. Muted tracks are left out, also around a placement. Clips
- * under a junction crossfade.
+ * depth, and how the tracks they sit on mix: the sound the preview plays. A clip sounds through
+ * its top-level track (`track`); inside a placement, the inner tracks' volume and pan are folded
+ * into the clip's own, as the preview does. Muted tracks are left out, also around a placement.
+ * Clips under a junction crossfade. Solo is never here: it isn't in the document.
  */
 export function mixdown(
   project: ProjectState,
   compositionId: CompositionId,
   range: ExportRange,
   hasSound: (id: MediaId) => boolean,
-): SoundSegment[] {
-  const out: SoundSegment[] = [];
+): Mixdown {
+  const segments: SoundSegment[] = [];
   const window = { from: range.start, to: range.start + range.duration, shift: -range.start };
-  walk(project, compositionId, window, { fadeIn: 0, fadeOut: 0 }, 1, hasSound, out);
-  return out;
+  walk(project, compositionId, window, { fadeIn: 0, fadeOut: 0 }, null, hasSound, segments);
+  return { segments, mix: mixOf(project, compositionId) };
 }

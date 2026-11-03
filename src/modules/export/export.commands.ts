@@ -82,8 +82,9 @@ export const enqueue = defineCommand({
 
     const info = formatInfo(input.format);
     const hasSound = (mediaId: string) => mediaHasAudio(media.getProbe(mediaId));
-    const sound =
-      info.sound && input.sound ? mixdown(project, composition.id, range, hasSound) : [];
+    const mixed =
+      info.sound && input.sound ? mixdown(project, composition.id, range, hasSound) : null;
+    const sound = mixed?.segments ?? [];
     if (!info.picture && sound.length === 0) {
       throw new CommandFailure("export.noSound", "This part of the timeline has no sound.");
     }
@@ -128,6 +129,7 @@ export const enqueue = defineCommand({
         effort: input.effort,
         hardware: input.hardware,
         sound,
+        mix: mixed?.mix ?? { tracks: [], master: { gain: 1 } },
       },
     };
     api.queue.setState(({ jobs }) => ({ jobs: [...jobs, job] }));

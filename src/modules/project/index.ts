@@ -135,6 +135,7 @@ export {
   compositionMixOf,
   minimizeTrackMix,
   nestedSound,
+  soundInPlacement,
   trackMixOf,
 } from "./logic/mix";
 

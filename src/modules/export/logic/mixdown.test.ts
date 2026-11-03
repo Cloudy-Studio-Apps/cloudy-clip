@@ -10,7 +10,7 @@ import {
   type MediaAsset,
   type ProjectState,
 } from "@/modules/project";
-import { mixdown } from "./mixdown";
+import { mixdown as mixdownWithMix } from "./mixdown";
 
 const media = (id: string): MediaAsset => ({
   id,
@@ -31,6 +31,9 @@ const clip = (id: string, trackId: string, extra: Partial<Clip> = {}): Clip => (
   props: {},
   ...extra,
 });
+
+/** The segments of a mixdown; the mix has its own tests. */
+const mixdown = (...args: Parameters<typeof mixdownWithMix>) => mixdownWithMix(...args).segments;
 
 const everything = { start: 0, duration: 10_000_000 };
 const sounds = () => true;
@@ -102,6 +105,7 @@ describe("mixdown", () => {
         at: 1_000_000,
         from: 2_000_000,
         duration: 4_000_000,
+        track: 0,
         fadeIn: 0,
         fadeOut: 0,
       },
@@ -129,6 +133,7 @@ describe("mixdown", () => {
         at: 2_000_000,
         from: 1_000_000,
         duration: 2_000_000,
+        track: 0,
         fadeIn: 0,
         fadeOut: 0,
       },
@@ -178,6 +183,7 @@ describe("mixdown", () => {
         at: 0,
         from: 1_500_000,
         duration: 2_000_000,
+        track: 0,
         fadeIn: 0,
         fadeOut: 0,
       },
@@ -291,6 +297,44 @@ describe("mixdown", () => {
     expect(steps.reduce((sum, s) => sum + s.duration, 0)).toBe(segment!.duration);
     expect(steps[0]).toMatchObject({ from: 0, duration: 30_000_000, speed: 1 });
     expect(steps.at(-1)!.speed).toBeCloseTo(2);
+  });
+
+  it("carries each segment's track index and the mix of every audio track and the master", () => {
+    const state = project([clip("a", "a1"), clip("b", "a3")]);
+    state.tracks.a3 = { ...state.tracks.a1!, id: "a3", name: "A3", clipIds: ["b"] };
+    state.tracks.a1!.clipIds = ["a"];
+    state.tracks.a1!.mix = { volumeDb: -6, pan: 0.5 };
+    state.compositions.c1!.trackOrder = ["a1", "a3"];
+    state.compositions.c1!.mix = { master: { volumeDb: 6 }, activeMix: "a" };
+    const { segments, mix } = mixdownWithMix(state, "c1", everything, sounds);
+    expect(segments.map((segment) => segment.track)).toEqual([0, 1]);
+    expect(mix.tracks).toHaveLength(2);
+    expect(mix.tracks[0]!.gain).toBeCloseTo(dbToLinear(-6), 6);
+    expect(mix.tracks[0]!.pan).toBe(0.5);
+    expect(mix.tracks[1]).toEqual({ gain: 1, pan: 0 });
+    expect(mix.master.gain).toBeCloseTo(dbToLinear(6), 6);
+  });
+
+  it("sounds an inner clip through the outer track, with the inner track's mix folded in", () => {
+    const state = withPlacement(project([]), { innerMuted: false });
+    state.tracks.a2!.mix = { volumeDb: -6, pan: 0.25 };
+    state.tracks.a1!.mix = { volumeDb: -3, pan: -0.5 };
+    state.clips.inner!.sound = { ...DEFAULT_SOUND, pan: 0.5 };
+    const { segments, mix } = mixdownWithMix(state, "c1", everything, sounds);
+    expect(segments).toHaveLength(1);
+    expect(segments[0]!.track).toBe(0);
+    expect(segments[0]!.gain).toBeCloseTo(dbToLinear(-6), 6);
+    expect(segments[0]!.pan).toBeCloseTo(0.75, 6);
+    // The outer track's own mix is the bus's, applied once there.
+    expect(mix.tracks).toHaveLength(1);
+    expect(mix.tracks[0]!.gain).toBeCloseTo(dbToLinear(-3), 6);
+  });
+
+  it("keeps a default mix out of the segments and the mix", () => {
+    const { segments, mix } = mixdownWithMix(project([clip("a", "a1")]), "c1", everything, sounds);
+    expect(segments[0]).not.toHaveProperty("gain");
+    expect(segments[0]).not.toHaveProperty("pan");
+    expect(mix).toEqual({ tracks: [{ gain: 1, pan: 0 }], master: { gain: 1 } });
   });
 
   it("leaves a clip without keys as it was", () => {

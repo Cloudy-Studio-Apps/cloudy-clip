@@ -25,9 +25,11 @@ export interface SoundSegment {
   /** Where it starts in the file. */
   from: Micros;
   duration: Micros;
+  /** The top-level track it sounds through: an index into `SoundMix.tracks`. */
+  track: number;
   fadeIn: Micros;
   fadeOut: Micros;
-  /** Linear level. Missing is 1. */
+  /** Linear level, with the tracks inside a placed composition folded in. Missing is 1. */
   gain?: number;
   /** -1 (left) to 1 (right). Missing is centre. */
   pan?: number;
@@ -47,6 +49,37 @@ export interface SoundSegment {
   reversed?: boolean;
   /** A ramped clip's sound, as stretches of one tempo each. Replaces `speed`. */
   tempoSteps?: TempoStep[];
+}
+
+/** How a track mixes its clips: a level and a pan on their sum (mirrors `TrackMixSpec` in Rust). */
+export interface TrackMixSpec {
+  /** Linear level. */
+  gain: number;
+  /** -1 (left) to 1 (right). */
+  pan: number;
+}
+
+/** How the tracks mix, then the master (mirrors `SoundMix` in Rust). Solo is never in it. */
+export interface SoundMix {
+  /** The composition's audio tracks in order; a segment's `track` indexes this. */
+  tracks: TrackMixSpec[];
+  master: { gain: number };
+}
+
+/** What sounds in an export: the stretches of files, and how the tracks they sit on mix. */
+export interface Mixdown {
+  segments: SoundSegment[];
+  mix: SoundMix;
+}
+
+/** What a placed composition passes to the clips inside it (see `mixdown`). */
+export interface MixNesting {
+  /** The index of the top-level track the placement sits on. */
+  track: number;
+  /** The level the placement is heard at, before the inner tracks. */
+  gain: number;
+  /** The pan of the inner tracks above, summed. */
+  pan: number;
 }
 
 /** A stretch of a ramped segment played at one tempo (mirrors `TempoStep` in Rust). */
@@ -109,6 +142,7 @@ export interface ExportSpec {
   effort: ExportEffort;
   hardware: boolean;
   sound: SoundSegment[];
+  mix: SoundMix;
 }
 
 /** Where an export is. */

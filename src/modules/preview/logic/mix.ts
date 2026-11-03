@@ -1,6 +1,6 @@
 import {
   compositionMixOf,
-  nestedSound,
+  soundInPlacement,
   trackMixOf,
   type Composition,
   type ProjectState,
@@ -45,5 +45,5 @@ export function placeSound(
   pan: number,
 ): Placed {
   if (!nesting) return { bus: track.id, gain, pan };
-  return { bus: nesting.bus, ...nestedSound(gain, pan + nesting.pan, trackMixOf(track)) };
+  return { bus: nesting.bus, ...soundInPlacement(track, nesting.pan, gain, pan) };
 }

@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
+use super::mixgraph;
 use super::soundfilters::{STEP_LEAD, effects, gain_envelope_filter, pan_envelope_filter};
 
 /// Sample rate of the mixed sound.
@@ -60,6 +61,9 @@ pub struct SoundSegment {
     /// Where it starts in the file.
     pub from: u64,
     pub duration: u64,
+    /// The top-level track it sounds through: an index into `ExportSpec::mix.tracks`.
+    #[serde(default)]
+    pub track: usize,
     pub fade_in: u64,
     pub fade_out: u64,
     /// One channel, played on both sides at full level as the preview does.
@@ -135,6 +139,56 @@ pub struct EqFilter {
     pub q: f64,
 }
 
+/// How a track mixes its clips: a level and a pan on their sum.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+pub struct TrackMixSpec {
+    /// Linear level.
+    #[serde(default = "one")]
+    pub gain: f64,
+    /// -1 (left) to 1 (right).
+    #[serde(default)]
+    pub pan: f64,
+}
+
+impl TrackMixSpec {
+    /// Leaves the sound as it is.
+    pub const DEFAULT: TrackMixSpec = TrackMixSpec {
+        gain: 1.0,
+        pan: 0.0,
+    };
+}
+
+/// The level of everything together.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+pub struct MasterMixSpec {
+    /// Linear level.
+    #[serde(default = "one")]
+    pub gain: f64,
+}
+
+/// How the tracks mix: each track's level and pan, then the master's level.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct SoundMix {
+    pub tracks: Vec<TrackMixSpec>,
+    pub master: MasterMixSpec,
+}
+
+impl SoundMix {
+    /// `tracks` tracks that leave the sound as it is, under a master that does the same.
+    pub fn default_for(tracks: usize) -> Self {
+        SoundMix {
+            tracks: vec![TrackMixSpec::DEFAULT; tracks],
+            master: MasterMixSpec { gain: 1.0 },
+        }
+    }
+}
+
+impl Default for SoundMix {
+    fn default() -> Self {
+        SoundMix::default_for(0)
+    }
+}
+
 /// One export, as the frontend describes it.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -153,10 +207,13 @@ pub struct ExportSpec {
     pub effort: Effort,
     pub hardware: bool,
     pub sound: Vec<SoundSegment>,
+    /// How the tracks the sound comes from mix.
+    #[serde(default)]
+    pub mix: SoundMix,
 }
 
 /// Seconds as FFmpeg reads them.
-fn seconds(micros: u64) -> String {
+pub(super) fn seconds(micros: u64) -> String {
     format!("{:.6}", micros as f64 / 1_000_000.0)
 }
 
@@ -173,49 +230,50 @@ fn source_length(segment: &SoundSegment) -> u64 {
     }
 }
 
+/// Each segment's chain from its input to `[s<i>]`, the filters of its own settings in the
+/// preview's order; `mixgraph` joins them.
+fn segment_chains(sound: &[SoundSegment], first_input: usize) -> Vec<String> {
+    sound
+        .iter()
+        .enumerate()
+        .map(|(i, segment)| {
+            let input = first_input + i;
+            let layout = if segment.mono {
+                "pan=stereo|c0=c0|c1=c0"
+            } else {
+                "aformat=channel_layouts=stereo"
+            };
+            let mut chain =
+                format!("[{input}:a]aresample={SAMPLE_RATE},aformat=sample_fmts=fltp,{layout}");
+            chain.push_str(&effects(i, segment));
+            if !segment.gain_envelope.is_empty() {
+                chain.push_str(&gain_envelope_filter(&segment.gain_envelope));
+            } else if segment.gain != 1.0 {
+                chain.push_str(&format!(",volume={:.6}", segment.gain));
+            }
+            if !segment.pan_envelope.is_empty() {
+                chain.push_str(&pan_envelope_filter(i, &segment.pan_envelope));
+            }
+            // `qsin` is the equal-power curve the preview's crossfade uses.
+            if segment.fade_in > 0 {
+                let length = seconds(segment.fade_in);
+                chain.push_str(&format!(",afade=t=in:st=0:d={length}:curve=qsin"));
+            }
+            if segment.fade_out > 0 {
+                let start = seconds(segment.duration.saturating_sub(segment.fade_out));
+                let length = seconds(segment.fade_out);
+                chain.push_str(&format!(",afade=t=out:st={start}:d={length}:curve=qsin"));
+            }
+            let delay = segment.at.div_ceil(1000);
+            chain.push_str(&format!(",adelay={delay}:all=1[s{i}];"));
+            chain
+        })
+        .collect()
+}
+
 /// The mixed sound as a filter graph, whose output is `[mixed]`.
-fn sound_graph(sound: &[SoundSegment], first_input: usize, total: u64) -> String {
-    let mut graph = String::new();
-    let mut labels = String::new();
-    for (i, segment) in sound.iter().enumerate() {
-        let input = first_input + i;
-        let layout = if segment.mono {
-            "pan=stereo|c0=c0|c1=c0"
-        } else {
-            "aformat=channel_layouts=stereo"
-        };
-        let mut chain =
-            format!("[{input}:a]aresample={SAMPLE_RATE},aformat=sample_fmts=fltp,{layout}");
-        chain.push_str(&effects(i, segment));
-        if !segment.gain_envelope.is_empty() {
-            chain.push_str(&gain_envelope_filter(&segment.gain_envelope));
-        } else if segment.gain != 1.0 {
-            chain.push_str(&format!(",volume={:.6}", segment.gain));
-        }
-        if !segment.pan_envelope.is_empty() {
-            chain.push_str(&pan_envelope_filter(i, &segment.pan_envelope));
-        }
-        // `qsin` is the equal-power curve the preview's crossfade uses.
-        if segment.fade_in > 0 {
-            let length = seconds(segment.fade_in);
-            chain.push_str(&format!(",afade=t=in:st=0:d={length}:curve=qsin"));
-        }
-        if segment.fade_out > 0 {
-            let start = seconds(segment.duration.saturating_sub(segment.fade_out));
-            let length = seconds(segment.fade_out);
-            chain.push_str(&format!(",afade=t=out:st={start}:d={length}:curve=qsin"));
-        }
-        let delay = segment.at.div_ceil(1000);
-        chain.push_str(&format!(",adelay={delay}:all=1[s{i}];"));
-        graph.push_str(&chain);
-        labels.push_str(&format!("[s{i}]"));
-    }
-    let inputs = sound.len();
-    let end = seconds(total);
-    graph.push_str(&format!(
-        "{labels}amix=inputs={inputs}:normalize=0:dropout_transition=0,apad=whole_dur={end},atrim=0:{end}[mixed]"
-    ));
-    graph
+fn sound_graph(sound: &[SoundSegment], first_input: usize, mix: &SoundMix, total: u64) -> String {
+    mixgraph::sound_graph(&segment_chains(sound, first_input), sound, mix, total)
 }
 
 /// The picture filter: even size, BT.709 limited range, or a palette for GIF.
@@ -407,7 +465,12 @@ pub fn arguments(
         graph.push(picture_graph(spec.format, pixels));
     }
     if !sound.is_empty() {
-        graph.push(sound_graph(sound, usize::from(picture), spec.duration));
+        graph.push(sound_graph(
+            sound,
+            usize::from(picture),
+            &spec.mix,
+            spec.duration,
+        ));
     }
     let graph = graph.join(";");
     let script = (graph.len() > INLINE_GRAPH_LIMIT).then(|| graph.clone());
@@ -439,6 +502,7 @@ pub(super) fn segment() -> SoundSegment {
         at: 0,
         from: 0,
         duration: 1_000_000,
+        track: 0,
         fade_in: 0,
         fade_out: 0,
         mono: false,
@@ -459,6 +523,11 @@ pub(super) fn segment() -> SoundSegment {
 mod sound_tests {
     use super::*;
     use crate::export::soundfilters::{STEP_CROSSFADE, samples};
+
+    /// The graph of segments under a mix that leaves them as they are.
+    fn sound_graph(sound: &[SoundSegment], first_input: usize, total: u64) -> String {
+        super::sound_graph(sound, first_input, &SoundMix::default_for(1), total)
+    }
 
     #[test]
     fn input_reads_duration_times_speed() {
@@ -580,6 +649,7 @@ mod sound_tests {
             effort: Effort::Fast,
             hardware: false,
             sound: vec![segment; clips],
+            mix: SoundMix::default_for(1),
         }
     }
 

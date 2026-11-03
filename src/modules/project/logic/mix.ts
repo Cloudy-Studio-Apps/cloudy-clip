@@ -38,3 +38,17 @@ export function nestedSound(
     pan: Math.min(1, Math.max(-1, clipPan + inner.pan)),
   };
 }
+
+/**
+ * The gain and pan of a clip (or a placement) on an inner `track` of a placed composition, where
+ * the inner tracks above it have panned `nestingPan` in total: `nestedSound` with that pan added.
+ * The preview's `placeSound` and the export's mixdown both use it, so they fold nesting alike.
+ */
+export function soundInPlacement(
+  track: Pick<Track, "mix">,
+  nestingPan: number,
+  gain: number,
+  pan: number,
+): { gain: number; pan: number } {
+  return nestedSound(gain, pan + nestingPan, trackMixOf(track));
+}
