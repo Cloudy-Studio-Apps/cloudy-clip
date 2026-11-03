@@ -1,4 +1,5 @@
 import type { LoudnessMeter, LoudnessReading } from "../preview.types";
+import { peakToDb } from "./db";
 import { createHistogram, toLoudness } from "./gating";
 import { createBiquadRun, rlbCoefficients, shelfCoefficients } from "./kweight";
 import { createTruePeak } from "./truepeak";
@@ -20,8 +21,6 @@ const SHORT_TERM_STEPS = 30;
 const INTEGRATED_GATE = -10;
 const RANGE_GATE = -20;
 
-const toDb = (peak: number): number => (peak > 0 ? 20 * Math.log10(peak) : -Infinity);
-
 const mean = (values: number[], count: number): number => {
   let sum = 0;
   for (let i = values.length - count; i < values.length; i++) sum += values[i]!;
@@ -39,8 +38,12 @@ export function createLoudnessMeter(sampleRate: number): LoudnessMeter {
   const stepLength = Math.round(sampleRate * STEP_SECONDS);
   const shelf = shelfCoefficients(sampleRate);
   const rlb = rlbCoefficients(sampleRate);
-  const filters = [0, 1].map(() => [createBiquadRun(shelf), createBiquadRun(rlb)] as const);
-  const peaks = [createTruePeak(), createTruePeak()];
+  const shelfLeft = createBiquadRun(shelf);
+  const rlbLeft = createBiquadRun(rlb);
+  const shelfRight = createBiquadRun(shelf);
+  const rlbRight = createBiquadRun(rlb);
+  const peakLeft = createTruePeak();
+  const peakRight = createTruePeak();
   const integrated = createHistogram();
   const shortTerms = createHistogram();
   /** Mean-square energy (both sides summed) of each 100 ms step, newest last. */
@@ -59,15 +62,15 @@ export function createLoudnessMeter(sampleRate: number): LoudnessMeter {
 
   return {
     push(left, right) {
-      const sides = [left, right];
+      // Plain loops and no per-sample objects: this runs on the audio thread.
       for (let i = 0; i < left.length; i++) {
-        sides.forEach((side, c) => {
-          const sample = side[i] ?? 0;
-          peaks[c]!.push(sample);
-          const [shelfRun, rlbRun] = filters[c]!;
-          const weighted = rlbRun.next(shelfRun.next(sample));
-          energy += weighted * weighted;
-        });
+        const l = left[i]!;
+        const r = right[i]!;
+        peakLeft.push(l);
+        peakRight.push(r);
+        const wl = rlbLeft.next(shelfLeft.next(l));
+        const wr = rlbRight.next(shelfRight.next(r));
+        energy += wl * wl + wr * wr;
         if (++filled === stepLength) endStep();
       }
     },
@@ -80,15 +83,13 @@ export function createLoudnessMeter(sampleRate: number): LoudnessMeter {
           steps.length >= SHORT_TERM_STEPS ? toLoudness(mean(steps, SHORT_TERM_STEPS)) : -Infinity,
         integrated: toLoudness(integrated.gatedEnergy(INTEGRATED_GATE)),
         range: Number.isFinite(low) && Number.isFinite(high) ? Math.max(0, high! - low!) : 0,
-        truePeak: toDb(Math.max(peaks[0]!.peak(), peaks[1]!.peak())),
+        truePeak: peakToDb(Math.max(peakLeft.peak(), peakRight.peak())),
       };
     },
     reset() {
-      for (const [a, b] of filters) {
-        a.reset();
-        b.reset();
-      }
-      peaks.forEach((peak) => peak.reset());
+      for (const run of [shelfLeft, rlbLeft, shelfRight, rlbRight]) run.reset();
+      peakLeft.reset();
+      peakRight.reset();
       integrated.reset();
       shortTerms.reset();
       steps.length = 0;

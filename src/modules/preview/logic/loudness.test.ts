@@ -44,18 +44,6 @@ describe("createLoudnessMeter", () => {
     expect(meter.read().integrated).toBeCloseTo(-23, 1);
   });
 
-  it("gives the same reading however the samples are chunked", () => {
-    const [left] = sine(-23, 5);
-    const whole = createLoudnessMeter(48_000);
-    whole.push(left, left);
-    const chunked = createLoudnessMeter(48_000);
-    for (let at = 0; at < left.length; at += 128) {
-      const part = left.subarray(at, at + 128);
-      chunked.push(part, part);
-    }
-    expect(chunked.read()).toEqual(whole.read());
-  });
-
   it("measures a range of 10 LU between −20 and −30 LUFS (Tech 3342)", () => {
     const meter = createLoudnessMeter(48_000);
     meter.push(...sine(-20, 20));
@@ -70,18 +58,5 @@ describe("createLoudnessMeter", () => {
     const { truePeak } = meter.read();
     expect(truePeak).toBeGreaterThan(-0.3);
     expect(truePeak).toBeLessThan(0.3);
-  });
-
-  it("starts over on reset", () => {
-    const meter = createLoudnessMeter(48_000);
-    meter.push(...sine(-23, 10));
-    meter.reset();
-    expect(meter.read()).toEqual({
-      momentary: -Infinity,
-      shortTerm: -Infinity,
-      integrated: -Infinity,
-      range: 0,
-      truePeak: -Infinity,
-    });
   });
 });

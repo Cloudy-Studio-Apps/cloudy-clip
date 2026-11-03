@@ -1,4 +1,9 @@
-/** Taps per phase of the 4x interpolator; 4 phases make the 48-tap filter of BS.1770-4 Annex 2. */
+/**
+ * Taps per phase of the 4x interpolator. This is an approximation of BS.1770-4 Annex 2's 48-tap
+ * filter, not its tabulated coefficients: a Hann-windowed sinc. Against the true peak of steady
+ * sines from 1 to 22 kHz at 48 kHz it reads between about −0.3 and +0.1 dB (worst near a third of
+ * the rate), inside the +0.2 / −0.4 dB Tech 3341 allows.
+ */
 const TAPS = 12;
 const FACTOR = 4;
 

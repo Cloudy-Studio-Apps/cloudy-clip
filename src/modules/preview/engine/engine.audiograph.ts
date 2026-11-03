@@ -117,20 +117,18 @@ export function createSoundGraph(): SoundGraph {
    * can't, loudness stays null, the user is told once and the rest of the graph goes on.
    */
   const measureLoudness = (audio: AudioContext, master: AudioNode) => {
-    createLoudnessTap(audio, master).then(
-      (tap) => {
-        if (closed) return tap.dispose();
-        loudness = tap;
-      },
-      (error: unknown) => {
-        if (closed) return;
-        log.warn("The loudness meter isn't available", error);
-        notify(
-          "error",
-          "The preview can't measure loudness here, so the loudness readout stays empty. Playback and the level meters are unaffected.",
-        );
-      },
-    );
+    const report = (error: unknown) => {
+      if (closed) return;
+      log.warn("The loudness meter isn't available", error);
+      notify(
+        "error",
+        "The preview can't measure loudness here, so the loudness readout stays empty. Playback and the level meters are unaffected.",
+      );
+    };
+    createLoudnessTap(audio, master, report).then((tap) => {
+      if (closed) return tap.dispose();
+      loudness = tap;
+    }, report);
   };
 
   /** The context with its buses, made on first use; null when Web Audio isn't there. */

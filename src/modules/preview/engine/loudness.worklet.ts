@@ -40,7 +40,7 @@ class LoudnessProcessor extends AudioWorkletProcessor {
     this.meter.push(left, right);
     this.since += left.length;
     if (this.since >= this.every) {
-      this.since = 0;
+      this.since -= this.every;
       const message: LoudnessMessage = { generation: this.generation, reading: this.meter.read() };
       this.port.postMessage(message);
     }

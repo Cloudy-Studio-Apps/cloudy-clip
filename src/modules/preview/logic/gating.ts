@@ -58,11 +58,12 @@ export function createHistogram(): LoudnessHistogram {
       let seen = 0;
       for (let i = from; i < BINS; i++) {
         seen += counts[i]!;
-        fractions.forEach((fraction, f) => {
-          if (found[f] === -Infinity && seen >= fraction * gated && counts[i]! > 0) {
+        if (counts[i]! === 0) continue;
+        for (let f = 0; f < fractions.length; f++) {
+          if (found[f] === -Infinity && seen >= fractions[f]! * gated) {
             found[f] = ABSOLUTE_GATE + (i + 0.5) / PER_LU;
           }
-        });
+        }
       }
       return found;
     },

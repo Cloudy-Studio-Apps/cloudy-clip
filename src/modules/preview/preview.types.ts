@@ -104,7 +104,7 @@ export interface LoudnessReading {
   integrated: number;
   /** Loudness range in LU. */
   range: number;
-  /** dBTP. */
+  /** dBTP: the largest true peak since the last reset (a maximum, it never falls back). */
   truePeak: number;
 }
 

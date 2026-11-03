@@ -1,3 +1,4 @@
+import { peakToDb } from "../logic/db";
 import type { MixLevels, StereoLevel } from "../preview.types";
 import type { Meter } from "./engine.types";
 
@@ -15,7 +16,7 @@ function peakDb(analyser: AnalyserNode, samples: Float32Array<ArrayBuffer>): num
   analyser.getFloatTimeDomainData(samples);
   let peak = 0;
   for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
-  return peak === 0 ? -Infinity : 20 * Math.log10(peak);
+  return peakToDb(peak);
 }
 
 /**
