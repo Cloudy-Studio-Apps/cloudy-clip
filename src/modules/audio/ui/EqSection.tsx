@@ -1,7 +1,6 @@
 import { InspectorSection, type InspectorContext } from "@/modules/inspector";
 import { Switch } from "@/ui";
-import { EqBandRow } from "./EqBandRow";
-import { EqGraph } from "./EqGraph";
+import { EqEditor } from "./EqEditor";
 import { useSoundEdit } from "./sound.edit.hook";
 
 /** Six bands on a graph, with a row for each. */
@@ -21,24 +20,11 @@ export function EqSection({ context }: { context: InspectorContext }) {
         />
       }
     >
-      <EqGraph
-        bands={eq.bands}
-        disabled={!eq.on}
-        onInput={(bands) => live({ eq: { ...eq, bands } })}
-        onCommit={(bands) => void commit({ eq: { ...eq, bands } })}
+      <EqEditor
+        eq={eq}
+        onInput={(next) => live({ eq: next })}
+        onCommit={(next) => void commit({ eq: next })}
       />
-      {eq.bands.map((band, index) => (
-        <EqBandRow
-          key={index}
-          index={index}
-          band={band}
-          disabled={!eq.on}
-          onChange={(next) => {
-            const bands = eq.bands.map((one, i) => (i === index ? next : one));
-            void commit({ eq: { ...eq, bands } });
-          }}
-        />
-      ))}
     </InspectorSection>
   );
 }
