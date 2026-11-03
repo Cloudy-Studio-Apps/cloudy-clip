@@ -101,10 +101,9 @@ export const setMaster = defineCommand({
     const id = targetComposition(ctx, compositionId);
     ctx.mutate(store, (draft) => {
       const composition = draft.compositions[id]!;
-      writeComposition(composition, {
-        ...compositionMixOf(composition),
-        master: { volumeDb },
-      });
+      const mix = compositionMixOf(composition);
+      // Only the volume: whatever else the master holds stays.
+      writeComposition(composition, { ...mix, master: { ...mix.master, volumeDb } });
     });
   },
 });

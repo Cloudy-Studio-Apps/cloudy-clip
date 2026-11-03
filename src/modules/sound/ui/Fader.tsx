@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { VOLUME_DB_MAX, VOLUME_DB_MIN } from "@/modules/project";
 import { faderDb, faderPosition } from "../logic/fader";
 import { formatDb } from "../logic/meter";
 import { useSliderDrag } from "./slider.hook";
@@ -61,8 +62,8 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
           ref={trackRef}
           role="slider"
           aria-label={label}
-          aria-valuemin={-60}
-          aria-valuemax={12}
+          aria-valuemin={VOLUME_DB_MIN}
+          aria-valuemax={VOLUME_DB_MAX}
           aria-valuenow={value}
           className="relative w-[18px] cursor-ns-resize touch-none before:absolute before:inset-y-0 before:left-2 before:w-0.5 before:bg-border-strong"
           onPointerDown={drag.onPointerDown}

@@ -1,7 +1,12 @@
 import { z } from "zod";
 
-/** A volume in decibels: -60 to 12. */
-export const volumeDbSchema = z.number().min(-60).max(12);
+/** The lowest volume in decibels a clip, a track or the master can have. */
+export const VOLUME_DB_MIN = -60;
+/** The highest volume in decibels a clip, a track or the master can have. */
+export const VOLUME_DB_MAX = 12;
+
+/** A volume in decibels: `VOLUME_DB_MIN` to `VOLUME_DB_MAX` (-60 to 12). */
+export const volumeDbSchema = z.number().min(VOLUME_DB_MIN).max(VOLUME_DB_MAX);
 
 /** A pan: -1 (left) to 1 (right). */
 export const panSchema = z.number().min(-1).max(1);

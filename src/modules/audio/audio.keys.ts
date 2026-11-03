@@ -1,11 +1,11 @@
 import type { KeyField, KeyTarget } from "@/modules/keyframe";
-import { soundOf, type ClipSound } from "@/modules/project";
+import { VOLUME_DB_MAX, VOLUME_DB_MIN, soundOf, type ClipSound } from "@/modules/project";
 import { setSound } from "./audio.commands";
 import type { KeyedSound } from "./audio.types";
 
 /** The values of a clip's sound that can be keyed, by the part of `ClipSound` they are. */
 const KEYED: readonly KeyedSound[] = [
-  { key: "volumeDb", label: "Volume", min: -60, max: 12 },
+  { key: "volumeDb", label: "Volume", min: VOLUME_DB_MIN, max: VOLUME_DB_MAX },
   { key: "pan", label: "Pan", min: -1, max: 1 },
 ];
 

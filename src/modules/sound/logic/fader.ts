@@ -1,13 +1,15 @@
+import { VOLUME_DB_MAX, VOLUME_DB_MIN, panSide } from "@/modules/project";
+
 /**
  * The fader's taper: positions (0 bottom, 1 top) of some levels in dB, straight lines between.
  * Unity sits at three quarters, as on a console, so the useful range gets most of the travel.
  */
 const TAPER: readonly (readonly [db: number, position: number])[] = [
-  [-60, 0],
+  [VOLUME_DB_MIN, 0],
   [-30, 0.25],
   [-12, 0.5],
   [0, 0.75],
-  [12, 1],
+  [VOLUME_DB_MAX, 1],
 ];
 
 /** Where a level sits along a fader, 0 to 1. */
@@ -46,6 +48,6 @@ export function panAt(position: number): number {
 
 /** A pan for people: "C", or "L 40" / "R 25". */
 export function formatPan(pan: number): string {
-  if (pan === 0) return "C";
-  return `${pan < 0 ? "L" : "R"} ${Math.round(Math.abs(pan) * 100)}`;
+  const side = panSide(pan);
+  return side === "C" ? side : `${side} ${Math.round(Math.abs(pan) * 100)}`;
 }

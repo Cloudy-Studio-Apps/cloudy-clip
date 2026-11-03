@@ -45,6 +45,11 @@ export function dbToLinear(db: number): number {
   return 10 ** (db / 20);
 }
 
+/** The side a pan leans to, for people: "L", "C" (centred) or "R". */
+export function panSide(pan: number): "L" | "C" | "R" {
+  return pan === 0 ? "C" : pan < 0 ? "L" : "R";
+}
+
 /** Whether pitch changes anything, with the shift in semitones. */
 export function pitchShift({ pitch }: ClipSound): number {
   return pitch.on ? pitch.semitones + pitch.cents / 100 : 0;

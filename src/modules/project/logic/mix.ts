@@ -25,24 +25,10 @@ export function minimizeTrackMix(mix: TrackMix): TrackMix | undefined {
 }
 
 /**
- * The gain and pan of a clip inside a placed composition, once the inner track's mix is applied:
- * gain times the track's volume, pan summed and kept within -1..1. Preview and export both use it.
- */
-export function nestedSound(
-  clipGain: number,
-  clipPan: number,
-  inner: TrackMix,
-): { gain: number; pan: number } {
-  return {
-    gain: clipGain * dbToLinear(inner.volumeDb),
-    pan: Math.min(1, Math.max(-1, clipPan + inner.pan)),
-  };
-}
-
-/**
  * The gain and pan of a clip (or a placement) on an inner `track` of a placed composition, where
- * the inner tracks above it have panned `nestingPan` in total: `nestedSound` with that pan added.
- * The preview's `placeSound` and the export's mixdown both use it, so they fold nesting alike.
+ * the inner tracks above it have panned `nestingPan` in total: gain times the track's volume, and
+ * the pans summed with the track's, kept within -1..1. The preview's `placeSound` and the export's
+ * mixdown both use it, so they fold nesting alike.
  */
 export function soundInPlacement(
   track: Pick<Track, "mix">,
@@ -50,5 +36,9 @@ export function soundInPlacement(
   gain: number,
   pan: number,
 ): { gain: number; pan: number } {
-  return nestedSound(gain, pan + nestingPan, trackMixOf(track));
+  const inner = trackMixOf(track);
+  return {
+    gain: gain * dbToLinear(inner.volumeDb),
+    pan: Math.min(1, Math.max(-1, pan + nestingPan + inner.pan)),
+  };
 }

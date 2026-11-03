@@ -1,13 +1,11 @@
 import { microsToSeconds, secondsToMicros } from "@/core";
 import { InspectorSection, soundMember, type InspectorContext } from "@/modules/inspector";
-import { DEFAULT_SOUND } from "@/modules/project";
+import { DEFAULT_SOUND, VOLUME_DB_MAX, VOLUME_DB_MIN, panSide } from "@/modules/project";
 import { Switch } from "@/ui";
 import { useSoundEdit } from "./sound.edit.hook";
 import { SoundRow } from "./SoundRow";
 
 const MAX_FADE_SECONDS = 10;
-
-const panSide = (pan: number) => (pan === 0 ? "C" : pan < 0 ? "L" : "R");
 
 /** Volume of the clip, in dB. */
 export function VolumeSection({ context }: { context: InspectorContext }) {
@@ -19,8 +17,8 @@ export function VolumeSection({ context }: { context: InspectorContext }) {
       label="Volume"
       keys={{ clip, path: "sound.volumeDb", animated: animated("volumeDb") }}
       value={sound.volumeDb}
-      min={-60}
-      max={12}
+      min={VOLUME_DB_MIN}
+      max={VOLUME_DB_MAX}
       step={0.5}
       unit="dB"
       rest={DEFAULT_SOUND.volumeDb}

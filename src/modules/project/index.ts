@@ -123,11 +123,19 @@ export {
   dbToLinear,
   fadeLevel,
   minimize,
+  panSide,
   pitchShift,
   soundOf,
 } from "./logic/sound";
 /** The schemas of sound values, shared by every command that sets them. */
-export { eqBandSchema, eqSchema, panSchema, volumeDbSchema } from "./logic/sound.schema";
+export {
+  VOLUME_DB_MAX,
+  VOLUME_DB_MIN,
+  eqBandSchema,
+  eqSchema,
+  panSchema,
+  volumeDbSchema,
+} from "./logic/sound.schema";
 
 /** The mix of an audio track and of a composition: defaults, reading them, and the nested level. */
 export {
@@ -135,7 +143,6 @@ export {
   DEFAULT_TRACK_MIX,
   compositionMixOf,
   minimizeTrackMix,
-  nestedSound,
   soundInPlacement,
   trackMixOf,
 } from "./logic/mix";

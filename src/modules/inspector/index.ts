@@ -45,7 +45,8 @@ export { FieldRow } from "./ui/controls/FieldRow";
 export { InspectorSection } from "./ui/InspectorSection";
 /**
  * The selected clip's sections of one tab (`tab`), drawn as the inspector draws them, for a page
- * that has no inspector; `fallback` shows when there is no clip or nothing in that tab.
+ * that has no inspector; `noClip` shows when no single clip is selected, `noSections` when the
+ * clip has nothing in that tab.
  */
 export { ClipTabSections } from "./ui/ClipTabSections";
 /** The member of a clip that carries sound, when one does. */
