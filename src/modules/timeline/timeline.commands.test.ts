@@ -24,6 +24,7 @@ import {
   projectRef,
   seedProject,
   trackClips,
+  type Clip,
   type ProjectState,
 } from "@/modules/project";
 import { snapCandidates } from "./logic/placement";
@@ -468,6 +469,26 @@ describe("linked clips", () => {
       expect(doc().clips[audio.id]!.linkId).toBe(doc().clips[video.id]!.linkId);
     });
 
+    it("deletes the sound alone even when its picture is named too", async () => {
+      const { video, audio } = await pair();
+      await run(kernel.bus.run(deleteClips, { clipIds: [audio.id, video.id], soundOnly: true }));
+      expect(doc().clips[video.id]).toBeDefined();
+      expect(doc().clips[audio.id]).toBeUndefined();
+    });
+
+    it("refuses a picture, changing nothing", async () => {
+      const { video } = await pair();
+      const before = doc();
+      for (const result of [
+        await kernel.bus.run(deleteClips, { clipIds: [video.id], soundOnly: true }),
+        await kernel.bus.run(moveClip, { clipId: video.id, start: S, soundOnly: true }),
+        await kernel.bus.run(trimClip, { clipId: video.id, edge: "end", time: S, soundOnly: true }),
+      ]) {
+        expect(result).toMatchObject({ ok: false, error: { code: "timeline.not_sound" } });
+      }
+      expect(doc()).toBe(before);
+    });
+
     it("leaves a sound that was never linked as it is", async () => {
       const sound = await place({ mediaId: "ma" });
       await run(kernel.bus.run(moveClip, { clipId: sound.id, start: S, soundOnly: true }));
@@ -729,17 +750,31 @@ describe("keys on a sound-only page", () => {
     kernel.modules.require(timelineRef).selectClip(audio.id);
   });
 
-  it("copy, cut and duplicate do nothing, so no picture is copied", async () => {
-    expect(pressed("timeline.copy")).not.toBeNull();
+  it("Delete from a real selection deletes the sound alone, in one undo step", async () => {
+    const before = doc();
+    const { video, audio } = Object.fromEntries(
+      Object.values(before.clips).map((c) => [
+        before.tracks[c.trackId]!.kind === "audio" ? "audio" : "video",
+        c,
+      ]),
+    ) as { video: Clip; audio: Clip };
+    const timeline = kernel.modules.require(timelineRef);
+    timeline.selectClip(audio.id);
+    expect(timeline.view.getState().selection).toContain(video.id);
     await run(kernel.bus.run(showPage, { page: "test.sound" }));
-    for (const id of ["timeline.copy", "timeline.cut", "timeline.duplicate", "timeline.paste"]) {
-      expect(pressed(id)).toBeNull();
-    }
+    const action = pressed("timeline.delete")!;
+    expect(await kernel.bus.execute(action.command, action.input)).toMatchObject({ ok: true });
+    expect(doc().clips[video.id]).toBeDefined();
+    expect(doc().clips[video.id]!.linkId).toBeUndefined();
+    expect(doc().clips[audio.id]).toBeUndefined();
+    kernel.history.undo();
+    expect(doc()).toEqual(before);
   });
 
-  it("Delete deletes the sound alone", async () => {
-    expect(pressed("timeline.delete")?.input).not.toHaveProperty("soundOnly");
+  it("Delete with a junction selected removes no junction on the sound page", async () => {
+    kernel.modules.require(timelineRef).selectJunction("j1");
+    expect(pressed("timeline.delete")).toMatchObject({ command: "junction.remove" });
     await run(kernel.bus.run(showPage, { page: "test.sound" }));
-    expect(pressed("timeline.delete")?.input).toMatchObject({ soundOnly: true });
+    expect(pressed("timeline.delete")).toBeNull();
   });
 });

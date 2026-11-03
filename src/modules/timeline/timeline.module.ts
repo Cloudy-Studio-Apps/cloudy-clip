@@ -43,10 +43,14 @@ export const timelineModule = defineModule({
   mcpTools: timelineMcpTools,
   setup(ctx) {
     const { store: project, view: compositions } = ctx.require(projectRef);
+    // What the active page's timeline may edit (`AppPage.timelineScope`).
+    const scope = () =>
+      activeScope(ctx.points.get(appPages), ctx.require(pagesRef).store.getState().active);
     const timeline = createTimelineView(
       (id) => partnersOf(project.getState(), id).map((c) => c.id),
       laneBoxes,
       () => project.getState(),
+      scope,
     );
     const { view } = timeline;
     timeline.drop = (drop) => {
@@ -84,11 +88,13 @@ export const timelineModule = defineModule({
 
     const deleteSelection = () => {
       const { selection: clipIds, junctionSelection: junctionIds } = view.getState();
-      if (junctionIds.length > 0) return { command: removeJunction.id, input: { junctionIds } };
+      // On a sound-only page a delete leaves pictures alone: no junction goes, and the sound of
+      // linked clips is deleted without its picture.
+      const soundOnly = scope() === "sound";
+      if (junctionIds.length > 0 && !soundOnly) {
+        return { command: removeJunction.id, input: { junctionIds } };
+      }
       if (clipIds.length === 0) return null;
-      // On a sound-only page a delete leaves the pictures of linked clips alone.
-      const { active } = ctx.require(pagesRef).store.getState();
-      const soundOnly = activeScope(ctx.points.get(appPages), active) === "sound";
       return { command: deleteClips.id, input: { clipIds, ...(soundOnly && { soundOnly }) } };
     };
     ctx.contribute(

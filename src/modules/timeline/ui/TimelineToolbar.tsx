@@ -5,7 +5,7 @@ import { ErrorBoundary, useKernel, useModule, usePoint } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { partnersOf, projectRef } from "@/modules/project";
 import { ToolbarButton, ToolbarSeparator } from "@/ui";
-import { inScope } from "../logic/scope";
+import { inScope, kindInScope } from "../logic/scope";
 import { timelineTools } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { addTrack, deleteClips, splitAt, unlinkClips } from "../timeline.commands";
@@ -64,16 +64,18 @@ export function TimelineToolbar() {
         >
           Delete
         </ToolbarButton>
-        <ToolbarButton
-          icon={<Unlink />}
-          title="Unlink picture and sound"
-          disabled={!canUnlink}
-          onClick={() => void bus.run(unlinkClips, { clipIds: selection })}
-        >
-          Unlink
-        </ToolbarButton>
-        <ToolbarSeparator />
         {scope !== "sound" && (
+          <ToolbarButton
+            icon={<Unlink />}
+            title="Unlink picture and sound"
+            disabled={!canUnlink}
+            onClick={() => void bus.run(unlinkClips, { clipIds: selection })}
+          >
+            Unlink
+          </ToolbarButton>
+        )}
+        <ToolbarSeparator />
+        {kindInScope("video", scope) && (
           <ToolbarButton
             icon={<Film />}
             title="Add video track"

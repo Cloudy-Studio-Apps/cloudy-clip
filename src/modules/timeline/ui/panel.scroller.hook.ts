@@ -3,12 +3,7 @@ import { useModule, type TimelineScopeName } from "@/core";
 import { MEDIA_DROP, type MediaDragDetail } from "@/modules/media";
 import { pxToTime } from "../logic/geometry";
 import { timelineRef } from "../timeline.ref";
-
-/** The page of the virtualized lanes the scroller is on, and how wide a page is (px). */
-export interface ScrollerPage {
-  page: number;
-  pageWidth: number;
-}
+import type { ScrollerPage } from "../timeline.types";
 
 /**
  * What the timeline panel does with its scrolling element: finds the visible page (only a change

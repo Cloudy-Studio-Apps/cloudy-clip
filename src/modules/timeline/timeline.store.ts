@@ -19,6 +19,7 @@ export function createTimelineView(
   partners: (id: ClipId) => ClipId[] = () => [],
   lanes: () => LaneBox[] = () => [],
   project?: () => ProjectState,
+  activeScope: () => TimelineScopeName = () => "all",
 ): TimelineApi {
   const view = createStore<TimelineViewState>()(() => ({
     pxPerSecond: 60,
@@ -29,8 +30,10 @@ export function createTimelineView(
     soundUnlinkTold: false,
     tracksHidden: false,
   }));
-  let scroller: HTMLElement | null = null;
-  let scrollerScope: TimelineScopeName = "all";
+  // One scrolling element per scope: the editor stays mounted under a page whose timeline has
+  // its own, so each registers apart; scrolling and zooming act on the active page's.
+  const scrollers = new Map<TimelineScopeName, HTMLElement>();
+  const current = (): HTMLElement | undefined => scrollers.get(activeScope());
   const scrollListeners = new Set<() => void>();
   const places = new Map<CompositionId, { pxPerSecond: number; scrollLeft: number }>();
   const copied = new Map<ActorId, ClipboardEntry>();
@@ -48,7 +51,7 @@ export function createTimelineView(
     switchComposition(from, to) {
       if (from !== null) {
         const { pxPerSecond } = view.getState();
-        places.set(from, { pxPerSecond, scrollLeft: scroller?.scrollLeft ?? 0 });
+        places.set(from, { pxPerSecond, scrollLeft: current()?.scrollLeft ?? 0 });
       }
       const place = to === null ? undefined : places.get(to);
       view.setState({
@@ -58,8 +61,9 @@ export function createTimelineView(
         ...(place && { pxPerSecond: place.pxPerSecond }),
       });
       // After the new timeline has laid out, so its width can hold the old scroll.
-      if (!scroller) return;
+      if (!current()) return;
       requestAnimationFrame(() => {
+        const scroller = current();
         if (scroller) scroller.scrollLeft = place?.scrollLeft ?? 0;
       });
     },
@@ -83,7 +87,7 @@ export function createTimelineView(
       };
     },
     panelBox() {
-      const box = scroller?.getBoundingClientRect();
+      const box = current()?.getBoundingClientRect();
       return box ? { left: box.left, top: box.top, right: box.right, bottom: box.bottom } : null;
     },
     onScroll(listener) {
@@ -91,6 +95,7 @@ export function createTimelineView(
       return () => scrollListeners.delete(listener);
     },
     scrollToTime(time) {
+      const scroller = current();
       if (!scroller) return;
       const x = timeToPx(time, view.getState().pxPerSecond);
       if (x < scroller.scrollLeft || x > scroller.scrollLeft + scroller.clientWidth - 200) {
@@ -98,13 +103,12 @@ export function createTimelineView(
       }
     },
     attachScroller(element, scope = "all") {
-      scroller = element;
-      scrollerScope = scope;
+      scrollers.set(scope, element);
       const notify = () => scrollListeners.forEach((listener) => listener());
       element.addEventListener("scroll", notify, { passive: true });
       return () => {
         element.removeEventListener("scroll", notify);
-        if (scroller === element) scroller = null;
+        if (scrollers.get(scope) === element) scrollers.delete(scope);
       };
     },
     setZoom,
@@ -115,11 +119,13 @@ export function createTimelineView(
     setTracksHidden(hidden) {
       if (view.getState().tracksHidden !== hidden) view.setState({ tracksHidden: hidden });
     },
-    scrollLeft: () => scroller?.scrollLeft ?? 0,
+    scrollLeft: () => current()?.scrollLeft ?? 0,
     setScrollLeft(px) {
+      const scroller = current();
       if (scroller) scroller.scrollLeft = Math.max(0, px);
     },
     zoomAt(clientX, pxPerSecond) {
+      const scroller = current();
       if (!scroller) {
         setZoom(pxPerSecond);
         return;
@@ -128,7 +134,7 @@ export function createTimelineView(
       const pointerX =
         clientX -
         scroller.getBoundingClientRect().left -
-        headerWidthFor(scrollerScope, headerWidth);
+        headerWidthFor(activeScope(), headerWidth);
       const anchor = pxToTime(scroller.scrollLeft + pointerX, before);
       setZoom(pxPerSecond);
       const after = view.getState().pxPerSecond;

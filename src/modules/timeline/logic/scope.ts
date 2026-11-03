@@ -1,5 +1,5 @@
 import { EDITOR_PAGE, type AppPage, type TimelineScopeName } from "@/core";
-import type { Clip, ProjectState, Track } from "@/modules/project";
+import type { Clip, ProjectState, Track, TrackKind } from "@/modules/project";
 import { HEADER_WIDTH, SOUND_HEADER_WIDTH } from "../timeline.layout";
 import type { Scoped } from "../timeline.types";
 
@@ -14,9 +14,17 @@ export function activeScope(pages: readonly AppPage[], active: string): Timeline
   return pages.find((page) => page.id === active)?.timelineScope ?? "all";
 }
 
-/** Whether a track is listed in a scope: `"sound"` lists audio tracks only. */
+/**
+ * Whether a kind of track is listed in a scope: `"sound"` lists audio only. The one place that
+ * says what a sound-only timeline may show and edit.
+ */
+export function kindInScope(kind: TrackKind, scope: TimelineScopeName): boolean {
+  return scope !== "sound" || kind === "audio";
+}
+
+/** Whether a track is listed in a scope. */
 export function trackInScope(track: Track, scope: TimelineScopeName): boolean {
-  return scope !== "sound" || track.kind === "audio";
+  return kindInScope(track.kind, scope);
 }
 
 /** The clips that sit on tracks listed in a scope: on `"sound"`, never a picture's. */

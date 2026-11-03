@@ -155,14 +155,14 @@ export const deleteClips = defineCommand({
   id: "timeline.deleteClips",
   label: "Delete",
   description:
-    "Deletes clips from the timeline (the media stays in the library). Linked clips (a video's picture and sound) are deleted together. Junctions (transitions) on their cuts are removed; the other clips stay where they are. Returns { deleted, removedJunctions }. With soundOnly, linked clips on audio tracks are unlinked first and deleted alone, so their pictures stay (one undo step).",
+    "Deletes clips from the timeline (the media stays in the library). Linked clips (a video's picture and sound) are deleted together. Junctions (transitions) on their cuts are removed; the other clips stay where they are. Returns { deleted, removedJunctions }. With soundOnly, only the clips on audio tracks are deleted (picture clips named with them are left alone, and naming none fails with timeline.not_sound): linked ones are unlinked first and deleted alone, so their pictures stay (one undo step).",
   undoable: true,
   input: z.object({ clipIds: z.array(z.string()).min(1), soundOnly: z.boolean().optional() }),
   run: (ctx, { clipIds, soundOnly }) =>
-    editSoundOnly(ctx, clipIds, soundOnly, () => {
+    editSoundOnly(ctx, clipIds, soundOnly, (ids) => {
       const state = ctx.require(projectRef).store.getState();
-      clipIds.forEach((id) => requireClip(state, id));
-      return removeClips(ctx, state, withPartners(state, clipIds));
+      ids.forEach((id) => requireClip(state, id));
+      return removeClips(ctx, state, withPartners(state, ids));
     }),
 });
 

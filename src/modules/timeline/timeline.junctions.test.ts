@@ -306,6 +306,7 @@ describe("unlinking joined clips", () => {
     const before = doc();
     const result = await kernel.bus.run(deleteClips, { clipIds: ["sA"], soundOnly: true });
     expect(!result.ok && result.error.code).toBe("timeline.unlink_joined");
+    expect(!result.ok && result.error.message).toContain("Edit page");
     expect(doc()).toBe(before);
   });
 });

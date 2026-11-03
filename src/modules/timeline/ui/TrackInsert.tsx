@@ -4,6 +4,7 @@ import { useKernel } from "@/core";
 import type { TrackKind } from "@/modules/project";
 import { cn } from "@/ui";
 import { insertKinds } from "../logic/placement";
+import { kindInScope } from "../logic/scope";
 import { addTrack } from "../timeline.commands";
 import { useHeaderWidth } from "./header.width.hook";
 import { useTimelineScope } from "./scope.hook";
@@ -45,7 +46,7 @@ export function TrackInsert({ index, above, below }: TrackInsertProps) {
   const headerWidth = useHeaderWidth();
   const scope = useTimelineScope();
   // A sound-scope timeline offers sound tracks only.
-  const kinds = insertKinds(above, below).filter((kind) => scope !== "sound" || kind === "audio");
+  const kinds = insertKinds(above, below).filter((kind) => kindInScope(kind, scope));
   const add = (kind: TrackKind) => void bus.run(addTrack, { kind, index });
   return (
     <div className="sticky left-0 z-[25] h-0" style={{ width: headerWidth }}>

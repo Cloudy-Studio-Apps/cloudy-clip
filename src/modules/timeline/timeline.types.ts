@@ -19,7 +19,10 @@ import type {
 
 /** Anything a module adds to the timeline that can name the scopes it shows in. */
 export interface Scoped {
-  /** Unset means `["all"]`. */
+  /**
+   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
+   * contribution can't reach a picture from a sound-only page by accident.
+   */
   scopes?: readonly TimelineScopeName[];
 }
 
@@ -86,14 +89,9 @@ export interface ScreenBox {
  * content, outside the virtualized pages: `left` is the header width (`useHeaderWidth()`) plus
  * `timeToPx(time)`.
  */
-export interface TimelineOverlay {
+export interface TimelineOverlay extends Scoped {
   /** Unique id, `<module>.<name>`. */
   id: string;
-  /**
-   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
-   * contribution can't reach a picture from a sound-only page by accident.
-   */
-  scopes?: TimelineScopeName[];
   component: ComponentType;
 }
 
@@ -133,8 +131,9 @@ export interface TimelineApi {
   /** Brings a time into view. */
   scrollToTime(time: Micros): void;
   /**
-   * Registers the scrolling element and the scope of its panel (default `"all"`), which says how
-   * wide its header column is, for `zoomAt`. For the timeline panel. Returns the detach.
+   * Registers the scrolling element of the panel of a scope (default `"all"`); there is one per
+   * scope, and scrolling and zooming act on the active page's. For the timeline panel. Returns
+   * the detach.
    */
   attachScroller(element: HTMLElement, scope?: TimelineScopeName): () => void;
   /** Keeps `from`'s zoom and scroll, restores `to`'s, and clears the selection. */
@@ -226,46 +225,29 @@ export interface PastePlacement {
 }
 
 /** A strip between the toolbar and the ruler. */
-export interface TimelineTabs {
+export interface TimelineTabs extends Scoped {
   id: string;
-  /** The timeline scopes it shows in. Unset means `["all"]`. */
-  scopes?: TimelineScopeName[];
   component: ComponentType;
 }
 
 /** A tool in the timeline's toolbar, drawn before Split, lowest `order` first. */
-export interface TimelineTool {
+export interface TimelineTool extends Scoped {
   /** Unique id, `<module>.<name>`. */
   id: string;
-  /**
-   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
-   * contribution can't reach a picture from a sound-only page by accident.
-   */
-  scopes?: TimelineScopeName[];
   order: number;
   component: ComponentType;
 }
 
 /** A strip under the tracks, inside the timeline panel. */
-export interface TimelineDock {
+export interface TimelineDock extends Scoped {
   /** Unique id, `<module>.<name>`. */
   id: string;
-  /**
-   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
-   * contribution can't reach a picture from a sound-only page by accident.
-   */
-  scopes?: TimelineScopeName[];
   component: ComponentType;
 }
 
 /** Entries a module adds to the timeline's right-click menu. */
-export interface TimelineMenuItems {
+export interface TimelineMenuItems extends Scoped {
   id: string;
-  /**
-   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
-   * contribution can't reach a picture from a sound-only page by accident.
-   */
-  scopes?: TimelineScopeName[];
   /** Asked when the menu opens, with the lane and time under the click (null off the lanes). */
   items(at: DropTarget | null): MenuItem[];
 }
@@ -287,13 +269,8 @@ export interface TimelineDropHandler {
 }
 
 /** What a module does with a clip. */
-export interface ClipActions {
+export interface ClipActions extends Scoped {
   id: string;
-  /**
-   * The timeline scopes it shows in. Unset means `["all"]`, the editor only, so a new
-   * contribution can't reach a picture from a sound-only page by accident.
-   */
-  scopes?: TimelineScopeName[];
   /** A double click. True when it took care of it. */
   doubleClick?(clip: Clip): boolean;
   /** Entries of the clip's right-click menu. The clip is selected by then: act on the selection. */
@@ -310,10 +287,14 @@ export type ClipMenuGroup =
   "clipboard" | "timing" | "edit" | "reset" | "composition" | "library" | "delete";
 
 /** One entry of a clip's menu. */
-export interface ClipMenuEntry extends Omit<MenuItem, "group"> {
+export interface ClipMenuEntry extends Omit<MenuItem, "group">, Scoped {
   group: ClipMenuGroup;
   /** Lower comes first within the group. Defaults to 0. */
   order?: number;
-  /** The scopes this entry shows in; unset means `["all"]`. Checked entry by entry. */
-  scopes?: TimelineScopeName[];
+}
+
+/** The page of the virtualized lanes a panel's scroller is on, and how wide a page is (px). */
+export interface ScrollerPage {
+  page: number;
+  pageWidth: number;
 }

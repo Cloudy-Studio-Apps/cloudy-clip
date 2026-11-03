@@ -56,7 +56,7 @@ export function TimelinePanel({ scope = "all" }: { scope?: TimelineScopeName }) 
   const timeline = useModule(timelineRef);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pxPerSecond = useStore(timeline.view, (s) => s.pxPerSecond);
-  const headerWidth = useHeaderWidth();
+  const headerWidth = useHeaderWidth(scope);
   const tracksHidden = useStore(timeline.view, (s) => s.tracksHidden);
   const open = useOpenComposition();
   const trackOrder = open?.trackOrder ?? NO_TRACKS;
