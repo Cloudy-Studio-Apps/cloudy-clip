@@ -137,6 +137,51 @@ export interface DynamicsCurve {
   mix: number;
 }
 
+/** What one channel of the de-esser carries from one sample to the next (`logic/deesser.ts`). */
+export interface DeesserState {
+  s1: number;
+  s2: number;
+  s3: number;
+  m1: number;
+  m2: number;
+  ratioA: number;
+  ratioB: number;
+  iirSampleA: number;
+  iirSampleB: number;
+  flip: boolean;
+}
+
+/** FFmpeg `deesser`'s coefficients, worked out once from the effect's settings. */
+export interface DeesserSettings {
+  intensity: number;
+  maxdess: number;
+  iirAmount: number;
+}
+
+/** FFmpeg `alimiter`'s settings, worked out once: the limit, linear, and the release in samples. */
+export interface LimiterSettings {
+  limit: number;
+  releaseSamples: number;
+}
+
+/**
+ * What the limiter (`logic/limiter.ts`) carries: the lookahead buffer of interleaved frames and
+ * FFmpeg's schedule of gain changes. Allocated once; the step allocates nothing.
+ */
+export interface LimiterState {
+  channels: number;
+  /** The lookahead in interleaved samples (frames × channels). */
+  size: number;
+  buffer: Float64Array;
+  nextpos: Int32Array;
+  nextdelta: Float64Array;
+  pos: number;
+  att: number;
+  delta: number;
+  nextiter: number;
+  nextlen: number;
+}
+
 /** Loudness of the master, as BS.1770 measures it. */
 export interface LoudnessReading {
   /** LUFS over the last 400 ms. */

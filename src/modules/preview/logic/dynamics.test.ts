@@ -1,8 +1,11 @@
 import type { CompressorParams } from "@/modules/project";
 import { describe, expect, it } from "vitest";
-import { compressorCurve, createDynamicsState, dynamicsStep } from "./dynamics";
+import { deesserSettings, deesserStep, createDeesserState } from "./deesser";
+import { compressorCurve, createDynamicsState, dynamicsStep, gateCurve } from "./dynamics";
+import { createLimiter, limiterSettings, limiterStep } from "./limiter";
 
-// Parity with FFmpeg n9.0.2 (docs/superpowers/specs/2026-11-03-sound-dynamics-check.md): `acompressor`. The bar: steady level within 0.5 dB, attack and release within 10 %.
+// Parity with FFmpeg n9.0.2 (docs/superpowers/specs/2026-11-03-sound-dynamics-check.md): `acompressor`,
+// `agate`, `deesser` and `alimiter`. The bar: steady level within 0.5 dB, attack and release within 10 %.
 // The signals are FFmpeg's `aevalsrc` at 48 kHz; outputs were written with `-f f32le -ac 1`.
 
 const RATE = 48_000;
@@ -35,6 +38,33 @@ const FFMPEG_STEADY_RMS_DB = -17.25402;
  */
 const FFMPEG_ATTACK_MS = 19.77;
 const FFMPEG_RELEASE_MS = 86.77;
+
+/**
+ * A 1 kHz sine at −20 dBFS that drops to −38 dBFS from 1 s to 2 s, through
+ * ffmpeg -f lavfi -i "aevalsrc=if(between(t\,1\,2)\,0.0125892541\,0.1)*sin(2*PI*1000*t):s=48000:d=3" \
+ *   -af "agate=threshold=-30dB:ratio=2:attack=20:release=250:detection=peak" -f f32le -ac 1 gate.f32
+ * Reduction settled before 2 s, time for the gate to close (to 90 %) after 1 s and to open (to 10 %)
+ * after 2 s.
+ */
+const FFMPEG_GATE = { settledDb: 9.00679, closeMs: 181.27, openMs: 1.75 };
+
+/**
+ * A 6.5 kHz sine stepping from −30 to −6 dBFS between 1 s and 2 s, through `deesser` with `i` the
+ * amount and `f` from `deesserFrequency`:
+ * ffmpeg -f lavfi -i "aevalsrc=if(between(t\,1\,2)\,0.5011872336\,0.0316227766)*sin(2*PI*6500*t):s=48000:d=3" \
+ *   -af "deesser=i=0.5:m=0.5:f=0.918208" -f f32le -ac 1 ds.f32   (6500 Hz, amount 0.5: steady)
+ *   -af "deesser=i=0.3:m=0.5:f=0.947458" -f f32le -ac 1 ds.f32   (8000 Hz, amount 0.3: timing)
+ */
+const FFMPEG_DEESSER_STEADY_DB = 6.76546;
+const FFMPEG_DEESSER_TIMING = { settledDb: 3.19933, attackMs: 1.6042, releaseMs: 7.2917 };
+
+/**
+ * A 1 kHz sine at +6 dBFS from 1 s to 2 s and −12 dBFS around it:
+ * ffmpeg -f lavfi -i "aevalsrc=if(between(t\,1\,2)\,2\,0.2511886432)*sin(2*PI*1000*t):s=48000:d=3" \
+ *   -af "alimiter=limit=-1dB:attack=5:release=50:level=disabled" -f f32le -ac 1 lim.f32
+ * Output is the input 239 samples later (the 5 ms lookahead); reduction against that, release to 10 %.
+ */
+const FFMPEG_LIMITER = { delay: 239, settledDb: 7.0206, releaseMs: 41.77 };
 
 function tone(seconds: number, hz: number, amplitudeAt: (t: number) => number): Float32Array {
   const out = new Float32Array(Math.round(seconds * RATE));
@@ -88,5 +118,72 @@ describe("compressor (FFmpeg acompressor parity)", () => {
     const { riseMs, fallMs } = stepTimings(compress(input), input, RATE, 2 * RATE);
     expect(near(riseMs, FFMPEG_ATTACK_MS)).toBeLessThan(0.1);
     expect(near(fallMs, FFMPEG_RELEASE_MS)).toBeLessThan(0.1);
+  });
+});
+
+describe("gate (FFmpeg agate parity)", () => {
+  it("closes on a quiet stretch and opens again as FFmpeg does", () => {
+    const input = tone(3, 1000, (t) => step(t, 10 ** (-38 / 20), 0.1));
+    const state = createDynamicsState();
+    const curve = gateCurve({ thresholdDb: -30, ratio: 2, attackMs: 20, releaseMs: 250 }, RATE);
+    const output = input.map((x) => dynamicsStep(state, curve, x));
+    const { settledDb, riseMs, fallMs } = stepTimings(output, input, RATE, 2 * RATE);
+    expect(Math.abs(settledDb - FFMPEG_GATE.settledDb)).toBeLessThan(0.5);
+    expect(near(riseMs, FFMPEG_GATE.closeMs)).toBeLessThan(0.1);
+    expect(near(fallMs, FFMPEG_GATE.openMs)).toBeLessThan(0.1);
+  });
+});
+
+describe("de-esser (FFmpeg deesser parity)", () => {
+  const deess = (input: Float32Array, frequencyHz: number, amount: number) => {
+    const state = createDeesserState();
+    const settings = deesserSettings({ frequencyHz, amount }, RATE);
+    return input.map((x) => deesserStep(state, settings, x));
+  };
+  const input = tone(3, 6500, (t) => step(t, LOUD, QUIET));
+
+  it("takes a 6.5 kHz tone down as far as FFmpeg does", () => {
+    const { settledDb } = stepTimings(deess(input, 6500, 0.5), input, RATE, 2 * RATE);
+    expect(Math.abs(settledDb - FFMPEG_DEESSER_STEADY_DB)).toBeLessThan(0.5);
+  });
+
+  it("follows the tone in and out within 10 % of FFmpeg's times", () => {
+    const { settledDb, riseMs, fallMs } = stepTimings(
+      deess(input, 8000, 0.3),
+      input,
+      RATE,
+      2 * RATE,
+    );
+    expect(Math.abs(settledDb - FFMPEG_DEESSER_TIMING.settledDb)).toBeLessThan(0.5);
+    expect(near(riseMs, FFMPEG_DEESSER_TIMING.attackMs)).toBeLessThan(0.1);
+    expect(near(fallMs, FFMPEG_DEESSER_TIMING.releaseMs)).toBeLessThan(0.1);
+  });
+});
+
+describe("limiter (FFmpeg alimiter parity)", () => {
+  const ceiling = 10 ** (-1 / 20);
+  const input = tone(3, 1000, (t) => step(t, 2, 10 ** (-12 / 20)));
+  const limiter = createLimiter(RATE, 1);
+  const settings = limiterSettings({ ceilingDb: -1, releaseMs: 50 }, RATE);
+  const frame = new Float64Array(1);
+  const output = input.map((x) => {
+    frame[0] = x;
+    limiterStep(limiter, settings, frame);
+    return frame[0];
+  });
+  const delayed = new Float32Array(input.length);
+  delayed.set(input.subarray(0, input.length - FFMPEG_LIMITER.delay), FFMPEG_LIMITER.delay);
+
+  it("never lets a +6 dBFS sine over the ceiling", () => {
+    const peak = output.reduce((most, x) => Math.max(most, Math.abs(x)), 0);
+    expect(peak).toBeLessThanOrEqual(ceiling * (1 + 1e-6));
+  });
+
+  it("delays, limits and releases as FFmpeg does", () => {
+    const d = FFMPEG_LIMITER.delay;
+    expect(output.slice(MS, RATE)).toEqual(delayed.slice(MS, RATE));
+    const { settledDb, fallMs } = stepTimings(output, delayed, RATE + d, 2 * RATE + d);
+    expect(Math.abs(settledDb - FFMPEG_LIMITER.settledDb)).toBeLessThan(0.5);
+    expect(near(fallMs, FFMPEG_LIMITER.releaseMs)).toBeLessThan(0.1);
   });
 });

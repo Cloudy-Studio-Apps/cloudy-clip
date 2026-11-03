@@ -1,4 +1,4 @@
-import type { CompressorParams } from "@/modules/project";
+import type { CompressorParams, DuckEffect, GateEffect } from "@/modules/project";
 import type { DynamicsCurve, DynamicsState } from "../preview.types";
 
 // One dynamics core for the compressor, the gate and ducking: FFmpeg's detector and gain curve
@@ -8,6 +8,18 @@ import type { DynamicsCurve, DynamicsState } from "../preview.types";
 // pure and allocation-free, so it runs per sample in the dynamics worklet. Checked sample for
 // sample against ffmpeg n9.0.2: docs/superpowers/specs/2026-11-03-sound-dynamics-check.md.
 // Type-only imports: this file is bundled into the worklet, which has no module of the app.
+
+/** FFmpeg's default knee for `agate` and `sidechaincompress`, linear (about 9 dB). */
+export const DEFAULT_KNEE = 2.828427125;
+
+/** The gate's floor, FFmpeg `agate`'s default `range` (about −24 dB). */
+export const GATE_RANGE = 0.06125;
+
+/** Ducking's threshold: the key starts lowering the track above it, in dBFS. */
+export const DUCK_THRESHOLD_DB = -40;
+
+/** Ducking's ratio, FFmpeg's highest: past the threshold the depth is reached quickly. */
+export const DUCK_RATIO = 20;
 
 /** A detector at rest, before the first sample. */
 export const createDynamicsState = (): DynamicsState => ({ envelope: 0 });
@@ -66,6 +78,41 @@ export function compressorCurve(params: CompressorParams, sampleRate: number): D
       makeup: dbToLinear(makeupDb),
       mix: 1,
     },
+  );
+}
+
+/** `agate` (downward expansion) with these settings, its default knee and `range`, no makeup. */
+export function gateCurve(
+  gate: Pick<GateEffect, "thresholdDb" | "ratio" | "attackMs" | "releaseMs">,
+  sampleRate: number,
+): DynamicsCurve {
+  const { thresholdDb, ratio, attackMs, releaseMs } = gate;
+  return curve("expand", thresholdDb, ratio, DEFAULT_KNEE, attackMs, releaseMs, sampleRate, {
+    range: GATE_RANGE,
+    makeup: 1,
+    mix: 1,
+  });
+}
+
+/**
+ * `sidechaincompress` for ducking: threshold `DUCK_THRESHOLD_DB`, ratio `DUCK_RATIO`, the default
+ * knee, and `mix = 1 − 10^(depth/20)`, so however loud the key gets the track goes down by `depthDb`
+ * at most.
+ */
+export function duckCurve(
+  duck: Pick<DuckEffect, "depthDb" | "attackMs" | "releaseMs">,
+  sampleRate: number,
+): DynamicsCurve {
+  const { depthDb, attackMs, releaseMs } = duck;
+  return curve(
+    "compress",
+    DUCK_THRESHOLD_DB,
+    DUCK_RATIO,
+    DEFAULT_KNEE,
+    attackMs,
+    releaseMs,
+    sampleRate,
+    { range: 0, makeup: 1, mix: 1 - dbToLinear(depthDb) },
   );
 }
 
