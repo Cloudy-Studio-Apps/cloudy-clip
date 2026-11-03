@@ -72,3 +72,11 @@ export interface GraphPlaced {
 
 /** A curve point, x and y in 0..1. */
 export type CurvePoint = readonly [number, number];
+
+/** The part of the node graph in view, in graph units (an SVG view box). */
+export interface GraphView {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}

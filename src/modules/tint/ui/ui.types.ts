@@ -13,3 +13,10 @@ export interface ViewerTool {
   icon: ComponentType;
   label: string;
 }
+
+/** Moves the node graph's view. Created on the graph's elements, disposed with them. */
+export interface GraphCamera {
+  /** Brings the whole graph back into view. */
+  fit(): void;
+  dispose(): void;
+}

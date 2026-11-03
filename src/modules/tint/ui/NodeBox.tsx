@@ -31,7 +31,7 @@ export function NodeBox({ node, selected, onSelect }: NodeBoxProps) {
   if (node.kind === "join" || node.kind === "split" || node.kind === "merge") {
     const glyph = node.kind === "join" ? "∥" : node.kind === "split" ? "⑃" : "⑂";
     return (
-      <g className="cursor-pointer" onClick={onSelect}>
+      <g data-node className="cursor-pointer" onClick={onSelect}>
         <rect
           x={b.x}
           y={b.y}
@@ -63,7 +63,7 @@ export function NodeBox({ node, selected, onSelect }: NodeBoxProps) {
   }
   if (node.kind === "channel") {
     return (
-      <g className="cursor-pointer" onClick={onSelect}>
+      <g data-node className="cursor-pointer" onClick={onSelect}>
         <rect
           x={b.x}
           y={b.y}
@@ -90,7 +90,7 @@ export function NodeBox({ node, selected, onSelect }: NodeBoxProps) {
     );
   }
   return (
-    <g className="cursor-pointer" onClick={onSelect}>
+    <g data-node className="cursor-pointer" onClick={onSelect}>
       <rect
         x={b.x}
         y={b.y}
