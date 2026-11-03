@@ -50,7 +50,7 @@ describe("project file", () => {
     expect(decodeProject(old).binOrder).toEqual([]);
   });
 
-  it("keeps a clip's keys, saves version 3 and still opens version 2", () => {
+  it("saves version 2 without keys, 3 with them, and opens both", () => {
     const clip: Clip = {
       id: "c",
       trackId: "t",
@@ -72,8 +72,9 @@ describe("project file", () => {
     const text = encodeProject(animated, "1.0.0", new Date(0));
     expect((JSON.parse(text) as { version: number }).version).toBe(3);
     expect(decodeProject(text)).toEqual(animated);
-    const old = file((json) => (json.version = 2));
-    expect(decodeProject(old)).toEqual(document);
+    const plain = encodeProject(document, "1.0.0", new Date(0));
+    expect((JSON.parse(plain) as { version: number }).version).toBe(2);
+    expect(decodeProject(plain)).toEqual(document);
   });
 
   it("refuses what it can't trust", () => {

@@ -1,0 +1,136 @@
+import { Repeat } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import { useStore } from "zustand";
+import { useModule } from "@/core";
+import { previewRef } from "@/modules/preview";
+import {
+  animatedClip,
+  clampToClip,
+  type Clip,
+  type KeyTrack,
+  type KeyValue,
+} from "@/modules/project";
+import { cn, ContextMenu, type MenuPoint } from "@/ui";
+import { PANEL_HEADER_WIDTH, ROW_HEIGHT } from "../keyframe.layout";
+import { keyframeRef } from "../keyframe.ref";
+import type { KeyField, PanelWindow } from "../keyframe.types";
+import { KeyBand } from "./KeyBand";
+import { parseRef, refId } from "../logic/picking";
+import { KeyControls } from "./KeyControls";
+import { useKeyMenus } from "./key.menu.hook";
+
+/** A value as the row shows it: numbers to two decimals, colors as they are. */
+function formatValue(value: KeyValue): string {
+  if (typeof value === "number") return String(Math.round(value * 100) / 100);
+  if (typeof value === "boolean") return value ? "On" : "Off";
+  return value;
+}
+
+interface PropertyRowProps {
+  clip: Clip;
+  field: KeyField;
+  track: KeyTrack;
+  scale: PanelWindow;
+  selectedIds: ReadonlySet<string>;
+  /** Curves: no band, the graph draws the keys. */
+  headersOnly?: boolean;
+}
+
+/**
+ * One animated field of a clip: swatch, name, value at the playhead, previous key, diamond and
+ * next key on the left, and its keys along the timeline on the right.
+ */
+export function PropertyRow({
+  clip,
+  field,
+  track,
+  scale,
+  selectedIds,
+  headersOnly,
+}: PropertyRowProps) {
+  const { playback } = useModule(previewRef);
+  const { view } = useModule(keyframeRef);
+  const id = `${clip.id}:${field.path}`;
+  const primary = useStore(view, (s) => s.primary === id);
+  const shown = useStore(view, (s) => s.shown.includes(id));
+  const paths = useMemo(() => [field.path], [field.path]);
+  const value = useRef<HTMLSpanElement>(null);
+  const menus = useKeyMenus();
+
+  // A right click on a key opens the selection's menu (taking the key in first); elsewhere, the row's.
+  const items = ({ clientX, clientY }: MenuPoint) => {
+    const hit = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-key-ref]");
+    const ref = hit ? parseRef(hit.dataset.keyRef ?? "") : undefined;
+    if (!ref) return menus.row(clip, field);
+    if (!view.getState().selection.some((s) => refId(s) === refId(ref))) {
+      view.setState({ selection: [ref], focused: true });
+    }
+    return menus.selection();
+  };
+
+  useEffect(() => {
+    const update = () => {
+      const el = value.current;
+      if (!el) return;
+      const at = clampToClip(clip, playback.getTime());
+      el.textContent = formatValue(field.read(animatedClip(clip, at)));
+    };
+    update();
+    return playback.onTime(update);
+  }, [clip, field, playback]);
+
+  return (
+    <ContextMenu items={items}>
+      <div className="flex border-b border-border" style={{ height: ROW_HEIGHT }}>
+        <div
+          data-field-row
+          onClick={(e) => {
+            // The diamond and arrows only make the row primary; the rest of the row also shows or hides its curve.
+            const onButton = e.target instanceof Element && e.target.closest("button") !== null;
+            view.setState((s) => ({
+              primary: id,
+              shown:
+                onButton || track.blend !== "number"
+                  ? s.shown
+                  : s.shown.includes(id)
+                    ? s.shown.filter((x) => x !== id)
+                    : [...s.shown, id],
+            }));
+          }}
+          className={cn(
+            "group/cell grid shrink-0 cursor-pointer grid-cols-[10px_minmax(0,1fr)_56px_auto] items-center gap-1 border-r-[1.5px] border-border-strong bg-muted pl-2 pr-1 text-sm text-muted-foreground hover:text-foreground",
+            primary && "bg-accent-soft text-foreground shadow-[inset_2px_0_0_var(--on)]",
+          )}
+          style={{ width: PANEL_HEADER_WIDTH }}
+        >
+          <i className={cn("h-0.5 w-2", shown ? "bg-on" : "bg-subtle-foreground")} />
+          <span className="flex items-center gap-1 truncate">
+            <span className="truncate">{field.label}</span>
+            {track.after !== undefined && (
+              <Repeat
+                aria-label={track.after === "loop" ? "Loops" : "Plays back and forth"}
+                className="size-3 shrink-0 text-on"
+              />
+            )}
+          </span>
+          <span
+            ref={value}
+            className="truncate text-right font-mono text-xs font-bold text-foreground group-data-[key-state=animated]/cell:text-on group-data-[key-state=on-key]/cell:text-mark"
+          />
+          <KeyControls clipId={clip.id} paths={paths} />
+        </div>
+        {!headersOnly && (
+          <div className="relative min-w-0 flex-1 overflow-hidden">
+            <KeyBand
+              clip={clip}
+              path={field.path}
+              track={track}
+              scale={scale}
+              selectedIds={selectedIds}
+            />
+          </div>
+        )}
+      </div>
+    </ContextMenu>
+  );
+}

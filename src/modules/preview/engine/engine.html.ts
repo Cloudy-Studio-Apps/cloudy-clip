@@ -23,6 +23,8 @@ import {
   speedOf,
   type ClipSpeed,
   elementTimeAt,
+  rampOf,
+  rateAt,
   sourceTimeAt,
 } from "@/modules/project";
 import { resolveFrame } from "../logic/frame";
@@ -37,7 +39,7 @@ import { LevelCorrection } from "./engine.levels";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { MediaSlotPool } from "./engine.slots";
-import { syncSlot } from "./engine.sync";
+import { RAMP_RATE_STEP, syncSlot } from "./engine.sync";
 import type {
   CachedPicture,
   EngineOptions,
@@ -244,7 +246,11 @@ export class HtmlMediaEngine implements PreviewEngine {
           if (!track.hidden && !this.images.ready(current)) this.settled = false;
           continue;
         }
-        const speed = (propsOverrides.get(clip.id)?.speed as ClipSpeed) ?? speedOf(clip);
+        // A ramp plays as keyed: a speed drag doesn't reach it, and its rate is the one now.
+        const ramped = rampOf(clip) !== undefined;
+        const override = ramped ? undefined : (propsOverrides.get(clip.id)?.speed as ClipSpeed);
+        const speed = override ?? speedOf(clip);
+        const rate = ramped ? rateAt(clip, time) : speed.rate;
         const url = this.urlOf(clip.mediaId, speed);
         if (url === null) {
           // Its reversed copy is on the way: the rest of the frame doesn't wait for it.
@@ -262,11 +268,13 @@ export class HtmlMediaEngine implements PreviewEngine {
           speed.reversed && Number.isFinite(copyLength)
             ? copyLength - microsToSeconds(sourceTimeAt({ ...clip, speed }, time))
             : desired;
-        const heard = this.soundAtSpeed(sound, speed);
+        // The pitch of a ramp follows its rate now, in steps, since each rate keeps its own sound.
+        const heardRate = ramped ? Math.round(rate / RAMP_RATE_STEP) * RAMP_RATE_STEP : rate;
+        const heard = this.soundAtSpeed(sound, { ...speed, rate: heardRate });
         voiceSlot(slot, track, own, silenced, heard, this.sound);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
-        const lead = pitched ? PITCH_LEAD_SECONDS * speed.rate : 0;
-        syncSlot(slot, exact + lead, playing && speed.rate > 0, speed.rate);
+        const lead = pitched ? PITCH_LEAD_SECONDS * rate : 0;
+        syncSlot(slot, exact + lead, playing && rate > 0, rate, ramped);
         if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) {
           this.settled = false;
         }

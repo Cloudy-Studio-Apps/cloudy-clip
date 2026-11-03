@@ -1,9 +1,11 @@
 import { appOverlays, defineModule } from "@/core";
 import { inspectorSections } from "@/modules/inspector";
+import { keyTargets } from "@/modules/keyframe";
 import { clipActions, timelineRef } from "@/modules/timeline";
 import { speedCommands } from "./speed.commands";
 import { speedMcpTools } from "./speed.mcp";
 import { speedMenu } from "./speed.menu";
+import { speedKeys } from "./speed.keys";
 import { speedRef } from "./speed.ref";
 import { createSpeedView } from "./speed.view.store";
 import { speedSection, SpeedBox } from "./ui";
@@ -13,7 +15,7 @@ export const speedModule = defineModule({
   ref: speedRef,
   name: "Speed",
   tier: "feature",
-  requires: ["project", "junction", "media", "timeline", "preview", "inspector"],
+  requires: ["project", "junction", "media", "timeline", "preview", "inspector", "keyframe"],
   commands: speedCommands,
   mcpTools: speedMcpTools,
   setup(ctx) {
@@ -21,6 +23,7 @@ export const speedModule = defineModule({
     ctx.contribute(clipActions, speedMenu(ctx, ctx.require(timelineRef).view, view));
     ctx.contribute(appOverlays, { id: "speed.box", component: SpeedBox });
     ctx.contribute(inspectorSections, speedSection);
+    ctx.contribute(keyTargets, speedKeys(ctx, view));
     return { api: { view } };
   },
 });

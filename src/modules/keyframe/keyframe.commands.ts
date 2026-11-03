@@ -6,7 +6,9 @@ import { keyframeRef } from "./keyframe.ref";
 import { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
 import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
 import { moveKeys, removeKeys, setKey, setKeys, setKeyValues } from "./keyframe.edit.commands";
-import { writeTracks, type TrackEdit } from "./keyframe.write";
+import { toggleMode } from "./keyframe.view.commands";
+import type { TrackEdit } from "./keyframe.types";
+import { writeTracks } from "./keyframe.write";
 
 /** Removes whole tracks. */
 export const clearKeys = defineCommand({
@@ -48,4 +50,5 @@ export const keyframeCommands = [
   scaleKeys,
   copyKeys,
   pasteKeys,
+  toggleMode,
 ];

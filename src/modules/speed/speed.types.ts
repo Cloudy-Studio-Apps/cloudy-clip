@@ -1,4 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
+import type { Micros } from "@/core";
 import type { Clip, ClipId } from "@/modules/project";
 
 /** What the speed tools remember. Per kernel, and never in history. */
@@ -28,6 +29,16 @@ export interface SpeedChange {
   rate?: (clip: Clip) => number;
   pitchCorrection?: boolean;
   reversed?: boolean;
+  ripple: boolean;
+  /** Replaces a ramp with `rate`, instead of refusing it. */
+  dropRamp?: true;
+}
+
+/** How a linked group changes length. */
+export interface GroupResize {
+  lengthOf(clip: Clip): Micros;
+  /** What else changes on each clip: `target` is its draft. */
+  write(target: Clip, clip: Clip): void;
   ripple: boolean;
 }
 

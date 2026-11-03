@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { seedProject, type Clip, type MediaAsset, type ProjectState } from "@/modules/project";
-import { DEFAULT_SOUND } from "@/modules/project";
+import {
+  DEFAULT_SOUND,
+  RAMP_PATH,
+  dbToLinear,
+  rampTimeAt,
+  seedProject,
+  type Clip,
+  type KeyTrack,
+  type MediaAsset,
+  type ProjectState,
+} from "@/modules/project";
 import { mixdown } from "./mixdown";
 
 const media = (id: string): MediaAsset => ({
@@ -179,7 +188,123 @@ describe("mixdown", () => {
     const state = project([clip("a", "a1")]);
     expect(mixdown(state, "c1", everything, () => false)).toEqual([]);
   });
+
+  it("gives a keyed clip a gain envelope", () => {
+    const animation: Clip["animation"] = {
+      "sound.volumeDb": {
+        blend: "number",
+        keys: [
+          { id: "k1", t: 0, value: 0 },
+          { id: "k2", t: 4_000_000, value: -12 },
+        ],
+      },
+    };
+    const [segment] = mixdown(project([clip("a", "a1", { animation })]), "c1", everything, sounds);
+    expect(segment!.gainEnvelope!.at(0)!.value).toBeCloseTo(1);
+    expect(segment!.gainEnvelope!.at(-1)!.value).toBeCloseTo(dbToLinear(-12));
+    expect(segment!.gainEnvelope!.at(-1)!.at).toBe(4_000_000);
+    expect(segment).not.toHaveProperty("gain");
+  });
+
+  it("samples a segment that starts partway into a clip from that point", () => {
+    const animation: Clip["animation"] = {
+      "sound.pan": {
+        blend: "number",
+        keys: [
+          { id: "k3", t: 0, value: -1 },
+          { id: "k4", t: 4_000_000, value: 1 },
+        ],
+      },
+    };
+    const window = { start: 2_000_000, duration: 2_000_000 };
+    const [segment] = mixdown(project([clip("a", "a1", { animation })]), "c1", window, sounds);
+    expect(segment!.panEnvelope![0]!.value).toBeCloseTo(0);
+    expect(segment!.panEnvelope!.at(-1)!.value).toBeCloseTo(1);
+  });
+
+  it("cuts a ramped clip's sound into tempo steps that cover it", () => {
+    const ramp: KeyTrack = {
+      blend: "number",
+      shared: true,
+      min: 0.1,
+      max: 10,
+      keys: [
+        { id: "r1", t: 0, value: 1 },
+        { id: "r2", t: 4_000_000, value: 4 },
+      ],
+    };
+    const ramped = clip("a", "a1", {
+      sourceIn: 1_000_000,
+      duration: rampTimeAt(ramp, 0, 4_000_000),
+      speed: { rate: 2, pitchCorrection: true, reversed: false },
+      animation: { [RAMP_PATH]: ramp },
+    });
+    const rampedProject = project([ramped]);
+    const range = { start: 300_000, duration: 10_000_000 };
+    const [segment] = mixdown(rampedProject, "c1", range, sounds);
+    const steps = segment!.tempoSteps!;
+    expect(steps.reduce((sum, s) => sum + s.duration, 0)).toBe(segment!.duration);
+    expect(steps[0]!.speed).toBeLessThan(steps.at(-1)!.speed);
+    // The first step starts where the segment does in the file; the stored rate isn't the speed.
+    expect(steps[0]!.from).toBe(segment!.from);
+    expect(segment).not.toHaveProperty("speed");
+  });
+
+  it("keeps a short fade's key points on a long clip", () => {
+    const animation: Clip["animation"] = {
+      "sound.volumeDb": {
+        blend: "number",
+        keys: [
+          { id: "k1", t: 60_000_000, value: 0 },
+          { id: "k2", t: 60_300_000, value: -24 },
+        ],
+      },
+    };
+    const long = clip("a", "a1", { duration: 120_000_000, animation });
+    const window = { start: 0, duration: 120_000_000 };
+    const [segment] = mixdown(lengthened(project([long])), "c1", window, sounds);
+    const points = segment!.gainEnvelope!;
+    expect(points.find((p) => p.at === 60_000_000)?.value).toBeCloseTo(1);
+    expect(points.find((p) => p.at === 60_300_000)?.value).toBeCloseTo(dbToLinear(-24));
+    expect(points.at(-1)!.value).toBeCloseTo(dbToLinear(-24));
+  });
+
+  it("gives a long clip with a short ramp few tempo steps, still covering it", () => {
+    const ramp: KeyTrack = {
+      blend: "number",
+      shared: true,
+      min: 0.1,
+      max: 10,
+      keys: [
+        { id: "r1", t: 30_000_000, value: 1 },
+        { id: "r2", t: 31_000_000, value: 2 },
+      ],
+    };
+    const long = clip("a", "a1", {
+      duration: rampTimeAt(ramp, 0, 120_000_000),
+      animation: { [RAMP_PATH]: ramp },
+    });
+    const range = { start: 0, duration: long.duration };
+    const [segment] = mixdown(lengthened(project([long])), "c1", range, sounds);
+    const steps = segment!.tempoSteps!;
+    expect(steps.length).toBeLessThanOrEqual(6);
+    expect(steps.reduce((sum, s) => sum + s.duration, 0)).toBe(segment!.duration);
+    expect(steps[0]).toMatchObject({ from: 0, duration: 30_000_000, speed: 1 });
+    expect(steps.at(-1)!.speed).toBeCloseTo(2);
+  });
+
+  it("leaves a clip without keys as it was", () => {
+    const [segment] = mixdown(project([clip("a", "a1")]), "c1", everything, sounds);
+    expect(segment).not.toHaveProperty("gainEnvelope");
+    expect(segment).not.toHaveProperty("panEnvelope");
+  });
 });
+
+/** The project with a composition long enough for a long clip. */
+function lengthened(state: ProjectState) {
+  state.compositions.c1!.duration = 200_000_000;
+  return state;
+}
 
 /** Puts composition `c2`, 5 s long with one 4 s sound clip of `n`, at 2 s of `c1` from its 1 s. */
 function withPlacement(state: ProjectState, { innerMuted }: { innerMuted: boolean }) {

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cloudy Clip, Tint page A: Workbench</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Courier+Prime:wght@400;700&family=Shantell+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tint-shared.css">
+<style>
+  /* Layout A, Workbench: grade and viewer on top, clips in the middle, tools and scopes along the bottom (Resolve's arrangement) */
+  #page{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) 112px 318px;gap:1px;background:var(--rule-2)}
+  .upper{min-height:0;display:grid;grid-template-columns:360px minmax(0,1fr);gap:1px;transition:grid-template-columns .25s}
+  body.leader .upper{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+  .lower{min-height:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:1px}
+  .tbody{flex:1;min-height:0;overflow:auto;padding:12px 14px}
+  .scopes{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:1px;background:var(--rule)}
+  .scopes>div{position:relative;display:flex;min-height:0}
+  .scopes .scope[hidden]{display:none}
+  .looks-pane{flex:1;min-height:0;display:flex;flex-direction:column}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="seal" viewBox="0 0 120 100">
+    <g fill="none" stroke="#6fb7e6" stroke-width="0.9" opacity="0.8"><circle cx="60" cy="50" r="46"/><path d="M6 50c20 8 88 8 108 0M60 2c-8 30-8 66 0 96"/></g>
+    <path d="M60 6c30 0 54 20 54 49 0 25-24 39-54 39S6 80 6 55C6 26 30 6 60 6z" fill="#dfe5e9" stroke="#eceff1" stroke-width="2.2"/>
+    <ellipse cx="40" cy="49" rx="6.4" ry="4.4" transform="rotate(10 40 49)" fill="#22272e"/>
+    <ellipse cx="80" cy="49" rx="6.4" ry="4.4" transform="rotate(-10 80 49)" fill="#22272e"/>
+    <path d="M60 58c-7-1-16 1-16 8 0 6 10 9 16 4 6 5 16 2 16-4 0-7-9-9-16-8z" fill="#f7f9fa" stroke="#22272e" stroke-width="1.9"/>
+    <path d="M55.5 56.5h9l-4.5 5z" fill="#22272e" stroke="#22272e" stroke-width="1.6" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="leader" viewBox="0 0 120 110">
+    <path d="M38 22l8-18 14 12 14-12 8 18z" fill="#ff5f52" stroke="#ff5f52" stroke-width="2" stroke-linejoin="round"/>
+    <use href="#seal" y="10" width="120" height="100"/>
+  </symbol>
+</svg>
+<div id="app">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 120 100"><use href="#seal"/></svg><span class="word">cloudy clip</span><span class="project">Golden hour</span>
+      <span class="layout-tag">Layout A · Workbench · <a href="tint-b-darkroom.html">B</a> · <a href="tint-c-hybrid.html">C</a></span></div>
+    <nav class="pages">
+      <button class="pg" data-ic="image">Media</button>
+      <button class="pg" data-ic="scissors">Edit</button>
+      <button class="pg is-active" data-ic="palette">Tint</button>
+      <button class="pg" data-ic="lines">Sound</button>
+      <button class="pg" data-ic="upload">Export</button>
+    </nav>
+    <div class="right">
+      <div class="seals" title="Same grade, two ways to see it">
+        <button class="baby on" data-mode="baby"><svg viewBox="0 0 120 100"><use href="#seal"/></svg>Baby Seal <small>layers</small></button>
+        <button data-mode="leader"><svg viewBox="0 0 120 110"><use href="#leader"/></svg>Leader Seal <small>nodes</small></button>
+      </div>
+      <span class="av">M</span><span class="av claude">✳</span>
+    </div>
+  </header>
+
+  <main id="page">
+    <div class="upper">
+      <section class="panel">
+        <div class="ph">
+          <button class="ptab on" data-left="grade"><span class="baby-only" data-ic="list"></span><span class="leader-only" data-ic="nodes"></span><span class="baby-only">Layers</span><span class="leader-only">Nodes</span></button>
+          <button class="ptab" data-left="looks" data-ic="still">Looks</button>
+          <span class="who">02 Plaza wide</span><span class="grow"></span>
+          <button class="icon" title="Copy grade" data-ic="copy"></button><button class="icon" title="Paste grade" data-ic="paste"></button><button class="icon" title="Reset grade" data-ic="reset"></button>
+        </div>
+        <div data-leftbody="grade" style="flex:1;min-height:0;display:flex;flex-direction:column">
+          <div class="baby-only" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="layers" id="layers"></div>
+            <div class="addrow"><button class="btn primary" data-add>+ Add</button><span class="hint" style="align-self:center">Top runs first. Drag to reorder.</span><div id="addhost"></div></div>
+          </div>
+          <div class="graph leader-only" id="graph"></div>
+        </div>
+        <div class="looks-pane" data-leftbody="looks" hidden>
+          <div class="looks" id="looks"></div>
+          <div class="addrow"><button class="btn primary">Grab still</button><button class="btn">Apply to selected clips</button></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="ph"><span class="t">Viewer</span><span class="who">02 Plaza wide · 0:04.12</span><span class="grow"></span>
+          <button class="btn" id="cmp">Before / after</button><span class="sep"></span>
+          <span class="cs">S-Log3 → Rec.709</span><span class="sep"></span><span class="cs">Fit 44%</span>
+        </div>
+        <div class="viewer" id="viewer"></div>
+        <div class="vbar"><span class="tc">0:24<span>.14</span></span><span class="sep"></span>
+          <button class="icon" data-ic="back"></button><button class="tp-play" data-ic="play"></button><button class="icon" data-ic="fwd"></button><button class="icon on" data-ic="loop"></button>
+          <span class="grow"></span><button class="icon" title="Grab still" data-ic="still"></button><button class="icon" title="Split screen" data-ic="split"></button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="ph"><span class="t">Clips</span><span class="who">8 in Main · 3 graded</span><span class="grow"></span>
+        <button class="btn">Copy grade</button><button class="btn">Paste grade</button><button class="btn">Paste to all</button><span class="sep"></span><button class="btn">Group: Plaza shots</button>
+      </div>
+      <div class="strip" id="strip"></div>
+    </section>
+
+    <div class="lower">
+      <section class="panel">
+        <div class="ph">
+          <button class="ptab on" data-tool="wheels">Wheels</button><button class="ptab" data-tool="curves">Curves</button><button class="ptab" data-tool="limit">Limit</button>
+          <button class="ptab" data-tool="luts">LUT and color</button><button class="ptab" data-tool="match">Match</button>
+          <span class="grow"></span><span class="who" id="who"></span>
+          <button class="icon" title="Keyframe this correction" data-ic="diamond"></button><button class="icon" title="Reset this correction" data-ic="reset"></button>
+        </div>
+        <div class="tbody" id="tools"></div>
+      </section>
+      <section class="panel">
+        <div class="ph"><span class="t">Scopes</span>
+          <button class="ptab on" data-scope="parade">Parade</button><button class="ptab" data-scope="wave">Waveform</button><button class="ptab" data-scope="hist">Histogram</button>
+          <span class="grow"></span><span class="who">Vectorscope →</span>
+        </div>
+        <div class="scopes"><div id="mainscope"></div><div id="vecscope"></div></div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="tint-frame.js"></script>
+<script src="tint-shared.js"></script>
+<script>
+(function(){
+  var T=Tint,tab='wheels';
+  document.getElementById('addhost').outerHTML=T.addMenu();
+  T.boot();
+  var layers=document.getElementById('layers'),graph=document.getElementById('graph'),tools=document.getElementById('tools');
+  T.wireLayers(layers);T.wireGraph(graph);T.renderViewer(document.getElementById('viewer'));T.renderStrip(document.getElementById('strip'));T.renderLooks(document.getElementById('looks'));
+
+  var main=document.getElementById('mainscope'),S={};
+  ['parade','wave','hist'].forEach(function(k){var d=document.createElement('div');d.className='scope';main.appendChild(d);S[k]=d;T.addScope(d,k);d.hidden=k!=='parade';});
+  var v=document.createElement('div');v.className='scope';document.getElementById('vecscope').appendChild(v);T.addScope(v,'vector');
+  document.querySelectorAll('[data-scope]').forEach(function(b){b.addEventListener('click',function(){var k=b.getAttribute('data-scope');
+    document.querySelectorAll('[data-scope]').forEach(function(x){x.classList.toggle('on',x===b);});Object.keys(S).forEach(function(n){S[n].hidden=n!==k;});T.paintScopes();});});
+
+  function renderTools(){
+    var n=T.cur(),sel=T.N[T.state.sel],word=T.state.mode==='leader'?'Node':'Layer';
+    document.getElementById('who').textContent=n?word+' '+n.no+' '+n.name:(sel.kind==='group'?'Group ':'Sealed ')+sel.name;
+    document.querySelectorAll('[data-tool]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tool')===tab);b.style.visibility=n?'':'hidden';});
+    if(!n){tools.innerHTML=T.tools.groupInfo();T.icons(tools);return;}
+    tools.innerHTML=tab==='wheels'?T.tools.primaries()+T.tools.wheels(112):T.tools[tab]();
+  }
+  T.wireTools(tools,renderTools);
+  document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){tab=b.getAttribute('data-tool');renderTools();});});
+  document.querySelectorAll('[data-left]').forEach(function(b){b.addEventListener('click',function(){var k=b.getAttribute('data-left');
+    document.querySelectorAll('[data-left]').forEach(function(x){x.classList.toggle('on',x===b);});document.querySelectorAll('[data-leftbody]').forEach(function(x){x.hidden=x.getAttribute('data-leftbody')!==k;});});});
+  var cmp=document.getElementById('cmp');cmp.addEventListener('click',function(){T.state.compare=!T.state.compare;cmp.classList.toggle('on',T.state.compare);T.paintAll(true);});
+
+  T.painters.push(function(){T.renderLayers(layers);T.renderGraph(graph);});
+  T.on(function(){renderTools();T.paintAll();});
+  renderTools();T.paintAll();
+})();
+</script>
+</body>
+</html>

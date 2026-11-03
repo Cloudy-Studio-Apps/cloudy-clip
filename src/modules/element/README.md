@@ -92,7 +92,7 @@ declaration, and one command changes any element's values.
 - **Elements so far:** `media` (media module), `text` (text module), `sticker` (sticker module), `solid` (solid module), `composition` (composition module).
 - **Creation:** an element's `create` entries (`{ panel, id, label, props?(format) }`) are shown by
   the timeline's `CreateTiles` and added with `timeline.addElement`.
-- **Not yet:** saving projects (`version` migrations), lists of groups, keyframes.
+- **Not yet:** saving projects (`version` migrations), lists of groups.
 
 | Command              | MCP tool              | Notes                                                                                                                                           |
 | -------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |

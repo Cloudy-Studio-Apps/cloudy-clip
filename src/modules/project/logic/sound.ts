@@ -23,9 +23,14 @@ export const DEFAULT_SOUND: ClipSound = {
   },
 };
 
-/** A clip's sound; the defaults when it has none of its own. */
+/**
+ * A clip's sound; the defaults when it has none of its own. A stored sound is whole, but the one
+ * of an animated clip (`animatedClip`) may hold only its keyed values, so the rest fills in.
+ */
 export function soundOf(clip: Pick<Clip, "sound">): ClipSound {
-  return clip.sound ?? DEFAULT_SOUND;
+  const { sound } = clip;
+  if (!sound) return DEFAULT_SOUND;
+  return sound.eq ? sound : { ...DEFAULT_SOUND, ...sound };
 }
 
 /** Decibels as a factor. */

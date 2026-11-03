@@ -31,7 +31,8 @@ import {
 } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
 import type { KeyField } from "./keyframe.types";
-import { writeTracks, type TrackEdit } from "./keyframe.write";
+import type { TrackEdit } from "./keyframe.types";
+import { writeTracks } from "./keyframe.write";
 
 /** The field's track with a key at `at` (a timeline time inside the clip), and that key. */
 function keyedTrack(
@@ -61,7 +62,7 @@ export const setKey = defineCommand({
   id: "keyframe.set",
   label: "Set keyframe",
   description:
-    'Adds a key to a clip\'s field at a timeline time ("at", microseconds; brought into the clip), or updates the one on that frame. "value" defaults to the value the field has there. A field without keys becomes animated. "ease" is how the value moves to the next key: {kind:"linear"}, {kind:"hold"}, {kind:"bezier",x1,y1,x2,y2} (x from 0 to 1) or {kind:"named",name:"bounce"|"elastic"}. Fields are the paths element_describe lists, e.g. "transform.x". Returns { key }, the key\'s id.',
+    'Adds a key to a clip\'s field at a timeline time ("at", microseconds; brought into the clip), or updates the one on that frame. "value" defaults to the value the field has there. A field without keys becomes animated. "ease" is how the value moves to the next key: {kind:"linear"}, {kind:"hold"}, {kind:"bezier",x1,y1,x2,y2} (x from 0 to 1) or {kind:"named",name:"bounce"|"elastic"}. keyframe_list_fields lists the paths a clip can key, e.g. "transform.x", "sound.volumeDb", "sound.pan" or "speed.rate". Keying "speed.rate" makes a speed ramp: the clip keeps its part of the file, so its length changes and what follows moves with the last Ripple choice. Returns { key }, the key\'s id.',
   undoable: true,
   input: z.object({
     clipId: z.string(),
@@ -143,7 +144,7 @@ export const moveKeys = defineCommand({
   id: "keyframe.move",
   label: "Move keyframes",
   description:
-    'Moves keys by "delta" microseconds of timeline time, all together, each with an optional new "value". A moved key replaces an unmoved one it lands on; Fails with keyframe.not_found or keyframe.invalid_value, changing nothing. Returns { moved }.',
+    'Moves keys by "delta" microseconds of timeline time, all together, each with an optional new "value". A moved key replaces an unmoved one it lands on. Fails with keyframe.not_found or keyframe.invalid_value, changing nothing. Returns { moved }.',
   undoable: true,
   input: z.object({
     keys: z.array(keyRef.extend({ value: keyValue.optional() })).min(1),

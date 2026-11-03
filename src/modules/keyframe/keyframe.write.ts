@@ -1,16 +1,8 @@
 import type { CommandContext } from "@/core";
-import { projectRef, type Clip, type KeyTrack, type KeyValue } from "@/modules/project";
+import { projectRef, type Clip } from "@/modules/project";
 import { requireField } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
-import type { KeyTarget } from "./keyframe.types";
-
-/** The new state of some tracks of one clip; undefined removes the track. */
-export interface TrackEdit {
-  clipId: string;
-  tracks: Record<string, KeyTrack | undefined>;
-  /** Where a track is gone: the value its field keeps as the static value. */
-  statics?: Record<string, KeyValue>;
-}
+import type { KeyTarget, TrackEdit } from "./keyframe.types";
 
 /**
  * Writes the edits in one `ctx.mutate`, then makes the static values and runs the `afterWrite` of

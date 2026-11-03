@@ -10,11 +10,15 @@ import {
   type ClipId,
   type Composition,
   type CompositionId,
+  type KeyTrack,
   type ProjectFormat,
   type ProjectState,
   type TrackId,
   type TrackKind,
   contentTime,
+  filePlayed,
+  rampOf,
+  rampTimeAt,
   sourceSpan,
   speedOf,
 } from "@/modules/project";
@@ -142,6 +146,11 @@ function joined(state: ProjectState, left: Clip, right: Clip): boolean {
   );
 }
 
+/** How long a ramp takes through `from..to`, a microsecond short so rounding stays in the file. */
+function rampRoom(ramp: KeyTrack, from: Micros, to: Micros): Micros {
+  return Math.max(0, rampTimeAt(ramp, from, to) - 1);
+}
+
 /**
  * Moves one edge of a clip to `time`, clamped so the clip stays inside its source media,
  * keeps a minimum length, and never overlaps its neighbours. Returns the new clip timing, and for
@@ -160,13 +169,17 @@ export function clampTrim(
   const fileAfter = limits.mediaDuration - clip.sourceIn - sourceSpan(clip);
   const roomBefore = reversed ? fileAfter : fileBefore;
   const roomAfter = reversed ? fileBefore : fileAfter;
+  const ramp = rampOf(clip);
+  const first = clip.animationOrigin ?? 0;
+  const last = first + sourceSpan(clip);
   if (edge === "start") {
-    const sourceStart = limits.sourceless ? 0 : clip.start - Math.floor(roomBefore / rate);
+    const reach = ramp ? rampRoom(ramp, first - roomBefore, first) : Math.floor(roomBefore / rate);
+    const sourceStart = limits.sourceless ? 0 : clip.start - reach;
     const earliest = Math.max(limits.prevEnd, sourceStart, 0);
     const latest = end - limits.minDuration;
     const start = Math.min(Math.max(time, earliest), latest);
     const delta = start - clip.start;
-    const moved = clip.sourceIn + Math.round(delta * rate);
+    const moved = clip.sourceIn + filePlayed(clip, delta);
     const sourceIn = limits.sourceless || reversed ? clip.sourceIn : Math.max(0, moved);
     return {
       start,
@@ -175,9 +188,8 @@ export function clampTrim(
       ...(clip.animation && { animationOrigin: contentTime(clip, start) }),
     };
   }
-  const sourceEnd = limits.sourceless
-    ? Number.POSITIVE_INFINITY
-    : end + Math.floor(roomAfter / rate);
+  const reach = ramp ? rampRoom(ramp, last, last + roomAfter) : Math.floor(roomAfter / rate);
+  const sourceEnd = limits.sourceless ? Number.POSITIVE_INFINITY : end + reach;
   const latest = Math.min(limits.nextStart, sourceEnd);
   const earliest = clip.start + limits.minDuration;
   const newEnd = Math.min(Math.max(time, earliest), latest);

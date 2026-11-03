@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cloudy Clip, Tint page B: Darkroom</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Courier+Prime:wght@400;700&family=Shantell+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tint-shared.css">
+<style>
+  /* Layout B, Darkroom: scopes and looks on the left, a big viewer in the middle, one column of controls on the right (Lightroom / CapCut arrangement) */
+  #page{min-height:0;display:grid;grid-template-columns:300px minmax(0,1fr) 384px;gap:1px;background:var(--rule-2)}
+  .col{min-height:0;display:flex;flex-direction:column;gap:1px;background:var(--rule-2)}
+  .col>.panel{flex:none}
+  .scopebox{position:relative;display:flex;height:170px}
+  .vecbox{position:relative;display:flex;height:220px}
+  .center .vpanel{flex:1}
+  .center .gpanel{height:300px}
+  .center .spanel{height:104px}
+  .stackpanel{max-height:44%;min-height:0}
+  .stackpanel .layers{flex:0 1 auto}
+  .ctrl{flex:1!important;min-height:0}
+  .acc{flex:1;min-height:0;overflow:auto}
+  .sec{border-bottom:1px solid var(--rule)}
+  .sec>h4{margin:0;height:34px;display:flex;align-items:center;gap:6px;padding:0 8px 0 10px;font:700 13.5px var(--hand);cursor:pointer;user-select:none}
+  .sec>h4 .chev{transition:transform .15s;color:var(--ink-3)}
+  .sec.open>h4 .chev{transform:rotate(90deg)}
+  .sec>h4 .dot{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+  .sec>.bd{display:none;padding:4px 12px 14px}
+  .sec.open>.bd{display:block}
+  .acc .two{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
+  .acc .wheels{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:14px}
+  .acc .curves{grid-template-columns:minmax(0,1fr);height:auto}
+  .acc .curve-box{height:200px}
+  .acc .ckinds{flex-direction:row;flex-wrap:wrap}
+  .looks{flex:1}
+  .col:first-child .ptab{padding:0 6px}
+  .stackpanel{max-height:48%}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="seal" viewBox="0 0 120 100">
+    <g fill="none" stroke="#6fb7e6" stroke-width="0.9" opacity="0.8"><circle cx="60" cy="50" r="46"/><path d="M6 50c20 8 88 8 108 0M60 2c-8 30-8 66 0 96"/></g>
+    <path d="M60 6c30 0 54 20 54 49 0 25-24 39-54 39S6 80 6 55C6 26 30 6 60 6z" fill="#dfe5e9" stroke="#eceff1" stroke-width="2.2"/>
+    <ellipse cx="40" cy="49" rx="6.4" ry="4.4" transform="rotate(10 40 49)" fill="#22272e"/>
+    <ellipse cx="80" cy="49" rx="6.4" ry="4.4" transform="rotate(-10 80 49)" fill="#22272e"/>
+    <path d="M60 58c-7-1-16 1-16 8 0 6 10 9 16 4 6 5 16 2 16-4 0-7-9-9-16-8z" fill="#f7f9fa" stroke="#22272e" stroke-width="1.9"/>
+    <path d="M55.5 56.5h9l-4.5 5z" fill="#22272e" stroke="#22272e" stroke-width="1.6" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="leader" viewBox="0 0 120 110">
+    <path d="M38 22l8-18 14 12 14-12 8 18z" fill="#ff5f52" stroke="#ff5f52" stroke-width="2" stroke-linejoin="round"/>
+    <use href="#seal" y="10" width="120" height="100"/>
+  </symbol>
+</svg>
+<div id="app">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 120 100"><use href="#seal"/></svg><span class="word">cloudy clip</span><span class="project">Golden hour</span>
+      <span class="layout-tag">Layout B · Darkroom · <a href="tint-a-workbench.html">A</a> · <a href="tint-c-hybrid.html">C</a></span></div>
+    <nav class="pages">
+      <button class="pg" data-ic="image">Media</button>
+      <button class="pg" data-ic="scissors">Edit</button>
+      <button class="pg is-active" data-ic="palette">Tint</button>
+      <button class="pg" data-ic="lines">Sound</button>
+      <button class="pg" data-ic="upload">Export</button>
+    </nav>
+    <div class="right">
+      <div class="seals" title="Same grade, two ways to see it">
+        <button class="baby on" data-mode="baby"><svg viewBox="0 0 120 100"><use href="#seal"/></svg>Baby Seal <small>layers</small></button>
+        <button data-mode="leader"><svg viewBox="0 0 120 110"><use href="#leader"/></svg>Leader Seal <small>nodes</small></button>
+      </div>
+      <span class="av">M</span><span class="av claude">✳</span>
+    </div>
+  </header>
+
+  <main id="page">
+    <div class="col">
+      <section class="panel">
+        <div class="ph"><span class="t">Scopes</span><button class="ptab on" data-scope="wave">Waveform</button><button class="ptab" data-scope="parade">Parade</button><button class="ptab" data-scope="hist">Histogram</button></div>
+        <div class="scopebox" id="mainscope"></div>
+      </section>
+      <section class="panel">
+        <div class="ph"><span class="t">Vectorscope</span><span class="grow"></span><span class="who" style="color:#e8b86b">— skin line</span></div>
+        <div class="vecbox" id="vecscope"></div>
+      </section>
+      <section class="panel" style="flex:1">
+        <div class="ph"><span class="t">Looks</span><span class="grow"></span><button class="btn">Grab still</button></div>
+        <div class="looks" id="looks"></div>
+      </section>
+    </div>
+
+    <div class="col center">
+      <section class="panel vpanel">
+        <div class="ph"><span class="t">02 Plaza wide</span><span class="who">0:04.12</span><span class="grow"></span>
+          <button class="btn" id="cmp">Before / after</button><span class="sep"></span><span class="cs">S-Log3 → Rec.709</span><span class="sep"></span><span class="cs">Fit 52%</span>
+        </div>
+        <div class="viewer" id="viewer"></div>
+        <div class="vbar"><span class="tc">0:24<span>.14</span></span><span class="sep"></span>
+          <button class="icon" data-ic="back"></button><button class="tp-play" data-ic="play"></button><button class="icon" data-ic="fwd"></button><button class="icon on" data-ic="loop"></button>
+          <span class="grow"></span><button class="icon" title="Grab still" data-ic="still"></button><button class="icon" title="Split screen" data-ic="split"></button>
+        </div>
+      </section>
+      <section class="panel gpanel leader-only">
+        <div class="ph"><span class="t">Nodes</span><span class="who">02 Plaza wide</span><span class="grow"></span>
+          <button class="icon" title="Copy grade" data-ic="copy"></button><button class="icon" title="Paste grade" data-ic="paste"></button><button class="icon" title="Reset grade" data-ic="reset"></button></div>
+        <div class="graph" id="graph"></div>
+      </section>
+      <section class="panel spanel">
+        <div class="ph"><span class="t">Clips</span><span class="who">3 of 8 graded</span><span class="grow"></span><button class="btn">Copy grade</button><button class="btn">Paste grade</button><button class="btn">Paste to all</button></div>
+        <div class="strip" id="strip"></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel stackpanel baby-only">
+        <div class="ph"><span class="t">Layers</span><span class="who">02 Plaza wide</span><span class="grow"></span>
+          <button class="icon" title="Copy grade" data-ic="copy"></button><button class="icon" title="Paste grade" data-ic="paste"></button><button class="icon" title="Reset grade" data-ic="reset"></button></div>
+        <div class="layers" id="layers"></div>
+        <div class="addrow"><button class="btn primary" data-add>+ Add</button><span class="hint" style="align-self:center">Top runs first.</span><div id="addhost"></div></div>
+      </section>
+      <section class="panel ctrl">
+        <div class="ph"><span class="t" id="who"></span><span class="grow"></span><span class="who" id="op"></span>
+          <button class="icon" title="Keyframe this correction" data-ic="diamond"></button><button class="icon" title="Reset this correction" data-ic="reset"></button></div>
+        <div class="acc" id="tools"></div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="tint-frame.js"></script>
+<script src="tint-shared.js"></script>
+<script>
+(function(){
+  var T=Tint;
+  document.getElementById('addhost').outerHTML=T.addMenu();
+  T.boot();
+  var layers=document.getElementById('layers'),graph=document.getElementById('graph'),tools=document.getElementById('tools');
+  T.wireLayers(layers);T.wireGraph(graph);T.renderViewer(document.getElementById('viewer'));T.renderStrip(document.getElementById('strip'));T.renderLooks(document.getElementById('looks'));
+
+  var main=document.getElementById('mainscope'),S={};
+  ['wave','parade','hist'].forEach(function(k){var d=document.createElement('div');d.className='scope';main.appendChild(d);S[k]=d;T.addScope(d,k);d.hidden=k!=='wave';});
+  var v=document.createElement('div');v.className='scope';document.getElementById('vecscope').appendChild(v);T.addScope(v,'vector');
+  document.querySelectorAll('[data-scope]').forEach(function(b){b.addEventListener('click',function(){var k=b.getAttribute('data-scope');
+    document.querySelectorAll('[data-scope]').forEach(function(x){x.classList.toggle('on',x===b);});Object.keys(S).forEach(function(n){S[n].hidden=n!==k;});T.paintScopes();});});
+
+  var open={basics:1,wheels:1,limit:1};
+  var SECS=[['basics','Basics','basics'],['wheels','Color wheels','wheels'],['curves','Curves','curves'],['limit','Limit to part of the picture','limit'],['luts','LUT and color space','luts'],['match','Match and balance','match']];
+  function renderTools(){
+    var n=T.cur(),sel=T.N[T.state.sel],word=T.state.mode==='leader'?'Node':'Layer';
+    document.getElementById('who').textContent=n?word+' '+n.no+' · '+n.name:sel.name;
+    document.getElementById('op').textContent=n?'opacity '+n.op+'%':'';
+    if(!n){tools.innerHTML='<div style="padding:12px">'+T.tools.groupInfo()+'</div>';return;}
+    var top=tools.scrollTop;
+    tools.innerHTML=SECS.map(function(s){var lit=(s[0]==='limit'&&n.limit)||(s[0]==='luts'&&n.lut)||(s[0]==='wheels'&&Object.keys(n.g.wheel).some(function(k){return n.g.wheel[k][0]||n.g.wheel[k][1];}));
+      return '<div class="sec'+(open[s[0]]?' open':'')+'" data-sec="'+s[0]+'"><h4>'+T.ico('chev','chev')+s[1]+(lit?'<span class="dot"></span>':'')+'<span class="grow"></span></h4><div class="bd">'+
+        (s[2]==='wheels'?T.tools.wheels(128):T.tools[s[2]]())+'</div></div>';}).join('');
+    tools.scrollTop=top;
+  }
+  T.wireTools(tools,renderTools);
+  tools.addEventListener('click',function(e){var h=e.target.closest('.sec>h4');if(h){var k=h.parentNode.getAttribute('data-sec');open[k]=!open[k];h.parentNode.classList.toggle('open',!!open[k]);}});
+  var cmp=document.getElementById('cmp');cmp.addEventListener('click',function(){T.state.compare=!T.state.compare;cmp.classList.toggle('on',T.state.compare);T.paintAll(true);});
+
+  T.painters.push(function(){T.renderLayers(layers);T.renderGraph(graph);});
+  T.on(function(){renderTools();T.paintAll();});
+  renderTools();T.paintAll();
+})();
+</script>
+</body>
+</html>

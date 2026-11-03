@@ -10,6 +10,13 @@ export interface ExportRange {
   duration: Micros;
 }
 
+/** A value at a moment of a segment; between two points it changes along a straight line. */
+export interface EnvelopePoint {
+  /** Counted from the segment's start in the export. */
+  at: Micros;
+  value: number;
+}
+
 /** One stretch of a file's sound on the export's clock (mirrors `SoundSegment` in Rust). */
 export interface SoundSegment {
   path: string;
@@ -24,6 +31,10 @@ export interface SoundSegment {
   gain?: number;
   /** -1 (left) to 1 (right). Missing is centre. */
   pan?: number;
+  /** Linear level over the segment, for a keyed volume. Replaces `gain`. */
+  gainEnvelope?: EnvelopePoint[];
+  /** Pan over the segment, for a keyed pan. Replaces `pan`. */
+  panEnvelope?: EnvelopePoint[];
   /** The bands that change the sound. */
   eq?: EqFilter[];
   /** Shift in semitones, keeping the length. */
@@ -34,6 +45,18 @@ export interface SoundSegment {
   keepPitch?: boolean;
   /** Plays its part of the file backwards. */
   reversed?: boolean;
+  /** A ramped clip's sound, as stretches of one tempo each. Replaces `speed`. */
+  tempoSteps?: TempoStep[];
+}
+
+/** A stretch of a ramped segment played at one tempo (mirrors `TempoStep` in Rust). */
+export interface TempoStep {
+  /** Where it starts in the file. */
+  from: Micros;
+  /** Its length in the export. */
+  duration: Micros;
+  /** How fast it plays: its part of the file over `duration`. */
+  speed: number;
 }
 
 /** What a file holds (mirrors `Format` in Rust). */

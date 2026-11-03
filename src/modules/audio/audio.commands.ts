@@ -5,6 +5,7 @@ import {
   partnersOf,
   projectRef,
   soundOf,
+  type Clip,
   type ClipId,
   type ClipSound,
   type ProjectState,
@@ -60,6 +61,25 @@ function stored(sound: ClipSound): ClipSound | undefined {
   return JSON.stringify(sound) === JSON.stringify(DEFAULT_SOUND) ? undefined : sound;
 }
 
+/** The sound paths of a patch that hold keys on a clip: those need a key, not a static value. */
+function animatedPaths(clip: Clip, patch: Partial<ClipSound>): string[] {
+  return ["volumeDb", "pan"]
+    .filter((key) => patch[key as "volumeDb" | "pan"] !== undefined)
+    .map((key) => `sound.${key}`)
+    .filter((path) => clip.animation?.[path] !== undefined);
+}
+
+/** Drops the keys of sound values (every one under `sound.`, or just `paths`) from a clip. */
+function dropKeys(clip: Clip, paths?: readonly string[]): void {
+  if (!clip.animation) return;
+  const kept = Object.entries(clip.animation).filter(([path]) =>
+    paths ? !paths.includes(path) : !path.startsWith("sound."),
+  );
+  if (kept.length === Object.keys(clip.animation).length) return;
+  if (kept.length > 0) clip.animation = Object.fromEntries(kept);
+  else delete clip.animation;
+}
+
 function write(target: { sound?: ClipSound }, sound: ClipSound): void {
   const next = stored(sound);
   if (next) target.sound = next;
@@ -71,12 +91,23 @@ export const setSound = defineCommand({
   id: "audio.setSound",
   label: "Change sound",
   description:
-    "Changes how clips sound: volumeDb (-60 to 12), pan (-1 left to 1 right), fadeIn and fadeOut (microseconds, kept within the clip), pitch { on, semitones, cents }, eq { on, bands } (always six: shape, hz, db, q, on). Passing the picture of a linked clip changes its sound clip. Fails with audio.no_sound. Set a whole pitch or eq object at a time.",
+    "Changes how clips sound: volumeDb (-60 to 12), pan (-1 left to 1 right), fadeIn and fadeOut (microseconds, kept within the clip), pitch { on, semitones, cents }, eq { on, bands } (always six: shape, hz, db, q, on). Passing the picture of a linked clip changes its sound clip. Fails with audio.no_sound. Set a whole pitch or eq object at a time. A volumeDb or pan that has keys fails with audio.animated: use keyframe_set to change it at a time, or audio_reset_sound to drop the keys.",
   undoable: true,
   input: z.object({ clipIds: z.array(z.string()).min(1), patch }),
   run(ctx, { clipIds, patch }) {
     const { store } = ctx.require(projectRef);
-    const ids = soundClips(store.getState(), clipIds);
+    const state = store.getState();
+    const ids = soundClips(state, clipIds);
+    for (const id of ids) {
+      const animated = animatedPaths(state.clips[id]!, patch);
+      if (animated.length > 0) {
+        throw new CommandFailure(
+          "audio.animated",
+          `${animated.join(", ")} of clip "${id}" has keys. Use keyframe_set to change it at a time.`,
+          { clipId: id, paths: animated },
+        );
+      }
+    }
     ctx.mutate(store, (draft) => {
       for (const id of ids) {
         const clip = draft.clips[id]!;
@@ -95,7 +126,7 @@ export const resetSound = defineCommand({
   id: "audio.resetSound",
   label: "Reset sound",
   description:
-    'Puts clips\' sound back as the file has it. Pass section ("volume", "pan", "fades", "pitch" or "eq") to reset that part only. Fails with audio.no_sound.',
+    'Puts clips\' sound back as the file has it. Pass section ("volume", "pan", "fades", "pitch" or "eq") to reset that part only. Keys of the reset values are removed too. Fails with audio.no_sound.',
   undoable: true,
   input: z.object({
     clipIds: z.array(z.string()).min(1),
@@ -109,7 +140,11 @@ export const resetSound = defineCommand({
         const clip = draft.clips[id]!;
         if (!section) {
           delete clip.sound;
+          dropKeys(clip);
           continue;
+        }
+        if (section === "volume" || section === "pan") {
+          dropKeys(clip, [`sound.${section === "volume" ? "volumeDb" : "pan"}`]);
         }
         const next = { ...soundOf(clip) } as Record<string, unknown>;
         for (const key of SECTIONS[section]!) next[key] = DEFAULT_SOUND[key];

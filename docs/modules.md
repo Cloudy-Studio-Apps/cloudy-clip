@@ -27,30 +27,31 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `core`    | The app can't exist without it. Loaded first.                                                  | core modules only     |
 | `feature` | Optional. Written only against public APIs (`index.ts`), exactly as a plugin would be written. | core and feature ones |
 
-| Module        | Tier    | Requires                                                                        | Owns                                                                                                |
-| ------------- | ------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `project`     | core    | —                                                                               | the document (compositions, media, tracks, clips), placement                                        |
-| `element`     | core    | `project`                                                                       | element declarations, shared groups, prop types, `element.setProps`                                 |
-| `junction`    | core    | `project`, `element`                                                            | junction kinds (what sits on a cut between two clips), registry                                     |
-| `fonts`       | core    | `element`                                                                       | font families (bundled, installed, Google), face loading                                            |
-| `media`       | core    | `project`, `element`                                                            | import, probes, proxies, library panel, the `media` element                                         |
-| `preview`     | core    | `project`, `element`, `junction`, `media`, `fonts`                              | playback clock, engine, viewer, preview panel, overlays                                             |
-| `timeline`    | core    | `project`, `element`, `junction`, `media`, `preview`                            | track and clip commands, `addElement`, create tiles, timeline panel                                 |
-| `composition` | core    | `project`, `element`, `media`, `timeline`                                       | composition commands and tools, dialog, Library section, timeline tabs, the `composition` element   |
-| `inspector`   | feature | `project`, `element`, `preview`, `timeline`, `junction`, `media`, `composition` | the right column, its tabs and sections, generated element panels, controls                         |
-| `transform`   | feature | `project`, `element`, `media`, `fonts`, `preview`, `timeline`                   | the `transform` shared group, `transform.reset`, canvas tools                                       |
-| `text`        | feature | `project`, `element`, `preview`, `timeline`, `transform`, `fonts`, `inspector`  | the `text` element, Text tab, presets, font controls, in-place editing                              |
-| `transition`  | feature | `project`, `element`, `junction`, `timeline`, `inspector`                       | the `transition` junction kind, the `transitionPresets` point, `transition.apply`                   |
-| `sticker`     | feature | `project`, `element`, `preview`, `timeline`, `transform`, `inspector`           | the `sticker` element, Stickers tab, `stickerPacks` and `stickerStyles`, `sticker.add`              |
-| `collab`      | feature | `project`, `preview`, `timeline`                                                | presence, access, the agent pointer and playhead, Follow                                            |
-| `audio`       | feature | `project`, `inspector`, `preview`, `timeline`                                   | how a clip sounds: volume, pan, fades, EQ, pitch, and the Audio tab                                 |
-| `speed`       | feature | `project`, `junction`, `media`, `timeline`, `preview`, `inspector`              | how fast a clip plays: `speed.set`, the box over the clip, the Speed section, Freeze frame, Reverse |
-| `solid`       | feature | `project`, `element`, `media`, `transform`                                      | solid colors and gradients: the element, library items with their smart bin, the dialog             |
-| `settings`    | feature | —                                                                               | the Settings window and the `settingsSections` point                                                |
-| `theme`       | feature | `settings`                                                                      | themes: the `themes` point, the user's choice, applying it, the Appearance section                  |
-| `tint`        | feature | —                                                                               | the Tint page, for colors, empty for now                                                            |
-| `sound`       | feature | —                                                                               | the Sound page, empty for now                                                                       |
-| `export`      | feature | `project`, `media`, `preview`, `workspace`                                      | the Export page and queue, turning a composition into a file                                        |
+| Module        | Tier    | Requires                                                                        | Owns                                                                                                       |
+| ------------- | ------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `project`     | core    | —                                                                               | the document (compositions, media, tracks, clips), placement                                               |
+| `element`     | core    | `project`                                                                       | element declarations, shared groups, prop types, `element.setProps`                                        |
+| `junction`    | core    | `project`, `element`                                                            | junction kinds (what sits on a cut between two clips), registry                                            |
+| `fonts`       | core    | `element`                                                                       | font families (bundled, installed, Google), face loading                                                   |
+| `media`       | core    | `project`, `element`                                                            | import, probes, proxies, library panel, the `media` element                                                |
+| `preview`     | core    | `project`, `element`, `junction`, `media`, `fonts`                              | playback clock, engine, viewer, preview panel, overlays                                                    |
+| `timeline`    | core    | `project`, `element`, `junction`, `media`, `preview`                            | track and clip commands, `addElement`, create tiles, timeline panel                                        |
+| `composition` | core    | `project`, `element`, `media`, `timeline`                                       | composition commands and tools, dialog, Library section, timeline tabs, the `composition` element          |
+| `inspector`   | feature | `project`, `element`, `preview`, `timeline`, `junction`, `media`, `composition` | the right column, its tabs and sections, generated element panels, controls                                |
+| `transform`   | feature | `project`, `element`, `media`, `fonts`, `preview`, `timeline`                   | the `transform` shared group, `transform.reset`, canvas tools                                              |
+| `text`        | feature | `project`, `element`, `preview`, `timeline`, `transform`, `fonts`, `inspector`  | the `text` element, Text tab, presets, font controls, in-place editing                                     |
+| `transition`  | feature | `project`, `element`, `junction`, `timeline`, `inspector`                       | the `transition` junction kind, the `transitionPresets` point, `transition.apply`                          |
+| `sticker`     | feature | `project`, `element`, `preview`, `timeline`, `transform`, `inspector`           | the `sticker` element, Stickers tab, `stickerPacks` and `stickerStyles`, `sticker.add`                     |
+| `collab`      | feature | `project`, `preview`, `timeline`                                                | presence, access, the agent pointer and playhead, Follow                                                   |
+| `audio`       | feature | `project`, `inspector`, `preview`, `timeline`, `keyframe`                       | how a clip sounds: volume, pan, fades, EQ, pitch, and the Audio tab                                        |
+| `keyframe`    | feature | `project`, `element`, `preview`, `inspector`, `timeline`                        | keys on a clip's values: `keyframe.*` commands, diamonds, the Keyframes and Curves panel, motion path      |
+| `speed`       | feature | `project`, `junction`, `media`, `timeline`, `preview`, `inspector`, `keyframe`  | how fast a clip plays: `speed.set`, the box over the clip, the Speed section, Freeze frame, Reverse, ramps |
+| `solid`       | feature | `project`, `element`, `media`, `transform`                                      | solid colors: the element, library items with their smart bin, the dialog                                  |
+| `settings`    | feature | —                                                                               | the Settings window and the `settingsSections` point                                                       |
+| `theme`       | feature | `settings`                                                                      | themes: the `themes` point, the user's choice, applying it, the Appearance section                         |
+| `tint`        | feature | —                                                                               | the Tint page, for colors, empty for now                                                                   |
+| `sound`       | feature | —                                                                               | the Sound page, empty for now                                                                              |
+| `export`      | feature | `project`, `media`, `preview`, `workspace`                                      | the Export page and queue, turning a composition into a file                                               |
 
 The built-in `history` module (undo/redo) lives in `src/core/history`.
 
@@ -177,6 +178,10 @@ it, so does the UI, and it becomes a command.
 | `inspectorTabs`     | `inspector`  | `{ id, label, icon, order, contextual? }`, available when a section lands in it        |
 | `inspectorSections` | `inspector`  | `{ id, tab, title, order, appliesTo?, bare?, component }`, add to any clip's panel     |
 | `fieldActions`      | `inspector`  | `{ id, order, appliesTo?, component }`, the end of a field's row                       |
+| `timelineTools`     | `timeline`   | `{ id, order, component }`, a control at the left of the toolbar                       |
+| `clipActions`       | `timeline`   | `{ id, doubleClick?, items?, badge? }`, a clip's double click, menu entries and badge  |
+| `timelineDocks`     | `timeline`   | `{ id, order?, component }`, a panel docked under the tracks                           |
+| `keyTargets`        | `keyframe`   | `{ id, fields(clip, track), afterWrite? }`, the values of a clip that can be keyed     |
 
 `side` panels become tabs of the left rail (`title` + `icon`). Keybindings always resolve to a
 command, so shortcuts, buttons and agents share one path.

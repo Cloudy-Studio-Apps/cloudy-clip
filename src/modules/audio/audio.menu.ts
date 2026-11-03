@@ -7,7 +7,13 @@ import { resetSound } from "./audio.commands";
 
 const hasSound = (state: ProjectState, id: ClipId) => {
   const clip = state.clips[id];
-  return clip !== undefined && [clip, ...partnersOf(state, id)].some((one) => one.sound);
+  return (
+    clip !== undefined &&
+    [clip, ...partnersOf(state, id)].some(
+      (one) =>
+        one.sound || Object.keys(one.animation ?? {}).some((path) => path.startsWith("sound.")),
+    )
+  );
 };
 
 /** Reset sound in a clip's menu, for clips whose sound was changed. */

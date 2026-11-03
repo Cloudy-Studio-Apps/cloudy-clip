@@ -45,7 +45,7 @@ bare?, component }`, for what isn't a property of an element, so any module can 
   in history (`inspector.view.store.ts`). `InspectorApi.recents`: the recent colors of every color field (`store` of `{ colors }`,
   `push(color)`), per kernel, saved in `localStorage` key `cloudy-clip.colors.recent` (max 12;
   `inspector.recents.store.ts`, `logic/recents.ts`). Exported for custom controls:
-  `usePropsLive(clip)`, `useClipAtPlayhead(clip)`, `FieldRow`, `InspectorSection`, `pathPatch`.
+  `PanelSubject` (a clip or a junction, what a panel is about), `usePropsLive(clip)`, `useClipAtPlayhead(clip)` (the clip with its keyed values at the playhead), `FieldRow`, `InspectorSection`, `pathPatch`.
 - **Files:** `ui/InspectorPanel.tsx` picks the view (`ProjectView`, `ClipView`, `MultiView`);
   `InspectorHeader` (project, junction and multi-select views; a clip shows no title) and `InspectorSection` (the band: `foldKey`, `leading` slot for a switch,
   `actions`, its fold state in `InspectorApi.view`) are shared by them; `InfoList` comes from `@/ui`.

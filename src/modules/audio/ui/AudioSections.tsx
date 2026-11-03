@@ -1,5 +1,5 @@
 import { microsToSeconds, secondsToMicros } from "@/core";
-import { InspectorSection, type InspectorContext } from "@/modules/inspector";
+import { InspectorSection, soundMember, type InspectorContext } from "@/modules/inspector";
 import { DEFAULT_SOUND } from "@/modules/project";
 import { Switch } from "@/ui";
 import { useSoundEdit } from "./sound.edit.hook";
@@ -11,11 +11,13 @@ const panSide = (pan: number) => (pan === 0 ? "C" : pan < 0 ? "L" : "R");
 
 /** Volume of the clip, in dB. */
 export function VolumeSection({ context }: { context: InspectorContext }) {
-  const { sound, live, commit, reset } = useSoundEdit(context);
-  if (!sound) return null;
+  const { sound, animated, live, commit, reset } = useSoundEdit(context);
+  const clip = soundMember(context)?.clip;
+  if (!sound || !clip) return null;
   return (
     <SoundRow
       label="Volume"
+      keys={{ clip, path: "sound.volumeDb", animated: animated("volumeDb") }}
       value={sound.volumeDb}
       min={-60}
       max={12}
@@ -31,11 +33,13 @@ export function VolumeSection({ context }: { context: InspectorContext }) {
 
 /** Where the sound sits, left to right. */
 export function PanSection({ context }: { context: InspectorContext }) {
-  const { sound, live, commit, reset } = useSoundEdit(context);
-  if (!sound) return null;
+  const { sound, animated, live, commit, reset } = useSoundEdit(context);
+  const clip = soundMember(context)?.clip;
+  if (!sound || !clip) return null;
   return (
     <SoundRow
       label="Pan"
+      keys={{ clip, path: "sound.pan", animated: animated("pan") }}
       value={Math.round(sound.pan * 100)}
       min={-100}
       max={100}

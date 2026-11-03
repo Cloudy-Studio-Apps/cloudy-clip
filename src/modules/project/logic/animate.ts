@@ -85,7 +85,8 @@ function withPath(
 /**
  * The clip as it is at a timeline time: every keyed value written in place, shared ones under
  * their own key and the rest in `props`. The saved clip is untouched; one with nothing keyed comes
- * back as itself. Shared values may come out partial (`clipTransform` fills in the rest).
+ * back as itself, and a track without keys is skipped. Shared values may come out partial
+ * (`clipTransform` fills in the rest).
  */
 export function animatedClip(clip: Clip, time: Micros): Clip {
   const entries = Object.entries(clip.animation ?? {});
@@ -94,6 +95,8 @@ export function animatedClip(clip: Clip, time: Micros): Clip {
   let result: Record<string, unknown> = { ...clip };
   let props: Record<string, unknown> = clip.props;
   for (const [path, track] of entries) {
+    // A track with no keys has no value; it's skipped rather than breaking the frame.
+    if (track.keys.length === 0) continue;
     const value = trackValue(track, t);
     if (track.shared) result = withPath(result, path.split("."), value);
     else props = withPath(props, path.split("."), value);

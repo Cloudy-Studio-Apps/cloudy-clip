@@ -87,7 +87,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   - **Split:** a junction on a split clip's end moves to its right half; one on its start stays
     on the left half (same id). Inside an overlap: `junction.split_in_overlap` with `clipIds`;
     without them, those clips and their partners stay whole and the rest are split.
-  - **Keys:** a clip's keys sit on its picture (`Clip.animation` in content time, `animationOrigin`). A start trim (`clampTrim`) moves `animationOrigin` to the content time at the new start, so every key stays on the same frame; an end trim changes nothing. A split gives both halves a copy of the curve, and the right half an origin at the cut. `speed.freezeFrame` shares `splitClips` and gets the same.
+  - **Keys:** a clip's keys sit on its picture (`Clip.animation` in content time, `animationOrigin`). A start trim (`clampTrim`) moves `animationOrigin` to the content time at the new start, so every key stays on the same frame; an end trim changes nothing. On a speed ramp (`Clip.animation["speed.rate"]`) `clampTrim`'s file limits come from the ramp, and an end trim plays more or less of it, without `afterWrite`. A split gives both halves a copy of the curve, and the right half an origin at the cut. `speed.freezeFrame` shares `splitClips` and gets the same.
   - **Delete:** the junctions of deleted clips go too; nothing shifts. The result adds
     `removedJunctions`.
   - **Remove track:** `timeline.removeTrack` also removes the junctions of the track's clips and
