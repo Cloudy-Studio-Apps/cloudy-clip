@@ -6,14 +6,17 @@ import { previewRef } from "../preview.ref";
 /** Space kept around the frame when it fits the stage, in px. */
 const STAGE_PADDING = 20;
 
+/** The wider inset of a bare stage, which leaves room for the field guide's corners. */
+const BARE_PADDING = 22;
+
 /** The frame fitted to the stage, centred. */
 const FITTED = { zoom: 1, panX: 0, panY: 0 };
 
 /**
  * Sizes and places the frame from the stage size, the project format and the viewer's zoom and
  * pan. The canvas backing store matches the displayed size × device pixel ratio, capped at the
- * project resolution, so it is sharp without wasting fill rate. Without `followViewport` the frame
- * just fits the stage.
+ * project resolution, so it is sharp without wasting fill rate. Without `followViewport` (a bare
+ * stage) the frame just fits the stage, 22 px in from its edges.
  */
 export function useStageLayout(
   stageRef: RefObject<HTMLDivElement | null>,
@@ -31,8 +34,9 @@ export function useStageLayout(
     if (!stage || !frame || !canvas) return;
 
     const layout = () => {
-      const width = stage.clientWidth - STAGE_PADDING * 2;
-      const height = stage.clientHeight - STAGE_PADDING * 2;
+      const padding = followViewport ? STAGE_PADDING : BARE_PADDING;
+      const width = stage.clientWidth - padding * 2;
+      const height = stage.clientHeight - padding * 2;
       if (width <= 0 || height <= 0) return;
       const { zoom, panX, panY } = followViewport ? preview.viewport.store.getState() : FITTED;
       const fit = Math.min(width / format.width, height / format.height);

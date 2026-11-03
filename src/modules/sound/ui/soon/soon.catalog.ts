@@ -10,7 +10,7 @@ export const SOON: Record<SoonId, SoonEntry> = {
   "transport.cut": {
     id: "transport.cut",
     label: "Cut",
-    what: "A blade: cuts a clip where you click it.",
+    what: "A blade: cuts a clip where you click it. To cut at the playhead now: Split on the timeline's toolbar, or S.",
     stage: 3,
   },
   "transport.fade": {

@@ -1,51 +1,31 @@
-import { useStore } from "zustand";
-import { useKernel, useModule } from "@/core";
-import { PlayButton, previewRef, Timecode } from "@/modules/preview";
-import { playheadSplit, splitAt, timelineRef } from "@/modules/timeline";
+import { Timecode } from "@/modules/preview";
 import { LoopToggle } from "./LoopToggle";
 import { MixSwitch } from "./MixSwitch";
 import { MonitorControls } from "./MonitorControls";
+import { PlaybackButtons } from "./PlaybackButtons";
+import { PointerTools } from "./PointerTools";
+import { QuickTools } from "./QuickTools";
 import { RecordButton } from "./RecordButton";
 import { TransportSeparator } from "./TransportSeparator";
-import { TransportTool } from "./TransportTool";
 
 /**
- * The Sound page's transport row: the time and play, Loop, Record, Cut at the playhead and Snap,
- * Mix A and B, and how the user listens. Select joins when there is a second pointer tool to choose from.
+ * The Sound page's transport row, in the prototype's order: the time, Back, Play and Stop, Record
+ * and Loop; the pointer tools and Snap; the quick tools; then Mix A and B and how the user
+ * listens. A narrow window clips it at the right.
  */
 export function SoundTransport() {
-  const { bus } = useKernel();
-  const { playback } = useModule(previewRef);
-  const timeline = useModule(timelineRef);
-  const snaps = useStore(timeline.view, (s) => !s.unsnapped.includes("sound"));
-
   return (
     <div className="flex min-w-0 items-center gap-0.5 overflow-hidden border-b border-border-strong bg-surface px-3">
       <span className="mr-3 shrink-0">
-        <Timecode />
+        <Timecode compact />
       </span>
-      <PlayButton />
-      <LoopToggle />
+      <PlaybackButtons />
       <RecordButton />
+      <LoopToggle />
       <TransportSeparator />
-      <TransportTool
-        title="Cut at the playhead (S)"
-        onClick={() =>
-          void bus.run(
-            splitAt,
-            playheadSplit(playback.getTime(), timeline.view.getState().selection),
-          )
-        }
-      >
-        Cut
-      </TransportTool>
-      <TransportTool
-        pressed={snaps}
-        title={snaps ? "Snapping on: drags snap to edges, cuts and the playhead" : "Snapping off"}
-        onClick={() => timeline.setSnap("sound", !snaps)}
-      >
-        Snap
-      </TransportTool>
+      <PointerTools />
+      <TransportSeparator />
+      <QuickTools />
       <span className="min-w-0 flex-1" />
       <MixSwitch />
       <TransportSeparator />

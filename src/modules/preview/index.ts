@@ -38,7 +38,8 @@ export type {
 
 /**
  * Pieces of the preview for a page of its own: the stage with the frame (`bare` for a small one
- * with no canvas tools; only the newest mounted stage is drawn on), play/pause, and the timecode.
+ * with the field guide and no canvas tools; only the newest mounted stage is drawn on),
+ * play/pause, and the timecode (`compact` for the time alone, hundredths muted).
  */
 export { PlayButton, PreviewStage, Timecode } from "./ui";
 

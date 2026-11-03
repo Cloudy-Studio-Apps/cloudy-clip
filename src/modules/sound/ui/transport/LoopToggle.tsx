@@ -1,13 +1,14 @@
+import { Repeat } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { useKernel, useModule } from "@/core";
 import { previewRef, setLoop } from "@/modules/preview";
 import { frameDuration, projectRef, useOpenComposition } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
+import { cn, IconButton } from "@/ui";
 import { loopAround } from "../../logic/loop";
-import { TransportTool } from "./TransportTool";
 
 /**
- * Loop in the transport row: on, it loops the selected clips (the whole composition when none is
+ * Loop in the transport row, an icon drawn in `--on` while on: on, it loops the selected clips (the whole composition when none is
  * selected); off, it clears the loop. The ends are moved on the ruler.
  */
 export function LoopToggle() {
@@ -19,11 +20,12 @@ export function LoopToggle() {
   const loop = useSyncExternalStore(playback.onLoopChange, playback.getLoop);
 
   return (
-    <TransportTool
-      pressed={loop !== null}
+    <IconButton
+      aria-pressed={loop !== null}
+      className={cn(loop && "!text-on not-aria-disabled:hover:!text-on")}
       // Nothing a frame long to loop yet.
       disabled={!loop && (!composition || composition.duration < frameDuration(composition.format))}
-      title={
+      label={
         loop
           ? "Looping: drag its ends on the ruler. Click to stop looping"
           : "Loop the selected clips, or the whole timeline when none is selected"
@@ -36,7 +38,7 @@ export function LoopToggle() {
         void bus.run(setLoop, { range });
       }}
     >
-      Loop
-    </TransportTool>
+      <Repeat />
+    </IconButton>
   );
 }

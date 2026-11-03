@@ -113,7 +113,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   - `preview.controller.ts`: wires clock, engine, project and media (injected, so it runs in
     node). It draws the composition the user has open (`project`'s `view`); an agent's clock runs on the length of its own open composition, and `captureAt(time, compositionId)` draws any composition. `logic/playheads.ts`: each composition keeps its playhead and its loop, restored on a switch (a remembered loop that no longer fits is cleared). Renders every frame while playing, on demand while paused.
   - `preview.viewport.ts`: viewer zoom/pan state (view only, not undoable).
-  - `ui/`: `PreviewStage` (exported, with `PlayButton` and `Timecode`, for a page of its own; `bare`: no overlays, so no canvas tools, and fitted, ignoring and not changing the viewer's zoom and pan) (frame + overlays, placed imperatively by `stage.layout.hook.ts`;
+  - `ui/`: `PreviewStage` (exported, with `PlayButton` and `Timecode`, for a page of its own; `bare`: no overlays, so no canvas tools, and fitted 22 px in from the stage's edges, ignoring and not changing the viewer's zoom and pan, with `FieldGuide` drawn over the frame itself; `Timecode compact`: the time alone, `mm:ss` with `.cc` muted in `--subtle-foreground`, both written through the DOM on each tick, and no length) (frame + overlays, placed imperatively by `stage.layout.hook.ts`;
     Ctrl/Cmd + wheel zooms at the pointer, wheel and middle-drag pan via
     `stage.navigation.hook.ts`), `Transport` (`Timecode`, `PlayButton`, `ViewerZoom`).
   - Native (`src-tauri/src/webview`, Linux): WebKitGTK 2.54 repainted only part of the canvas

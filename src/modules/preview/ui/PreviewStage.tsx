@@ -2,13 +2,15 @@ import { useEffect, useRef } from "react";
 import { ErrorBoundary, useModule, usePoint } from "@/core";
 import { previewOverlays } from "../preview.points";
 import { previewRef } from "../preview.ref";
+import { FieldGuide } from "./FieldGuide";
 import { useStageLayout } from "./stage.layout.hook";
 import { useStageNavigation } from "./stage.navigation.hook";
 
 interface PreviewStageProps {
   /**
-   * Only the picture, fitted: no overlays (so no canvas tools), and the viewer's zoom and pan
-   * neither apply nor change. For a page's own small preview.
+   * Only the picture, fitted 22 px in from the edges, with the field guide over it: no overlays
+   * (so no canvas tools), and the viewer's zoom and pan neither apply nor change. For a page's
+   * own small preview.
    */
   bare?: boolean;
 }
@@ -46,6 +48,11 @@ export function PreviewStage({ bare = false }: PreviewStageProps) {
           ref={canvasRef}
           className="block size-full bg-black shadow-[0_0_0_1px_var(--border-strong)]"
         />
+        {bare && (
+          <div className="pointer-events-none absolute inset-0">
+            <FieldGuide />
+          </div>
+        )}
         {!bare &&
           overlays.map(({ id, component: Overlay }) => (
             <div key={id} className="pointer-events-none absolute inset-0">
