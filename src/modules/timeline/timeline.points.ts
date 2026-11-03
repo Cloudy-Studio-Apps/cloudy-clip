@@ -5,6 +5,7 @@ import type {
   TimelineMenuItems,
   TimelineDock,
   TimelineOverlay,
+  TimelineSnapTarget,
   TimelineTabs,
   TimelineTool,
 } from "./timeline.types";
@@ -37,6 +38,11 @@ export const clipActions = definePoint<ClipActions>("timeline.clipActions", {
 /** Tools at the left of the timeline's toolbar, by `order`. The toolbar reads them. */
 export const timelineTools = definePoint<TimelineTool>("timeline.tools", {
   keyOf: (tool) => tool.id,
+});
+
+/** Times that moves, trims and the ruler scrub snap to (markers). The timeline reads them. */
+export const timelineSnapTargets = definePoint<TimelineSnapTarget>("timeline.snapTargets", {
+  keyOf: (target) => target.id,
 });
 
 /** Strips under the tracks. The timeline panel reads them. */

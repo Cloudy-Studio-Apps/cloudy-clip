@@ -23,6 +23,7 @@ import { inScope } from "../logic/scope";
 import { ClipBody } from "./ClipBody";
 import { gestureMode, startClipGesture } from "./clip.gesture";
 import { useTimelineScope } from "./scope.hook";
+import { useSnapCandidates } from "./snap.hook";
 
 interface TimelineClipProps {
   clip: Clip;
@@ -55,6 +56,7 @@ export const TimelineClip = memo(function TimelineClip({
   const { playback } = useModule(previewRef);
   const media = useModule(mediaRef);
   const { bus } = useKernel();
+  const snapCandidates = useSnapCandidates();
   const ref = useRef<HTMLDivElement>(null);
   const selected = useStore(timeline.view, (s) => s.selection.includes(clip.id));
   const shift = useStore(timeline.view, (s) => s.cutPreview?.shifts[clip.id] ?? 0);
@@ -135,6 +137,7 @@ export const TimelineClip = memo(function TimelineClip({
             project,
             kindOf: (kind) => junctions.get(kind)?.definition,
             soundOnly: scope === "sound",
+            snapCandidates,
           });
         }}
       >

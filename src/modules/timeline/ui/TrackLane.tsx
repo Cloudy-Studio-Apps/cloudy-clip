@@ -7,12 +7,13 @@ import { previewRef } from "@/modules/preview";
 import { cn } from "@/ui";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime } from "../logic/geometry";
-import { snapCandidates, snapTime } from "../logic/placement";
+import { snapTime } from "../logic/placement";
 import { SNAP_PX, trackHeight } from "../timeline.layout";
 import { useTrackChips } from "../junction.display";
 import { CutPreviewMark } from "./CutPreviewMark";
 import { JunctionChip } from "./JunctionChip";
 import { TimelineClip } from "./TimelineClip";
+import { useSnapCandidates } from "./snap.hook";
 
 interface TrackLaneProps {
   track: Track;
@@ -43,6 +44,7 @@ export const TrackLane = memo(function TrackLane({
   const { playback } = useModule(previewRef);
   const timeline = useModule(timelineRef);
   const ref = useRef<HTMLDivElement>(null);
+  const snapCandidates = useSnapCandidates();
   const allChips = useTrackChips(track.id);
   const cutPreview = useStore(timeline.view, (s) =>
     s.cutPreview?.cut.trackId === track.id ? s.cutPreview : null,
@@ -73,7 +75,16 @@ export const TrackLane = memo(function TrackLane({
     };
     lane.addEventListener(MEDIA_DROP, onDrop);
     return () => lane.removeEventListener(MEDIA_DROP, onDrop);
-  }, [playback, project, pxPerSecond, timeline, track.compositionId, track.id, track.kind]);
+  }, [
+    playback,
+    project,
+    pxPerSecond,
+    snapCandidates,
+    timeline,
+    track.compositionId,
+    track.id,
+    track.kind,
+  ]);
 
   return (
     <div
