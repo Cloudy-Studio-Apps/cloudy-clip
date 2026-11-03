@@ -4,11 +4,12 @@ Bookmarks on a composition's timeline: small colored flags in the ruler, each wi
 
 - **Tier:** feature
 - **Requires:** `project`, `timeline`, `preview`
-- **Contributes:** keybindings `marker.add` (M), `marker.next` (Shift+M), `marker.previous` (Ctrl/Cmd+Shift+M); `timelineSnapTargets` `marker.times`; `timelineOverlays` `marker.flags`
+- **Contributes:** keybindings `marker.add` (M), `marker.next` (Shift+M), `marker.previous` (Ctrl/Cmd+Shift+M); `timelineSnapTargets` `marker.times`; `timelineOverlays` `marker.flags`; `timelineMenuItems` `marker.menu` (Add marker here, where you right-clicked a lane; Add marker at playhead); `clipActions` `marker.clipMenu` (Add marker at playhead, in the timing group)
 - **Points it owns:** —
 - **API** (`useModule(markerRef)`): `ui`, the view state: `lastColor` (what a new marker takes) and `editing` (the marker whose editor is open)
 - **Files:**
   - `marker.commands.ts`: the commands below. Markers live in the document (`ProjectState.markers`, one record each, so the user's and an agent's markers undo on their own). `project` declares the type and validates that a marker's composition exists; `composition` deletes and copies a composition's markers with it.
+  - `marker.menu.ts`: the right-click entries of the timeline and of clips.
   - `marker.keys.ts`: the keybindings. The jumps resolve to `preview.seek`.
   - `logic/markers.ts`: the colors' hex values (fixed: a marker's color is the user's label, not chrome), next/previous, frame flooring.
   - `ui/`: `MarkerFlags` (the overlay), `MarkerFlag` (one flag: click seeks, drag moves, double-click edits, right-click removes), `flag.gesture.ts`, `MarkerEditor` (note and color).

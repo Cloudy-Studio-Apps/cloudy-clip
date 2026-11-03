@@ -97,6 +97,7 @@ export type {
   TimelineDrop,
   TimelineDock,
   TimelineDropHandler,
+  TimelineMenuItems,
   TimelineOverlay,
   TimelineSnapTarget,
   SnapCandidates,

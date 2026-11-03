@@ -1,10 +1,16 @@
 import { defineModule, keybindings } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { compositionMarkers, projectRef } from "@/modules/project";
-import { timelineOverlays, timelineSnapTargets } from "@/modules/timeline";
+import {
+  clipActions,
+  timelineMenuItems,
+  timelineOverlays,
+  timelineSnapTargets,
+} from "@/modules/timeline";
 import { markerCommands } from "./marker.commands";
 import { markerKeys } from "./marker.keys";
 import { markerMcpTools } from "./marker.mcp";
+import { markerMenus } from "./marker.menu";
 import { markerRef } from "./marker.ref";
 import { createMarkerUi } from "./marker.store";
 import { MarkerFlags } from "./ui";
@@ -25,6 +31,9 @@ export const markerModule = defineModule({
       id: "marker.times",
       times: (state, compositionId) => compositionMarkers(state, compositionId).map((m) => m.time),
     });
+    const menus = markerMenus(ctx.bus, project, ui);
+    ctx.contribute(timelineMenuItems, menus.timeline);
+    ctx.contribute(clipActions, menus.clip);
     ctx.contribute(timelineOverlays, { id: "marker.flags", component: MarkerFlags });
     return { api: { ui } };
   },
