@@ -57,6 +57,8 @@ export {
  * `SNAP_PX` is how near, in px, a drag must come to a target to snap to it.
  */
 export { HEADER_WIDTH, RULER_HEIGHT, SNAP_PX } from "./timeline.layout";
+/** The height of a track's lane by kind, in px, for an overlay that draws a lane of its own. */
+export { trackHeight } from "./timeline.layout";
 /**
  * The width of the track header column in px, as a hook: where time 0 starts in the timeline's
  * content. A timeline overlay positions itself with it, not with `HEADER_WIDTH`, which is only
@@ -77,6 +79,11 @@ export { pxToTime, timeToPx } from "./logic/geometry";
  * selected. For a page's own Cut, so it splits exactly as S and the toolbar do.
  */
 export { playheadSplit } from "./logic/split";
+/**
+ * The name `timeline.addTrack` gives a new track (`Audio 3`), or with a `base` the first free
+ * `<base> n` (`Voice 1`), for a module that adds its own kind of track.
+ */
+export { nextTrackName } from "./logic/naming";
 /** Snaps a time to the closest candidate within a threshold. */
 export { snapTime } from "./logic/placement";
 /** What drags snap to (clip edges, cuts, the playhead and `timelineSnapTargets`), as a hook. */

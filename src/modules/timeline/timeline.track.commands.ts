@@ -9,6 +9,7 @@ import {
   type ProjectState,
   type TrackKind,
 } from "@/modules/project";
+import { nextTrackName } from "./logic/naming";
 import { requireTrack } from "./timeline.guards";
 
 /** Where a new track may go: video stays above the first audio track, audio below the last video. */
@@ -24,12 +25,6 @@ function placeOf(
     return Math.min(index ?? 0, firstAudio === -1 ? kinds.length : firstAudio);
   }
   return Math.max(index ?? kinds.length, kinds.lastIndexOf("video") + 1);
-}
-
-function nextTrackName(state: ProjectState, compositionId: string, kind: TrackKind): string {
-  const base = kind === "video" ? "Video" : "Audio";
-  const count = orderedTracks(state, compositionId).filter((t) => t.kind === kind).length;
-  return `${base} ${count + 1}`;
 }
 
 /** Adds an empty track at `index`; without one, video goes on top and audio at the bottom. Video always stays above audio. */

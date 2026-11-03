@@ -20,7 +20,8 @@ const reason = (error: unknown) => toAppError(error).message.replace(/\.$/, "");
  * The recorder of one kernel: the microphone (`openCapture`) into a WAV in `Recordings` beside
  * the project (`sound_record_begin` / `sound_record_write`, a quarter of a second at a time). On
  * stop the file is read (`media.prepareFile`) outside the bus, then placed with
- * `sound.placeRecording`. The take starts where playback starts and runs on past the
+ * `sound.placeRecording`: onto the armed track, or onto a new Voice track made in the same undo
+ * step (then armed) when the take started with none. The take starts where playback starts and runs on past the
  * composition's end. The loop is off while it records (playback runs on through its end) and set
  * again after; audio scrub is silenced while the microphone is open. Failures are told with the
  * file's path, so a take is never lost silently.
@@ -91,11 +92,17 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     return path === null ? workspace.folder() : folderOf(path);
   };
 
-  async function start(trackId: TrackId): Promise<void> {
+  async function start(trackId: TrackId | null): Promise<void> {
     if (take) return;
-    const track = project.store.getState().tracks[trackId];
-    if (!canArm(track)) {
-      notify("error", "Recording goes onto an audio track that isn't muted. Arm one first.");
+    const track = trackId === null ? undefined : project.store.getState().tracks[trackId];
+    if (trackId !== null && !canArm(track)) {
+      notify("error", "Recording goes onto an audio track that isn't muted.");
+      return;
+    }
+    // Without a track, the take goes onto a new Voice track in the open composition.
+    const compositionId = track?.compositionId ?? project.view.openFor(LOCAL_ACTOR);
+    if (compositionId === null) {
+      notify("error", "Open a composition to record into.");
       return;
     }
     const t: LiveTake = {
@@ -104,7 +111,7 @@ export function createRecorder(deps: RecorderDeps): Recorder {
       keeping: false,
       ending: false,
       finishing: null,
-      compositionId: track.compositionId,
+      compositionId,
       loop: null,
       releaseScrub: preview.holdScrub(),
       capture: null,
@@ -184,8 +191,14 @@ export function createRecorder(deps: RecorderDeps): Recorder {
     });
     if (probe === null) return;
     if (probe?.status !== "ready") return unplaced(probe?.error ?? "its length couldn't be read");
-    const placed = await bus.run(placeRecording, { trackId: t.trackId, path, at: t.at });
-    if (!placed.ok) unplaced(reason(placed.error));
+    const onto = t.trackId === null ? { compositionId: t.compositionId } : { trackId: t.trackId };
+    const placed = await bus.run(placeRecording, { ...onto, path, at: t.at });
+    if (!placed.ok) return unplaced(reason(placed.error));
+    if (t.trackId === null) {
+      // The new Voice track: the take stays drawn on its lane until it ends, and it's armed.
+      state.setState({ trackId: placed.value.trackId });
+      view.setState({ armed: placed.value.trackId });
+    }
   }
 
   function stop({ pause: pauseToo = true }: { pause?: boolean } = {}): Promise<void> {

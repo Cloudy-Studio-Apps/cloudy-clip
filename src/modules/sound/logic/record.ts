@@ -14,6 +14,9 @@ export const RECORDING_CHECKED: Readonly<Record<RecordPlatform, boolean>> = {
   android: false,
 };
 
+/** What a new track for a take is called, numbered as `timeline` numbers tracks: `Voice 1`, `Voice 2`… */
+export const VOICE_TRACK = "Voice";
+
 /** The platform a webview's user agent names. */
 export function platformOf(userAgent: string): RecordPlatform {
   if (/Android/i.test(userAgent)) return "android";
@@ -41,6 +44,12 @@ export function takeStem(date: Date): string {
   const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   const time = `${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
   return `Recording ${day} ${time}`;
+}
+
+/** How long a take has run, as `mm:ss` (minutes go on past 59). */
+export function formatElapsed(micros: number): string {
+  const seconds = Math.max(0, Math.floor(micros / 1_000_000));
+  return `${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`;
 }
 
 /** Samples from -1..1 as 16-bit integers, clipped, and their peak (linear). */

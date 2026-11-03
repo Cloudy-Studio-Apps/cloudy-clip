@@ -45,7 +45,7 @@ export interface SoundApi {
   setExpanded(expanded: boolean): void;
   /** Arms a track for recording, or none. Refused (nothing changes) while a take is recorded. */
   arm(trackId: TrackId | null): void;
-  /** Records the microphone onto the armed track. */
+  /** Records the microphone onto the armed track, or onto a new Voice track when none is armed. */
   recorder: Recorder;
 }
 
@@ -83,6 +83,10 @@ export interface TakeWritten {
 export interface RecorderState {
   /** `starting`: opening the microphone and the file; `stopping`: writing the end and placing it. */
   status: "idle" | "starting" | "recording" | "stopping";
+  /**
+   * The track the take goes onto. Null while idle, and during a take onto a new Voice track until
+   * it's placed (the track is made with the take, in its undo step).
+   */
   trackId: TrackId | null;
   /** Where the take starts on the timeline. */
   at: Micros;
@@ -91,8 +95,12 @@ export interface RecorderState {
 /** Records the microphone into a WAV beside the project and places it as a clip. One take at a time. */
 export interface Recorder {
   state: StoreApi<RecorderState>;
-  /** Opens the microphone, starts playback and records onto `trackId`. Tells the user when it can't. */
-  start(trackId: TrackId): Promise<void>;
+  /**
+   * Opens the microphone, starts playback and records onto `trackId`, or with `null` onto a new
+   * Voice track at the bottom of the open composition (made when the take is placed, then armed).
+   * Tells the user when it can't.
+   */
+  start(trackId: TrackId | null): Promise<void>;
   /**
    * Stops the take and places it (`sound.placeRecording`), or tells the user why not, naming the
    * file. While a stop is under way, returns that one, so a caller can wait for the placement.
@@ -120,7 +128,8 @@ export interface RecorderDeps {
 
 /** A take as the recorder keeps it. */
 export interface LiveTake {
-  trackId: TrackId;
+  /** Null: onto a new Voice track, made when the take is placed. */
+  trackId: TrackId | null;
   at: Micros;
   /** Samples are kept (after playback started) until the take stops. */
   keeping: boolean;
