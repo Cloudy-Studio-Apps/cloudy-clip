@@ -23,6 +23,7 @@ Which project is open and where it lives: the start dialog, saving and autosave,
   - Before another project opens, and on window close, pending changes are written. If that fails, opening is refused with `workspace.save_failed`, and closing asks for a second try.
   - A project with no clips opens on Media, any other on Edit. Only the local actor moves the page: an agent's `workspace_open` leaves the user where they are.
   - The start dialog closes when an empty project gets content, so an agent's work isn't hidden behind it.
+  - New, open, save, save as and rename can't be undone but do change the project, so their tools set `writes`: an agent on view only is refused.
 - **Not yet:** opening a file from the OS, several windows, deleting project files.
 
 | Command                    | MCP tool                    | Notes                                                                               |

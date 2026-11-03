@@ -27,11 +27,11 @@ const get = defineMcpTool({
 
 export const workspaceMcpTools = [
   get,
-  commandTool(newProject, { name: "workspace_new" }),
-  commandTool(openProject, { name: "workspace_open" }),
-  commandTool(saveProject, { name: "workspace_save" }),
-  commandTool(saveProjectAs, { name: "workspace_save_as" }),
-  commandTool(renameProject, { name: "workspace_rename" }),
+  commandTool(newProject, { name: "workspace_new", writes: true }),
+  commandTool(openProject, { name: "workspace_open", writes: true }),
+  commandTool(saveProject, { name: "workspace_save", writes: true }),
+  commandTool(saveProjectAs, { name: "workspace_save_as", writes: true }),
+  commandTool(renameProject, { name: "workspace_rename", writes: true }),
   commandTool(setDescription, { name: "workspace_set_description" }),
   commandTool(listRecent, { name: "workspace_list_recent" }),
 ];
