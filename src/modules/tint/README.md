@@ -1,10 +1,21 @@
 # tint
 
-The Tint page, a tab between Edit and Sound, where colors will be edited and adjusted. It is empty for now, so the seal draws itself over "Tint isn't mixed yet".
+The Tint page, a tab between Edit and Sound, where colors are graded: corrections stored once as a graph, shown as layers (**Baby Seal**) or as nodes (**Leader Seal**), with Basics, wheels, curves, Color mix, Warper, Creative, limits, LUTs, Match and the RGB mixer, scopes beside them and the clips below. **For now the whole page is drawn from demo data** (`ui/demo/`): it shows every tab, but nothing on it reads or edits the project. The design is `docs/superpowers/specs/2026-11-03-tint-page-design.md`, the plan `docs/superpowers/plans/2026-11-03-tint.md`, the picture `docs/prototype/designs/tint-d-studio.html`.
 
 - **Tier:** feature
-- **Requires:** nothing
-- **Contributes:** page `tint.page` (`appPages`, icon `Palette`)
-- **API:** none
-- **Files:** `ui/TintPage.tsx`: the page.
-- **Not yet:** anything on the page.
+- **Requires:** nothing yet
+- **Contributes:** page `tint.page` (`TINT_PAGE`; `appPages`, icon `Palette`); top bar item `tint.sealSwitch` (`topBarItems`, right: Baby Seal | Leader Seal, drawn only while the Tint page is open)
+- **Points it owns:** none yet (`tintLooks` comes with looks)
+- **API** (`TintApi`, per kernel): `view` (`TintView`: the seal mode, the open tool, the wheels mode, the grade level, the scope, the curve, the left tab, the selected layer, the Color mix family, and the viewer toggles; never in history)
+- **Files:**
+  - `tint.store.ts`: `createTintView()`. `tint.layout.ts`: `TINT_LAYOUT`, the page's sizes from the mockup. `tint.types.ts`: every type.
+  - `logic/`: `graph.ts` (`nodeBox`, `inPort`, `outPort`, `GRAPH_ENDS`), `wires.ts` (`wirePath`), `scopes.ts` (`luma`, `histogram`, `chroma`), `color/curves.ts` (`monotoneCurve`, Fritsch–Carlson, and `curvePath`).
+  - `ui/TintPage.tsx`: layout D. Panels float on the table: `GradePanel` and `Viewer` on top (the grade panel widens in Leader Seal), `ClipStrip`, then `ToolsPanel` and `ScopesPanel`. `TintPanel` is the card with a header row; `PanelNote`, `HeaderGap`, `HeaderRule`, `InfoTip` fill headers. `view.hook.ts` (`useTintView`) and `view.set.hook.ts` (`useTintSet`) read and change `view`.
+  - Grade: `GradePanel` (Layers or Nodes, Looks), `LayerList` with `LayerRow`, `GroupRow`, `SealedCard` (wired in Leader Seal, values kept editable when expanded), `LayerChip`, `LayerThumb`, `FlowLabel`, `AddMenu`; `NodeGraph` with `NodeBox` and `node.menu.ts` (right-click); `looks/LooksTab`, `looks/LookCard`.
+  - Viewer: `Viewer` (clean viewer fills the window, Esc leaves), `ViewerBar` (before/after, side by side, bypass, sample points, false color, clip warning, guides, color space, zoom, clean viewer), `ViewerFrame` with `FrameTag`, `FalseColorFilter` (an SVG stand-in), `FalseColorLegend`, `GuidesOverlay`, `SamplePoints`, and `ViewerTransport`.
+  - Clips: `ClipStrip`, `ClipCard`, `TimelineOverview`, `LevelSwitch` (this clip, shot group, whole timeline), `VersionMenu`, `PastePartMenu`.
+  - Tools: `ToolsPanel`, `ToolRail`, `ToolHeader`; `tools/tools.registry.ts` (`TOOLS`: id, name, tip, key, icon, body) and one file per tool: `BasicsTool`, `WheelsTool` (with `ColorWheel`, `WheelBars`), `CurvesTool` (`CurveEditor`), `ColorMixTool`, `WarperTool` (`WarperGrid`), `CreativeTool`, `LimitTool` (`RangeBar`), `LutTool`, `MatchTool`, `MixerTool`; shared `ToolColumns`, `ToolColumn`, `DemoSliders`, `ToggleLine`, `QuickButton`.
+  - Scopes: `scopes/ScopesPanel`, `scopes/ScopeCanvas` (redrawn on resize, never per frame), `scopes/scope.draw.ts`, `scopes/pixels.hook.ts` (the demo frame's pixels).
+  - `ui/demo/`: the demo grade (`DEMO_STACK`, `DEMO_NODES`, `DEMO_WIRES`, `DEMO_REGIONS`), clips and looks, tool values, and the demo pictures. Deleted once the grade lives in `project`.
+- **Bit depth:** grading (being built, see the plan) works on 8-bit pictures, in the preview and in export, which is what the app decodes today. TODO: support 10-bit and 16-bit sources (camera log footage), at least for export, so heavy grades don't band. See the design's "Decisions after review".
+- **Not yet:** everything the plan builds: grades in the document, the preview's GPU runner and filters, every `tint.*` command and `tint_*` tool, live edits, real scopes, playback on the page. No Detail tab, shapes or tracking in v1.
