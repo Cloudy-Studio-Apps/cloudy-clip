@@ -140,6 +140,14 @@ export interface GraphColours {
   line: string;
 }
 
+/** How far a chain's noise reduction is rendered into its files. */
+export interface DenoiseRendering {
+  /** 0..1, the mean of the files rendering or waiting their turn; undefined while none is. */
+  progress?: number;
+  /** Why a file's rendering failed, while one has; changing a setting tries it again. */
+  failed?: string;
+}
+
 /** An effect without its id, as a preset holds it: each use gets a fresh id. */
 export type EffectSpec = SoundEffect extends infer E
   ? E extends SoundEffect

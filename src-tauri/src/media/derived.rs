@@ -6,12 +6,14 @@
 //!   whose settings or recipe change gets a new file;
 //! - written under a temporary name ([`write_whole`]), one encode at a time (the proxies' encoder);
 //! - attached to the registration it was made for, so a file replaced meanwhile changes nothing;
-//! - progress reported as 0..1.
+//! - progress reported as 0..1;
+//! - dropped by family ([`ProxyJobs::drop_derived`]) once the files of a kind that keeps a file per
+//!   setting are no longer wanted, with what was made from them.
 
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
-use super::proxy::{ProxyJobs, Tools, cache_path, command, find_tools, run_encoder};
+use super::proxy::{ProxyJobs, Tools, cache_path, cache_stem, command, find_tools, run_encoder};
 use super::registry::MediaRegistry;
 
 /// A kind of derived file, with its settings.
@@ -89,5 +91,117 @@ impl ProxyJobs {
         }
         registry.set_derived(id, generation, &name, target.clone());
         Ok(target)
+    }
+}
+
+/// The files cached for a source file version: `(name, path)`, its name being what follows the
+/// version's stem. Only whole files: those being written and the work folders of a running job
+/// are left out.
+async fn cached_from(cache_dir: &Path, source: &Path) -> Result<Vec<(String, PathBuf)>, String> {
+    let prefix = format!("{}.", cache_stem(source).await?);
+    let unreadable = |e: std::io::Error| format!("Could not read the cache: {e}");
+    let mut entries = match tokio::fs::read_dir(cache_dir).await {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(unreadable(e)),
+    };
+    let mut files = Vec::new();
+    while let Some(entry) = entries.next_entry().await.map_err(unreadable)? {
+        let file_name = entry.file_name();
+        let Some(name) = file_name.to_str().and_then(|n| n.strip_prefix(&prefix)) else {
+            continue;
+        };
+        let whole = entry.file_type().await.is_ok_and(|kind| kind.is_file());
+        if whole && !name.contains(".partial.") {
+            files.push((name.to_owned(), entry.path()));
+        }
+    }
+    Ok(files)
+}
+
+impl ProxyJobs {
+    /// Deletes the derived files of `id`'s original whose names start with `family` and aren't in
+    /// `keep`, and the derived files made from each of those (a reversed copy) that aren't in
+    /// `keep` either. Only files of the cache, under derived names, are touched; one that can't be
+    /// deleted (open elsewhere) stays. The names dropped are no longer served.
+    pub(crate) async fn drop_derived(
+        &self,
+        registry: &MediaRegistry,
+        id: &str,
+        family: &str,
+        keep: &[String],
+    ) -> Result<(), String> {
+        let (source, _) = registry.original_of(id).ok_or("Unknown media id")?;
+        let kept = |name: &str| keep.iter().any(|k| k == name);
+        let mut dropped = Vec::new();
+        for (name, path) in cached_from(self.cache_dir(), &source).await? {
+            if !name.starts_with(family) {
+                continue;
+            }
+            // What was made from this file is named after its version: read it before it goes.
+            for (inner, inner_path) in cached_from(self.cache_dir(), &path).await? {
+                if !kept(&inner) && tokio::fs::remove_file(&inner_path).await.is_ok() {
+                    dropped.push(inner);
+                }
+            }
+            if !kept(&name) && tokio::fs::remove_file(&path).await.is_ok() {
+                dropped.push(name);
+            }
+        }
+        for name in dropped {
+            registry.forget_derived(id, &name);
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dropping_a_family_deletes_only_its_unwanted_cached_files() {
+        let root = std::env::temp_dir().join(format!("cloudy-derived-{}", std::process::id()));
+        let (media, cache) = (root.join("media"), root.join("cache"));
+        std::fs::create_dir_all(&media).unwrap();
+        std::fs::create_dir_all(&cache).unwrap();
+        let source = media.join("talk.wav");
+        std::fs::write(&source, b"user media").unwrap();
+        let registry = MediaRegistry::default();
+        registry.register("m1", &source, 10).unwrap();
+        let jobs = ProxyJobs::new(cache.clone());
+
+        tauri::async_runtime::block_on(async {
+            let stem = cache_stem(&source).await.unwrap();
+            let cached = |name: &str| cache.join(format!("{stem}.{name}"));
+            for name in [
+                "denoised.3.kept.flac",
+                "denoised.2.old.wav",
+                "denoised.3.writing.partial.flac",
+                "reversed.mp4",
+            ] {
+                std::fs::write(cached(name), b"x").unwrap();
+            }
+            let old_stem = cache_stem(&cached("denoised.2.old.wav")).await.unwrap();
+            let old_reversed = cache.join(format!("{old_stem}.reversed.denoised.2.old.wav.mp4"));
+            std::fs::write(&old_reversed, b"x").unwrap();
+
+            let keep = ["denoised.3.kept.flac".to_owned()];
+            jobs.drop_derived(&registry, "m1", "denoised.", &keep)
+                .await
+                .unwrap();
+
+            let left = |name: &str| cached(name).exists();
+            let outcome = (
+                left("denoised.3.kept.flac"),
+                left("denoised.2.old.wav"),
+                old_reversed.exists(),
+                left("denoised.3.writing.partial.flac"),
+                left("reversed.mp4"),
+                source.exists(),
+            );
+            std::fs::remove_dir_all(&root).unwrap();
+            assert_eq!(outcome, (true, false, false, true, true, true));
+        });
     }
 }

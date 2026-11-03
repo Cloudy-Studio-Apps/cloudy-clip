@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
-import { mediaHasAudio, mediaRef } from "@/modules/media";
+import { mediaHasAudio, mediaRef, type DenoiseRequest } from "@/modules/media";
 import {
   denoiseNeeds,
   projectRef,
@@ -9,22 +9,22 @@ import {
   type DenoiseEffect,
 } from "@/modules/project";
 import { denoiseRequests } from "../logic/denoise";
-import type { MixTarget } from "../sound.types";
+import type { DenoiseRendering, MixTarget } from "../sound.types";
 
 /**
  * How far the files heard through a chain's noise reduction `effect` are rendered (`denoiseNeeds`,
- * the rule the preview and export follow): 0..1, the mean of those rendering or waiting their
- * turn, while any is; undefined otherwise. The renderings themselves follow the document
- * (`sound.denoise.follow.ts`).
+ * the rule the preview and export follow), and whether one failed. The renderings themselves
+ * follow the document (`sound.denoise.follow.ts`).
  */
 export function useDenoiseRendering(
   target: MixTarget,
   compositionId: CompositionId | undefined,
   effect: DenoiseEffect,
-): number | undefined {
+): DenoiseRendering {
   const media = useModule(mediaRef);
   const project = useModule(projectRef).store;
   const jobs = useStore(media.denoising, (s) => s.jobs);
+  const failed = useStore(media.denoising, (s) => s.failed);
   const probes = useStore(media.probes, (s) => s.probes);
   const compositions = useStore(project.api, (s) => s.compositions);
   const tracks = useStore(project.api, (s) => s.tracks);
@@ -41,16 +41,19 @@ export function useDenoiseRendering(
   }, [root, compositions, tracks, clips, assets, probes, effect.id]);
 
   return useMemo(() => {
-    const rendering = jobs.filter((job) =>
+    const wanted = (job: DenoiseRequest) =>
       requests.some(
         (r) =>
           r.mediaId === job.mediaId &&
           r.amountDb === job.amountDb &&
           r.floorDb === job.floorDb &&
           r.reversed === job.reversed,
-      ),
-    );
-    if (rendering.length === 0) return undefined;
-    return rendering.reduce((sum, job) => sum + job.progress, 0) / rendering.length;
-  }, [jobs, requests]);
+      );
+    const rendering = jobs.filter(wanted);
+    const progress =
+      rendering.length === 0
+        ? undefined
+        : rendering.reduce((sum, job) => sum + job.progress, 0) / rendering.length;
+    return { progress, failed: failed.find(wanted)?.message };
+  }, [jobs, failed, requests]);
 }

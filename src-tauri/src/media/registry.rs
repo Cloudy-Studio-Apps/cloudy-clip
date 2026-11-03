@@ -190,6 +190,15 @@ impl MediaRegistry {
         }
     }
 
+    /// Forgets a derived file of an id whose file is gone, so it's no longer served.
+    pub fn forget_derived(&self, id: &str, name: &str) {
+        if let Ok(mut entries) = self.entries.write()
+            && let Some(entry) = entries.get_mut(id)
+        {
+            entry.derived.remove(name);
+        }
+    }
+
     /// Attaches a finished proxy to a registration of an id.
     pub fn set_proxy(&self, id: &str, generation: u64, proxy: PathBuf) {
         if let Ok(mut entries) = self.entries.write()

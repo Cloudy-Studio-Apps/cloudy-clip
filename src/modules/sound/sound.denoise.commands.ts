@@ -4,6 +4,7 @@ import { mediaHasAudio, mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { clipEnd, projectRef, sourceTimeAt, trackMixOf } from "@/modules/project";
 import { audioTrack } from "./sound.guards";
+import { measureNoiseFloor } from "./sound.service";
 import { setEffect } from "./sound.effects.commands";
 
 /** How much of a file is measured when the stretch isn't given. */
@@ -41,14 +42,16 @@ export const measureFloor = defineCommand({
     }
     // In file time; a reversed clip runs through the file the other way.
     const ends = [time, Math.min(time + duration, clipEnd(clip))].map((t) => sourceTimeAt(clip, t));
-    const floorDb = await media
-      .measureFloor(clip.mediaId, Math.min(...ends), Math.max(...ends))
-      .catch((error: unknown) => {
-        throw new CommandFailure(
-          "sound.measure_failed",
-          `Could not measure: ${toAppError(error).message}`,
-        );
-      });
+    const floorDb = await measureNoiseFloor(
+      clip.mediaId,
+      Math.min(...ends),
+      Math.max(...ends),
+    ).catch((error: unknown) => {
+      throw new CommandFailure(
+        "sound.measure_failed",
+        `Could not measure: ${toAppError(error).message}`,
+      );
+    });
     await ctx.execute(setEffect, { target: trackId, effectId: denoise.id, patch: { floorDb } });
     return { floorDb };
   },

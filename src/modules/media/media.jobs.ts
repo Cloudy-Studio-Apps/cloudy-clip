@@ -7,7 +7,8 @@ export class Superseded extends Error {
 
 /**
  * The jobs making one kind of derived file in this kernel, by key: asking again while one runs
- * joins it, and what's made is remembered, so a file is never made twice.
+ * joins it, and what's made is remembered, so a file is never made twice. A key that fails isn't
+ * started again (`canStart`) until it's made after all or `retry` clears it.
  */
 export function createDerivedJobs<T>() {
   const running = new Map<string, Promise<T>>();
@@ -20,6 +21,7 @@ export function createDerivedJobs<T>() {
       const started = make().then(
         (result) => {
           made.set(key, result);
+          failed.delete(key);
           running.delete(key);
           return result;
         },
@@ -37,6 +39,14 @@ export function createDerivedJobs<T>() {
     /** Whether it's neither running nor known to fail, so it may start. */
     canStart: (key: string) => !running.has(key) && !failed.has(key),
     fail: (key: string) => failed.add(key),
+    /** Lets a failed key start again. */
+    retry: (key: string) => failed.delete(key),
+    /** Remembers what another job made on its way, as if this key's job had. */
+    record: (key: string, result: T) => made.set(key, result),
+    /** Forgets what was made under the keys `which` picks: their files are gone. */
+    forget(which: (key: string) => boolean) {
+      for (const key of [...made.keys()]) if (which(key)) made.delete(key);
+    },
   };
 }
 

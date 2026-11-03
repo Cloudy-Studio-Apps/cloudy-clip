@@ -8,6 +8,8 @@ use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 
 use super::MediaServerUrl;
+use super::denoise::{AFFTDN_NF, AFFTDN_NR, Denoised};
+use super::derived::DerivedKind;
 use super::proxy::ProxyJobs;
 use super::registry::{MediaFile, MediaRegistry, RegisteredMedia, describe};
 use super::reversed::Reversed;
@@ -129,6 +131,124 @@ pub async fn media_prepare_reversed(
         .prepare(&registry, &id, &Reversed { full, of: None }, &report)
         .await
         .map(|_| ())
+        .map_err(AppError::Unavailable)
+}
+
+/// A derived file: where it is for export, and the name the media server streams it under.
+#[derive(Serialize)]
+pub struct DerivedFile {
+    path: String,
+    name: String,
+}
+
+/// What a rendering of noise reduction made: the file, and its reversed copy when asked for.
+#[derive(Serialize)]
+pub struct DenoisedFiles {
+    forward: DerivedFile,
+    reversed: Option<DerivedFile>,
+}
+
+/// Settings of noise reduction whose files are kept, and whether their reversed copy is too.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeptDenoise {
+    amount_db: f64,
+    floor_db: f64,
+    reversed: bool,
+}
+
+fn within(value: f64, (min, max): (f64, f64), what: &str) -> Result<f64, AppError> {
+    if value.is_finite() && (min..=max).contains(&value) {
+        Ok(value)
+    } else {
+        Err(AppError::InvalidInput(format!(
+            "The {what} must be from {min} to {max} dB"
+        )))
+    }
+}
+
+/// The reversed copy of a denoised file, at preview quality: what a reversed clip plays.
+fn reversed_of(denoised: &Denoised) -> Reversed {
+    Reversed {
+        full: false,
+        of: Some(denoised.name()),
+    }
+}
+
+/// Renders a file's sound with its noise taken away (`afftdn`), once per file and settings; with
+/// `reversed`, then a copy of that which runs backwards (for a reversed clip, so it sounds as
+/// export's denoise-then-reverse). Returns both files it made or found, each streamed at
+/// `<url>/<id>?derived=<name>`. `on_progress` gets 0..1 over both steps.
+#[tauri::command]
+pub async fn media_denoise(
+    id: String,
+    amount_db: f64,
+    floor_db: f64,
+    reversed: bool,
+    on_progress: Channel<f32>,
+    registry: State<'_, Arc<MediaRegistry>>,
+    proxies: State<'_, ProxyJobs>,
+) -> Result<DenoisedFiles, AppError> {
+    let denoised = Denoised {
+        amount_db: within(amount_db, AFFTDN_NR, "amount")?,
+        floor_db: within(floor_db, AFFTDN_NF, "noise floor")?,
+    };
+    let steps = if reversed { 2.0 } else { 1.0 };
+    let channel = &on_progress;
+    let report = |step: f32| {
+        move |progress: f32| {
+            let _ = channel.send((step + progress) / steps);
+        }
+    };
+    let file = |path: std::path::PathBuf, name: String| DerivedFile {
+        path: path.display().to_string(),
+        name,
+    };
+    let path = proxies
+        .prepare(&registry, &id, &denoised, &report(0.0))
+        .await
+        .map_err(AppError::Unavailable)?;
+    let forward = file(path, denoised.name());
+    if !reversed {
+        return Ok(DenoisedFiles {
+            forward,
+            reversed: None,
+        });
+    }
+    let backwards = reversed_of(&denoised);
+    let path = proxies
+        .prepare(&registry, &id, &backwards, &report(1.0))
+        .await
+        .map_err(AppError::Unavailable)?;
+    Ok(DenoisedFiles {
+        forward,
+        reversed: Some(file(path, backwards.name())),
+    })
+}
+
+/// Deletes a file's noise reduction renderings (and their reversed copies) of every setting but
+/// those in `keep`: of older recipes too. Only files of the cache are touched.
+#[tauri::command]
+pub async fn media_drop_denoised(
+    id: String,
+    keep: Vec<KeptDenoise>,
+    registry: State<'_, Arc<MediaRegistry>>,
+    proxies: State<'_, ProxyJobs>,
+) -> Result<(), AppError> {
+    let names: Vec<String> = keep
+        .iter()
+        .flat_map(|kept| {
+            let denoised = Denoised {
+                amount_db: kept.amount_db,
+                floor_db: kept.floor_db,
+            };
+            let backwards = kept.reversed.then(|| reversed_of(&denoised).name());
+            [Some(denoised.name()), backwards].into_iter().flatten()
+        })
+        .collect();
+    proxies
+        .drop_derived(&registry, &id, Denoised::FAMILY, &names)
+        .await
         .map_err(AppError::Unavailable)
 }
 

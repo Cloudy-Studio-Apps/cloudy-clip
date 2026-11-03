@@ -276,6 +276,8 @@ pub(crate) struct Probe {
     pub(super) audio_codec: Option<String>,
     /// Channels of the first sound stream.
     pub(crate) audio_channels: Option<u64>,
+    /// How long after the file's start its first sound stream starts, in microseconds.
+    pub(crate) audio_delay_us: u64,
     bit_rate: u64,
     pub(crate) duration_us: Option<u64>,
     pub(super) fps: Option<f64>,
@@ -432,16 +434,27 @@ fn parse_probe(json: &Value) -> Probe {
             Some("audio") if probe.audio_codec.is_none() => {
                 probe.audio_codec = codec;
                 probe.audio_channels = stream["channels"].as_u64();
+                probe.audio_delay_us = seconds(&stream["start_time"])
+                    .zip(seconds(&json["format"]["start_time"]))
+                    .map_or(0, |(sound, file)| {
+                        ((sound - file).max(0.0) * 1e6).round() as u64
+                    });
             }
             _ => {}
         }
     }
     probe.bit_rate = number(&json["format"]["bit_rate"]).unwrap_or(0);
-    probe.duration_us = json["format"]["duration"]
-        .as_str()
-        .and_then(|s| s.parse::<f64>().ok())
-        .map(|seconds| (seconds * 1_000_000.0) as u64);
+    probe.duration_us = seconds(&json["format"]["duration"]).map(|s| (s * 1_000_000.0) as u64);
     probe
+}
+
+/// ffprobe's `"12.345678"` seconds.
+fn seconds(value: &Value) -> Option<f64> {
+    value
+        .as_str()?
+        .parse::<f64>()
+        .ok()
+        .filter(|s| s.is_finite())
 }
 
 /// Why a file gets a proxy whatever is inside it, or `None` if its container isn't the reason.
@@ -517,6 +530,16 @@ pub(super) async fn cache_path(
     path: &Path,
     extension: &str,
 ) -> Result<PathBuf, String> {
+    let stem = cache_stem(path).await?;
+    tokio::fs::create_dir_all(cache_dir)
+        .await
+        .map_err(|e| format!("Could not create the proxy folder: {e}"))?;
+    Ok(cache_dir.join(format!("{stem}.{extension}")))
+}
+
+/// The part of [`cache_path`]'s name that stands for a source file version: every file cached
+/// for it starts with this and a dot.
+pub(super) async fn cache_stem(path: &Path) -> Result<String, String> {
     let meta = tokio::fs::metadata(path)
         .await
         .map_err(|e| format!("Could not read the file: {e}"))?;
@@ -536,10 +559,7 @@ pub(super) async fn cache_path(
         hash ^= u64::from(byte);
         hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
     }
-    tokio::fs::create_dir_all(cache_dir)
-        .await
-        .map_err(|e| format!("Could not create the proxy folder: {e}"))?;
-    Ok(cache_dir.join(format!("{hash:016x}.{extension}")))
+    Ok(format!("{hash:016x}"))
 }
 
 async fn encode(

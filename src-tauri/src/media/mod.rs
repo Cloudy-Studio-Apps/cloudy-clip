@@ -1,6 +1,7 @@
 //! Media module: file registration, editing proxies, and the loopback media server.
 
 pub mod commands;
+pub(crate) mod denoise;
 pub(crate) mod derived;
 pub mod disks;
 pub mod facts;

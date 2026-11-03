@@ -26,15 +26,30 @@ export interface DenoiseJob extends DenoiseRequest {
   progress: number;
 }
 
-/** The files whose noise is being taken away now. */
+/** A rendering that failed, with why. It's tried again once its settings are wanted again after a change. */
+export interface DenoiseFailure extends DenoiseRequest {
+  message: string;
+}
+
+/** The files whose noise is being taken away now, and those that couldn't be. */
 export interface DenoiseJobs {
   jobs: readonly DenoiseJob[];
+  failed: readonly DenoiseFailure[];
 }
 
 /** A file the native side made from a registered one: its path, and the name it's served under. */
 export interface DerivedFile {
   path: string;
   name: string;
+}
+
+/**
+ * What one rendering of noise reduction made: the file, and with `reversed` its copy that runs
+ * backwards (the file is made on the way to it).
+ */
+export interface DenoisedFiles {
+  forward: DerivedFile;
+  reversed: DerivedFile | null;
 }
 
 /** Progress of reading a file's metadata. `missing`: the file isn't where the project says. */
@@ -219,8 +234,9 @@ export interface MediaApi {
   reversedUrl(id: MediaId, full: boolean): string | null;
   /**
    * The file's sound with its noise taken away (`afftdn`, rendered once per file and settings to
-   * a WAV): its path once it's made; until then a promise of it, and it starts being made (export
-   * asks this way). Asking again while it's being made joins that job. A failure is told to the user.
+   * a FLAC): its path once it's made; until then a promise of it, and it starts being made (export
+   * asks this way). Asking again while it's being made joins that job. A failure is told to the
+   * user. What's asked this way is never deleted in this kernel, since an export may still read it.
    */
   denoised(id: MediaId, settings: DenoiseSettings): string | Promise<string>;
   /**
@@ -230,16 +246,13 @@ export interface MediaApi {
   denoisedUrl(id: MediaId, settings: DenoiseSettings, reversed: boolean): string | null;
   /**
    * The renderings wanted now, all of them: those not made yet are queued and rendered one at a
-   * time, and a queued one that isn't wanted any more is dropped before it takes the encoder.
+   * time, and a queued one that isn't wanted any more is dropped before it takes the encoder. Once
+   * a rendering of a file is made, that file's renderings no longer needed (not wanted, asked for,
+   * running or queued) are deleted. A failed one is tried again when it's wanted after a change.
    */
   wantDenoised(requests: readonly DenoiseRequest[]): void;
-  /** The files whose noise is being taken away or waits its turn, with their progress. */
+  /** The files whose noise is being taken away or waits its turn, with their progress, and failures. */
   readonly denoising: StoreApi<DenoiseJobs>;
-  /**
-   * The noise floor of `from..to` of a file's sound (file time), in dBFS, rounded and within
-   * what noise reduction accepts (-80 to -20). Rejects if it can't be measured.
-   */
-  measureFloor(id: MediaId, from: Micros, to: Micros): Promise<number>;
   /** The frames of an animated image, once they are ready; undefined for anything else. */
   animation(id: MediaId): ImageAnimation | undefined;
   /**
@@ -274,7 +287,6 @@ export interface MediaState extends Omit<
   | "denoisedUrl"
   | "wantDenoised"
   | "denoising"
-  | "measureFloor"
   | "imageFrames"
   | "restore"
   | "fileFacts"
@@ -310,15 +322,19 @@ export interface MediaService {
   ): Promise<void>;
   /** URL of a reversed copy that exists. */
   reversedFileUrl(id: MediaId, full: boolean): string;
-  /** Renders a file's sound with its noise taken away (and backwards, if asked), reporting 0..1. */
+  /**
+   * Renders a file's sound with its noise taken away (and backwards, if asked), reporting 0..1,
+   * and resolves to the files made.
+   */
   denoise(
     id: MediaId,
-    request: DenoiseSettings & { reversed: boolean },
+    request: Omit<DenoiseRequest, "mediaId">,
     onProgress: (progress: number) => void,
-  ): Promise<DerivedFile>;
+  ): Promise<DenoisedFiles>;
+  /** Deletes a file's renderings of noise reduction (of any recipe) but those of `keep`. */
+  dropDenoised(id: MediaId, keep: readonly Omit<DenoiseRequest, "mediaId">[]): Promise<void>;
   /** URL of a derived file that exists, by the name it's served under. */
   derivedFileUrl(id: MediaId, name: string): string;
-  measureFloor: MediaApi["measureFloor"];
 }
 
 /** Files of the document, in step with the native side. */

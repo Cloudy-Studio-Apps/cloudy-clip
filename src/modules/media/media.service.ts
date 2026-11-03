@@ -2,7 +2,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import type {
-  DerivedFile,
+  DenoisedFiles,
   MediaFile,
   MediaService,
   MediaState,
@@ -76,7 +76,7 @@ export function createMediaService(state: MediaState): MediaService {
     denoise(id, { amountDb, floorDb, reversed }, onProgress) {
       const channel = new Channel<number>();
       channel.onmessage = onProgress;
-      return invoke<DerivedFile>("sound_denoise", {
+      return invoke<DenoisedFiles>("media_denoise", {
         id,
         amountDb,
         floorDb,
@@ -84,10 +84,15 @@ export function createMediaService(state: MediaState): MediaService {
         onProgress: channel,
       });
     },
-    derivedFileUrl: (id, name) => fileUrl(id, { derived: name }),
-    measureFloor(id, from, to) {
-      return invoke<number>("sound_measure_floor", { id, from, to });
+    dropDenoised(id, keep) {
+      const settings = keep.map(({ amountDb, floorDb, reversed }) => ({
+        amountDb,
+        floorDb,
+        reversed,
+      }));
+      return invoke("media_drop_denoised", { id, keep: settings });
     },
+    derivedFileUrl: (id, name) => fileUrl(id, { derived: name }),
     reversedFileUrl: (id, full) => fileUrl(id, { reversed: "1", ...(full && { master: "1" }) }),
     masterUrl: (id) => fileUrl(id, { master: "1" }),
     frameUrl: (id, index) => fileUrl(id, {}, `/frames/${index}`),

@@ -27,12 +27,13 @@ interface DenoiseSectionProps {
  * Noise reduction: how much goes and the floor it takes away, which Measure floor reads from a
  * second of the track at the playhead. It's rendered into each file, so it applies first, wherever
  * it sits in the chain (on Master: per file, for the tracks without their own). Its files render a
- * moment after a change and say how far along they are; the originals play until then.
+ * moment after a change and say how far along they are, or that one failed; the originals play
+ * until then.
  */
 export function DenoiseSection({ effect, owner, edit }: DenoiseSectionProps) {
   const { bus } = useKernel();
   const open = useOpenComposition();
-  const rendering = useDenoiseRendering(owner?.id ?? "master", open?.id, effect);
+  const { progress, failed } = useDenoiseRendering(owner?.id ?? "master", open?.id, effect);
   const [measuring, setMeasuring] = useState(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -92,13 +93,18 @@ export function DenoiseSection({ effect, owner, edit }: DenoiseSectionProps) {
             {measuring ? "Measuring…" : "Measure floor"}
           </Button>
         )}
-        {rendering !== undefined && (
+        {progress !== undefined && (
           <div className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
             <span className="truncate">
-              Rendering… {Math.round(rendering * 100)}%. The original plays until it&apos;s done.
+              Rendering… {Math.round(progress * 100)}%. The original plays until it&apos;s done.
             </span>
-            <ProgressBar value={rendering} />
+            <ProgressBar value={progress} />
           </div>
+        )}
+        {progress === undefined && failed !== undefined && (
+          <p className="min-w-0 flex-1 text-xs text-destructive" title={failed}>
+            Rendering failed: the original plays. Change a setting to try again.
+          </p>
         )}
       </div>
     </EffectSection>
