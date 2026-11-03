@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cloudy Clip, Tint page C: Workbench with Basics</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Courier+Prime:wght@400;700&family=Shantell+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tint-shared.css">
+<style>
+  /* Layout A, Workbench: grade and viewer on top, clips in the middle, tools and scopes along the bottom (Resolve's arrangement) */
+  #page{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) 112px 318px;gap:1px;background:var(--rule-2)}
+  .upper{min-height:0;display:grid;grid-template-columns:360px minmax(0,1fr);gap:1px;transition:grid-template-columns .25s}
+  body.leader .upper{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+  .lower{min-height:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:1px}
+  .tbody{flex:1;min-height:0;overflow:auto;padding:12px 14px}
+  .scopes{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:1px;background:var(--rule)}
+  .scopes>div{position:relative;display:flex;min-height:0}
+  .scopes .scope[hidden]{display:none}
+  .looks-pane{flex:1;min-height:0;display:flex;flex-direction:column}
+  .basics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr);gap:28px}
+  .bh{font:700 13px var(--hand);color:var(--ink-3);margin-bottom:6px;padding-bottom:4px;border-bottom:1px dashed var(--rule-2)}
+  .quick{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  body.shownew .new{outline:1.5px dashed var(--red);outline-offset:1px}
+  .mark{font:700 12px var(--hand);color:var(--ink-3);padding:4px 8px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .mark.on{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+  .seg{display:inline-flex;padding:1px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .seg button{height:22px;padding:0 8px;font:700 12px var(--hand);color:var(--ink-3);border-radius:2px}
+  .seg button.on{background:var(--paper-2);color:var(--ink)}
+  .ptab{padding:0 7px}
+  .wtop{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .cmix{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,.9fr);gap:24px}
+  .dots{display:flex;gap:6px;margin-bottom:10px}
+  .dots button{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 1px var(--rule-2)}
+  .dots button.on{box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink)}
+  .bars{display:flex;gap:6px;align-items:flex-end;height:96px;padding:6px;background:var(--table);border-radius:3px}
+  .bars i{flex:1;display:block;border-radius:2px 2px 0 0;opacity:.85}
+  .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+  .mwheel{display:flex;gap:16px}
+  .matrix{display:grid;grid-template-columns:52px repeat(3,1fr);gap:4px;align-items:center}
+  .matrix b{font:700 11px var(--mono);color:var(--ink-3);text-align:center}
+  .matrix span{font:400 12px var(--mono);background:var(--table);padding:3px 6px;border-radius:2px;text-align:right;border-bottom:2px solid var(--c)}
+  .later{font:700 10.5px var(--mono);color:#e8b86b;box-shadow:inset 0 0 0 1px #8a6a38;padding:1px 5px;border-radius:2px;margin-left:6px}
+  .guides{position:absolute;inset:5% 5%;border:1px dashed rgb(236 239 241/.55);z-index:3;pointer-events:none;display:none}
+  .guides::after{content:"";position:absolute;inset:6% 6%;border:1px dashed rgb(236 239 241/.35)}
+  .guides.on{display:block}
+  .fc-legend{position:absolute;left:8px;bottom:8px;z-index:3;display:none;gap:0;font:700 10px var(--mono)}
+  .fc-legend.on{display:flex}
+  .fc-legend span{padding:2px 5px;color:#0e1013}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="seal" viewBox="0 0 120 100">
+    <g fill="none" stroke="#6fb7e6" stroke-width="0.9" opacity="0.8"><circle cx="60" cy="50" r="46"/><path d="M6 50c20 8 88 8 108 0M60 2c-8 30-8 66 0 96"/></g>
+    <path d="M60 6c30 0 54 20 54 49 0 25-24 39-54 39S6 80 6 55C6 26 30 6 60 6z" fill="#dfe5e9" stroke="#eceff1" stroke-width="2.2"/>
+    <ellipse cx="40" cy="49" rx="6.4" ry="4.4" transform="rotate(10 40 49)" fill="#22272e"/>
+    <ellipse cx="80" cy="49" rx="6.4" ry="4.4" transform="rotate(-10 80 49)" fill="#22272e"/>
+    <path d="M60 58c-7-1-16 1-16 8 0 6 10 9 16 4 6 5 16 2 16-4 0-7-9-9-16-8z" fill="#f7f9fa" stroke="#22272e" stroke-width="1.9"/>
+    <path d="M55.5 56.5h9l-4.5 5z" fill="#22272e" stroke="#22272e" stroke-width="1.6" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="leader" viewBox="0 0 120 110">
+    <path d="M38 22l8-18 14 12 14-12 8 18z" fill="#ff5f52" stroke="#ff5f52" stroke-width="2" stroke-linejoin="round"/>
+    <use href="#seal" y="10" width="120" height="100"/>
+  </symbol>
+</svg>
+<div id="app">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 120 100"><use href="#seal"/></svg><span class="word">cloudy clip</span><span class="project">Golden hour</span>
+      <span class="layout-tag">Layout C · A + Basics · <a href="tint-a-workbench.html">A</a> · <a href="tint-b-darkroom.html">B</a></span></div>
+    <nav class="pages">
+      <button class="pg" data-ic="image">Media</button>
+      <button class="pg" data-ic="scissors">Edit</button>
+      <button class="pg is-active" data-ic="palette">Tint</button>
+      <button class="pg" data-ic="lines">Sound</button>
+      <button class="pg" data-ic="upload">Export</button>
+    </nav>
+    <div class="right">
+      <div class="seals" title="Same grade, two ways to see it">
+        <button class="baby on" data-mode="baby"><svg viewBox="0 0 120 100"><use href="#seal"/></svg>Baby Seal <small>layers</small></button>
+        <button data-mode="leader"><svg viewBox="0 0 120 110"><use href="#leader"/></svg>Leader Seal <small>nodes</small></button>
+      </div>
+      <button id="newbtn" class="mark">Mark new tools</button><span class="av">M</span><span class="av claude">✳</span>
+    </div>
+  </header>
+
+  <main id="page">
+    <div class="upper">
+      <section class="panel">
+        <div class="ph">
+          <button class="ptab on" data-left="grade"><span class="baby-only" data-ic="list"></span><span class="leader-only" data-ic="nodes"></span><span class="baby-only">Layers</span><span class="leader-only">Nodes</span></button>
+          <button class="ptab" data-left="looks" data-ic="still">Looks</button>
+          <span class="who">02 Plaza wide</span><span class="grow"></span>
+          <button class="icon" title="Copy grade" data-ic="copy"></button><button class="icon" title="Paste grade" data-ic="paste"></button><button class="icon" title="Reset grade" data-ic="reset"></button>
+        </div>
+        <div data-leftbody="grade" style="flex:1;min-height:0;display:flex;flex-direction:column">
+          <div class="baby-only" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="layers" id="layers"></div>
+            <div class="addrow"><button class="btn primary" data-add>+ Add</button><span class="hint" style="align-self:center">Top runs first. Drag to reorder.</span><div id="addhost"></div></div>
+          </div>
+          <div class="graph leader-only" id="graph"></div>
+        </div>
+        <div class="looks-pane" data-leftbody="looks" hidden>
+          <div class="looks" id="looks"></div>
+          <div class="addrow"><button class="btn primary">Grab still</button><button class="btn">Apply to selected clips</button></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="ph"><span class="t">Viewer</span><span class="who">02 Plaza wide · 0:04.12</span><span class="grow"></span>
+          <button class="btn" id="cmp">Before / after</button><button class="btn new" title="This clip next to another clip or a still">Side by side</button><span class="sep"></span><button class="btn new" id="fcbtn" title="Paints brightness as colors to spot crushed blacks, skin level and clipping">False color</button><button class="btn new" id="gdbtn">Guides</button><span class="sep"></span>
+          <span class="cs">S-Log3 → Rec.709</span><span class="sep"></span><span class="cs">Fit 44%</span>
+        </div>
+        <div class="viewer" id="viewer"></div>
+        <div class="vbar"><span class="tc">0:24<span>.14</span></span><span class="sep"></span>
+          <button class="icon" data-ic="back"></button><button class="tp-play" data-ic="play"></button><button class="icon" data-ic="fwd"></button><button class="icon on" data-ic="loop"></button>
+          <span class="grow"></span><button class="icon" title="Grab still" data-ic="still"></button><button class="icon" title="Split screen" data-ic="split"></button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="ph"><span class="t">Clips</span><span class="who">8 in Main · 3 graded</span><span class="grow"></span>
+        <span class="hint" style="margin-right:4px">Grade the</span><span class="seg new" title="Where this grade applies"><button class="on">Clip</button><button>Shot group</button><button>Whole timeline</button></span><button class="btn new" style="margin:0 4px" title="Keep several versions of a grade and flip between them">Version A ▾</button><span class="sep"></span>
+        <button class="btn">Copy grade</button><button class="btn">Paste grade</button><button class="btn">Paste to all</button><span class="sep"></span><button class="btn">Group: Plaza shots</button>
+      </div>
+      <div class="strip" id="strip"></div>
+    </section>
+
+    <div class="lower">
+      <section class="panel">
+        <div class="ph">
+          <button class="ptab on" data-tool="basics">Basics</button><span class="sep"></span><button class="ptab" data-tool="wheels">Wheels</button><button class="ptab" data-tool="curves">Curves</button><button class="ptab new" data-tool="cmix">Color mix</button><button class="ptab new" data-tool="creative">Creative</button><button class="ptab" data-tool="limit">Limit</button>
+          <button class="ptab" data-tool="luts">LUT and color</button><button class="ptab" data-tool="match">Match</button><button class="ptab new" data-tool="mixer">RGB mixer</button><button class="ptab new" data-tool="detail">Detail</button>
+          <span class="grow"></span><span class="who" id="who"></span>
+          <button class="icon" title="Keyframe this correction" data-ic="diamond"></button><button class="icon" title="Reset this correction" data-ic="reset"></button>
+        </div>
+        <div class="tbody" id="tools"></div>
+      </section>
+      <section class="panel">
+        <div class="ph"><span class="t">Scopes</span>
+          <button class="ptab on" data-scope="parade">Parade</button><button class="ptab" data-scope="wave">Waveform</button><button class="ptab" data-scope="hist">Histogram</button>
+          <span class="grow"></span><span class="who">Vectorscope →</span>
+        </div>
+        <div class="scopes"><div id="mainscope"></div><div id="vecscope"></div></div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="tint-frame.js"></script>
+<script src="tint-shared.js"></script>
+<script>
+(function(){
+  var T=Tint,tab='basics';
+  document.getElementById('addhost').outerHTML=T.addMenu();
+  T.boot();
+  var layers=document.getElementById('layers'),graph=document.getElementById('graph'),tools=document.getElementById('tools');
+  T.wireLayers(layers);T.wireGraph(graph);T.renderViewer(document.getElementById('viewer'));T.renderStrip(document.getElementById('strip'));T.renderLooks(document.getElementById('looks'));
+
+  var main=document.getElementById('mainscope'),S={};
+  ['parade','wave','hist'].forEach(function(k){var d=document.createElement('div');d.className='scope';main.appendChild(d);S[k]=d;T.addScope(d,k);d.hidden=k!=='parade';});
+  var v=document.createElement('div');v.className='scope';document.getElementById('vecscope').appendChild(v);T.addScope(v,'vector');
+  document.querySelectorAll('[data-scope]').forEach(function(b){b.addEventListener('click',function(){var k=b.getAttribute('data-scope');
+    document.querySelectorAll('[data-scope]').forEach(function(x){x.classList.toggle('on',x===b);});Object.keys(S).forEach(function(n){S[n].hidden=n!==k;});T.paintScopes();});});
+
+  function renderTools(){
+    var n=T.cur(),sel=T.N[T.state.sel],word=T.state.mode==='leader'?'Node':'Layer';
+    document.getElementById('who').textContent=n?word+' '+n.no+' '+n.name:(sel.kind==='group'?'Group ':'Sealed ')+sel.name;
+    document.querySelectorAll('[data-tool]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tool')===tab);b.style.visibility=n?'':'hidden';});
+    if(!n){tools.innerHTML=T.tools.groupInfo();T.icons(tools);return;}
+    tools.innerHTML=tab==='basics'?basics():tab==='wheels'?wheelsTab():X[tab]?X[tab]():T.tools[tab]();
+  }
+  function basics(){var s=T.tools.slider,F=T.tools.F,ico=T.ico;
+    function col(t,h){return '<div><div class="bh">'+t+'</div>'+h+'</div>';}
+    return '<div class="basics">'+
+      col('Light',s('exp','Exposure',-1,1,.01,F.ev)+s('con','Contrast',.5,1.6,.01,F.x)+s('hi','Highlights',-100,100,1,F.i)+s('sh','Shadows',-100,100,1,F.i)+'<div class="new">'+s('wh','Whites',-100,100,1,F.i)+s('bl','Blacks',-100,100,1,F.i)+'</div>')+
+      col('Color',s('temp','Temperature',-100,100,1,F.i,'tr-temp')+s('tint','Tint',-100,100,1,F.i,'tr-tint')+s('vib','Vibrance',-100,100,1,F.i,'tr-sat')+s('sat','Saturation',0,2,.01,F.pct,'tr-sat'))+
+      col('One click','<div class="quick"><button class="btn">'+ico('wand')+'Auto balance</button><button class="btn">'+ico('drop')+'Pick something white</button><button class="btn">'+ico('copy')+'Match to another clip</button><button class="btn">'+ico('still')+'Apply a look</button></div>'+
+        '<div class="hint" style="margin-top:10px">Basics drives the same values as Wheels. Move a slider here and the wheels follow.</div>')+'</div>';}
+  var wmode='primary',mixc=1;
+  function wheelsTab(){var h=T.tools.primaries()+T.tools.wheels(112);
+    if(wmode==='log'){h=h.replace('>Lift<','>Shadow<').replace('>Gamma<','>Midtone<').replace('>Gain<','>Highlight<');}
+    return '<div class="wtop new"><span class="seg"><button data-wm="primary" class="'+(wmode==='primary'?'on':'')+'">Primary</button><button data-wm="log" class="'+(wmode==='log'?'on':'')+'">Log</button><button data-wm="bars" class="'+(wmode==='bars'?'on':'')+'">Bars</button></span>'+
+      '<span class="hint">'+(wmode==='log'?'Log wheels touch narrow tonal ranges, for footage shot flat.':'Primary wheels move the whole picture from dark to bright.')+'</span></div>'+h;}
+  var COLS=[['Reds','#e0545a'],['Oranges','#f0a04b'],['Yellows','#e8d35a'],['Greens','#4fbf6a'],['Aquas','#4fc4c4'],['Blues','#4d8fe0'],['Purples','#9a6ae0'],['Magentas','#d45ad0']];
+  function plain(lbl,v,tr,out){return '<div class="sl"><label>'+lbl+'</label><input type="range" class="'+(tr||'')+'" min="-100" max="100" value="'+v+'"><output>'+(out===undefined?v:out)+'</output></div>';}
+  var X={
+    cmix:function(){var c=COLS[mixc];return '<div class="cmix"><div><div class="bh">Pick a color family</div><div class="dots">'+COLS.map(function(k,i){return '<button data-mc="'+i+'" title="'+k[0]+'" class="'+(i===mixc?'on':'')+'" style="background:'+k[1]+'"></button>';}).join('')+'</div>'+
+      '<button class="btn">'+T.ico('drop')+'Pick from the picture</button><div class="hint" style="margin-top:8px">Change one family without masking: greener grass, a calmer sky, warmer skin.</div></div>'+
+      '<div><div class="bh">'+c[0]+'</div>'+plain('Hue',mixc===1?-6:0,'tr-hue')+plain('Saturation',mixc===1?12:0,'tr-sat')+plain('Luminance',mixc===1?4:0)+'<div style="height:6px"></div>'+plain('Range',0)+'</div>'+
+      '<div><div class="bh">All families · saturation</div><div class="bars">'+COLS.map(function(k,i){return '<i style="background:'+k[1]+';height:'+(50+(i===1?12:i===5?-18:i===3?-10:0))+'%"></i>';}).join('')+'</div></div></div>';},
+    creative:function(){var s=T.tools.slider,F=T.tools.F,n=T.cur(),p1=n.g.wheel.shtint,p2=n.g.wheel.hltint;
+      function mini(k,lbl,p){return '<div class="wheel"><h5>'+lbl+'</h5><div class="disc" data-w="'+k+'" style="--wd:84px"><span class="puck" style="left:'+(50+p[0]*40)+'%;top:'+(50+p[1]*40)+'%"></span></div></div>';}
+      return '<div class="three"><div><div class="bh">Split toning</div><div class="mwheel">'+mini('shtint','Shadow tint',p1)+mini('hltint','Highlight tint',p2)+'</div>'+plain('Balance',0)+'</div>'+
+      '<div><div class="bh">Film</div>'+s('fade','Faded film',0,100,1,F.i)+plain('Grain',0)+'<span class="later">grain is a picture effect, after v1</span><div style="height:8px"></div>'+s('vib','Vibrance',-100,100,1,F.i,'tr-sat')+'</div>'+
+      '<div><div class="bh">Vignette</div>'+s('vig','Amount',-100,100,1,F.i)+plain('Midpoint',50)+plain('Roundness',0)+plain('Feather',50)+'</div></div>';},
+    mixer:function(){function row(c,col,v){return '<b style="color:'+col+'">'+c+'</b>'+v.map(function(x,i){return '<span style="--c:'+['#e0545a','#4fbf6a','#4d8fe0'][i]+'">'+x.toFixed(2)+'</span>';}).join('');}
+      return '<div class="three"><div><div class="bh">Output from input</div><div class="matrix"><b></b><b>R in</b><b>G in</b><b>B in</b>'+row('R out','#e0545a',[1,0,0])+row('G out','#4fbf6a',[0,1,0])+row('B out','#4d8fe0',[0,.05,.95])+'</div></div>'+
+      '<div><div class="bh">Options</div><div style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;gap:8px;align-items:center"><span class="toggle on"></span>Keep brightness</span><span style="display:flex;gap:8px;align-items:center"><span class="toggle"></span>Monochrome</span><span style="display:flex;gap:8px;align-items:center"><span class="toggle"></span>Swap channels</span></div></div>'+
+      '<div><div class="bh">Good for</div><div class="hint">Black and white from chosen channels, fixing one bad channel, cleaner skies by borrowing from green.</div></div></div>';},
+    detail:function(){return '<div class="three"><div><div class="bh">Sharpen and soften<span class="later">after v1</span></div>'+plain('Sharpen',0)+plain('Radius',20)+plain('Soften skin',0)+'</div>'+
+      '<div><div class="bh">Noise reduction<span class="later">after v1</span></div>'+plain('Amount',0)+plain('Over time',0)+plain('Keep detail',60)+'</div>'+
+      '<div><div class="bh">Why later</div><div class="hint">These change pixels, not colors, so they are picture effects. v1 leaves them out; the tab shows where they will go.</div></div></div>';}
+  };
+  tools.addEventListener('click',function(e){var w=e.target.closest('[data-wm]');if(w){wmode=w.getAttribute('data-wm');renderTools();return;}var m=e.target.closest('[data-mc]');if(m){mixc=Number(m.getAttribute('data-mc'));renderTools();}});
+  T.wireTools(tools,renderTools);
+  document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){tab=b.getAttribute('data-tool');renderTools();});});
+  document.querySelectorAll('[data-left]').forEach(function(b){b.addEventListener('click',function(){var k=b.getAttribute('data-left');
+    document.querySelectorAll('[data-left]').forEach(function(x){x.classList.toggle('on',x===b);});document.querySelectorAll('[data-leftbody]').forEach(function(x){x.hidden=x.getAttribute('data-leftbody')!==k;});});});
+  var cmp=document.getElementById('cmp');cmp.addEventListener('click',function(){T.state.compare=!T.state.compare;cmp.classList.toggle('on',T.state.compare);T.paintAll(true);});
+
+  T.painters.push(function(){T.renderLayers(layers);T.renderGraph(graph);});
+  Object.keys(T.N).forEach(function(id){var n=T.N[id];if(n.kind!=='corr'){return;}['wh','bl','fade','vig'].forEach(function(k){if(n.g[k]===undefined){n.g[k]=0;}});n.g.wheel.shtint=n.g.wheel.shtint||[0,0];n.g.wheel.hltint=n.g.wheel.hltint||[0,0];});
+  T.N.n5.g.fade=12;T.N.n5.g.vig=-28;T.N.n5.g.wheel.shtint=[-.35,.3];T.N.n5.g.wheel.hltint=[.25,-.3];
+  document.body.insertAdjacentHTML('beforeend','<svg width="0" height="0" style="position:absolute"><filter id="fc" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".2126 .7152 .0722 0 0 .2126 .7152 .0722 0 0 .2126 .7152 .0722 0 0 0 0 0 1 0"/>'+
+    '<feComponentTransfer><feFuncR type="discrete" tableValues="0.55 0.35 0.35 0.35 0.35 0.35 0.35 0.3 0.3 0.3 0.95 0.95 0.95 0.6 0.6 0.6 0.6 0.6 0.95 1"/><feFuncG type="discrete" tableValues="0.1 0.35 0.35 0.35 0.35 0.35 0.35 0.75 0.75 0.75 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.85 0.1"/><feFuncB type="discrete" tableValues="0.85 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.7 0.7 0.7 0.6 0.6 0.6 0.6 0.6 0.2 0.1"/></feComponentTransfer></filter></svg>');
+  var graded=document.querySelector('.shot .graded'),shot=document.getElementById('shot');
+  graded.insertAdjacentHTML('beforeend','<div id="fadeov" style="position:absolute;inset:0;pointer-events:none;background:rgb(70 66 60);mix-blend-mode:lighten"></div><div id="vigov" style="position:absolute;inset:0;pointer-events:none"></div>');
+  shot.insertAdjacentHTML('beforeend','<div class="guides" id="guides"></div><div class="fc-legend" id="fcl"><span style="background:#8c1ad9;color:#eceff1">crushed</span><span style="background:#595959;color:#eceff1">shadow</span><span style="background:#4dbf59">mid gray</span><span style="background:#f299b3">skin</span><span style="background:#999">light</span><span style="background:#f2d933">near clip</span><span style="background:#ff1a1a">clipped</span></div>');
+  var fcOn=false;
+  T.painters.push(function(){var fade=0,vig=0,wb=0;['n1','n2','n3','n4','n5'].forEach(function(id){var n=T.N[id];if(!n.on){return;}var w=n.op/100;fade+=n.g.fade*w;vig+=n.g.vig*w;wb+=(n.g.wh-n.g.bl*.5)*w;});
+    var img=document.getElementById('gimg');if(wb){img.style.filter+=' brightness('+(1+wb/400).toFixed(3)+')';}
+    if(fcOn){img.style.filter+=' url(#fc)';for(var i=0;i<3;i++){document.getElementById('ov'+i).style.background='none';}}
+    document.getElementById('fadeov').style.opacity=fcOn?0:Math.min(fade/100,1)*.9;
+    var a=Math.min(Math.abs(vig)/100,1)*.85;document.getElementById('vigov').style.background=fcOn?'none':'radial-gradient(ellipse at center,transparent 45%,'+(vig<0?'rgb(0 0 0/'+a+')':'rgb(255 255 255/'+a*.6+')')+' 100%)';});
+  var fcb=document.getElementById('fcbtn');fcb.addEventListener('click',function(){fcOn=!fcOn;fcb.classList.toggle('on',fcOn);document.getElementById('fcl').classList.toggle('on',fcOn);T.paintAll(true);});
+  var gdb=document.getElementById('gdbtn');gdb.addEventListener('click',function(){gdb.classList.toggle('on',document.getElementById('guides').classList.toggle('on'));});
+  var nb=document.getElementById('newbtn');nb.addEventListener('click',function(){nb.classList.toggle('on',document.body.classList.toggle('shownew'));});
+  T.on(function(){renderTools();T.paintAll();});
+  var hs=location.hash;var mt=/tool=(\w+)/.exec(hs);if(mt){tab=mt[1];}if(/fc/.test(hs)){fcb.click();}if(/new/.test(hs)){nb.click();}
+  renderTools();T.paintAll();
+})();
+</script>
+</body>
+</html>
