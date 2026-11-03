@@ -5,6 +5,7 @@ export const CLOUDY_DARK: ThemeDefinition = {
   id: "cloudy-dark",
   label: "Cloudy Dark",
   description: "The animator's desk at night: black paper, blue roughs.",
+  family: "Cloudy",
   appearance: "dark",
   tokens: {},
   preview: {

@@ -5,6 +5,7 @@ export const CLOUDY_LIGHT: ThemeDefinition = {
   id: "cloudy-light",
   label: "Cloudy Light",
   description: "Daylight on white paper, with ice-blue accents.",
+  family: "Cloudy",
   appearance: "light",
   tokens: {
     background: "oklch(0.975 0.004 250)",
