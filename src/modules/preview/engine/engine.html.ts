@@ -114,6 +114,8 @@ export class HtmlMediaEngine implements PreviewEngine {
   /** Web Audio for every sound element; a picture-only engine has no sound. */
   private readonly sound: SoundMix;
   private readonly awaited = new Set<MediaId>();
+  /** Inside `playSlice`: the loudness tap stays off. */
+  private slicing = false;
   private readonly levelCorrection: LevelCorrection | null;
 
   constructor(
@@ -149,7 +151,8 @@ export class HtmlMediaEngine implements PreviewEngine {
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>> = new Map(),
   ): void {
     this.sound.update(project, composition);
-    this.sound.setPlaying(playing);
+    // A scrub slice is heard and metered as playback is, but never reaches the loudness reading.
+    this.sound.setPlaying(playing && !this.slicing);
     const frame = resolveFrame(project, composition.id, time, {
       pictureOnly: this.pictureOnly,
       preloadAhead: PRELOAD_AHEAD,
@@ -214,11 +217,14 @@ export class HtmlMediaEngine implements PreviewEngine {
     transforms?: ReadonlyMap<ClipId, ClipTransform>,
     propsOverrides?: ReadonlyMap<ClipId, Record<string, unknown>>,
   ): void {
-    // Paused first, so every element seeks exactly there: a playing one would aim ahead of it.
-    if (start) this.render(project, composition, time, false, transforms, propsOverrides);
-    this.render(project, composition, time, true, transforms, propsOverrides);
-    // Heard and metered as playback is, but the loudness reading counts real playback only.
-    this.sound.setPlaying(false);
+    this.slicing = true;
+    try {
+      // Paused first, so every element seeks exactly there: a playing one would aim ahead of it.
+      if (start) this.render(project, composition, time, false, transforms, propsOverrides);
+      this.render(project, composition, time, true, transforms, propsOverrides);
+    } finally {
+      this.slicing = false;
+    }
   }
 
   setSound = (live: LiveSound): void => this.sound.setSound(live);

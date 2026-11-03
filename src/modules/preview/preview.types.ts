@@ -394,20 +394,29 @@ export interface FrameRenderer {
 }
 
 /** What audio scrub needs from the controller. */
-export interface ScrubDeps {
-  /** Starts a slice at `time`; false when nothing can play (playing already, no engine). */
-  playSlice(time: Micros): boolean;
-  /** Ends the last slice: media stops and the paused frame is drawn again. */
-  stop(): void;
+export interface ScrubDeps extends Pick<
+  PreviewControllerDeps,
+  "clock" | "getComposition" | "getProject"
+> {
+  /** The engine attached now, if any. */
+  engine(): PreviewEngine | null;
+  /** Live gestures, drawn by a slice as by a render. */
+  transforms: ReadonlyMap<ClipId, ClipTransform>;
+  propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>;
+  /** Draws the paused frame again (after the last slice). */
+  redraw(): void;
 }
 
 /** Audio scrub of one controller (`preview.scrub.ts`). */
 export interface Scrubber {
   scrub(time: Micros): void;
-  /** Where the slice playing has got to, null when none is. */
-  at(): Micros | null;
-  /** Drops the slice and any waiting one without stopping media (playback took over). */
-  cancel(): void;
+  /** Whether a slice is playing. */
+  scrubbing(): boolean;
+  /**
+   * For a redraw: while a slice plays, plays on where it has got to and returns true (the
+   * redraw is done); otherwise false. Playing drops the slice.
+   */
+  drawSlice(): boolean;
   onChange(listener: () => void): () => void;
   dispose(): void;
 }

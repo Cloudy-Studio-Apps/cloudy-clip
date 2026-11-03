@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { useKernel, useModule } from "@/core";
 import { previewRef, setLoop } from "@/modules/preview";
-import { projectRef, useOpenComposition } from "@/modules/project";
+import { frameDuration, projectRef, useOpenComposition } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { loopAround } from "../logic/loop";
 import { TransportTool } from "./TransportTool";
@@ -21,7 +21,8 @@ export function LoopToggle() {
   return (
     <TransportTool
       pressed={loop !== null}
-      disabled={!composition}
+      // Nothing a frame long to loop yet.
+      disabled={!loop && (!composition || composition.duration < frameDuration(composition.format))}
       title={
         loop
           ? "Looping: drag its ends on the ruler. Click to stop looping"

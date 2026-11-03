@@ -10,7 +10,7 @@ import { useSnapCandidates } from "./snap.hook";
 /**
  * The loop region on the ruler: a tinted band with a handle at each end. Dragging a handle moves
  * that end (snapping as the ruler scrub does; Ctrl or Cmd moves it freely), one `preview.setLoop`
- * on release; double-clicking one clears the loop. Nothing while there is no loop.
+ * on release, Escape cancels; double-clicking one clears the loop. Nothing while there is no loop.
  */
 export function LoopBand({ pxPerSecond }: { pxPerSecond: number }) {
   const { bus } = useKernel();
@@ -41,11 +41,9 @@ export function LoopBand({ pxPerSecond }: { pxPerSecond: number }) {
         if (event.button !== 0) return;
         // The ruler under the handle would scrub.
         event.stopPropagation();
-        const free = event.ctrlKey || event.metaKey;
-        const candidates =
-          compositionId && !free
-            ? snapCandidates(project.getState(), compositionId, playback.getTime())
-            : [];
+        const candidates = compositionId
+          ? snapCandidates(project.getState(), compositionId, playback.getTime())
+          : [];
         startLoopDrag({
           down: event.nativeEvent,
           loop,

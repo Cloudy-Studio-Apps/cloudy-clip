@@ -115,8 +115,20 @@ export const previewModule = defineModule({
       // One that no longer fits (shortened meanwhile) goes.
       if (!clock.setLoop(loop)) clock.setLoop(null);
     };
-    ctx.onDispose(view.store.subscribe(followOpen));
-    ctx.onDispose(project.subscribe(followOpen));
+    // Clips removed or trimmed: the playhead stays inside, and a loop past the end is clamped
+    // (or goes when under a frame is left), with or without a preview on screen.
+    const keepInside = () => {
+      const duration = openComposition()?.duration ?? 0;
+      if (clock.getTime() > duration) clock.seek(duration);
+      const loop = clock.getLoop();
+      if (loop && loop.to > duration && !clock.setLoop(loop)) clock.setLoop(null);
+    };
+    const follow = () => {
+      followOpen();
+      keepInside();
+    };
+    ctx.onDispose(view.store.subscribe(follow));
+    ctx.onDispose(project.subscribe(follow));
     // A font arriving (or failing) changes how text is drawn and measured.
     ctx.onDispose(fonts.onLoaded(() => controller.redraw()));
     // Another page covers the preview, so nothing should keep playing behind it, unless the page

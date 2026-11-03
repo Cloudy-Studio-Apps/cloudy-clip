@@ -1,6 +1,5 @@
 import type { Micros } from "@/core";
-import type { LoopRange, PlaybackClock, TimeListener } from "../preview.types";
-import { fitLoop, loopTime } from "./loop";
+import type { PlaybackClock, TimeListener } from "../preview.types";
 
 /**
  * A collaborator's playhead. Nothing is drawn or played: time is worked out from the wall clock
@@ -8,24 +7,17 @@ import { fitLoop, loopTime } from "./loop";
  *
  * @param getDuration Length of the timeline.
  * @param startAt Where the playhead starts.
- * @param getFrame Length of one frame of the timeline: the shortest loop.
  */
-export function createVirtualClock(
-  getDuration: () => Micros,
-  startAt: Micros,
-  getFrame: () => Micros,
-): PlaybackClock {
+export function createVirtualClock(getDuration: () => Micros, startAt: Micros): PlaybackClock {
   let anchorTime = startAt;
   let anchorNow = 0;
   let playing = false;
-  let loop: LoopRange | null = null;
   const timeListeners = new Set<TimeListener>();
   const playingListeners = new Set<() => void>();
-  const loopListeners = new Set<() => void>();
 
   function read(): Micros {
     const elapsed = playing ? Math.round((performance.now() - anchorNow) * 1000) : 0;
-    return Math.min(loopTime(anchorTime, anchorTime + elapsed, loop), Math.max(0, getDuration()));
+    return Math.min(anchorTime + elapsed, Math.max(0, getDuration()));
   }
 
   function setPlaying(next: boolean): void {
@@ -79,23 +71,13 @@ export function createVirtualClock(
       playingListeners.add(listener);
       return () => playingListeners.delete(listener);
     },
-    getLoop: () => loop,
-    setLoop(range) {
-      const next = range && fitLoop(range, getDuration(), getFrame());
-      if (range && !next) return false;
-      anchor(read());
-      loop = next;
-      for (const listener of loopListeners) listener();
-      return true;
-    },
-    onLoopChange(listener) {
-      loopListeners.add(listener);
-      return () => loopListeners.delete(listener);
-    },
+    // An agent's clock never loops: the loop is the user's view state (`preview.setLoop`).
+    getLoop: () => null,
+    setLoop: () => false,
+    onLoopChange: () => () => undefined,
     dispose() {
       timeListeners.clear();
       playingListeners.clear();
-      loopListeners.clear();
     },
   };
 }

@@ -1,5 +1,7 @@
-import type { Micros } from "@/core";
+import { createLogger, type Micros } from "@/core";
 import type { ScrubDeps, Scrubber } from "./preview.types";
+
+const log = createLogger("preview");
 
 /** How long one slice of sound plays. */
 export const SCRUB_SLICE_MS = 80;
@@ -18,8 +20,22 @@ export function createScrub(deps: ScrubDeps): Scrubber {
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((listener) => listener());
 
+  /** Plays the engine at `time`; `start` seeks there first. False when nothing can play. */
+  function play(time: Micros, start: boolean): boolean {
+    const engine = deps.engine();
+    const composition = deps.getComposition();
+    if (!engine || !composition || deps.clock.isPlaying()) return false;
+    try {
+      const { transforms, propsOverrides } = deps;
+      engine.playSlice(deps.getProject(), composition, time, start, transforms, propsOverrides);
+    } catch (error) {
+      log.error("Scrub failed", error);
+    }
+    return true;
+  }
+
   function start(time: Micros): boolean {
-    if (!deps.playSlice(time)) return false;
+    if (!play(time, true)) return false;
     from = time;
     startedAt = performance.now();
     timer = setTimeout(end, SCRUB_SLICE_MS);
@@ -31,7 +47,16 @@ export function createScrub(deps: ScrubDeps): Scrubber {
     const next = pending;
     pending = null;
     if (next !== null && start(next)) return;
-    deps.stop();
+    deps.engine()?.pauseAll();
+    deps.redraw();
+    emit();
+  }
+
+  function cancel(): void {
+    if (timer === null) return;
+    clearTimeout(timer);
+    timer = null;
+    pending = null;
     emit();
   }
 
@@ -40,13 +65,17 @@ export function createScrub(deps: ScrubDeps): Scrubber {
       if (timer !== null) pending = time;
       else if (start(time)) emit();
     },
-    at: () => (timer === null ? null : from + Math.round((performance.now() - startedAt) * 1000)),
-    cancel() {
-      if (timer === null) return;
-      clearTimeout(timer);
-      timer = null;
-      pending = null;
-      emit();
+    scrubbing: () => timer !== null,
+    drawSlice() {
+      if (timer === null) return false;
+      // Playing took over: the slice goes and the frame renders as playback.
+      if (deps.clock.isPlaying()) {
+        cancel();
+        return false;
+      }
+      // Goes on where the slice has got to, without seeking, drawing its frame once decoded.
+      play(from + Math.round((performance.now() - startedAt) * 1000), false);
+      return true;
     },
     onChange(listener) {
       listeners.add(listener);
