@@ -8,6 +8,7 @@ pub mod encoders;
 mod frames;
 pub mod job;
 pub mod recipe;
+mod soundfilters;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
