@@ -3,6 +3,7 @@ import { ClipTabSections } from "@/modules/inspector";
 import { cn, EmptyState, SegmentedControl, type SegmentedOption } from "@/ui";
 import type { SoundPanelTab } from "../../sound.types";
 import { ChannelTab } from "../channel";
+import { DeliverTab } from "../deliver";
 import { LoudnessTab } from "../loudness";
 import { PanelWho } from "./PanelWho";
 
@@ -16,7 +17,7 @@ const TABS: readonly SegmentedOption<SoundPanelTab>[] = [
 /**
  * The panel under the Sound page's timeline, opening on Channel. Clip: the inspector's Audio
  * sections of the selected clip. Channel: the effects of the marked strip. Loudness: the live
- * reading. Deliver: an empty grid until its cards come. Whose it is (`PanelWho`) sits at the right
+ * reading. Deliver: the delivery cards, laid out (their controls come later). Whose it is (`PanelWho`) sits at the right
  * of the tabs. All stay mounted, so the loudness history goes on behind the others.
  */
 export function SoundPanel() {
@@ -57,7 +58,7 @@ export function SoundPanel() {
         <LoudnessTab shown={tab === "loudness"} />
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "deliver" && "hidden")}>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(216px,1fr))] content-start" />
+        <DeliverTab />
       </div>
     </div>
   );
