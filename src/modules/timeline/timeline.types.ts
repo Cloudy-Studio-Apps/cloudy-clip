@@ -270,10 +270,11 @@ export interface TimelineTool extends Scoped {
   id: string;
   order: number;
   /**
-   * Where it sits: `start` (the default) at the left, before Split; `end` at the right, after the
-   * peg bar and before the zoom.
+   * Where it sits: `start` (the default) at the left, before Split; `split` right after Split
+   * (the Sound sheet's pen, beside the scissors); `end` at the right, after the peg bar and before
+   * the zoom.
    */
-  slot?: "start" | "end";
+  slot?: "start" | "split" | "end";
   component: ComponentType;
 }
 

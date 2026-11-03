@@ -25,10 +25,11 @@ export function TimelineToolbar() {
   const { bus } = useKernel();
   const tools = usePoint(timelineTools);
   const scope = useTimelineScope();
-  const [start, end] = useMemo(() => {
+  const [start, split, end] = useMemo(() => {
     const ordered = tools.filter((tool) => inScope(tool, scope)).sort((a, b) => a.order - b.order);
     return [
-      ordered.filter((tool) => tool.slot !== "end"),
+      ordered.filter((tool) => (tool.slot ?? "start") === "start"),
+      ordered.filter((tool) => tool.slot === "split"),
       ordered.filter((tool) => tool.slot === "end"),
     ];
   }, [tools, scope]);
@@ -57,6 +58,11 @@ export function TimelineToolbar() {
         >
           Split
         </ToolbarAction>
+        {split.map(({ id, component: Tool }) => (
+          <ErrorBoundary key={id} name={id}>
+            <Tool />
+          </ErrorBoundary>
+        ))}
         <ToolbarAction
           icon={<Trash />}
           label="Delete selected (Delete)"

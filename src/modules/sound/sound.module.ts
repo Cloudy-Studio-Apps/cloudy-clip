@@ -90,7 +90,13 @@ export const soundModule = defineModule({
     );
     contribute(
       timelineTools,
-      { id: "sound.drawVolume", order: 10, scopes: ["sound"], component: DrawVolumeTool },
+      {
+        id: "sound.drawVolume",
+        order: 10,
+        slot: "split",
+        scopes: ["sound"],
+        component: DrawVolumeTool,
+      },
       {
         id: "sound.automation",
         order: 10,

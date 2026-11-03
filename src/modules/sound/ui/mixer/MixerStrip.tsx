@@ -7,9 +7,8 @@ import { setTrackMuted } from "@/modules/timeline";
 import { cn, LetterToggle } from "@/ui";
 import { chainOf, placesUnheardEffects } from "../../logic/effects";
 import { setTrackMix } from "../../sound.mix.commands";
-import { setSolo } from "../../sound.monitor.commands";
 import { soundRef } from "../../sound.ref";
-import { ArmButton } from "../lanes";
+import { ArmButton, SoloButton } from "../lanes";
 import { EffectChain } from "../effects";
 import { Fader } from "./Fader";
 import { Meter } from "./Meter";
@@ -21,7 +20,6 @@ interface MixerStripProps {
   /** `A1`, `A2`… by its place among the audio tracks. */
   code: string;
   selected: boolean;
-  soloed: boolean;
 }
 
 /**
@@ -30,12 +28,7 @@ interface MixerStripProps {
  * the track (and its header on the timeline) and shows its chain in the Channel tab; when marked,
  * it scrolls into view.
  */
-export const MixerStrip = memo(function MixerStrip({
-  track,
-  code,
-  selected,
-  soloed,
-}: MixerStripProps) {
+export const MixerStrip = memo(function MixerStrip({ track, code, selected }: MixerStripProps) {
   const { bus } = useKernel();
   const preview = useModule(previewRef);
   const project = useModule(projectRef).store;
@@ -111,14 +104,7 @@ export const MixerStrip = memo(function MixerStrip({
         >
           M
         </LetterToggle>
-        <LetterToggle
-          on={soloed}
-          label={soloed ? "Stop soloing" : "Solo track"}
-          tone="ink"
-          onToggle={() => void bus.run(setSolo, { trackId: track.id, on: !soloed })}
-        >
-          S
-        </LetterToggle>
+        <SoloButton track={track} />
         <ArmButton track={track} />
       </div>
     </div>
