@@ -4,7 +4,7 @@ import { useKernel, useModule } from "@/core";
 import { previewRef, setLoop } from "@/modules/preview";
 import { frameDuration, projectRef, useOpenComposition } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
-import { cn, IconButton } from "@/ui";
+import { IconButton } from "@/ui";
 import { loopAround } from "../../logic/loop";
 
 /**
@@ -22,7 +22,7 @@ export function LoopToggle() {
   return (
     <IconButton
       aria-pressed={loop !== null}
-      className={cn(loop && "!text-on not-aria-disabled:hover:!text-on")}
+      tone={loop ? "on" : undefined}
       // Nothing a frame long to loop yet.
       disabled={!loop && (!composition || composition.duration < frameDuration(composition.format))}
       label={

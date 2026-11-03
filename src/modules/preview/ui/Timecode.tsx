@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { formatTimecode, useModule } from "@/core";
+import { formatTimecode, useModule, type Micros } from "@/core";
 import { useOpenComposition } from "@/modules/project";
 import { previewRef } from "../preview.ref";
 
@@ -11,9 +11,10 @@ interface TimecodeProps {
   compact?: boolean;
 }
 
-/** `mm:ss.cc` → `["mm:ss", ".cc"]`, split at the hundredths. */
-function splitCentis(text: string): [string, string] {
-  const dot = text.lastIndexOf(".");
+/** The time, split at the hundredths when `compact` (`mm:ss.cc` → `["mm:ss", ".cc"]`). */
+function timeParts(time: Micros, compact: boolean): [string, string] {
+  const text = formatTimecode(time);
+  const dot = compact ? text.lastIndexOf(".") : -1;
   return dot < 0 ? [text, ""] : [text.slice(0, dot), text.slice(dot)];
 }
 
@@ -30,36 +31,19 @@ export function Timecode({ compact = false }: TimecodeProps) {
   useEffect(
     () =>
       playback.onTime((time) => {
-        const text = formatTimecode(time);
-        if (!compact) {
-          if (timeRef.current) timeRef.current.textContent = text;
-          return;
-        }
-        const [whole, centis] = splitCentis(text);
+        const [whole, centis] = timeParts(time, compact);
         if (timeRef.current) timeRef.current.textContent = whole;
         if (centisRef.current) centisRef.current.textContent = centis;
       }),
     [playback, compact],
   );
 
-  if (compact) {
-    const [whole, centis] = splitCentis(formatTimecode(playback.getTime()));
-    return (
-      <span className="font-mono text-[17px] font-bold tabular-nums">
-        <span ref={timeRef}>{whole}</span>
-        <span ref={centisRef} className="text-[13px] font-normal text-subtle-foreground">
-          {centis}
-        </span>
-      </span>
-    );
-  }
-
+  const [whole, centis] = timeParts(playback.getTime(), compact);
   return (
     <span className="font-mono text-[17px] font-bold tabular-nums">
-      <span ref={timeRef}>{formatTimecode(playback.getTime())}</span>
+      <span ref={timeRef}>{whole}</span>
       <span className="text-[13px] font-normal text-subtle-foreground">
-        {" "}
-        / {formatTimecode(duration)}
+        {compact ? <span ref={centisRef}>{centis}</span> : ` / ${formatTimecode(duration)}`}
       </span>
     </span>
   );

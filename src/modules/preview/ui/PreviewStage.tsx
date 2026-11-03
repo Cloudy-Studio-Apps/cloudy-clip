@@ -48,11 +48,7 @@ export function PreviewStage({ bare = false }: PreviewStageProps) {
           ref={canvasRef}
           className="block size-full bg-black shadow-[0_0_0_1px_var(--border-strong)]"
         />
-        {bare && (
-          <div className="pointer-events-none absolute inset-0">
-            <FieldGuide />
-          </div>
-        )}
+        {bare && <FieldGuide />}
         {!bare &&
           overlays.map(({ id, component: Overlay }) => (
             <div key={id} className="pointer-events-none absolute inset-0">

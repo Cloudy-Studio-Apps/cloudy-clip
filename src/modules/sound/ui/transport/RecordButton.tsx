@@ -29,7 +29,7 @@ export function RecordButton() {
       <>
         <IconButton
           label="Stop recording and place the take"
-          className="!bg-mark !text-mark-foreground not-aria-disabled:hover:!bg-mark-hover"
+          tone="mark-filled"
           onClick={() => void sound.recorder.stop()}
         >
           <RecordDot pulsing />
@@ -44,8 +44,9 @@ export function RecordButton() {
     return (
       <IconButton
         disabled
+        busy
+        tone="mark"
         label={status === "starting" ? "Opening the microphone" : "Saving the take"}
-        className="!text-mark disabled:!opacity-100"
       >
         <RecordDot pulsing />
       </IconButton>
@@ -55,7 +56,7 @@ export function RecordButton() {
   const onto = canArm(track) && track.compositionId === open?.id ? track : null;
   return (
     <IconButton
-      className="!text-mark"
+      tone="mark"
       disabled={!open}
       label={
         onto

@@ -11,7 +11,8 @@ import { TransportSeparator } from "./TransportSeparator";
 /**
  * The Sound page's transport row, in the prototype's order: the time, Back, Play and Stop, Record
  * and Loop; the pointer tools and Snap; the quick tools; then Mix A and B and how the user
- * listens. A narrow window clips it at the right.
+ * listens. On a narrow window the coming-soon tools give way first (the quick tools, then the
+ * pointer tools'); what works never clips unless the window is narrower than all of it.
  */
 export function SoundTransport() {
   return (
@@ -25,7 +26,11 @@ export function SoundTransport() {
       <TransportSeparator />
       <PointerTools />
       <TransportSeparator />
-      <QuickTools />
+      {/* Coming soon, so the first to clip on a narrow window: far more shrink than the pointer
+          tools' placeholders, and nothing that works ever shrinks. */}
+      <span className="flex min-w-0 shrink-[100] items-center overflow-hidden">
+        <QuickTools />
+      </span>
       <span className="min-w-0 flex-1" />
       <MixSwitch />
       <TransportSeparator />

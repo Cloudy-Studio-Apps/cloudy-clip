@@ -21,6 +21,8 @@ export function MixSwitch() {
   return (
     <SegmentedControl
       label="Mix"
+      // Works, so it never gives way on a narrow window.
+      className="shrink-0"
       options={MIXES}
       value={active}
       disabled={!open}
