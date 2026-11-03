@@ -5,6 +5,7 @@ import type { JunctionApi } from "@/modules/junction";
 import type { MediaApi } from "@/modules/media";
 import type { Micros } from "@/core";
 import type {
+  DynamicsCommand,
   LiveSound,
   LoudnessReading,
   MixLevels,
@@ -21,6 +22,7 @@ import type {
   MediaId,
   ProjectFormat,
   ProjectState,
+  SoundEffect,
   Track,
   TrackId,
   TrackMix,
@@ -160,19 +162,53 @@ export interface Meter {
   dispose(): void;
 }
 
-/** One audio track's bus: upmix, pan, fader, and a meter after the fader. */
+/** One audio track's bus: upmix, its effects, pan, fader, and a meter after the fader. */
 export interface TrackBus {
   input: GainNode;
+  effects: EffectChain;
   panner: StereoPannerNode;
   fader: GainNode;
   meter: Meter;
+}
+
+/**
+ * The effects of one bus, between two nodes it doesn't own (`createEffectChain`). The chain is
+ * rebuilt only when its kinds, order or ids change (or the worklet becomes ready or fails); other
+ * changes reach the nodes it has.
+ */
+export interface EffectChain {
+  /**
+   * Plays these effects, in order. `keyOf` gives the nodes a duck listens to (the listened
+   * tracks after their faders); a track with no bus gives nothing.
+   */
+  set(effects: readonly SoundEffect[], keyOf: (trackId: TrackId) => AudioNode | undefined): void;
+  dispose(): void;
+}
+
+/**
+ * The dynamics worklet of one context (`createDynamicsNodes`): loaded once, in the background.
+ * Until it's ready, and for good once it failed, effects that need it pass the sound dry.
+ */
+export interface DynamicsNodes {
+  readonly state: "loading" | "ready" | "failed";
+  /** A node running this effect, with a second input for a duck's key; null unless ready. */
+  create(effect: DynamicsCommand): AudioWorkletNode | null;
+  dispose(): void;
+}
+
+/** One effect of a chain, made: where sound goes in and out, and how a change reaches it. */
+export interface EffectStage {
+  input: AudioNode;
+  output: AudioNode;
+  update(effect: SoundEffect, keyOf: (trackId: TrackId) => AudioNode | undefined): void;
+  dispose(): void;
 }
 
 /** The buses of one context: a track bus per audio track, the master and the monitor. */
 export interface MixBus {
   /** The input of a track's bus, or the master's when the track has none. */
   inputOf(trackId: TrackId): AudioNode;
-  /** The master after its fader, before the monitor: what loudness is measured on. */
+  /** The master after its fader and effects, before the monitor: what loudness is measured on. */
   readonly master: AudioNode;
   mix(update: MixUpdate): void;
   levels(): MixLevels;

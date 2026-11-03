@@ -1,10 +1,18 @@
 import { createLogger, notify } from "@/core";
 import { pitchShift, type ClipSound } from "@/modules/project";
 import { NO_LEVELS } from "./engine.meters";
+import { createDynamicsNodes } from "./engine.dynamics";
 import { createLoudnessTap } from "./engine.loudness";
 import { createMixBus } from "./engine.mixbus";
 import { createEqFilters, createPanner, createUpmix, glide, setBand } from "./engine.soundnodes";
-import type { LoudnessTap, MixBus, MixUpdate, SoundChain, SoundGraph } from "./engine.types";
+import type {
+  DynamicsNodes,
+  LoudnessTap,
+  MixBus,
+  MixUpdate,
+  SoundChain,
+  SoundGraph,
+} from "./engine.types";
 
 const log = createLogger("preview.engine");
 
@@ -103,6 +111,7 @@ function createChain(
 export function createSoundGraph(): SoundGraph {
   let context: AudioContext | null = null;
   let buses: MixBus | null = null;
+  let dynamics: DynamicsNodes | null = null;
   /** The context or its buses couldn't be made: told once, never tried again. */
   let unavailable = false;
   let update: MixUpdate | null = null;
@@ -135,6 +144,26 @@ export function createSoundGraph(): SoundGraph {
   };
 
   /**
+   * The worklet the buses' dynamics effects run in, once per engine. Until it's ready, and for good
+   * if it can't load or a processor fails, those effects pass the sound dry; the user is told once.
+   */
+  const loadDynamics = (audio: AudioContext) =>
+    createDynamicsNodes(
+      audio,
+      () => {
+        if (update) buses?.mix(update);
+      },
+      (error) => {
+        if (closed) return;
+        log.warn("The effects worklet isn't available", error);
+        notify(
+          "error",
+          "The preview can't run the compressor, gate, de-esser, limiter or ducking here, so they aren't heard while you edit. Playback and EQ are unaffected.",
+        );
+      },
+    );
+
+  /**
    * The context with its buses, made on first use; null when Web Audio isn't there or the graph
    * was disposed (no context is built after that).
    */
@@ -146,12 +175,15 @@ export function createSoundGraph(): SoundGraph {
     let audio: AudioContext | null = null;
     try {
       audio = new AudioContext();
-      buses = createMixBus(audio);
+      dynamics = loadDynamics(audio);
+      buses = createMixBus(audio, dynamics);
       if (update) buses.mix(update);
       context = audio;
       unavailable = false;
       measureLoudness(audio, buses.master);
     } catch (error) {
+      dynamics?.dispose();
+      dynamics = null;
       void audio?.close();
       log.warn("The preview has no Web Audio", error);
       notify(
@@ -200,6 +232,8 @@ export function createSoundGraph(): SoundGraph {
       closed = true;
       loudness?.dispose();
       loudness = null;
+      dynamics?.dispose();
+      dynamics = null;
       buses?.dispose();
       buses = null;
       void context?.close();

@@ -10,6 +10,7 @@ import type {
   Junction,
   MediaId,
   ProjectState,
+  SoundEffect,
   TrackId,
   TrackMix,
 } from "@/modules/project";
@@ -180,6 +181,30 @@ export interface LimiterState {
   delta: number;
   nextiter: number;
   nextlen: number;
+}
+
+/**
+ * What the dynamics worklet is told: run this effect (any kind it knows) with these settings. A
+ * new message replaces the settings; the processor keeps its state.
+ */
+export type DynamicsCommand = Exclude<SoundEffect, { kind: "eq" } | { kind: "denoise" }>;
+
+/** One dynamics effect on stereo blocks (`createEffectRunner`), what the dynamics worklet runs. */
+export interface EffectRunner {
+  /** New settings (or a first effect); the state carries on. */
+  set(command: DynamicsCommand): void;
+  /**
+   * One block: the sound in, the key (a duck's listened tracks; read only by `duck`), and the
+   * output, as long as the block.
+   */
+  process(
+    left: Float32Array,
+    right: Float32Array,
+    keyLeft: Float32Array,
+    keyRight: Float32Array,
+    outLeft: Float32Array,
+    outRight: Float32Array,
+  ): void;
 }
 
 /** Loudness of the master, as BS.1770 measures it. */

@@ -30,7 +30,12 @@ export function mixUpdateOf(
   // Solo outlives a deleted track and a switch of composition: only this one's tracks count, so a
   // solo of none of them is no solo, not silence.
   const soloed = solo.filter((id) => tracks.some((track) => track.id === id));
-  return { tracks, master: { volumeDb: master.volumeDb }, solo: soloed, monitor };
+  return {
+    tracks,
+    master: { volumeDb: master.volumeDb, effects: master.effects },
+    solo: soloed,
+    monitor,
+  };
 }
 
 /**

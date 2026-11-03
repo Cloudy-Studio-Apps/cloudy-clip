@@ -94,7 +94,7 @@ export interface TrackMix {
   volumeDb: number;
   /** -1 (left) to 1 (right). */
   pan: number;
-  /** The effects after the fader, in order. Missing means none; an empty chain is never stored. */
+  /** The effects before the pan and the fader, in order. Missing means none; an empty chain is never stored. */
   effects?: SoundEffect[];
 }
 
