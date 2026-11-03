@@ -12,6 +12,7 @@ mod workspace;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let result = tauri::Builder::default()
+        .on_permission_request(sound::permission_request)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
@@ -19,6 +20,7 @@ pub fn run() {
         .setup(|app| {
             media::setup(app);
             export::setup(app);
+            sound::setup(app);
             mcp::setup(app);
             webview::setup(app);
             Ok(())
@@ -45,6 +47,8 @@ pub fn run() {
             mcp::commands::mcp_respond,
             mcp::commands::mcp_status,
             sound::commands::sound_measure_floor,
+            sound::commands::sound_record_begin,
+            sound::commands::sound_record_write,
             workspace::commands::workspace_exists,
             workspace::commands::workspace_read,
             workspace::commands::workspace_recents_read,
