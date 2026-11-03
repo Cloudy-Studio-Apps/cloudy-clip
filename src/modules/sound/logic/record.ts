@@ -11,19 +11,15 @@ export const RECORDING_CHECKED: Readonly<Record<RecordPlatform, boolean>> = {
   linux: true,
   windows: false,
   macos: false,
+  android: false,
 };
 
 /** The platform a webview's user agent names. */
 export function platformOf(userAgent: string): RecordPlatform {
+  if (/Android/i.test(userAgent)) return "android";
   if (/Windows/i.test(userAgent)) return "windows";
   if (/Mac OS X|Macintosh/i.test(userAgent)) return "macos";
   return "linux";
-}
-
-/** Whether this webview can record: a microphone API, on a platform where it was checked. */
-export function canRecordHere(): boolean {
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return false;
-  return RECORDING_CHECKED[platformOf(navigator.userAgent)];
 }
 
 /** Whether a track can be armed for recording: an audio track that isn't muted. */
@@ -31,10 +27,11 @@ export function canArm(track: Track | undefined): track is Track {
   return track?.kind === "audio" && !track.muted;
 }
 
-/** The folder a project file sits in. */
+/** The folder a project file sits in: `/` (or `C:\`) for one at the root. */
 export function folderOf(path: string): string {
   const cut = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
-  return cut > 0 ? path.slice(0, cut) : path;
+  if (cut < 0) return path;
+  return cut === 0 || path[cut - 1] === ":" ? path.slice(0, cut + 1) : path.slice(0, cut);
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");

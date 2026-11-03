@@ -117,6 +117,8 @@ export const mediaModule = defineModule({
           return frameIndexesAt(animation, elapsed, ahead).map((n) => service.frameUrl(id, n));
         },
         restore: files.restore,
+        prepareFile: files.prepareFile,
+        takePrepared: files.takePrepared,
         fileFacts: readFileFacts,
         listDisks,
         revealFile,

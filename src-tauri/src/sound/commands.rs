@@ -3,15 +3,15 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use tauri::State;
 use tauri::ipc::{InvokeBody, Request};
-use tauri::{AppHandle, State};
 
 use super::floor::{MEASURE_ARGS, parse_floor, stretch_args};
 use super::record::{TakeStarted, TakeWritten, Takes};
 use crate::error::AppError;
+use crate::media::MediaRegistry;
 use crate::media::denoise::AFFTDN_NF;
 use crate::media::proxy::{command, find_tools};
-use crate::media::{MediaRegistry, cache_root};
 
 /// The noise floor of `from..to` (microseconds) of a file's sound, in dBFS, within what noise
 /// reduction (`afftdn`) accepts: the stretch should hold only the noise.
@@ -49,31 +49,19 @@ pub async fn sound_measure_floor(
     Ok(floor.round().clamp(AFFTDN_NF.0, AFFTDN_NF.1))
 }
 
-/// Starts a recording: a new WAV file `stem.wav` (or `stem 2.wav`...; never overwrites) in the
-/// project's folder, or, for a project with no file yet, in `recordings` in the app's cache.
+/// Starts a recording: a new WAV file `stem.wav` (or `stem 2.wav`...; never overwrites) in
+/// `Recordings` of the project's folder `project_dir` (which must exist, or at least its parent).
 /// Returns the take's id, for `sound_record_write`, and its path.
 #[tauri::command]
 pub async fn sound_record_begin(
-    project_dir: Option<String>,
+    project_dir: String,
     stem: String,
     sample_rate: u32,
-    app: AppHandle,
     takes: State<'_, Takes>,
 ) -> Result<TakeStarted, AppError> {
-    let folder = match project_dir {
-        Some(dir) => {
-            let dir = PathBuf::from(dir);
-            if !dir.is_absolute() {
-                return Err(AppError::InvalidInput(format!(
-                    "Not an absolute folder: {}",
-                    dir.display()
-                )));
-            }
-            dir
-        }
-        None => cache_root(&app).join("recordings"),
-    };
-    takes.begin(&folder, &stem, sample_rate).await
+    takes
+        .begin(&PathBuf::from(project_dir), &stem, sample_rate)
+        .await
 }
 
 /// Appends a chunk of a recording: the body is raw 16-bit little-endian mono samples, the headers

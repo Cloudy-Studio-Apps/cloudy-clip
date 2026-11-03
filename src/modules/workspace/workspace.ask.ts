@@ -8,14 +8,17 @@ const FILTERS = [{ name: "Cloudy Clip project", extensions: [PROJECT_EXTENSION] 
 
 /**
  * The file pickers. Each waits for a person, so it runs outside the bus, which would otherwise
- * hold every other command until they answer, and runs its command after.
+ * hold every other command until they answer, and runs its command after (opening another
+ * project finishes the leave tasks first).
  */
 export function createPickers(bus: CommandBus, workspace: WorkspaceCore) {
   return {
     askOpen() {
       void (async () => {
         const path = await open({ multiple: false, directory: false, filters: FILTERS });
-        if (path) await bus.run(openProject, { path });
+        if (!path) return;
+        await workspace.prepareLeave();
+        await bus.run(openProject, { path });
       })();
     },
     askSaveAs() {

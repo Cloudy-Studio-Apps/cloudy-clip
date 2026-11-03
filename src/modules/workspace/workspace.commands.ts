@@ -20,7 +20,7 @@ export const newProject = defineCommand({
   id: "workspace.new",
   label: "New project",
   description:
-    "Saves the open project and starts an empty one. Optional: name and description (what the project is about, for whoever opens it later); with either, its file is created right away. It can't be undone, and the undo history is cleared; the previous project stays in workspace_list_recent. Fails with workspace.bad_name. Follow with composition_create.",
+    "Saves the open project and starts an empty one. Optional: name and description (what the project is about, for whoever opens it later); with either, its file is created right away. It can't be undone, and the undo history is cleared; the previous project stays in workspace_list_recent. Fails with workspace.bad_name, and with workspace.recording while the user is recording a take (ask them to stop it). Follow with composition_create.",
   undoable: false,
   input: z.object({ name: z.string().optional(), description: description.optional() }),
   async run(ctx, input) {
@@ -30,7 +30,7 @@ export const newProject = defineCommand({
     if (name !== undefined && !isValidName(name)) {
       throw new CommandFailure("workspace.bad_name", "A name can't use / \\ : * ? \" < > |");
     }
-    await workspace.leave(ctx.execute.bind(ctx));
+    await workspace.leave();
     const about = input.description?.trim();
     const document = { ...createEmptyProject(), ...(about ? { description: about } : {}) };
     ctx.replace(store, document);
@@ -48,13 +48,13 @@ export const openProject = defineCommand({
   id: "workspace.open",
   label: "Open project",
   description:
-    "Saves the open project and opens the .cclip file at an absolute path. It can't be undone, and the undo history is cleared; the previous project stays in workspace_list_recent. Returns { name, missing }: media whose file wasn't found (fix with media_relink). Fails with workspace.not_found, workspace.not_a_project, workspace.too_new, workspace.damaged or store.invalid, leaving the open project as it was.",
+    "Saves the open project and opens the .cclip file at an absolute path. It can't be undone, and the undo history is cleared; the previous project stays in workspace_list_recent. Returns { name, missing }: media whose file wasn't found (fix with media_relink). Fails with workspace.not_found, workspace.not_a_project, workspace.too_new, workspace.damaged or store.invalid, leaving the open project as it was, and with workspace.recording while the user is recording a take (ask them to stop it).",
   undoable: false,
   input: z.object({ path: z.string().min(1) }),
   async run(ctx, { path }) {
     const workspace = ctx.require(workspaceRef);
     const { store, view } = ctx.require(projectRef);
-    await workspace.leave(ctx.execute.bind(ctx));
+    await workspace.leave();
     const { document, missing } = await workspace.prepare(path);
     ctx.replace(store, document);
     view.reset();

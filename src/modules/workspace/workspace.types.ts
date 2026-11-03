@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { ActorId, CommandContext, Micros, PatchableStore } from "@/core";
+import type { ActorId, Micros, PatchableStore } from "@/core";
 import type { MediaApi } from "@/modules/media";
 import type { MediaAsset, ProjectApi, ProjectState } from "@/modules/project";
 import type { PreviewApi } from "@/modules/preview";
@@ -63,13 +63,18 @@ export interface Recents {
 }
 
 /**
- * Runs a command in the step that leaves the project: nested in the command that opens another
- * (the bus is busy with it), or through the bus when the window closes. Throws its failure.
+ * Work another module finishes before the project is left (a recording stopped and placed). It
+ * runs outside any command, so it runs its own through the bus.
  */
-export type LeaveRun = CommandContext["execute"];
-
-/** Work a module finishes before the project is left, with `run` for its commands. */
-export type LeaveTask = (run: LeaveRun) => Promise<void>;
+export interface LeaveTask {
+  /** Finishes the work, telling the user itself when it can't. */
+  finish(): Promise<void>;
+  /**
+   * Why the project can't be left right now, or null. Checked by `workspace.new` and
+   * `workspace.open`, which then refuse with this `code`, so an agent can't strand the work.
+   */
+  blocking(): { code: string; message: string } | null;
+}
 
 /** The project file, as written. */
 export interface ProjectEnvelope {
@@ -123,16 +128,18 @@ export interface WorkspaceCore {
   readonly ui: StoreApi<WorkspaceUi>;
   readonly recents: Recents;
   /**
-   * Runs the `beforeLeave` tasks with `run`, then writes everything and refreshes the thumbnail.
-   * Throws `workspace.save_failed`.
+   * Writes everything and refreshes the thumbnail. Refuses with a task's `blocking()` failure
+   * while one holds the project, or throws `workspace.save_failed`. Called inside `workspace.new`
+   * and `workspace.open`.
    */
-  leave(run: LeaveRun): Promise<void>;
+  leave(): Promise<void>;
   /**
-   * Adds work done each time the project is left (another opened, a new one started, the window
-   * closed), before it is written: a recording stopped and placed. Tasks run in the order added; one
-   * that throws is logged and the leaving goes on, so a task tells the user itself. Returns what
-   * removes it.
+   * Finishes every `beforeLeave` task, in the order added, outside the bus: call it, and await
+   * it, before running `workspace.new` or `workspace.open` (the start dialog, the pickers, the
+   * recent list, window close do). A task that throws is logged and the rest go on.
    */
+  prepareLeave(): Promise<void>;
+  /** Adds work finished before the project is left. Returns what removes it. */
   beforeLeave(task: LeaveTask): () => void;
   /** Writes now, even a blank project. Throws `workspace.save_failed`. */
   save(): Promise<WorkspaceSession>;

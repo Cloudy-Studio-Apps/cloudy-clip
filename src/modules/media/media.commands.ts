@@ -24,8 +24,24 @@ export const importMedia = defineCommand({
     if (binId !== undefined && !store.getState().bins[binId]) {
       throw new CommandFailure("media.no_bin", `No bin with id "${binId}"`);
     }
-    const outcomes = await registerFiles(paths.map((path) => ({ id: createId("media"), path })));
-    const imported: MediaAsset[] = [];
+    // Files read ahead (`prepareFile`) keep their id and probe; the rest are registered now.
+    const media = ctx.require(mediaRef);
+    const ready: MediaAsset[] = [];
+    const rest: string[] = [];
+    for (const path of paths) {
+      const asset = media.takePrepared(path);
+      if (asset) ready.push(asset);
+      else rest.push(path);
+    }
+    const outcomes =
+      rest.length > 0
+        ? await registerFiles(rest.map((path) => ({ id: createId("media"), path })))
+        : [];
+    const imported: MediaAsset[] = ready.map((asset) => ({
+      ...asset,
+      importedAt: Date.now(),
+      ...(binId === undefined ? {} : { binId }),
+    }));
     const failed: ImportResult["failed"] = [];
     for (const outcome of outcomes) {
       if (outcome.status === "ok") {

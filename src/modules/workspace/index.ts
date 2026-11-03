@@ -15,7 +15,6 @@ export {
   showStart,
 } from "./workspace.commands";
 export type {
-  LeaveRun,
   LeaveTask,
   RecentProject,
   SaveStatus,

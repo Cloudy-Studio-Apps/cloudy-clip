@@ -1,4 +1,4 @@
-import type { PatchableStore } from "@/core";
+import { createId, type PatchableStore } from "@/core";
 import type { MediaAsset, MediaId, ProjectState } from "@/modules/project";
 import { registerFiles } from "./media.service";
 import { isProxySettled } from "./media.store";
@@ -11,6 +11,21 @@ export function createMediaFiles(deps: {
   probes: ProbeQueue;
 }): MediaFiles {
   const { project, state, probes } = deps;
+  /** Files read ahead of their import, by path. */
+  const prepared = new Map<string, MediaAsset>();
+
+  /** Resolves once `ready` holds for the probes, or after `timeoutMs`. */
+  const until = (ready: () => boolean, timeoutMs: number) =>
+    new Promise<void>((resolve) => {
+      if (ready()) return resolve();
+      const done = () => {
+        clearTimeout(timer);
+        stop();
+        resolve();
+      };
+      const timer = setTimeout(done, timeoutMs);
+      const stop = state.probes.subscribe(() => ready() && done());
+    });
 
   const startOver = (id: MediaId, status: "pending" | "missing", error?: string) => {
     probes.forget(id);
@@ -53,6 +68,31 @@ export function createMediaFiles(deps: {
         stopProject();
         stopProbes();
       };
+    },
+    async prepareFile(path, timeoutMs = 15_000) {
+      const id = createId("media");
+      state.setProbe(id, { status: "pending" });
+      const [outcome] = await registerFiles([{ id, path }]);
+      if (!outcome || outcome.status === "error") {
+        state.replaceProbe(id, {
+          status: "error",
+          error: outcome?.error.message ?? "Not imported",
+        });
+        throw new Error(outcome?.error.message ?? `"${path}" couldn't be read`);
+      }
+      const asset: MediaAsset = { ...outcome.media };
+      const started = Date.now();
+      // Probed from its proxy once that pipeline has settled, as an imported file is.
+      await until(() => isProxySettled(state.getProbe(id)?.proxy), timeoutMs);
+      probes.enqueue(asset);
+      const probe = await state.waitForProbe(id, Math.max(0, timeoutMs - (Date.now() - started)));
+      prepared.set(path, asset);
+      return probe;
+    },
+    takePrepared(path) {
+      const asset = prepared.get(path);
+      prepared.delete(path);
+      return asset;
     },
     async restore(assets) {
       for (const { id } of assets) {

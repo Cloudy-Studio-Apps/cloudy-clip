@@ -5,6 +5,7 @@ import type { ProjectFormat } from "@/modules/project";
 import { Button, cn } from "@/ui";
 import { DEFAULT_NAME } from "../logic/names";
 import { newProject } from "../workspace.commands";
+import { workspaceRef } from "../workspace.ref";
 
 const SHAPE_SIZE = 14;
 const FIELD =
@@ -27,10 +28,12 @@ function FormatShape({ format }: { format: ProjectFormat }) {
 export function NewProjectColumn() {
   const { bus } = useKernel();
   const composition = useModule(compositionRef);
+  const workspace = useModule(workspaceRef);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
   async function start(format?: ProjectFormat) {
+    await workspace.prepareLeave();
     const result = await bus.run(newProject, { name, description });
     if (!result.ok) return;
     if (!format) composition.openNew();

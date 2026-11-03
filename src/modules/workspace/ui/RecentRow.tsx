@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { formatTimecode, useKernel } from "@/core";
+import { formatTimecode, useKernel, useModule } from "@/core";
 import { cn } from "@/ui";
 import { agoLabel, ratioLabel } from "../logic/labels";
 import { openProject } from "../workspace.commands";
+import { workspaceRef } from "../workspace.ref";
 import type { RecentProject } from "../workspace.types";
 
 interface RecentRowProps {
@@ -16,6 +17,7 @@ interface RecentRowProps {
 /** One project of the list: press to open. */
 export function RecentRow({ project, gone, action }: RecentRowProps) {
   const { bus } = useKernel();
+  const workspace = useModule(workspaceRef);
   const { width, height, duration, thumbnail } = project;
   const [now] = useState(Date.now);
   return (
@@ -28,7 +30,10 @@ export function RecentRow({ project, gone, action }: RecentRowProps) {
           "flex min-w-0 flex-1 items-center gap-2.5 p-1 text-left",
           gone ? "opacity-50" : "cursor-pointer",
         )}
-        onClick={() => void bus.run(openProject, { path: project.path })}
+        onClick={async () => {
+          await workspace.prepareLeave();
+          await bus.run(openProject, { path: project.path });
+        }}
       >
         <span className="h-9 w-14 shrink-0 overflow-hidden rounded-xs bg-surface-sunken">
           {thumbnail && <img src={thumbnail} alt="" className="size-full object-contain" />}

@@ -55,7 +55,8 @@ export const soundModule = defineModule({
     const project = require(projectRef);
     const { playback } = require(previewRef);
     const workspace = require(workspaceRef);
-    const recorder = createRecorder({ bus, playback, project, session: workspace.session });
+    const media = require(mediaRef);
+    const recorder = createRecorder({ bus, playback, project, media, workspace, view });
     onDispose(() => void recorder.stop());
     onDispose(followRecordingEnds(recorder, pages, playback, project, workspace));
     contribute(appPages, {
@@ -85,9 +86,7 @@ export const soundModule = defineModule({
         select: (selected) => view.setState({ selected }),
         setExpanded: (expanded) => view.setState({ expanded }),
         recorder,
-        arm(armed) {
-          if (recorder.state.getState().status === "idle") view.setState({ armed });
-        },
+        arm: recorder.arm,
       },
     };
   },

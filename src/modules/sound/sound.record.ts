@@ -1,8 +1,7 @@
 import { createStore } from "zustand/vanilla";
-import { CommandFailure, createLogger, MICROS_PER_SECOND, notify, toAppError } from "@/core";
+import { createLogger, MICROS_PER_SECOND, notify, toAppError } from "@/core";
 import { pause, peakToDb, play } from "@/modules/preview";
 import type { TrackId } from "@/modules/project";
-import type { LeaveRun } from "@/modules/workspace";
 import { canArm, folderOf, joinChunks, startFailure, takeStem, toPcm16 } from "./logic/record";
 import { openCapture } from "./sound.record.capture";
 import { placeRecording } from "./sound.record.commands";
@@ -18,21 +17,17 @@ const NOTHING = new Uint8Array(0);
 const reason = (error: unknown) => toAppError(error).message.replace(/\.$/, "");
 
 /**
- * The recorder of one kernel: the microphone (`openCapture`) into a WAV beside the project
- * (`sound_record_begin` / `sound_record_write`, a quarter of a second at a time), placed on stop
- * with `sound.placeRecording`. The take starts where playback starts and runs on past the
+ * The recorder of one kernel: the microphone (`openCapture`) into a WAV in `Recordings` beside
+ * the project (`sound_record_begin` / `sound_record_write`, a quarter of a second at a time). On
+ * stop the file is read (`media.prepareFile`) outside the bus, then placed with
+ * `sound.placeRecording`. The take starts where playback starts and runs on past the
  * composition's end; a loop wrapping playback doesn't wrap the take. Failures are told with the
  * file's path, so a take is never lost silently.
  */
-export function createRecorder({ bus, playback, project, session }: RecorderDeps): Recorder {
+export function createRecorder(deps: RecorderDeps): Recorder {
+  const { bus, playback, project, media, workspace, view } = deps;
   const state = createStore<RecorderState>(() => IDLE);
   let take: LiveTake | null = null;
-
-  const viaBus: LeaveRun = async (command, input) => {
-    const result = await bus.run(command, input);
-    if (!result.ok) throw new CommandFailure(result.error.code, result.error.message);
-    return result.value;
-  };
 
   const end = (t: LiveTake) => {
     if (take !== t) return;
@@ -58,21 +53,27 @@ export function createRecorder({ bus, playback, project, session }: RecorderDeps
     });
   };
 
+  // The worklet hands samples over only from `keep()` until it's flushed.
   const onBlock = (t: LiveTake) => (block: Float32Array) => {
-    if (!t.keeping) return;
     const { pcm, peak } = toPcm16(block);
     t.level = peakToDb(peak);
     t.chunks.push(pcm);
     t.chunked += pcm.length;
     t.samples += pcm.length;
-    if (t.chunked >= t.rate * SEND_SECONDS) send(t, false);
+    if (t.keeping && t.chunked >= t.rate * SEND_SECONDS) send(t, false);
   };
 
   /** Closes a take that never kept a sample: its empty file is deleted. */
   const drop = async (t: LiveTake) => {
-    t.capture?.stop();
+    await t.capture?.stop();
     if (t.file) await writeTake(t.file.id, NOTHING, true).catch((e) => log.warn("Drop", e));
     end(t);
+  };
+
+  /** The folder of the project, or the one a project without a file yet will be saved in. */
+  const projectFolder = async () => {
+    const { path } = workspace.session.getState();
+    return path === null ? workspace.folder() : folderOf(path);
   };
 
   async function start(trackId: TrackId): Promise<void> {
@@ -86,6 +87,7 @@ export function createRecorder({ bus, playback, project, session }: RecorderDeps
       at: 0,
       keeping: false,
       ending: false,
+      finishing: null,
       capture: null,
       file: null,
       rate: 0,
@@ -102,9 +104,7 @@ export function createRecorder({ bus, playback, project, session }: RecorderDeps
     try {
       t.capture = await openCapture(onBlock(t));
       t.rate = t.capture.sampleRate;
-      const { path } = session.getState();
-      const folder = path === null ? null : folderOf(path);
-      t.file = await beginTake(folder, takeStem(new Date()), t.rate);
+      t.file = await beginTake(await projectFolder(), takeStem(new Date()), t.rate);
     } catch (error) {
       log.warn("Recording couldn't start", error);
       notify("error", startFailure(error));
@@ -114,27 +114,31 @@ export function createRecorder({ bus, playback, project, session }: RecorderDeps
     if (!t.ending) await bus.run(play, {});
     if (t.ending) return drop(t);
     t.at = playback.getTime();
+    t.capture.keep();
     t.keeping = true;
     state.setState({ status: "recording", at: t.at });
   }
 
-  async function finish(t: LiveTake, run: LeaveRun): Promise<void> {
+  async function finish(t: LiveTake, pauseToo: boolean): Promise<void> {
     t.keeping = false;
     state.setState({ status: "stopping" });
-    t.capture?.stop();
-    send(t, true);
     try {
-      if (playback.isPlaying()) await run(pause, {}).catch((e) => log.warn("Pause", e));
+      if (pauseToo && playback.isPlaying()) {
+        const paused = await bus.run(pause, {});
+        if (!paused.ok) log.warn("Pause", paused.error);
+      }
+      await t.capture?.stop();
+      send(t, true);
       await t.writes;
-      await place(t, run);
+      await place(t);
     } finally {
       // Until the clip is there, the take stays drawn on its lane.
       end(t);
     }
   }
 
-  /** Places what a stopped take wrote, or tells the user why not, naming the file. */
-  async function place(t: LiveTake, run: LeaveRun): Promise<void> {
+  /** Reads and places what a stopped take wrote, or tells the user why not, naming the file. */
+  async function place(t: LiveTake): Promise<void> {
     const path = t.written ? t.written.path : (t.file?.path ?? null);
     const samples = t.written?.samples ?? 0;
     if (t.failure) {
@@ -145,29 +149,41 @@ export function createRecorder({ bus, playback, project, session }: RecorderDeps
       if (!t.failure) notify("info", "Nothing was recorded.");
       return;
     }
-    try {
-      await run(placeRecording, { trackId: t.trackId, path, at: t.at });
-    } catch (error) {
+    const unplaced = (why: string) =>
       notify(
         "error",
-        `The recording is saved as ${path}, but it couldn't be placed (${reason(error)}). Import it from the Media page.`,
+        `The recording is saved as ${path}, but it couldn't be placed (${why}). Import it from the Media page.`,
       );
-    }
+    // Read outside the bus, so placing never holds every other command while the file is probed.
+    const probe = await media.prepareFile(path).catch((error: unknown) => {
+      unplaced(reason(error));
+      return null;
+    });
+    if (probe === null) return;
+    if (probe?.status !== "ready") return unplaced(probe?.error ?? "its length couldn't be read");
+    const placed = await bus.run(placeRecording, { trackId: t.trackId, path, at: t.at });
+    if (!placed.ok) unplaced(reason(placed.error));
   }
 
-  function stop(run: LeaveRun = viaBus): Promise<void> {
+  function stop({ pause: pauseToo = true }: { pause?: boolean } = {}): Promise<void> {
     const t = take;
-    if (!t || t.ending) return Promise.resolve();
+    if (!t) return Promise.resolve();
+    if (t.finishing) return t.finishing;
+    if (t.ending) return Promise.resolve();
     t.ending = true;
     // Still starting: `start` sees `ending` and closes the take.
     if (!t.keeping) return Promise.resolve();
-    return finish(t, run);
+    t.finishing = finish(t, pauseToo);
+    return t.finishing;
   }
 
   return {
     state,
     start,
     stop,
+    arm(armed) {
+      if (!take) view.setState({ armed });
+    },
     level: () => (take?.keeping ? take.level : -Infinity),
     length: () => (take?.rate ? Math.round((take.samples / take.rate) * MICROS_PER_SECOND) : 0),
   };

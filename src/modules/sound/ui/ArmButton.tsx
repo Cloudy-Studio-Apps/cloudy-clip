@@ -1,7 +1,8 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import type { Track } from "@/modules/project";
-import { canArm, canRecordHere } from "../logic/record";
+import { canArm } from "../logic/record";
+import { canRecordHere } from "../sound.record.capture";
 import { soundRef } from "../sound.ref";
 import { StripToggle } from "./StripToggle";
 

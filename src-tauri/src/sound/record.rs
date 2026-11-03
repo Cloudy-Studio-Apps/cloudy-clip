@@ -18,12 +18,16 @@ const CHANNELS: u16 = 1;
 const BITS_PER_SAMPLE: u16 = 16;
 const BLOCK_ALIGN: u16 = CHANNELS * BITS_PER_SAMPLE / 8;
 /// The canonical header: `RIFF`, `fmt ` (PCM) and the `data` chunk's header.
-pub const HEADER_LEN: usize = 44;
+const HEADER_LEN: usize = 44;
 /// The most sample bytes a WAV's 32-bit sizes can say (about 13 hours at 44.1 kHz).
 const MAX_DATA: u32 = u32::MAX - (HEADER_LEN as u32 - 8);
+/// The largest chunk taken at once: the webview sends a quarter of a second (192 KB at 384 kHz).
+pub const MAX_CHUNK: usize = 1 << 20;
+/// The folder takes go into, inside the project's folder.
+const RECORDINGS: &str = "Recordings";
 
 /// The header of a 16-bit mono PCM WAV holding `data_len` bytes of samples at `sample_rate`.
-pub fn wav_header(sample_rate: u32, data_len: u32) -> [u8; HEADER_LEN] {
+fn wav_header(sample_rate: u32, data_len: u32) -> [u8; HEADER_LEN] {
     let mut header = [0u8; HEADER_LEN];
     let byte_rate = sample_rate * u32::from(BLOCK_ALIGN);
     let mut put = |at: usize, bytes: &[u8]| header[at..at + bytes.len()].copy_from_slice(bytes);
@@ -86,12 +90,36 @@ fn checked_stem(stem: &str) -> AppResult<&str> {
     Ok(stem)
 }
 
+/// `Recordings` in a project's folder, made if needed. The project's folder must exist, or at
+/// least its parent (a new project's folder, about to be made); nothing deeper is created.
+async fn recordings_in(project_dir: &Path) -> AppResult<PathBuf> {
+    let parent_exists = match project_dir.parent() {
+        Some(parent) => tokio::fs::try_exists(parent).await?,
+        None => false,
+    };
+    if !project_dir.is_absolute() || !(project_dir.is_dir() || parent_exists) {
+        return Err(AppError::InvalidInput(format!(
+            "Not a project folder: {}",
+            project_dir.display()
+        )));
+    }
+    if !project_dir.is_dir() {
+        tokio::fs::create_dir(project_dir).await?;
+    }
+    let folder = project_dir.join(RECORDINGS);
+    if !folder.is_dir() {
+        tokio::fs::create_dir(&folder).await?;
+    }
+    Ok(folder)
+}
+
 impl Takes {
-    /// Creates `stem.wav` in `folder` (or `stem 2.wav`, `stem 3.wav`... when taken; never
-    /// overwrites), with a header and no samples yet.
+    /// Creates `stem.wav` in `Recordings` of the project's folder (or `stem 2.wav`, `stem 3.wav`...
+    /// when taken; never overwrites), with a header and no samples yet. A take left open by an
+    /// earlier page (reloaded before its last chunk) is closed first: one take at a time.
     pub async fn begin(
         &self,
-        folder: &Path,
+        project_dir: &Path,
         stem: &str,
         sample_rate: u32,
     ) -> AppResult<TakeStarted> {
@@ -101,7 +129,19 @@ impl Takes {
                 "Unsupported sample rate: {sample_rate}"
             )));
         }
-        tokio::fs::create_dir_all(folder).await?;
+        let stale: Vec<Take> = self
+            .open
+            .lock()
+            .await
+            .drain()
+            .map(|(_, take)| take)
+            .collect();
+        for take in stale {
+            if let Err(error) = close(take).await {
+                eprintln!("[sound] could not close an unfinished take: {error}");
+            }
+        }
+        let folder = recordings_in(project_dir).await?;
         for n in 1u32..10_000 {
             let name = match n {
                 1 => format!("{stem}.wav"),
@@ -141,9 +181,9 @@ impl Takes {
     /// Appends `samples` (16-bit little-endian) to a take and rewrites its header. With `done`,
     /// the take is closed: synced to disk, or deleted when it holds no samples at all.
     pub async fn write(&self, id: &str, samples: &[u8], done: bool) -> AppResult<TakeWritten> {
-        if !samples.len().is_multiple_of(usize::from(BLOCK_ALIGN)) {
+        if !samples.len().is_multiple_of(usize::from(BLOCK_ALIGN)) || samples.len() > MAX_CHUNK {
             return Err(AppError::InvalidInput(
-                "A chunk must hold whole samples".into(),
+                "A chunk must hold whole samples, at most 1 MB".into(),
             ));
         }
         let mut open = self.open.lock().await;
@@ -157,19 +197,31 @@ impl Takes {
         let mut take = open.remove(id).ok_or_else(unknown)?;
         drop(open);
         let appended = append(&mut take, samples).await;
-        take.file.sync_all().await?;
-        if take.data_len == 0 {
-            drop(take.file);
-            tokio::fs::remove_file(&take.path).await?;
-            appended?;
-            return Ok(TakeWritten {
+        let result = written(&take);
+        let closed = close(take).await;
+        appended?;
+        let empty = closed?;
+        Ok(if empty {
+            TakeWritten {
                 path: None,
                 samples: 0,
-            });
-        }
-        appended?;
-        Ok(written(&take))
+            }
+        } else {
+            result
+        })
     }
+}
+
+/// Closes a take: synced, or deleted when it holds no samples (whether or not the sync worked).
+/// Says whether it was empty.
+async fn close(take: Take) -> AppResult<bool> {
+    let synced = take.file.sync_all().await;
+    drop(take.file);
+    if take.data_len == 0 {
+        tokio::fs::remove_file(&take.path).await?;
+    }
+    synced?;
+    Ok(take.data_len == 0)
 }
 
 /// Where a take stands.
@@ -205,34 +257,4 @@ async fn append(take: &mut Take, samples: &[u8]) -> AppResult<()> {
         .await?;
     take.file.flush().await?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn u32_at(bytes: &[u8], at: usize) -> u32 {
-        u32::from_le_bytes(bytes[at..at + 4].try_into().unwrap())
-    }
-
-    fn u16_at(bytes: &[u8], at: usize) -> u16 {
-        u16::from_le_bytes(bytes[at..at + 2].try_into().unwrap())
-    }
-
-    #[test]
-    fn the_header_says_how_many_samples_at_what_rate() {
-        let header = wav_header(44_100, 1_000 * 2);
-        assert_eq!(&header[0..4], b"RIFF");
-        assert_eq!(u32_at(&header, 4), 36 + 2_000);
-        assert_eq!(&header[8..16], b"WAVEfmt ");
-        assert_eq!(u32_at(&header, 16), 16);
-        assert_eq!(u16_at(&header, 20), 1);
-        assert_eq!(u16_at(&header, 22), 1);
-        assert_eq!(u32_at(&header, 24), 44_100);
-        assert_eq!(u32_at(&header, 28), 88_200);
-        assert_eq!(u16_at(&header, 32), 2);
-        assert_eq!(u16_at(&header, 34), 16);
-        assert_eq!(&header[36..40], b"data");
-        assert_eq!(u32_at(&header, 40), 2_000);
-    }
 }

@@ -265,6 +265,16 @@ export interface MediaApi {
    * marks those that can't be found `missing`. Returns those. Never rejects for a missing file.
    */
   restore(assets: readonly MediaAsset[]): Promise<MediaAsset[]>;
+  /**
+   * Reads a file before it's imported, outside any command: registers it under a new id and waits
+   * (up to `timeoutMs`, default 15 s) until its proxy has settled and it's probed. The next
+   * `media.import` of the same path takes that id and probe, so a command can place the file at
+   * once without waiting on the bus. Resolves with the probe (`status` ready or error; pending if
+   * it timed out). Rejects when the file can't be registered.
+   */
+  prepareFile(path: string, timeoutMs?: number): Promise<MediaProbe | undefined>;
+  /** The asset `prepareFile` made for this path, handed out once (to `media.import`). */
+  takePrepared(path: string): MediaAsset | undefined;
   /** What a file says about itself, read from the original. */
   fileFacts(id: MediaId): Promise<FileFacts>;
   /** What's mounted. */
@@ -289,6 +299,8 @@ export interface MediaState extends Omit<
   | "denoising"
   | "imageFrames"
   | "restore"
+  | "prepareFile"
+  | "takePrepared"
   | "fileFacts"
   | "listDisks"
   | "revealFile"
@@ -342,6 +354,8 @@ export interface MediaFiles {
   /** Follows the document: probes what comes in, moves what relinks. Returns a stop function. */
   follow(): () => void;
   restore: MediaApi["restore"];
+  prepareFile: MediaApi["prepareFile"];
+  takePrepared: MediaApi["takePrepared"];
 }
 
 /** URL of one frame of an animated image. */

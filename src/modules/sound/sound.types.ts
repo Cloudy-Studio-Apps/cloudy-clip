@@ -9,8 +9,9 @@ import type {
   TrackId,
 } from "@/modules/project";
 import type { MonitorState, PlaybackClock } from "@/modules/preview";
+import type { MediaApi } from "@/modules/media";
 import type { ProjectApi } from "@/modules/project";
-import type { LeaveRun, WorkspaceSession } from "@/modules/workspace";
+import type { WorkspaceApi } from "@/modules/workspace";
 
 /** What the Sound page shows and how the user listens, per kernel. Never in history. */
 export interface SoundViewState {
@@ -49,14 +50,19 @@ export interface SoundApi {
 }
 
 /** Where the webview runs, for what has been checked there. */
-export type RecordPlatform = "linux" | "windows" | "macos";
+export type RecordPlatform = "linux" | "windows" | "macos" | "android";
+
+/** What the record worklet is told: keep samples from now (or not), or hand over the rest and stop. */
+export type RecordCommand = { keep: boolean } | { flush: true };
 
 /** The microphone, open and feeding the recorder. */
 export interface Capture {
   /** The rate the samples come at: the capture context's own. */
   sampleRate: number;
-  /** Closes the microphone and the context. */
-  stop(): void;
+  /** Starts handing samples over, from the next block. */
+  keep(): void;
+  /** Hands over the samples still gathered, then closes the microphone and the context. */
+  stop(): Promise<void>;
 }
 
 /** Where a take's file was started (`sound_record_begin`). */
@@ -89,9 +95,12 @@ export interface Recorder {
   start(trackId: TrackId): Promise<void>;
   /**
    * Stops the take and places it (`sound.placeRecording`), or tells the user why not, naming the
-   * file. `run` runs the commands (default: the bus). Returns at once when a stop is already under way.
+   * file. While a stop is under way, returns that one, so a caller can wait for the placement.
+   * `pause: false` leaves playback running (a play the user asked for ended the take).
    */
-  stop(run?: LeaveRun): Promise<void>;
+  stop(options?: { pause?: boolean }): Promise<void>;
+  /** Arms a track (or none), unless a take is under way. */
+  arm(trackId: TrackId | null): void;
   /** The latest input peak in dBFS, `-Infinity` when not recording. Read per frame. */
   level(): number;
   /** How long the take is so far. Read per frame. */
@@ -103,7 +112,10 @@ export interface RecorderDeps {
   bus: CommandBus;
   playback: PlaybackClock;
   project: ProjectApi;
-  session: StoreApi<WorkspaceSession>;
+  media: MediaApi;
+  workspace: WorkspaceApi;
+  /** The Sound page's view: `armed` lives there. */
+  view: StoreApi<SoundViewState>;
 }
 
 /** A take as the recorder keeps it. */
@@ -114,6 +126,8 @@ export interface LiveTake {
   keeping: boolean;
   /** Stop was asked for. While still starting, `start` closes the take itself. */
   ending: boolean;
+  /** The stop under way: finishing the file and placing it. */
+  finishing: Promise<void> | null;
   capture: Capture | null;
   file: TakeStarted | null;
   rate: number;

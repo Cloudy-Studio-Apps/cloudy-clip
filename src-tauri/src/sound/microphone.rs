@@ -17,14 +17,18 @@ pub fn permission_request<R: Runtime>(
     }
 }
 
-/// The app's own origins: built on Linux/macOS, built on Windows, and the dev server.
+/// The dev server's port (`devUrl` in `tauri.conf.json`).
+const DEV_PORT: u16 = 1420;
+
+/// The app's own origins: built on Linux/macOS, built on Windows, and, in debug builds only, the
+/// dev server.
 fn is_app_page<R: Runtime>(webview: &Webview<R>) -> bool {
     webview.url().is_ok_and(|url| {
-        matches!(
-            (url.scheme(), url.host_str()),
-            ("tauri", Some("localhost"))
-                | ("http" | "https", Some("tauri.localhost"))
-                | ("http", Some("localhost"))
-        )
+        let dev = cfg!(debug_assertions) && url.port() == Some(DEV_PORT);
+        match (url.scheme(), url.host_str()) {
+            ("tauri", Some("localhost")) | ("http" | "https", Some("tauri.localhost")) => true,
+            ("http", Some("localhost")) => dev,
+            _ => false,
+        }
     })
 }

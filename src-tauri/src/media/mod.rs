@@ -22,9 +22,9 @@ pub use registry::MediaRegistry;
 #[derive(Default)]
 pub struct MediaServerUrl(pub RwLock<Option<String>>);
 
-/// The app's cache folder, where proxies and derived files go (and recordings of a project that
-/// has no folder yet); the system's temporary folder when there is none.
-pub fn cache_root<R: Runtime>(app: &impl Manager<R>) -> PathBuf {
+/// The app's cache folder, where proxies and derived files go; the system's temporary folder when
+/// there is none.
+fn cache_root<R: Runtime>(app: &impl Manager<R>) -> PathBuf {
     app.path()
         .app_cache_dir()
         .unwrap_or_else(|_| std::env::temp_dir().join("cloudy-clip"))

@@ -1,7 +1,8 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { projectRef, useOpenComposition } from "@/modules/project";
-import { canArm, canRecordHere } from "../logic/record";
+import { canArm } from "../logic/record";
+import { canRecordHere } from "../sound.record.capture";
 import { soundRef } from "../sound.ref";
 import { TransportTool } from "./TransportTool";
 

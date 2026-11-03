@@ -125,12 +125,20 @@ export function createWorkspace({ project, media, preview, nameOf }: WorkspaceDe
     session,
     ui,
     recents,
-    async leave(run) {
-      for (const task of [...leaving]) {
-        await task(run).catch((error: unknown) => log.warn("A task before leaving failed", error));
+    async leave() {
+      for (const task of leaving) {
+        const held = task.blocking();
+        if (held) throw new CommandFailure(held.code, held.message);
       }
       if (!(await autosave.flush())) throw saveFailed();
       await refreshThumbnail();
+    },
+    async prepareLeave() {
+      for (const task of [...leaving]) {
+        await task
+          .finish()
+          .catch((error: unknown) => log.warn("A task before leaving failed", error));
+      }
     },
     beforeLeave(task) {
       leaving.add(task);

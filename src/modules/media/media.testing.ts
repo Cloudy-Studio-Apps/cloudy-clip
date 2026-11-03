@@ -37,6 +37,8 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
           denoising: createStore<DenoiseJobs>(() => ({ jobs: [], failed: [] })),
           imageFrames: (id: string) => [`fake://${id}`],
           restore: async () => [],
+          prepareFile: async () => undefined,
+          takePrepared: () => undefined,
           fileFacts: async () => ({}),
           listDisks: async () => [],
           revealFile: async () => undefined,
