@@ -112,9 +112,12 @@ export {
   bandActive,
   dbToLinear,
   fadeLevel,
+  minimize,
   pitchShift,
   soundOf,
 } from "./logic/sound";
+/** The schemas of sound values, shared by every command that sets them. */
+export { eqBandSchema, eqSchema, panSchema, volumeDbSchema } from "./logic/sound.schema";
 
 /** Key curves: the ease presets and how far along an ease a segment is. */
 export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";

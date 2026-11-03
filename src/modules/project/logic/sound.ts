@@ -33,6 +33,13 @@ export function soundOf(clip: Pick<Clip, "sound">): ClipSound {
   return sound.eq ? sound : { ...DEFAULT_SOUND, ...sound };
 }
 
+/**
+ * `value`, or undefined when it equals `defaults` (deep equality), so defaults are never stored.
+ */
+export function minimize<T>(value: T, defaults: T): T | undefined {
+  return JSON.stringify(value) === JSON.stringify(defaults) ? undefined : value;
+}
+
 /** Decibels as a factor. */
 export function dbToLinear(db: number): number {
   return 10 ** (db / 20);

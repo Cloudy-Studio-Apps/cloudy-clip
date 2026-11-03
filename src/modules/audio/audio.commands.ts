@@ -2,25 +2,22 @@ import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import {
   DEFAULT_SOUND,
+  eqSchema,
+  minimize,
+  panSchema,
   partnersOf,
   projectRef,
   soundOf,
+  volumeDbSchema,
   type Clip,
   type ClipId,
   type ClipSound,
   type ProjectState,
 } from "@/modules/project";
 
-const band = z.object({
-  on: z.boolean(),
-  shape: z.enum(["bell", "lowShelf", "highShelf", "lowCut", "highCut"]),
-  hz: z.number().min(20).max(20000),
-  db: z.number().min(-24).max(24),
-  q: z.number().min(0.1).max(10),
-});
 const patch = z.object({
-  volumeDb: z.number().min(-60).max(12).optional(),
-  pan: z.number().min(-1).max(1).optional(),
+  volumeDb: volumeDbSchema.optional(),
+  pan: panSchema.optional(),
   fadeIn: z.number().int().min(0).optional().describe("Microseconds"),
   fadeOut: z.number().int().min(0).optional().describe("Microseconds"),
   pitch: z
@@ -30,7 +27,7 @@ const patch = z.object({
       cents: z.number().int().min(-100).max(100),
     })
     .optional(),
-  eq: z.object({ on: z.boolean(), bands: z.array(band).length(6) }).optional(),
+  eq: eqSchema.optional(),
 });
 
 const SECTIONS: Record<string, readonly (keyof ClipSound)[]> = {
@@ -56,11 +53,6 @@ function soundClips(state: ProjectState, clipIds: readonly ClipId[]): ClipId[] {
   return [...found];
 }
 
-/** `sound`, or undefined when it's what a clip has anyway, so defaults are never stored. */
-function stored(sound: ClipSound): ClipSound | undefined {
-  return JSON.stringify(sound) === JSON.stringify(DEFAULT_SOUND) ? undefined : sound;
-}
-
 /** The sound paths of a patch that hold keys on a clip: those need a key, not a static value. */
 function animatedPaths(clip: Clip, patch: Partial<ClipSound>): string[] {
   return ["volumeDb", "pan"]
@@ -81,7 +73,7 @@ function dropKeys(clip: Clip, paths?: readonly string[]): void {
 }
 
 function write(target: { sound?: ClipSound }, sound: ClipSound): void {
-  const next = stored(sound);
+  const next = minimize(sound, DEFAULT_SOUND);
   if (next) target.sound = next;
   else delete target.sound;
 }
