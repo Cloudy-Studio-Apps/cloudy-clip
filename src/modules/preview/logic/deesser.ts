@@ -17,19 +17,29 @@ export const DEESSER_MAX = 0.5;
 export const deesserFrequency = (hz: number): number =>
   Math.sqrt(1 - Math.exp((-2 * Math.PI * hz) / 22050));
 
+/** Puts one channel back at rest, in place. */
+export function resetDeesser(s: DeesserState): DeesserState {
+  s.s1 = s.s2 = s.s3 = s.m1 = s.m2 = 0;
+  s.ratioA = s.ratioB = 1;
+  s.iirSampleA = s.iirSampleB = 0;
+  s.flip = false;
+  return s;
+}
+
 /** One channel at rest. */
-export const createDeesserState = (): DeesserState => ({
-  s1: 0,
-  s2: 0,
-  s3: 0,
-  m1: 0,
-  m2: 0,
-  ratioA: 1,
-  ratioB: 1,
-  iirSampleA: 0,
-  iirSampleB: 0,
-  flip: false,
-});
+export const createDeesserState = (): DeesserState =>
+  resetDeesser({
+    s1: 0,
+    s2: 0,
+    s3: 0,
+    m1: 0,
+    m2: 0,
+    ratioA: 1,
+    ratioB: 1,
+    iirSampleA: 0,
+    iirSampleB: 0,
+    flip: false,
+  });
 
 /** `deesser=i=<amount>:m=0.5:f=<deesserFrequency(frequencyHz)>` at a sample rate. */
 export function deesserSettings(

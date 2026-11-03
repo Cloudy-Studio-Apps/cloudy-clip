@@ -155,6 +155,9 @@ export interface Voice {
   name: string;
 }
 
+/** The pitch worklet's node (SoundTouch), with its pitch ratio. */
+export type PitchNode = AudioWorkletNode & { pitch: AudioParam };
+
 /** Peak meter of one bus. */
 export interface Meter {
   /** The peak of each side over the last few hundredths of a second. */
@@ -162,14 +165,19 @@ export interface Meter {
   dispose(): void;
 }
 
-/** One audio track's bus: upmix, its effects, pan, fader, and a meter after the fader. */
+/** One audio track's bus: upmix, its effects, pan, fader (volume, mute), solo, and a meter after them. */
 export interface TrackBus {
   input: GainNode;
   effects: EffectChain;
   panner: StereoPannerNode;
   fader: GainNode;
+  /** 0 while another track is soloed; a duck's key is taken before it. */
+  solo: GainNode;
   meter: Meter;
 }
+
+/** The node a duck listens to for a track (its bus after the fader); nothing when it has no bus. */
+export type KeyOf = (trackId: TrackId) => AudioNode | undefined;
 
 /**
  * The effects of one bus, between two nodes it doesn't own (`createEffectChain`). The chain is
@@ -181,7 +189,7 @@ export interface EffectChain {
    * Plays these effects, in order. `keyOf` gives the nodes a duck listens to (the listened
    * tracks after their faders); a track with no bus gives nothing.
    */
-  set(effects: readonly SoundEffect[], keyOf: (trackId: TrackId) => AudioNode | undefined): void;
+  set(effects: readonly SoundEffect[], keyOf: KeyOf): void;
   dispose(): void;
 }
 
@@ -200,7 +208,7 @@ export interface DynamicsNodes {
 export interface EffectStage {
   input: AudioNode;
   output: AudioNode;
-  update(effect: SoundEffect, keyOf: (trackId: TrackId) => AudioNode | undefined): void;
+  update(effect: SoundEffect, keyOf: KeyOf): void;
   dispose(): void;
 }
 

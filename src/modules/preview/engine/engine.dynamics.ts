@@ -1,23 +1,34 @@
+import { createLogger, notify } from "@/core";
 import type { DynamicsNodes } from "./engine.types";
 import workletUrl from "./dynamics.worklet.ts?worker&url";
 
+const log = createLogger("preview.engine");
+
+/** Tells the user, once per engine, that dynamics effects aren't heard in the preview. */
+function report(error: unknown): void {
+  log.warn("The effects worklet isn't available", error);
+  notify(
+    "error",
+    "The preview can't run the compressor, gate, de-esser, limiter or ducking here, so they aren't heard while you edit. Playback and EQ are unaffected.",
+  );
+}
+
 /**
- * Loads the dynamics worklet into a context, once, in the background. `onChange` is called when
- * it becomes ready or fails, so the buses rebuild their chains; `onError` once, when it can't load,
- * a node can't be made or a processor fails later (`onprocessorerror`). From then on no node is
- * made and every chain passes its dynamics dry, so playback never breaks.
+ * Loads the dynamics worklet into a context, once per engine, in the background. `onChange` is
+ * called when it becomes ready or fails, so the buses rebuild their chains. When it can't load, a
+ * node can't be made or a processor fails later (`onprocessorerror`), the user is told once; from
+ * then on no node is made and every chain passes its dynamics dry, so playback never breaks.
  */
 export function createDynamicsNodes(
   context: BaseAudioContext,
   onChange: () => void,
-  onError: (error: unknown) => void,
 ): DynamicsNodes {
   let state: DynamicsNodes["state"] = "loading";
   let closed = false;
   const fail = (error: unknown) => {
     if (closed || state === "failed") return;
     state = "failed";
-    onError(error);
+    report(error);
     onChange();
   };
   // A webview without worklets has no `audioWorklet`: that is a failure like any other.

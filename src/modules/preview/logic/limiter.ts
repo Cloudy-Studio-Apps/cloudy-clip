@@ -30,6 +30,18 @@ export function createLimiter(sampleRate: number, channels: number): LimiterStat
   };
 }
 
+/** Empties the lookahead and the schedule in place, as a limiter just made. */
+export function resetLimiter(s: LimiterState): void {
+  s.buffer.fill(0);
+  s.nextpos.fill(-1);
+  s.nextdelta.fill(0);
+  s.pos = 0;
+  s.att = 1;
+  s.delta = 0;
+  s.nextiter = 0;
+  s.nextlen = 0;
+}
+
 /** `alimiter=limit=<ceilingDb>dB:release=<releaseMs>` at a sample rate. */
 export const limiterSettings = (
   { ceilingDb, releaseMs }: Pick<LimiterEffect, "ceilingDb" | "releaseMs">,

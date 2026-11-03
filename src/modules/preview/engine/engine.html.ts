@@ -33,7 +33,7 @@ import { placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
 import type { LiveSound, LoudnessReading, MixLevels, PreviewEngine } from "../preview.types";
 import { quietSlot, voiceSlot } from "./engine.audio";
-import { PITCH_LEAD_SECONDS } from "./engine.audiograph";
+import { PITCH_LEAD_SECONDS } from "./engine.soundchain";
 import { ImageCache } from "./engine.images";
 import { landLayer } from "./engine.composite";
 import { LevelCorrection } from "./engine.levels";

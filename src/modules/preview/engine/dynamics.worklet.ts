@@ -19,6 +19,9 @@ declare function registerProcessor(
  * `processorOptions.effect`; each message is the effect's new settings (`DynamicsCommand`). Input 0
  * is the sound, input 1 a duck's key. A mono input feeds both sides; a missing one is silence.
  */
+/** What a missing input or output reads as, made once so a block allocates nothing. */
+const NONE: Float32Array[] = [];
+
 class DynamicsProcessor extends AudioWorkletProcessor {
   private readonly runner = createEffectRunner(sampleRate);
   private silent = new Float32Array(128);
@@ -30,13 +33,13 @@ class DynamicsProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
-    const out = outputs[0] ?? [];
+    const out = outputs[0] ?? NONE;
     const outLeft = out[0];
     if (!outLeft) return true;
     const outRight = out[1] ?? outLeft;
     if (this.silent.length < outLeft.length) this.silent = new Float32Array(outLeft.length);
-    const sound = inputs[0] ?? [];
-    const key = inputs[1] ?? [];
+    const sound = inputs[0] ?? NONE;
+    const key = inputs[1] ?? NONE;
     const left = sound[0] ?? this.silent;
     const keyLeft = key[0] ?? this.silent;
     this.runner.process(left, sound[1] ?? left, keyLeft, key[1] ?? keyLeft, outLeft, outRight);

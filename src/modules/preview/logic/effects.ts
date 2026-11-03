@@ -5,7 +5,7 @@ import type {
   EffectRunner,
   LimiterSettings,
 } from "../preview.types";
-import { createDeesserState, deesserSettings, deesserStep } from "./deesser";
+import { createDeesserState, deesserSettings, deesserStep, resetDeesser } from "./deesser";
 import {
   compressorCurve,
   createDynamicsState,
@@ -14,7 +14,7 @@ import {
   gateCurve,
   linkedLevel,
 } from "./dynamics";
-import { createLimiter, limiterSettings, limiterStep } from "./limiter";
+import { createLimiter, limiterSettings, limiterStep, resetLimiter } from "./limiter";
 
 // What the dynamics worklet runs, kept here so it is plain code: one effect of any dynamics kind
 // on a stereo signal, block by block. Type-only imports (worklet).
@@ -35,7 +35,8 @@ function curveOf(command: DynamicsCommand, sampleRate: number): DynamicsCurve | 
 
 /**
  * Runs one effect on stereo blocks. `set` changes the settings and keeps the state (an envelope, the
- * limiter's lookahead), so a parameter change doesn't click. Off, the sound passes through.
+ * limiter's lookahead), so a parameter change doesn't click. Off, the sound passes through and the
+ * state stands still; turned back on, it starts from rest, so the limiter never plays old sound.
  */
 export function createEffectRunner(sampleRate: number): EffectRunner {
   const detector = createDynamicsState();
@@ -49,6 +50,12 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
 
   return {
     set(next) {
+      if (next.on && !command?.on) {
+        detector.envelope = 0;
+        resetDeesser(deessers[0]);
+        resetDeesser(deessers[1]);
+        resetLimiter(limiter);
+      }
       command = next;
       curve = curveOf(next, sampleRate);
       deesser = next.kind === "deesser" ? deesserSettings(next, sampleRate) : null;
@@ -57,8 +64,10 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
     process(left, right, keyLeft, keyRight, outLeft, outRight) {
       const n = outLeft.length;
       if (!command?.on) {
-        outLeft.set(left.subarray(0, n));
-        outRight.set(right.subarray(0, n));
+        for (let i = 0; i < n; i++) {
+          outLeft[i] = left[i]!;
+          outRight[i] = right[i]!;
+        }
         return;
       }
       if (curve) {

@@ -1,9 +1,7 @@
-import type { SoundEffect, TrackId } from "@/modules/project";
+import type { SoundEffect } from "@/modules/project";
 import type { DynamicsCommand } from "../preview.types";
 import { createEqFilters, createUpmix, setBand } from "./engine.soundnodes";
 import type { DynamicsNodes, EffectChain, EffectStage } from "./engine.types";
-
-type KeyOf = (trackId: TrackId) => AudioNode | undefined;
 
 /** Takes one connection away; it may already be gone with a dropped bus. */
 function unplug(from: AudioNode, to: AudioNode): void {
@@ -104,7 +102,7 @@ export function createEffectChain(
   };
 
   return {
-    set(effects, keyOf: KeyOf) {
+    set(effects, keyOf) {
       const next = shapeOf(effects, dynamics);
       if (next !== shape) {
         shape = next;
