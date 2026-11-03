@@ -25,7 +25,7 @@ export function SoundPage() {
   );
 
   return (
-    <div className="grid h-full grid-rows-[44px_minmax(0,1fr)] bg-surface">
+    <div className="grid h-full grid-cols-[minmax(0,1fr)] grid-rows-[44px_minmax(0,1fr)] bg-surface">
       <SoundTransport />
       <div className="flex min-h-0">
         {/* Hidden, not unmounted, by Expand all: the timeline keeps its place. */}
