@@ -7,7 +7,7 @@ import { Button, Popover, SelectField } from "@/ui";
 import { BUILT_IN_PRESETS } from "../logic/presets";
 import { applyPreset } from "../sound.effects.commands";
 import { soundRef } from "../sound.ref";
-import type { MixTarget } from "../sound.types";
+import type { MixTarget, SoundPreset } from "../sound.types";
 import { AddEffectMenu } from "./AddEffectMenu";
 import { PanelCard } from "./PanelCard";
 import { SavePresetForm } from "./SavePresetForm";
@@ -28,10 +28,13 @@ export function PresetCard({ title, target, compositionId, chain }: PresetCardPr
   const { bus } = useKernel();
   const own = useStore(useModule(soundRef).presets, (s) => s.presets);
   const [saving, setSaving] = useState(false);
+  // The master can't duck, so a preset with ducking isn't offered there.
+  const fits = (preset: SoundPreset) =>
+    target !== "master" || !preset.effects.some((effect) => effect.kind === "duck");
   const options = [
     { value: "", label: "Apply a preset…" },
-    ...BUILT_IN_PRESETS.map(({ id, name }) => ({ value: id, label: name })),
-    ...own.map(({ id, name }) => ({ value: id, label: `${name} (yours)` })),
+    ...BUILT_IN_PRESETS.filter(fits).map(({ id, name }) => ({ value: id, label: name })),
+    ...own.filter(fits).map(({ id, name }) => ({ value: id, label: `${name} (yours)` })),
   ];
   const where = { target, ...(target === "master" && compositionId && { compositionId }) };
 

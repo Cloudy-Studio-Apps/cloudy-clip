@@ -2,10 +2,10 @@ import { memo, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { projectRef, trackMixOf, type SoundEffect, type Track } from "@/modules/project";
+import { projectRef, trackMixOf, type Track } from "@/modules/project";
 import { setTrackMuted } from "@/modules/timeline";
 import { cn } from "@/ui";
-import { placesUnheardEffects } from "../logic/effects";
+import { chainOf, placesUnheardEffects } from "../logic/effects";
 import { setTrackMix } from "../sound.mix.commands";
 import { setSolo } from "../sound.monitor.commands";
 import { soundRef } from "../sound.ref";
@@ -15,8 +15,6 @@ import { Meter } from "./Meter";
 import { PanSlider } from "./PanSlider";
 import { StripLabel } from "./StripLabel";
 import { StripToggle } from "./StripToggle";
-
-const NO_EFFECTS: readonly SoundEffect[] = [];
 
 interface MixerStripProps {
   track: Track;
@@ -43,6 +41,7 @@ export const MixerStrip = memo(function MixerStrip({
   const sound = useModule(soundRef);
   const ref = useRef<HTMLDivElement>(null);
   const unheard = useStore(project.api, (s) => placesUnheardEffects(s, track.id));
+  const effects = useStore(project.api, (s) => chainOf(s, track.id, track.compositionId));
 
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -69,11 +68,7 @@ export const MixerStrip = memo(function MixerStrip({
         {code}
       </div>
       <StripLabel>Effects</StripLabel>
-      <EffectChain
-        target={track.id}
-        compositionId={track.compositionId}
-        effects={trackMixOf(track).effects ?? NO_EFFECTS}
-      />
+      <EffectChain target={track.id} compositionId={track.compositionId} effects={effects} />
       {unheard && (
         <span
           className="-mt-1 truncate text-2xs text-subtle-foreground"

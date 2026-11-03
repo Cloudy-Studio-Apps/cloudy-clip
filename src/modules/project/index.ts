@@ -138,8 +138,9 @@ export {
   pitchShift,
   soundOf,
 } from "./logic/sound";
-/** The schema of each kind of effect, and the list of kinds. */
+/** The schema of each kind of effect, the bounds of their values, and the list of kinds. */
 export {
+  EFFECT_RANGES,
   SOUND_EFFECT_KINDS,
   compressorParamsSchema,
   effectSchemas,

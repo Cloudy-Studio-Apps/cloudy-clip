@@ -1,10 +1,11 @@
 import { useImperativeHandle, useLayoutEffect, useRef, type Ref } from "react";
 import { dynamicsTransfer } from "@/modules/preview";
+import { EFFECT_RANGES } from "@/modules/project";
 import type { TransferEffect, TransferGraphHandle } from "../../sound.types";
 
 const SIZE = 100;
-/** The quietest level drawn, dBFS; the loudest is 0. */
-const FLOOR_DB = -80;
+/** The quietest level drawn, dBFS (the lowest threshold a gate takes); the loudest is 0. */
+const FLOOR_DB = EFFECT_RANGES.gate.thresholdDb.min;
 const STEPS = 80;
 
 const at = (db: number) => (Math.min(0, Math.max(FLOOR_DB, db)) / FLOOR_DB) * SIZE;

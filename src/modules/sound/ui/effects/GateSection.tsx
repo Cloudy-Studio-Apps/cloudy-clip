@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import type { GateEffect, SoundEffect } from "@/modules/project";
+import { EFFECT_RANGES, type GateEffect, type SoundEffect } from "@/modules/project";
 import { defaultSpec } from "../../logic/effects";
 import type { EffectEdit, TransferGraphHandle } from "../../sound.types";
 import { EffectRow } from "./EffectRow";
@@ -19,13 +19,14 @@ export function GateSection({ effect, edit }: GateSectionProps) {
   const row = (
     key: "thresholdDb" | "ratio" | "attackMs" | "releaseMs",
     label: string,
-    range: { min: number; max: number; step: number; unit?: string; scale?: "log" },
+    options: { step: number; unit?: string; scale?: "log" },
   ) => (
     <EffectRow
       label={label}
       value={effect[key]}
       rest={REST[key]}
-      {...range}
+      {...EFFECT_RANGES.gate[key]}
+      {...options}
       disabled={!effect.on}
       edit={edit}
       write={(value) => ({ effect: { ...effect, [key]: value }, patch: { [key]: value } })}
@@ -35,10 +36,10 @@ export function GateSection({ effect, edit }: GateSectionProps) {
   return (
     <EffectSection effect={effect} edit={edit}>
       <TransferGraph effect={effect} ref={graph} />
-      {row("thresholdDb", "Threshold", { min: -80, max: 0, step: 0.5, unit: "dB" })}
-      {row("ratio", "Ratio", { min: 1, max: 20, step: 0.1, unit: ":1" })}
-      {row("attackMs", "Attack", { min: 0.01, max: 2000, step: 0.01, unit: "ms", scale: "log" })}
-      {row("releaseMs", "Release", { min: 0.01, max: 9000, step: 0.01, unit: "ms", scale: "log" })}
+      {row("thresholdDb", "Threshold", { step: 0.5, unit: "dB" })}
+      {row("ratio", "Ratio", { step: 0.1, unit: ":1" })}
+      {row("attackMs", "Attack", { step: 0.01, unit: "ms", scale: "log" })}
+      {row("releaseMs", "Release", { step: 0.01, unit: "ms", scale: "log" })}
     </EffectSection>
   );
 }

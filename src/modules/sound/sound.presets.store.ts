@@ -16,13 +16,22 @@ const effectSpec = z.discriminatedUnion("kind", [
   effectSchemas.duck.omit({ id: true }),
 ]);
 
+const preset = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  effects: z.array(effectSpec),
+});
+
+/**
+ * The stored list, each preset parsed on its own: one that no longer parses (an older or edited
+ * entry) is dropped, never the whole list, so the next save can't wipe the others.
+ */
 const saved = z.object({
-  presets: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string(),
-      effects: z.array(effectSpec),
+  presets: z.array(z.unknown()).transform((entries) =>
+    entries.flatMap((entry) => {
+      const parsed = preset.safeParse(entry);
+      return parsed.success ? [parsed.data] : [];
     }),
   ),
 });

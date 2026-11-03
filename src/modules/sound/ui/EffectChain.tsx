@@ -2,7 +2,7 @@ import { useKernel } from "@/core";
 import type { CompositionId, SoundEffect } from "@/modules/project";
 import { cn } from "@/ui";
 import { chainSlot } from "../logic/chain";
-import { EFFECT_NAMES } from "../logic/effects";
+import { EDITABLE_KINDS, EFFECT_NAMES } from "../logic/effects";
 import { moveEffect } from "../sound.effects.commands";
 import type { MixTarget } from "../sound.types";
 import { AddEffectMenu } from "./AddEffectMenu";
@@ -19,11 +19,13 @@ interface EffectChainProps {
 
 /**
  * A strip's effects in signal order, each with a dot in `--on` while it works, and `+ Effect`. A
- * row dragged up or down moves the effect there with one `sound.moveEffect` on release.
+ * row dragged up or down moves the effect there with one `sound.moveEffect` on release. Kinds the
+ * page doesn't edit yet (noise reduction) aren't listed, and keep their place in the chain.
  */
 export function EffectChain({ target, compositionId, effects }: EffectChainProps) {
   const { bus } = useKernel();
   const where = { target, ...(target === "master" && compositionId && { compositionId }) };
+  const shown = effects.filter((effect) => EDITABLE_KINDS.includes(effect.kind));
 
   return (
     <div
@@ -31,12 +33,13 @@ export function EffectChain({ target, compositionId, effects }: EffectChainProps
       aria-label="Effects"
       className="flex h-[98px] shrink-0 flex-col overflow-y-auto"
     >
-      {effects.map((effect, index) => (
+      {shown.map((effect, index) => (
         <div
           key={effect.id}
           role="listitem"
+          style={{ height: ROW }}
           title={`${EFFECT_NAMES[effect.kind].name}${effect.on ? "" : " (off)"}: drag to reorder`}
-          className="relative flex h-[19px] shrink-0 cursor-grab touch-none items-center gap-[5px] overflow-hidden whitespace-nowrap border-b border-border bg-surface text-sm text-muted-foreground"
+          className="relative flex shrink-0 cursor-grab touch-none items-center gap-[5px] overflow-hidden whitespace-nowrap border-b border-border bg-surface text-sm text-muted-foreground"
           onPointerDown={(event) => {
             if (event.button !== 0) return;
             startChainDrag({
@@ -44,8 +47,11 @@ export function EffectChain({ target, compositionId, effects }: EffectChainProps
               row: event.currentTarget,
               onEnd(dy) {
                 if (dy === null) return;
-                const to = chainSlot(index, dy, ROW, effects.length);
-                if (to !== index) void bus.run(moveEffect, { ...where, effectId: effect.id, to });
+                const slot = chainSlot(index, dy, ROW, shown.length);
+                if (slot === index) return;
+                // Into the place of the row it lands on, counted in the whole chain.
+                const to = effects.indexOf(shown[slot]!);
+                void bus.run(moveEffect, { ...where, effectId: effect.id, to });
               },
             });
           }}
@@ -69,7 +75,8 @@ export function EffectChain({ target, compositionId, effects }: EffectChainProps
         trigger={
           <button
             type="button"
-            className="flex h-[19px] w-full shrink-0 cursor-pointer items-center border-b border-dashed border-border-strong text-left text-sm text-subtle-foreground hover:text-foreground"
+            style={{ height: ROW }}
+            className="flex w-full shrink-0 cursor-pointer items-center border-b border-dashed border-border-strong text-left text-sm text-subtle-foreground hover:text-foreground"
           >
             + Effect
           </button>

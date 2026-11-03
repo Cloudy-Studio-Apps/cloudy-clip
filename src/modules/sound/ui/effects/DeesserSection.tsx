@@ -1,4 +1,6 @@
-import type { DeesserEffect } from "@/modules/project";
+import { EFFECT_RANGES, type DeesserEffect } from "@/modules/project";
+
+const AMOUNT = EFFECT_RANGES.deesser.amount;
 import { defaultSpec } from "../../logic/effects";
 import type { EffectEdit } from "../../sound.types";
 import { EffectRow } from "./EffectRow";
@@ -19,8 +21,7 @@ export function DeesserSection({ effect, edit }: DeesserSectionProps) {
         label="Frequency"
         value={effect.frequencyHz}
         rest={REST.frequencyHz}
-        min={2000}
-        max={12000}
+        {...EFFECT_RANGES.deesser.frequencyHz}
         step={50}
         unit="Hz"
         disabled={!effect.on}
@@ -34,8 +35,8 @@ export function DeesserSection({ effect, edit }: DeesserSectionProps) {
         label="Amount"
         value={Math.round(effect.amount * 100)}
         rest={Math.round(REST.amount * 100)}
-        min={0}
-        max={100}
+        min={AMOUNT.min * 100}
+        max={AMOUNT.max * 100}
         step={1}
         unit="%"
         disabled={!effect.on}

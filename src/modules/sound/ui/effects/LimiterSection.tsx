@@ -1,4 +1,4 @@
-import type { LimiterEffect } from "@/modules/project";
+import { EFFECT_RANGES, type LimiterEffect } from "@/modules/project";
 import { defaultSpec } from "../../logic/effects";
 import type { EffectEdit } from "../../sound.types";
 import { EffectRow } from "./EffectRow";
@@ -19,8 +19,7 @@ export function LimiterSection({ effect, edit }: LimiterSectionProps) {
         label="Ceiling"
         value={effect.ceilingDb}
         rest={REST.ceilingDb}
-        min={-20}
-        max={0}
+        {...EFFECT_RANGES.limiter.ceilingDb}
         step={0.1}
         unit="dB"
         disabled={!effect.on}
@@ -31,8 +30,7 @@ export function LimiterSection({ effect, edit }: LimiterSectionProps) {
         label="Release"
         value={effect.releaseMs}
         rest={REST.releaseMs}
-        min={1}
-        max={8000}
+        {...EFFECT_RANGES.limiter.releaseMs}
         step={1}
         unit="ms"
         scale="log"

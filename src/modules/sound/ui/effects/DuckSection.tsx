@@ -2,7 +2,13 @@ import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { FieldRow } from "@/modules/inspector";
-import { projectRef, type DuckEffect, type Track, type TrackId } from "@/modules/project";
+import {
+  EFFECT_RANGES,
+  projectRef,
+  type DuckEffect,
+  type Track,
+  type TrackId,
+} from "@/modules/project";
 import { cn } from "@/ui";
 import { defaultSpec } from "../../logic/effects";
 import type { EffectEdit } from "../../sound.types";
@@ -41,13 +47,12 @@ export function DuckSection({ effect, owner, edit }: DuckSectionProps) {
       : [...effect.listensTo, id];
     void edit.commit(effect.id, { listensTo });
   };
-  const timing = (key: "attackMs" | "releaseMs", label: string, max: number) => (
+  const timing = (key: "attackMs" | "releaseMs", label: string) => (
     <EffectRow
       label={label}
       value={effect[key]}
       rest={REST[key]}
-      min={0.01}
-      max={max}
+      {...EFFECT_RANGES.duck[key]}
       step={0.01}
       unit="ms"
       scale="log"
@@ -91,16 +96,15 @@ export function DuckSection({ effect, owner, edit }: DuckSectionProps) {
         label="By"
         value={effect.depthDb}
         rest={REST.depthDb}
-        min={-40}
-        max={0}
+        {...EFFECT_RANGES.duck.depthDb}
         step={0.5}
         unit="dB"
         disabled={!effect.on}
         edit={edit}
         write={(depthDb) => ({ effect: { ...effect, depthDb }, patch: { depthDb } })}
       />
-      {timing("attackMs", "Attack", 2000)}
-      {timing("releaseMs", "Release", 9000)}
+      {timing("attackMs", "Attack")}
+      {timing("releaseMs", "Release")}
     </EffectSection>
   );
 }

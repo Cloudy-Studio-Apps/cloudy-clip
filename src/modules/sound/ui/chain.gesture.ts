@@ -6,7 +6,7 @@ const DRAG_PX = 3;
 /**
  * Follows a row of an effect chain dragged up or down: the row follows the pointer through
  * `style`, and the release reports the travel, or null when the pointer never moved (a click).
- * No React on the way (rule 24).
+ * Escape or a cancelled pointer puts the row back and reports null. No React on the way (rule 24).
  */
 export function startChainDrag({ down, row, onEnd }: ChainDrag): void {
   let dy: number | null = null;
@@ -17,15 +17,24 @@ export function startChainDrag({ down, row, onEnd }: ChainDrag): void {
     row.style.transform = `translateY(${dy}px)`;
     row.style.zIndex = "1";
   };
-  const up = () => {
+  const finish = (travel: number | null) => {
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
-    window.removeEventListener("pointercancel", up);
+    window.removeEventListener("pointercancel", cancel);
+    window.removeEventListener("keydown", key, true);
     row.style.transform = "";
     row.style.zIndex = "";
-    onEnd(dy);
+    onEnd(travel);
+  };
+  const up = () => finish(dy);
+  const cancel = () => finish(null);
+  const key = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    event.stopPropagation();
+    cancel();
   };
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", up);
-  window.addEventListener("pointercancel", up);
+  window.addEventListener("pointercancel", cancel);
+  window.addEventListener("keydown", key, true);
 }
