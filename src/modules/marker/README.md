@@ -4,7 +4,7 @@ Bookmarks on a composition's timeline: small colored flags in the ruler, each wi
 
 - **Tier:** feature
 - **Requires:** `project`, `timeline`, `preview`
-- **Contributes:** keybindings `marker.add` (M), `marker.next` (Shift+M), `marker.previous` (Ctrl/Cmd+Shift+M); `timelineSnapTargets` `marker.times`; `timelineOverlays` `marker.flags`; `timelineMenuItems` `marker.menu` (Add marker here, where you right-clicked a lane; Add marker at playhead); `clipActions` `marker.clipMenu` (Add marker at playhead, in the timing group)
+- **Contributes:** keybindings `marker.add` (M), `marker.next` (Shift+M), `marker.previous` (Ctrl/Cmd+Shift+M); `timelineSnapTargets` `marker.times`; `timelineOverlays` `marker.flags` (scopes `["all", "sound"]`: a marker dropped with M on the Sound page shows there too); `timelineMenuItems` `marker.menu` (Add marker here, where you right-clicked a lane; Add marker at playhead); `clipActions` `marker.clipMenu` (Add marker at playhead, in the timing group)
 - **Points it owns:** —
 - **API** (`useModule(markerRef)`): `ui`, the view state: `lastColor` (what a new marker takes) and `editing` (the marker whose editor is open)
 - **Files:**

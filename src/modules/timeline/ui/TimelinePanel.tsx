@@ -26,10 +26,12 @@ import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { inScope, trackInScope } from "../logic/scope";
 import { RULER_HEIGHT, TAIL_SECONDS } from "../timeline.layout";
+import type { TrackFocus } from "../timeline.types";
 import { useHeaderWidth } from "./header.width.hook";
 import { usePanelScroller } from "./panel.scroller.hook";
 import { Playhead } from "./Playhead";
 import { TimelineScopeProvider } from "./scope.hook";
+import { TrackFocusProvider } from "./track.focus.hook";
 import { Ruler } from "./Ruler";
 import { TimelineToolbar } from "./TimelineToolbar";
 import { TrackHeader } from "./TrackHeader";
@@ -49,9 +51,16 @@ const NO_TRACKS: readonly TrackId[] = [];
  * so long timelines with many clips stay smooth.
  *
  * `scope` is what this timeline is for: `"all"` (the default) is the editor's, `"sound"` lists audio
- * tracks only and shows only what modules opted in with `scopes`.
+ * tracks only and shows only what modules opted in with `scopes`. `focus` is a track the page keeps
+ * in focus: its header is marked and scrolled into view, and a header click reports its track.
  */
-export function TimelinePanel({ scope = "all" }: { scope?: TimelineScopeName }) {
+export function TimelinePanel({
+  scope = "all",
+  focus = null,
+}: {
+  scope?: TimelineScopeName;
+  focus?: TrackFocus | null;
+}) {
   const project = useModule(projectRef).store;
   const timeline = useModule(timelineRef);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -105,79 +114,81 @@ export function TimelinePanel({ scope = "all" }: { scope?: TimelineScopeName }) 
 
   return (
     <TimelineScopeProvider value={scope}>
-      <section className="flex h-full flex-col">
-        <TimelineToolbar />
-        {tabs.map(({ id, component: Tabs }) => (
-          <ErrorBoundary key={id} name={id}>
-            <Tabs />
-          </ErrorBoundary>
-        ))}
-        <ContextMenu
-          items={({ clientX, clientY }) => {
-            const at = timeline.dropTarget(clientX, clientY);
-            return menus.flatMap((menu) => menu.items(at));
-          }}
-        >
-          <div
-            ref={scrollRef}
-            data-scroll="wide"
-            className={cn(
-              "relative bg-lane",
-              tracksHidden ? "overflow-x-auto overflow-y-hidden" : "min-h-0 flex-1 overflow-auto",
-            )}
-            style={tracksHidden ? { height: RULER_HEIGHT + SCROLLBAR_HEIGHT } : undefined}
+      <TrackFocusProvider value={focus}>
+        <section className="flex h-full flex-col">
+          <TimelineToolbar />
+          {tabs.map(({ id, component: Tabs }) => (
+            <ErrorBoundary key={id} name={id}>
+              <Tabs />
+            </ErrorBoundary>
+          ))}
+          <ContextMenu
+            items={({ clientX, clientY }) => {
+              const at = timeline.dropTarget(clientX, clientY);
+              return menus.flatMap((menu) => menu.items(at));
+            }}
           >
             <div
-              className="relative"
-              style={{ width: headerWidth + contentWidth, minHeight: "100%" }}
-            >
-              <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
-              {lanes.map(({ track, index, clips }, position) => (
-                <Fragment key={track.id}>
-                  <TrackInsert
-                    index={index}
-                    above={lanes[position - 1]?.track.kind}
-                    below={track.kind}
-                  />
-                  <div className="flex">
-                    <TrackHeader track={track} />
-                    <div style={{ width: contentWidth }}>
-                      <TrackLane
-                        track={track}
-                        clips={clips}
-                        pxPerSecond={pxPerSecond}
-                        from={from}
-                        to={to}
-                        rootRef={scrollRef}
-                      />
-                    </div>
-                  </div>
-                </Fragment>
-              ))}
-              {open && last && <TrackInsert index={last.index + 1} above={last.track.kind} />}
-              {open && content === 0 && (
-                <p
-                  className="pointer-events-none absolute text-sm text-subtle-foreground"
-                  style={{ left: headerWidth + 16, top: 120 }}
-                >
-                  Drag media from the library onto a track to start editing.
-                </p>
+              ref={scrollRef}
+              data-scroll="wide"
+              className={cn(
+                "relative bg-lane",
+                tracksHidden ? "overflow-x-auto overflow-y-hidden" : "min-h-0 flex-1 overflow-auto",
               )}
-              <Playhead scrollRef={scrollRef} />
-              {overlays.map(({ id, component: Overlay }) => (
-                <ErrorBoundary key={id} name={id}>
-                  <Overlay />
-                </ErrorBoundary>
-              ))}
+              style={tracksHidden ? { height: RULER_HEIGHT + SCROLLBAR_HEIGHT } : undefined}
+            >
+              <div
+                className="relative"
+                style={{ width: headerWidth + contentWidth, minHeight: "100%" }}
+              >
+                <Ruler pxPerSecond={pxPerSecond} from={from} to={to} width={contentWidth} />
+                {lanes.map(({ track, index, clips }, position) => (
+                  <Fragment key={track.id}>
+                    <TrackInsert
+                      index={index}
+                      above={lanes[position - 1]?.track.kind}
+                      below={track.kind}
+                    />
+                    <div className="flex">
+                      <TrackHeader track={track} />
+                      <div style={{ width: contentWidth }}>
+                        <TrackLane
+                          track={track}
+                          clips={clips}
+                          pxPerSecond={pxPerSecond}
+                          from={from}
+                          to={to}
+                          rootRef={scrollRef}
+                        />
+                      </div>
+                    </div>
+                  </Fragment>
+                ))}
+                {open && last && <TrackInsert index={last.index + 1} above={last.track.kind} />}
+                {open && content === 0 && (
+                  <p
+                    className="pointer-events-none absolute text-sm text-subtle-foreground"
+                    style={{ left: headerWidth + 16, top: 120 }}
+                  >
+                    Drag media from the library onto a track to start editing.
+                  </p>
+                )}
+                <Playhead scrollRef={scrollRef} />
+                {overlays.map(({ id, component: Overlay }) => (
+                  <ErrorBoundary key={id} name={id}>
+                    <Overlay />
+                  </ErrorBoundary>
+                ))}
+              </div>
             </div>
-          </div>
-        </ContextMenu>
-        {docks.map(({ id, component: Dock }) => (
-          <ErrorBoundary key={id} name={id}>
-            <Dock />
-          </ErrorBoundary>
-        ))}
-      </section>
+          </ContextMenu>
+          {docks.map(({ id, component: Dock }) => (
+            <ErrorBoundary key={id} name={id}>
+              <Dock />
+            </ErrorBoundary>
+          ))}
+        </section>
+      </TrackFocusProvider>
     </TimelineScopeProvider>
   );
 }

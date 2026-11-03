@@ -1,22 +1,39 @@
 import { AudioLines, Eye, EyeOff, Film, Volume2, VolumeX, X } from "lucide-react";
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import { useKernel } from "@/core";
 import type { Track } from "@/modules/project";
+import { cn } from "@/ui";
 import { removeTrack, setTrackHidden, setTrackMuted } from "../timeline.commands";
 import { trackHeight } from "../timeline.layout";
 import { useHeaderWidth } from "./header.width.hook";
 import { TrackButton } from "./TrackButton";
+import { useTrackFocus } from "./track.focus.hook";
 
-/** Name and controls of a track. Sticks to the left while scrolling horizontally. */
+/**
+ * Name and controls of a track. Sticks to the left while scrolling horizontally. On a page with a
+ * track focus, the focused track's header is marked and kept in view, and a click focuses it.
+ */
 export const TrackHeader = memo(function TrackHeader({ track }: { track: Track }) {
   const { bus } = useKernel();
   const headerWidth = useHeaderWidth();
+  const focus = useTrackFocus();
+  const focused = focus?.selected === track.id;
+  const ref = useRef<HTMLDivElement>(null);
   const KindIcon = track.kind === "video" ? Film : AudioLines;
+
+  useEffect(() => {
+    if (focused) ref.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [focused]);
 
   return (
     <div
-      className="sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-b border-r-[1.5px] border-b-border border-r-subtle-foreground bg-muted pl-2.5 pr-1.5"
+      ref={ref}
+      className={cn(
+        "sticky left-0 z-20 flex shrink-0 items-center gap-1.5 border-b border-r-[1.5px] border-b-border border-r-subtle-foreground bg-muted pl-2.5 pr-1.5",
+        focused && "bg-surface shadow-[inset_2px_0_0_var(--mark)]",
+      )}
       style={{ width: headerWidth, height: trackHeight(track.kind) }}
+      onClick={focus ? () => focus.select(track.id) : undefined}
     >
       <KindIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate font-mono text-[13px] font-bold text-muted-foreground">

@@ -34,7 +34,11 @@ export const markerModule = defineModule({
     const menus = markerMenus(ctx.bus, project, ui);
     ctx.contribute(timelineMenuItems, menus.timeline);
     ctx.contribute(clipActions, menus.clip);
-    ctx.contribute(timelineOverlays, { id: "marker.flags", component: MarkerFlags });
+    ctx.contribute(timelineOverlays, {
+      id: "marker.flags",
+      scopes: ["all", "sound"],
+      component: MarkerFlags,
+    });
     return { api: { ui } };
   },
 });

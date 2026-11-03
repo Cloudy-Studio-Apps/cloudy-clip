@@ -107,6 +107,7 @@ export type {
   JunctionKindOf,
   TimelineApi,
   TimelineViewState,
+  TrackFocus,
   TrimEdge,
 } from "./timeline.types";
 
@@ -114,6 +115,11 @@ export type {
 export { CreateTiles } from "./ui/CreateTiles";
 /** The press of a create tile: a click, or a drag with a ghost to where it drops on the timeline. */
 export { startCreateDrag } from "./ui/create.gesture";
+/**
+ * The timeline panel, for a page of its own: `scope` (`"sound"` lists audio tracks and what opted
+ * in), `focus` (a track the page keeps in focus, marked on its header).
+ */
+export { TimelinePanel } from "./ui/TimelinePanel";
 /** Module definition, loaded by the app shell. */
 export { timelineModule } from "./timeline.module";
 /** Handle for `require(timelineRef)` / `useModule(timelineRef)`. */

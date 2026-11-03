@@ -29,6 +29,7 @@ export function createTimelineView(
     headerWidth: HEADER_WIDTH,
     soundUnlinkTold: false,
     tracksHidden: false,
+    unsnapped: [],
   }));
   // One scrolling element per scope: the editor stays mounted under a page whose timeline has
   // its own, so each registers apart; scrolling and zooming act on the active page's.
@@ -118,6 +119,13 @@ export function createTimelineView(
     },
     setTracksHidden(hidden) {
       if (view.getState().tracksHidden !== hidden) view.setState({ tracksHidden: hidden });
+    },
+    setSnap(scope, on) {
+      const { unsnapped } = view.getState();
+      if (unsnapped.includes(scope) !== on) return;
+      view.setState({
+        unsnapped: on ? unsnapped.filter((s) => s !== scope) : [...unsnapped, scope],
+      });
     },
     scrollLeft: () => current()?.scrollLeft ?? 0,
     setScrollLeft(px) {

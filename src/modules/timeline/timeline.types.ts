@@ -42,6 +42,16 @@ export interface TimelineViewState {
   soundUnlinkTold: boolean;
   /** Only the ruler shows: the tracks are folded away, zoom and scroll stay. */
   tracksHidden: boolean;
+  /** Scopes whose panel doesn't snap (the Sound page's Snap off). The editor always snaps. */
+  unsnapped: TimelineScopeName[];
+}
+
+/** A track a page keeps in focus beside the clip selection (the Sound page's mixer strip). */
+export interface TrackFocus {
+  /** The track whose header is marked and kept in view, or null. */
+  selected: TrackId | null;
+  /** Called when a track's header is clicked. */
+  select(trackId: TrackId): void;
 }
 
 /** A junction not placed yet, shown on the cut it would land on. */
@@ -160,6 +170,8 @@ export interface TimelineApi {
   setHeaderWidth(px: number | null): void;
   /** Folds the tracks away, leaving the ruler (true), or shows them again (false). */
   setTracksHidden(hidden: boolean): void;
+  /** Turns snapping on or off for the panel of a scope (`view.unsnapped`). */
+  setSnap(scope: TimelineScopeName, on: boolean): void;
   /** How far the timeline is scrolled sideways, in px (0 when it isn't shown). */
   scrollLeft(): number;
   /** Scrolls the timeline sideways to a position in px. */

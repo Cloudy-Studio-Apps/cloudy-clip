@@ -8,12 +8,21 @@ import { cn } from "@/ui";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime } from "../logic/geometry";
 import { snapTime } from "../logic/placement";
+import { inScope } from "../logic/scope";
+import type { Scoped } from "../timeline.types";
 import { SNAP_PX, trackHeight } from "../timeline.layout";
 import { useTrackChips } from "../junction.display";
 import { CutPreviewMark } from "./CutPreviewMark";
 import { JunctionChip } from "./JunctionChip";
 import { TimelineClip } from "./TimelineClip";
+import { useTimelineScope } from "./scope.hook";
 import { useSnapCandidates } from "./snap.hook";
+
+/**
+ * Junction chips are Edit only, as any entry without `scopes`: a chip removes or resizes a junction,
+ * which moves the clips after it and their pictures.
+ */
+const JUNCTION_CHIPS: Scoped = {};
 
 interface TrackLaneProps {
   track: Track;
@@ -49,9 +58,10 @@ export const TrackLane = memo(function TrackLane({
   const cutPreview = useStore(timeline.view, (s) =>
     s.cutPreview?.cut.trackId === track.id ? s.cutPreview : null,
   );
+  const chipsShown = inScope(JUNCTION_CHIPS, useTimelineScope());
   const chips = useMemo(
-    () => allChips.filter((c) => c.center >= from && c.center <= to),
-    [allChips, from, to],
+    () => (chipsShown ? allChips.filter((c) => c.center >= from && c.center <= to) : []),
+    [allChips, chipsShown, from, to],
   );
 
   useEffect(() => {
