@@ -1,7 +1,7 @@
 import { MICROS_PER_SECOND } from "@/core";
 import { DEFAULT_SOUND, fadeLevel } from "@/modules/project";
 import { pxToTime } from "@/modules/timeline";
-import type { FadeEdge } from "../audio.types";
+import type { FadeBoxes, FadeEdge } from "../audio.types";
 
 const STEPS = 16;
 
@@ -44,17 +44,30 @@ export function draggedFade(
 }
 
 /** Side of a fade handle in pixels (`size-2.5`). */
-export const HANDLE_PX = 10;
+const HANDLE_PX = 10;
 
 /**
- * Where a fade's handle sits, in pixels from its own edge of the clip: at the end of the fade,
- * kept inside the clip. The fade-out handle has the corner; the fade-in handle stops at its inner
- * edge, so both can always be grabbed. `otherPx` is the other fade's width in pixels.
+ * Where the two handles sit on a clip `width` pixels wide, in pixels from its left edge, given the
+ * width of each fade. Each handle ideally ends where its fade does, inside the clip. When they
+ * would meet or cross, they become an adjacent pair around the middle of their ideal places, and
+ * the pair shifts as a whole to stay within the clip, so both can always be grabbed. On a clip
+ * narrower than two handles, each gets half of it.
  */
-export function handleOffset(edge: FadeEdge, fadePx: number, otherPx: number, width: number) {
-  const room = Math.max(0, width - HANDLE_PX);
-  const own = Math.min(room, fadePx);
-  if (edge === "out") return own;
-  const other = Math.min(room, otherPx);
-  return Math.max(0, Math.min(own, width - other - 2 * HANDLE_PX));
+export function handleBoxes(width: number, inPx: number, outPx: number): FadeBoxes {
+  const size = HANDLE_PX;
+  if (width < 2 * size) {
+    const half = width / 2;
+    return { in: { left: 0, size: half }, out: { left: half, size: half } };
+  }
+  const room = width - size;
+  const a = Math.min(room, Math.max(0, inPx));
+  const b = Math.min(room, Math.max(0, width - outPx - size));
+  if (b - a >= size) return { in: { left: a, size }, out: { left: b, size } };
+  const middle = (a + b + size) / 2;
+  const shift =
+    middle - size < 0 ? size - middle : middle + size > width ? width - middle - size : 0;
+  return {
+    in: { left: middle - size + shift, size },
+    out: { left: middle + shift, size },
+  };
 }

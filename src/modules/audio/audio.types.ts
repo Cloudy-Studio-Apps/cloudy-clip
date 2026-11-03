@@ -30,3 +30,15 @@ export interface FadeGestureOptions {
   /** The release, with a changed fade. */
   onDrop(fade: number): void;
 }
+
+/** Where a fade handle sits on a clip, in pixels from its left edge. */
+export interface FadeBox {
+  left: number;
+  size: number;
+}
+
+/** The boxes of both fade handles of a clip. */
+export interface FadeBoxes {
+  in: FadeBox;
+  out: FadeBox;
+}

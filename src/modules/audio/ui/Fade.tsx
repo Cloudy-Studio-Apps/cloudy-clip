@@ -4,35 +4,32 @@ import type { Clip } from "@/modules/project";
 import { timeToPx } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { setSound } from "../audio.commands";
-import type { FadeEdge } from "../audio.types";
-import { FADE_AREA, FADE_LINE, handleOffset } from "../logic/fade";
+import type { FadeBox, FadeEdge } from "../audio.types";
+import { FADE_AREA, FADE_LINE } from "../logic/fade";
 import { startFadeGesture } from "./fade.gesture";
 
 /** One fade of a clip: its slope and the handle that drags it. */
 export function Fade(props: {
   edge: FadeEdge;
   fade: number;
-  /** The other fade of the clip. */
-  other: number;
+  /** Where the handle sits (see `handleBoxes`). */
+  box: FadeBox;
+  /** Gets the handle element, so the owner can place both handles during a drag. */
+  handleRef(element: HTMLDivElement | null): void;
+  /** A fade shown during a drag, so the owner can place both handles. */
+  onShow(micros: number): void;
   bus: CommandBus;
   clip: Clip;
   pxPerSecond: number;
   width: number;
   selected: boolean;
 }) {
-  const { edge, fade, other, bus, clip, pxPerSecond, width, selected } = props;
+  const { edge, fade, box, handleRef, onShow, bus, clip, pxPerSecond, width, selected } = props;
   const slope = useRef<SVGSVGElement>(null);
-  const handle = useRef<HTMLDivElement>(null);
-  const side = edge === "in" ? "left" : "right";
   const px = (micros: number) => Math.min(width, timeToPx(micros, pxPerSecond));
-  // The slope shows the true fade; the handle stays inside the clip and clear of the other.
-  const at = (micros: number) =>
-    handleOffset(edge, timeToPx(micros, pxPerSecond), timeToPx(other, pxPerSecond), width);
-
   const show = (micros: number) => {
-    const size = `${px(micros)}px`;
-    if (slope.current) slope.current.style.width = size;
-    if (handle.current) handle.current.style[side] = `${at(micros)}px`;
+    if (slope.current) slope.current.style.width = `${px(micros)}px`;
+    onShow(micros);
   };
 
   return (
@@ -56,13 +53,13 @@ export function Fade(props: {
         />
       </svg>
       <div
-        ref={handle}
+        ref={handleRef}
         title={edge === "in" ? "Fade in" : "Fade out"}
         className={cn(
-          "pointer-events-auto absolute top-0 size-2.5 cursor-ew-resize rounded-xs border border-border-strong bg-foreground",
+          "pointer-events-auto absolute top-0 h-2.5 cursor-ew-resize rounded-xs border border-border-strong bg-foreground",
           !selected && "opacity-0 group-hover:opacity-100",
         )}
-        style={{ [side]: at(fade) }}
+        style={{ left: box.left, width: box.size }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
           e.stopPropagation();
