@@ -5,6 +5,7 @@ import {
   contentTime,
   dbToLinear,
   pitchShift,
+  rampOf,
   soundOf,
   sourceTimeAt,
   speedOf,
@@ -19,7 +20,10 @@ import {
   type Track,
 } from "@/modules/project";
 import { envelope } from "./envelope";
-import type { ExportRange, MixEdges, MixWindow, SoundSegment } from "../export.types";
+import type { ExportRange, MixEdges, MixWindow, SoundSegment, TempoStep } from "../export.types";
+
+/** Timeline time a tempo step of a ramp covers, short enough that the steps aren't heard. */
+const TEMPO_STEP: Micros = 250_000;
 
 /** The overlap a junction allows between two neighbours of a track; 0 for plain neighbours. */
 function overlapOf(project: ProjectState, left: Clip | undefined, right: Clip | undefined): Micros {
@@ -72,6 +76,29 @@ function speedFields({ rate, pitchCorrection, reversed }: ClipSpeed): Partial<So
   return {
     ...(reversed && { reversed }),
     ...(rate !== 1 && { speed: rate, ...(!pitchCorrection && { keepPitch: false }) }),
+  };
+}
+
+/**
+ * A ramped clip's stretch `start..stop` as steps of one tempo each, in file order: one per
+ * `TEMPO_STEP`, rounded, the last one taking what is left. Each plays its own part of the file in
+ * its time, so the steps meet in the file and their lengths add up to the stretch's.
+ */
+function tempoSteps(clip: Clip, start: Micros, stop: Micros): TempoStep[] {
+  const count = Math.max(1, Math.round((stop - start) / TEMPO_STEP));
+  return Array.from({ length: count }, (_, i) => {
+    const at = start + i * TEMPO_STEP;
+    const end = i === count - 1 ? stop : at + TEMPO_STEP;
+    const from = sourceTimeAt(clip, at);
+    return { from, duration: end - at, speed: (sourceTimeAt(clip, end) - from) / (end - at) };
+  });
+}
+
+/** What a ramp adds to a segment instead of a speed. A ramp is never reversed. */
+function rampFields(clip: Clip, start: Micros, stop: Micros): Partial<SoundSegment> {
+  return {
+    tempoSteps: tempoSteps(clip, start, stop),
+    ...(!speedOf(clip).pitchCorrection && { keepPitch: false }),
   };
 }
 
@@ -133,7 +160,7 @@ function walk(
         fadeIn: Math.max(fades.fadeIn, start === from ? edges.fadeIn : 0),
         fadeOut: Math.max(fades.fadeOut, stop === end ? edges.fadeOut : 0),
         ...soundFields(sound, level, keyedFields(clip, gain, start, stop)),
-        ...speedFields(speedOf(clip)),
+        ...(rampOf(clip) ? rampFields(clip, start, stop) : speedFields(speedOf(clip))),
       });
     });
   }

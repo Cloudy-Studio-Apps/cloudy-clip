@@ -89,6 +89,20 @@ pub struct SoundSegment {
     /// Plays its part of the file backwards.
     #[serde(default)]
     pub reversed: bool,
+    /// A ramped clip's sound, as stretches of one tempo each, in file order. Replaces `speed`.
+    #[serde(default)]
+    pub tempo_steps: Vec<TempoStep>,
+}
+
+/// A stretch of a ramped segment played at one tempo. All times are microseconds.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct TempoStep {
+    /// Where it starts in the file.
+    pub from: u64,
+    /// Its length in the export.
+    pub duration: u64,
+    /// How fast it plays: its part of the file over `duration`.
+    pub speed: f64,
 }
 
 fn one() -> f64 {
@@ -144,9 +158,68 @@ fn seconds(micros: u64) -> String {
     format!("{:.6}", micros as f64 / 1_000_000.0)
 }
 
-/// How much of the file a segment plays.
+/// How much of the file a segment plays. A ramp reads on past its last step by what that step
+/// reads ahead (`STEP_LEAD`), so it never runs short.
 fn source_length(segment: &SoundSegment) -> u64 {
-    (segment.duration as f64 * segment.speed).round() as u64
+    match segment.tempo_steps.last() {
+        Some(last) => {
+            let end = last.from + (last.duration as f64 * last.speed).round() as u64;
+            let lead = (STEP_LEAD as f64 * last.speed).round() as u64;
+            end.saturating_sub(segment.from) + lead
+        }
+        None => (segment.duration as f64 * segment.speed).round() as u64,
+    }
+}
+
+/// Timeline time each tempo step reads ahead of its end. `atempo` gives a few milliseconds more
+/// or less than its input over its tempo, so each step reads ahead and is cut to its exact length:
+/// the steps stay in step with the picture, with no silence between them.
+const STEP_LEAD: u64 = 100_000;
+
+/// Samples of the mixed sound in `micros`.
+fn samples(micros: f64) -> u64 {
+    (micros * f64::from(SAMPLE_RATE) / 1_000_000.0).round() as u64
+}
+
+/// How a step changes speed: `atempo`, or `asetrate` when the pitch moves with it.
+fn speed_filter(speed: f64, keep_pitch: bool) -> String {
+    if keep_pitch {
+        tempo_steps(speed)
+    } else {
+        let rate = f64::from(SAMPLE_RATE) * speed;
+        format!(",asetrate={rate:.3},aresample={SAMPLE_RATE}")
+    }
+}
+
+/// A ramped segment's tempo steps: the input is split, each step trims its own part of the file,
+/// changes its speed and is cut to its length, and the steps are joined in order. `n` keeps the
+/// labels of one segment apart from the others'.
+fn tempo_steps_filter(n: usize, segment: &SoundSegment) -> String {
+    let steps = &segment.tempo_steps;
+    let count = steps.len();
+    let mut text = format!(",asplit={count}");
+    for k in 0..count {
+        text.push_str(&format!("[step{n}_{k}]"));
+    }
+    text.push(';');
+    let mut elapsed = 0u64;
+    for (k, step) in steps.iter().enumerate() {
+        let into_file = step.from.saturating_sub(segment.from) as f64;
+        let read = (step.duration + STEP_LEAD) as f64 * step.speed;
+        let first = samples(into_file);
+        let last = samples(into_file + read);
+        let length = samples((elapsed + step.duration) as f64) - samples(elapsed as f64);
+        elapsed += step.duration;
+        text.push_str(&format!(
+            "[step{n}_{k}]atrim=start_sample={first}:end_sample={last},asetpts=PTS-STARTPTS{},apad=whole_len={length},atrim=end_sample={length}[tempo{n}_{k}];",
+            speed_filter(step.speed, segment.keep_pitch)
+        ));
+    }
+    for k in 0..count {
+        text.push_str(&format!("[tempo{n}_{k}]"));
+    }
+    text.push_str(&format!("concat=n={count}:v=0:a=1"));
+    text
 }
 
 /// `atempo` steps that make up a factor, each within its 0.5 to 2 range.
@@ -294,19 +367,17 @@ fn pan_envelope_filter(n: usize, points: &[EnvelopePoint]) -> String {
     text
 }
 
-/// What a clip's sound settings add, in the preview's order. Empty at the defaults.
-fn effects(segment: &SoundSegment) -> String {
+/// What a clip's sound settings add, in the preview's order. Empty at the defaults. `n` keeps the
+/// labels of one segment apart from the others'.
+fn effects(n: usize, segment: &SoundSegment) -> String {
     let mut chain = String::new();
     if segment.reversed {
         chain.push_str(",areverse");
     }
-    if segment.speed != 1.0 {
-        chain.push_str(&if segment.keep_pitch {
-            tempo_steps(segment.speed)
-        } else {
-            let rate = f64::from(SAMPLE_RATE) * segment.speed;
-            format!(",asetrate={rate:.3},aresample={SAMPLE_RATE}")
-        });
+    if !segment.tempo_steps.is_empty() {
+        chain.push_str(&tempo_steps_filter(n, segment));
+    } else if segment.speed != 1.0 {
+        chain.push_str(&speed_filter(segment.speed, segment.keep_pitch));
     }
     if segment.pitch != 0.0 {
         let ratio = 2f64.powf(segment.pitch / 12.0);
@@ -342,7 +413,7 @@ fn sound_graph(sound: &[SoundSegment], first_input: usize, total: u64) -> String
         };
         let mut chain =
             format!("[{input}:a]aresample={SAMPLE_RATE},aformat=sample_fmts=fltp,{layout}");
-        chain.push_str(&effects(segment));
+        chain.push_str(&effects(i, segment));
         if !segment.gain_envelope.is_empty() {
             chain.push_str(&gain_envelope_filter(&segment.gain_envelope));
         } else if segment.gain != 1.0 {
@@ -609,6 +680,7 @@ mod sound_tests {
             speed: 1.0,
             keep_pitch: true,
             reversed: false,
+            tempo_steps: Vec::new(),
         }
     }
 
@@ -628,7 +700,7 @@ mod sound_tests {
             speed: 2.0,
             ..segment()
         };
-        assert_eq!(effects(&back), ",areverse,atempo=2.000000");
+        assert_eq!(effects(0, &back), ",areverse,atempo=2.000000");
     }
 
     #[test]
@@ -637,7 +709,7 @@ mod sound_tests {
             speed: 2.0,
             ..segment()
         };
-        assert_eq!(effects(&fast), ",atempo=2.000000");
+        assert_eq!(effects(0, &fast), ",atempo=2.000000");
     }
 
     #[test]
@@ -646,7 +718,7 @@ mod sound_tests {
             speed: 4.0,
             ..segment()
         };
-        assert_eq!(effects(&fast), ",atempo=2.000000,atempo=2.000000");
+        assert_eq!(effects(0, &fast), ",atempo=2.000000,atempo=2.000000");
     }
 
     #[test]
@@ -656,7 +728,7 @@ mod sound_tests {
             keep_pitch: false,
             ..segment()
         };
-        assert_eq!(effects(&fast), ",asetrate=96000.000,aresample=48000");
+        assert_eq!(effects(0, &fast), ",asetrate=96000.000,aresample=48000");
     }
 
     #[test]
@@ -703,30 +775,39 @@ mod sound_tests {
 
     #[test]
     fn pan_matches_the_preview_at_hard_left_and_right() {
-        let left = effects(&SoundSegment {
-            pan: -1.0,
-            ..segment()
-        });
+        let left = effects(
+            0,
+            &SoundSegment {
+                pan: -1.0,
+                ..segment()
+            },
+        );
         assert_eq!(left, ",pan=stereo|c0=c0+1.000000*c1|c1=0.000000*c1");
-        let right = effects(&SoundSegment {
-            pan: 1.0,
-            ..segment()
-        });
+        let right = effects(
+            0,
+            &SoundSegment {
+                pan: 1.0,
+                ..segment()
+            },
+        );
         assert_eq!(right, ",pan=stereo|c0=0.000000*c0|c1=c1+1.000000*c0");
     }
 
     #[test]
     fn equalizer_filters_by_shape() {
-        let chain = effects(&SoundSegment {
-            eq: vec![
-                band(EqKind::LowCut, 80.0, 0.0),
-                band(EqKind::LowShelf, 120.0, 3.0),
-                band(EqKind::Bell, 500.0, -2.0),
-                band(EqKind::HighShelf, 8000.0, 1.5),
-                band(EqKind::HighCut, 16000.0, 0.0),
-            ],
-            ..segment()
-        });
+        let chain = effects(
+            0,
+            &SoundSegment {
+                eq: vec![
+                    band(EqKind::LowCut, 80.0, 0.0),
+                    band(EqKind::LowShelf, 120.0, 3.0),
+                    band(EqKind::Bell, 500.0, -2.0),
+                    band(EqKind::HighShelf, 8000.0, 1.5),
+                    band(EqKind::HighCut, 16000.0, 0.0),
+                ],
+                ..segment()
+            },
+        );
         assert_eq!(
             chain,
             ",highpass=f=80.00,bass=g=3.00:f=120.00:t=s:w=1,equalizer=f=500.00:t=q:w=1.00:g=-2.00,treble=g=1.50:f=8000.00:t=s:w=1,lowpass=f=16000.00"
@@ -735,15 +816,21 @@ mod sound_tests {
 
     #[test]
     fn pitch_keeps_the_length() {
-        let chain = effects(&SoundSegment {
-            pitch: 12.0,
-            ..segment()
-        });
+        let chain = effects(
+            0,
+            &SoundSegment {
+                pitch: 12.0,
+                ..segment()
+            },
+        );
         assert_eq!(chain, ",asetrate=96000.000,aresample=48000,atempo=0.500000");
-        let far = effects(&SoundSegment {
-            pitch: 24.0,
-            ..segment()
-        });
+        let far = effects(
+            0,
+            &SoundSegment {
+                pitch: 24.0,
+                ..segment()
+            },
+        );
         assert_eq!(
             far,
             ",asetrate=192000.000,aresample=48000,atempo=0.500000,atempo=0.500000"
@@ -897,6 +984,45 @@ mod sound_tests {
         let short = arguments(&one, partial, None, ScriptOption::Slash);
         assert!(short.script.is_none());
         assert!(short.args.iter().any(|a| a == "-filter_complex"));
+    }
+
+    /// 2 s of a ramp from 1x to 4x, in 250 ms steps that follow each other in the file.
+    fn ramped_segment() -> SoundSegment {
+        let mut from = 1_000_000;
+        let tempo_steps = (0..8)
+            .map(|i| {
+                let speed = 1.0 + f64::from(i) * 3.0 / 7.0;
+                let step = TempoStep {
+                    from,
+                    duration: 250_000,
+                    speed,
+                };
+                from += (250_000.0 * speed).round() as u64;
+                step
+            })
+            .collect();
+        SoundSegment {
+            from: 1_000_000,
+            duration: 2_000_000,
+            tempo_steps,
+            ..segment()
+        }
+    }
+
+    #[test]
+    fn tempo_steps_trim_and_join() {
+        let chain = sound_graph(&[ramped_segment()], 1, 2_000_000);
+        assert!(chain.contains("atrim="));
+        assert!(chain.contains("concat="));
+    }
+
+    #[test]
+    fn a_ramped_input_reads_every_step() {
+        let ramped = ramped_segment();
+        let last = ramped.tempo_steps.last().unwrap();
+        let end = last.from + (last.duration as f64 * last.speed).round() as u64;
+        let lead = (STEP_LEAD as f64 * last.speed).round() as u64;
+        assert_eq!(source_length(&ramped), end - ramped.from + lead);
     }
 
     #[test]

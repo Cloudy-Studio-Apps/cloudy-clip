@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SOUND,
+  RAMP_PATH,
   dbToLinear,
+  rampTimeAt,
   seedProject,
   type Clip,
+  type KeyTrack,
   type MediaAsset,
   type ProjectState,
 } from "@/modules/project";
@@ -217,6 +220,34 @@ describe("mixdown", () => {
     const [segment] = mixdown(project([clip("a", "a1", { animation })]), "c1", window, sounds);
     expect(segment!.panEnvelope![0]!.value).toBeCloseTo(0);
     expect(segment!.panEnvelope!.at(-1)!.value).toBeCloseTo(1);
+  });
+
+  it("cuts a ramped clip's sound into tempo steps that cover it", () => {
+    const ramp: KeyTrack = {
+      blend: "number",
+      shared: true,
+      min: 0.1,
+      max: 10,
+      keys: [
+        { id: "r1", t: 0, value: 1 },
+        { id: "r2", t: 4_000_000, value: 4 },
+      ],
+    };
+    const ramped = clip("a", "a1", {
+      sourceIn: 1_000_000,
+      duration: rampTimeAt(ramp, 0, 4_000_000),
+      speed: { rate: 2, pitchCorrection: true, reversed: false },
+      animation: { [RAMP_PATH]: ramp },
+    });
+    const rampedProject = project([ramped]);
+    const range = { start: 300_000, duration: 10_000_000 };
+    const [segment] = mixdown(rampedProject, "c1", range, sounds);
+    const steps = segment!.tempoSteps!;
+    expect(steps.reduce((sum, s) => sum + s.duration, 0)).toBe(segment!.duration);
+    expect(steps[0]!.speed).toBeLessThan(steps.at(-1)!.speed);
+    // The first step starts where the segment does in the file; the stored rate isn't the speed.
+    expect(steps[0]!.from).toBe(segment!.from);
+    expect(segment).not.toHaveProperty("speed");
   });
 
   it("leaves a clip without keys as it was", () => {

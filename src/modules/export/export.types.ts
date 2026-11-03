@@ -45,6 +45,18 @@ export interface SoundSegment {
   keepPitch?: boolean;
   /** Plays its part of the file backwards. */
   reversed?: boolean;
+  /** A ramped clip's sound, as stretches of one tempo each. Replaces `speed`. */
+  tempoSteps?: TempoStep[];
+}
+
+/** A stretch of a ramped segment played at one tempo (mirrors `TempoStep` in Rust). */
+export interface TempoStep {
+  /** Where it starts in the file. */
+  from: Micros;
+  /** Its length in the export. */
+  duration: Micros;
+  /** How fast it plays: its part of the file over `duration`. */
+  speed: number;
 }
 
 /** What a file holds (mirrors `Format` in Rust). */
