@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { MouseEvent, RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { CommandBus, Micros } from "@/core";
 import type {
@@ -323,4 +323,50 @@ export interface ChainDrag {
   row: HTMLElement;
   /** The release, with the travel; null when the pointer never moved (a click). */
   onEnd(dy: number | null): void;
+}
+
+/**
+ * A control of the Sound page that a later stage makes work: one entry of `ui/soon/soon.catalog.ts`.
+ * Each stage removes its own ids as it builds them.
+ */
+export type SoonId =
+  | "transport.cut"
+  | "transport.fade"
+  | "transport.drawVolume"
+  | "transport.scrub"
+  | "transport.findBeats"
+  | "transport.stripSilence"
+  | "transport.matchLevel"
+  | "lanes.drawVolume"
+  | "lanes.automation"
+  | "mixer.filter"
+  | "mixer.read"
+  | "master.pan"
+  | "master.mute"
+  | "master.read"
+  | "compressor.reduction"
+  | "loudness.spectrum"
+  | "loudness.phase"
+  | "deliver.standard"
+  | "deliver.analyze"
+  | "deliver.format"
+  | "deliver.stems";
+
+/** A placeholder: what it will be and the stage that builds it. */
+export interface SoonEntry {
+  id: SoonId;
+  /** Its name, as the tooltip starts. */
+  label: string;
+  /** What it will do, one sentence. */
+  what: string;
+  /** The stage plan that builds it: `docs/superpowers/plans/2026-11-03-sound-<stage>-*.md`. */
+  stage: "2-followup" | 3 | 4 | 5 | 6;
+}
+
+/** The props a placeholder spreads: dimmed for screen readers, its tooltip, no hover, a click that does nothing. */
+export interface SoonProps {
+  "aria-disabled": true;
+  title: string;
+  className: string;
+  onClick(event: MouseEvent<HTMLElement>): void;
 }

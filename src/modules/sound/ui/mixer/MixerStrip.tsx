@@ -4,7 +4,7 @@ import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { projectRef, trackMixOf, type Track } from "@/modules/project";
 import { setTrackMuted } from "@/modules/timeline";
-import { cn } from "@/ui";
+import { cn, LetterToggle } from "@/ui";
 import { chainOf, placesUnheardEffects } from "../../logic/effects";
 import { setTrackMix } from "../../sound.mix.commands";
 import { setSolo } from "../../sound.monitor.commands";
@@ -15,7 +15,6 @@ import { Fader } from "./Fader";
 import { Meter } from "./Meter";
 import { PanSlider } from "./PanSlider";
 import { StripLabel } from "./StripLabel";
-import { StripToggle } from "./StripToggle";
 
 interface MixerStripProps {
   track: Track;
@@ -104,22 +103,22 @@ export const MixerStrip = memo(function MixerStrip({
         <Meter target={metered} side="right" />
       </Fader>
       <div className="flex justify-center gap-0.5">
-        <StripToggle
+        <LetterToggle
           on={track.muted}
           label={track.muted ? "Unmute track" : "Mute track"}
           tone="mark"
           onToggle={() => void bus.run(setTrackMuted, { trackId: track.id, muted: !track.muted })}
         >
           M
-        </StripToggle>
-        <StripToggle
+        </LetterToggle>
+        <LetterToggle
           on={soloed}
           label={soloed ? "Stop soloing" : "Solo track"}
           tone="ink"
           onToggle={() => void bus.run(setSolo, { trackId: track.id, on: !soloed })}
         >
           S
-        </StripToggle>
+        </LetterToggle>
         <ArmButton track={track} />
       </div>
     </div>

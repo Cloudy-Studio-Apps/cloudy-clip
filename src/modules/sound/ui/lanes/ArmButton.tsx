@@ -1,10 +1,10 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import type { Track } from "@/modules/project";
+import { LetterToggle } from "@/ui";
 import { canArm } from "../../logic/record";
 import { canRecordHere } from "../../sound.record.capture";
 import { soundRef } from "../../sound.ref";
-import { StripToggle } from "../mixer";
 
 /**
  * R on a strip: arms the track for recording, or disarms it. Record records onto the armed track,
@@ -16,7 +16,7 @@ export function ArmButton({ track }: { track: Track }) {
   const armed = useStore(sound.view, (s) => s.armed === track.id);
   if (!canRecordHere() || !canArm(track)) return null;
   return (
-    <StripToggle
+    <LetterToggle
       on={armed}
       label={
         armed
@@ -27,6 +27,6 @@ export function ArmButton({ track }: { track: Track }) {
       onToggle={() => sound.arm(armed ? null : track.id)}
     >
       R
-    </StripToggle>
+    </LetterToggle>
   );
 }

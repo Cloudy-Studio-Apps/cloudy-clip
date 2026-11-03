@@ -50,10 +50,12 @@ export { ColorField } from "./kit/ColorField";
 export { SliderField } from "./kit/SliderField";
 /** A compact number box that commits on Enter or blur. */
 export { NumberField } from "./kit/NumberField";
-/** A small on/off switch. */
 /** A gradient: type, angle, a bar of draggable stops and the selected stop's color. */
 export { GradientField } from "./kit/GradientField";
+/** A small on/off switch. */
 export { Switch } from "./kit/Switch";
+/** A small lettered switch (M, S, R, Read): `mark` or `ink` while on; extra button props pass through. */
+export { LetterToggle } from "./kit/LetterToggle";
 /** A labelled switch that shows its sub-fields while on. */
 export { ToggleRow } from "./kit/ToggleRow";
 /** A pencilled title with a chevron that folds the fields under it. */
