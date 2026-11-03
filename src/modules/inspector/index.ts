@@ -43,6 +43,11 @@ export { useClipAtPlayhead } from "./ui/clip.values.hook";
 export { FieldRow } from "./ui/controls/FieldRow";
 /** A collapsible group of fields, for custom section layouts. */
 export { InspectorSection } from "./ui/InspectorSection";
+/**
+ * The selected clip's sections of one tab (`tab`), drawn as the inspector draws them, for a page
+ * that has no inspector; `fallback` shows when there is no clip or nothing in that tab.
+ */
+export { ClipTabSections } from "./ui/ClipTabSections";
 /** The member of a clip that carries sound, when one does. */
 export { soundMember } from "./ui/SoundSection";
 /** Builds a patch that sets a value at a dotted path. */

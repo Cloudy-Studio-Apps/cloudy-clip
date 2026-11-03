@@ -1,10 +1,9 @@
-import { useMemo } from "react";
-import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { elementRef } from "@/modules/element";
-import { partnersOf, projectRef, type ClipId } from "@/modules/project";
+import type { ClipId } from "@/modules/project";
 import { inspectorRef } from "../inspector.ref";
 import type { InspectorContext } from "../inspector.types";
+import { useClipContext } from "./clip.context.hook";
 import { useClipPanel } from "./clip.panel.hook";
 import { InspectorTabs } from "./InspectorTabs";
 import { TabBody } from "./TabBody";
@@ -42,18 +41,7 @@ function ClipPanelView({ context }: { context: InspectorContext }) {
 
 /** Details of one selected clip, with its linked partner when it has one. */
 export function ClipView({ clipId }: { clipId: ClipId }) {
-  const project = useModule(projectRef).store;
-  const clip = useStore(project.api, (s) => s.clips[clipId]);
-  const track = useStore(project.api, (s) => (clip ? s.tracks[clip.trackId] : undefined));
-  const partnerClip = useStore(project.api, (s) => (clip ? partnersOf(s, clip.id)[0] : undefined));
-  const partnerTrack = useStore(project.api, (s) =>
-    partnerClip ? s.tracks[partnerClip.trackId] : undefined,
-  );
-  const context = useMemo<InspectorContext | undefined>(() => {
-    if (!clip || !track) return undefined;
-    const partner = partnerClip && partnerTrack && { clip: partnerClip, track: partnerTrack };
-    return { clip, track, ...(partner && { partner }) };
-  }, [clip, track, partnerClip, partnerTrack]);
+  const context = useClipContext(clipId);
   if (!context) return null;
   return <ClipPanelView context={context} />;
 }

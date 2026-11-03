@@ -13,8 +13,9 @@ import { useWarnOnce } from "./panel.warn.hook";
 /**
  * What a clip's panel shows: every section of the clip and its linked partner, from their elements
  * and from `inspectorSections`, grouped by tab. A tab is available when a section lands in it.
+ * With `fixedTab`, that tab's sections, whichever tab the inspector has open.
  */
-export function useClipPanel(context: InspectorContext): ClipPanel {
+export function useClipPanel(context: InspectorContext, fixedTab?: string): ClipPanel {
   const elements = useModule(elementRef);
   const project = useModule(projectRef).store;
   const view = useModule(inspectorRef).view;
@@ -82,7 +83,7 @@ export function useClipPanel(context: InspectorContext): ClipPanel {
   );
 
   const states = tabStates(tabs, new Set(entries.keys()));
-  const active = pickTab(states, remembered);
+  const active = fixedTab ?? pickTab(states, remembered);
   const shown = active === undefined ? [] : (entries.get(active) ?? []);
   return { tabs: states, active, entries: [...shown].sort((a, b) => a.order - b.order) };
 }
