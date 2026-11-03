@@ -1,8 +1,8 @@
-import { appMenuItems, appOverlays, defineModule, keybindings } from "@/core";
+import { appMenuItems, appOverlays, defineModule, keybindings, topBarItems } from "@/core";
 import { openSettings, settingsCommands } from "./settings.commands";
 import { settingsRef } from "./settings.ref";
 import { createSettingsState } from "./settings.store";
-import { SettingsDialog } from "./ui";
+import { SettingsButton, SettingsDialog } from "./ui";
 
 /** The Settings window. What it holds comes from the `settingsSections` point. */
 export const settingsModule = defineModule({
@@ -13,6 +13,7 @@ export const settingsModule = defineModule({
   setup({ contribute }) {
     const store = createSettingsState();
     contribute(appOverlays, { id: "settings.dialog", component: SettingsDialog });
+    contribute(topBarItems, { id: "settings.button", slot: "right", component: SettingsButton });
     contribute(keybindings, {
       id: "settings.open",
       key: ",",
