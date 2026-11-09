@@ -87,6 +87,33 @@ export type {
   SolidId,
   SharedGroupValues,
   ClipSound,
+  ChannelJoin,
+  ChannelSplit,
+  ClipGrade,
+  Correction,
+  CorrectionValues,
+  CurvePoints,
+  GradeGroup,
+  GradeGroupId,
+  GradeLimit,
+  GradeNode,
+  GradeNodeId,
+  GradePos,
+  InputColorSpace,
+  KeyJoin,
+  LayerJoin,
+  Lut,
+  LutId,
+  MixFamily,
+  MixFamilyName,
+  NodeRef,
+  ParallelJoin,
+  Still,
+  StillId,
+  StoredGradeVersion,
+  Wheel,
+  ZoneName,
+  ZoneWheel,
   CompressorParams,
   CompressorEffect,
   DeesserEffect,
@@ -127,6 +154,22 @@ export {
   sourceTimeAt,
   speedOf,
 } from "./logic/speed";
+
+/** The eight families of color mix and the six zones, in order. */
+export { MIX_FAMILIES, ZONE_NAMES } from "./project.types";
+/** A clip's grade: the defaults of a correction, the ranges of its values, reading, minimizing and who can have one. */
+export {
+  BUILTIN_LUT_PREFIX,
+  DEFAULT_CORRECTION,
+  GRADE_RANGES,
+  canGrade,
+  correctionOf,
+  gradeOf,
+  minimizeGrade,
+} from "./logic/grade";
+/** The graph rules of a grade (refs, cycles, ranges), and the schema every command setting one is built from. */
+export { validateGrade } from "./logic/grade.validate";
+export { gradeNodeSchema, gradeSchema, nodeRefSchema } from "./logic/grade.schema";
 
 /** A clip's sound: defaults, reading it, and the levels preview and export share. */
 export {

@@ -1,7 +1,16 @@
 import type { Draft } from "immer";
 import type { FieldChange, StorePolicy } from "@/core";
-import type { Clip, CompositionId, ProjectState, SoundEffect, TrackId } from "../project.types";
+import type {
+  Clip,
+  ClipGrade,
+  CompositionId,
+  ProjectState,
+  SoundEffect,
+  TrackId,
+} from "../project.types";
 import { contains, settleCompositions } from "./compositions";
+import { BUILTIN_LUT_PREFIX } from "./grade";
+import { validateGrade } from "./grade.validate";
 import { findLayoutConflict, staleJunctions } from "./junctions";
 
 /** Collections of records compared field by field. */
@@ -150,6 +159,41 @@ function dropDeletedListens(draft: Draft<ProjectState>): void {
   }
 }
 
+/** A deleted shot group or LUT is no longer used: the clips and nodes that named it let go. */
+function dropDeletedGrades(draft: Draft<ProjectState>): void {
+  const groups = draft.gradeGroups ?? {};
+  const unknownLut = (id: string) => !id.startsWith(BUILTIN_LUT_PREFIX) && !draft.luts?.[id];
+  const prune = (grade: ClipGrade | undefined) => {
+    for (const node of Object.values(grade?.nodes ?? {})) {
+      if (node.kind === "correct" && node.lut && unknownLut(node.lut.id)) delete node.lut;
+    }
+  };
+  for (const clip of Object.values(draft.clips)) {
+    if (clip.gradeGroup !== undefined && !groups[clip.gradeGroup]) delete clip.gradeGroup;
+    prune(clip.grade);
+    for (const version of Object.values(clip.gradeVersions ?? {})) prune(version.grade);
+  }
+  for (const composition of Object.values(draft.compositions)) prune(composition.grade);
+  for (const group of Object.values(groups)) prune(group.grade);
+  for (const still of Object.values(draft.stills ?? {})) prune(still.grade);
+}
+
+/** Every grade in the document, with where it is. */
+function* gradesOf(state: ProjectState): Generator<[string, ClipGrade]> {
+  for (const clip of Object.values(state.clips)) {
+    if (clip.grade) yield [`clip ${clip.id}`, clip.grade];
+    for (const [name, version] of Object.entries(clip.gradeVersions ?? {})) {
+      if (version.grade) yield [`clip ${clip.id} version ${name}`, version.grade];
+    }
+  }
+  for (const composition of Object.values(state.compositions)) {
+    if (composition.grade) yield [`composition ${composition.id}`, composition.grade];
+  }
+  for (const group of Object.values(state.gradeGroups ?? {})) {
+    if (group.grade) yield [`group ${group.id}`, group.grade];
+  }
+}
+
 function validate(state: ProjectState): string | null {
   const bins = binProblem(state);
   if (bins) return bins;
@@ -182,6 +226,10 @@ function validate(state: ProjectState): string | null {
     if (!state.compositions[marker.compositionId]) {
       return "a marker would be left without its composition";
     }
+  }
+  for (const [where, grade] of gradesOf(state)) {
+    const problem = validateGrade(grade);
+    if (problem) return `the grade of ${where} would be broken: ${problem}`;
   }
   if (findLayoutConflict(state)) return "clips would overlap";
   if (staleJunctions(state).length > 0) return "a transition would no longer fit its clips";
@@ -222,5 +270,6 @@ export const projectPolicy: StorePolicy<ProjectState> = {
     settleCompositions(draft);
     clampFades(draft);
     dropDeletedListens(draft);
+    dropDeletedGrades(draft);
   },
 };

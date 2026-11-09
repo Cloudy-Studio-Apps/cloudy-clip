@@ -1,5 +1,17 @@
 import type { ActorId, Micros, PatchableStore } from "@/core";
 import type { StoreApi } from "zustand/vanilla";
+import type {
+  ClipGrade,
+  GradeGroup,
+  GradeGroupId,
+  Lut,
+  LutId,
+  StillId,
+  Still,
+  StoredGradeVersion,
+} from "./project.grade.types";
+
+export * from "./project.grade.types";
 
 export type MediaId = string;
 export type TrackId = string;
@@ -164,6 +176,14 @@ export interface Clip extends Partial<SharedGroupValues> {
   animation?: Record<string, KeyTrack>;
   /** Content time at the clip's first frame. Missing means 0. */
   animationOrigin?: Micros;
+  /** How it's colored. Missing means as the file is. Picture clips only (`canGrade`). */
+  grade?: ClipGrade;
+  /** Other versions of the grade by name; the active one is `grade`. */
+  gradeVersions?: Record<string, StoredGradeVersion>;
+  /** Name of the active version. Missing means "A". */
+  gradeVersion?: string;
+  /** The shot group whose grade runs after this clip's own. */
+  gradeGroup?: GradeGroupId;
 }
 
 /** One color of a gradient. `at` is its place along the gradient and `opacity` its alpha, each 0–1. */
@@ -500,6 +520,8 @@ export interface Composition {
   trackOrder: TrackId[];
   /** Its master and its two mixes. Missing means the defaults (`DEFAULT_COMPOSITION_MIX`). */
   mix?: CompositionMix;
+  /** Whole-timeline grade, applied to this composition's frame (also where it's placed). */
+  grade?: ClipGrade;
 }
 
 /**
@@ -529,6 +551,14 @@ export interface ProjectState {
   junctions: Record<JunctionId, Junction>;
   /** Bookmarks on a composition's timeline, each its own record so each undoes on its own. */
   markers: Record<MarkerId, Marker>;
+  /** Shot groups, each with a grade that runs after the grade of every clip in it. */
+  gradeGroups?: Record<GradeGroupId, GradeGroup>;
+  /** Imported `.cube` files, kept by path like media. */
+  luts?: Record<LutId, Lut>;
+  /** Grabbed frames with their grades. */
+  stills?: Record<StillId, Still>;
+  /** Order of the stills. */
+  stillOrder?: StillId[];
 }
 
 /** Id of a marker, unique in the project. */
