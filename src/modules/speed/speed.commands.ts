@@ -187,6 +187,11 @@ export const freezeFrame = defineCommand({
       ...(clip.mediaId !== undefined && { mediaId: clip.mediaId }),
       ...(baked.transform && { transform: { ...clipTransform(baked) } }),
       ...(baked.composite && { composite: { ...clipComposite(baked) } }),
+      // Keyed grade values are already written into `baked.grade`, so the hold is a still grade.
+      ...(baked.grade && { grade: structuredClone(baked.grade) }),
+      ...(clip.gradeVersions && { gradeVersions: structuredClone(clip.gradeVersions) }),
+      ...(clip.gradeVersion !== undefined && { gradeVersion: clip.gradeVersion }),
+      ...(clip.gradeGroup !== undefined && { gradeGroup: clip.gradeGroup }),
     };
     const moved = applyMoves(split, rippleMoves(split, right, FREEZE_LENGTH));
     const next = produce(moved, (draft) => {

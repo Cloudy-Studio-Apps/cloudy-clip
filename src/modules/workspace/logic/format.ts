@@ -1,13 +1,23 @@
 import { z } from "zod";
-import { CommandFailure } from "@/core";
-import { MARKER_COLORS, type KeyTrack, type ProjectState } from "@/modules/project";
+import { CommandFailure, createLogger } from "@/core";
+import {
+  gradeSchema,
+  MARKER_COLORS,
+  type ClipGrade,
+  type KeyTrack,
+  type ProjectState,
+} from "@/modules/project";
 import type { ProjectEnvelope } from "../workspace.types";
 
 const FORMAT = "cloudy-clip-project";
 /** Bump when the document changes shape, and teach `decodeProject` to upgrade the older one. */
-const VERSION = 3;
-/** What a project without keys is saved as, so an older app still opens it. */
+const VERSION = 4;
+/** What a project with keys but no grades is saved as, so an older app still opens it. */
+const ANIMATED_VERSION = 3;
+/** What a project without keys or grades is saved as, so an older app still opens it. */
 const UNANIMATED_VERSION = 2;
+
+const log = createLogger("workspace");
 
 const envelope = z.object({
   format: z.literal(FORMAT),
@@ -124,6 +134,46 @@ function isAnimated(document: ProjectState): boolean {
   );
 }
 
+/** Whether the document uses grade data, which only version 4 knows. */
+function usesGrades(document: ProjectState): boolean {
+  const filled = (record: object | undefined) => !!record && Object.keys(record).length > 0;
+  return (
+    Object.values(document.clips).some(
+      (clip) => clip.grade || clip.gradeVersions || clip.gradeVersion || clip.gradeGroup,
+    ) ||
+    Object.values(document.compositions).some((composition) => composition.grade) ||
+    filled(document.gradeGroups) ||
+    filled(document.luts) ||
+    filled(document.stills)
+  );
+}
+
+/** `holder.grade` when it passes `gradeSchema`; else it is dropped with a warning. */
+function checkGrade(holder: { grade?: ClipGrade }, where: string): void {
+  if (holder.grade === undefined) return;
+  const result = gradeSchema.safeParse(holder.grade);
+  if (result.success) return;
+  log.warn(`Dropped a broken grade on ${where}.`, result.error.issues[0]);
+  delete holder.grade;
+}
+
+/** Every grade in the document checked; a broken one is dropped and the file still opens. */
+function withValidGrades(document: ProjectState): ProjectState {
+  for (const clip of Object.values(document.clips)) {
+    checkGrade(clip, `clip ${clip.id}`);
+    for (const [name, stored] of Object.entries(clip.gradeVersions ?? {})) {
+      checkGrade(stored, `version "${name}" of clip ${clip.id}`);
+    }
+  }
+  for (const composition of Object.values(document.compositions)) {
+    checkGrade(composition, `composition ${composition.id}`);
+  }
+  for (const group of Object.values(document.gradeGroups ?? {})) {
+    checkGrade(group, `group ${group.id}`);
+  }
+  return document;
+}
+
 /** The document without key tracks that have no keys, which nothing can play. */
 function withoutEmptyTracks(document: ProjectState): ProjectState {
   for (const clip of Object.values(document.clips)) {
@@ -138,13 +188,17 @@ function withoutEmptyTracks(document: ProjectState): ProjectState {
 }
 
 /**
- * The text of a project file: version 3 when a clip has keys, else version 2, so a project that
- * never used keys opens in an app from before them.
+ * The text of a project file: version 4 when it uses grades, else version 3 when a clip has keys,
+ * else version 2, so a project that never used them opens in an app from before them.
  */
 export function encodeProject(document: ProjectState, appVersion: string, now: Date): string {
   const file: ProjectEnvelope = {
     format: FORMAT,
-    version: isAnimated(document) ? VERSION : UNANIMATED_VERSION,
+    version: usesGrades(document)
+      ? VERSION
+      : isAnimated(document)
+        ? ANIMATED_VERSION
+        : UNANIMATED_VERSION,
     appVersion,
     savedAt: now.toISOString(),
     document,
@@ -153,8 +207,8 @@ export function encodeProject(document: ProjectState, appVersion: string, now: D
 }
 
 /**
- * Reads a project file of any version up to 3. Throws `workspace.not_a_project`,
- * `workspace.too_new` or `workspace.damaged`. Key tracks without keys are dropped. The document's
+ * Reads a project file of any version up to 4. Throws `workspace.not_a_project`,
+ * `workspace.too_new` or `workspace.damaged`. Key tracks without keys are dropped, and so is a grade that fails `gradeSchema` (with a warning). The document's
  * rules are checked when it replaces the store.
  */
 export function decodeProject(text: string): ProjectState {
@@ -178,5 +232,5 @@ export function decodeProject(text: string): ProjectState {
   if (!document.success) {
     throw new CommandFailure("workspace.damaged", "This project file is damaged.");
   }
-  return withoutEmptyTracks(document.data as unknown as ProjectState);
+  return withValidGrades(withoutEmptyTracks(document.data as unknown as ProjectState));
 }

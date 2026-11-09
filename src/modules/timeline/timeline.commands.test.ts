@@ -292,6 +292,44 @@ describe("keys on a clip", () => {
     expect(contentTime(right, 5 * S)).toBe(3 * S);
   });
 
+  it("splits a graded, keyed clip: both halves keep the grade and the grade tracks", async () => {
+    const id = await keyed();
+    const grade = {
+      nodes: { c1: { id: "c1", kind: "correction", values: { saturation: 1.2 } } },
+      out: { node: "c1" },
+    } as unknown as Clip["grade"];
+    const path = "grade.nodes.c1.values.saturation";
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: {
+        ...s.clips,
+        [id]: {
+          ...s.clips[id]!,
+          grade,
+          animation: {
+            ...s.clips[id]!.animation,
+            [path]: {
+              blend: "number" as const,
+              shared: true as const,
+              keys: [
+                { id: "g0", t: 0, value: 1 },
+                { id: "g1", t: 4 * S, value: 2 },
+              ],
+            },
+          },
+        },
+      },
+    }));
+    const before = doc();
+    const { created } = await run(kernel.bus.run(splitAt, { at: 3 * S, clipIds: [id] }));
+    const right = clipOf(created[0]!);
+    expect(right.grade).toEqual(clipOf(id).grade);
+    expect(right.grade).not.toBe(clipOf(id).grade);
+    expect(right.animation?.[path]).toBeDefined();
+    expect(right.animationOrigin).toBe(contentTime(clipOf(id), 3 * S));
+    kernel.history.undo();
+    expect(doc()).toEqual(before);
+  });
+
   it("gives both halves of a split the same composite", async () => {
     const id = await keyed();
     const composite = { mode: "screen", opacity: 0.5 } as const;

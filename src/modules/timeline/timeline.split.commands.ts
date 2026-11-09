@@ -59,6 +59,11 @@ export function splitClips(
         ...(left.transform && { transform: { ...left.transform } }),
         ...(left.composite && { composite: { ...left.composite } }),
         ...(left.speed && { speed: { ...left.speed } }),
+        // The grade, its stored versions and its shot group go with both halves.
+        ...(left.grade && { grade: structuredClone(target.grade!) }),
+        ...(left.gradeVersions && { gradeVersions: structuredClone(target.gradeVersions!) }),
+        ...(left.gradeVersion !== undefined && { gradeVersion: left.gradeVersion }),
+        ...(left.gradeGroup !== undefined && { gradeGroup: left.gradeGroup }),
         // Both halves keep the curve, and the right one starts where the cut is on the picture.
         ...(target.animation && {
           animation: structuredClone(target.animation),

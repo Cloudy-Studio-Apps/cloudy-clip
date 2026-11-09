@@ -29,6 +29,28 @@ describe("project file", () => {
     expect(decodeProject(encodeProject(document, "1.0.0", new Date(0)))).toEqual(document);
   });
 
+  it("saves version 4 only with grades, and drops a broken grade instead of refusing the file", () => {
+    expect(JSON.parse(encodeProject(document, "1.0.0", new Date(0))).version).toBe(2);
+    const graded: ProjectState = {
+      ...document,
+      clips: {
+        c: {
+          id: "c",
+          trackId: "t",
+          kind: "video",
+          start: 0,
+          sourceIn: 0,
+          duration: 1,
+          props: {},
+          grade: { nodes: 3, out: null },
+        } as unknown as Clip,
+      },
+    };
+    const text = encodeProject(graded, "1.0.0", new Date(0));
+    expect(JSON.parse(text).version).toBe(4);
+    expect(decodeProject(text).clips.c!.grade).toBeUndefined();
+  });
+
   it("opens a library solid with no size, and keeps one that has a size", () => {
     const solids = {
       a: { id: "a", name: "Match", color: "#000000" },
