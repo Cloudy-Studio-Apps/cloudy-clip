@@ -41,7 +41,12 @@ export const TOOL_FIELDS: Record<ToolId, ToolFields> = {
 };
 
 /** The correction without what these tools own (its values, limit or LUT). */
-export function clearTools(node: Correction, tools: readonly ToolId[]): void {
+export function clearTools(
+  node: Correction,
+  tools: readonly ToolId[],
+  fields: readonly string[] = [],
+): void {
+  if (node.values) for (const key of fields) delete (node.values as Record<string, unknown>)[key];
   for (const tool of tools) {
     const owned = TOOL_FIELDS[tool];
     if (node.values) for (const key of owned.values) delete node.values[key];
@@ -55,3 +60,13 @@ export function clearTools(node: Correction, tools: readonly ToolId[]): void {
 export function ownedValues(tools: readonly ToolId[]): Set<string> {
   return new Set(tools.flatMap((tool) => TOOL_FIELDS[tool].values));
 }
+
+/** What the header's reset clears on the selected correction, for the tools that are built: what the page shows. */
+export const PAGE_RESET: Partial<Record<ToolId, { tools: ToolId[]; fields?: string[] }>> = {
+  basics: { tools: ["basics"] },
+  // The wheels' page also shows six of the basics' numbers beside the wheels.
+  wheels: {
+    tools: ["wheels"],
+    fields: ["temperature", "tint", "contrast", "pivot", "saturation", "hue"],
+  },
+};

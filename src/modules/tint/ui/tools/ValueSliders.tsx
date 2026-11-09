@@ -26,7 +26,10 @@ export function ValueSliders({ fields, values, edit }: ValueSlidersProps) {
             disabled={!edit.enabled}
             resetTo={DEFAULT_CORRECTION[key]}
             onInput={(value) => edit.preview({ values: { [key]: value } })}
-            onCommit={(value) => void edit.commit({ values: { [key]: value } })}
+            onCommit={(value) => {
+              if (value === values[key]) edit.cancel();
+              else void edit.commit({ values: { [key]: value } });
+            }}
           />
         );
       })}

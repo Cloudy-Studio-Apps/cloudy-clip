@@ -178,6 +178,21 @@ describe("grade commands", () => {
     await ok(resetGrade, { target });
     expect("grade" in clip()).toBe(false);
   });
+
+  it("reset with a nodeId leaves other corrections alone, and a no-op writes nothing", async () => {
+    const a = await ok<{ nodeId: string }>(addCorrection, { target, values: { exposure: 1 } });
+    const b = await ok<{ nodeId: string }>(addCorrection, { target, values: { exposure: 2 } });
+    await ok(resetGrade, { target, tools: ["basics"], nodeId: a.nodeId });
+    const nodes = clip().grade!.nodes as Record<string, { values?: object }>;
+    expect(nodes[a.nodeId]!.values).toBeUndefined();
+    expect(nodes[b.nodeId]!.values).toEqual({ exposure: 2 });
+    await ok(resetGrade, { target, fields: ["exposure"], nodeId: b.nodeId });
+    expect((clip().grade!.nodes as typeof nodes)[b.nodeId]!.values).toBeUndefined();
+    const before = clip().grade;
+    await ok(setCorrection, { target, nodeId: b.nodeId, patch: { values: {} } });
+    await ok(resetGrade, { target, tools: ["wheels"], nodeId: b.nodeId });
+    expect(clip().grade).toBe(before);
+  });
 });
 
 function store() {

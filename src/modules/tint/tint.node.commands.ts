@@ -160,6 +160,7 @@ export const setCorrection = defineCommand({
     if (patch.on !== undefined) node.on = patch.on;
     if (patch.name !== undefined) node.name = patch.name;
     const stored = checkedGrade(next);
+    if (JSON.stringify(stored) === JSON.stringify(grade)) return;
     ctx.mutate(store, (draft) => writeGrade(draft, target, stored));
   },
 });

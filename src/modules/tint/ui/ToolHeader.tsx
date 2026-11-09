@@ -1,6 +1,7 @@
 import { RotateCcw } from "lucide-react";
 import { useKernel } from "@/core";
 import { IconButton } from "@/ui";
+import { PAGE_RESET } from "../logic/tools";
 import { resetGrade } from "../tint.commands";
 import { TINT_LAYOUT } from "../tint.layout";
 import type { ToolId } from "../tint.types";
@@ -14,7 +15,8 @@ import { useTintView } from "./view.hook";
 export function ToolHeader({ id, name }: { id: ToolId; name: string }) {
   const { bus } = useKernel();
   const leader = useTintView((v) => v.mode === "leader");
-  const { clipId, grade, title } = useEditTarget();
+  const { clipId, nodeId, title } = useEditTarget();
+  const page = PAGE_RESET[id];
   return (
     <header
       style={{ height: TINT_LAYOUT.headerHeight }}
@@ -28,10 +30,12 @@ export function ToolHeader({ id, name }: { id: ToolId; name: string }) {
         </PanelNote>
       )}
       <IconButton
-        label={`Reset ${name}: back to neutral on every layer, the layers stay`}
-        disabled={!clipId || !grade}
+        label={`Reset ${name}${title ? ` on ${title}` : ""}: back to neutral, the layer stays`}
+        disabled={!clipId || !nodeId || !page}
         onClick={() => {
-          if (clipId) void settle(bus.run(resetGrade, { target: { clipId }, tools: [id] }));
+          if (clipId && nodeId && page) {
+            void settle(bus.run(resetGrade, { target: { clipId }, nodeId, ...page }));
+          }
         }}
       >
         <RotateCcw />
