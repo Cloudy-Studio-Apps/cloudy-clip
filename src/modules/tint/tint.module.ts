@@ -33,7 +33,7 @@ export const tintModule = defineModule({
     const thumbs = createThumbs((time, compositionId, options) =>
       preview.captureAt(time, compositionId, options),
     );
-    contribute(pictureFilters, createTintFilter(live, thumbs.cuts));
+    contribute(pictureFilters, createTintFilter(live));
     contribute(appPages, {
       id: TINT_PAGE,
       label: "Tint",

@@ -5,7 +5,7 @@ import { levelsPass } from "../gpu/gpu.levels";
 import type { GpuPass } from "../gpu/gpu.types";
 import { chainPasses } from "../logic/chain";
 import { filtersReady } from "../logic/readiness";
-import type { FilterPasses, FilterTarget, VideoLevels } from "../preview.types";
+import type { FilterInfo, FilterPasses, FilterTarget, VideoLevels } from "../preview.types";
 import { ShrinkCanvas } from "./engine.shrink";
 import type { EngineOptions, FilterSet, FilterSubject } from "./engine.types";
 
@@ -36,6 +36,9 @@ export class EngineFilters {
   /** The same for pictures that may be transparent (images, placements). */
   private readonly clear = new ShrinkCanvas(true);
 
+  /** What the capture being drawn passed its filters (`CaptureOptions.filters`). */
+  captureOptions: FilterInfo["options"];
+
   constructor(private readonly options: EngineOptions) {}
 
   private get target(): FilterTarget {
@@ -58,7 +61,15 @@ export class EngineFilters {
 
   /** The passes of each picture filter applying to the clip, in order, at `size`. */
   forClip({ clip, project, path, time }: FilterSubject, size: PictureSize): FilterPasses[] {
-    const info = { clip, project, path, size, time, target: this.target };
+    const info = {
+      clip,
+      project,
+      path,
+      size,
+      time,
+      target: this.target,
+      options: this.captureOptions,
+    };
     return this.collect(
       this.set.picture.filter((filter) => filter.applies(clip, project)),
       (filter) => filter.passes(info),
@@ -73,7 +84,15 @@ export class EngineFilters {
     size: PictureSize,
     time: FilterSubject["time"],
   ): FilterPasses[] {
-    const info = { composition, project, path, size, time, target: this.target };
+    const info = {
+      composition,
+      project,
+      path,
+      size,
+      time,
+      target: this.target,
+      options: this.captureOptions,
+    };
     return this.collect(
       this.set.frame.filter((filter) => filter.applies(composition, project)),
       (filter) => filter.passes(info),

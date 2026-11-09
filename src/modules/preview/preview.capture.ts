@@ -75,7 +75,7 @@ export function createCapture(deps: PreviewCaptureDeps): PreviewCapture {
   async function capture(
     time: Micros,
     compositionId: CompositionId,
-    { bypassFilters = false, only }: CaptureOptions,
+    { bypassFilters = false, only, filters }: CaptureOptions,
   ): Promise<string> {
     clearTimeout(idleTimer);
     await deps.levelsSettled();
@@ -87,7 +87,13 @@ export function createCapture(deps: PreviewCaptureDeps): PreviewCapture {
     canvas.width = composition.format.width;
     canvas.height = composition.format.height;
     // Never the viewer's bypass, compare or passes: only what this capture asks for.
-    engine.setPicture({ bypass: bypassFilters, compare: null, viewer: [], only: only ?? null });
+    engine.setPicture({
+      bypass: bypassFilters,
+      compare: null,
+      viewer: [],
+      only: only ?? null,
+      filters,
+    });
 
     await settle(
       engine,

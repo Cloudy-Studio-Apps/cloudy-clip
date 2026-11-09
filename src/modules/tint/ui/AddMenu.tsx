@@ -4,9 +4,7 @@ import { Button, MenuList, Popover, type MenuItem } from "@/ui";
 
 /** + Add: a correction above the selected layer (else at the bottom). Groups and looks join the menu as they can be made. */
 export function AddMenu({ onCorrection }: { onCorrection(): void }) {
-  const items: readonly MenuItem[] = [
-    { label: "Correction", icon: Plus, shortcut: "Alt S", onSelect: onCorrection },
-  ];
+  const items: readonly MenuItem[] = [{ label: "Correction", icon: Plus, onSelect: onCorrection }];
   const [open, setOpen] = useState(false);
   return (
     <Popover

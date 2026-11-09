@@ -93,9 +93,6 @@ export interface TintApi {
   ): Promise<string>;
 }
 
-/** Where each clip's grade is cut while a thumbnail of it is captured (only captures see it). */
-export type TintCuts = Map<ClipId, GradeNodeId>;
-
 /** The current clip and where each clip was last viewed (`followCurrent` writes, `TintApi` reads). */
 export interface CurrentClip {
   current(): ClipId | null;

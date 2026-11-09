@@ -634,6 +634,11 @@ export interface FilterInfo {
   /** The clock of the composition the clip sits in. */
   time: Micros;
   target: FilterTarget;
+  /**
+   * What this one capture asked its filters (`CaptureOptions.filters`), by filter-chosen key
+   * (`<module>.<name>`). Undefined in the live preview and in exports.
+   */
+  options?: Readonly<Record<string, unknown>>;
 }
 
 /** What a frame filter is told: a composition's composed frame instead of a clip. */
@@ -709,6 +714,8 @@ export interface PictureOptions {
   viewer: readonly FilterPasses[];
   /** Draws this top-level clip alone, or every clip when null. */
   only: ClipId | null;
+  /** `CaptureOptions.filters` of the capture being drawn. */
+  filters?: Readonly<Record<string, unknown>>;
 }
 
 /** What `captureAt` draws besides the defaults. */
@@ -721,6 +728,12 @@ export interface CaptureOptions {
    * and so do the composition's frame filters, unless `bypassFilters`.
    */
   only?: ClipId;
+  /**
+   * Values for filters, for this capture only, keyed `<module>.<name>` and handed to every
+   * picture and frame filter as `FilterInfo.options`. Never shared with another capture, the
+   * live preview or an export. A filter ignores keys it doesn't know.
+   */
+  filters?: Readonly<Record<string, unknown>>;
 }
 
 /** How the live preview shows pictures. View state: never in the project or history. */

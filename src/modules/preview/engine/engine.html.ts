@@ -152,6 +152,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   setPicture(options: PictureOptions): void {
     this.picture = options;
+    this.filters.captureOptions = options.filters;
   }
 
   setCanvas(canvas: HTMLCanvasElement): void {
