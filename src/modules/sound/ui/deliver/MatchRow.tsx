@@ -3,7 +3,7 @@ import { formatDb } from "@/modules/project";
 import { Button, ProgressBar } from "@/ui";
 import { formatTrim } from "../../logic/fader";
 import { cancelAnalysis, startMatch } from "../../sound.delivery.commands";
-import type { DeliverView, MatchRun } from "../../sound.types";
+import type { DeliverView, MatchRun } from "../../sound.delivery.types";
 import { report } from "../report";
 
 const STEPS: Record<MatchRun["step"], string> = {
@@ -53,8 +53,20 @@ export function MatchRow({ view }: { view: DeliverView }) {
           Master trim {formatTrim(matched.trimDb)}
           {matched.landed?.integrated != null &&
             `, now ${formatDb(matched.landed.integrated)} LUFS`}
-          {matched.limiterAdded && ", limiter added"}.
-          {matched.clamped && " The trim's range kept the mix from the target."}
+          {matched.limiterAdded && ", limiter added"}
+          {matched.limiterSwitched &&
+            (matched.limiterMoved
+              ? ", limiter switched on and moved to the end of Master's chain"
+              : ", limiter switched on")}
+          .{matched.clamped && " The trim's range kept the mix from the target."}
+        </p>
+      )}
+      {matched && !stale && !matchFailed && matched.peakOver && (
+        <p className="mt-1 text-sm text-mark">
+          Still {matched.peakOver.overDb.toFixed(1)} dB over the peak limit.{" "}
+          {matched.peakOver.userLimiter
+            ? "Master's limiter is your own: its ceiling may be above the limit."
+            : "The limiter did not catch all of it: lower its ceiling or the Master trim."}
         </p>
       )}
     </>

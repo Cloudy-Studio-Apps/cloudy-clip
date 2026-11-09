@@ -1,7 +1,7 @@
 import { useKernel } from "@/core";
 import { Button, ProgressBar } from "@/ui";
 import { analyzeMix, cancelAnalysis } from "../../sound.delivery.commands";
-import type { DeliverView } from "../../sound.types";
+import type { DeliverView } from "../../sound.delivery.types";
 import { report } from "../report";
 
 /**

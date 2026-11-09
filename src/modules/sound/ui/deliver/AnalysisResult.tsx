@@ -2,7 +2,7 @@ import { formatDb } from "@/modules/project";
 import { cn } from "@/ui";
 import { ON_TARGET_LU, verdictOf } from "../../logic/verdict";
 import { PanelValue } from "../card";
-import type { DeliverView } from "../../sound.types";
+import type { DeliverView } from "../../sound.delivery.types";
 
 /** The time an analysis ended, for people: `14:32`. */
 const clock = (at: number) =>

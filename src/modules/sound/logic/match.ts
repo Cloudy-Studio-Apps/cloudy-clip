@@ -1,5 +1,5 @@
 import { TRIM_DB_MAX, TRIM_DB_MIN, type MasterMix } from "@/modules/project";
-import type { LimiterPlan, SecondStep, SecondStepInput } from "../sound.types";
+import type { LimiterPlan, SecondStep, SecondStepInput } from "../sound.delivery.types";
 import { defaultSpec } from "./effects";
 
 /**

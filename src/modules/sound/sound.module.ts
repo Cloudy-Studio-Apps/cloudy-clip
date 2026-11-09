@@ -21,6 +21,7 @@ import { createMatcher } from "./sound.match";
 import { soundEffectCommands } from "./sound.effects.commands";
 import { soundDeliveryCommands } from "./sound.delivery.commands";
 import { soundDenoiseCommands } from "./sound.denoise.commands";
+import { followCompositionsGone } from "./sound.analysis.follow";
 import { followDenoiseNeeds } from "./sound.denoise.follow";
 import { soundLineCommands } from "./sound.line.commands";
 import { soundBusCommands } from "./sound.bus.commands";
@@ -96,6 +97,7 @@ export const soundModule = defineModule({
     onDispose(analyzer.dispose);
     const matcher = createMatcher({ analyzer, bus, project: project.store.getState, log });
     onDispose(matcher.dispose);
+    onDispose(followCompositionsGone(project.store.api, analyzer, matcher));
     contribute(loudnessMatchers, { id: "sound.match", match: matcher.match });
     const media = require(mediaRef);
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });

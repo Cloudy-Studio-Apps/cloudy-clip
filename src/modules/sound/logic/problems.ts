@@ -1,5 +1,5 @@
 import type { Micros } from "@/core";
-import type { MixProblem } from "../sound.types";
+import type { MixProblem } from "../sound.delivery.types";
 
 /**
  * The problems of an analysis as one row per spot. A clipped stretch always lies inside a peak

@@ -1,7 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import type { StoreApi } from "zustand";
 import type { CompositionId, ProjectState } from "@/modules/project";
-import type { AnalysisState, StoredAnalysis } from "./sound.types";
+import type { AnalysisState, StoredAnalysis } from "./sound.delivery.types";
 
 /** Creates the whole-mix analyses and Match targets of one kernel: none yet. View state, never in history. */
 export function createAnalysisStore(): StoreApi<AnalysisState> {

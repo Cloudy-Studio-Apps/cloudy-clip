@@ -23,7 +23,7 @@ import type {
   MixAnalysis,
   SecondStep,
   StoredAnalysis,
-} from "./sound.types";
+} from "./sound.delivery.types";
 
 const CANCELLED = "Cancelled";
 const CHANGED = "The project changed while matching: match again.";
@@ -109,6 +109,19 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
     return stored && !isStale(stored, project()) ? stored : null;
   }
 
+  /** Cancels the analysis running for `id` and waits until it is gone: it measures an older project. */
+  async function stop(id: CompositionId): Promise<void> {
+    await analyzer.cancel(id);
+    await new Promise<void>((resolve) => {
+      if (!state.getState().running[id]) return resolve();
+      const unsubscribe = state.subscribe((s) => {
+        if (s.running[id]) return;
+        unsubscribe();
+        resolve();
+      });
+    });
+  }
+
   /**
    * An analysis of `origin`, the project `spec` was built from: the stored one when it measured
    * `origin`, or a new one of `spec`. Fails with CHANGED as soon as the project isn't `origin`.
@@ -119,7 +132,9 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
     origin: ProjectState,
     signal: AbortSignal,
   ): Promise<StoredAnalysis> {
-    if (state.getState().running[id]) await follow(id);
+    const running = state.getState().running[id];
+    if (running?.measured === origin) await follow(id);
+    else if (running) await stop(id);
     if (project() !== origin) throw new Error(CHANGED);
     const stored = storedFor(state, id);
     if (stored?.measured === origin) return stored;
@@ -145,7 +160,7 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
     enter(id, { step: "correcting", progress: 0 });
     const delivery = deliveryOf(mix);
     const trimDb = mix.master.trimDb ?? 0;
-    const { step } = await correct(
+    const { limiter, step } = await correct(
       spec,
       mix.master,
       delivery,
@@ -166,7 +181,17 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
     enter(id, { step: "landing", progress: 0 });
     const started = await bus.run(analyzeMix, { compositionId: id }, by);
     const landed = started.ok ? await follow(id) : null;
-    return { ...applied.value, correctionDb: step.correctionDb, landed: landed?.result ?? null };
+    const peak = landed?.result.truePeak ?? null;
+    const peakOver =
+      peak !== null && peak > delivery.peakDbtp
+        ? { overDb: Math.round((peak - delivery.peakDbtp) * 10) / 10, userLimiter: !limiter.own }
+        : null;
+    return {
+      ...applied.value,
+      correctionDb: step.correctionDb,
+      landed: landed?.result ?? null,
+      peakOver,
+    };
   }
 
   return {

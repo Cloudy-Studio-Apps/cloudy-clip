@@ -1,5 +1,5 @@
 import type { DeliverySettings, StandardId } from "@/modules/project";
-import type { Standard } from "../sound.types";
+import type { Standard } from "../sound.delivery.types";
 
 /**
  * The delivery standards, as data. Each figure is checked against the page it cites (read

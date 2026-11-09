@@ -1,5 +1,6 @@
 import type { DeliverySettings } from "@/modules/project";
-import type { DeliveryVerdict, MixAnalysis } from "../sound.types";
+import type { DeliveryVerdict } from "../sound.types";
+import type { MixAnalysis } from "../sound.delivery.types";
 
 /** How an analysis stands against the delivery target and peak limit. */
 export function verdictOf(analysis: MixAnalysis, delivery: DeliverySettings): DeliveryVerdict {

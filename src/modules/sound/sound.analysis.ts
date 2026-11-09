@@ -2,7 +2,7 @@ import type { StoreApi } from "zustand";
 import type { Logger } from "@/core";
 import type { CompositionId, ProjectState } from "@/modules/project";
 import { cancelAnalysis, beginAnalysis, finishAnalysis } from "./sound.service";
-import type { Analyzer, AnalysisState, StoredAnalysis } from "./sound.types";
+import type { Analyzer, AnalysisState, StoredAnalysis } from "./sound.delivery.types";
 
 /**
  * Creates the analyzer of a kernel: it measures outside the command bus (an analysis of a long mix
@@ -28,7 +28,7 @@ export function createAnalyzer(
       let progress = 0;
       // Marked before the first await, so a second start can't pass the check above.
       state.setState((s) => ({
-        running: { ...s.running, [compositionId]: { jobId: null, progress } },
+        running: { ...s.running, [compositionId]: { jobId: null, progress, measured } },
         failed: without(s.failed, compositionId),
       }));
       let jobId: string;
@@ -40,7 +40,7 @@ export function createAnalyzer(
               ? {
                   running: {
                     ...s.running,
-                    [compositionId]: { jobId: s.running[compositionId].jobId, progress },
+                    [compositionId]: { ...s.running[compositionId], progress },
                   },
                 }
               : s,
@@ -51,7 +51,7 @@ export function createAnalyzer(
         throw error;
       }
       state.setState((s) => ({
-        running: { ...s.running, [compositionId]: { jobId, progress } },
+        running: { ...s.running, [compositionId]: { jobId, progress, measured } },
       }));
       jobs.set(compositionId, jobId);
       if (cancelled.delete(compositionId)) void cancelAnalysis(jobId).catch(() => undefined);

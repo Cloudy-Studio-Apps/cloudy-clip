@@ -38,12 +38,13 @@ function minimizeBus(bus: MixBus): MixBus {
   return effects?.length ? bus : rest;
 }
 
-/** A master without what it has anyway: a centred pan, no mute, an empty chain, a line with no keys. */
+/** A master without what it has anyway: a centred pan, no trim, no mute, an empty chain, a line with no keys. */
 export function minimizeMaster(master: MasterMix): MasterMix {
-  const { pan, muted, effects, volumeLine, ...rest } = master;
+  const { pan, muted, effects, volumeLine, trimDb, ...rest } = master;
   return {
     ...rest,
     ...(pan !== undefined && pan !== 0 && { pan }),
+    ...(trimDb !== undefined && trimDb !== 0 && { trimDb }),
     ...(muted === true && { muted }),
     ...(effects?.length && { effects }),
     ...(volumeLine?.keys.length && { volumeLine }),

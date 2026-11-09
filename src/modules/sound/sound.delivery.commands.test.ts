@@ -9,7 +9,7 @@ import { soundRef } from "./sound.ref";
 import { matchTarget, setDelivery } from "./sound.delivery.commands";
 import { setMaster } from "./sound.mix.commands";
 import { isStale } from "./sound.analysis.store";
-import type { MixAnalysis } from "./sound.types";
+import type { MixAnalysis } from "./sound.delivery.types";
 
 let kernel: Kernel;
 const project = () => kernel.modules.require(projectRef);

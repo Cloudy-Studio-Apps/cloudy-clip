@@ -1,6 +1,6 @@
 import type { SoundOnlySpec } from "@/modules/export";
 import { beginAnalysis, cancelAnalysis, finishAnalysis } from "./sound.service";
-import type { MixAnalysis } from "./sound.types";
+import type { MixAnalysis } from "./sound.delivery.types";
 
 /**
  * Measures a mix once, on the side: nothing is stored (Match target's correcting pass, and an

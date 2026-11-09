@@ -4,7 +4,7 @@ import { seek } from "@/modules/preview";
 import { formatDb } from "@/modules/project";
 import { cn } from "@/ui";
 import { spotTime } from "../../logic/problems";
-import type { MixProblem } from "../../sound.types";
+import type { MixProblem } from "../../sound.delivery.types";
 
 /** A row's height and how many show at once, px and rows. */
 const ROW = 25;
@@ -37,13 +37,13 @@ export function ProblemList({ spots, stale }: { spots: readonly MixProblem[]; st
             type="button"
             title={`Go to ${spotTime(spot.at)}`}
             onClick={() => void bus.run(seek, { time: spot.at })}
-            className="flex h-full w-full items-center justify-between gap-2 text-left text-muted-foreground hover:text-foreground"
+            className="flex h-full w-full items-center justify-between gap-2 whitespace-nowrap text-left text-muted-foreground hover:text-foreground"
           >
-            <span>
+            <span className="truncate">
               <span className="font-mono">{spotTime(spot.at)}</span>{" "}
               {spot.kind === "clipped" ? "Clipped" : "Peak high"}
             </span>
-            <span className="border-b border-mark font-mono text-base font-bold text-mark">
+            <span className="shrink-0 border-b border-mark font-mono text-base font-bold text-mark">
               {formatDb(spot.level)}
               <span className="ml-0.5 text-xs font-normal text-subtle-foreground">
                 {spot.kind === "clipped" ? "dBFS" : "dBTP"}

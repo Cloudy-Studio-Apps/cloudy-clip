@@ -120,7 +120,7 @@ export const matchTarget = defineCommand({
   id: "sound.matchTarget",
   label: "Match target",
   description:
-    "Raises or lowers Master's input trim (before the fader, its volume line, pan and effects; the fader and the line are not touched) by the difference between the delivery target and the last analysis, plus correctionDb (the trim stays within -24 to 24 dB), and guards the peak limit with a Limiter at the end of Master's chain, in one undo step: one that works is left as it is; one that is off is switched on at the peak limit (or ceilingDb, under it), and moved to the end when it isn't last; otherwise one is added there. Needs a fresh analysis: fails with sound.no_analysis, sound.analysis_stale (the document changed since) or sound.silent_mix. Returns { trimDb, changeDb, limiterAdded, clamped } (clamped: the trim's range kept the mix from the target). sound.startMatch (Match target) runs it with the correction its second measurement found.",
+    "Raises or lowers Master's input trim (before the fader, its volume line, pan and effects; the fader and the line are not touched) by the difference between the delivery target and the last analysis, plus correctionDb (the trim stays within -24 to 24 dB), and guards the peak limit with a Limiter at the end of Master's chain, in one undo step: one that works is left as it is; one that is off is switched on at the peak limit (or ceilingDb, under it), and moved to the end when it isn't last; otherwise one is added there. Needs a fresh analysis: fails with sound.no_analysis, sound.analysis_stale (the document changed since) or sound.silent_mix. Returns { trimDb, changeDb, limiterAdded, limiterSwitched, limiterMoved, clamped } (clamped: the trim's range kept the mix from the target). sound.startMatch (Match target) runs it with the correction its second measurement found.",
   undoable: true,
   input: z.object({
     compositionId: z.string().optional(),
@@ -185,6 +185,8 @@ export const matchTarget = defineCommand({
       trimDb,
       changeDb: Math.round((trimDb - before) * 100) / 100,
       limiterAdded: plan.own && plan.switchOn === null,
+      limiterSwitched: plan.own && plan.switchOn !== null,
+      limiterMoved: plan.own && plan.switchOn !== null && plan.toEnd,
       clamped: Math.abs(trimDb - (before + gap + correctionDb)) > 0.005,
     };
   },

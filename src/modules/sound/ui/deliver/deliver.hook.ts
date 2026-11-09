@@ -10,7 +10,7 @@ import {
 } from "@/modules/project";
 import { deliveryOf } from "../../logic/standards";
 import { soundRef } from "../../sound.ref";
-import type { AnalysisState, DeliverView } from "../../sound.types";
+import type { AnalysisState, DeliverView } from "../../sound.delivery.types";
 
 /** An analysis-store slice of a composition (`undefined` with none open). */
 function useAnalysis<T>(

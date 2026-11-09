@@ -2,7 +2,8 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import type { Micros } from "@/core";
 import type { SoundOnlySpec } from "@/modules/export";
 import type { MediaId } from "@/modules/project";
-import type { MixAnalysis, TakeStarted, TakeWritten } from "./sound.types";
+import type { TakeStarted, TakeWritten } from "./sound.types";
+import type { MixAnalysis } from "./sound.delivery.types";
 
 /**
  * The noise floor of `from..to` of a file's sound (file time), in dBFS, rounded and within what
