@@ -4,7 +4,7 @@ import type { SoundViewState } from "./sound.types";
 
 /**
  * Creates the Sound page's view state of one kernel: no track marked, no solo, the default monitor,
- * nothing armed.
+ * nothing armed, every track on Read with its clips' lines in front, the Select tool.
  */
 export function createSoundView() {
   return createStore<SoundViewState>()(() => ({
@@ -13,5 +13,8 @@ export function createSoundView() {
     expanded: false,
     monitor: DEFAULT_MONITOR,
     armed: null,
+    automation: {},
+    lineView: {},
+    tool: "select",
   }));
 }

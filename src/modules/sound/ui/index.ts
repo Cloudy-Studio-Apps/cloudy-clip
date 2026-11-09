@@ -6,8 +6,10 @@ export {
   ClipLineKeys,
   ClipVolumeLine,
   DrawVolumeTool,
+  LineViewButton,
   RecordingTake,
   SheetNote,
   SoloButton,
+  TrackVolumeLine,
 } from "./lanes";
 export { SoundPage } from "./SoundPage";

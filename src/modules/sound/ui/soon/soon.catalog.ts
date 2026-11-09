@@ -19,12 +19,6 @@ export const SOON: Record<SoonId, SoonEntry> = {
     what: "Drags a fade in or out from a clip's edge.",
     stage: 3,
   },
-  "transport.drawVolume": {
-    id: "transport.drawVolume",
-    label: "Draw volume",
-    what: "Draws volume over clips and tracks.",
-    stage: 3,
-  },
   "transport.scrub": {
     id: "transport.scrub",
     label: "Scrub",
@@ -49,29 +43,11 @@ export const SOON: Record<SoonId, SoonEntry> = {
     what: "Brings the selected clips to the same loudness.",
     stage: 6,
   },
-  "lanes.drawVolume": {
-    id: "lanes.drawVolume",
-    label: "Draw volume",
-    what: "Draws volume over clips and tracks.",
-    stage: 3,
-  },
-  "lanes.automation": {
-    id: "lanes.automation",
-    label: "Automation",
-    what: "Records fader and pan moves as you play: Read, Touch or Latch.",
-    stage: 3,
-  },
   "mixer.filter": {
     id: "mixer.filter",
     label: "Filter",
     what: "Shows the strips of one group at a time.",
     stage: 4,
-  },
-  "mixer.read": {
-    id: "mixer.read",
-    label: "Read",
-    what: "Plays back the volume and pan drawn or recorded on the track.",
-    stage: 3,
   },
   "master.pan": {
     id: "master.pan",

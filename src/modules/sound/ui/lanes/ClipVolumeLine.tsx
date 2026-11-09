@@ -13,6 +13,7 @@ import {
   polylineOf,
   VOLUME_PATH,
 } from "../../logic/clipline";
+import { soundRef } from "../../sound.ref";
 import type { LineKey, LinePoint } from "../../sound.types";
 import { startLineGesture } from "./clipline.gesture";
 
@@ -21,7 +22,9 @@ import { startLineGesture } from "./clipline.gesture";
  * when it has no keys), with a diamond for each key. Drag a diamond to move the key in time and
  * level; double-click the line to add a key where it is; a selected diamond takes Delete (see
  * `ClipLineKeys`). Everything goes through `keyframe`'s commands, one per gesture. An unkeyed line
- * shows only on a selected or hovered clip, so a plain clip stays plain.
+ * shows only on a selected or hovered clip, so a plain clip stays plain. While the track's own
+ * line is in front (`lineView`), it shows faintly and takes no pointer. Its box carries
+ * `data-clipline-area`, so Draw volume maps a stroke onto it.
  */
 export function ClipVolumeLine({ clip, selected }: { clip: Clip; selected: boolean }) {
   const { bus } = useKernel();
@@ -33,6 +36,8 @@ export function ClipVolumeLine({ clip, selected }: { clip: Clip; selected: boole
     view,
     (s) => s.selection.find((ref) => ref.clipId === clip.id && ref.path === VOLUME_PATH)?.keyId,
   );
+  // The track's own line in front: this one shows faintly behind it and takes no pointer.
+  const behind = useStore(useModule(soundRef).view, (s) => s.lineView[clip.trackId] ?? false);
   const area = useRef<HTMLDivElement>(null);
   const lines = useRef<(SVGPolylineElement | null)[]>([]);
   const diamonds = useRef(new Map<string, HTMLDivElement>());
@@ -100,9 +105,12 @@ export function ClipVolumeLine({ clip, selected }: { clip: Clip; selected: boole
   return (
     <div
       ref={area}
+      data-clipline-area={clip.id}
       className={cn(
         "absolute inset-x-0 bottom-1 top-6",
-        !keyed && !selected && "opacity-0 group-hover:opacity-100",
+        behind
+          ? cn("**:pointer-events-none!", keyed || selected ? "opacity-30" : "opacity-0")
+          : !keyed && !selected && "opacity-0 group-hover:opacity-100",
       )}
     >
       <svg

@@ -9,6 +9,7 @@ import {
   setEffect,
 } from "./sound.effects.commands";
 import { BUILT_IN_PRESETS } from "./logic/presets";
+import { writeClipPass } from "./sound.clipline.commands";
 import { measureFloor } from "./sound.denoise.commands";
 import { moveLineKeys, removeLineKeys, setLineKey, writePass } from "./sound.line.commands";
 import { soundRef } from "./sound.ref";
@@ -88,6 +89,7 @@ export const soundMcpTools = [
   commandTool(moveLineKeys, { name: "sound_move_line_keys" }),
   commandTool(removeLineKeys, { name: "sound_remove_line_keys" }),
   commandTool(writePass, { name: "sound_write_pass" }),
+  commandTool(writeClipPass, { name: "sound_write_clip_pass" }),
   commandTool(addEffect, { name: "sound_add_effect" }),
   commandTool(setEffect, { name: "sound_set_effect" }),
   commandTool(removeEffect, { name: "sound_remove_effect" }),

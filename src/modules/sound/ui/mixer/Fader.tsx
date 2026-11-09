@@ -14,6 +14,12 @@ interface FaderProps {
   onCommit(db: number): Promise<void>;
   /** The level the document holds now. */
   read(): number;
+  /** The press, before any move. */
+  onPress?(): void;
+  /** The release of a press, before the commit. */
+  onRelease?(): void;
+  /** The level is an offset on the track's volume line: the readout says so. */
+  offset?: boolean;
   /** The meters, beside the scale. */
   children?: ReactNode;
 }
@@ -21,9 +27,20 @@ interface FaderProps {
 /**
  * A vertical fader from −60 to +12 dB, unity at three quarters, with its scale, the meters beside
  * it and the level under it. A drag moves the handle and the level through the DOM; the level is
- * in `--mark` when it isn't 0 dB. A double-click returns to 0 dB.
+ * in `--mark` when it isn't 0 dB, and reads "line" before it when it's an offset on the track's
+ * volume line. A double-click returns to 0 dB.
  */
-export function Fader({ value, label, onInput, onCommit, read, children }: FaderProps) {
+export function Fader({
+  value,
+  label,
+  onInput,
+  onCommit,
+  read,
+  onPress,
+  onRelease,
+  offset = false,
+  children,
+}: FaderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
@@ -31,7 +48,7 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
     if (handleRef.current) handleRef.current.style.bottom = `${faderPosition(db) * 100}%`;
     const readout = readoutRef.current;
     if (!readout) return;
-    readout.textContent = formatDb(db);
+    readout.textContent = offset ? `line ${formatDb(db)}` : formatDb(db);
     readout.classList.toggle("text-mark", db !== 0);
     readout.classList.toggle("border-mark", db !== 0);
   };
@@ -46,6 +63,8 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
     onInput,
     onCommit,
     read,
+    onPress,
+    onRelease,
   });
 
   // From the document, except while a drag or its command is under way: a re-render then (the
@@ -81,6 +100,7 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
       </div>
       <div
         ref={readoutRef}
+        title={offset ? "An offset on the track's volume line" : undefined}
         className="border-b border-border-strong text-center font-mono text-sm font-bold"
       />
     </div>

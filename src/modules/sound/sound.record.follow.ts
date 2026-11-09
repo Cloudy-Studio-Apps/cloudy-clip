@@ -3,7 +3,7 @@ import { LOCAL_ACTOR, type PagesState } from "@/core";
 import type { PlaybackClock } from "@/modules/preview";
 import { frameDuration, type ProjectApi } from "@/modules/project";
 import type { WorkspaceApi } from "@/modules/workspace";
-import { followSoundPageLeave } from "./sound.leave";
+import { followCompositionSwitch, followSoundPageLeave } from "./sound.leave";
 import type { Recorder } from "./sound.types";
 
 /** How far ahead of the time passed the playhead may be before it counts as a jump (µs). */
@@ -47,9 +47,8 @@ export function followRecordingEnds(
       if (time < before - frame || time > before + moved + ahead) void recorder.stop();
     }),
     followSoundPageLeave(pages, () => void recorder.stop()),
-    project.view.store.subscribe(() => {
-      const next = project.view.openFor(LOCAL_ACTOR);
-      if (next !== open && status() !== "idle") void recorder.stop();
+    followCompositionSwitch(project, (next) => {
+      if (status() !== "idle") void recorder.stop();
       open = next;
     }),
     playback.onPlayingChange(() => {

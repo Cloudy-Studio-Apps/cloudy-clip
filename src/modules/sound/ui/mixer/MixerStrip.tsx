@@ -1,14 +1,12 @@
 import { memo, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
-import { previewRef } from "@/modules/preview";
 import { projectRef, trackMixOf, type Track } from "@/modules/project";
 import { setTrackMuted } from "@/modules/timeline";
 import { cn, LetterToggle } from "@/ui";
 import { chainOf, placesUnheardEffects } from "../../logic/effects";
-import { setTrackMix } from "../../sound.mix.commands";
 import { soundRef } from "../../sound.ref";
-import { SoloButton } from "../lanes";
+import { SoloButton, useAutomationFader } from "../lanes";
 import { EffectChain } from "../effects";
 import { Fader } from "./Fader";
 import { Meter } from "./Meter";
@@ -26,13 +24,13 @@ interface MixerStripProps {
 
 /**
  * One audio track in the mixer: name, its effects, where it goes, pan, fader with its two meters
- * (the microphone's while a take is recorded onto it), mute, solo and Read (coming soon; R, the
- * record-arm, is on the track's header). A click marks the track (and its header on the
+ * (the microphone's while a take is recorded onto it), mute, solo and the automation mode (Read,
+ * Touch or Latch; R, the record-arm, is on the track's header). With a volume line, the fader is
+ * an offset on it, and its readout says so. A click marks the track (and its header on the
  * timeline) and shows its chain in the Channel tab; when marked, it scrolls into view.
  */
 export const MixerStrip = memo(function MixerStrip({ track, code, selected }: MixerStripProps) {
   const { bus } = useKernel();
-  const preview = useModule(previewRef);
   const project = useModule(projectRef).store;
   const sound = useModule(soundRef);
   const ref = useRef<HTMLDivElement>(null);
@@ -44,15 +42,13 @@ export const MixerStrip = memo(function MixerStrip({ track, code, selected }: Mi
     (s) => s.status === "recording" && s.trackId === track.id,
   );
   const metered = recording ? "input" : track.id;
+  const fader = useAutomationFader(track.id);
+  // A pass ending puts the handle back on the saved level.
+  const writing = useStore(sound.automation.state, (s) => s.writing.includes(track.id));
 
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [selected]);
-
-  const read = () => {
-    const current = project.getState().tracks[track.id];
-    return current ? trackMixOf(current).volumeDb : 0;
-  };
 
   return (
     <div
@@ -83,13 +79,10 @@ export const MixerStrip = memo(function MixerStrip({ track, code, selected }: Mi
       <StripLabel>Pan</StripLabel>
       <PanSlider track={track} />
       <Fader
-        value={trackMixOf(track).volumeDb}
+        value={writing ? fader.read() : trackMixOf(track).volumeDb}
         label={`${track.name} level`}
-        onInput={(db) => preview.sound.previewMix(track.id, db === null ? null : { volumeDb: db })}
-        onCommit={async (volumeDb) =>
-          void (await bus.run(setTrackMix, { trackId: track.id, volumeDb }))
-        }
-        read={read}
+        offset={track.mix?.volumeLine !== undefined}
+        {...fader}
       >
         <Meter target={metered} side="left" />
         <Meter target={metered} side="right" />
@@ -104,7 +97,7 @@ export const MixerStrip = memo(function MixerStrip({ track, code, selected }: Mi
           M
         </LetterToggle>
         <SoloButton track={track} />
-        <ReadButton id="mixer.read" />
+        <ReadButton target={track.id} />
       </div>
     </div>
   );

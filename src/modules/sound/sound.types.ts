@@ -1,10 +1,11 @@
 import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { CommandBus, Micros } from "@/core";
+import type { CommandBus, Micros, PagesState } from "@/core";
 import type {
   CompositionId,
   CompressorEffect,
   GateEffect,
+  ProjectState,
   SoundEffect,
   TrackId,
 } from "@/modules/project";
@@ -28,6 +29,97 @@ export interface SoundViewState {
   monitor: MonitorState;
   /** The track a recording goes onto: an audio track that isn't muted. */
   armed: TrackId | null;
+  /** How each track's fader writes its volume line while playing; missing is Read. */
+  automation: Record<TrackId, AutomationMode>;
+  /** Tracks whose volume line is in front of their clips' lines: Draw volume draws on it. */
+  lineView: Record<TrackId, boolean>;
+  /** The pointer tool of the Sound page's lanes. */
+  tool: SoundTool;
+}
+
+/**
+ * How a track's fader writes its volume line while playing: Read plays the line only; Touch
+ * writes while the fader is held and returns to the line on release; Latch writes from the first
+ * touch until playback stops. View state, never in history.
+ */
+export type AutomationMode = "read" | "touch" | "latch";
+
+/** The pointer tool on the Sound page's lanes: Select, or Draw volume. */
+export type SoundTool = "select" | "draw";
+
+/** A level written at a timeline time: a point of a stroke or of a fader pass. */
+export interface LevelAt {
+  /** Timeline time. */
+  at: Micros;
+  db: number;
+}
+
+/** What the automation writer tells the page: the tracks whose pass is being written. */
+export interface AutomationState {
+  writing: TrackId[];
+}
+
+/**
+ * Turns fader moves into a track's volume line while playing, per kernel. In Touch, holding the
+ * fader writes; in Latch, writing goes on after the release until playback stops. The fader is an
+ * offset on the line: a pass writes the line raised or lowered by how far the fader moved. Each
+ * pass is sent as one `sound.writePass` when it ends (release in Touch, stop, a jump of the
+ * playhead, leaving the page or the composition, the project being left).
+ */
+export interface AutomationWriter {
+  state: StoreApi<AutomationState>;
+  /** The fader was pressed at `db`. True when the press writes the line (Touch or Latch, playing). */
+  press(trackId: TrackId, db: number): boolean;
+  /** The fader of a writing press moved to `db`: heard at once, written each frame. */
+  move(trackId: TrackId, db: number): void;
+  /** The fader of a writing press was let go: Touch ends its pass, Latch keeps writing. */
+  release(trackId: TrackId): void;
+  /** The fader level a pass holds for the track, or null when none does. */
+  level(trackId: TrackId): number | null;
+  /** Ends every pass, sending what each wrote. */
+  finish(): Promise<void>;
+  /** Ends every pass and stops following playback, the page and the project. For the module. */
+  dispose(): void;
+}
+
+/** What the automation writer needs. */
+export interface AutomationDeps {
+  bus: CommandBus;
+  preview: PreviewApi;
+  project: ProjectApi;
+  workspace: WorkspaceApi;
+  pages: StoreApi<PagesState>;
+  view: StoreApi<SoundViewState>;
+}
+
+/** A pass being written on one track. */
+export interface AutomationPass {
+  mode: AutomationMode;
+  /** The track's fader volume when the pass began: the offset the line sits under. */
+  offset: number;
+  /** The fader level held now. */
+  level: number;
+  /** The fader is held. */
+  held: boolean;
+  /** Levels written so far, in time order; empty until the first frame. */
+  points: LevelAt[];
+  /** Some level written differs from the line: there is something to send. */
+  changed: boolean;
+}
+
+/** A stroke drawn over a lane with Draw volume, in screen coordinates. */
+export interface StrokeDrag {
+  down: PointerEvent;
+  /** Every move, with the stroke so far. */
+  onMove(points: readonly StrokePoint[]): void;
+  /** The release with the stroke, or null on Escape or a cancel. */
+  onEnd(points: readonly StrokePoint[] | null): void;
+}
+
+/** A point of a stroke, on screen. */
+export interface StrokePoint {
+  clientX: number;
+  clientY: number;
 }
 
 /** The sound module's API, per kernel. */
@@ -47,6 +139,14 @@ export interface SoundApi {
   arm(trackId: TrackId | null): void;
   /** Records the microphone onto the armed track, or onto a new Voice track when none is armed. */
   recorder: Recorder;
+  /** Chooses the pointer tool of the lanes. */
+  setTool(tool: SoundTool): void;
+  /** Sets how a track's fader writes its volume line while playing. */
+  setAutomation(trackId: TrackId, mode: AutomationMode): void;
+  /** Puts a track's volume line in front of its clips' lines, or behind. */
+  setLineView(trackId: TrackId, inFront: boolean): void;
+  /** Writes fader passes onto volume lines. */
+  automation: AutomationWriter;
 }
 
 /** Where the webview runs, for what has been checked there. */
@@ -238,6 +338,10 @@ export interface SliderOptions {
   fromPosition(position: number): number;
   /** What a double-click returns to. */
   rest: number;
+  /** The press, before any move. */
+  onPress?(): void;
+  /** The release of a press, before the commit. */
+  onRelease?(): void;
   /** Writes a value to the DOM (handle, readout); called on every move and after a commit. */
   place(value: number): void;
   /** Every move of a drag: play it live, change nothing yet. Null: stop playing it live. */
@@ -332,15 +436,11 @@ export interface ChainDrag {
 export type SoonId =
   | "transport.cut"
   | "transport.fade"
-  | "transport.drawVolume"
   | "transport.scrub"
   | "transport.findBeats"
   | "transport.stripSilence"
   | "transport.matchLevel"
-  | "lanes.drawVolume"
-  | "lanes.automation"
   | "mixer.filter"
-  | "mixer.read"
   | "master.pan"
   | "master.mute"
   | "master.read"
@@ -395,4 +495,18 @@ export interface LineDrag {
   onMove(point: LinePoint): void;
   /** The release, with the last place; null when the pointer never moved, or Escape. */
   onEnd(point: LinePoint | null): void;
+}
+
+/** What a finished stroke needs to be written. */
+export interface StrokeTarget {
+  bus: CommandBus;
+  state: ProjectState;
+  trackId: TrackId;
+  /** The track's line is in front: the stroke writes it; otherwise the clip under its start. */
+  inFront: boolean;
+  /** The track line's box on screen; its left edge is the timeline's start. */
+  box: DOMRect;
+  /** The timeline's content, where the clips' line boxes are found. */
+  content: HTMLElement;
+  pxPerSecond: number;
 }

@@ -56,12 +56,25 @@ export function linePoints(
   const bends =
     rampOf(clip) !== undefined ||
     track.keys.some((k) => k.ease !== undefined && k.ease.kind !== "linear");
-  const xs = new Set<number>([0, width]);
+  return lineXs(keys, 0, width, bends).map(at);
+}
+
+/**
+ * Where to read a line drawn from `from` to `to` px: its ends, each key (and just before it, so a
+ * hold shows as a step), where a straight stretch between keys crosses a taper breakpoint (the
+ * drawn line kinks there), and every few px when it `bends`. In order, inside `from`..`to`.
+ */
+export function lineXs(
+  keys: readonly LinePoint[],
+  from: number,
+  to: number,
+  bends: boolean,
+): number[] {
+  const xs = new Set<number>([from, to]);
   for (const key of keys) {
     xs.add(key.x);
     if (key.x > STEP_PX) xs.add(key.x - STEP_PX);
   }
-  // Where a straight segment crosses a taper breakpoint the drawn line kinks, so a point goes there.
   for (let i = 1; i < keys.length; i++) {
     const a = keys[i - 1]!;
     const b = keys[i]!;
@@ -69,11 +82,8 @@ export function linePoints(
       if ((db - a.db) * (db - b.db) < 0) xs.add(a.x + ((db - a.db) / (b.db - a.db)) * (b.x - a.x));
     }
   }
-  if (bends) for (let x = SAMPLE_PX; x < width; x += SAMPLE_PX) xs.add(x);
-  return [...xs]
-    .filter((x) => x >= 0 && x <= width)
-    .sort((a, b) => a - b)
-    .map(at);
+  if (bends) for (let x = from + SAMPLE_PX; x < to; x += SAMPLE_PX) xs.add(x);
+  return [...xs].filter((x) => x >= from && x <= to).sort((a, b) => a - b);
 }
 
 /** Where a level sits in the line's box, as a percentage of its height from the top. */

@@ -12,6 +12,8 @@ import {
 import { previewRef } from "@/modules/preview";
 import { workspaceRef } from "@/modules/workspace";
 import { soundMcpTools } from "./sound.mcp";
+import { createAutomation } from "./sound.automation";
+import { soundClipLineCommands } from "./sound.clipline.commands";
 import { soundEffectCommands } from "./sound.effects.commands";
 import { soundDenoiseCommands } from "./sound.denoise.commands";
 import { followDenoiseNeeds } from "./sound.denoise.follow";
@@ -32,11 +34,13 @@ import {
   ClipLineKeys,
   ClipVolumeLine,
   DrawVolumeTool,
+  LineViewButton,
   PresetsSection,
   RecordingTake,
   SheetNote,
   SoloButton,
   SoundPage,
+  TrackVolumeLine,
 } from "./ui";
 
 /** The Sound page with its mixer, and the mix: track and master levels, effects, mix A and B. */
@@ -54,10 +58,12 @@ export const soundModule = defineModule({
     "settings",
     "media",
     "workspace",
+    "export",
   ],
   commands: [
     ...soundMixCommands,
     ...soundLineCommands,
+    ...soundClipLineCommands,
     ...soundEffectCommands,
     ...soundDenoiseCommands,
     ...soundPresetCommands,
@@ -79,6 +85,8 @@ export const soundModule = defineModule({
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());
     onDispose(followRecordingEnds(recorder, pages, playback, project, workspace));
+    const automation = createAutomation({ bus, preview, project, workspace, pages, view });
+    onDispose(automation.dispose);
     contribute(appPages, {
       id: SOUND_PAGE,
       label: "Sound",
@@ -98,6 +106,11 @@ export const soundModule = defineModule({
       scopes: ["all", "sound"],
       component: ClipLineKeys,
     });
+    contribute(timelineOverlays, {
+      id: "sound.trackLine",
+      scopes: ["all", "sound"],
+      component: TrackVolumeLine,
+    });
     contribute(clipActions, {
       id: "sound.clipLine",
       scopes: ["all", "sound"],
@@ -107,6 +120,7 @@ export const soundModule = defineModule({
       timelineTrackControls,
       { id: "sound.solo", order: 10, scopes: ["sound"], component: SoloButton },
       { id: "sound.arm", order: 20, scopes: ["sound"], component: ArmButton },
+      { id: "sound.lineView", order: 30, scopes: ["sound"], component: LineViewButton },
     );
     contribute(
       timelineTools,
@@ -140,6 +154,12 @@ export const soundModule = defineModule({
         setExpanded: (expanded) => view.setState({ expanded }),
         recorder,
         arm: recorder.arm,
+        automation,
+        setTool: (tool) => view.setState({ tool }),
+        setAutomation: (trackId, mode) =>
+          view.setState((s) => ({ automation: { ...s.automation, [trackId]: mode } })),
+        setLineView: (trackId, inFront) =>
+          view.setState((s) => ({ lineView: { ...s.lineView, [trackId]: inFront } })),
       },
     };
   },

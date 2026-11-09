@@ -68,7 +68,7 @@ export function MasterStrip({ compositionId }: { compositionId: CompositionId | 
         <LetterToggle on={false} label="Mute master" tone="mark" onToggle={mute.onClick} {...mute}>
           M
         </LetterToggle>
-        <ReadButton id="master.read" />
+        <ReadButton target="master" />
       </div>
     </div>
   );
