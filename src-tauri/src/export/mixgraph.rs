@@ -42,8 +42,6 @@ impl Node {
 enum Dest {
     Master,
     Group(usize),
-    /// A track of a muted group: heard by nothing but the ducks it keys.
-    Nowhere,
 }
 
 /// The mix as buses: their specs, where each sends, and which of them sound.
@@ -51,7 +49,8 @@ struct Tree<'a> {
     mix: &'a SoundMix,
     /// The groups as track specs (no pan, no line), so one `Bus` builds both.
     groups: Vec<TrackMixSpec>,
-    /// The tracks with clips in the range, and the unmuted groups with one of them sent to it.
+    /// The tracks with clips in the range (none of a muted group), and the groups with one of them
+    /// sent to it.
     sounding: BTreeSet<Node>,
 }
 
@@ -90,20 +89,14 @@ impl<'a> Tree<'a> {
         }
     }
 
-    /// A track goes to its group (nowhere when that's muted), or to the master when it has none
-    /// or one that isn't there; a group goes to the master.
+    /// A track goes to its group, or to the master when it has none or one that isn't there; a
+    /// group goes to the master.
     fn dest(&self, node: Node) -> Dest {
         let Node::Track(_) = node else {
             return Dest::Master;
         };
         match self.spec(node).bus {
-            Some(g) if g < self.mix.buses.len() => {
-                if self.mix.buses[g].muted {
-                    Dest::Nowhere
-                } else {
-                    Dest::Group(g)
-                }
-            }
+            Some(g) if g < self.mix.buses.len() => Dest::Group(g),
             _ => Dest::Master,
         }
     }
@@ -178,24 +171,41 @@ impl<'a> Tree<'a> {
     }
 }
 
+/// Whether a track sends to a muted group: it is silent and keys nothing, as a muted track.
+fn in_muted_group(mix: &SoundMix, track: usize) -> bool {
+    let bus = mix.tracks.get(track).and_then(|spec| spec.bus);
+    bus.and_then(|g| mix.buses.get(g))
+        .is_some_and(|group| group.muted)
+}
+
 /// The mixed sound as a filter graph, whose output is `[mixed]`. `chains[i]` is the chain of
 /// `segments[i]`, whole and ending in `[s<i>];`. A bus that leaves its sum as it is and keys no
-/// duck adds no filter at all, so a default mix is one `amix` of every clip.
+/// duck adds no filter at all, so a default mix is one `amix` of every clip. A muted group adds
+/// nothing: the clips of its tracks are left out, as `mixdown` leaves out a muted track's (it
+/// sends none; any that come are dropped here with their chains, the inputs left unread).
 pub(super) fn sound_graph(
     chains: &[String],
     segments: &[SoundSegment],
     mix: &SoundMix,
     total: u64,
 ) -> String {
-    let mut graph = chains.concat();
+    let mut graph = String::new();
     let mut inputs: BTreeMap<Node, Vec<String>> = BTreeMap::new();
     for (i, segment) in segments.iter().enumerate() {
+        if in_muted_group(mix, segment.track) {
+            continue;
+        }
+        graph.push_str(&chains[i]);
         inputs
             .entry(Node::Track(segment.track))
             .or_default()
             .push(format!("[s{i}]"));
     }
-    let tree = Tree::new(mix, segments.iter().map(|segment| segment.track));
+    let tracks = inputs.keys().filter_map(|node| match node {
+        Node::Track(i) => Some(*i),
+        Node::Group(_) => None,
+    });
+    let tree = Tree::new(mix, tracks);
     let mut keys = tree.duck_keys();
     let order = tree.order(&mut keys);
     let length = samples((total + TAIL) as f64);
@@ -210,9 +220,6 @@ pub(super) fn sound_graph(
             .map(|(listener, _)| *listener)
             .collect();
         let sent = if spec.is_plain() && heard_by.is_empty() {
-            if dest == Dest::Nowhere {
-                graph.push_str(&format!("{},anullsink;", sum(&labels)));
-            }
             labels
         } else {
             let bus = Bus {
@@ -221,7 +228,6 @@ pub(super) fn sound_graph(
                 spec,
                 keys: keys.get(&node).map_or(&[], Vec::as_slice),
                 heard_by: &heard_by,
-                heard: dest != Dest::Nowhere,
                 length,
             };
             graph.push_str(&bus.text());
@@ -230,7 +236,6 @@ pub(super) fn sound_graph(
         match dest {
             Dest::Master => outputs.entry(node).or_default().extend(sent),
             Dest::Group(g) => inputs.entry(Node::Group(g)).or_default().extend(sent),
-            Dest::Nowhere => {}
         }
     }
     let outputs: Vec<String> = outputs.into_values().flatten().collect();
@@ -243,14 +248,6 @@ pub(super) fn sound_graph(
     if !effects.is_empty() {
         master.push_str(&format!(",apad=whole_len={length}{effects}"));
     }
-    if outputs.is_empty() {
-        // Everything went to muted groups: the master hears silence.
-        graph.push_str(&format!(
-            "anullsrc=r={}:cl=stereo,atrim=0:{end}{master},apad=whole_dur={end},atrim=0:{end}[mixed]",
-            super::recipe::SAMPLE_RATE
-        ));
-        return graph;
-    }
     graph.push_str(&format!(
         "{}amix=inputs={}:normalize=0:dropout_transition=0{master},apad=whole_dur={end},atrim=0:{end}[mixed]",
         outputs.concat(),
@@ -259,7 +256,7 @@ pub(super) fn sound_graph(
     graph
 }
 
-/// One bus, a track's or a group's, as `[t<n>]` / `[g<n>]` (when something hears it), plus a
+/// One bus, a track's or a group's, as `[t<n>]` / `[g<n>]`, plus a
 /// `[k<bus>_<listener>]` for each duck it keys.
 struct Bus<'a> {
     node: Node,
@@ -269,8 +266,6 @@ struct Bus<'a> {
     keys: &'a [Node],
     /// The buses whose ducks listen to it.
     heard_by: &'a [Node],
-    /// Whether its output goes on (to a group or the master); a track of a muted group only keys.
-    heard: bool,
     /// Samples a chain with effects is padded to.
     length: u64,
 }
@@ -303,20 +298,13 @@ impl Bus<'_> {
         } else if spec.gain != 1.0 {
             text.push_str(&format!(",volume={:.6}", spec.gain));
         }
-        let out: Vec<String> = self
-            .heard
-            .then(|| format!("[{name}]"))
-            .into_iter()
-            .chain(
-                self.heard_by
-                    .iter()
-                    .map(|listener| format!("[k{name}_{}]", listener.label())),
-            )
-            .collect();
-        match out.len() {
-            0 => text.push_str(",anullsink"),
-            1 => text.push_str(&out[0]),
-            n => text.push_str(&format!(",asplit={n}{}", out.concat())),
+        if self.heard_by.is_empty() {
+            text.push_str(&format!("[{name}];"));
+            return text;
+        }
+        text.push_str(&format!(",asplit={}[{name}]", self.heard_by.len() + 1));
+        for listener in self.heard_by {
+            text.push_str(&format!("[k{name}_{}]", listener.label()));
         }
         text.push(';');
         text
@@ -722,14 +710,17 @@ mod tests {
             &mix,
             1_000_000,
         );
-        assert!(!graph.contains("[g0]"), "{graph}");
+        assert!(
+            !graph.contains("[g0]") && !graph.contains("[s0]"),
+            "{graph}"
+        );
         assert!(graph.contains("[s1]amix=inputs=1:"), "{graph}");
         assert_wired(&graph);
     }
 
     #[test]
-    fn a_track_of_a_muted_group_still_keys_a_duck() {
-        // The key is taken after the track's own fader, as the preview's is.
+    fn a_track_of_a_muted_group_keys_nothing() {
+        // As a muted track: the preview mutes its fader, so its key is silent.
         let mut mix = mix_of(&[sent_to(0), with_effects(vec![duck(vec![0])])], 1.0);
         mix.buses = vec![group(1.0, true)];
         let graph = sound_graph(
@@ -738,8 +729,11 @@ mod tests {
             &mix,
             1_000_000,
         );
-        assert!(graph.contains("sidechaincompress"), "{graph}");
-        assert!(!graph.contains("[g0]"), "{graph}");
+        assert!(!graph.contains("sidechaincompress"), "{graph}");
+        assert!(
+            !graph.contains("[g0]") && !graph.contains("[s0]"),
+            "{graph}"
+        );
         assert!(graph.contains("[t1]amix=inputs=1:"), "{graph}");
         assert_wired(&graph);
     }

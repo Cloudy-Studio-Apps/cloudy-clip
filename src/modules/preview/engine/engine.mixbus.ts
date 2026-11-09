@@ -119,6 +119,7 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
         if (group) group.level.set(level);
         else groups.set(id, createTrackBus(context, masterFader, dynamics, 0, level, 1, clock));
       }
+      const wantedGroups = new Set(groupMixes.map((group) => group.id));
       const wanted = new Set(tracks.map((track) => track.id));
       for (const [id, bus] of buses) {
         if (wanted.has(id)) continue;
@@ -130,7 +131,11 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
         const soloLevel = solo.length === 0 || solo.includes(id) ? 1 : 0;
         const lines = mix.volumeLine ? [{ line: mix.volumeLine, shift: 0 }] : [];
         const level = { lines, offsetDb: mix.volumeDb, muted };
-        const to = (mix.busId !== undefined && groups.get(mix.busId)?.input) || masterFader;
+        // A group that isn't in this mix (about to be dropped) sends to Master, as the export does.
+        const { busId } = mix;
+        const group =
+          busId !== undefined && wantedGroups.has(busId) ? groups.get(busId) : undefined;
+        const to = group?.input ?? masterFader;
         const bus = buses.get(id);
         if (!bus) {
           buses.set(id, createTrackBus(context, to, dynamics, mix.pan, level, soloLevel, clock));
@@ -142,7 +147,6 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
         glide(bus.solo.gain, soloLevel, context);
       }
       // Dropped only now: no track sends to them any more.
-      const wantedGroups = new Set(groupMixes.map((group) => group.id));
       for (const [id, group] of groups) {
         if (wantedGroups.has(id)) continue;
         dropTrackBus(group);

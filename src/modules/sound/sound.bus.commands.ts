@@ -23,16 +23,24 @@ function sentTo(mix: TrackMix, busId: BusId | null): TrackMix {
   return busId === null ? next : { ...next, busId };
 }
 
+/** `Group n` with the first n no group of `buses` is called yet. */
+function nextGroupName(buses: readonly MixBus[]): string {
+  const taken = new Set(buses.map((bus) => bus.name));
+  let n = 1;
+  while (taken.has(`Group ${n}`)) n++;
+  return `Group ${n}`;
+}
+
 /** Adds a group track to a composition. */
 export const addBus = defineCommand({
   id: "sound.addBus",
   label: "Add group",
   description:
-    "Adds a group track to your open composition (or compositionId): a mixer strip that audio tracks send to (sound_send_to) and that sends to Master. It starts at 0 dB, unmuted, with no effects (give it a chain with sound_add_effect, target the returned id). trackIds (audio tracks of that composition) send to it in the same step. Returns { busId }. Fails with sound.track_not_found, sound.not_audio.",
+    "Adds a group track to your open composition (or compositionId): a mixer strip that audio tracks send to (sound_send_to) and that sends to Master. Without a name it is the first free Group n (Group 1, Group 2…). It starts at 0 dB, unmuted, with no effects (give it a chain with sound_add_effect, target the returned id). trackIds (audio tracks of that composition) send to it in the same step. Returns { busId }. Fails with sound.track_not_found, sound.not_audio.",
   undoable: true,
   input: z.object({
     compositionId,
-    name: z.string().trim().min(1).max(64),
+    name: z.string().trim().min(1).max(64).optional(),
     trackIds: z.array(z.string()).optional(),
   }),
   run(ctx, { compositionId: comp, name, trackIds = [] }) {
@@ -48,7 +56,13 @@ export const addBus = defineCommand({
         `Track "${stranger.name}" isn't in that composition.`,
       );
     }
-    const bus: MixBus = { id: createId("bus"), name, volumeDb: 0, muted: false };
+    const known = compositionMixOf(state.compositions[id]!).buses ?? [];
+    const bus: MixBus = {
+      id: createId("bus"),
+      name: name ?? nextGroupName(known),
+      volumeDb: 0,
+      muted: false,
+    };
     ctx.mutate(store, (draft) => {
       for (const track of tracks) {
         writeTrack(draft.tracks[track.id]!, sentTo(trackMixOf(track), bus.id));

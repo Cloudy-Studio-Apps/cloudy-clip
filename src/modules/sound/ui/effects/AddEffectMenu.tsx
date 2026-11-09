@@ -19,9 +19,10 @@ interface AddEffectMenuProps {
 export function AddEffectMenu({ target, compositionId, chain, trigger }: AddEffectMenuProps) {
   const { bus } = useKernel();
   const [open, setOpen] = useState(false);
-  const group = useStore(
-    useModule(projectRef).store.api,
-    (s) => target !== "master" && s.tracks[target] === undefined,
+  const group = useStore(useModule(projectRef).store.api, (s) =>
+    Boolean(
+      compositionId && s.compositions[compositionId]?.mix?.buses?.some((bus) => bus.id === target),
+    ),
   );
   const kinds = addableKinds(chain, target, group);
   if (kinds.length === 0) return null;

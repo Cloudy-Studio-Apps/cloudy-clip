@@ -1,30 +1,22 @@
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
-import { previewRef } from "@/modules/preview";
-import {
-  projectRef,
-  trackMixOf,
-  type CompositionId,
-  type MixBus,
-  type Track,
-} from "@/modules/project";
+import { projectRef, type CompositionId, type MixBus, type Track } from "@/modules/project";
 import { setTrackMuted } from "@/modules/timeline";
 import { cn, ContextMenu, LetterToggle } from "@/ui";
-import { clampDb, lineDb } from "../../logic/automation";
 import { chainOf, placesUnheardEffects } from "../../logic/effects";
-import type { HeardFeed } from "../../sound.types";
 import { removeBus, setBus } from "../../sound.bus.commands";
 import { soundRef } from "../../sound.ref";
-import { SoloButton, useAutomationFader } from "../lanes";
+import { SoloButton } from "../lanes";
 import { EffectChain } from "../effects";
-import { Fader } from "./Fader";
+import { GroupFader } from "./GroupFader";
 import { Meter } from "./Meter";
 import { PanSlider } from "./PanSlider";
 import { ReadButton } from "./ReadButton";
 import { SendsTo } from "./SendsTo";
 import { StripLabel } from "./StripLabel";
 import { StripName } from "./StripName";
+import { TrackFader } from "./TrackFader";
 import { TrackSends } from "./TrackSends";
 
 /** `A1`, `A2`… for a track by its place among the audio tracks; `G1`, `G2`… for a group. */
@@ -53,7 +45,6 @@ export const MixerStrip = memo(function MixerStrip({
   const { bus } = useKernel();
   const project = useModule(projectRef).store;
   const sound = useModule(soundRef);
-  const preview = useModule(previewRef);
   const ref = useRef<HTMLDivElement>(null);
   const id = track ? track.id : group.id;
   const compositionId = track ? track.compositionId : groupComposition;
@@ -65,38 +56,18 @@ export const MixerStrip = memo(function MixerStrip({
     (s) => s.status === "recording" && s.trackId === id,
   );
   const metered = recording ? "input" : id;
-  const automation = useAutomationFader(id);
-  const { playback } = preview;
-  // With a line, what's heard is the line at the playhead plus the fader's trim.
-  const heard = useCallback<HeardFeed>(
-    (draw) =>
-      playback.onTime((time) => {
-        const current = project.getState().tracks[id];
-        const line = current?.mix?.volumeLine;
-        if (current && line) draw(clampDb(lineDb(line, time) + trackMixOf(current).volumeDb));
-      }),
-    [playback, project, id],
-  );
-  // A pass ending puts the handle back on the saved level.
-  const writing = useStore(sound.automation.state, (s) => s.writing.includes(id));
 
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [selected]);
 
   const where = { compositionId, busId: id };
-  const savedGroup = () =>
-    project.getState().compositions[compositionId]?.mix?.buses?.find((b) => b.id === id);
-  // A group's fader plays live and sends one `sound.setBus` on release; it has no line.
-  const fader = track
-    ? automation
-    : {
-        read: () => savedGroup()?.volumeDb ?? 0,
-        onInput: (db: number | null) =>
-          preview.sound.previewMix(id, db === null ? null : { volumeDb: db }),
-        onCommit: async (volumeDb: number) =>
-          void (await bus.run(setBus, { ...where, patch: { volumeDb } })),
-      };
+  const meters = (
+    <>
+      <Meter target={metered} side="left" />
+      <Meter target={metered} side="right" />
+    </>
+  );
   const remove = [
     {
       label: "Remove group",
@@ -145,16 +116,13 @@ export const MixerStrip = memo(function MixerStrip({
           <div className="h-3.5" />
         </div>
       )}
-      <Fader
-        value={track ? (writing ? fader.read() : trackMixOf(track).volumeDb) : group.volumeDb}
-        label={`${track ? track.name : group.name} level`}
-        offset={track?.mix?.volumeLine !== undefined}
-        {...(track && { heard })}
-        {...fader}
-      >
-        <Meter target={metered} side="left" />
-        <Meter target={metered} side="right" />
-      </Fader>
+      {track ? (
+        <TrackFader track={track}>{meters}</TrackFader>
+      ) : (
+        <GroupFader group={group} compositionId={compositionId}>
+          {meters}
+        </GroupFader>
+      )}
       <div className="flex justify-center gap-0.5">
         {track ? (
           <>

@@ -24,7 +24,6 @@ import {
   type SoundEffect,
   type ClipSpeed,
   type KeyTrack,
-  type Composition,
   type CompositionId,
   type MediaId,
   type ProjectState,
@@ -226,8 +225,6 @@ function walk(
   const composition = project.compositions[compositionId];
   if (!composition) return;
   const end = Math.min(to, composition.duration);
-  // Top-level, a track sent to a muted group still keys the ducks listening to it.
-  const listened = nesting ? new Set<string>() : listenedIn(project, composition);
   let audioIndex = -1;
   for (const trackId of composition.trackOrder) {
     const track: Track | undefined = project.tracks[trackId];
@@ -235,9 +232,8 @@ function walk(
     audioIndex++;
     if (track.muted) continue;
     const group = trackBus(composition, track);
-    // A muted group silences its tracks: inside a placement as their own mute does; top-level its
-    // bus adds nothing, so its tracks' clips are needed only for a duck's key.
-    if (group?.muted && (nesting || !listened.has(track.id))) continue;
+    // A muted group silences its tracks as their own mute does, at any depth: they key nothing.
+    if (group?.muted) continue;
     // Top-level, a track's own mix is its bus's, applied once there (and its group's in the
     // group's bus); inside a placement, the clips sound through the outer track's bus, with this
     // track's mix and its group's level folded in as the preview does.
@@ -314,17 +310,6 @@ function walk(
       });
     });
   }
-}
-
-/** The tracks and groups of a composition that a duck there listens to. */
-function listenedIn(project: ProjectState, composition: Composition): Set<string> {
-  const chains = [
-    ...composition.trackOrder.map((id) => project.tracks[id]?.mix?.effects),
-    ...(composition.mix?.buses ?? []).map((bus) => bus.effects),
-  ];
-  return new Set(
-    chains.flatMap((chain) => (chain ?? []).flatMap((e) => (e.kind === "duck" ? e.listensTo : []))),
-  );
 }
 
 /**

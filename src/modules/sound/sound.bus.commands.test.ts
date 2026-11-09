@@ -48,8 +48,9 @@ describe("groups", () => {
   });
 
   it("a new group takes its tracks in the same undo step", async () => {
-    const { busId } = await ok<{ busId: string }>(addBus, { name: "Dialogue", trackIds: ["a1"] });
+    const { busId } = await ok<{ busId: string }>(addBus, { trackIds: ["a1"] });
     expect(state().tracks.a1!.mix?.busId).toBe(busId);
+    expect(buses()[0]!.name).toBe("Group 1");
     kernel.history.undo();
     expect(buses()).toEqual([]);
     expect(state().tracks.a1!.mix).toBeUndefined();

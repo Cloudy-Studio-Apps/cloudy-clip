@@ -13,7 +13,8 @@ const Blank = () => <span aria-hidden className="size-3.5 shrink-0" />;
 
 /**
  * A track's "Sends to": Master or its group, a menu of Master and the composition's groups (one
- * `sound.sendTo`), and New group, which makes one with this track in it (one `sound.addBus`).
+ * `sound.sendTo`), and New group, which makes one (the first free `Group n`) with this track in it (one
+ * `sound.addBus`).
  */
 export function TrackSends({ track }: { track: Track }) {
   const { bus } = useKernel();
@@ -39,7 +40,6 @@ export function TrackSends({ track }: { track: Track }) {
       onSelect: () =>
         void bus.run(addBus, {
           compositionId: track.compositionId,
-          name: `Group ${groups.length + 1}`,
           trackIds: [track.id],
         }),
     },

@@ -265,7 +265,7 @@ export interface FaderLevel {
  * The node a duck listens to for a track or a group (its bus after the fader); nothing when it
  * has no bus.
  */
-export type KeyOf = (trackId: TrackId) => AudioNode | undefined;
+export type KeyOf = (id: TrackId | BusId) => AudioNode | undefined;
 
 /**
  * The effects of one bus, between two nodes it doesn't own (`createEffectChain`). The chain is

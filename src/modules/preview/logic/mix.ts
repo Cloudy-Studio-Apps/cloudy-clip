@@ -22,10 +22,12 @@ export function mixUpdateOf(
   composition: Composition,
   { mix, solo, monitor }: LiveSound,
 ): MixUpdate {
+  // A track sent to a muted group is muted, as its own mute would: silent, and it keys nothing.
   const tracks = composition.trackOrder.flatMap((id) => {
     const track = project.tracks[id];
     if (track?.kind !== "audio") return [];
-    return [{ id, mix: { ...trackMixOf(track), ...mix.get(id) }, muted: track.muted }];
+    const muted = track.muted || trackBus(composition, track)?.muted === true;
+    return [{ id, mix: { ...trackMixOf(track), ...mix.get(id) }, muted }];
   });
   const composed = compositionMixOf(composition);
   const master = { ...composed.master, ...mix.get("master") };
