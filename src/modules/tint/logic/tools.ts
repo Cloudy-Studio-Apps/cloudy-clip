@@ -64,7 +64,8 @@ export function ownedValues(tools: readonly ToolId[]): Set<string> {
 /** What the header's reset clears on the selected correction, for the tools that are built: what the page shows. */
 export const PAGE_RESET: Partial<Record<ToolId, { tools: ToolId[]; fields?: string[] }>> = {
   basics: { tools: ["basics"] },
-  // The wheels' page also shows six of the basics' numbers beside the wheels.
+  // The wheels' page also shows six of the basics' numbers beside the wheels. Its tool owns every
+  // mode's wheels (primary, log, zones), so the reset clears them all, whichever mode shows.
   wheels: {
     tools: ["wheels"],
     fields: ["temperature", "tint", "contrast", "pivot", "saturation", "hue"],
@@ -72,4 +73,6 @@ export const PAGE_RESET: Partial<Record<ToolId, { tools: ToolId[]; fields?: stri
   curves: { tools: ["curves"] },
   cmix: { tools: ["cmix"] },
   warper: { tools: ["warper"] },
+  creative: { tools: ["creative"] },
+  mixer: { tools: ["mixer"] },
 };

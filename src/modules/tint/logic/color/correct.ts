@@ -2,35 +2,34 @@ import type { CorrectionValues } from "@/modules/project";
 import type { CorrectionParams, PixelAt, Rgb } from "../../tint.types";
 import {
   BAND_REACH,
-  CB,
   CHROMA_FULL,
-  CR,
-  LUMA,
-  NO_HUE,
-  SKIN_ANGLE,
-  SKIN_CHROMA,
-  SKIN_FAR,
-  SKIN_NEAR,
+  SKIN_PULL_REACH,
   bandWeights,
+  fromYcc,
   logish,
   luma,
+  pullSkin,
   rolloff,
-  smoothstep,
+  skinWeight,
   toDisplay,
   toLinear,
+  toYcc,
   unlogish,
   whiteBalance,
 } from "./basics";
+import { applyTone, applyVignette, splitTone, vignetteOf, vignetteWeight } from "./creative";
 import { applyCurves } from "./curves.apply";
 import { curveStepActive, sampleCurveStep } from "./mix";
+import { applyMixer, mixerOf } from "./mixer";
 import { applyWarper, sampleWarper, warperActive } from "./warper";
-import { primaryChannel, primaryWheels } from "./wheels";
+import { logWheels, primaryChannel, primaryWheels, toneWheels, zoneWheels } from "./wheels";
 
-// One correction, in the spec's order: exposure and white balance, wheels, contrast and pivot,
-// highlights / shadows / whites / blacks, rolloff, curves and Color mix, the warper, saturation /
-// vibrance / hue (with protect skin). Color mix is folded into the hue curves (`mix.ts`), so it runs
-// in the curve step; the warper follows it. Skin pull, the mixer, Creative and LUTs come in later
-// tasks, at their place in that order. `prepareCorrection` works out once what the shader gets as
+// One correction, in the spec's order: exposure and white balance, wheels (primary, then log and
+// zones), contrast and pivot, highlights / shadows / whites / blacks, rolloff, curves and Color mix,
+// the warper, saturation / vibrance / hue (with protect skin), skin pull, the RGB mixer, Creative
+// (split toning, faded film, vignette). Color mix is folded into the hue curves (`mix.ts`), so it
+// runs in the curve step; the warper follows it. LUTs come in a later task, after Creative. Every
+// step that is at its defaults is skipped (null or 0 in the params). `prepareCorrection` works out once what the shader gets as
 // uniforms; `applyCorrection` is the per-pixel math, the CPU reference of `render/correct.glsl.ts`.
 
 /**
@@ -67,6 +66,13 @@ export function prepareCorrection(
     curveOn: [curves.rgb ? 1 : 0, curves.hue ? 1 : 0],
     curveTable: curved ? (table ?? sampleCurveStep(values)) : null,
     warpTable: warperActive(values.warper) ? (warp ?? sampleWarper(values.warper)) : null,
+    log: logWheels(values),
+    zones: zoneWheels(values),
+    skinPull: (values.skinPull / 100) * SKIN_PULL_REACH,
+    mixer: mixerOf(values.mixer),
+    split: splitTone(values.creative),
+    fade: values.creative.fade / 100,
+    vignette: vignetteOf(values.creative),
   };
 }
 
@@ -76,16 +82,9 @@ function mapRgb(rgb: Rgb, fn: (x: number, i: 0 | 1 | 2) => number): Rgb {
 
 /** Saturation, vibrance and hue in Y'CbCr, luma kept, with protect skin. */
 function chroma(rgb: Rgb, p: CorrectionParams): Rgb {
-  const y = luma(rgb);
-  const cb = (rgb[2] - y) / CB;
-  const cr = (rgb[0] - y) / CR;
+  const [y, cb, cr] = toYcc(rgb);
   const length = Math.hypot(cb, cr);
-  let skin = 0;
-  if (p.skin > 0 && length > NO_HUE) {
-    const turn = Math.abs(Math.atan2(cr, cb) - SKIN_ANGLE);
-    const away = Math.min(turn, 2 * Math.PI - turn);
-    skin = (1 - smoothstep(SKIN_NEAR, SKIN_FAR, away)) * smoothstep(...SKIN_CHROMA, length);
-  }
+  const skin = p.skin > 0 ? skinWeight(cb, cr, length) : 0;
   const c = Math.min(length / CHROMA_FULL, 1);
   const scale = p.saturation * (1 + p.vibrance * (1 - c) * (1 - c));
   const [cos, sin] = p.hue;
@@ -95,22 +94,26 @@ function chroma(rgb: Rgb, p: CorrectionParams): Rgb {
   // Protect skin: the turn and the scale fade out together toward the skin line.
   const outCb = (cb + (turnedCb - cb) * (1 - skin)) * k;
   const outCr = (cr + (turnedCr - cr) * (1 - skin)) * k;
-  const r = y + CR * outCr;
-  const b = y + CB * outCb;
-  return [r, (y - LUMA[0] * r - LUMA[2] * b) / LUMA[1], b];
+  return fromYcc(y, outCb, outCr);
 }
 
 /** One pixel through a correction worked out by `prepareCorrection`. Opacity is the caller's. */
-export function applyCorrection(rgb: Rgb, p: CorrectionParams, _at: PixelAt): Rgb {
+export function applyCorrection(rgb: Rgb, p: CorrectionParams, at: PixelAt): Rgb {
   let c = mapRgb(rgb, (x, i) => toDisplay(toLinear(x) * p.linear[i]));
   c = mapRgb(c, (x, i) => primaryChannel(x, p.lift[i], p.gammaInv[i], p.gain[i], p.offset[i]));
+  if (p.log || p.zones) c = toneWheels(c, p.log, p.zones);
   c = mapRgb(c, (x) => unlogish(p.pivot + (logish(x) - p.pivot) * p.contrast));
   const w = bandWeights(luma(c));
   const shift = p.bands[0] * w[0] + p.bands[1] * w[1] + p.bands[2] * w[2] + p.bands[3] * w[3];
   c = mapRgb(c, (x) => rolloff(x + shift, p.knee));
   if (p.curveTable) c = applyCurves(c, p.curveTable, p.curveOn[0] > 0, p.curveOn[1] > 0);
   if (p.warpTable) c = applyWarper(c, p.warpTable);
-  return chroma(c, p);
+  c = chroma(c, p);
+  if (p.skinPull > 0) c = pullSkin(c, p.skinPull);
+  if (p.mixer) c = applyMixer(c, p.mixer);
+  if (p.split || p.fade > 0) c = applyTone(c, p.split, p.fade);
+  if (p.vignette) c = applyVignette(c, p.vignette.amount, vignetteWeight(at, p.vignette));
+  return c;
 }
 
 /** One pixel through a correction's values, in the spec's order. `at` is where it is in the picture. */

@@ -1,6 +1,7 @@
 import type { CorrectionValues, Wheel } from "@/modules/project";
 import type { ComponentType } from "react";
 import type { CurvePoint, CurveShape, ToolId } from "../../tint.types";
+import type { LiveEdit } from "../ui.types";
 
 /** A tool in the rail: its icon, name, what it's for, its key, and the body it shows. */
 export interface ToolEntry {
@@ -34,11 +35,13 @@ export interface WheelDragOptions {
   onEnd(wheel: Wheel | null): void;
 }
 
-/** How the master jog bar is dragged. */
+/** How the master jog bar (or a wheel's bar in Bars) is dragged. */
 export interface JogDragOptions {
   event: PointerEvent;
-  /** Width of the bar, in px: dragging all across moves the master by 2. */
+  /** Length of the bar, in px: dragging all along it moves the value by 2. */
   width: number;
+  /** `x` (the default) moves right for more, `y` up for more. */
+  axis?: "x" | "y";
   start: number;
   onMove(master: number): void;
   /** The master on release, or null when cancelled. */
@@ -117,4 +120,10 @@ export interface WarpShapes {
   rings: SVGPolygonElement[];
   spokes: SVGPolylineElement[];
   dots: SVGCircleElement[];
+}
+
+/** What a mode of the Wheels tool gets: the values it shows and the edit it sends. */
+export interface WheelsBodyProps {
+  values: CorrectionValues;
+  edit: LiveEdit;
 }

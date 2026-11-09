@@ -187,6 +187,54 @@ its `RGBA16F` 180 × 32 table) against the shader, 2026-11-09.
   skips both (`u_curveOn`, `u_warpOn` 0), so earlier numbers stand.
 - **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.
 
+### Every Stage 2 field together: parity (Task 16)
+
+Everything a correction has after Stage 2, at once, against the shader, 2026-11-09: curves, Color mix,
+the warper, the log and zone wheels, rolloff, protect skin, skin pull, the RGB mixer and Creative (split
+toning, faded film, vignette), on top of the Basics and primary wheels of Task 7.
+
+- **Method:** as Task 15 (temporary dev page on the web build, `pnpm vite --port 1540`, headless
+  Chromium 1243 with SwiftShader WebGL2, CDP; removed before the commit), reference `evaluatePixel`
+  over the whole grade. Each set, checked with `validateGrade`, turns each part on with odds of about
+  60 %, so most sets hold most of them: random curves (as Task 14), Color mix and a warper (as Task
+  15), log wheels (three random wheels, `lowRange` and `highRange` anywhere in 0…1, so also crossed),
+  zone wheels (each zone moved with odds 0.6, `at` anywhere), rolloff 0…100, protect skin, skin pull
+  0…100, saturation 0.3…1.8 with vibrance and hue, a mixer (each cell kept or moved, keep brightness
+  and monochrome random) and Creative (both tints, balance, fade, a vignette with every number random).
+  Pixels are read where they sit (`PixelAt` = the pixel's middle, `v` 1 at the top, as `v_uv`), on a
+  16 × 16 canvas (aspect 1), 32 × 8 (aspect 4) or 8 × 32 (aspect 0.25), so the vignette's shape is
+  checked off square too.
+- **Results** (20 sets each, 15 360 channel values per row):
+
+| Seed | Chain | Canvas  | Max | Off by 1 | Over 1 | Changed |
+| ---- | ----- | ------- | --- | -------- | ------ | ------- |
+| 41   | no    | 16 × 16 | 1   | 43       | 0      | 14 908  |
+| 42   | no    | 32 × 8  | 1   | 38       | 0      | 14 802  |
+| 45   | no    | 16 × 16 | 1   | 33       | 0      | 14 875  |
+| 46   | no    | 8 × 32  | 1   | 32       | 0      | 15 019  |
+| 47   | no    | 16 × 16 | 1   | 18       | 0      | 14 849  |
+| 51   | no    | 8 × 32  | 1   | 31       | 0      | 14 894  |
+| 52   | no    | 16 × 16 | 1   | 39       | 0      | 14 810  |
+| 43   | yes   | 16 × 16 | 1   | 326      | 0      | 15 038  |
+| 44   | yes   | 32 × 8  | 1   | 320      | 0      | 15 018  |
+| 49   | yes   | 16 × 16 | 1   | 357      | 0      | 14 982  |
+| 50   | yes   | 32 × 8  | 1   | 340      | 0      | 15 075  |
+| 48   | yes   | 8 × 32  | 4   | 314      | 3      | 14 995  |
+
+Seeds 45 and 47 have wide hue curves (y 0…1).
+
+- **Seed 48:** one pixel (3 channels) of one set is off by up to 4. The second correction there has a
+  very steep custom Y curve (slope about 11 near 0.93), and the GPU keeps the first correction's
+  picture in a half-float target. Running the reference with that picture rounded to half-floats
+  between the two corrections gives exactly what the GPU drew (192, 169, 84), and the whole seed then
+  passes (max 1, 76 off by 1). It is the half-float target between passes, not the Stage 2 math: every
+  single correction is within one step. With that half-float model, seeds 43 and 44 pass too (93 and
+  64 off by 1), while 49 and 50 show one value off by 2 each (round-to-nearest on the CPU against the
+  GPU's own conversion); with full floats those two pass.
+- **Untouched is unchanged:** every new step is skipped at its defaults (`u_logOn`, `u_zonesOn`,
+  `u_skinPull`, `u_mixerOn`, `u_splitOn`, `u_fade`, `u_vignette.x` all 0), so the numbers above stand.
+- **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.
+
 ## Windows (WebView2)
 
 **Pending: owner check.** Also pending: the clean hidden run on Linux (window on another workspace for the

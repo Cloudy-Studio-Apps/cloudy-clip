@@ -23,12 +23,13 @@ export function createTintFilter(live: TintLive): PictureFilter {
     id: TINT_GRADE_FILTER,
     order: 100,
     applies: (clip, project) => gradeOf(clip) !== null && canGrade(clip, project),
-    passes({ clip, target, options }) {
+    passes({ clip, target, options, size }) {
       const whole = gradeOf(clip);
       if (!whole) return [];
       const cut = target === "capture" ? options?.[TINT_CUT] : undefined;
       const grade = typeof cut === "string" ? { ...whole, out: { node: cut } } : whole;
-      return gradePasses(grade, target === "preview" ? live.get(clip.id) : undefined, textures);
+      const liveGrade = target === "preview" ? live.get(clip.id) : undefined;
+      return gradePasses(grade, liveGrade, textures, size.width / Math.max(size.height, 1));
     },
   };
 }

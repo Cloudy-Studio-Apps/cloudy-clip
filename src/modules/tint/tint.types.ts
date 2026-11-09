@@ -131,10 +131,15 @@ export interface StripClip {
 /** A color, each channel 0 to 1 when in range: display-referred Rec.709. */
 export type Rgb = [number, number, number];
 
-/** Where a pixel is in the picture: `u` 0 (left) to 1, `v` 0 (bottom) to 1 (top), as `v_uv`. */
+/**
+ * Where a pixel is in the clip's own picture: `u` 0 (left) to 1, `v` 0 (bottom) to 1 (top), as the
+ * shader's `v_uv` has it (the runner uploads the picture with its top at `v_uv.y = 1`), and the
+ * picture's `aspect` (width over height), which the vignette needs to draw a circle.
+ */
 export interface PixelAt {
   u: number;
   v: number;
+  aspect: number;
 }
 
 /** A point of the composition's frame: `u` 0 (left) to 1, `v` 0 (top) to 1 (bottom). */
@@ -200,6 +205,60 @@ export interface CorrectionParams {
   curveTable: Float32Array | null;
   /** The warper sampled (`sampleWarper`), or null when it moves nothing. */
   warpTable: Float32Array | null;
+  /** The log wheels, or null when they move nothing. */
+  log: LogParams | null;
+  /** The zone wheels, or null when they move nothing. */
+  zones: ZoneParams | null;
+  /** How far skin hues turn toward the skin line, 0 (off) to `SKIN_PULL_REACH`. */
+  skinPull: number;
+  /** The RGB mixer, or null when it changes nothing. */
+  mixer: MixerParams | null;
+  /** Split toning, or null when both tints are at the middle. */
+  split: SplitParams | null;
+  /** Faded film, 0 (off) to 1. */
+  fade: number;
+  /** The vignette, or null when its amount is 0. */
+  vignette: VignetteParams | null;
+}
+
+/** The log wheels worked out: what each adds to each channel, and the edges of their ranges. */
+export interface LogParams {
+  shadow: Rgb;
+  midtone: Rgb;
+  highlight: Rgb;
+  /** Where the shadow wheel has faded out, over luma (`lowRange`, kept off 0). */
+  low: number;
+  /** Where the highlight wheel starts (`highRange`, kept off 1). */
+  high: number;
+}
+
+/** The zone wheels worked out: what each of the six adds to each channel, and where its band sits. */
+export interface ZoneParams {
+  /** Six times r, g, b, dark to light. */
+  add: number[];
+  /** The middle of each band, over luma. */
+  at: number[];
+}
+
+/** The RGB mixer worked out: the matrix (rows out, columns in, row by row), brightness kept in it. */
+export interface MixerParams {
+  matrix: number[];
+  mono: boolean;
+}
+
+/** Split toning worked out: what each tint adds to each channel, and the luma between them. */
+export interface SplitParams {
+  shadow: Rgb;
+  highlight: Rgb;
+  pivot: number;
+}
+
+/** The vignette worked out: amount -1 to 1, its edge's middle and width over the distance, roundness -1 to 1. */
+export interface VignetteParams {
+  amount: number;
+  center: number;
+  width: number;
+  round: number;
 }
 
 /** A table baked for the shader: the texture and the table it holds. */

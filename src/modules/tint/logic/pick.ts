@@ -24,7 +24,7 @@ export function meanAround(frame: PickFrame, x: number, y: number): Rgb {
 /**
  * Where a point of the frame (output pixels, y down) is in a clip's own picture, as `v_uv` has it
  * (`u` 0 left to 1 right, `v` 0 bottom to 1 top), undoing the placement's move, size and clockwise
- * rotation. Outside 0…1 when the point is off the picture.
+ * rotation, with the picture's aspect. Outside 0…1 when the point is off the picture.
  */
 export function pictureAt(placement: ClipPlacement, x: number, y: number): PixelAt {
   const turn = (placement.rotation * Math.PI) / 180;
@@ -32,7 +32,11 @@ export function pictureAt(placement: ClipPlacement, x: number, y: number): Pixel
   const dy = y - placement.cy;
   const lx = dx * Math.cos(turn) + dy * Math.sin(turn);
   const ly = -dx * Math.sin(turn) + dy * Math.cos(turn);
-  return { u: lx / placement.width + 0.5, v: 0.5 - ly / placement.height };
+  return {
+    u: lx / placement.width + 0.5,
+    v: 0.5 - ly / placement.height,
+    aspect: placement.width / placement.height,
+  };
 }
 
 /**
@@ -52,7 +56,7 @@ export function pickAt(
 ): Rgb | null {
   const x = Math.min(frame.width - 1, Math.max(0, Math.floor(point.u * frame.width)));
   const y = Math.min(frame.height - 1, Math.max(0, Math.floor(point.v * frame.height)));
-  let at: PixelAt = { u: point.u, v: 1 - point.v };
+  let at: PixelAt = { u: point.u, v: 1 - point.v, aspect: frame.width / frame.height };
   if (placement) {
     at = pictureAt(placement, point.u * frame.width, point.v * frame.height);
     if (at.u < 0 || at.u > 1 || at.v < 0 || at.v > 1) return null;

@@ -1,8 +1,19 @@
 import type { JogDragOptions } from "./tools.types";
 
-/** Drags the master jog bar sideways: all across the bar is 2. Reports every move, ends once (null on Escape). */
-export function startJogDrag({ event, width, start, onMove, onEnd }: JogDragOptions): void {
-  const x0 = event.clientX;
+/**
+ * Drags a bar of a value from -1 to 1: the master jog bar sideways, or a wheel's bar in Bars up
+ * (`axis` y). All along the bar is 2. Reports every move, ends once (null on Escape).
+ */
+export function startJogDrag({
+  event,
+  width,
+  start,
+  axis = "x",
+  onMove,
+  onEnd,
+}: JogDragOptions): void {
+  const along = (e: PointerEvent) => (axis === "x" ? e.clientX : -e.clientY);
+  const x0 = along(event);
   let last = start;
   const stop = () => {
     window.removeEventListener("pointermove", move);
@@ -11,7 +22,7 @@ export function startJogDrag({ event, width, start, onMove, onEnd }: JogDragOpti
     window.removeEventListener("keydown", key, true);
   };
   const move = (e: PointerEvent) => {
-    const raw = start + ((e.clientX - x0) / width) * 2;
+    const raw = start + ((along(e) - x0) / width) * 2;
     last = Math.min(1, Math.max(-1, Math.round(raw * 100) / 100));
     onMove(last);
   };

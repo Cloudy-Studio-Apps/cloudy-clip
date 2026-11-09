@@ -1,57 +1,54 @@
-import { useMemo } from "react";
-import { DEFAULT_CORRECTION, type Wheel } from "@/modules/project";
-import { ValueSliders } from "./ValueSliders";
+import { SegmentedControl } from "@/ui";
+import type { WheelsMode } from "../../tint.types";
+import { InfoTip } from "../InfoTip";
 import { useToolEdit } from "../tool.edit.hook";
-import type { LiveEdit } from "../ui.types";
-import { ColorWheel } from "./ColorWheel";
+import { useTintView } from "../view.hook";
+import { useTintSet } from "../view.set.hook";
 import { PRIMARY_FIELDS } from "./basics.fields";
-import type { WheelEdit } from "./tools.types";
+import { LogWheels } from "./LogWheels";
+import { PrimaryWheels } from "./PrimaryWheels";
+import { ValueSliders } from "./ValueSliders";
+import { WheelBars } from "./WheelBars";
+import { ZoneWheels } from "./ZoneWheels";
 
-const WHEELS = [
-  ["lift", "Lift"],
-  ["gamma", "Gamma"],
-  ["gain", "Gain"],
-  ["offset", "Offset"],
-] as const;
+const MODES: { value: WheelsMode; label: string }[] = [
+  { value: "primary", label: "Primary" },
+  { value: "log", label: "Log" },
+  { value: "bars", label: "Bars" },
+  { value: "zones", label: "Zones" },
+];
 
-type WheelKey = (typeof WHEELS)[number][0];
+const MODE_INFO: Record<WheelsMode, string> = {
+  primary: "Lift, gamma and gain overlap across the whole picture, from dark to bright.",
+  log: "Shadow, midtone and highlight wheels touch narrow ranges. For footage shot flat.",
+  bars: "The same controls as sliders per channel.",
+  zones:
+    "Six wheels, each for a narrow band of brightness: black, dark, shadow, light, highlight and specular. For HDR and fine work.",
+};
 
-/** The edit of one wheel, from the tool's edit. */
-function wheelEdit(edit: LiveEdit, key: WheelKey, current: Wheel): WheelEdit {
-  const neutral = DEFAULT_CORRECTION[key];
-  return {
-    preview: (wheel) => edit.preview({ values: { [key]: wheel } }),
-    commit: (wheel) => void edit.commit({ values: { [key]: wheel } }),
-    cancel: edit.cancel,
-    reset() {
-      if (current.x !== neutral.x || current.y !== neutral.y || current.m !== neutral.m) {
-        void edit.commit({ values: { [key]: neutral } });
-      }
-    },
-  };
-}
+const BODIES = { primary: PrimaryWheels, log: LogWheels, bars: WheelBars, zones: ZoneWheels };
 
-/** The primary color wheels (lift, gamma, gain, offset) with temperature, tint, contrast, pivot, saturation and hue beside them. */
+/** Color wheels in four modes (`view.wheels`), with temperature, tint, contrast, pivot, saturation and hue beside them. */
 export function WheelsTool() {
+  const mode = useTintView((v) => v.wheels);
+  const set = useTintSet();
   const { values, edit } = useToolEdit();
-  const edits = useMemo(
-    () => WHEELS.map(([key]) => wheelEdit(edit, key, values[key])),
-    [edit, values],
-  );
+  const Body = BODIES[mode];
   return (
-    <div key={edit.rev} className="grid grid-cols-[auto_minmax(260px,400px)] items-start gap-10">
-      <div className="grid grid-cols-[repeat(4,128px)] gap-[22px]">
-        {WHEELS.map(([key, label], i) => (
-          <ColorWheel
-            key={key}
-            label={label}
-            wheel={values[key]}
-            size={112}
-            edit={edit.enabled ? edits[i] : undefined}
-          />
-        ))}
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <SegmentedControl<WheelsMode>
+          label="Wheels"
+          value={mode}
+          onChange={(wheels) => set({ wheels })}
+          options={MODES}
+        />
+        <InfoTip text={MODE_INFO[mode]} />
       </div>
-      <ValueSliders fields={PRIMARY_FIELDS} values={values} edit={edit} />
+      <div key={edit.rev} className="grid grid-cols-[auto_minmax(260px,400px)] items-start gap-10">
+        <Body values={values} edit={edit} />
+        <ValueSliders fields={PRIMARY_FIELDS} values={values} edit={edit} />
+      </div>
     </div>
   );
 }

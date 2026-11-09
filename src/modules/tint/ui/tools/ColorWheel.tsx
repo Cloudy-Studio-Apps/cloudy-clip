@@ -2,7 +2,7 @@ import { RotateCcw } from "lucide-react";
 import { useRef } from "react";
 import type { Wheel } from "@/modules/project";
 import { NumberField } from "@/ui";
-import { PUCK_REACH, wheelColorNumbers, wheelWithChannel } from "../../logic/color/wheels";
+import { PUCK_REACH, wheelNumbers, wheelWithNumber } from "../../logic/color/wheels";
 import { CHANNEL_COLORS } from "./channel.colors";
 import { JogBar } from "./JogBar";
 import type { WheelEdit } from "./tools.types";
@@ -20,7 +20,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** The four numbers of a wheel: master, then the color part per channel. */
 function numbersOf(wheel: Wheel): number[] {
-  return [wheel.m, ...wheelColorNumbers(wheel)].map(round2);
+  return wheelNumbers(wheel).map(round2);
 }
 
 const puckAt = (wheel: Wheel) => ({
@@ -33,8 +33,11 @@ interface ColorWheelProps {
   wheel: Wheel;
   /** Diameter in px. */
   size: number;
-  /** One number (zone wheels) or the four of a primary wheel. */
-  numbers?: "four" | "one";
+  /**
+   * The four numbers of a primary wheel, one (the master, as zone wheels show it), or none: a
+   * puck only, with no master and no jog bar (split toning's tints).
+   */
+  numbers?: "four" | "one" | "none";
   /** Makes the wheel real. Without it the wheel only shows its value. */
   edit?: WheelEdit;
 }
@@ -48,7 +51,7 @@ export function ColorWheel({ label, wheel, size, numbers = "four", edit }: Color
   const ring = useRef<HTMLSpanElement>(null);
   const puck = useRef<HTMLSpanElement>(null);
   const fields = useRef<HTMLSpanElement>(null);
-  const shown = numbers === "four" ? [0, 1, 2, 3] : [0];
+  const shown = numbers === "four" ? [0, 1, 2, 3] : numbers === "one" ? [0] : [];
   const paint = (next: Wheel) => {
     const at = puckAt(next);
     if (puck.current) Object.assign(puck.current.style, at);
@@ -67,9 +70,7 @@ export function ColorWheel({ label, wheel, size, numbers = "four", edit }: Color
     else edit.cancel();
   };
   const change = (index: number, value: number) => {
-    if (!edit) return;
-    if (index === 0) edit.commit({ ...wheel, m: value });
-    else edit.commit(wheelWithChannel(wheel, (index - 1) as 0 | 1 | 2, value));
+    if (edit) edit.commit(wheelWithNumber(wheel, index, value));
   };
   return (
     <div className="flex min-w-0 flex-col items-center gap-2">
@@ -113,36 +114,40 @@ export function ColorWheel({ label, wheel, size, numbers = "four", edit }: Color
           style={puckAt(wheel)}
         />
       </span>
-      <span ref={fields} className="flex gap-0.5">
-        {shown.map((i) => (
-          <span
-            key={i}
-            style={{ "--ch": NUMBER_COLORS[i] } as React.CSSProperties}
-            className="[&_input]:text-center [&_input]:text-2xs [&_label]:h-5 [&_label]:w-[31px] [&_label]:border-b-2 [&_label]:border-(--ch)"
-          >
-            <NumberField
-              label={`${label} ${NUMBER_NAMES[i]}`}
-              value={values[i]!}
-              min={-1}
-              max={1}
-              step={0.01}
-              disabled={!edit}
-              onChange={(value) => change(i, value)}
-            />
-          </span>
-        ))}
-      </span>
-      <JogBar
-        title={`${label} master: drag to brighten or darken`}
-        width={size}
-        value={wheel.m}
-        disabled={!edit}
-        onMove={(m) => {
-          paint({ ...wheel, m });
-          edit?.preview({ ...wheel, m });
-        }}
-        onEnd={(m) => (m === null ? (paint(wheel), edit?.cancel()) : finish({ ...wheel, m }))}
-      />
+      {shown.length > 0 && (
+        <span ref={fields} className="flex gap-0.5">
+          {shown.map((i) => (
+            <span
+              key={i}
+              style={{ "--ch": NUMBER_COLORS[i] } as React.CSSProperties}
+              className="[&_input]:text-center [&_input]:text-2xs [&_label]:h-5 [&_label]:w-[31px] [&_label]:border-b-2 [&_label]:border-(--ch)"
+            >
+              <NumberField
+                label={`${label} ${NUMBER_NAMES[i]}`}
+                value={values[i]!}
+                min={-1}
+                max={1}
+                step={0.01}
+                disabled={!edit}
+                onChange={(value) => change(i, value)}
+              />
+            </span>
+          ))}
+        </span>
+      )}
+      {numbers !== "none" && (
+        <JogBar
+          title={`${label} master: drag to brighten or darken`}
+          width={size}
+          value={wheel.m}
+          disabled={!edit}
+          onMove={(m) => {
+            paint({ ...wheel, m });
+            edit?.preview({ ...wheel, m });
+          }}
+          onEnd={(m) => (m === null ? (paint(wheel), edit?.cancel()) : finish({ ...wheel, m }))}
+        />
+      )}
     </div>
   );
 }

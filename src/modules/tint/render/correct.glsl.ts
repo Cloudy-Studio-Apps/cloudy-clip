@@ -19,14 +19,14 @@ import {
 import { CURVE_ROWS, CURVE_SAMPLES, ROW } from "../logic/color/curves.apply";
 import { WARP_TABLE } from "../logic/color/warper";
 import type { CorrectionParams } from "../tint.types";
+import { TAIL_GLSL, tailUniforms } from "./correct.tail.glsl";
+import { WHEELS_GLSL, wheelsUniforms } from "./correct.wheels.glsl";
+import { glslFloat as f, glslVec3 as vec3 } from "./glsl.literals";
 
 // One correction as GLSL: the same math as `logic/color/correct.ts`, line for line, with every
-// constant written in from `logic/color/basics.ts`. What depends on the values comes in as
-// uniforms worked out by `prepareCorrection`.
-
-/** A number as a GLSL float literal. */
-const f = (n: number): string => (Number.isInteger(n) ? n.toFixed(1) : String(n));
-const vec3 = (v: readonly number[]): string => `vec3(${v.map(f).join(", ")})`;
+// constant written in from `logic/color/`. What depends on the values comes in as uniforms worked
+// out by `prepareCorrection`. The log and zone wheels are in `correct.wheels.glsl.ts`, skin pull,
+// the mixer and Creative in `correct.tail.glsl.ts`.
 const bands = BANDS.map((b) => `vec4(${b.map(f).join(", ")})`).join(", ");
 
 const FRAGMENT = `
@@ -75,6 +75,8 @@ float primary(float x, float lift, float gammaInv, float gain, float offset) {
   float base = x + lift * (1.0 - x);
   return gain * (base > 0.0 ? pow(base, gammaInv) : base) + offset;
 }
+
+${WHEELS_GLSL}
 
 float rolloff(float x) {
   if (u_knee >= 1.0 || x <= u_knee) return x;
@@ -143,18 +145,31 @@ vec3 warp(vec3 c) {
   return vec3(r, (y - LUMA.r * r - LUMA.b * b) / LUMA.g, b);
 }
 
+vec3 toYcc(vec3 c) {
+  float y = dot(c, LUMA);
+  return vec3(y, (c.b - y) / ${f(CB)}, (c.r - y) / ${f(CR)});
+}
+
+vec3 fromYcc(float y, float cb, float cr) {
+  float r = y + ${f(CR)} * cr;
+  float b = y + ${f(CB)} * cb;
+  return vec3(r, (y - LUMA.r * r - LUMA.b * b) / LUMA.g, b);
+}
+
+float skinWeight(float cb, float cr, float len) {
+  if (len <= ${f(NO_HUE)}) return 0.0;
+  float turn = abs(atan(cr, cb) - ${f(SKIN_ANGLE)});
+  float away = min(turn, 2.0 * PI - turn);
+  return (1.0 - smoothstep(${f(SKIN_NEAR)}, ${f(SKIN_FAR)}, away))
+    * smoothstep(${f(SKIN_CHROMA[0])}, ${f(SKIN_CHROMA[1])}, len);
+}
+
 vec3 chroma(vec3 rgb) {
   float y = dot(rgb, LUMA);
   float cb = (rgb.b - y) / ${f(CB)};
   float cr = (rgb.r - y) / ${f(CR)};
   float len = length(vec2(cb, cr));
-  float skin = 0.0;
-  if (u_skin > 0.0 && len > ${f(NO_HUE)}) {
-    float turn = abs(atan(cr, cb) - ${f(SKIN_ANGLE)});
-    float away = min(turn, 2.0 * PI - turn);
-    skin = (1.0 - smoothstep(${f(SKIN_NEAR)}, ${f(SKIN_FAR)}, away))
-      * smoothstep(${f(SKIN_CHROMA[0])}, ${f(SKIN_CHROMA[1])}, len);
-  }
+  float skin = u_skin > 0.0 ? skinWeight(cb, cr, len) : 0.0;
   float c = min(len / ${f(CHROMA_FULL)}, 1.0);
   float scale = u_saturation * (1.0 + u_vibrance * (1.0 - c) * (1.0 - c));
   float k = scale + (1.0 - scale) * skin;
@@ -162,14 +177,14 @@ vec3 chroma(vec3 rgb) {
   float turnedCr = u_hue.y * cb + u_hue.x * cr;
   float outCb = (cb + (turnedCb - cb) * (1.0 - skin)) * k;
   float outCr = (cr + (turnedCr - cr) * (1.0 - skin)) * k;
-  float r = y + ${f(CR)} * outCr;
-  float b = y + ${f(CB)} * outCb;
-  return vec3(r, (y - LUMA.r * r - LUMA.b * b) / LUMA.g, b);
+  return fromYcc(y, outCb, outCr);
 }
+${TAIL_GLSL}
 
 vec3 correct(vec3 c) {
   for (int i = 0; i < 3; i++) c[i] = toDisplay(toLinear(c[i]) * u_linear[i]);
   for (int i = 0; i < 3; i++) c[i] = primary(c[i], u_lift[i], u_gammaInv[i], u_gain[i], u_offset[i]);
+  if (u_logOn > 0.0 || u_zonesOn > 0.0) c = toneWheels(c);
   for (int i = 0; i < 3; i++) c[i] = unlogish(u_pivot + (logish(c[i]) - u_pivot) * u_contrast);
   float y = dot(c, LUMA);
   vec4 w;
@@ -181,7 +196,12 @@ vec3 correct(vec3 c) {
   for (int i = 0; i < 3; i++) c[i] = rolloff(c[i] + shift);
   if (u_curveOn.x > 0.0 || u_curveOn.y > 0.0) c = curves(c);
   if (u_warpOn > 0.0) c = warp(c);
-  return chroma(c);
+  c = chroma(c);
+  if (u_skinPull > 0.0) c = pullSkin(c);
+  if (u_mixerOn > 0.0) c = mixer(c);
+  if (u_splitOn > 0.0 || u_fade > 0.0) c = tone(c);
+  if (u_vignette.x != 0.0) c = vignette(c);
+  return c;
 }
 
 void main() {
@@ -194,13 +214,15 @@ export const CORRECT_KEY = "tint.correct";
 
 /**
  * A correction's pass over `input` (-1 the picture so far, n pass n), mixed over it by `opacity`.
- * `tables.curves` is its baked curve step (curves and Color mix) and `tables.warper` its warper,
- * each left out when it changes nothing (the shader then skips that step).
+ * `aspect` is the picture's width over its height (the vignette's shape). `tables.curves` is its
+ * baked curve step (curves and Color mix) and `tables.warper` its warper, each left out when it
+ * changes nothing (the shader then skips that step).
  */
 export function correctPass(
   params: CorrectionParams,
   opacity: number,
   input: number,
+  aspect: number,
   tables: { curves?: GpuTexture; warper?: GpuTexture } = {},
 ): GpuPass {
   const { curves, warper } = tables;
@@ -221,6 +243,8 @@ export function correctPass(
     u_curveOn: curves ? params.curveOn : [0, 0],
     u_warpOn: warper ? 1 : 0,
     u_opacity: opacity,
+    ...wheelsUniforms(params),
+    ...tailUniforms(params, aspect),
   };
   const textures: Record<string, GpuTexture> = {};
   if (curves) textures.u_curves = curves;

@@ -24,6 +24,8 @@ import type { Rgb } from "../../tint.types";
 //   `1 + vibrance (1 - c)^2`, `c` its length over 0.5, so dull colors move most. Protect skin keeps
 //   colors near the skin line (123° in CbCr) as they were, fading out 15° to 35° away from it and
 //   for colors under 0.02 to 0.06 of chroma.
+// - Skin pull (after saturation) turns the hue of the same colors (that weight) toward the skin line,
+//   by up to `SKIN_PULL_REACH` of the way at 100, chroma and luma kept.
 
 /** Rec.709 luma weights. */
 export const LUMA: Rgb = [0.2126, 0.7152, 0.0722];
@@ -157,4 +159,46 @@ export function rolloff(x: number, knee: number): number {
   if (knee >= 1 || x <= knee) return x;
   const span = 1 - knee;
   return knee + span * (1 - Math.exp(-(x - knee) / span));
+}
+
+/** How much of the way to the skin line skin pull turns a skin hue at 100. */
+export const SKIN_PULL_REACH = 0.75;
+
+/** Rec.709 Y'CbCr of a color: `[y, cb, cr]`. */
+export function toYcc(rgb: Rgb): Rgb {
+  const y = luma(rgb);
+  return [y, (rgb[2] - y) / CB, (rgb[0] - y) / CR];
+}
+
+/** Back from Y'CbCr. */
+export function fromYcc(y: number, cb: number, cr: number): Rgb {
+  const r = y + CR * cr;
+  const b = y + CB * cb;
+  return [r, (y - LUMA[0] * r - LUMA[2] * b) / LUMA[1], b];
+}
+
+/**
+ * How much a color counts as skin, from its CbCr and their length: 1 on the skin line, fading out
+ * `SKIN_NEAR` to `SKIN_FAR` away from it and under `SKIN_CHROMA` of chroma. Protect skin and skin
+ * pull both use it.
+ */
+export function skinWeight(cb: number, cr: number, length: number): number {
+  if (length <= NO_HUE) return 0;
+  const turn = Math.abs(Math.atan2(cr, cb) - SKIN_ANGLE);
+  const away = Math.min(turn, 2 * Math.PI - turn);
+  return (1 - smoothstep(SKIN_NEAR, SKIN_FAR, away)) * smoothstep(...SKIN_CHROMA, length);
+}
+
+/** Skin pull: a skin hue turned toward the skin line by `pull` (0 to `SKIN_PULL_REACH`) of the way, times its skin weight. */
+export function pullSkin(rgb: Rgb, pull: number): Rgb {
+  const [y, cb, cr] = toYcc(rgb);
+  const length = Math.hypot(cb, cr);
+  const w = skinWeight(cb, cr, length);
+  if (w <= 0) return rgb;
+  let away = Math.atan2(cr, cb) - SKIN_ANGLE;
+  if (away < -Math.PI) away += 2 * Math.PI;
+  const turn = -away * pull * w;
+  const cos = Math.cos(turn);
+  const sin = Math.sin(turn);
+  return fromYcc(y, cos * cb - sin * cr, sin * cb + cos * cr);
 }

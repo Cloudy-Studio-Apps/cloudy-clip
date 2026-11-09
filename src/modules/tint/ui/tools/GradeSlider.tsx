@@ -13,10 +13,21 @@ interface GradeSliderProps {
   edit: LiveEdit;
   /** The patch that sets the number to `value`. */
   patch(value: number): EditPatch;
+  /** Leaves out the label (still its accessible name), for a narrow column. */
+  bare?: boolean;
 }
 
 /** A slider row of one number of a correction: live while dragging, one command on release (none when unchanged). */
-export function GradeSlider({ path, label, step, value, resetTo, edit, patch }: GradeSliderProps) {
+export function GradeSlider({
+  path,
+  label,
+  step,
+  value,
+  resetTo,
+  edit,
+  patch,
+  bare,
+}: GradeSliderProps) {
   const { min, max } = GRADE_RANGES[path]!;
   return (
     <SliderField
@@ -27,6 +38,7 @@ export function GradeSlider({ path, label, step, value, resetTo, edit, patch }: 
       step={step}
       disabled={!edit.enabled}
       resetTo={resetTo}
+      bare={bare}
       onInput={(next) => edit.preview(patch(next))}
       onCommit={(next) => {
         if (next === value) edit.cancel();
