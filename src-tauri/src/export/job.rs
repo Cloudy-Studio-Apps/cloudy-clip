@@ -2,7 +2,7 @@
 //! renamed only when all are complete, so a failed export never leaves something that looks
 //! finished. A measurement (the sound module's analysis) runs as a job too, writing nothing.
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -15,8 +15,8 @@ use tokio::process::{Child, ChildStdin};
 use tokio::sync::{Mutex, OnceCell};
 
 use super::recipe::{Recipe, ScriptOption, arguments, partial_of, script_of};
-use super::spec::ExportSpec;
-use crate::media::proxy::{Tools, command};
+use super::spec::{ExportSpec, SoundSegment};
+use crate::media::proxy::{Tools, command, ffprobe};
 
 /// Lines of FFmpeg's complaints kept to explain a failure.
 const TAIL_LINES: usize = 6;
@@ -41,6 +41,21 @@ pub async fn script_option(ffmpeg: &Path) -> ScriptOption {
             )
         })
         .await
+}
+
+/// Marks the sounds of one-channel files.
+pub async fn find_mono(tools: &Tools, sound: &mut [SoundSegment]) {
+    let mut known: HashMap<String, bool> = HashMap::new();
+    for segment in sound {
+        if let Some(mono) = known.get(&segment.path) {
+            segment.mono = *mono;
+            continue;
+        }
+        let probe = ffprobe(tools, Path::new(&segment.path), false).await;
+        let mono = probe.is_ok_and(|probe| probe.audio_channels == Some(1));
+        known.insert(segment.path.clone(), mono);
+        segment.mono = mono;
+    }
 }
 
 /// What hears each line a job's FFmpeg prints.

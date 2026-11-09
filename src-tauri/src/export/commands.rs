@@ -1,6 +1,5 @@
 //! Tauri commands of the export module.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -8,12 +7,12 @@ use serde::Serialize;
 use tauri::State;
 
 use super::encoders::{Capabilities, capabilities};
-use super::job::{Job, script_option};
-use super::spec::{ExportSpec, Format, SoundSegment};
+use super::job::{Job, find_mono, script_option};
+use super::spec::{ExportSpec, Format};
 use super::{FrameUrl, Jobs, PartialNotes};
 use crate::error::{AppError, AppResult};
 use crate::media::MediaRegistry;
-use crate::media::proxy::{Tools, command, ffprobe, find_tools};
+use crate::media::proxy::{command, find_tools};
 use crate::media::server::random_token;
 
 /// Where a started export takes its frames.
@@ -40,21 +39,6 @@ async fn card_for(spec: &ExportSpec) -> Option<String> {
         Format::H264 => found.h264_card.clone(),
         Format::H265 => found.h265_card.clone(),
         _ => None,
-    }
-}
-
-/// Marks the sounds of one-channel files.
-pub(crate) async fn find_mono(tools: &Tools, sound: &mut [SoundSegment]) {
-    let mut known: HashMap<String, bool> = HashMap::new();
-    for segment in sound {
-        if let Some(mono) = known.get(&segment.path) {
-            segment.mono = *mono;
-            continue;
-        }
-        let probe = ffprobe(tools, Path::new(&segment.path), false).await;
-        let mono = probe.is_ok_and(|probe| probe.audio_channels == Some(1));
-        known.insert(segment.path.clone(), mono);
-        segment.mono = mono;
     }
 }
 

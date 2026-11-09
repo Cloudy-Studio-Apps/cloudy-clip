@@ -14,11 +14,13 @@
 //! - A **peak** problem is a stretch of 100 ms frames whose true peak (each frame's peak at four
 //!   times the mix's rate, as BS.1770 defines it) is over the peak limit. Adjacent frames over it
 //!   merge into one stretch; its level is the highest frame's.
-//! - A **clipped** problem is a stretch of frames with a sample at or over 0 dBFS, which a file of
+//! - A **clipped** problem is a stretch of frames with a sample peak over 0 dBFS (by more than [`CLIP_OVER_DB`]), which a file of
 //!   whole numbers cuts off. Measured in 32-bit float, so it is seen before it is cut. A clipped
 //!   stretch is over any peak limit at or under 0 dBTP too, so it is also within a peak problem.
 
 use serde::Serialize;
+
+use super::stretches::Stretches;
 
 /// What is measured on the mix's master output: frames of 100 ms (`asetnsamples`, at the mix's
 /// 48 kHz), so problems are placed to a tenth of a second; `ebur128` for the summary (its
@@ -38,8 +40,9 @@ pub(crate) const MEASURE: &str = concat!(
 
 /// `ebur128` reports this when nothing passed its absolute gate.
 const GATE_LUFS: f64 = -70.0;
-/// A sample at or over this (dBFS) is cut off in a file of whole numbers.
-const FULL_SCALE_DB: f64 = 0.0;
+/// A sample peak over this (dBFS) is cut off in a file of whole numbers. A hair over 0, because
+/// `astats` prints 6 decimals: a legitimate full-scale peak, or a printed `-0.000000`, is not a clip.
+const CLIP_OVER_DB: f64 = 0.0001;
 
 /// What kind of trouble a stretch is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -47,7 +50,7 @@ const FULL_SCALE_DB: f64 = 0.0;
 pub enum ProblemKind {
     /// True peak over the peak limit.
     Peak,
-    /// A sample at or over 0 dBFS.
+    /// A sample over 0 dBFS.
     Clipped,
 }
 
@@ -69,49 +72,6 @@ pub struct Analysis {
     pub range: f64,
     pub true_peak: Option<f64>,
     pub problems: Vec<Problem>,
-}
-
-/// Frames of one printer, merged into problem stretches as they come.
-struct Stretches {
-    kind: ProblemKind,
-    /// The time of the frame whose value comes next.
-    frame: Option<u64>,
-    /// Where the stretch under way started, and its highest level.
-    open: Option<(u64, f64)>,
-    found: Vec<Problem>,
-}
-
-impl Stretches {
-    fn new(kind: ProblemKind) -> Self {
-        Self {
-            kind,
-            frame: None,
-            open: None,
-            found: Vec::new(),
-        }
-    }
-
-    /// The frame at `at` measured `level`; `over` says whether that is trouble.
-    fn measured(&mut self, at: u64, level: f64, over: bool) {
-        match (&mut self.open, over) {
-            (Some((_, highest)), true) => *highest = highest.max(level),
-            (None, true) => self.open = Some((at, level)),
-            (Some(_), false) => self.close(at),
-            (None, false) => {}
-        }
-    }
-
-    /// Ends the stretch under way at `end`.
-    fn close(&mut self, end: u64) {
-        if let Some((at, level)) = self.open.take() {
-            self.found.push(Problem {
-                at,
-                duration: end.saturating_sub(at),
-                kind: self.kind,
-                level,
-            });
-        }
-    }
 }
 
 /// What an analysis has heard so far, from FFmpeg's lines one at a time.
@@ -182,19 +142,15 @@ impl Listening {
     fn frame_line(&mut self, said: &str, sample: bool) -> Option<f32> {
         let said = said.split_once("] ")?.1;
         let (peak_limit, stretches) = if sample {
-            (FULL_SCALE_DB, &mut self.clipped)
+            (CLIP_OVER_DB, &mut self.clipped)
         } else {
             (self.peak_limit, &mut self.peaks)
         };
         if let Some(value) = said.strip_prefix("lavfi.astats.Overall.Peak_level=") {
             let at = stretches.frame.take()?;
             let level = number(value)?;
-            // A clip is at or over full scale; a peak is over its limit.
-            let over = if sample {
-                level >= peak_limit
-            } else {
-                level > peak_limit
-            };
+            // A clip is over full scale; a peak is over its limit.
+            let over = level > peak_limit;
             stretches.measured(at, level, over);
             return None;
         }
@@ -211,10 +167,13 @@ impl Listening {
         })
     }
 
-    /// The figures, once FFmpeg is done. Fails when it printed no summary.
+    /// The figures, once FFmpeg is done. Fails when it printed no summary, or one with no peak.
     pub(crate) fn result(&mut self) -> Result<Analysis, String> {
         if !self.in_summary {
             return Err("FFmpeg measured nothing".to_owned());
+        }
+        if self.true_peak.is_none() {
+            return Err("FFmpeg's summary had no peak".to_owned());
         }
         self.clipped.close(self.duration);
         self.peaks.close(self.duration);
@@ -292,6 +251,30 @@ mod tests {
     }
 
     #[test]
+    fn a_full_scale_peak_is_not_a_clip() {
+        let mut heard = Listening::new(200_000, -1.0);
+        for line in [
+            "[ametadata@sample @ 0x1] frame:0    pts:0       pts_time:0",
+            "[ametadata@sample @ 0x1] lavfi.astats.Overall.Peak_level=-0.000000",
+            "[ametadata@sample @ 0x1] frame:1    pts:4800    pts_time:0.1",
+            "[ametadata@sample @ 0x1] lavfi.astats.Overall.Peak_level=0.000000",
+            "[Parsed_ebur128_2 @ 0x2] Summary:",
+            "    Peak:  0.0 dBFS",
+        ] {
+            heard.hear(line);
+        }
+        assert!(heard.result().unwrap().problems.is_empty());
+    }
+
+    #[test]
+    fn a_summary_without_a_peak_is_an_error() {
+        let mut heard = Listening::new(100_000, -1.0);
+        heard.hear("[Parsed_ebur128_2 @ 0x2] Summary:");
+        heard.hear("  I:         -23.0 LUFS");
+        assert!(heard.result().is_err());
+    }
+
+    #[test]
     fn a_stretch_still_over_at_the_end_runs_to_it() {
         let mut heard = Listening::new(300_000, -1.0);
         for line in [
@@ -302,6 +285,7 @@ mod tests {
             "[ametadata@true @ 0x1] frame:2    pts:38336   pts_time:0.2",
             "[ametadata@true @ 0x1] lavfi.astats.Overall.Peak_level=-0.2",
             "[Parsed_ebur128_2 @ 0x2] Summary:",
+            "    Peak:  -0.2 dBFS",
         ] {
             heard.hear(line);
         }

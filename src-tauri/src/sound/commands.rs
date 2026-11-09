@@ -11,8 +11,8 @@ use super::analyze::Analysis;
 use super::floor::{MEASURE_ARGS, parse_floor, stretch_args};
 use super::record::{TakeStarted, TakeWritten, Takes};
 use crate::error::{AppError, AppResult};
+use crate::export::PartialNotes;
 use crate::export::spec::SoundOnlySpec;
-use crate::export::{Jobs, PartialNotes};
 use crate::media::MediaRegistry;
 use crate::media::denoise::AFFTDN_NF;
 use crate::media::proxy::{command, find_tools};
@@ -101,11 +101,10 @@ pub async fn sound_analyze_begin(
     spec: SoundOnlySpec,
     peak_limit: f64,
     on_progress: Channel<f32>,
-    jobs: State<'_, Arc<Jobs>>,
     notes: State<'_, PartialNotes>,
     analyses: State<'_, Analyses>,
 ) -> AppResult<String> {
-    analyses::begin(spec, peak_limit, on_progress, &jobs, &notes, &analyses).await
+    analyses::begin(spec, peak_limit, on_progress, &notes, &analyses).await
 }
 
 /// Waits for an analysis to end and returns its figures: integrated loudness (LUFS; null when
@@ -114,21 +113,19 @@ pub async fn sound_analyze_begin(
 #[tauri::command]
 pub async fn sound_analyze_finish(
     job_id: String,
-    jobs: State<'_, Arc<Jobs>>,
     notes: State<'_, PartialNotes>,
     analyses: State<'_, Analyses>,
 ) -> AppResult<Analysis> {
-    analyses::finish(&job_id, &jobs, &notes, &analyses).await
+    analyses::finish(&job_id, &notes, &analyses).await
 }
 
 /// Stops an analysis. One that already ended is left alone.
 #[tauri::command]
 pub async fn sound_analyze_cancel(
     job_id: String,
-    jobs: State<'_, Arc<Jobs>>,
     notes: State<'_, PartialNotes>,
     analyses: State<'_, Analyses>,
 ) -> AppResult<()> {
-    analyses::cancel(&job_id, &jobs, &notes, &analyses).await;
+    analyses::cancel(&job_id, &notes, &analyses).await;
     Ok(())
 }

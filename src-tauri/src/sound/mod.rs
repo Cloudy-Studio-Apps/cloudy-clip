@@ -9,6 +9,7 @@ pub mod commands;
 mod floor;
 mod microphone;
 mod record;
+mod stretches;
 
 use tauri::{App, Manager};
 

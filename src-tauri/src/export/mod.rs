@@ -21,24 +21,24 @@ use tauri::{App, Manager};
 
 use job::Job;
 
-/// Exports running now, by id, and the sound module's analyses (`Job::measure`).
+/// Exports running now, by id.
 #[derive(Default)]
 pub struct Jobs {
     running: RwLock<HashMap<String, Arc<Job>>>,
 }
 
 impl Jobs {
-    pub(crate) fn get(&self, id: &str) -> Option<Arc<Job>> {
+    pub(super) fn get(&self, id: &str) -> Option<Arc<Job>> {
         self.running.read().ok()?.get(id).cloned()
     }
 
-    pub(crate) fn add(&self, id: String, job: Arc<Job>) {
+    pub(super) fn add(&self, id: String, job: Arc<Job>) {
         if let Ok(mut running) = self.running.write() {
             running.insert(id, job);
         }
     }
 
-    pub(crate) fn take(&self, id: &str) -> Option<Arc<Job>> {
+    pub(super) fn take(&self, id: &str) -> Option<Arc<Job>> {
         self.running.write().ok()?.remove(id)
     }
 }
