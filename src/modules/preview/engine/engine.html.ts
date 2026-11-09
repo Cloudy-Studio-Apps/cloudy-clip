@@ -520,15 +520,19 @@ export class HtmlMediaEngine implements PreviewEngine {
       landLayer(on, layer.canvas, { mode, opacity: composite.opacity });
     };
 
-    // One clip alone (a capture's `only`): every other top-level clip is left out.
-    const { only } = this.picture;
-    const drawn = (clip: Clip) => prefix !== "" || only === null || clip.id === only;
+    // One clip alone (a capture's `only`): its own picture, so no other top-level clip and no
+    // junction mix (which would pull in the clip beside it), at Normal with its opacity.
+    const only = prefix === "" ? this.picture.only : null;
     // Tracks are top → bottom; draw bottom first so higher tracks end up on top.
     for (let i = tracks.length - 1; i >= 0; i--) {
       const { track, clips } = tracks[i]!;
       if (track.kind !== "video" || track.hidden) continue;
-      const shown = clips.map(({ clip }) => clip).filter(drawn);
-      if (shown.length === 0) continue;
+      if (only !== null) {
+        const alone = clips.find(({ clip }) => clip.id === only);
+        if (alone) drawClip(target, alone.clip, false);
+        continue;
+      }
+      const shown = clips.map(({ clip }) => clip);
       drawTrack(
         target,
         { project, format, track, clips: shown, time },

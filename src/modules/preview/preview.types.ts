@@ -708,7 +708,11 @@ export interface PictureOptions {
 export interface CaptureOptions {
   /** Leaves out every picture and frame filter. */
   bypassFilters?: boolean;
-  /** Draws this top-level clip alone (the background stays). */
+  /**
+   * Draws this top-level clip alone, over the composition's background: no other clip, no
+   * junction mix with the clip beside it, at Normal (its opacity kept). Its picture filters run,
+   * and so do the composition's frame filters, unless `bypassFilters`.
+   */
   only?: ClipId;
 }
 
