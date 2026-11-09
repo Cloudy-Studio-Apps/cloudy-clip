@@ -7,6 +7,7 @@ export {
   ClipVolumeLine,
   DrawVolumeTool,
   LineViewButton,
+  MasterLine,
   RecordingTake,
   SheetNote,
   SoloButton,

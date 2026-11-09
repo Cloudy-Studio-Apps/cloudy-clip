@@ -1,7 +1,8 @@
 import { createStore } from "zustand/vanilla";
 import { DEFAULT_MONITOR } from "@/modules/preview";
 import type { StoreApi } from "zustand";
-import type { TrackId } from "@/modules/project";
+import type { CompositionId, TrackId } from "@/modules/project";
+import { automationKey } from "./logic/automation";
 import type { AutomationMode, LineTarget, SoundViewState } from "./sound.types";
 
 /**
@@ -28,8 +29,10 @@ export function setAutomationMode(
   view: StoreApi<SoundViewState>,
   target: LineTarget,
   mode: AutomationMode,
+  compositionId: CompositionId | null,
 ): void {
-  view.setState((s) => ({ automation: { ...s.automation, [target]: mode } }));
+  const key = automationKey(target, compositionId);
+  view.setState((s) => ({ automation: { ...s.automation, [key]: mode } }));
 }
 
 /** Puts a track's volume line in front of its clips' lines, or behind them, in the view. */

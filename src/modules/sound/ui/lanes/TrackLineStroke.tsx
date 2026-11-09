@@ -1,14 +1,14 @@
 import { useRef } from "react";
 import { useKernel, useModule } from "@/core";
-import { projectRef, type TrackId } from "@/modules/project";
+import { projectRef } from "@/modules/project";
 import { TIMELINE_CONTENT } from "@/modules/timeline";
-import type { StrokePoint } from "../../sound.types";
+import type { LineTarget, StrokePoint } from "../../sound.types";
 import { startStroke } from "./trackline.gesture";
 import { sendStroke } from "./trackline.stroke";
 
 interface TrackLineStrokeProps {
-  trackId: TrackId;
-  /** The track's line is in front: the stroke writes it, else the clip under its start. */
+  target: LineTarget;
+  /** The line is in front: the stroke writes it, else the clip under its start. */
   inFront: boolean;
   pxPerSecond: number;
   /** The stretch drawn, in px of the timeline. */
@@ -21,7 +21,7 @@ interface TrackLineStrokeProps {
  * draws it in `--mark` through the DOM as it goes and sends it on release (`sendStroke`). It sits
  * in the box of `TrackLineLane`, whose left edge is the timeline's start.
  */
-export function TrackLineStroke({ trackId, inFront, pxPerSecond, from, to }: TrackLineStrokeProps) {
+export function TrackLineStroke({ target, inFront, pxPerSecond, from, to }: TrackLineStrokeProps) {
   const { bus } = useKernel();
   const project = useModule(projectRef).store;
   const surface = useRef<HTMLDivElement>(null);
@@ -48,7 +48,7 @@ export function TrackLineStroke({ trackId, inFront, pxPerSecond, from, to }: Tra
         sendStroke(stroked, {
           bus,
           state: project.getState(),
-          trackId,
+          target,
           inFront,
           box: area.getBoundingClientRect(),
           content,

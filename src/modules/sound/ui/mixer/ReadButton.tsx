@@ -1,7 +1,8 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
+import { useOpenComposition } from "@/modules/project";
 import { LetterToggle } from "@/ui";
-import { modeName, nextMode } from "../../logic/automation";
+import { automationKey, modeName, nextMode } from "../../logic/automation";
 import { soundRef } from "../../sound.ref";
 import type { LineTarget } from "../../sound.types";
 
@@ -12,14 +13,16 @@ import type { LineTarget } from "../../sound.types";
  */
 export function ReadButton({ target }: { target: LineTarget }) {
   const sound = useModule(soundRef);
-  const mode = useStore(sound.view, (s) => s.automation[target] ?? "read");
+  const compositionId = useOpenComposition()?.id ?? null;
+  const key = automationKey(target, compositionId);
+  const mode = useStore(sound.view, (s) => s.automation[key] ?? "read");
   const name = modeName(mode);
   return (
     <LetterToggle
       on={mode !== "read"}
       label={`Automation: ${name}. ${MODE_HINT[mode]} Click for ${modeName(nextMode(mode))}.`}
       tone="mark"
-      onToggle={() => sound.setAutomation(target, nextMode(mode))}
+      onToggle={() => sound.setAutomation(target, nextMode(mode), compositionId ?? undefined)}
     >
       {name}
     </LetterToggle>

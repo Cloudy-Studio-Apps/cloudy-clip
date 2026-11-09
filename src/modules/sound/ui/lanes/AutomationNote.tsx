@@ -1,7 +1,7 @@
 import { useStore } from "zustand";
 import { useModule } from "@/core";
-import { projectRef } from "@/modules/project";
-import { modeName, nextMode } from "../../logic/automation";
+import { projectRef, useOpenComposition } from "@/modules/project";
+import { automationKey, modeName, nextMode } from "../../logic/automation";
 import { soundRef } from "../../sound.ref";
 import type { LineTarget } from "../../sound.types";
 import { cn } from "@/ui";
@@ -19,8 +19,9 @@ export function AutomationNote() {
       ? selected
       : null,
   );
+  const compositionId = useOpenComposition()?.id ?? null;
   const mode = useStore(sound.view, (s) =>
-    trackId === null ? null : (s.automation[trackId] ?? "read"),
+    trackId === null ? null : (s.automation[automationKey(trackId, compositionId)] ?? "read"),
   );
   const className = "shrink-0 whitespace-nowrap px-1 font-mono text-sm text-muted-foreground";
   if (trackId === null || mode === null) {
@@ -38,7 +39,7 @@ export function AutomationNote() {
       type="button"
       className={cn(className, "cursor-pointer hover:text-foreground")}
       title={`Click for ${modeName(nextMode(mode))}`}
-      onClick={() => sound.setAutomation(trackId, nextMode(mode))}
+      onClick={() => sound.setAutomation(trackId, nextMode(mode), compositionId ?? undefined)}
     >
       Automation: {modeName(mode)}
     </button>

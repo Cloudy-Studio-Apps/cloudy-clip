@@ -37,14 +37,14 @@ export interface SoundViewState {
   monitor: MonitorState;
   /** The track a recording goes onto: an audio track that isn't muted. */
   armed: TrackId | null;
-  /** How each track's fader (and the master's, `"master"`) writes its volume line while playing; missing is Read. */
-  automation: Record<LineTarget, AutomationMode>;
+  /** By `automationKey` (a track, or the master of a composition): how each fader writes its volume line while playing; missing is Read. */
+  automation: Record<string, AutomationMode>;
   /** Tracks whose volume line is in front of their clips' lines: Draw volume draws on it. */
   lineView: Record<TrackId, boolean>;
   /** The pointer tool of the Sound page's lanes. */
   tool: SoundTool;
-  /** The selected point of a track's volume line: Delete removes it. */
-  linePoint: { trackId: TrackId; keyId: string } | null;
+  /** The selected point of a track's volume line, or the master's (`"master"`): Delete removes it. */
+  linePoint: { trackId: LineTarget; keyId: string } | null;
 }
 
 /**
@@ -215,8 +215,8 @@ export interface SoundApi {
   recorder: Recorder;
   /** Chooses the pointer tool of the lanes. */
   setTool(tool: SoundTool): void;
-  /** Sets how a track's fader, or the master's, writes its volume line while playing. */
-  setAutomation(target: LineTarget, mode: AutomationMode): void;
+  /** Sets how a track's fader, or the master's (of `compositionId`, default the open one), writes its volume line while playing. */
+  setAutomation(target: LineTarget, mode: AutomationMode, compositionId?: CompositionId): void;
   /** Puts a track's volume line in front of its clips' lines, or behind. */
   setLineView(trackId: TrackId, inFront: boolean): void;
   /** Writes fader passes onto volume lines. */
@@ -350,12 +350,6 @@ export type MixTarget = TrackId | BusId | "master";
 
 /** What has a volume line: an audio track, or the master of a composition. */
 export type LineTarget = TrackId | "master";
-
-/** Where a line command acts: a track, or the master of `compositionId` (default: the open one). */
-export interface LineWhere {
-  target: LineTarget;
-  compositionId?: CompositionId;
-}
 
 /** A volume line found for a command (`lineOwner`): the line, how close two keys merge, and how to write it. */
 export interface LineOwner {
@@ -554,7 +548,7 @@ export interface SoonEntry {
   /** What it will do, one sentence. */
   what: string;
   /** The stage plan that builds it: `docs/superpowers/plans/2026-11-03-sound-<stage>-*.md`. */
-  stage: "2-followup" | 3 | 4 | 5 | 6;
+  stage: "2-followup" | 3 | 5 | 6;
 }
 
 /** The props a placeholder spreads: dimmed for screen readers, its tooltip, an arrow pointer, a click that does nothing. */
@@ -595,7 +589,8 @@ export interface LineDrag {
 export interface StrokeTarget {
   bus: CommandBus;
   state: ProjectState;
-  trackId: TrackId;
+  /** A track, or "master" (always in front). */
+  target: LineTarget;
   /** The track's line is in front: the stroke writes it; otherwise the clip under its start. */
   inFront: boolean;
   /** The track line's box on screen; its left edge is the timeline's start. */

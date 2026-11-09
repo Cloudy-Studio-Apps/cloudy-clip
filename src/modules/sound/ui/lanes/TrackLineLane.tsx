@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { notify, useKernel, useModule } from "@/core";
 import { KeyDiamond, keyframeRef } from "@/modules/keyframe";
-import { formatDb, VOLUME_DB_MAX, VOLUME_DB_MIN, type Track } from "@/modules/project";
+import { formatDb, VOLUME_DB_MAX, VOLUME_DB_MIN, type KeyTrack } from "@/modules/project";
 import { pxToTime, TIMELINE_CONTENT } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { lineDb } from "../../logic/automation";
@@ -10,12 +10,15 @@ import { levelTop, movedLine, polylineOf } from "../../logic/clipline";
 import { trackLineKeys, trackLinePoints } from "../../logic/trackline";
 import { moveLineKeys, setLineKey } from "../../sound.line.commands";
 import { soundRef } from "../../sound.ref";
-import type { LineKey, LinePoint } from "../../sound.types";
+import type { LineKey, LinePoint, LineTarget } from "../../sound.types";
 import { startLineGesture } from "./clipline.gesture";
 import { TrackLineStroke } from "./TrackLineStroke";
 
 interface TrackLineLaneProps {
-  track: Track;
+  /** A track id, or "master" (the open composition's, in its `data-master-lane`). */
+  target: LineTarget;
+  /** The line being shown; none yet when it has no keys. */
+  line: KeyTrack | undefined;
   /** The line is in front of the clips' lines: its points drag, a double-click adds one. */
   inFront: boolean;
   /** Draw volume is the tool: the lane takes strokes. */
@@ -30,7 +33,7 @@ interface TrackLineLaneProps {
 }
 
 /**
- * One track's volume line over its lane, in the same box and taper as a clip's line: keyed points
+ * One track's (or the master's) volume line over its lane, in the same box and taper as a clip's line: keyed points
  * as diamonds, flat at 0 dB with no keys (shown only in front). In front, a diamond drags (one
  * `sound.moveLineKeys` on release; Escape puts it back) and a double-click on the line adds a
  * point at its level there (`sound.setLineKey`), and a press selects the point (`view.linePoint`;
@@ -38,24 +41,25 @@ interface TrackLineLaneProps {
  * is measured from the timeline's lane.
  */
 export function TrackLineLane(props: TrackLineLaneProps) {
-  const { track, inFront, drawing, headerWidth, pxPerSecond, from, to } = props;
+  const { target, line, inFront, drawing, headerWidth, pxPerSecond, from, to } = props;
   const { bus } = useKernel();
   const wrapper = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const lines = useRef<(SVGPolylineElement | null)[]>([]);
   const diamonds = useRef(new Map<string, HTMLDivElement>());
-  const line = track.mix?.volumeLine;
   const sound = useModule(soundRef);
   const keyframes = useModule(keyframeRef).view;
   const picked = useStore(sound.view, (s) =>
-    s.linePoint?.trackId === track.id ? s.linePoint.keyId : null,
+    s.linePoint?.trackId === target ? s.linePoint.keyId : null,
   );
 
   useLayoutEffect(() => {
     const element = wrapper.current;
     const content = element?.closest<HTMLElement>(TIMELINE_CONTENT);
     if (!element || !content) return;
-    const lane = content.querySelector<HTMLElement>(`[data-track-id="${CSS.escape(track.id)}"]`);
+    const lane = content.querySelector<HTMLElement>(
+      target === "master" ? "[data-master-lane]" : `[data-track-id="${CSS.escape(target)}"]`,
+    );
     if (!lane) {
       element.style.visibility = "hidden";
       return;
@@ -81,7 +85,7 @@ export function TrackLineLane(props: TrackLineLaneProps) {
   };
   const press = (key: LineKey, down: PointerEvent) => {
     // One selected point at a time, across clip and track lines: Delete goes to this one.
-    sound.view.setState({ linePoint: { trackId: track.id, keyId: key.keyId } });
+    sound.view.setState({ linePoint: { trackId: target, keyId: key.keyId } });
     keyframes.setState({ selection: [], focused: false });
     if (!box.current) return;
     startLineGesture({
@@ -94,12 +98,12 @@ export function TrackLineLane(props: TrackLineLaneProps) {
         if (!at || (at.x === key.x && at.db === key.db)) return show(key, key);
         const delta = pxToTime(at.x - key.x, pxPerSecond);
         // Float sums must not step past the range by a hair.
-        const target = Math.min(VOLUME_DB_MAX, Math.max(VOLUME_DB_MIN, at.db));
-        let deltaDb = target - key.db;
+        const level = Math.min(VOLUME_DB_MAX, Math.max(VOLUME_DB_MIN, at.db));
+        let deltaDb = level - key.db;
         while (key.db + deltaDb > VOLUME_DB_MAX) deltaDb -= 1e-9;
         while (key.db + deltaDb < VOLUME_DB_MIN) deltaDb += 1e-9;
         void bus
-          .run(moveLineKeys, { target: track.id, keyIds: [key.keyId], delta, deltaDb })
+          .run(moveLineKeys, { target, keyIds: [key.keyId], delta, deltaDb })
           .then((result) => {
             if (result.ok) return;
             notify("error", result.error.message);
@@ -114,7 +118,7 @@ export function TrackLineLane(props: TrackLineLaneProps) {
       0,
       pxToTime(clientX - box.current.getBoundingClientRect().left, pxPerSecond),
     );
-    void bus.run(setLineKey, { target: track.id, at, db: lineDb(line, at) }).then((result) => {
+    void bus.run(setLineKey, { target, at, db: lineDb(line, at) }).then((result) => {
       if (!result.ok) notify("error", result.error.message);
     });
   };
@@ -158,7 +162,7 @@ export function TrackLineLane(props: TrackLineLaneProps) {
         )}
         {drawing && (
           <TrackLineStroke
-            trackId={track.id}
+            target={target}
             inFront={inFront}
             pxPerSecond={pxPerSecond}
             from={from}

@@ -21,17 +21,17 @@ export function sendStroke(points: readonly StrokePoint[], target: StrokeTarget)
 }
 
 /** The stroke on the track's line. */
-function onLine(points: readonly StrokePoint[], { bus, trackId, box, pxPerSecond }: StrokeTarget) {
+function onLine(points: readonly StrokePoint[], { bus, target, box, pxPerSecond }: StrokeTarget) {
   const levels = thinLevels(strokeLevels(points, box, 0, pxPerSecond, 0, Number.MAX_SAFE_INTEGER));
   const from = levels[0]?.at;
   const to = levels[levels.length - 1]?.at;
   if (from === undefined || to === undefined || to <= from) return null;
-  return bus.run(writePass, { target: trackId, from, to, points: levels });
+  return bus.run(writePass, { target, from, to, points: levels });
 }
 
 /** The stroke on the line of the clip it starts over, kept inside it. */
 function onClip(points: readonly StrokePoint[], first: StrokePoint, target: StrokeTarget) {
-  const { bus, state, trackId, box, content, pxPerSecond } = target;
+  const { bus, state, target: trackId, box, content, pxPerSecond } = target;
   const time = strokeLevels([first], box, 0, pxPerSecond, 0, Number.MAX_SAFE_INTEGER)[0]!.at;
   const clip = Object.values(state.clips).find(
     (c) => c.trackId === trackId && c.start <= time && time < c.start + c.duration,

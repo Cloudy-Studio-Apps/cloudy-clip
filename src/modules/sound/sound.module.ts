@@ -1,5 +1,5 @@
 import { AudioLines } from "lucide-react";
-import { appPages, defineModule, pagesRef } from "@/core";
+import { LOCAL_ACTOR, appPages, defineModule, pagesRef } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import { settingsSections } from "@/modules/settings";
@@ -41,6 +41,7 @@ import {
   SheetNote,
   SoloButton,
   SoundPage,
+  MasterLine,
   PointerLayer,
   TrackVolumeLine,
 } from "./ui";
@@ -119,6 +120,11 @@ export const soundModule = defineModule({
       scopes: ["all", "sound"],
       component: TrackVolumeLine,
     });
+    contribute(timelineOverlays, {
+      id: "sound.masterLine",
+      scopes: ["sound"],
+      component: MasterLine,
+    });
     contribute(clipActions, {
       id: "sound.clipLine",
       scopes: ["all", "sound"],
@@ -165,7 +171,8 @@ export const soundModule = defineModule({
         arm: recorder.arm,
         automation,
         setTool: (tool) => view.setState({ tool }),
-        setAutomation: (target, mode) => setAutomationMode(view, target, mode),
+        setAutomation: (target, mode, compositionId) =>
+          setAutomationMode(view, target, mode, compositionId ?? project.view.openFor(LOCAL_ACTOR)),
         setLineView: (trackId, inFront) => setLineInFront(view, trackId, inFront),
       },
     };

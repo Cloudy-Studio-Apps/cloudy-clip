@@ -1,6 +1,13 @@
 import { createStore } from "zustand/vanilla";
 import { LOCAL_ACTOR, notify, type Micros } from "@/core";
-import { clampDb, lineDb, lineFader, passSpans, returnToLine } from "./logic/automation";
+import {
+  automationKey,
+  clampDb,
+  lineDb,
+  lineFader,
+  passSpans,
+  returnToLine,
+} from "./logic/automation";
 import { writePasses } from "./sound.line.commands";
 import { followCompositionSwitch, followSoundPageLeave } from "./sound.leave";
 import type {
@@ -37,7 +44,8 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
   const state = createStore<AutomationState>()(() => ({ writing: [] }));
   const passes = new Map<LineTarget, AutomationPass>();
 
-  const modeOf = (target: LineTarget) => view.getState().automation[target] ?? "read";
+  const modeOf = (target: LineTarget, compositionId = project.view.openFor(LOCAL_ACTOR)) =>
+    view.getState().automation[automationKey(target, compositionId)] ?? "read";
   /** The target's line and fader now; the master's of `compositionId`, default the open one. */
   const faderOf = (target: LineTarget, compositionId = project.view.openFor(LOCAL_ACTOR)) =>
     lineFader(project.store.getState(), target, compositionId);
@@ -134,7 +142,7 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
     // A mode changed under a pass ends it.
     view.subscribe(() => {
       for (const [trackId, pass] of passes) {
-        if (modeOf(trackId) !== pass.mode) void end(trackId);
+        if (modeOf(trackId, pass.compositionId) !== pass.mode) void end(trackId);
       }
     }),
   ];

@@ -23,6 +23,14 @@ export function nextMode(mode: AutomationMode): AutomationMode {
   return MODES[(MODES.indexOf(mode) + 1) % MODES.length]!;
 }
 
+/**
+ * Where a target's automation mode is kept in the view: a track's by its id, the master's by its
+ * composition (each composition has a master of its own), `master:<id>`.
+ */
+export function automationKey(target: LineTarget, compositionId: CompositionId | null): string {
+  return target === "master" ? `master:${compositionId ?? ""}` : target;
+}
+
 /** How a mode is named on its button and in the timeline's tools. */
 export function modeName(mode: AutomationMode): string {
   return mode === "read" ? "Read" : mode === "touch" ? "Touch" : "Latch";
