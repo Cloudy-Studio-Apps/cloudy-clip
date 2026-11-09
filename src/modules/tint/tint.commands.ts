@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
-import { projectRef, type Correction } from "@/modules/project";
+import { DEFAULT_CORRECTION, projectRef, type Correction } from "@/modules/project";
 import { clearTools, ownedValues } from "./logic/tools";
 import { checkedGrade, dropTracks, readGrade, writeGrade } from "./tint.guards";
 import {
@@ -30,7 +30,7 @@ export const resetGrade = defineCommand({
   id: "tint.reset",
   label: "Reset grade",
   description:
-    'Resets a grade. Without tools, the whole grade goes and the target is ungraded (its key tracks go too). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are cleared on every correction (or on the one correction `nodeId`; `fields` names more top-level value fields to clear, such as "saturation") (the limit for "limit", the LUT for "luts"), along with their key tracks; the layers stay. Resetting an ungraded target does nothing. Fails with tint.target_not_found or tint.not_gradeable.',
+    'Resets a grade. With no tools, nodeId or fields, the whole grade goes and the target is ungraded (its key tracks go too). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are cleared (the limit for "limit", the LUT for "luts"), along with their key tracks; the layers stay. With nodeId, only that correction is touched (all tools when none are given); with fields (top-level value names such as "saturation"), those fields are cleared on top of the tools, and given alone they clear only those. Resetting an ungraded target does nothing. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found or tint.invalid_grade (a field that is not a correction field).',
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -40,6 +40,13 @@ export const resetGrade = defineCommand({
   }),
   run(ctx, { target, tools: given, nodeId, fields }) {
     const { store } = ctx.require(projectRef);
+    for (const name of fields ?? []) {
+      if (!Object.hasOwn(DEFAULT_CORRECTION, name)) {
+        throw new CommandFailure("tint.invalid_grade", `"${name}" is not a field of a correction`, {
+          field: name,
+        });
+      }
+    }
     const grade = readGrade(store.getState(), target);
     if (!grade) return;
     if (nodeId && grade.nodes[nodeId]?.kind !== "correct") {

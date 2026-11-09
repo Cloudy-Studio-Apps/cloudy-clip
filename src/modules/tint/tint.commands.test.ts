@@ -186,6 +186,10 @@ describe("grade commands", () => {
     const nodes = clip().grade!.nodes as Record<string, { values?: object }>;
     expect(nodes[a.nodeId]!.values).toBeUndefined();
     expect(nodes[b.nodeId]!.values).toEqual({ exposure: 2 });
+    for (const name of ["exposur", "__proto__", "constructor"]) {
+      const bad = await run(resetGrade, { target, fields: [name], nodeId: b.nodeId });
+      expect(bad).toMatchObject({ ok: false, error: { code: "tint.invalid_grade" } });
+    }
     await ok(resetGrade, { target, fields: ["exposure"], nodeId: b.nodeId });
     expect((clip().grade!.nodes as typeof nodes)[b.nodeId]!.values).toBeUndefined();
     const before = clip().grade;

@@ -50,7 +50,7 @@ const describe = defineMcpTool({
   name: "tint_describe",
   readOnly: true,
   description:
-    "Lists what a correction holds: every value field with its default, the range of each number by dotted path (min and max), the tools and the fields each owns (what tint_reset with tools clears), the camera color spaces a grade's input can be, the looks (none yet) and the LUTs (imported ones by id; built-in looks have ids starting with builtin:). Wheels are { x, y, m } in -1 to 1; curves are point lists [x, y] in 0 to 1.",
+    "Lists what a correction holds: every value field with its default, the range of each number by dotted path (min and max), the tools and the fields each owns (what tint_reset with tools clears; nodeId limits it to one correction, and fields names top-level value fields to clear alone or beside the tools), the camera color spaces a grade's input can be, the looks (none yet) and the LUTs (imported ones by id; built-in looks have ids starting with builtin:). Wheels are { x, y, m } in -1 to 1; curves are point lists [x, y] in 0 to 1.",
   input: z.object({}),
   handler(_input, ctx) {
     const state = ctx.require(projectRef).store.getState();
