@@ -7,6 +7,7 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule } from "@/modules/preview";
 import { createProjectModule, projectRef, seedProject, trackValue } from "@/modules/project";
 import { addClip, moveClip, timelineModule } from "@/modules/timeline";
+import { passLevels } from "./logic/automation";
 import { soundModule } from "./sound.module";
 import { setTrackMix } from "./sound.mix.commands";
 import { moveLineKeys, removeLineKeys, setLineKey, writePass } from "./sound.line.commands";
@@ -127,6 +128,21 @@ describe("writePass", () => {
     kernel.history.undo();
     expect(keys()).toHaveLength(4);
     expect(keys()[1]).toEqual([3 * S, -9]);
+  });
+
+  it("writes a looped Latch pass once, each lap on the line it began with", async () => {
+    await ok(setLineKey, { trackId: "a1", at: 0, db: -6 });
+    const snapshot = line();
+    // Two laps of a 0-4 s loop with the fader 4 dB under the track's volume.
+    const lap = () => [0, S, 2 * S, 3 * S, 4 * S].map((at) => ({ at, db: -10 }));
+    const points = passLevels([lap(), lap()], snapshot);
+    await ok(writePass, { trackId: "a1", from: 0, to: 4 * S, points });
+    expect(keys()).toEqual([
+      [0, -10],
+      [4 * S, -10],
+    ]);
+    kernel.history.undo();
+    expect(keys()).toEqual([[0, -6]]);
   });
 
   it("leaves the line after a Touch release unchanged", async () => {

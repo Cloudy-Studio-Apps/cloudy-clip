@@ -3,7 +3,7 @@ import { useStore } from "zustand";
 import { notify, useKernel, useModule } from "@/core";
 import { KeyDiamond, keyframeRef, moveKeys, setKey, setKeyValues } from "@/modules/keyframe";
 import { formatDb, projectRef, type Clip } from "@/modules/project";
-import { pxToTime, timelineRef, timeToPx } from "@/modules/timeline";
+import { pxToTime, timelineRef, timeToPx, useTimelineScope } from "@/modules/timeline";
 import { cn } from "@/ui";
 import {
   levelTop,
@@ -23,7 +23,7 @@ import { startLineGesture } from "./clipline.gesture";
  * level; double-click the line to add a key where it is; a selected diamond takes Delete (see
  * `ClipLineKeys`). Everything goes through `keyframe`'s commands, one per gesture. An unkeyed line
  * shows only on a selected or hovered clip, so a plain clip stays plain. While the track's own
- * line is in front (`lineView`), it shows faintly and takes no pointer. Its box carries
+ * line is in front (`lineView`, on the Sound page only), it shows faintly and takes no pointer. Its box carries
  * `data-clipline-area`, so Draw volume maps a stroke onto it.
  */
 export function ClipVolumeLine({ clip, selected }: { clip: Clip; selected: boolean }) {
@@ -36,8 +36,11 @@ export function ClipVolumeLine({ clip, selected }: { clip: Clip; selected: boole
     view,
     (s) => s.selection.find((ref) => ref.clipId === clip.id && ref.path === VOLUME_PATH)?.keyId,
   );
-  // The track's own line in front: this one shows faintly behind it and takes no pointer.
-  const behind = useStore(useModule(soundRef).view, (s) => s.lineView[clip.trackId] ?? false);
+  // The track's own line in front (on the Sound page): this one shows faintly and takes no pointer.
+  const sound = useModule(soundRef);
+  const scope = useTimelineScope();
+  const behind =
+    useStore(sound.view, (s) => s.lineView[clip.trackId] ?? false) && scope === "sound";
   const area = useRef<HTMLDivElement>(null);
   const lines = useRef<(SVGPolylineElement | null)[]>([]);
   const diamonds = useRef(new Map<string, HTMLDivElement>());
@@ -64,6 +67,7 @@ export function ClipVolumeLine({ clip, selected }: { clip: Clip; selected: boole
     }
   };
   const press = (key: LineKey, down: PointerEvent) => {
+    sound.view.setState({ linePoint: null });
     view.setState({
       selection: [{ clipId: clip.id, path: VOLUME_PATH, keyId: key.keyId }],
       focused: true,

@@ -5,6 +5,7 @@ import type {
   CompositionId,
   CompressorEffect,
   GateEffect,
+  KeyTrack,
   ProjectState,
   SoundEffect,
   TrackId,
@@ -35,6 +36,8 @@ export interface SoundViewState {
   lineView: Record<TrackId, boolean>;
   /** The pointer tool of the Sound page's lanes. */
   tool: SoundTool;
+  /** The selected point of a track's volume line: Delete removes it. */
+  linePoint: { trackId: TrackId; keyId: string } | null;
 }
 
 /**
@@ -70,7 +73,10 @@ export interface AutomationWriter {
   state: StoreApi<AutomationState>;
   /** The fader was pressed at `db`. True when the press writes the line (Touch or Latch, playing). */
   press(trackId: TrackId, db: number): boolean;
-  /** The fader of a writing press moved to `db`: heard at once, written each frame. */
+  /**
+   * The fader of a writing press moved to `db`: heard at once, written each frame. With its pass
+   * ended (playback stopped under the hold) it's still heard, and writes again once playing.
+   */
   move(trackId: TrackId, db: number): void;
   /** The fader of a writing press was let go: Touch ends its pass, Latch keeps writing. */
   release(trackId: TrackId): void;
@@ -78,7 +84,10 @@ export interface AutomationWriter {
   level(trackId: TrackId): number | null;
   /** Ends every pass, sending what each wrote. */
   finish(): Promise<void>;
-  /** Ends every pass and stops following playback, the page and the project. For the module. */
+  /**
+   * Drops every pass, sending nothing, and stops following playback, the page and the project.
+   * For the module's teardown: leaving the project sends them first (`beforeLeave`).
+   */
   dispose(): void;
 }
 
@@ -101,11 +110,26 @@ export interface AutomationPass {
   level: number;
   /** The fader is held. */
   held: boolean;
-  /** Levels written so far, in time order; empty until the first frame. */
-  points: LevelAt[];
+  /**
+   * The track's volume line when the pass began. Every lap writes relative to it, so a loop going
+   * round never adds the pass to itself.
+   */
+  snapshot: KeyTrack | undefined;
+  /**
+   * The stretches written, one per lap (a seek or the loop going round starts the next), each in
+   * time order; the last is being written. Sent together when the pass ends, a later lap winning
+   * where they overlap.
+   */
+  laps: LevelAt[][];
   /** Some level written differs from the line: there is something to send. */
   changed: boolean;
 }
+
+/**
+ * Feeds a fader the level heard now (dB), each frame it may change; returns what stops it. A track
+ * with a volume line hears the line plus the fader's offset, which the handle alone doesn't show.
+ */
+export type HeardFeed = (draw: (db: number) => void) => () => void;
 
 /** A stroke drawn over a lane with Draw volume, in screen coordinates. */
 export interface StrokeDrag {

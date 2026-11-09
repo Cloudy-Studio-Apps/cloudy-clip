@@ -63,7 +63,8 @@ export function TrackVolumeLine() {
   return (
     <div ref={root} className="pointer-events-none absolute inset-0 z-[11]">
       {audio.map((track) => {
-        const inFront = lineView[track.id] ?? false;
+        // In front only where L is: the Sound page. Edit draws every line behind.
+        const inFront = scope === "sound" && (lineView[track.id] ?? false);
         if (!track.mix?.volumeLine && !inFront && !drawing) return null;
         return (
           <TrackLineLane

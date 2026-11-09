@@ -16,5 +16,6 @@ export function createSoundView() {
     automation: {},
     lineView: {},
     tool: "select",
+    linePoint: null,
   }));
 }

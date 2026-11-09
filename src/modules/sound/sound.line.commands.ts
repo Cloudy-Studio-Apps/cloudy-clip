@@ -25,6 +25,9 @@ const at = z.number().int().min(0).describe("Timeline time in microseconds");
 /** A track's line with no keys yet: a number track over the volume range. */
 const EMPTY_LINE: KeyTrack = { blend: "number", min: VOLUME_DB_MIN, max: VOLUME_DB_MAX, keys: [] };
 
+/** A stroke or a pass is straight lines between its points, whatever eased before it. */
+const LINEAR = { kind: "linear" } as const;
+
 /** Two keys closer than half a frame are the same key. */
 function tolerance(state: ProjectState, trackId: TrackId): number {
   return Math.floor(frameDuration(formatOfTrack(state, trackId)) / 2);
@@ -141,7 +144,7 @@ export const writePass = defineCommand({
   id: "sound.writePass",
   label: "Write volume line",
   description:
-    'Replaces the points of an audio track\'s volume line from "from" to "to" (timeline microseconds, both included) with "points" ({at, db}, each inside that span, db -60 to 12); points outside the span stay as they were. With no points the span is cleared. This is one stroke of drawing or of a recorded fader pass. Fails with sound.line_range (a point outside the span or from after to), sound.not_audio and sound.track_not_found, changing nothing.',
+    'Replaces the points of an audio track\'s volume line from "from" to "to" (timeline microseconds, both included) with "points" ({at, db}, each inside that span, db -60 to 12); points outside the span stay as they were; the line runs straight from each written point to the next (and from the last to the point after the span). With no points the span is cleared. This is one stroke of drawing or of a recorded fader pass. Fails with sound.line_range (a point outside the span or from after to), sound.not_audio and sound.track_not_found, changing nothing.',
   undoable: true,
   input: z.object({
     trackId: z.string(),
@@ -166,7 +169,7 @@ export const writePass = defineCommand({
     );
     let next: KeyTrack | undefined = outside ?? { ...old, keys: [] };
     for (const point of [...points].sort((a, b) => a.at - b.at)) {
-      next = writeKey(next, point.at, point.db, 0);
+      next = writeKey(next, point.at, point.db, 0, LINEAR);
     }
     ctx.mutate(store, (draft) => writeLine(draft.tracks[trackId]!, next));
   },

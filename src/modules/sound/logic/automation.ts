@@ -46,3 +46,64 @@ export function thinLevels(levels: readonly LevelAt[]): LevelAt[] {
   const sorted = [...byTime].sort((a, b) => a[0] - b[0]).map(([at, value]) => ({ at, value }));
   return simplify(sorted, THIN_DB).map(({ at, value }) => ({ at, db: value }));
 }
+
+/** How often an eased stretch of a line is read when a pass keeps its shape (µs). */
+const EASED_STEP: Micros = 100_000;
+
+/** Whether the line's stretch through `at` bends (its key before `at` has an ease other than linear). */
+function bendsAt(line: KeyTrack | undefined, at: Micros): boolean {
+  const before = line?.keys.filter((key) => key.t <= at).at(-1);
+  return before?.ease !== undefined && before.ease.kind !== "linear";
+}
+
+/**
+ * The line's own levels from `from` to `to` (both kept): its keys there and, where it bends, a
+ * level every 100 ms, so points written over the stretch keep its shape.
+ */
+export function lineStretch(line: KeyTrack | undefined, from: Micros, to: Micros): LevelAt[] {
+  if (to < from) return [];
+  const times = new Set<Micros>([from, to]);
+  for (const key of line?.keys ?? []) if (key.t > from && key.t < to) times.add(key.t);
+  for (let at = from + EASED_STEP; at < to; at += EASED_STEP) {
+    if (bendsAt(line, at)) times.add(at);
+  }
+  return [...times].sort((a, b) => a - b).map((at) => ({ at, db: lineDb(line, at) }));
+}
+
+/**
+ * Where a Touch release returns: the line's own level at `at` and, when the line bends there, its
+ * levels until just before its next key, so the stretch after the release keeps its curve.
+ */
+export function returnToLine(line: KeyTrack | undefined, at: Micros): LevelAt[] {
+  const next = line?.keys.find((key) => key.t > at);
+  if (!next || !bendsAt(line, at) || next.t - 1 <= at) return [{ at, db: lineDb(line, at) }];
+  return lineStretch(line, at, next.t - 1);
+}
+
+/**
+ * The points of a whole pass, ready for one `sound.writePass`: its laps in the order written, a
+ * later lap replacing an earlier one where their spans overlap, and between laps that don't
+ * touch (a seek ahead) the line's own levels as they were (`snapshot`), then thinned
+ * (`thinLevels`). Empty when nothing was written.
+ */
+export function passLevels(laps: readonly LevelAt[][], snapshot: KeyTrack | undefined): LevelAt[] {
+  const written = new Map<Micros, number>();
+  const spans: [Micros, Micros][] = [];
+  for (const lap of laps) {
+    const first = lap[0];
+    const last = lap[lap.length - 1];
+    if (!first || !last) continue;
+    for (const at of written.keys()) if (at >= first.at && at <= last.at) written.delete(at);
+    for (const { at, db } of lap) written.set(at, db);
+    spans.push([first.at, last.at]);
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  let reach = spans[0]?.[1];
+  for (const [from, to] of spans.slice(1)) {
+    if (reach !== undefined && from > reach + 2) {
+      for (const { at, db } of lineStretch(snapshot, reach + 1, from - 1)) written.set(at, db);
+    }
+    reach = Math.max(reach ?? to, to);
+  }
+  return thinLevels([...written].map(([at, db]) => ({ at, db })));
+}

@@ -1,10 +1,13 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
+import { previewRef } from "@/modules/preview";
 import { projectRef, trackMixOf, type Track } from "@/modules/project";
 import { setTrackMuted } from "@/modules/timeline";
 import { cn, LetterToggle } from "@/ui";
+import { clampDb, lineDb } from "../../logic/automation";
 import { chainOf, placesUnheardEffects } from "../../logic/effects";
+import type { HeardFeed } from "../../sound.types";
 import { soundRef } from "../../sound.ref";
 import { SoloButton, useAutomationFader } from "../lanes";
 import { EffectChain } from "../effects";
@@ -43,6 +46,17 @@ export const MixerStrip = memo(function MixerStrip({ track, code, selected }: Mi
   );
   const metered = recording ? "input" : track.id;
   const fader = useAutomationFader(track.id);
+  const { playback } = useModule(previewRef);
+  // With a line, what's heard is the line at the playhead plus the fader's trim.
+  const heard = useCallback<HeardFeed>(
+    (draw) =>
+      playback.onTime((time) => {
+        const current = project.getState().tracks[track.id];
+        const line = current?.mix?.volumeLine;
+        if (current && line) draw(clampDb(lineDb(line, time) + trackMixOf(current).volumeDb));
+      }),
+    [playback, project, track.id],
+  );
   // A pass ending puts the handle back on the saved level.
   const writing = useStore(sound.automation.state, (s) => s.writing.includes(track.id));
 
@@ -82,6 +96,7 @@ export const MixerStrip = memo(function MixerStrip({ track, code, selected }: Mi
         value={writing ? fader.read() : trackMixOf(track).volumeDb}
         label={`${track.name} level`}
         offset={track.mix?.volumeLine !== undefined}
+        heard={heard}
         {...fader}
       >
         <Meter target={metered} side="left" />
