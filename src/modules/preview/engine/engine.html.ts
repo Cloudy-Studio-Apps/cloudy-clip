@@ -1,4 +1,4 @@
-import { createLogger, microsToSeconds, notify, type Micros } from "@/core";
+import { microsToSeconds, type Micros } from "@/core";
 import { canvasTextMeasure, mergeProps, type PictureDefinition } from "@/modules/element";
 import {
   clipComposite,
@@ -19,7 +19,6 @@ import {
   type Composition,
   type MediaAsset,
   type MediaId,
-  type PictureSize,
   type ProjectFormat,
   type ProjectState,
   speedOf,
@@ -34,29 +33,27 @@ import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
 import { placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
-import { GpuUnavailable } from "../gpu/gpu.errors";
-import { levelsPass } from "../gpu/gpu.levels";
-import type { GpuPass } from "../gpu/gpu.types";
 import type {
   LiveSound,
   LoudnessReading,
   MixLevels,
+  PictureOptions,
   PreviewEngine,
-  VideoLevels,
 } from "../preview.types";
 import { elementUrl, quietSlot, voiceSlot } from "./engine.audio";
 import { PITCH_LEAD_SECONDS } from "./engine.soundchain";
 import { ImageCache } from "./engine.images";
 import { landLayer } from "./engine.composite";
+import { EngineFilters } from "./engine.filters";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { createSoundMix } from "./engine.soundmix";
-import { ShrinkCanvas } from "./engine.shrink";
 import { MediaSlotPool } from "./engine.slots";
 import { RAMP_RATE_STEP, syncSlot } from "./engine.sync";
 import type {
   CachedPicture,
   EngineOptions,
+  FilterSubject,
   Nesting,
   PlacementTarget,
   ResolvedFrame,
@@ -68,8 +65,6 @@ function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
   return clip.mediaId !== undefined;
 }
 
-const log = createLogger("preview.engine");
-
 /** Clips starting within this window are prepared ahead so cuts don't stutter. */
 const PRELOAD_AHEAD: Micros = 1_500_000;
 /** Frames of an animated image loaded ahead of the one showing, so it plays without stalling. */
@@ -77,6 +72,9 @@ const PRELOAD_FRAMES: Micros = 1_000_000;
 
 /** No gesture or live patch: what clips inside a placement are drawn with. */
 const NOTHING = new Map();
+
+/** Every clip, with its filters, and nothing over the frame. */
+const PLAIN: PictureOptions = { bypass: false, compare: null, viewer: [], only: null };
 
 /** Draws a picture at its placement. `kx` and `ky` are canvas pixels per output pixel. */
 function land(
@@ -129,13 +127,11 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly awaited = new Set<MediaId>();
   /** Inside `playSlice`: the loudness tap stays off. */
   private slicing = false;
-  /** The levels pass of the last levels asked for, made again only when they change. */
-  private correction: { from: VideoLevels; pass: GpuPass } | null = null;
-  /** The GPU failed: told once; without WebGL2 for good, video draws uncorrected from then on. */
-  private gpuWarned = false;
-  private gpuGone = false;
-  /** Where a capped video frame is made smaller before its upload. */
-  private readonly shrink = new ShrinkCanvas();
+  /** Levels, filters and viewer passes, on the engine's GPU runner. */
+  private readonly filters: EngineFilters;
+  private picture: PictureOptions = PLAIN;
+  /** While drawing: whether filters run (not on the plain half of a compare, nor bypassed). */
+  private filtering = true;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -151,6 +147,11 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.mixCanvases = new MixCanvases(canvas);
     this.pictureOnly = options.pictureOnly ?? false;
     this.sound = createSoundMix(this.pictureOnly);
+    this.filters = new EngineFilters(options);
+  }
+
+  setPicture(options: PictureOptions): void {
+    this.picture = options;
   }
 
   setCanvas(canvas: HTMLCanvasElement): void {
@@ -290,10 +291,18 @@ export class HtmlMediaEngine implements PreviewEngine {
   ): void {
     // Sound clips crossfading under a junction (junction rule 4); fadeLevel folds them in.
     const gains = soundGains(project, composition, time);
+    // A filter still loading holds the frame, as an undecoded video does.
+    const filtering = !this.picture.bypass;
+    if (filtering && !this.filters.frameReady(composition, project)) this.settled = false;
     for (const { track, clips } of tracks) {
       // During a junction's overlap both clips are here, each on its own element (one per path),
       // and both frames must be ready before anything is painted.
       for (const { clip, path, inner } of clips) {
+        const shown = track.kind === "video" && !track.hidden;
+        const filtered = inner !== undefined || hasMedia(clip);
+        if (shown && filtered && filtering && !this.filters.clipReady({ clip, project })) {
+          this.settled = false;
+        }
         const sound = (propsOverrides.get(clip.id)?.sound as ClipSound) ?? soundOf(clip);
         const own =
           track.kind === "audio"
@@ -412,7 +421,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.mixCanvases.dispose();
     this.nested.dispose();
     this.options.gpu?.dispose();
-    this.shrink.dispose();
+    this.filters.dispose();
   }
 
   private draw(
@@ -422,11 +431,41 @@ export class HtmlMediaEngine implements PreviewEngine {
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
   ): void {
     const { ctx, canvas } = this;
+    const { bypass, compare, viewer } = this.picture;
+    this.paintFrame(project, frame, transforms, propsOverrides, !bypass);
+    if (compare !== null && !bypass) {
+      // The same frame without filters, left of the wipe.
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.beginPath();
+      ctx.rect(0, 0, Math.round(compare * canvas.width), canvas.height);
+      ctx.clip();
+      this.paintFrame(project, frame, transforms, propsOverrides, false);
+      ctx.restore();
+    }
+    this.filters.over(ctx, viewer);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.options.onDrawn?.();
+  }
+
+  /** The whole frame on the canvas, over its background, with or without filters. */
+  private paintFrame(
+    project: ProjectState,
+    frame: ResolvedFrame,
+    transforms: ReadonlyMap<ClipId, ClipTransform>,
+    propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
+    filtering: boolean,
+  ): void {
+    const { ctx, canvas } = this;
+    this.filtering = filtering;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = frame.composition.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     this.drawFrame(ctx, this.mixCanvases, project, frame, "", transforms, propsOverrides);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (!filtering) return;
+    const { composition, time } = frame;
+    const size = { width: canvas.width, height: canvas.height };
+    this.filters.over(ctx, this.filters.forFrame(composition, project, "", size, time));
   }
 
   /** Draws a frame's pictures onto `target`, which is sized like its composition's format. */
@@ -451,20 +490,21 @@ export class HtmlMediaEngine implements PreviewEngine {
     const paint = (on: CanvasRenderingContext2D, clip: Clip) => {
       const live = propsOverrides.get(clip.id)?.transform as Partial<ClipTransform> | undefined;
       const transform = transforms.get(clip.id) ?? clipTransform(clip, live);
+      const subject = { clip, project, path: pathOf(clip), time };
+      const box = { on, format, kx, ky };
       const inner = inners.get(clip.id);
       if (inner) {
-        const box = { on, format, kx, ky };
-        this.drawPlacement(box, project, inner, pathOf(clip), transform);
+        this.drawPlacement(box, subject, inner, transform);
         return;
       }
       const media = clip.mediaId ? project.media[clip.mediaId] : undefined;
       if (media?.kind === "image") {
         const [url] = this.imageFrames(media.id, time - clip.start, 0);
         const picture = url ? this.images.picture(url) : undefined;
-        if (picture) this.drawCached(on, format, picture, transform, kx, ky);
+        if (picture) this.drawCached(box, subject, picture, transform);
         return;
       }
-      this.drawClip(on, format, clip, pathOf(clip), time, transform, propsOverrides, kx, ky);
+      this.drawClip(box, subject, transform, propsOverrides);
     };
     // `blend` is false under a junction: the picture has no backdrop there (see `drawTrack`).
     const drawClip = (on: CanvasRenderingContext2D, clip: Clip, blend = true) => {
@@ -480,13 +520,18 @@ export class HtmlMediaEngine implements PreviewEngine {
       landLayer(on, layer.canvas, { mode, opacity: composite.opacity });
     };
 
+    // One clip alone (a capture's `only`): every other top-level clip is left out.
+    const { only } = this.picture;
+    const drawn = (clip: Clip) => prefix !== "" || only === null || clip.id === only;
     // Tracks are top → bottom; draw bottom first so higher tracks end up on top.
     for (let i = tracks.length - 1; i >= 0; i--) {
       const { track, clips } = tracks[i]!;
       if (track.kind !== "video" || track.hidden) continue;
+      const shown = clips.map(({ clip }) => clip).filter(drawn);
+      if (shown.length === 0) continue;
       drawTrack(
         target,
-        { project, format, track, clips: clips.map(({ clip }) => clip), time },
+        { project, format, track, clips: shown, time },
         mix,
         this.junctions,
         drawClip,
@@ -500,11 +545,11 @@ export class HtmlMediaEngine implements PreviewEngine {
    */
   private drawPlacement(
     { on, format, kx, ky }: PlacementTarget,
-    project: ProjectState,
+    subject: FilterSubject,
     inner: ResolvedFrame,
-    path: string,
     transform: ClipTransform,
   ): void {
+    const { project, path } = subject;
     const size = inner.composition.format;
     // No sharper than the preview itself: a 4K composition in a small window stays cheap.
     const limit = Math.max(this.canvas.width, this.canvas.height);
@@ -513,33 +558,48 @@ export class HtmlMediaEngine implements PreviewEngine {
     const height = Math.max(1, Math.round(size.height * ratio));
     const nested = this.nested.take(path, width, height);
     this.drawFrame(nested.ctx, nested.mix, project, inner, path, NOTHING, NOTHING);
-    land(on, nested.ctx.canvas, clipPlacement(format, size, transform), kx, ky);
+    const place = clipPlacement(format, size, transform);
+    let picture: CanvasImageSource = nested.ctx.canvas;
+    if (this.filtering) {
+      // Its composition's frame filters, then the clip's own, in one run.
+      const full = { width, height };
+      const passSize = this.options.capPasses ? cappedPassSize(full, place, kx, ky) : full;
+      const { composition, time } = inner;
+      const groups = [
+        ...this.filters.forFrame(composition, project, path, passSize, time),
+        ...this.filters.forClip(subject, passSize),
+      ];
+      picture = this.filters.picture(nested.ctx.canvas, full, passSize, groups);
+    }
+    land(on, picture, place, kx, ky);
   }
 
   /** Draws an image from the cache, where a video frame of its size would land. */
   private drawCached(
-    target: CanvasRenderingContext2D,
-    format: ProjectFormat,
+    { on, format, kx, ky }: PlacementTarget,
+    subject: FilterSubject,
     { source, width, height }: CachedPicture,
     transform: ClipTransform,
-    kx: number,
-    ky: number,
   ): void {
-    land(target, source, clipPlacement(format, { width, height }, transform), kx, ky);
+    const size = { width, height };
+    const place = clipPlacement(format, size, transform);
+    let picture: CanvasImageSource = source;
+    if (this.filtering) {
+      const passSize = this.options.capPasses ? cappedPassSize(size, place, kx, ky) : size;
+      const groups = this.filters.forClip(subject, passSize);
+      picture = this.filters.picture(source, size, passSize, groups);
+    }
+    land(on, picture, place, kx, ky);
   }
 
   /** Draws one clip onto `target` at its placement: a media frame or the element's own `draw`. */
   private drawClip(
-    target: CanvasRenderingContext2D,
-    format: ProjectFormat,
-    clip: Clip,
-    path: string,
-    time: Micros,
+    { on: target, format, kx, ky }: PlacementTarget,
+    subject: FilterSubject,
     transform: ClipTransform,
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
-    kx: number,
-    ky: number,
   ): void {
+    const { clip, path, time } = subject;
     const picture = this.elements.get(clip.kind)?.definition.picture;
     if (!picture) return;
     if (picture.source !== "media") {
@@ -564,40 +624,8 @@ export class HtmlMediaEngine implements PreviewEngine {
     const size = { width: element.videoWidth, height: element.videoHeight };
     const place = clipPlacement(format, size, transform);
     const passSize = this.options.capPasses ? cappedPassSize(size, place, kx, ky) : size;
-    land(target, this.videoFrame(element, size, passSize), place, kx, ky);
-  }
-
-  /**
-   * A video frame as the file holds it: through the levels pass at `passSize` when this webview
-   * squeezes video levels, else the element itself. Read once (drawn smaller first when
-   * `passSize` is under its `size`), so a playing video can't move on between two draws. A frame
-   * the GPU fails on draws uncorrected and the user is told once; without WebGL2 it stops trying.
-   */
-  private videoFrame(
-    element: HTMLVideoElement,
-    size: PictureSize,
-    passSize: PictureSize,
-  ): CanvasImageSource {
-    const levels = this.options.videoLevels?.() ?? null;
-    const gpu = this.options.gpu;
-    if (!levels || !gpu || this.gpuGone) return element;
-    if (this.correction?.from !== levels)
-      this.correction = { from: levels, pass: levelsPass(levels) };
-    try {
-      const small = this.shrink.fit(element, size, passSize);
-      return gpu.run(small, passSize, [this.correction.pass]);
-    } catch (error) {
-      if (error instanceof GpuUnavailable) this.gpuGone = true;
-      if (!this.gpuWarned) {
-        this.gpuWarned = true;
-        log.warn("Video levels could not be corrected", error);
-        notify(
-          "info",
-          "Video colors may look a little flat: the graphics card couldn't correct them.",
-        );
-      }
-      return element;
-    }
+    const groups = this.filtering ? this.filters.forClip(subject, passSize) : [];
+    land(target, this.filters.video(element, size, passSize, groups), place, kx, ky);
   }
 
   /** Draws an element that paints itself (text, a plugin's), at its placement. */

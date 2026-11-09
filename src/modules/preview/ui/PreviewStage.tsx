@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
+import { useStore } from "zustand";
 import { ErrorBoundary, useModule, usePoint } from "@/core";
 import { previewOverlays } from "../preview.points";
 import { previewRef } from "../preview.ref";
 import { FieldGuide } from "./FieldGuide";
 import { useStageLayout } from "./stage.layout.hook";
 import { useStageNavigation } from "./stage.navigation.hook";
+import { WipeLine } from "./WipeLine";
 
 interface PreviewStageProps {
   /**
@@ -18,7 +20,7 @@ interface PreviewStageProps {
 /**
  * The dark stage around the frame. The frame (canvas + overlays) is placed imperatively from the
  * viewer's zoom and pan, so zooming and panning cause no React renders.
- * Ctrl + wheel zooms, wheel or middle-drag pans.
+ * Ctrl + wheel zooms, wheel or middle-drag pans. While comparing, the wipe line sits over the frame.
  *
  * Only the newest mounted stage is drawn on (`attachCanvas`): a page that mounts its own takes the
  * frames while it is open, and the editor's stage gets them back when it closes.
@@ -29,6 +31,7 @@ export function PreviewStage({ bare = false }: PreviewStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const comparing = useStore(preview.picture.view, (s) => s.compare !== null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -57,6 +60,7 @@ export function PreviewStage({ bare = false }: PreviewStageProps) {
               </ErrorBoundary>
             </div>
           ))}
+        {comparing && <WipeLine />}
       </div>
     </div>
   );

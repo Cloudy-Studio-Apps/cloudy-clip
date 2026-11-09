@@ -170,6 +170,8 @@ it, so does the UI, and it becomes a command.
 | `keybindings`       | core (shell) | `{ id, key, mod?, shift?, resolve() → { command, input } \| null }`                    |
 | `libraryKinds`      | `media`      | `{ type, label, icon, useEntries, Tile, CreateButton? }`, items besides files          |
 | `previewOverlays`   | `preview`    | `{ id, component }`, drawn over the frame, in % of it                                  |
+| `pictureFilters`    | `preview`    | `{ id, order, applies, ready?, passes(info) }`, GPU passes on a clip's own picture     |
+| `frameFilters`      | `preview`    | `{ id, order, applies, ready?, passes(info) }`, GPU passes on a composition's frame    |
 | `elements`          | `element`    | an `ElementDefinition` (`defineElement`), keyed by `kind`                              |
 | `sharedGroups`      | `element`    | a `SharedGroup` (`defineSharedGroup`), keyed by `id`                                   |
 | `propTypes`         | `element`    | a `PropType` (`definePropType`), keyed by `name`                                       |

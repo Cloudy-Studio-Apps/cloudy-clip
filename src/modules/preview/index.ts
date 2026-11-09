@@ -4,8 +4,25 @@
  */
 export { pause, play, seek, setLoop, togglePlay } from "./preview.commands";
 export { HtmlMediaEngine } from "./engine/engine.html";
-/** Layers drawn over the preview frame; contribute with `ctx.contribute(previewOverlays, …)`. */
-export { previewOverlays } from "./preview.points";
+/**
+ * Extension points the preview reads: `previewOverlays` (layers drawn over the frame),
+ * `pictureFilters` (GPU passes on a clip's own picture before it lands: a clip's grade) and
+ * `frameFilters` (GPU passes on a composition's composed frame: a whole-timeline grade). Contribute
+ * with `ctx.contribute(point, …)`.
+ */
+export { frameFilters, pictureFilters, previewOverlays } from "./preview.points";
+/**
+ * Marks a pass uniform as a GLSL `int` (`gpuInt(2)`, or 2–4 numbers for `ivec2`…`ivec4`); a plain
+ * number is a `float`.
+ */
+export { gpuInt } from "./gpu/gpu.programs";
+/**
+ * GLSL declaring `vec3 blend(int mode, vec3 base, vec3 top)`: every blend mode as the canvas does
+ * it, `mode` being the index in `BLEND_MODES` (pass it with `gpuInt`). For a filter's own fragment.
+ */
+export { BLEND_GLSL } from "./gpu/gpu.blend";
+/** A pass of the GPU runner (fragment, inputs, uniforms, data textures) and its data texture. */
+export type { GpuPass, GpuTexture, GpuUniform } from "./gpu/gpu.types";
 export { MAX_ZOOM, MIN_ZOOM } from "./preview.viewport";
 /** How the user listens until told otherwise: stereo, not dimmed, speakers at 0 dB. */
 export { DEFAULT_MONITOR } from "./logic/mix";
@@ -17,6 +34,11 @@ export { dynamicsTransfer } from "./logic/dynamics";
 /** A linear peak in dBFS (full scale is 0), `-Infinity` for silence, as the meters read it. */
 export { peakToDb } from "./logic/db";
 export type {
+  CaptureOptions,
+  FilterInfo,
+  FilterTarget,
+  FrameFilter,
+  FrameFilterInfo,
   FrameRenderer,
   FrameRendererOptions,
   LiveSound,
@@ -24,8 +46,11 @@ export type {
   LoudnessReading,
   MixLevels,
   MonitorState,
+  PictureFilter,
+  PictureViewState,
   PlaybackClock,
   PreviewApi,
+  PreviewPictureApi,
   PreviewEngine,
   PreviewOverlay,
   PreviewSound,

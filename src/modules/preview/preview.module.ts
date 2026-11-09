@@ -19,6 +19,7 @@ import { rememberPlayheads } from "./logic/playheads";
 import { createCapture, createFrameRenderer } from "./preview.capture";
 import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
+import { createFilters } from "./preview.filters";
 import { createVideoLevelsMeter } from "./preview.levels";
 import { previewCommands, seek, togglePlay } from "./preview.commands";
 import { previewMcpTools } from "./preview.mcp";
@@ -54,6 +55,8 @@ export const previewModule = defineModule({
     );
     // Measured once per kernel; every engine asks for the result at each video frame.
     const levels = createVideoLevelsMeter(media, ctx.log);
+    // Picture and frame filters, read by every engine at each frame.
+    const filters = createFilters(ctx.points, ctx.log);
     const engineOptions = {
       mediaUrl: media.mediaUrl,
       reversedUrl: (id: string) => media.reversedUrl(id, false),
@@ -65,16 +68,18 @@ export const previewModule = defineModule({
       elements,
       junctions,
       videoLevels: levels.current,
+      filters: filters.current,
     };
     const captureDeps: PreviewCaptureDeps = {
       getProject: () => project.getState(),
       getComposition: (id) => project.getState().compositions[id] ?? null,
       ensureFont: (request) => fonts.ensure(request),
       levelsSettled: levels.settled,
-      createEngine: (canvas, ensureFont, options) =>
+      createEngine: (canvas, ensureFont, target, options) =>
         new HtmlMediaEngine(canvas, {
           ...engineOptions,
           ...options,
+          filterTarget: target,
           ensureFont,
           onFrameReady: () => undefined,
           pictureOnly: true,
@@ -95,11 +100,14 @@ export const previewModule = defineModule({
         };
       },
       subscribeMedia: (listener) => media.probes.subscribe(listener),
-      createEngine: (canvas, onFrameReady) =>
+      createEngine: (canvas, onFrameReady, onDrawn) =>
         new HtmlMediaEngine(canvas, {
           ...engineOptions,
           ensureFont: (request) => fonts.ensure(request),
           onFrameReady,
+          onDrawn,
+          filterTarget: "preview",
+          filterFailed: filters.failed,
           gpu: createGpuRunner(),
           capPasses: true,
         }),
@@ -147,6 +155,8 @@ export const previewModule = defineModule({
     };
     ctx.onDispose(view.store.subscribe(follow));
     ctx.onDispose(project.subscribe(follow));
+    // A filter contributed or removed changes every picture.
+    ctx.onDispose(filters.onChange(() => controller.redraw()));
     // A font arriving (or failing) changes how text is drawn and measured.
     ctx.onDispose(fonts.onLoaded(() => controller.redraw()));
     // Another page covers the preview, so nothing should keep playing behind it, unless the page

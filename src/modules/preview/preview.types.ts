@@ -2,7 +2,10 @@ import type { ActorId, Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { FontRequest } from "@/modules/fonts";
+import type { FilterSet } from "./engine/engine.types";
+import type { GpuPass } from "./gpu/gpu.types";
 import type {
+  Clip,
   ClipId,
   ClipTransform,
   Composition,
@@ -97,6 +100,11 @@ export interface PreviewEngine {
    * stay as they are, so what plays goes on without a gap.
    */
   setCanvas(canvas: HTMLCanvasElement): void;
+  /**
+   * How pictures are drawn from the next render on: filters bypassed, the compare wipe, the
+   * viewer's passes, one clip alone. Captures and renderers set only `bypass` and `only`.
+   */
+  setPicture(options: PictureOptions): void;
   /** Whether every visible layer has its frame for the last rendered time. */
   isSettled(): boolean;
   /** The canvas as a base64 PNG (no `data:` prefix). */
@@ -344,7 +352,12 @@ export interface PreviewControllerDeps {
   subscribeProject(listener: () => void): () => void;
   /** Called on every media metadata change (e.g. a proxy became ready). */
   subscribeMedia(listener: () => void): () => void;
-  createEngine(canvas: HTMLCanvasElement, onFrameReady: () => void): PreviewEngine;
+  /** The live engine: `onFrameReady` when a frame decodes while paused, `onDrawn` after each draw. */
+  createEngine(
+    canvas: HTMLCanvasElement,
+    onFrameReady: () => void,
+    onDrawn: () => void,
+  ): PreviewEngine;
   /** `requestAnimationFrame` in the app; a manual queue in tests. */
   requestFrame(callback: () => void): void;
   capture: PreviewCapture;
@@ -361,10 +374,14 @@ export interface PreviewCaptureDeps {
   ensureFont(request: FontRequest): boolean;
   /** Resolves once the first measure of video levels has ended, either way (no retry). */
   levelsSettled(): Promise<void>;
-  /** A picture-only engine that asks `ensureFont` about fonts. */
+  /**
+   * A picture-only engine that asks `ensureFont` about fonts. `target` is what filters are told
+   * (and both fail a frame when a filter does).
+   */
   createEngine(
     canvas: HTMLCanvasElement,
     ensureFont: (request: FontRequest) => boolean,
+    target: "capture" | "export",
     options?: Pick<FrameRendererOptions, "mediaUrl" | "reversedUrl">,
   ): PreviewEngine;
 }
@@ -442,7 +459,7 @@ export interface Scrubber {
 
 /** Offscreen capture, owned by the preview controller. */
 export interface PreviewCapture {
-  captureAt(time: Micros, compositionId: CompositionId): Promise<string>;
+  captureAt(time: Micros, compositionId: CompositionId, options?: CaptureOptions): Promise<string>;
   dispose(): void;
 }
 
@@ -482,10 +499,13 @@ export interface PreviewApi {
   /** Redraws on the next frame (e.g. after the canvas was resized). */
   redraw(): void;
   /**
-   * The timeline at `time` as a base64 PNG at the project's size. Doesn't touch the user's preview
-   * and works with the window hidden. Rejects if a frame isn't decoded within 3 s.
+   * The timeline at `time` as a base64 PNG at the project's size, filters applied (never the
+   * viewer's bypass, compare or passes). Doesn't touch the user's preview and works with the window
+   * hidden. Rejects if a frame isn't decoded within 3 s, or with a filter's message when one fails.
+   * `options` leave the filters out or draw one clip alone (a clip's own picture, for pickers and
+   * matching).
    */
-  captureAt(time: Micros, compositionId: CompositionId): Promise<string>;
+  captureAt(time: Micros, compositionId: CompositionId, options?: CaptureOptions): Promise<string>;
   /**
    * A renderer of its own for going through a composition frame by frame, the way the preview
    * draws it. Doesn't touch the user's preview. Dispose it when done.
@@ -518,6 +538,8 @@ export interface PreviewApi {
   readonly viewport: ViewportApi;
   /** What the user hears: live mix values, solo, the monitor and the meters. Ephemeral. */
   readonly sound: PreviewSound;
+  /** How the live preview shows pictures: bypass, compare, viewer passes, frame reads. Ephemeral. */
+  readonly picture: PreviewPictureApi;
 }
 
 /** Zoom and pan of the preview viewer. */
@@ -585,4 +607,160 @@ export interface ActiveJunction {
   progress: number;
   /** Seconds since the overlap started. */
   elapsed: number;
+}
+
+/** What a picture is being drawn for: the live preview, a capture, or an export's frames. */
+export type FilterTarget = "preview" | "capture" | "export";
+
+/** What a picture filter is told about the picture it filters. */
+export interface FilterInfo {
+  /** The clip as drawn now: keyed values at this time, a live gesture's transform not included. */
+  clip: Clip;
+  project: ProjectState;
+  /** Placement ids down to the clip, joined by "/" (the clip's own id at the top level). */
+  path: string;
+  /**
+   * The size the passes run at: the picture's own size, or smaller in the live preview when it
+   * lands smaller on the canvas. Captures and exports run at full size.
+   */
+  size: { width: number; height: number };
+  /** The clock of the composition the clip sits in. */
+  time: Micros;
+  target: FilterTarget;
+}
+
+/** What a frame filter is told: a composition's composed frame instead of a clip. */
+export type FrameFilterInfo = Omit<FilterInfo, "clip"> & {
+  /** The composition whose frame is filtered (`path` is "" at the top, else its placement's). */
+  composition: Composition;
+};
+
+/**
+ * Changes a clip's own picture on the GPU before it lands (a color grade): it then scales, blends
+ * and fades with the clip. Runs on media pictures (video after its levels, images) and on
+ * placements (a composition clip's picture); clips that draw themselves (text, solids, stickers)
+ * are not filtered. Contribute to `pictureFilters`.
+ */
+export interface PictureFilter {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  /** Lower runs first. */
+  order: number;
+  /** Whether it filters this clip; asked at every frame, so keep it cheap. */
+  applies(clip: Clip, project: ProjectState): boolean;
+  /**
+   * False while something it needs is loading: the frame is held, like an undecoded video. Asking
+   * may start the loading; ask the preview to redraw once it's there.
+   */
+  ready?(clip: Clip, project: ProjectState): boolean;
+  /**
+   * The passes, run after the filters before it, in one upload. Input -1 is the picture so far,
+   * n the output of this filter's pass n. A throw (or a GPU failure) draws the picture without
+   * the filter in the live preview and tells the user once; a capture or an export fails with
+   * its message.
+   */
+  passes(info: FilterInfo): readonly GpuPass[];
+}
+
+/**
+ * Changes a composition's composed frame on the GPU (a whole-timeline grade): at the top level
+ * and inside each placement, before it lands. Contribute to `frameFilters`; it works like
+ * `PictureFilter`.
+ */
+export interface FrameFilter {
+  /** Unique id, `<module>.<name>`. */
+  id: string;
+  /** Lower runs first. */
+  order: number;
+  applies(composition: Composition, project: ProjectState): boolean;
+  ready?(composition: Composition, project: ProjectState): boolean;
+  passes(info: FrameFilterInfo): readonly GpuPass[];
+}
+
+/** What filters a readiness check asks (`logic/readiness.ts`). */
+export interface FilterGate<S> {
+  applies(subject: S, project: ProjectState): boolean;
+  ready?(subject: S, project: ProjectState): boolean;
+}
+
+/** Passes and who they belong to, so a failure is reported by that id. */
+export interface FilterPasses {
+  id: string;
+  passes: readonly GpuPass[];
+}
+
+/** How an engine draws pictures (`PreviewEngine.setPicture`). */
+export interface PictureOptions {
+  /** Draws no filters at all. */
+  bypass: boolean;
+  /**
+   * 0…1, or null: the frame is drawn with filters, then again without them left of
+   * `compare × width`.
+   */
+  compare: number | null;
+  /** Passes run last over the whole canvas, in order, each after the ones before. */
+  viewer: readonly FilterPasses[];
+  /** Draws this top-level clip alone, or every clip when null. */
+  only: ClipId | null;
+}
+
+/** What `captureAt` draws besides the defaults. */
+export interface CaptureOptions {
+  /** Leaves out every picture and frame filter. */
+  bypassFilters?: boolean;
+  /** Draws this top-level clip alone (the background stays). */
+  only?: ClipId;
+}
+
+/** How the live preview shows pictures. View state: never in the project or history. */
+export interface PictureViewState {
+  /** Filters are bypassed (the "Bypass grades" switch). */
+  bypass: boolean;
+  /** The compare wipe at 0…1 of the width, or null when not comparing. */
+  compare: number | null;
+  /** Passes over the whole live canvas, by owner id (a false-color view, a highlight). */
+  viewer: Readonly<Record<string, readonly GpuPass[]>>;
+}
+
+/** The live preview's picture: bypass, compare, viewer passes, and reading the drawn frame. */
+export interface PreviewPictureApi {
+  /** Read with `useStore(view, selector)` or subscribe imperatively. */
+  readonly view: StoreApi<PictureViewState>;
+  /** Draws the live preview without filters (on) or with them (off). Captures and exports ignore it. */
+  setBypass(on: boolean): void;
+  /**
+   * Shows the frame with filters on the right of `wipe` (0…1 of the width) and without them on
+   * its left; null ends comparing. Live preview only.
+   */
+  setCompare(wipe: number | null): void;
+  /**
+   * Sets an owner's passes, run last over the live canvas (after filters and compare), or removes
+   * them (null). They never reach captures or exports. A failure is reported once by `id`.
+   */
+  setViewerPasses(id: string, passes: readonly GpuPass[] | null): void;
+  /** Calls `listener` after each frame drawn on the live canvas. Returns the unsubscribe. */
+  onFrame(listener: () => void): () => void;
+  /**
+   * The live canvas as drawn now, scaled down to at most `maxWidth` pixels wide (aspect kept) on a
+   * small canvas of its own: for scopes, sample points and pickers. Null without a live canvas.
+   */
+  readFrame(maxWidth: number): ImageData | null;
+}
+
+/** The picture API and what the controller tells it (`preview.picture.ts`). */
+export interface PictureControl extends PreviewPictureApi {
+  /** The engine's options for the live view now; the same object until the view changes. */
+  options(): PictureOptions;
+  /** Tells `onFrame` listeners a frame was drawn. */
+  drawn(): void;
+}
+
+/** The filters of one kernel, for its engines (`preview.filters.ts`). */
+export interface PreviewFilters {
+  /** The contributed filters, each list sorted by `order`; the same object until they change. */
+  current(): FilterSet;
+  /** Calls `listener` when a filter is contributed or removed. Returns the unsubscribe. */
+  onChange(listener: () => void): () => void;
+  /** A filter failed in the live preview: the user is told once per kernel per id. */
+  failed(id: string, error: unknown): void;
 }

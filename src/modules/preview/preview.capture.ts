@@ -2,6 +2,7 @@ import type { Micros } from "@/core";
 import type { FontRequest } from "@/modules/fonts";
 import type { Composition, CompositionId, ProjectState } from "@/modules/project";
 import type {
+  CaptureOptions,
   FrameRenderer,
   FrameRendererOptions,
   PreviewCapture,
@@ -71,16 +72,22 @@ export function createCapture(deps: PreviewCaptureDeps): PreviewCapture {
     canvas = null;
   }
 
-  async function capture(time: Micros, compositionId: CompositionId): Promise<string> {
+  async function capture(
+    time: Micros,
+    compositionId: CompositionId,
+    { bypassFilters = false, only }: CaptureOptions,
+  ): Promise<string> {
     clearTimeout(idleTimer);
     await deps.levelsSettled();
     const project = deps.getProject();
     const composition = deps.getComposition(compositionId);
     if (!composition) throw new Error("That composition no longer exists");
     canvas ??= document.createElement("canvas");
-    engine ??= deps.createEngine(canvas, ensureFont);
+    engine ??= deps.createEngine(canvas, ensureFont, "capture");
     canvas.width = composition.format.width;
     canvas.height = composition.format.height;
+    // Never the viewer's bypass, compare or passes: only what this capture asks for.
+    engine.setPicture({ bypass: bypassFilters, compare: null, viewer: [], only: only ?? null });
 
     await settle(
       engine,
@@ -100,8 +107,8 @@ export function createCapture(deps: PreviewCaptureDeps): PreviewCapture {
   }
 
   return {
-    captureAt(time, compositionId) {
-      const result = queue.then(() => capture(time, compositionId));
+    captureAt(time, compositionId, options = {}) {
+      const result = queue.then(() => capture(time, compositionId, options));
       queue = result.catch(() => undefined);
       return result;
     },
@@ -125,7 +132,7 @@ export function createFrameRenderer(
   const canvas = document.createElement("canvas");
   canvas.width = composition.format.width;
   canvas.height = composition.format.height;
-  const engine = deps.createEngine(canvas, ensureFont, options);
+  const engine = deps.createEngine(canvas, ensureFont, "export", options);
   return {
     async frameAt(time) {
       await deps.levelsSettled();

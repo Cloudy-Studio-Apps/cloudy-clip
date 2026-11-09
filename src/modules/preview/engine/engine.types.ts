@@ -7,7 +7,10 @@ import type { GpuRunner } from "../gpu/gpu.types";
 import type { Micros } from "@/core";
 import type {
   DynamicsCommand,
+  FilterTarget,
+  FrameFilter,
   LiveSound,
+  PictureFilter,
   LoudnessReading,
   MixLevels,
   MonitorState,
@@ -239,7 +242,7 @@ export interface LoudnessTap {
 
 /** A decoded picture and its size, ready to draw. */
 export interface CachedPicture {
-  source: CanvasImageSource;
+  source: HTMLImageElement | HTMLCanvasElement;
   width: number;
   height: number;
 }
@@ -286,6 +289,33 @@ export interface EngineOptions {
    * Off, they run at the picture's full size (captures and renderers, so export keeps its detail).
    */
   capPasses?: boolean;
+  /** The picture and frame filters contributed now, each list sorted by `order`. */
+  filters?(): FilterSet;
+  /**
+   * What filters are told the picture is for (default `"preview"`). A capture or an export fails
+   * the frame when a filter does; the live preview draws without it.
+   */
+  filterTarget?: FilterTarget;
+  /** A filter (or viewer passes) failed in the live preview, which drew without it. */
+  filterFailed?(id: string, error: unknown): void;
+  /** Called after each frame drawn. */
+  onDrawn?(): void;
+}
+
+/** The filters an engine runs, each list sorted by `order`. */
+export interface FilterSet {
+  picture: readonly PictureFilter[];
+  frame: readonly FrameFilter[];
+}
+
+/** A clip whose picture is filtered, and where it is drawn. */
+export interface FilterSubject {
+  clip: Clip;
+  project: ProjectState;
+  /** Its path (see `ResolvedClip`). */
+  path: string;
+  /** The clock of the composition it sits in. */
+  time: Micros;
 }
 
 /** A track's clips under the playhead, in start order (two during a junction's overlap). */

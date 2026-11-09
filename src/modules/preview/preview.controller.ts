@@ -1,6 +1,7 @@
 import { createLogger, LOCAL_ACTOR, type ActorId } from "@/core";
 import type { ClipId, ClipTransform } from "@/modules/project";
 import { createVirtualClock } from "./logic/virtual.clock";
+import { createPicture } from "./preview.picture";
 import { createScrub } from "./preview.scrub";
 import { createPreviewSound } from "./preview.sound";
 import type {
@@ -41,6 +42,13 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
   const sound = createPreviewSound(() => engine);
 
   const scrub = createScrub({ ...deps, engine: () => engine, transforms, propsOverrides, redraw });
+
+  /** Bypass, compare and viewer passes of the live canvas; reads the canvas drawn on now. */
+  const picture = createPicture(() => attached.at(-1) ?? null);
+  const offPicture = picture.view.subscribe(() => {
+    engine?.setPicture(picture.options());
+    redraw();
+  });
 
   function renderNow(): void {
     redrawQueued = false;
@@ -83,8 +91,9 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
    * Returns what stops it, when no canvas is left (the app going away).
    */
   function start(canvas: HTMLCanvasElement): () => void {
-    const current = deps.createEngine(canvas, redraw);
+    const current = deps.createEngine(canvas, redraw, picture.drawn);
     current.setSound(sound.current());
+    current.setPicture(picture.options());
     engine = current;
 
     const offTime = clock.onTime(() => {
@@ -164,7 +173,8 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     holdScrub: () => scrub.hold(),
     isScrubbing: () => scrub.scrubbing(),
     onScrubbingChange: (listener) => scrub.onChange(listener),
-    captureAt: (time, compositionId) => deps.capture.captureAt(time, compositionId),
+    captureAt: (time, compositionId, options) =>
+      deps.capture.captureAt(time, compositionId, options),
     createRenderer: (options) => deps.createRenderer(options),
     videoLevels: () => deps.videoLevels(),
     previewTransform(clipId, transform) {
@@ -185,7 +195,16 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     propsOverride: (clipId) => propsOverrides.get(clipId),
     viewport: createViewport(),
     sound: sound.sound,
+    picture: {
+      view: picture.view,
+      setBypass: picture.setBypass,
+      setCompare: picture.setCompare,
+      setViewerPasses: picture.setViewerPasses,
+      onFrame: picture.onFrame,
+      readFrame: picture.readFrame,
+    },
     dispose() {
+      offPicture();
       scrub.dispose();
       clock.pause();
       attached.length = 0;
