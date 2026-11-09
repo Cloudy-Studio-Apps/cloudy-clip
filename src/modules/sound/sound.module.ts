@@ -60,6 +60,7 @@ export const soundModule = defineModule({
     "settings",
     "media",
     "workspace",
+    "export",
   ],
   commands: [
     ...soundMixCommands,

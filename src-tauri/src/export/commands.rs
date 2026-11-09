@@ -102,6 +102,7 @@ pub async fn export_begin(
     frame_url: State<'_, FrameUrl>,
     notes: State<'_, PartialNotes>,
 ) -> AppResult<StartedExport> {
+    spec.check().map_err(AppError::Unavailable)?;
     let Some(tools) = find_tools() else {
         return Err(AppError::Unavailable(
             "FFmpeg was not found. Install FFmpeg to export videos.".into(),

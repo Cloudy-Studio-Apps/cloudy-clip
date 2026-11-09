@@ -526,7 +526,6 @@ export type SoonId =
   | "loudness.phase"
   | "deliver.standard"
   | "deliver.analyze"
-  | "deliver.format"
   | "deliver.stems";
 
 /** A placeholder: what it will be and the stage that builds it. */

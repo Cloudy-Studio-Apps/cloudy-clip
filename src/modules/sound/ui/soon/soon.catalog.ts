@@ -73,12 +73,6 @@ export const SOON: Record<SoonId, SoonEntry> = {
     what: "Measures the whole mix against the standard and lists what goes over.",
     stage: 5,
   },
-  "deliver.format": {
-    id: "deliver.format",
-    label: "Audio format",
-    what: "Chooses the codec and sample rate of the exported sound.",
-    stage: 4,
-  },
   "deliver.stems": {
     id: "deliver.stems",
     label: "Stems",

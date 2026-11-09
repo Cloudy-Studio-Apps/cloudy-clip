@@ -10,7 +10,8 @@ use super::mixeffects::MixEffect;
 use super::mixgraph;
 use super::soundfilters::{STEP_LEAD, effects, gain_envelope_filter, pan_envelope_filter};
 
-/// Sample rate of the mixed sound.
+/// Rate the sound is mixed at, whatever the file's rate: the mix is resampled to
+/// `ExportSpec::sample_rate` on the way out.
 pub(super) const SAMPLE_RATE: u32 = 48_000;
 
 /// What the file holds and how it is compressed.
@@ -23,12 +24,19 @@ pub enum Format {
     Prores,
     Gif,
     Mp3,
+    Wav,
+    Flac,
+    Aac,
+    Opus,
 }
 
 impl Format {
     /// Whether frames are sent. A sound-only export has none.
     pub fn has_picture(self) -> bool {
-        self != Format::Mp3
+        !matches!(
+            self,
+            Format::Mp3 | Format::Wav | Format::Flac | Format::Aac | Format::Opus
+        )
     }
 
     fn has_sound(self) -> bool {
@@ -252,12 +260,51 @@ pub struct ExportSpec {
     pub crf: u32,
     /// Sound bitrate, kbit/s.
     pub audio_kbps: u32,
+    /// Sample rate of a sound-only file: 44100 or 48000. A format with a picture is at 48000, and
+    /// Opus always is.
+    #[serde(default = "default_rate")]
+    pub sample_rate: u32,
+    /// Bits per sample of WAV and FLAC: 16 (the default) or 24.
+    #[serde(default)]
+    pub bit_depth: Option<u32>,
     pub effort: Effort,
     pub hardware: bool,
     pub sound: Vec<SoundSegment>,
     /// How the tracks the sound comes from mix.
     #[serde(default)]
     pub mix: SoundMix,
+}
+
+fn default_rate() -> u32 {
+    SAMPLE_RATE
+}
+
+impl ExportSpec {
+    /// Refuses a rate or a depth the formats don't take.
+    pub fn check(&self) -> Result<(), String> {
+        if !matches!(self.sample_rate, 44_100 | 48_000) {
+            return Err(format!(
+                "A sample rate of {} Hz can't be exported: use 44100 or 48000.",
+                self.sample_rate
+            ));
+        }
+        match self.bit_depth {
+            None => Ok(()),
+            Some(16 | 24) if matches!(self.format, Format::Wav | Format::Flac) => Ok(()),
+            Some(depth) => Err(format!(
+                "A bit depth of {depth} isn't available for this format: WAV and FLAC take 16 or 24."
+            )),
+        }
+    }
+
+    /// Rate of the file's sound.
+    fn output_rate(&self) -> u32 {
+        match self.format {
+            Format::Opus => 48_000,
+            format if format.has_picture() => SAMPLE_RATE,
+            _ => self.sample_rate,
+        }
+    }
 }
 
 /// Seconds as FFmpeg reads them.
@@ -406,8 +453,21 @@ fn output_args(spec: &ExportSpec, hardware: Option<&str>) -> Vec<String> {
         Format::Prores => strings(&["-c:v", "prores_ks", "-profile:v", "3", "-c:a", "pcm_s16le"]),
         Format::Gif => strings(&["-loop", "0"]),
         Format::Mp3 => strings(&["-c:a", "libmp3lame", "-b:a", &kbps]),
+        Format::Wav if spec.bit_depth == Some(24) => strings(&["-c:a", "pcm_s24le"]),
+        Format::Wav => strings(&["-c:a", "pcm_s16le"]),
+        Format::Flac if spec.bit_depth == Some(24) => strings(&[
+            "-c:a",
+            "flac",
+            "-sample_fmt",
+            "s32",
+            "-bits_per_raw_sample",
+            "24",
+        ]),
+        Format::Flac => strings(&["-c:a", "flac", "-sample_fmt", "s16"]),
+        Format::Aac => strings(&["-c:a", "aac", "-b:a", &kbps]),
+        Format::Opus => strings(&["-c:a", "libopus", "-b:a", &kbps]),
     };
-    if !matches!(spec.format, Format::Gif | Format::Mp3) {
+    if spec.format.has_picture() && spec.format != Format::Gif {
         args.extend(strings(&[
             "-colorspace",
             "bt709",
@@ -533,7 +593,7 @@ pub fn arguments(
         push(&["-map", "[picture]"]);
     }
     if !sound.is_empty() {
-        push(&["-map", "[mixed]", "-ar", "48000"]);
+        push(&["-map", "[mixed]", "-ar", &spec.output_rate().to_string()]);
     }
     let output = output_args(spec, hardware);
     push(&output.iter().map(String::as_str).collect::<Vec<_>>());
@@ -694,11 +754,83 @@ mod sound_tests {
             duration: 25_500_000,
             crf: 20,
             audio_kbps: 128,
+            sample_rate: 48_000,
+            bit_depth: None,
             effort: Effort::Fast,
             hardware: false,
             sound: vec![segment; clips],
             mix: SoundMix::default_for(1),
         }
+    }
+
+    /// A sound-only export of one plain segment in `format`.
+    fn audio_export(format: Format, sample_rate: u32, bit_depth: Option<u32>) -> ExportSpec {
+        ExportSpec {
+            format,
+            sample_rate,
+            bit_depth,
+            sound: vec![segment()],
+            ..worst_case(0)
+        }
+    }
+
+    fn args_of(spec: &ExportSpec) -> Vec<String> {
+        arguments(spec, Path::new("/o.partial.wav"), None, ScriptOption::Slash)
+            .args
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect()
+    }
+
+    /// The value after `flag`.
+    fn after<'a>(args: &'a [String], flag: &str) -> &'a str {
+        let at = args.iter().position(|a| a == flag).expect(flag);
+        &args[at + 1]
+    }
+
+    #[test]
+    fn wav_at_24_bit_44100() {
+        let args = args_of(&audio_export(Format::Wav, 44_100, Some(24)));
+        assert_eq!(after(&args, "-c:a"), "pcm_s24le");
+        assert_eq!(after(&args, "-ar"), "44100");
+        assert!(!args.iter().any(|a| a == "-colorspace"));
+        let sixteen = args_of(&audio_export(Format::Wav, 48_000, None));
+        assert_eq!(after(&sixteen, "-c:a"), "pcm_s16le");
+        assert_eq!(after(&sixteen, "-ar"), "48000");
+    }
+
+    #[test]
+    fn flac_keeps_its_depth() {
+        let args = args_of(&audio_export(Format::Flac, 48_000, Some(24)));
+        assert_eq!(after(&args, "-c:a"), "flac");
+        assert_eq!(after(&args, "-sample_fmt"), "s32");
+        assert_eq!(after(&args, "-bits_per_raw_sample"), "24");
+        let sixteen = args_of(&audio_export(Format::Flac, 48_000, Some(16)));
+        assert_eq!(after(&sixteen, "-sample_fmt"), "s16");
+    }
+
+    #[test]
+    fn opus_is_always_48_khz() {
+        let args = args_of(&audio_export(Format::Opus, 44_100, None));
+        assert_eq!(after(&args, "-c:a"), "libopus");
+        assert_eq!(after(&args, "-ar"), "48000");
+        let aac = args_of(&audio_export(Format::Aac, 44_100, None));
+        assert_eq!(after(&aac, "-c:a"), "aac");
+        assert_eq!(after(&aac, "-ar"), "44100");
+    }
+
+    #[test]
+    fn rates_and_depths_are_checked() {
+        assert!(audio_export(Format::Wav, 44_100, Some(24)).check().is_ok());
+        assert!(audio_export(Format::Mp3, 44_100, None).check().is_ok());
+        assert!(audio_export(Format::Wav, 22_050, None).check().is_err());
+        assert!(audio_export(Format::Wav, 48_000, Some(8)).check().is_err());
+        assert!(
+            audio_export(Format::Flac, 48_000, Some(32))
+                .check()
+                .is_err()
+        );
+        assert!(audio_export(Format::Aac, 48_000, Some(24)).check().is_err());
     }
 
     #[test]

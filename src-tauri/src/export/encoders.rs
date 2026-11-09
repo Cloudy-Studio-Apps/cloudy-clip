@@ -11,13 +11,17 @@ use crate::media::proxy::{Tools, command, find_tools};
 const CARD_FAMILIES: [&str; 4] = ["nvenc", "qsv", "amf", "videotoolbox"];
 
 /// Formats the frontend offers, by the encoders each needs.
-const FORMATS: [(&str, &[&str]); 6] = [
+const FORMATS: [(&str, &[&str]); 10] = [
     ("h264", &["libx264", "aac"]),
     ("h265", &["libx265", "aac"]),
     ("webm", &["libvpx-vp9", "libopus"]),
     ("prores", &["prores_ks"]),
     ("gif", &["gif"]),
     ("mp3", &["libmp3lame"]),
+    ("wav", &["pcm_s16le", "pcm_s24le"]),
+    ("flac", &["flac"]),
+    ("aac", &["aac"]),
+    ("opus", &["libopus"]),
 ];
 
 /// What can be exported here.

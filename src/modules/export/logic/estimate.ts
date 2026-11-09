@@ -9,6 +9,14 @@ const DRAW_SECONDS_PER_FRAME = 0.08;
 const EFFORT_SIZE: Record<ExportEffort, number> = { fast: 1.15, balanced: 1, small: 0.85 };
 const EFFORT_TIME: Record<ExportEffort, number> = { fast: 0.5, balanced: 1, small: 2.2 };
 
+/** Bits a second of sound takes: PCM as it is, FLAC about 60% of that, the rest by their bitrate. */
+function audioBitsPerSecond({ info, sampleRate = 48000, bitDepth = 16 }: EstimateInput): number {
+  const pcm = sampleRate * bitDepth * 2;
+  if (info.id === "wav") return pcm;
+  if (info.id === "flac") return pcm * 0.6;
+  return 240_000;
+}
+
 /** Roughly how many bytes the file takes. */
 export function estimateBytes(input: EstimateInput): number {
   const { format, info, quality, duration, sound, effort } = input;
@@ -16,7 +24,7 @@ export function estimateBytes(input: EstimateInput): number {
   const pixels = (format.width * format.height) / FULL_HD;
   const megabits = pixels * (format.fps / 30) * 1.5 * 2 ** ((quality - 30) / 14);
   const picture = (megabits * info.sizeFactor * seconds * EFFORT_SIZE[effort] * 1_000_000) / 8;
-  const audio = info.sound && sound ? (240_000 * seconds) / 8 : 0;
+  const audio = info.sound && sound ? (audioBitsPerSecond(input) * seconds) / 8 : 0;
   return Math.round(picture + audio);
 }
 

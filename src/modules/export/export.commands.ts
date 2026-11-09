@@ -8,9 +8,12 @@ import {
   DEFAULT_EFFORT,
   DEFAULT_IF_EXISTS,
   DEFAULT_QUALITY,
+  DEFAULT_SAMPLE_RATE,
   EXPORT_KINDS,
   encoderValues,
+  fileRate,
   formatInfo,
+  hasBitDepth,
   kindOf,
   validName,
 } from "./logic/presets";
@@ -20,7 +23,20 @@ import { checkDenoised, checkSources, denoisedFiles, outputPath, rangeOf } from 
 import { readCapabilities } from "./export.service";
 import type { ExportJob } from "./export.types";
 
-const FORMAT = z.enum(["h264", "h265", "webm", "prores", "gif", "mp3"]);
+const FORMAT = z.enum([
+  "h264",
+  "h265",
+  "webm",
+  "prores",
+  "gif",
+  "mp3",
+  "wav",
+  "flac",
+  "aac",
+  "opus",
+]);
+const SAMPLE_RATE = z.union([z.literal(44100), z.literal(48000)]);
+const BIT_DEPTH = z.union([z.literal(16), z.literal(24)]);
 const EFFORT = z.enum(["fast", "balanced", "small"]);
 const JOB_ID = z.object({ jobId: z.string().describe("The job's id, from export_enqueue") });
 
@@ -29,8 +45,12 @@ const ENQUEUE_INPUT = z.object({
   folder: z.string().describe("Absolute path of the folder; made if it doesn't exist"),
   compositionId: z.string().optional().describe("Defaults to the composition you have open"),
   format: FORMAT.default("h264").describe(
-    "h264 and h265 are MP4, webm is VP9, prores is MOV, gif has no sound, mp3 is sound only",
+    "h264 and h265 are MP4, webm is VP9, prores is MOV, gif has no sound; mp3, wav, flac, aac (M4A) and opus are sound only",
   ),
+  sampleRate: SAMPLE_RATE.default(DEFAULT_SAMPLE_RATE).describe(
+    "44100 or 48000 Hz, for the sound-only formats; opus is always 48000, and a format with a picture too",
+  ),
+  bitDepth: BIT_DEPTH.optional().describe("16 (default) or 24 bits, for wav and flac only"),
   quality: z.number().int().min(10).max(100).default(DEFAULT_QUALITY).describe("10 to 100"),
   effort: EFFORT.default(DEFAULT_EFFORT).describe("fast, balanced, or small (slow, smaller file)"),
   sound: z.boolean().default(true),
@@ -51,7 +71,7 @@ export const enqueue = defineCommand({
   id: "export.enqueue",
   label: "Add to export queue",
   description:
-    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. Fails with export.noFfmpeg, export.formatUnavailable, export.noComposition, export.emptyRange, export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName or export.fileExists.",
+    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. Fails with export.noFfmpeg, export.formatUnavailable, export.noComposition, export.emptyRange, export.noSound, export.badBitDepth, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName or export.fileExists.",
   undoable: false,
   input: ENQUEUE_INPUT,
   async run(ctx, input) {
@@ -92,6 +112,9 @@ export const enqueue = defineCommand({
     if (!info.picture && sound.length === 0) {
       throw new CommandFailure("export.noSound", "This part of the timeline has no sound.");
     }
+    if (input.bitDepth !== undefined && !hasBitDepth(input.format)) {
+      throw new CommandFailure("export.badBitDepth", "Only WAV and FLAC have a bit depth.");
+    }
     const { width, height, fps } = composition.format;
     const name = input.name.trim();
     const path = await outputPath(
@@ -118,6 +141,8 @@ export const enqueue = defineCommand({
         sound: sound.length > 0,
         effort: input.effort,
         hardware: input.hardware,
+        sampleRate: fileRate(input.format, input.sampleRate),
+        ...(input.bitDepth !== undefined && { bitDepth: input.bitDepth }),
       }),
       reveal: input.reveal,
       range,
@@ -130,6 +155,8 @@ export const enqueue = defineCommand({
         fps,
         duration: range.duration,
         ...encoderValues(input.format, input.quality),
+        sampleRate: fileRate(input.format, input.sampleRate),
+        ...(input.bitDepth !== undefined && { bitDepth: input.bitDepth }),
         effort: input.effort,
         hardware: input.hardware,
         sound,

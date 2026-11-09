@@ -8,7 +8,7 @@ import { enqueue } from "../export.commands";
 import { exportRef } from "../export.ref";
 import { confirmReplace, freeSpace, uniquePath } from "../export.service";
 import { estimateBytes, estimateSeconds, formatSize } from "../logic/estimate";
-import { formatInfo, joinPath, validName } from "../logic/presets";
+import { formatInfo, hasBitDepth, joinPath, validName } from "../logic/presets";
 
 /** Past this length a GIF is worth a warning. */
 const LONG_GIF_MICROS = 15_000_000;
@@ -52,8 +52,19 @@ export function useExportForm() {
         sound: values.sound,
         effort: values.effort,
         hardware,
+        sampleRate: values.sampleRate,
+        bitDepth: values.bitDepth,
       },
-    [composition, info, length, values.sound, values.effort, hardware],
+    [
+      composition,
+      info,
+      length,
+      values.sound,
+      values.effort,
+      hardware,
+      values.sampleRate,
+      values.bitDepth,
+    ],
   );
   const sizeAt = (quality: number) =>
     estimateInput ? formatSize(estimateBytes({ ...estimateInput, quality })) : "—";
@@ -128,6 +139,8 @@ export function useExportForm() {
       effort: values.effort,
       sound: values.sound,
       hardware,
+      sampleRate: values.sampleRate,
+      ...(hasBitDepth(values.format) && { bitDepth: values.bitDepth }),
       ifExists,
       reveal: values.reveal,
       ...(!values.whole && { range: { start: from, duration: length } }),

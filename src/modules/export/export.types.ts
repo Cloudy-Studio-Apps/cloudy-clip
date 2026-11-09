@@ -174,7 +174,14 @@ export interface TempoStep {
 }
 
 /** What a file holds (mirrors `Format` in Rust). */
-export type ExportFormat = "h264" | "h265" | "webm" | "prores" | "gif" | "mp3";
+export type ExportFormat =
+  "h264" | "h265" | "webm" | "prores" | "gif" | "mp3" | "wav" | "flac" | "aac" | "opus";
+
+/** Sample rates a sound-only file is written at (Opus is always 48000). */
+export type ExportSampleRate = 44100 | 48000;
+
+/** Bits per sample of WAV and FLAC. */
+export type ExportBitDepth = 16 | 24;
 
 /** A preset of the quality, or `custom`. */
 export type ExportKind = "default" | "small" | "best" | "custom";
@@ -189,6 +196,8 @@ export type ExportIfExists = "number" | "replace" | "fail";
 export interface ExportFormatInfo {
   id: ExportFormat;
   label: string;
+  /** The name alone, for narrow places. */
+  short: string;
   extension: string;
   /** Whether frames are drawn. */
   picture: boolean;
@@ -220,6 +229,10 @@ export interface ExportSpec {
   duration: Micros;
   crf: number;
   audioKbps: number;
+  /** Rate of a sound-only file; a format with a picture is at 48000. */
+  sampleRate: ExportSampleRate;
+  /** WAV and FLAC only; 16 when not given. */
+  bitDepth?: ExportBitDepth;
   effort: ExportEffort;
   hardware: boolean;
   sound: SoundSegment[];
@@ -268,6 +281,10 @@ export interface ExportFormState {
   kind: ExportKind;
   quality: number;
   format: ExportFormat;
+  /** Of a sound-only file. */
+  sampleRate: ExportSampleRate;
+  /** Of a WAV or FLAC file. */
+  bitDepth: ExportBitDepth;
   whole: boolean;
   /** Where "Only a part" starts and ends. */
   from: Micros;
@@ -302,6 +319,8 @@ export interface EstimateInput {
   sound: boolean;
   effort: ExportEffort;
   hardware: boolean;
+  sampleRate?: ExportSampleRate;
+  bitDepth?: ExportBitDepth;
 }
 
 /** What the runner needs from the rest of the app. */
