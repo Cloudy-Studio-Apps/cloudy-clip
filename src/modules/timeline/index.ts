@@ -66,6 +66,11 @@ export { HEADER_WIDTH, RULER_HEIGHT, SNAP_PX } from "./timeline.layout";
 /** The height of a track's lane by kind, in px, for an overlay that draws a lane of its own. */
 export { trackHeight } from "./timeline.layout";
 /**
+ * Selectors of the timeline's scrolling element and of the content in it, for an overlay that
+ * measures or queries them: `element.closest(TIMELINE_CONTENT)`.
+ */
+export { TIMELINE_CONTENT, TIMELINE_SCROLLER } from "./timeline.layout";
+/**
  * Height of the rows above the first lane in px, by scope: the ruler, plus the marks row on
  * `"sound"`. The one answer to where the lanes start, for an overlay that measures from there.
  */

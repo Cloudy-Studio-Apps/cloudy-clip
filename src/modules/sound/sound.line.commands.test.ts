@@ -7,7 +7,7 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule } from "@/modules/preview";
 import { createProjectModule, projectRef, seedProject, trackValue } from "@/modules/project";
 import { addClip, moveClip, timelineModule } from "@/modules/timeline";
-import { passSpans } from "./logic/automation";
+import { passSpans, returnToLine } from "./logic/automation";
 import { soundModule } from "./sound.module";
 import { setTrackMix } from "./sound.mix.commands";
 import {
@@ -169,6 +169,22 @@ describe("writePass", () => {
       [4 * S, -8],
       [6 * S, -20],
     ]);
+  });
+
+  it("sends two Touch holds of one play as one step, the line between them as it was", async () => {
+    await ok(setLineKey, { trackId: "a1", at: 0, db: -6 });
+    // Held 1-2 s at -2 dB, let go (back on the line), held again 5-6 s at -12 dB.
+    const hold = (from: number, db: number) => [
+      { at: from, db: -6 },
+      { at: from + S / 2, db },
+      { at: from + S, db },
+      ...returnToLine(line(), from + S + 1),
+    ];
+    await ok(writePasses, { trackId: "a1", spans: passSpans([hold(S, -2), hold(5 * S, -12)]) });
+    expect(levels([S + S / 2, 2 * S, 5 * S + S / 2, 6 * S])).toEqual([-2, -2, -12, -12]);
+    expect(levels([0, 3 * S, 4 * S, 7 * S])).toEqual([-6, -6, -6, -6]);
+    kernel.history.undo();
+    expect(keys()).toEqual([[0, -6]]);
   });
 
   it("leaves the line after a Touch release unchanged", async () => {

@@ -2,7 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { projectRef, useOpenComposition } from "@/modules/project";
-import { timelineRef, useHeaderWidth, useTimelineScope } from "@/modules/timeline";
+import {
+  TIMELINE_CONTENT,
+  TIMELINE_SCROLLER,
+  timelineRef,
+  useHeaderWidth,
+  useTimelineScope,
+} from "@/modules/timeline";
 import { soundRef } from "../../sound.ref";
 import { TrackLineLane } from "./TrackLineLane";
 
@@ -36,8 +42,8 @@ export function TrackVolumeLine() {
   const [layout, setLayout] = useState(0);
 
   useEffect(() => {
-    const content = root.current?.parentElement;
-    const scroller = content?.parentElement;
+    const content = root.current?.closest<HTMLElement>(TIMELINE_CONTENT);
+    const scroller = content?.closest<HTMLElement>(TIMELINE_SCROLLER);
     if (!content || !scroller) return;
     const update = () => {
       const width = Math.max(1, scroller.clientWidth - headerWidth);

@@ -132,6 +132,7 @@ export function TimelinePanel({
             <div
               ref={scrollRef}
               data-scroll="wide"
+              data-timeline-scroller=""
               className={cn(
                 "relative bg-lane",
                 tracksHidden ? "overflow-x-auto overflow-y-hidden" : "min-h-0 flex-1 overflow-auto",
@@ -139,6 +140,7 @@ export function TimelinePanel({
               style={tracksHidden ? { height: rowsAbove(scope) + SCROLLBAR_HEIGHT } : undefined}
             >
               <div
+                data-timeline-content=""
                 className="relative"
                 style={{ width: headerWidth + contentWidth, minHeight: "100%" }}
               >

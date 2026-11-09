@@ -33,3 +33,12 @@ export function trackHeight(kind: TrackKind): number {
 
 /** Narrowest a junction chip is drawn, in px, so a very short one stays clickable. */
 export const JUNCTION_MIN_WIDTH_PX = 28;
+
+/**
+ * The timeline's scrolling element (`data-timeline-scroller`) and the content inside it
+ * (`data-timeline-content`: the ruler, the lanes and every `timelineOverlays` entry), set by the
+ * timeline panel. An overlay finds them with `element.closest(…)`, never by counting parents.
+ */
+export const TIMELINE_SCROLLER = "[data-timeline-scroller]";
+/** See `TIMELINE_SCROLLER`. */
+export const TIMELINE_CONTENT = "[data-timeline-content]";

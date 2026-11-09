@@ -114,9 +114,12 @@ export interface AutomationWriter {
    * ended (playback stopped under the hold) it's still heard, and writes again once playing.
    */
   move(trackId: TrackId, db: number): void;
-  /** The fader of a writing press was let go: Touch ends its pass, Latch keeps writing. */
+  /**
+   * The fader of a writing press was let go: Touch returns to the line and stops writing until the
+   * next press (its pass still sent once, at stop), Latch keeps writing.
+   */
   release(trackId: TrackId): void;
-  /** The fader level a pass holds for the track, or null when none does. */
+  /** The fader level a pass holds for the track, or null when none does (Touch let go). */
   level(trackId: TrackId): number | null;
   /** Ends every pass, sending what each wrote. */
   finish(): Promise<void>;
@@ -144,7 +147,7 @@ export interface AutomationPass {
   offset: number;
   /** The fader level held now. */
   level: number;
-  /** The fader is held. */
+  /** The fader is held. A Touch pass let go writes nothing until it's pressed again. */
   held: boolean;
   /**
    * The track's volume line when the pass began. Every lap writes relative to it, so a loop going

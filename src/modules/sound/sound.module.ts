@@ -27,7 +27,7 @@ import { soundRecordCommands } from "./sound.record.commands";
 import { followRecordingEnds } from "./sound.record.follow";
 import { createUserPresets } from "./sound.presets.store";
 import { SOUND_PAGE, soundRef } from "./sound.ref";
-import { createSoundView } from "./sound.store";
+import { createSoundView, setAutomationMode, setLineInFront } from "./sound.store";
 import {
   ArmButton,
   AutomationNote,
@@ -161,10 +161,8 @@ export const soundModule = defineModule({
         arm: recorder.arm,
         automation,
         setTool: (tool) => view.setState({ tool }),
-        setAutomation: (trackId, mode) =>
-          view.setState((s) => ({ automation: { ...s.automation, [trackId]: mode } })),
-        setLineView: (trackId, inFront) =>
-          view.setState((s) => ({ lineView: { ...s.lineView, [trackId]: inFront } })),
+        setAutomation: (trackId, mode) => setAutomationMode(view, trackId, mode),
+        setLineView: (trackId, inFront) => setLineInFront(view, trackId, inFront),
       },
     };
   },

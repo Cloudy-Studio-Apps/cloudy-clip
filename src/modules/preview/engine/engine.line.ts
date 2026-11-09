@@ -3,7 +3,7 @@ import { dbToLinear, type KeyTrack } from "@/modules/project";
 import type { LineAt } from "../preview.types";
 import { lineLevel, lineSchedule, sameLines } from "../logic/line";
 import { glide } from "./engine.soundnodes";
-import type { FaderLevel, FaderTarget, LineLists } from "./engine.types";
+import type { FaderLevel, FaderTarget, LineLists, LinePlan } from "./engine.types";
 
 /**
  * How far ahead of the clock the lines are scheduled, in timeline time. The clock plays at 1x
@@ -19,13 +19,6 @@ const CATCH: Micros = 10_000;
 
 /** No volume lines: the one list every voice outside a placement, and every chain, starts with. */
 export const NO_LINES: readonly LineAt[] = Object.freeze([]);
-
-/** Where a schedule stands: the timeline time at a context time, and how far it is written. */
-interface Plan {
-  time: Micros;
-  at: number;
-  until: Micros;
-}
 
 /** Drops what is scheduled after now, holding the level reached. */
 function cancel(param: AudioParam, context: BaseAudioContext): void {
@@ -60,7 +53,7 @@ export function createFaderLevel(
   let clock = time;
   let playing = false;
   let until = Infinity;
-  let plan: Plan | null = null;
+  let plan: LinePlan | null = null;
   /** The paused time the line's level was last set for. */
   let held: Micros | null = null;
   let started = false;

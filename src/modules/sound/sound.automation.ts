@@ -22,9 +22,12 @@ const JUMP: Micros = 500_000;
  * lowered by how far the fader is from the track's volume. A seek or the loop going round starts
  * another lap of the same pass, never a send, so a looped Latch writes the same change each lap
  * rather than adding it up. Touch's release returns to the line (its own levels, its curve kept up
- * to the next key). The whole pass is one `sound.writePasses` (a span per stretch it wrote, what it
- * skipped left alone), sent once when it ends; a pass in
- * which the fader never left its place sends nothing. While it runs the fader's level is heard
+ * to the next key) and writes nothing until the next press, which starts another lap of the same
+ * pass. The whole pass is one `sound.writePasses` (a span per stretch it wrote, what it skipped
+ * left alone), sent once when it ends (playback stopping, for Touch too); a pass in which the
+ * fader never left its place sends nothing. A change to the track's line from anywhere else while
+ * a pass runs (an undo, `sound.switchMix`, an agent's edit) ends the pass and sends nothing: what
+ * it recorded was written against a line that is gone, and sending it would write over the new one. While it runs the fader's level is heard
  * through `previewMix` over the unchanged line; once its command has landed, the saved mix plays.
  */
 export function createAutomation(deps: AutomationDeps): AutomationWriter {
@@ -54,17 +57,19 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
     return true;
   };
 
-  /** Ends a track's pass and sends it; with `returning`, it returns to the line (Touch). */
-  const end = async (trackId: TrackId, returning = false): Promise<void> => {
+  /** Ends a track's pass, sending nothing, and lets the saved mix play. */
+  const drop = (trackId: TrackId) => {
+    if (!passes.delete(trackId)) return;
+    publish();
+    preview.sound.previewMix(trackId, null);
+  };
+
+  /** Ends a track's pass and sends it. */
+  const end = async (trackId: TrackId): Promise<void> => {
     const pass = passes.get(trackId);
     if (!pass) return;
     passes.delete(trackId);
     publish();
-    const lap = pass.laps[pass.laps.length - 1];
-    const last = lap?.[lap.length - 1];
-    if (returning && lap && last) {
-      lap.push(...returnToLine(pass.snapshot, Math.max(playback.getTime(), last.at + 1)));
-    }
     const spans = passSpans(pass.laps).filter((span) => span.to > span.from);
     if (pass.changed && spans.length > 0 && trackOf(trackId)) {
       const result = await bus.run(writePasses, { trackId, spans });
@@ -81,11 +86,15 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
   const sample = (time: Micros) => {
     if (passes.size === 0 || !playback.isPlaying()) return;
     for (const pass of passes.values()) {
+      // Touch let go: back on the line, nothing written until the next press.
+      if (pass.mode === "touch" && !pass.held) continue;
       let lap = pass.laps[pass.laps.length - 1];
       const last = lap?.[lap.length - 1];
       if (!lap || !last) {
-        // The first frame: the line's own level, so the line before the pass stays.
-        pass.laps.push([{ at: time, db: lineDb(pass.snapshot, time) }]);
+        // The first frame of a lap: the line's own level, so the line before it stays.
+        const start = { at: time, db: lineDb(pass.snapshot, time) };
+        if (lap) lap.push(start);
+        else pass.laps.push([start]);
         continue;
       }
       if (time === last.at) continue;
@@ -107,6 +116,12 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
     followSoundPageLeave(pages, () => void finish()),
     followCompositionSwitch(project, () => void finish()),
     workspace.beforeLeave({ finish, blocking: () => null }),
+    // The line changed under a pass, not by it (a pass is gone before it sends): drop the pass.
+    project.store.subscribe((now) => {
+      for (const [trackId, pass] of passes) {
+        if (now.tracks[trackId]?.mix?.volumeLine !== pass.snapshot) drop(trackId);
+      }
+    }),
     // A mode changed under a pass ends it.
     view.subscribe(() => {
       for (const [trackId, pass] of passes) {
@@ -122,6 +137,8 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
       if (mode === "read" || !playback.isPlaying()) return false;
       const pass = passes.get(trackId);
       if (!pass) return begin(trackId, mode, db);
+      // Touch pressed again in the same play: another lap, starting on the line.
+      if (pass.mode === "touch" && !pass.held) pass.laps.push([]);
       pass.held = true;
       pass.level = db;
       return true;
@@ -144,9 +161,19 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
         return;
       }
       pass.held = false;
-      if (pass.mode === "touch") void end(trackId, true);
+      if (pass.mode !== "touch") return;
+      // Touch returns to the line: its own levels from here, the pass sent at stop.
+      const lap = pass.laps[pass.laps.length - 1];
+      const last = lap?.[lap.length - 1];
+      if (lap && last) {
+        lap.push(...returnToLine(pass.snapshot, Math.max(playback.getTime(), last.at + 1)));
+      }
+      preview.sound.previewMix(trackId, null);
     },
-    level: (trackId) => passes.get(trackId)?.level ?? null,
+    level: (trackId) => {
+      const pass = passes.get(trackId);
+      return pass && (pass.held || pass.mode !== "touch") ? pass.level : null;
+    },
     finish,
     dispose() {
       offs.forEach((off) => off());

@@ -226,6 +226,16 @@ export interface FaderTarget {
   muted: boolean;
 }
 
+/**
+ * Where a volume line's schedule stands (`createFaderLevel`): the timeline time (`time`) at a
+ * context time (`at`, seconds), and how far ahead it is written (`until`).
+ */
+export interface LinePlan {
+  time: Micros;
+  at: number;
+  until: Micros;
+}
+
 /** Sets a gain from a `FaderTarget`, following volume lines on the clock (`createFaderLevel`). */
 export interface FaderLevel {
   /** A new target; the same one again does nothing. */

@@ -3,7 +3,7 @@ import { useStore } from "zustand";
 import { notify, useKernel, useModule } from "@/core";
 import { KeyDiamond, keyframeRef } from "@/modules/keyframe";
 import { formatDb, VOLUME_DB_MAX, VOLUME_DB_MIN, type Track } from "@/modules/project";
-import { pxToTime } from "@/modules/timeline";
+import { pxToTime, TIMELINE_CONTENT } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { lineDb } from "../../logic/automation";
 import { levelTop, movedLine, polylineOf } from "../../logic/clipline";
@@ -53,7 +53,7 @@ export function TrackLineLane(props: TrackLineLaneProps) {
 
   useLayoutEffect(() => {
     const element = wrapper.current;
-    const content = element?.parentElement?.parentElement;
+    const content = element?.closest<HTMLElement>(TIMELINE_CONTENT);
     if (!element || !content) return;
     const lane = content.querySelector<HTMLElement>(`[data-track-id="${CSS.escape(track.id)}"]`);
     if (!lane) {

@@ -8,6 +8,7 @@ import {
   rowsAbove,
   SNAP_PX,
   snapTime,
+  TIMELINE_CONTENT,
   timelineRef,
   timeToPx,
   useHeaderWidth,
@@ -53,7 +54,7 @@ function Surface({ tool }: { tool: "cut" | "fade" | "scrub" }) {
   };
   /** The audio clip whose box holds the point, and its box on screen. */
   const clipAt = (x: number, y: number) => {
-    const content = surface.current?.parentElement?.parentElement;
+    const content = surface.current?.closest<HTMLElement>(TIMELINE_CONTENT);
     if (!content) return null;
     const clips = scopeClips();
     for (const element of content.querySelectorAll<HTMLElement>("[data-clip-id]")) {

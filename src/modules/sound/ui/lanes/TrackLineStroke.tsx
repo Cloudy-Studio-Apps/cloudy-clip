@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useKernel, useModule } from "@/core";
 import { projectRef, type TrackId } from "@/modules/project";
+import { TIMELINE_CONTENT } from "@/modules/timeline";
 import type { StrokePoint } from "../../sound.types";
 import { startStroke } from "./trackline.gesture";
 import { sendStroke } from "./trackline.stroke";
@@ -28,8 +29,7 @@ export function TrackLineStroke({ trackId, inFront, pxPerSecond, from, to }: Tra
 
   const draw = (down: PointerEvent) => {
     const area = surface.current;
-    // The box, its lane wrapper and the overlay are in the timeline's content.
-    const content = area?.parentElement?.parentElement?.parentElement?.parentElement;
+    const content = area?.closest<HTMLElement>(TIMELINE_CONTENT);
     if (!area || !content) return;
     const origin = area.getBoundingClientRect();
     const trace = (stroked: readonly StrokePoint[]) =>
