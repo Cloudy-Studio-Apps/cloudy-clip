@@ -65,8 +65,8 @@ export function MatchRow({ view }: { view: DeliverView }) {
         <p className="mt-1 text-sm text-mark">
           Still {matched.peakOver.overDb.toFixed(1)} dB over the peak limit.{" "}
           {matched.peakOver.userLimiter
-            ? "Master's limiter is your own: its ceiling may be above the limit."
-            : "The limiter did not catch all of it: lower its ceiling or the Master trim."}
+            ? "Master's limiter is your own and its ceiling is above the limit: lower it."
+            : "Peaks between samples got past the limiter: lower its ceiling or the Master trim."}
         </p>
       )}
     </>

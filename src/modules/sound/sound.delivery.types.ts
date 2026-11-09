@@ -112,8 +112,9 @@ export interface MatchOutcome {
   landed: MixAnalysis | null;
   /**
    * The last measured true peak (`landed`) is still over the peak limit: by how much, dB, and
-   * whether Master's limiter is the user's own (its ceiling is above the limit) rather than
-   * matching's (the second measuring did not catch all the overshoot). Null when it is under, or
+   * whether that's because Master's limiter is the user's own with its ceiling above the limit
+   * (false: the limiter's ceiling is at or under it, and peaks between samples got past it). Null
+   * when it is under, or
    * nothing was measured after. Matching does not measure a third time.
    */
   peakOver: { overDb: number; userLimiter: boolean } | null;
