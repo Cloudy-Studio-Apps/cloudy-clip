@@ -3,10 +3,7 @@
  * @module export
  */
 export { cancel, clearFinished, enqueue, moveUp, remove, start } from "./export.commands";
-/** Thins points to the ones off a straight line by more than a tolerance (export envelopes, drawn strokes). */
-export { simplify } from "./logic/envelope";
 export type {
-  EnvelopePoint,
   ExportApi,
   ExportCapabilities,
   ExportEffort,

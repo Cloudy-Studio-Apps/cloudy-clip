@@ -129,3 +129,25 @@ export function keyMoments(track: KeyTrack, from: Micros, to: Micros): Micros[] 
   }
   return moments;
 }
+
+/**
+ * Thins points to draw straight lines between: a point within `tolerance` of the line from the last
+ * kept point to its next neighbour is dropped. The first and last points are always kept, and so is
+ * every corner.
+ */
+export function simplify<P extends { at: Micros; value: number }>(
+  points: readonly P[],
+  tolerance: number,
+): P[] {
+  if (points.length === 0) return [];
+  const kept: P[] = [points[0]!];
+  for (let i = 1; i < points.length - 1; i++) {
+    const a = kept[kept.length - 1]!;
+    const here = points[i]!;
+    const b = points[i + 1]!;
+    const online = a.value + ((b.value - a.value) * (here.at - a.at)) / (b.at - a.at);
+    if (Math.abs(here.value - online) > tolerance) kept.push(here);
+  }
+  if (points.length > 1) kept.push(points[points.length - 1]!);
+  return kept;
+}

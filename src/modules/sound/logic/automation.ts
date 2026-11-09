@@ -1,6 +1,11 @@
 import type { Micros } from "@/core";
-import { simplify } from "@/modules/export";
-import { trackValue, VOLUME_DB_MAX, VOLUME_DB_MIN, type KeyTrack } from "@/modules/project";
+import {
+  simplify,
+  trackValue,
+  VOLUME_DB_MAX,
+  VOLUME_DB_MIN,
+  type KeyTrack,
+} from "@/modules/project";
 import type { AutomationMode, LevelAt } from "../sound.types";
 
 /** How far, in dB, a written point may sit off the straight line and still be dropped. */
