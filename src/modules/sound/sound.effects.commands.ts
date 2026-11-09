@@ -8,7 +8,6 @@ import {
   projectRef,
   trackMixOf,
   type BusId,
-  type CompositionId,
   type CompositionMix,
   type MixBus,
   type ProjectState,
@@ -20,6 +19,7 @@ import { targetComposition, writeComposition, writeTrack } from "./sound.mix.wri
 import { closesLoop, defaultSpec } from "./logic/effects";
 import { BUILT_IN_PRESETS } from "./logic/presets";
 import { soundRef } from "./sound.ref";
+import type { DuckOwner } from "./sound.types";
 
 const target = z
   .union([z.string(), z.literal("master")])
@@ -31,13 +31,6 @@ const compositionId = z
 
 function notFound(effectId: string): CommandFailure {
   return new CommandFailure("sound.effect_not_found", `No effect with id "${effectId}" there.`);
-}
-
-/** A track or group that owns a chain, as `checkDuck` reads it. */
-interface DuckOwner {
-  id: TrackId | BusId;
-  name: string;
-  compositionId: CompositionId;
 }
 
 /** Checks a duck's `listensTo` (audio tracks and groups of the same composition) and that it closes no loop. */
@@ -116,6 +109,12 @@ function editChain(
     if (bus) {
       const owner = { id: bus.id, name: bus.name, compositionId: id };
       const effects = edit([...(bus.effects ?? [])], state, owner);
+      if (effects.some((e) => e.kind === "denoise")) {
+        throw new CommandFailure(
+          "sound.effect_invalid",
+          "Noise reduction works on each file, not on a mix of tracks: put it on a track, not on a group.",
+        );
+      }
       ctx.mutate(store, (draft) => writeBusChain(draft.compositions[id]!, bus.id, effects));
       return;
     }

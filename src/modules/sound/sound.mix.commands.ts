@@ -25,20 +25,6 @@ function liveMix(state: ProjectState, compositionId: CompositionId): MixSnapshot
   return { tracks, master: mix.master, ...(mix.buses?.length && { buses: mix.buses }) };
 }
 
-/** A mix whose tracks send only to groups it has (a group can be removed from one mix and not seen by the other). */
-function validSends(mix: MixSnapshot): MixSnapshot {
-  const ids = new Set((mix.buses ?? []).map((b) => b.id));
-  const tracks = Object.fromEntries(
-    Object.entries(mix.tracks).map(([id, m]) => {
-      if (m.busId === undefined || ids.has(m.busId)) return [id, m];
-      const rest = { ...m };
-      delete rest.busId;
-      return [id, rest];
-    }),
-  );
-  return { ...mix, tracks };
-}
-
 /** Sets how an audio track sounds in the mix. */
 export const setTrackMix = defineCommand({
   id: "sound.setTrackMix",
@@ -116,7 +102,7 @@ export const switchMix = defineCommand({
     const current = compositionMixOf(state.compositions[id]!);
     if (current.activeMix === to) return;
     const live = liveMix(state, id);
-    const incoming = validSends(current.otherMix ?? live);
+    const incoming = current.otherMix ?? live;
     ctx.mutate(store, (draft) => {
       for (const track of orderedTracks(draft, id)) {
         if (track.kind === "audio") writeTrack(track, incoming.tracks[track.id]);

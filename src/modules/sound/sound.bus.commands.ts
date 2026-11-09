@@ -38,7 +38,16 @@ export const addBus = defineCommand({
     ctx.mutate(store, (draft) => {
       const composition = draft.compositions[id]!;
       const mix = compositionMixOf(composition);
-      writeComposition(composition, { ...mix, buses: [...(mix.buses ?? []), bus] });
+      // Groups are shared structure: the other mix has the group too, at the defaults.
+      const other = mix.otherMix && {
+        ...mix.otherMix,
+        buses: [...(mix.otherMix.buses ?? []), { ...bus }],
+      };
+      writeComposition(composition, {
+        ...mix,
+        buses: [...(mix.buses ?? []), bus],
+        ...(other && { otherMix: other }),
+      });
     });
     return { busId: bus.id };
   },
@@ -49,7 +58,7 @@ export const setBus = defineCommand({
   id: "sound.setBus",
   label: "Change group",
   description:
-    "Changes a group track: name, volumeDb (-60 to 12) and muted. Only the fields in patch change. A muted group silences every track sent to it. Fails with sound.bus_not_found.",
+    "Changes a group track: name, volumeDb (-60 to 12) and muted. Only the fields in patch change; the name is the same in both mixes A and B, the volume and mute belong to the active mix. A muted group silences every track sent to it. Fails with sound.bus_not_found.",
   undoable: true,
   input: z.object({
     compositionId,
@@ -68,9 +77,17 @@ export const setBus = defineCommand({
       const composition = draft.compositions[id]!;
       const mix = compositionMixOf(composition);
       const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+      // The name is shared by both mixes; the volume and the mute are this mix's own.
+      const other = mix.otherMix?.buses && {
+        ...mix.otherMix,
+        buses: mix.otherMix.buses.map((b) =>
+          b.id === busId && patch.name !== undefined ? { ...b, name: patch.name } : b,
+        ),
+      };
       writeComposition(composition, {
         ...mix,
         buses: (mix.buses ?? []).map((b) => (b.id === busId ? { ...b, ...defined } : b)),
+        ...(other && { otherMix: other }),
       });
     });
   },

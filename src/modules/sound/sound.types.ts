@@ -325,6 +325,13 @@ export interface LiveTake {
   failure: unknown;
 }
 
+/** A track or group that owns a chain, as `checkDuck` reads it. */
+export interface DuckOwner {
+  id: TrackId | BusId;
+  name: string;
+  compositionId: CompositionId;
+}
+
 /** The tracks that listen through ducks or send to groups, as `closesLoop` reads them. */
 export type ListenNodes = Record<TrackId, { mix?: { busId?: BusId; effects?: SoundEffect[] } }>;
 

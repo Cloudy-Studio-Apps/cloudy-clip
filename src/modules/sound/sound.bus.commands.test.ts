@@ -71,6 +71,22 @@ describe("groups", () => {
   });
 });
 
+describe("group rules", () => {
+  it("refuses noise reduction on a group", async () => {
+    const { busId } = await ok<{ busId: string }>(addBus, { name: "Dialogue" });
+    const result = await run(addEffect, { target: busId, kind: "denoise" });
+    expect(result).toMatchObject({ ok: false, error: { code: "sound.effect_invalid" } });
+  });
+
+  it("refuses sending a track to a group that lowers it", async () => {
+    const { busId } = await ok<{ busId: string }>(addBus, { name: "Dialogue" });
+    const duck = await ok<{ effectId: string }>(addEffect, { target: "a1", kind: "duck" });
+    await ok(setEffect, { target: "a1", effectId: duck.effectId, patch: { listensTo: [busId] } });
+    const result = await run(sendTo, { trackIds: ["a1"], busId });
+    expect(result).toMatchObject({ ok: false, error: { code: "sound.duck_loop" } });
+  });
+});
+
 describe("mix A and B with groups", () => {
   it("swaps group values and keeps the ids valid", async () => {
     const { busId } = await ok<{ busId: string }>(addBus, { name: "Dialogue" });
@@ -86,6 +102,14 @@ describe("mix A and B with groups", () => {
     await ok(switchMix, { to: "b" });
     expect(buses()[0]).toMatchObject({ id: busId, volumeDb: -12 });
     expect(state().tracks.a1!.mix?.busId).toBe(busId);
+  });
+
+  it("a group added while B is live exists in A at the defaults", async () => {
+    await ok(switchMix, { to: "b" });
+    const { busId } = await ok<{ busId: string }>(addBus, { name: "Music" });
+    await ok(setBus, { busId, patch: { volumeDb: -6, name: "Music & FX" } });
+    await ok(switchMix, { to: "a" });
+    expect(buses()).toEqual([{ id: busId, name: "Music & FX", volumeDb: 0, muted: false }]);
   });
 
   it("removing a group removes it from the other mix too", async () => {
