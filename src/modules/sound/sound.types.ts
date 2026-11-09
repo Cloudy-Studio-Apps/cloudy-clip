@@ -370,3 +370,29 @@ export interface SoonProps {
   className: string;
   onClick(): void;
 }
+
+/** A point of a clip's volume line: `x` in px from the clip's left edge, `db` the level. */
+export interface LinePoint {
+  x: number;
+  db: number;
+}
+
+/** A key of the clip's volume line, drawn at `x`. */
+export interface LineKey extends LinePoint {
+  keyId: string;
+}
+
+/** Dragging a point of a clip's volume line. */
+export interface LineDrag {
+  down: PointerEvent;
+  /** The box the line is drawn in: its height is the whole level range. */
+  area: HTMLElement;
+  /** Where the point is when the drag starts. */
+  from: LinePoint;
+  /** The clip's width in px: a point stays inside it. */
+  width: number;
+  /** Every move, with the point's new place. */
+  onMove(point: LinePoint): void;
+  /** The release, with the last place; null when the pointer never moved, or Escape. */
+  onEnd(point: LinePoint | null): void;
+}

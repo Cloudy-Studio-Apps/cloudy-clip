@@ -11,6 +11,8 @@ export { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
 export { moveKeys, removeKeys, setKey, setKeys, setKeyValues } from "./keyframe.edit.commands";
 /** The diamond and arrows at the end of a row: key a clip's paths at the playhead, jump between keys. */
 export { KeyAction } from "./ui";
+/** One key as a rotated square at `x` (and `y`, off a band): the diamond a clip's volume line draws its points with. */
+export { KeyDiamond } from "./ui";
 /** Point: what can be keyed (the element's fields, a module's own). */
 export { keyTargets } from "./keyframe.points";
 export type {

@@ -3,6 +3,8 @@ import { cn } from "@/ui";
 interface KeyDiamondProps {
   /** Distance from time 0, in px. */
   x: number;
+  /** The diamond's centre from the top, in px, for one that isn't in a band (a volume line's point). */
+  y?: number;
   /** `clipId|path|keyId`, for the pointer tools. */
   keyRef?: string;
   /** `clipId|time` of a summary diamond, for the pointer tools. */
@@ -23,6 +25,7 @@ interface KeyDiamondProps {
 /** One key in a band: a rotated square at its time. */
 export function KeyDiamond({
   x,
+  y,
   keyRef,
   summaryKey,
   summary,
@@ -50,7 +53,7 @@ export function KeyDiamond({
             ? "bg-muted-foreground hover:bg-foreground"
             : "bg-surface shadow-[inset_0_0_0_1.5px_var(--foreground)] hover:shadow-[inset_0_0_0_1.5px_var(--on)]",
       )}
-      style={{ left: x }}
+      style={{ left: x, ...(y !== undefined && { top: y - 5 }) }}
     />
   );
 }

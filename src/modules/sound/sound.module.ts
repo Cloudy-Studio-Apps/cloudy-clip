@@ -3,7 +3,12 @@ import { appPages, defineModule, pagesRef } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import { settingsSections } from "@/modules/settings";
-import { timelineOverlays, timelineTools, timelineTrackControls } from "@/modules/timeline";
+import {
+  clipActions,
+  timelineOverlays,
+  timelineTools,
+  timelineTrackControls,
+} from "@/modules/timeline";
 import { previewRef } from "@/modules/preview";
 import { workspaceRef } from "@/modules/workspace";
 import { soundMcpTools } from "./sound.mcp";
@@ -23,6 +28,8 @@ import { createSoundView } from "./sound.store";
 import {
   ArmButton,
   AutomationNote,
+  ClipLineKeys,
+  ClipVolumeLine,
   DrawVolumeTool,
   PresetsSection,
   RecordingTake,
@@ -42,6 +49,7 @@ export const soundModule = defineModule({
     "preview",
     "inspector",
     "audio",
+    "keyframe",
     "settings",
     "media",
     "workspace",
@@ -82,6 +90,16 @@ export const soundModule = defineModule({
       id: "sound.recordingTake",
       scopes: ["sound"],
       component: RecordingTake,
+    });
+    contribute(timelineOverlays, {
+      id: "sound.clipLineKeys",
+      scopes: ["all", "sound"],
+      component: ClipLineKeys,
+    });
+    contribute(clipActions, {
+      id: "sound.clipLine",
+      scopes: ["all", "sound"],
+      badge: ClipVolumeLine,
     });
     contribute(
       timelineTrackControls,
