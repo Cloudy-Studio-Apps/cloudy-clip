@@ -65,8 +65,7 @@ export const STANDARDS: readonly Standard[] = [
     // Annex M (Loudness and True Peak Quick Reference), A/85:2026-07: "the Target Loudness
     // should be -24 LKFS" for content without metadata, maximum true peak -2 dBTP.
     published: true,
-    source:
-      "https://www.atsc.org/atsc-documents/a85-techniques-for-establishing-and-maintaining-audio-loudness/",
+    source: "https://www.atsc.org/wp-content/uploads/2026/07/A85-2026-07.pdf",
   },
   {
     id: "custom",

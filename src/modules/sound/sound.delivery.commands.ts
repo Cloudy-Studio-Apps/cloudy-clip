@@ -65,7 +65,7 @@ export const analyzeMix = defineCommand({
   id: "sound.analyzeMix",
   label: "Analyze whole mix",
   description:
-    "Starts measuring the whole mix of your open composition (or compositionId) without playing it: integrated loudness, loudness range, true peak, and the stretches over the delivery standard's peak limit or clipped. It runs in the background and returns at once ({ started: true }); the result is kept until the document changes (then it is stale). Fails with sound.analysis_running, or export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending, composition.not_found.",
+    "Starts measuring the whole mix of your open composition (or compositionId) without playing it: integrated loudness, loudness range, true peak, and the stretches over the delivery standard's peak limit or clipped. It runs in the background and returns at once ({ started: true }); the result is kept until the document changes (then it is stale). If one already runs, returns { started: false, running: true }. Fails with export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending, composition.not_found.",
   undoable: false,
   input: z.object({ compositionId: z.string().optional() }),
   async run(ctx, { compositionId }) {
@@ -73,7 +73,7 @@ export const analyzeMix = defineCommand({
     const { store } = ctx.require(projectRef);
     const id = targetComposition(ctx, compositionId);
     if (analyzer.state.getState().running[id]) {
-      throw new CommandFailure("sound.analysis_running", "This mix is already being analyzed.");
+      return { started: false, running: true, compositionId: id };
     }
     const { peakDbtp } = deliveryOf(compositionMixOf(store.getState().compositions[id]!));
     await analyzer.start(id, soundOnlySpec(ctx, id), peakDbtp);
@@ -98,7 +98,7 @@ export const matchTarget = defineCommand({
   id: "sound.matchTarget",
   label: "Match target",
   description:
-    "Raises or lowers Master's volume (the fader, on top of any master volume line, which is not touched) by the difference between the delivery target and the last analysis (-60 to 12 dB), and adds a Limiter to Master at the peak limit if the master has none, in one undo step. Needs a fresh sound_analyze_mix result: fails with sound.no_analysis, sound.analysis_stale (the document changed since) or sound.silent_mix. Returns { volumeDb, changeDb, limiterAdded }. A limiter lowers loudness a little: analyze again to see where the mix landed.",
+    "Raises or lowers Master's volume (the fader, on top of any master volume line, which is not touched) by the difference between the delivery target and the last analysis (-60 to 12 dB), and adds a Limiter to Master at the peak limit if the master has none, in one undo step. Needs a fresh sound_analyze_mix result: fails with sound.no_analysis, sound.analysis_stale (the document changed since) or sound.silent_mix. Returns { volumeDb, changeDb, limiterAdded, clamped } (clamped: the fader's range kept the mix from the target). A limiter already on Master that is switched off is switched on and set to the peak limit instead of adding a second. A limiter lowers loudness a little: analyze again to see where the mix landed.",
   undoable: true,
   input: z.object({ compositionId: z.string().optional() }),
   async run(ctx, { compositionId }) {
@@ -122,13 +122,13 @@ export const matchTarget = defineCommand({
     const mix = compositionMixOf(store.getState().compositions[id]!);
     const delivery = deliveryOf(mix);
     const before = mix.master.volumeDb;
-    const volumeDb = Math.min(
-      12,
-      Math.max(-60, Math.round((before + delivery.loudnessLufs - integrated) * 100) / 100),
-    );
+    const wanted = before + delivery.loudnessLufs - integrated;
+    const volumeDb = Math.min(12, Math.max(-60, Math.round(wanted * 100) / 100));
     await ctx.execute(setMaster, { compositionId: id, volumeDb });
-    const limiterAdded = !mix.master.effects?.some((e) => e.kind === "limiter");
-    if (limiterAdded) {
+    const ceilingDb = Math.min(0, Math.max(-20, delivery.peakDbtp));
+    const limiter = mix.master.effects?.find((e) => e.kind === "limiter");
+    const limiterAdded = !limiter;
+    if (!limiter) {
       const { effectId } = await ctx.execute(addEffect, {
         target: "master",
         compositionId: id,
@@ -138,10 +138,22 @@ export const matchTarget = defineCommand({
         target: "master",
         compositionId: id,
         effectId,
-        patch: { ceilingDb: Math.min(0, Math.max(-20, delivery.peakDbtp)) },
+        patch: { ceilingDb },
+      });
+    } else if (!limiter.on) {
+      await ctx.execute(setEffect, {
+        target: "master",
+        compositionId: id,
+        effectId: limiter.id,
+        patch: { on: true, ceilingDb },
       });
     }
-    return { volumeDb, changeDb: Math.round((volumeDb - before) * 100) / 100, limiterAdded };
+    return {
+      volumeDb,
+      changeDb: Math.round((volumeDb - before) * 100) / 100,
+      limiterAdded,
+      clamped: Math.abs(volumeDb - wanted) > 0.005,
+    };
   },
 });
 

@@ -90,6 +90,7 @@ export const soundModule = defineModule({
     const { playback } = preview;
     const workspace = require(workspaceRef);
     const analyzer = createAnalyzer(createAnalysisStore(), project.store.getState, log);
+    onDispose(analyzer.dispose);
     const media = require(mediaRef);
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());

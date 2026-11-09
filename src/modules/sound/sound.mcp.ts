@@ -9,7 +9,7 @@ import {
   setEffect,
 } from "./sound.effects.commands";
 import { BUILT_IN_PRESETS } from "./logic/presets";
-import { analyzeMix, matchTarget, setDelivery } from "./sound.delivery.commands";
+import { analyzeMix, cancelAnalysis, matchTarget, setDelivery } from "./sound.delivery.commands";
 import { writeClipPass } from "./sound.clipline.commands";
 import { measureFloor } from "./sound.denoise.commands";
 import {
@@ -87,20 +87,39 @@ const listPresets = defineMcpTool({
     ]),
 });
 
+/** How long the tool waits for an analysis before saying it still runs. */
+const ANALYSIS_WAIT_MS = 4 * 60_000;
+
 /** Measures the whole mix and waits for the figures; the command itself returns at once. */
 const analyzeMixTool = defineMcpTool({
   name: "sound_analyze_mix",
   readOnly: true,
   description:
-    "Measures the whole mix of your open composition (or compositionId) without playing it, and waits for the result (it can take a while on a long mix): integrated loudness (LUFS), loudness range (LU), true peak (dBTP), the delivery target and peak limit it was measured against, and problems (stretches over the peak limit, or clipped; at and duration in microseconds). The result stays until the document changes, then it is stale; sound_match_target needs a fresh one. Fails like sound.analyzeMix: export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending, sound.analysis_running.",
+    "Measures the whole mix of your open composition (or compositionId) without playing it, and waits for the result (it can take a while on a long mix): integrated loudness (LUFS), loudness range (LU), true peak (dBTP), the delivery target and peak limit it was measured against, and problems (stretches over the peak limit, or clipped; at and duration in microseconds). The result stays until the document changes, then it is stale; sound_match_target needs a fresh one. Waits up to four minutes: if the analysis is still running it says so, and calling again keeps waiting for the same job. Fails like sound.analyzeMix: export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending.",
   input: z.object({ compositionId: z.string().optional() }),
   async handler(input, ctx) {
     const started = await ctx.bus.execute(analyzeMix.id, input);
     if (!started.ok) return errorResult(started.error);
     const { compositionId } = started.value as { compositionId: string };
-    const stored = await ctx.require(soundRef).analyzer.settled(compositionId);
+    const { analyzer } = ctx.require(soundRef);
+    // The bridge gives no abort signal, so the wait is bounded; the job goes on and can be waited for again.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<"late">((resolve) => {
+      timer = setTimeout(() => resolve("late"), ANALYSIS_WAIT_MS);
+    });
+    const stored = await Promise.race([analyzer.settled(compositionId), late]);
+    clearTimeout(timer);
+    if (stored === "late") {
+      const progress = analyzer.state.getState().running[compositionId]?.progress ?? 0;
+      return textResult({
+        running: true,
+        progress,
+        message:
+          "The analysis is still running. Call sound_analyze_mix again to keep waiting for it, or sound_cancel_analysis to stop it.",
+      });
+    }
     if (!stored) {
-      const why = ctx.require(soundRef).analyzer.state.getState().failed[compositionId];
+      const why = analyzer.state.getState().failed[compositionId];
       return errorResult({
         code: "sound.analysis_failed",
         message: why ?? "The analysis was cancelled.",
@@ -133,6 +152,7 @@ export const soundMcpTools = [
   commandTool(moveEffect, { name: "sound_move_effect" }),
   commandTool(applyPreset, { name: "sound_apply_preset" }),
   analyzeMixTool,
+  commandTool(cancelAnalysis, { name: "sound_cancel_analysis" }),
   commandTool(matchTarget, { name: "sound_match_target" }),
   commandTool(setDelivery, { name: "sound_set_delivery" }),
   commandTool(measureFloor, { name: "sound_measure_floor" }),

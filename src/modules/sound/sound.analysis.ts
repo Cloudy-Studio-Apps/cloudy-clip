@@ -14,6 +14,9 @@ export function createAnalyzer(
   project: () => ProjectState,
   log: Logger,
 ): Analyzer {
+  const jobs = new Map<CompositionId, string>();
+  /** Cancels asked for while the job was still starting. */
+  const cancelled = new Set<CompositionId>();
   const waiting = new Map<CompositionId, Promise<StoredAnalysis | null>>();
   const without = <T>(record: Record<string, T>, key: string) =>
     Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
@@ -24,23 +27,35 @@ export function createAnalyzer(
       if (state.getState().running[compositionId]) return;
       const measured = project();
       let progress = 0;
-      const jobId = await beginAnalysis(spec, peakDbtp, (value) => {
-        progress = value;
-        state.setState((s) =>
-          s.running[compositionId]
-            ? {
-                running: {
-                  ...s.running,
-                  [compositionId]: { jobId: s.running[compositionId].jobId, progress },
-                },
-              }
-            : s,
-        );
-      });
+      // Marked before the first await, so a second start can't pass the check above.
       state.setState((s) => ({
-        running: { ...s.running, [compositionId]: { jobId, progress } },
+        running: { ...s.running, [compositionId]: { jobId: null, progress } },
         failed: without(s.failed, compositionId),
       }));
+      let jobId: string;
+      try {
+        jobId = await beginAnalysis(spec, peakDbtp, (value) => {
+          progress = value;
+          state.setState((s) =>
+            s.running[compositionId]
+              ? {
+                  running: {
+                    ...s.running,
+                    [compositionId]: { jobId: s.running[compositionId].jobId, progress },
+                  },
+                }
+              : s,
+          );
+        });
+      } catch (error) {
+        state.setState((s) => ({ running: without(s.running, compositionId) }));
+        throw error;
+      }
+      state.setState((s) => ({
+        running: { ...s.running, [compositionId]: { jobId, progress } },
+      }));
+      jobs.set(compositionId, jobId);
+      if (cancelled.delete(compositionId)) void cancelAnalysis(jobId).catch(() => undefined);
       const done = finishAnalysis(jobId).then(
         (result) => {
           const stored: StoredAnalysis = { result, measured, peakDbtp };
@@ -64,12 +79,21 @@ export function createAnalyzer(
         },
       );
       waiting.set(compositionId, done);
-      void done.finally(() => waiting.delete(compositionId));
+      void done.finally(() => {
+        waiting.delete(compositionId);
+        jobs.delete(compositionId);
+      });
     },
     async cancel(compositionId) {
       const run = state.getState().running[compositionId];
-      if (run) await cancelAnalysis(run.jobId);
+      if (!run) return;
+      if (run.jobId === null) cancelled.add(compositionId);
+      else await cancelAnalysis(run.jobId);
     },
     settled: (compositionId) => waiting.get(compositionId) ?? Promise.resolve(null),
+    dispose() {
+      for (const jobId of jobs.values()) void cancelAnalysis(jobId).catch(() => undefined);
+      for (const id of Object.keys(state.getState().running)) cancelled.add(id);
+    },
   };
 }

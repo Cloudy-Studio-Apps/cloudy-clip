@@ -650,7 +650,8 @@ export interface StoredAnalysis {
 
 /** An analysis under way. */
 export interface RunningAnalysis {
-  jobId: string;
+  /** Null while the job is starting. */
+  jobId: string | null;
   /** 0 to 1. */
   progress: number;
 }
@@ -672,4 +673,6 @@ export interface Analyzer {
   cancel(compositionId: CompositionId): Promise<void>;
   /** Resolves when the analysis running for the composition ends; the stored result, or null (failed or cancelled). */
   settled(compositionId: CompositionId): Promise<StoredAnalysis | null>;
+  /** Stops every running analysis (the kernel is going away). */
+  dispose(): void;
 }

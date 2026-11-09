@@ -71,6 +71,16 @@ describe("match target", () => {
     expect(master().effects).toBeUndefined();
   });
 
+  it("switches on a limiter that is off instead of adding a second", async () => {
+    const added = await run(addEffect, { target: "master", kind: "limiter" });
+    const effectId = (added as { value: { effectId: string } }).value.effectId;
+    await run(setEffect, { target: "master", effectId, patch: { on: false, ceilingDb: -6 } });
+    measured(-18);
+    const result = await run(matchTarget, {});
+    expect(result).toMatchObject({ ok: true, value: { limiterAdded: false } });
+    expect(master().effects).toMatchObject([{ kind: "limiter", on: true, ceilingDb: -1 }]);
+  });
+
   it("refuses without a result and for a silent mix", async () => {
     expect(await run(matchTarget, {})).toMatchObject({
       ok: false,
