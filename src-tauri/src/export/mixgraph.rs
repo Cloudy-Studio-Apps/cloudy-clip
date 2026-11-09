@@ -316,7 +316,7 @@ mod tests {
             &mix_of(&[line], 1.0),
             1_000_000,
         );
-        let envelope = graph.find("volume=eval=frame:volume='").unwrap();
+        let envelope = graph.find("aeval='val(ch)*(").unwrap();
         assert!(graph.find("[s0][s1]amix=inputs=2").unwrap() < envelope, "{graph}");
         assert!(graph.contains("1+-0.75*(t-0)"), "{graph}");
         assert!(!graph.contains("volume=0.500000"), "{graph}");

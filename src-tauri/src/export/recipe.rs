@@ -598,9 +598,9 @@ mod sound_tests {
     }
 
     #[test]
-    fn gain_envelope_becomes_a_frame_expression() {
+    fn gain_envelope_becomes_a_sample_expression() {
         let chain = sound_graph(&[keyed()], 1, 2_000_000);
-        assert!(chain.contains("volume=eval=frame:volume='"), "{chain}");
+        assert!(chain.contains("aeval='val(ch)*("), "{chain}");
         assert!(chain.contains("if(lt(t,1),1+-0.75*(t-0),0.25)"), "{chain}");
         assert!(!chain.contains(",volume=1"), "{chain}");
     }
@@ -736,7 +736,7 @@ mod sound_tests {
         };
         let recipe = arguments(&hour, Path::new("/o.partial.mp3"), None, ScriptOption::Slash);
         let graph = recipe.script.expect("a long line is written to a file");
-        assert!(graph.contains("volume=eval=frame:volume='"));
+        assert!(graph.contains("aeval='val(ch)*("));
         assert!(recipe.args.iter().all(|a| a.len() < 1_000));
     }
 
