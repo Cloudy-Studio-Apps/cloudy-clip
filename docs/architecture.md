@@ -107,6 +107,7 @@ All times are integer microseconds.
 - **Pro footage is proxied.** Files the webview can't decode well get an H.264 proxy from FFmpeg in the background, one encode at a time, cached across sessions.
 - **Media is streamed.** The loopback server answers Range requests with bodies streamed from disk in 256 KB reads, so memory stays flat with long files.
 - **Media elements are pooled.** At most a few stay warm; idle ones release their decoders.
+- **Picture work runs on the GPU, one runner per engine.** The preview engine owns one WebGL2 context (`createGpuRunner`); `pictureFilters` (a clip's own picture) and `frameFilters` (the composition's frame) contribute passes to it, so a module like `tint` grades the preview, captures and export through the same passes. If the GPU fails, video draws uncorrected and the user is told once.
 - **The preview renders on demand.** It redraws every frame only while playing.
 - **Failures stay contained.** Commands return `Result`, each panel has an error boundary, modules load in isolation, and Rust denies `unwrap`/`expect`/`panic` (release builds abort on panic).
 
