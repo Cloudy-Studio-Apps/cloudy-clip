@@ -174,6 +174,14 @@ describe("the grade in the policy", () => {
         gradeGroups: { g1: { id: "g1", name: "G", grade: broken } },
       }),
     ).toMatch(/grade/);
+    expect(
+      projectPolicy.validate({
+        ...base,
+        stills: {
+          s1: { id: "s1", name: "S", image: "", grade: broken, from: { time: 0 } },
+        },
+      }),
+    ).toMatch(/still s1/);
   });
 
   it("settle drops a gradeGroup that no longer exists", () => {

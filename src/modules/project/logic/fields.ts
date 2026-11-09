@@ -81,6 +81,23 @@ function diffCollection(
   }
 }
 
+/**
+ * A collection that may be missing. While both sides have it, it is compared like any other; when
+ * one side lacks it, the whole collection is one change, since writing an entry back under a
+ * parent that isn't there would silently do nothing.
+ */
+function diffOptional(
+  name: string,
+  before: Record<string, object> | undefined,
+  after: Record<string, object> | undefined,
+  fieldLevel: boolean,
+  out: FieldChange[],
+): void {
+  if (before === after) return;
+  if (before && after) diffCollection(name, before, after, fieldLevel, out);
+  else if (!same(before, after)) out.push({ path: [name], before, after });
+}
+
 /** Keeps `order` in step with `ids`: drops the missing, appends the new. */
 function reconcile(order: string[], ids: Set<string>): string[] {
   const kept = order.filter((id) => ids.has(id));
@@ -113,6 +130,10 @@ function repair(draft: Draft<ProjectState>): void {
   draft.mediaOrder = reconcile(draft.mediaOrder, new Set(Object.keys(draft.media)));
   draft.binOrder = reconcile(draft.binOrder, new Set(Object.keys(draft.bins)));
   draft.solidOrder = reconcile(draft.solidOrder, new Set(Object.keys(draft.solids)));
+  if (draft.stills || draft.stillOrder) {
+    const order = reconcile(draft.stillOrder ?? [], new Set(Object.keys(draft.stills ?? {})));
+    if (order.length > 0 || draft.stillOrder) draft.stillOrder = order;
+  }
 }
 
 /** What's wrong with the bins, if anything: an item or bin pointing nowhere, or a bin in itself. */
@@ -192,6 +213,9 @@ function* gradesOf(state: ProjectState): Generator<[string, ClipGrade]> {
   for (const group of Object.values(state.gradeGroups ?? {})) {
     if (group.grade) yield [`group ${group.id}`, group.grade];
   }
+  for (const still of Object.values(state.stills ?? {})) {
+    if (still.grade) yield [`still ${still.id}`, still.grade];
+  }
 }
 
 function validate(state: ProjectState): string | null {
@@ -255,6 +279,9 @@ export const projectPolicy: StorePolicy<ProjectState> = {
     const out: FieldChange[] = [];
     for (const name of RECORDS) diffCollection(name, before[name], after[name], true, out);
     diffCollection("media", before.media, after.media, false, out);
+    diffOptional("gradeGroups", before.gradeGroups, after.gradeGroups, true, out);
+    diffOptional("luts", before.luts, after.luts, false, out);
+    diffOptional("stills", before.stills, after.stills, false, out);
     if (before.mainCompositionId !== after.mainCompositionId) {
       out.push({
         path: ["mainCompositionId"],

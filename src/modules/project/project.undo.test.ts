@@ -217,6 +217,27 @@ describe("per-actor undo", () => {
     expect(t.state().compositions.c1!.trackOrder).toEqual(["t1", "t3", "t2"]);
   });
 
+  it("an out-of-order undo of a deleted gradeGroup restores the group and the clip's ref", async () => {
+    await t.edit(LOCAL_ACTOR, (d) => {
+      d.gradeGroups = { g1: { id: "g1", name: "Look" } };
+      d.clips.a!.gradeGroup = "g1";
+    });
+    await t.edit(AGENT, (d) => void delete d.gradeGroups!.g1);
+    expect(t.state().clips.a!.gradeGroup).toBeUndefined();
+    await t.edit(LOCAL_ACTOR, (d) => void (d.clips.a!.start = 5));
+    t.history.undo(AGENT);
+    expect(t.state().gradeGroups!.g1).toMatchObject({ id: "g1", name: "Look" });
+    expect(t.state().clips.a!.gradeGroup).toBe("g1");
+  });
+
+  it("redoes a created gradeGroup into a project that had none", async () => {
+    await t.edit(AGENT, (d) => void (d.gradeGroups = { g1: { id: "g1", name: "Look" } }));
+    t.history.undo(AGENT);
+    await t.edit(LOCAL_ACTOR, (d) => void (d.clips.a!.start = 5));
+    t.history.redo(AGENT);
+    expect(t.state().gradeGroups!.g1).toMatchObject({ id: "g1" });
+  });
+
   it("redoes a created track past a later step", async () => {
     await t.edit(AGENT, addTrack4);
     t.history.undo(AGENT);
