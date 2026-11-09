@@ -18,6 +18,7 @@ import type {
   ClipSound,
   ClipSpeed,
   Composition,
+  KeyTrack,
   MasterMix,
   MediaId,
   ProjectFormat,
@@ -96,6 +97,8 @@ export interface SoundGraph {
   busOf(trackId: TrackId): AudioNode | undefined;
   /** Makes and drops track buses and sets every level. Call it on a change, not per frame. */
   mix(update: MixUpdate): void;
+  /** Keeps volume lines on the clock: call it at each frame with the playhead. Cheap. */
+  follow(time: Micros, playing: boolean): void;
   /** Peaks now; silence before any sound went through. */
   levels(): MixLevels;
   /** Loudness of the master since the last reset, measured while playing; null until measured. */
@@ -132,6 +135,8 @@ export interface SoundMix {
   heard(sound: ClipSound, speed: ClipSpeed): ClipSound;
   /** At each frame: sets the buses when the tracks, the composition or the live sound changed. */
   update(project: ProjectState, composition: Composition): void;
+  /** At each frame: the playhead, which track volume lines follow (`SoundGraph.follow`). */
+  follow(time: Micros, playing: boolean): void;
   /** New live sound from the controller, applied at once. */
   setSound(live: LiveSound): void;
   levels(): MixLevels;
@@ -173,9 +178,28 @@ export interface TrackBus {
   effects: EffectChain;
   panner: StereoPannerNode;
   fader: GainNode;
+  /** What sets the fader: its volume, mute, or the volume line with the volume on top. */
+  level: FaderLevel;
   /** 0 while another track is soloed; a duck's key is taken before it. */
   solo: GainNode;
   meter: Meter;
+}
+
+/** What a track bus's fader plays: its volume, its mute and its volume line. */
+export interface FaderTarget {
+  /** The track's volume line (timeline time), on which the volume is an offset in dB. */
+  line: KeyTrack | undefined;
+  /** The fader's volume in dB: the level, or the offset on top of the line. */
+  offsetDb: number;
+  muted: boolean;
+}
+
+/** Sets a fader's gain from a `FaderTarget`, following a volume line on the clock (`createFaderLevel`). */
+export interface FaderLevel {
+  /** A new target; the same one again does nothing. */
+  set(target: FaderTarget): void;
+  /** The playhead, at each frame. */
+  follow(time: Micros, playing: boolean): void;
 }
 
 /** The node a duck listens to for a track (its bus after the fader); nothing when it has no bus. */
@@ -218,6 +242,8 @@ export interface EffectStage {
 export interface MixBus {
   /** The input of a track's bus, or the master's when the track has none. */
   inputOf(trackId: TrackId): AudioNode;
+  /** Keeps volume lines on the clock (`SoundGraph.follow`). */
+  follow(time: Micros, playing: boolean): void;
   /** The master after its fader and effects, before the monitor: what loudness is measured on. */
   readonly master: AudioNode;
   mix(update: MixUpdate): void;

@@ -103,3 +103,29 @@ export function animatedClip(clip: Clip, time: Micros): Clip {
   }
   return { ...result, props } as unknown as Clip;
 }
+
+/**
+ * The times in `from..to` where a track has a key, its loop and ping-pong repeats included: where
+ * its value starts or stops changing, or jumps. Times are the keys' own: content time for a clip's
+ * keys, timeline time for a track's volume line.
+ */
+export function keyMoments(track: KeyTrack, from: Micros, to: Micros): Micros[] {
+  const first = track.keys[0];
+  const last = track.keys[track.keys.length - 1];
+  if (!first || !last) return [];
+  const span = last.t - first.t;
+  const plain = track.keys.map((key) => key.t);
+  if (!track.after || span <= 0) return plain.filter((t) => t >= from && t <= to);
+  const offsets = plain.map((t) => t - first.t);
+  const period = track.after === "loop" ? span : 2 * span;
+  if (track.after === "pingpong") offsets.push(...offsets.map((o) => period - o));
+  const moments: Micros[] = [];
+  const startLap = Math.max(0, Math.floor((from - first.t) / period));
+  for (let lap = startLap; first.t + lap * period <= to; lap++) {
+    for (const offset of offsets) {
+      const t = first.t + lap * period + offset;
+      if (t >= from && t <= to) moments.push(t);
+    }
+  }
+  return moments;
+}

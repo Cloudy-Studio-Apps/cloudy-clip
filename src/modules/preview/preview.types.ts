@@ -567,3 +567,10 @@ export interface ActiveJunction {
   /** Seconds since the overlap started. */
   elapsed: number;
 }
+
+/** A level a track's bus reaches at a timeline time, on the way along its volume line. */
+export interface LinePoint {
+  at: Micros;
+  /** Linear: the line with the fader's offset on top. */
+  gain: number;
+}

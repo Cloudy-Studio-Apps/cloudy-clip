@@ -6,6 +6,7 @@ import {
   compositionMixOf,
   dbToLinear,
   heardDenoise,
+  keyMoments,
   pitchShift,
   rampOf,
   soundOf,
@@ -26,8 +27,9 @@ import {
   type ProjectState,
   type Track,
   type TrackId,
+  type TrackMix,
 } from "@/modules/project";
-import { envelope, keyMoments } from "./envelope";
+import { envelope } from "./envelope";
 import type {
   ExportRange,
   EqFilter,
@@ -42,6 +44,7 @@ import type {
   SoundMix,
   SoundSegment,
   TempoStep,
+  TrackMixSpec,
 } from "../export.types";
 
 /** Every clip sounds from its own file. */
@@ -327,17 +330,38 @@ function mixEffects(
 const withEffects = (effects: MixEffect[]) => (effects.length > 0 ? { effects } : {});
 
 /**
+ * A track's level over the export: its volume line with the fader's offset on top, as linear
+ * points counted from the range's start (the same sampling a clip's keyed volume gets), or its
+ * fader alone when it has no line.
+ */
+function trackLevel(
+  { volumeDb, volumeLine }: TrackMix,
+  range: ExportRange,
+): Pick<TrackMixSpec, "gain" | "gainEnvelope"> {
+  if (!volumeLine?.keys.length) return { gain: dbToLinear(volumeDb) };
+  const from = range.start;
+  const to = range.start + range.duration;
+  const level = (time: Micros) => dbToLinear(Number(trackValue(volumeLine, time)) + volumeDb);
+  return { gain: 1, gainEnvelope: envelope(level, from, to, keyMoments(volumeLine, from, to)) };
+}
+
+/**
  * The mix of the composition's audio tracks, in order, and of its master, as linear levels, with
  * the effects that work. Muted tracks keep their place (their clips are left out, so a duck
- * listening to one hears nothing).
+ * listening to one hears nothing). A track with a volume line follows it over `range`.
  */
-function mixOf(project: ProjectState, compositionId: CompositionId): Mixdown["mix"] {
+function mixOf(
+  project: ProjectState,
+  compositionId: CompositionId,
+  range: ExportRange,
+): Mixdown["mix"] {
   const composition = project.compositions[compositionId];
   if (!composition) return NO_MIX;
   const audio = composition.trackOrder.filter((id) => project.tracks[id]?.kind === "audio");
   const tracks = audio.map((id) => {
-    const { volumeDb, pan, effects } = trackMixOf(project.tracks[id]!);
-    return { gain: dbToLinear(volumeDb), pan, ...withEffects(mixEffects(effects, audio)) };
+    const mix = trackMixOf(project.tracks[id]!);
+    const effects = withEffects(mixEffects(mix.effects, audio));
+    return { ...trackLevel(mix, range), pan: mix.pan, ...effects };
   });
   const master = compositionMixOf(composition).master;
   return {
@@ -368,5 +392,5 @@ export function mixdown(
   const window = { from: range.start, to: range.start + range.duration, shift: -range.start };
   const edges = { fadeIn: 0, fadeOut: 0 };
   walk(project, compositionId, window, edges, null, hasSound, soundFile, segments);
-  return { segments, mix: mixOf(project, compositionId) };
+  return { segments, mix: mixOf(project, compositionId, range) };
 }

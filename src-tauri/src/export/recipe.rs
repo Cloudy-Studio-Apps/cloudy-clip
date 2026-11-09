@@ -45,8 +45,9 @@ pub enum Effort {
     Small,
 }
 
-/// A value at a moment of a segment. All times are microseconds from the segment's start.
-#[derive(Debug, Clone, Copy, Deserialize)]
+/// A value at a moment of a segment (or of the export, for a track's line). All times are
+/// microseconds from its start.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub struct EnvelopePoint {
     pub at: u64,
     pub value: f64,
@@ -152,6 +153,10 @@ pub struct TrackMixSpec {
     /// The effects before the pan and the level, in order.
     #[serde(default)]
     pub effects: Vec<MixEffect>,
+    /// Linear level over the export, the track's volume line with the fader on top; `at` counts
+    /// from the export's start. Replaces `gain` when it has points.
+    #[serde(default, rename = "gainEnvelope")]
+    pub gain_envelope: Vec<EnvelopePoint>,
 }
 
 impl TrackMixSpec {
@@ -160,6 +165,7 @@ impl TrackMixSpec {
         gain: 1.0,
         pan: 0.0,
         effects: Vec::new(),
+        gain_envelope: Vec::new(),
     };
 }
 
@@ -703,6 +709,35 @@ mod sound_tests {
         let short = arguments(&one, partial, None, ScriptOption::Slash);
         assert!(short.script.is_none());
         assert!(short.args.iter().any(|a| a == "-filter_complex"));
+    }
+
+    #[test]
+    fn an_hour_long_volume_line_goes_in_a_file() {
+        let line: Vec<EnvelopePoint> = (0..3_600u64)
+            .map(|i| EnvelopePoint {
+                at: i * 1_000_000,
+                value: 0.5 + ((i as f64) * 0.37).sin() / 3.0,
+            })
+            .collect();
+        let hour = ExportSpec {
+            duration: 3_600_000_000,
+            sound: vec![SoundSegment {
+                duration: 3_600_000_000,
+                ..segment()
+            }],
+            mix: SoundMix {
+                tracks: vec![TrackMixSpec {
+                    gain_envelope: line,
+                    ..TrackMixSpec::DEFAULT
+                }],
+                ..SoundMix::default_for(1)
+            },
+            ..worst_case(0)
+        };
+        let recipe = arguments(&hour, Path::new("/o.partial.mp3"), None, ScriptOption::Slash);
+        let graph = recipe.script.expect("a long line is written to a file");
+        assert!(graph.contains("volume=eval=frame:volume='"));
+        assert!(recipe.args.iter().all(|a| a.len() < 1_000));
     }
 
     /// 2 s of a ramp from 1x to 4x, in 250 ms steps that follow each other in the file.

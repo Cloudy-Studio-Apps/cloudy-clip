@@ -151,6 +151,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>> = new Map(),
   ): void {
     this.sound.update(project, composition);
+    this.sound.follow(time, playing);
     // A scrub slice is heard and metered as playback is, but never reaches the loudness reading.
     this.sound.setPlaying(playing && !this.slicing);
     const frame = resolveFrame(project, composition.id, time, {

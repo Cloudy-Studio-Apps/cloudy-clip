@@ -176,8 +176,11 @@ export { denoiseNeeds, heardDenoise } from "./logic/denoise";
 
 /** Key curves: the ease presets and how far along an ease a segment is. */
 export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";
-/** A key track's value at a time, and a clip with every keyed value written in. */
-export { animatedClip, trackValue } from "./logic/animate";
+/**
+ * A key track's value at a time, the times its keys fall on in a stretch (loops included), and a
+ * clip with every keyed value written in.
+ */
+export { animatedClip, keyMoments, trackValue } from "./logic/animate";
 /** Editing key tracks: writing, moving and removing keys, and mirroring an ease. */
 export { mirrorEase, moveTrackKeys, withoutKeys, withoutTracks, writeKey } from "./logic/keys";
 /** A clip's content time (where its keys sit) and timeline time, both ways, and its rate. */

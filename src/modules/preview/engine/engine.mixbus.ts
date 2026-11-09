@@ -1,38 +1,45 @@
+import type { Micros } from "@/core";
 import { dbToLinear, type TrackId } from "@/modules/project";
 import type { MixLevels, MonitorState, StereoLevel } from "../preview.types";
 import { createEffectChain } from "./engine.effects";
+import { createFaderLevel } from "./engine.line";
 import { createMeter } from "./engine.meters";
 import { createPanner, createUpmix, glide } from "./engine.soundnodes";
-import type { DynamicsNodes, KeyOf, MixBus, TrackBus } from "./engine.types";
+import type { DynamicsNodes, FaderTarget, KeyOf, MixBus, TrackBus } from "./engine.types";
 
 /** How far Dim takes the monitor down, in dB. */
 const DIM_DB = -20;
 
 /**
- * One audio track's bus: upmix, effects, pan, fader (volume and mute), solo, and a meter after
- * them. Solo is a gain of its own after the fader because it is only how the user listens: a
- * duck's key is taken between the two, so soloing doesn't stop ducking (the export has no solo),
- * while a muted listened track keys nothing. It starts at its pan and levels, so a muted or
- * soloed-out track never sounds while it's made; its effects are set by the next pass of `mix`.
+ * One audio track's bus: upmix, effects, pan, fader (volume and mute, or the volume line with the
+ * volume as an offset on top), solo, and a meter after them. Solo is a gain of its own after the
+ * fader because it is only how the user listens: a duck's key is taken between the two, so
+ * soloing doesn't stop ducking (the export has no solo), while a muted listened track keys
+ * nothing; the line is in the key, as it is in the export. It starts at its pan and levels (the
+ * line's at `time`), so a muted or soloed-out track never sounds while it's made; its effects are
+ * set by the next pass of `mix`.
  */
 function createTrackBus(
   context: BaseAudioContext,
   output: AudioNode,
   dynamics: DynamicsNodes,
   pan: number,
-  level: number,
+  level: FaderTarget,
   soloLevel: number,
+  time: Micros,
 ): TrackBus {
   const input = createUpmix(context);
   const panner = createPanner(context);
   panner.pan.value = pan;
   const fader = context.createGain();
-  fader.gain.value = level;
+  const faderLevel = createFaderLevel(fader.gain, context, time);
+  faderLevel.set(level);
   const solo = context.createGain();
   solo.gain.value = soloLevel;
   const effects = createEffectChain(context, input, panner, dynamics);
   panner.connect(fader).connect(solo).connect(output);
-  return { input, effects, panner, fader, solo, meter: createMeter(context, solo) };
+  const meter = createMeter(context, solo);
+  return { input, effects, panner, fader, level: faderLevel, solo, meter };
 }
 
 function dropTrackBus({ input, effects, panner, fader, solo, meter }: TrackBus): void {
@@ -81,10 +88,16 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
   const buses = new Map<TrackId, TrackBus>();
   /** The first mix sets the master's level outright, so it never glides in from unity. */
   let started = false;
+  /** The playhead, for a bus made between frames. */
+  let clock: Micros = 0;
 
   return {
     master,
     inputOf: (trackId) => buses.get(trackId)?.input ?? masterFader,
+    follow(time, playing) {
+      clock = time;
+      for (const bus of buses.values()) bus.level.follow(time, playing);
+    },
     mix({ tracks, master: masterMix, solo, monitor: monitorState }) {
       const wanted = new Set(tracks.map((track) => track.id));
       for (const [id, bus] of buses) {
@@ -95,15 +108,23 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
       for (const { id, mix, muted } of tracks) {
         // Solo silences the other buses, never their elements, so they stay in sync.
         const soloLevel = solo.length === 0 || solo.includes(id) ? 1 : 0;
-        const level = muted ? 0 : dbToLinear(mix.volumeDb);
+        const level = { line: mix.volumeLine, offsetDb: mix.volumeDb, muted };
         const bus = buses.get(id);
         if (!bus) {
-          const made = createTrackBus(context, masterFader, dynamics, mix.pan, level, soloLevel);
+          const made = createTrackBus(
+            context,
+            masterFader,
+            dynamics,
+            mix.pan,
+            level,
+            soloLevel,
+            clock,
+          );
           buses.set(id, made);
           continue;
         }
         glide(bus.panner.pan, mix.pan, context);
-        glide(bus.fader.gain, level, context);
+        bus.level.set(level);
         glide(bus.solo.gain, soloLevel, context);
       }
       // Every bus exists now, so a duck finds the faders of the tracks it listens to (before solo).

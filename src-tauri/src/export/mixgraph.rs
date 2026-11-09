@@ -1,5 +1,5 @@
 //! The tree the sound is mixed in, as the preview's buses are: a track's clips are summed, the
-//! track's effects, pan and level apply to that sum, the tracks are summed, and the master's
+//! track's effects, pan and level (its volume line, when it has one) apply to that sum, the tracks are summed, and the master's
 //! level, then its effects, apply to the result. A duck's key is the sum of the tracks it listens
 //! to after their levels, split off them (`asplit`); those tracks are built first.
 
@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 
 use super::mixeffects::{MixEffect, duck_filter, effect_filter};
 use super::recipe::{SoundMix, SoundSegment, TrackMixSpec, seconds};
-use super::soundfilters::{pan_filter, samples};
+use super::soundfilters::{gain_envelope_filter, pan_filter, samples};
 
 /// Time a chain with effects runs on in silence past the end, as the preview's effects run on
 /// after the sound stops: a limiter gives back its lookahead, and a duck never ends before its
@@ -147,6 +147,7 @@ struct Bus<'a> {
 
 impl Bus<'_> {
     /// The clips summed, then the effects in order, the pan and the level, as the preview's bus.
+    /// A volume line is the level: `t` after the sum counts from the export's start.
     fn text(&self) -> String {
         let Bus { track, spec, .. } = *self;
         let mut text = sum(self.labels);
@@ -166,7 +167,9 @@ impl Bus<'_> {
         if spec.pan != 0.0 {
             text.push_str(&pan_filter(spec.pan));
         }
-        if spec.gain != 1.0 {
+        if !spec.gain_envelope.is_empty() {
+            text.push_str(&gain_envelope_filter(&spec.gain_envelope));
+        } else if spec.gain != 1.0 {
             text.push_str(&format!(",volume={:.6}", spec.gain));
         }
         if self.heard_by.is_empty() {
@@ -213,7 +216,7 @@ fn sum(labels: &[String]) -> String {
 mod tests {
     use super::*;
     use crate::export::mixeffects::{CompressorSpec, DuckSpec, LimiterSpec, MixEffect};
-    use crate::export::recipe::{MasterMixSpec, segment as plain};
+    use crate::export::recipe::{EnvelopePoint, MasterMixSpec, segment as plain};
 
     fn segment(track: usize) -> SoundSegment {
         SoundSegment { track, ..plain() }
@@ -299,6 +302,27 @@ mod tests {
     }
 
     #[test]
+    fn a_volume_line_follows_its_envelope_after_the_clips_mix_instead_of_the_fader() {
+        let point = |at, value| EnvelopePoint { at, value };
+        let line = TrackMixSpec {
+            gain: 0.5,
+            gain_envelope: vec![point(0, 1.0), point(1_000_000, 0.25)],
+            ..TrackMixSpec::DEFAULT
+        };
+        let graph = sound_graph(
+            &[chain(0), chain(1)],
+            &[segment(0), segment(0)],
+            &mix_of(&[line], 1.0),
+            1_000_000,
+        );
+        let envelope = graph.find("volume=eval=frame:volume='").unwrap();
+        assert!(graph.find("[s0][s1]amix=inputs=2").unwrap() < envelope, "{graph}");
+        assert!(graph.contains("1+-0.75*(t-0)"), "{graph}");
+        assert!(!graph.contains("volume=0.500000"), "{graph}");
+        assert_wired(&graph);
+    }
+
+    #[test]
     fn only_a_track_that_changes_the_sound_gets_a_bus() {
         let quiet = TrackMixSpec {
             gain: 0.25,
@@ -357,6 +381,7 @@ mod tests {
             gain: 0.5,
             pan: 0.5,
             effects: vec![compressor],
+            ..TrackMixSpec::DEFAULT
         };
         let graph = sound_graph(&[chain(0)], &[segment(0)], &mix_of(&[spec], 1.0), 1_000_000);
         let filter = "acompressor=threshold=-18dB:ratio=4:attack=20:release=250:knee=9dB:makeup=3.5dB:detection=peak";

@@ -84,6 +84,11 @@ export interface TrackMixSpec {
   pan: number;
   /** Before the pan and the level, in order. Missing when none works. */
   effects?: MixEffect[];
+  /**
+   * The level over the export when the track has a volume line: the line with the fader's offset
+   * on top, linear, `at` counted from the export's start. Replaces `gain`.
+   */
+  gainEnvelope?: EnvelopePoint[];
 }
 
 /** How the tracks mix, then the master (mirrors `SoundMix` in Rust). Solo is never in it. */

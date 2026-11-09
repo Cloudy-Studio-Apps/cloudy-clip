@@ -372,6 +372,33 @@ describe("mixdown", () => {
     expect(mix.master.effects).toEqual([{ kind: "limiter", ceilingDb: -1, releaseMs: 50 }]);
   });
 
+  it("gives a track with a volume line a gain envelope from the export range's start", () => {
+    const state = project([clip("a", "a1")]);
+    state.tracks.a1!.mix = {
+      volumeDb: -6,
+      pan: 0,
+      volumeLine: {
+        blend: "number",
+        min: -60,
+        max: 12,
+        keys: [
+          { id: "l1", t: 1_000_000, value: 0 },
+          { id: "l2", t: 3_000_000, value: -20 },
+        ],
+      },
+    };
+    const window = { start: 2_000_000, duration: 2_000_000 };
+    const { mix } = mixdownWithMix(state, "c1", window, sounds);
+    const points = mix.tracks[0]!.gainEnvelope!;
+    // Halfway down the line, plus the fader's -6 dB offset, at the export's first moment.
+    expect(points[0]!.at).toBe(0);
+    expect(points[0]!.value).toBeCloseTo(dbToLinear(-16), 6);
+    // The key at 3 s is 1 s into the export; the line holds after it.
+    expect(points.find((point) => point.at === 1_000_000)!.value).toBeCloseTo(dbToLinear(-26), 6);
+    expect(points.at(-1)).toMatchObject({ at: 2_000_000 });
+    expect(points.at(-1)!.value).toBeCloseTo(dbToLinear(-26), 6);
+  });
+
   it("sounds an inner clip through the outer track, with the inner track's mix folded in", () => {
     const state = withPlacement(project([]), { innerMuted: false });
     state.tracks.a2!.mix = { volumeDb: -6, pan: 0.25 };
