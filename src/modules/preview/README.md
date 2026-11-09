@@ -49,7 +49,11 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     and `run` throws `GpuUnavailable` (`gpu.errors.ts`), as it does without WebGL2. `gpu.levels.ts`:
     `levelsPass(levels)`. `gpu.blend.ts`: `BLEND_GLSL`, `vec3 blend(int mode, vec3 base, vec3 top)`
     with modes numbered in `BLEND_MODES` order (W3C formulas, as the canvas). The engine sends a video
-    frame through the levels pass once per draw (a playing video can move on between two draws); if
+    frame through the levels pass once per draw (a playing video can move on between two draws). The
+    live engine (`EngineOptions.capPasses`) runs it no larger than the frame lands on the canvas
+    (`logic/capping.ts` `cappedPassSize`, aspect kept) and draws the frame that small onto a 2D canvas
+    first (`engine/engine.shrink.ts`), since the upload is the cost; captures and renderers run at full
+    size, so export keeps every pixel; if
     the GPU fails, video draws uncorrected and the user is told once per engine. What WebKitGTK
     offers is in `docs/superpowers/specs/2026-11-03-tint-webgl-check.md`.
   - `engine/`: the v1 `PreviewEngine`. `engine.html.ts` renders and draws video layers bottom → top,

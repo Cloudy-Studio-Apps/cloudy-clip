@@ -281,6 +281,11 @@ export interface EngineOptions {
   videoLevels?(): VideoLevels | null;
   /** The engine's own GPU runner: made with the engine, disposed with it. */
   gpu?: GpuRunner;
+  /**
+   * GPU passes run no larger than the picture lands on the canvas (the live preview, for speed).
+   * Off, they run at the picture's full size (captures and renderers, so export keeps its detail).
+   */
+  capPasses?: boolean;
 }
 
 /** A track's clips under the playhead, in start order (two during a junction's overlap). */

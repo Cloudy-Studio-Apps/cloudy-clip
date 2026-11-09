@@ -101,6 +101,7 @@ export const previewModule = defineModule({
           ensureFont: (request) => fonts.ensure(request),
           onFrameReady,
           gpu: createGpuRunner(),
+          capPasses: true,
         }),
       requestFrame: (callback) => void requestAnimationFrame(callback),
       capture: createCapture(captureDeps),

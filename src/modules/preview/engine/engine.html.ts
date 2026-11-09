@@ -29,6 +29,7 @@ import {
   rateAt,
   sourceTimeAt,
 } from "@/modules/project";
+import { cappedPassSize } from "../logic/capping";
 import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
 import { placeSound } from "../logic/mix";
@@ -50,6 +51,7 @@ import { landLayer } from "./engine.composite";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { createSoundMix } from "./engine.soundmix";
+import { ShrinkCanvas } from "./engine.shrink";
 import { MediaSlotPool } from "./engine.slots";
 import { RAMP_RATE_STEP, syncSlot } from "./engine.sync";
 import type {
@@ -132,6 +134,8 @@ export class HtmlMediaEngine implements PreviewEngine {
   /** The GPU failed: told once; without WebGL2 for good, video draws uncorrected from then on. */
   private gpuWarned = false;
   private gpuGone = false;
+  /** Where a capped video frame is made smaller before its upload. */
+  private readonly shrink = new ShrinkCanvas();
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -408,6 +412,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.mixCanvases.dispose();
     this.nested.dispose();
     this.options.gpu?.dispose();
+    this.shrink.dispose();
   }
 
   private draw(
@@ -557,23 +562,30 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) return;
 
     const size = { width: element.videoWidth, height: element.videoHeight };
-    land(target, this.videoFrame(element, size), clipPlacement(format, size, transform), kx, ky);
+    const place = clipPlacement(format, size, transform);
+    const passSize = this.options.capPasses ? cappedPassSize(size, place, kx, ky) : size;
+    land(target, this.videoFrame(element, size, passSize), place, kx, ky);
   }
 
   /**
-   * A video frame as the file holds it: through the levels pass when this webview squeezes video
-   * levels, else the element itself. Uploaded once, so a playing video can't move on between two
-   * draws. A frame the GPU fails on draws uncorrected and the user is told once; without WebGL2
-   * it stops trying.
+   * A video frame as the file holds it: through the levels pass at `passSize` when this webview
+   * squeezes video levels, else the element itself. Read once (drawn smaller first when
+   * `passSize` is under its `size`), so a playing video can't move on between two draws. A frame
+   * the GPU fails on draws uncorrected and the user is told once; without WebGL2 it stops trying.
    */
-  private videoFrame(element: HTMLVideoElement, size: PictureSize): CanvasImageSource {
+  private videoFrame(
+    element: HTMLVideoElement,
+    size: PictureSize,
+    passSize: PictureSize,
+  ): CanvasImageSource {
     const levels = this.options.videoLevels?.() ?? null;
     const gpu = this.options.gpu;
     if (!levels || !gpu || this.gpuGone) return element;
     if (this.correction?.from !== levels)
       this.correction = { from: levels, pass: levelsPass(levels) };
     try {
-      return gpu.run(element, size, [this.correction.pass]);
+      const small = this.shrink.fit(element, size, passSize);
+      return gpu.run(small, passSize, [this.correction.pass]);
     } catch (error) {
       if (error instanceof GpuUnavailable) this.gpuGone = true;
       if (!this.gpuWarned) {

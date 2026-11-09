@@ -75,6 +75,25 @@ preview, captures and renderers. Checked on Linux, same machine, 2026-11-09:
   (16, 16, 16), (123, 125, 125), (233, 235, 235) before and (0, 0, 0), (125, 127, 127), (253, 255, 255)
   after. The live preview draws through the same engine code and the same measured levels.
 
+**Live playback cost** (Task 2 review). The live preview now runs the levels pass on every video
+layer, which it never did before, so its cost was measured while playing: the user's clock played 5 s
+from the start, twice per case, and the time of each `engine.render` was summed (temporary
+instrumentation, removed). The preview canvas was 208×117 (the test window's panel). "Renders/s" is
+frames drawn per second of wall time (rAF runs at about 55 here).
+
+| Case                | Uncorrected (as before Task 2) | Levels, full size (first version) | Levels, pass capped only | Levels, capped and drawn small first (kept) |
+| ------------------- | ------------------------------ | --------------------------------- | ------------------------ | ------------------------------------------- |
+| 4K H.264, one layer | 51–56 renders/s, 13 ms each    | 17 renders/s, 52 ms each          | 17–20 renders/s          | 38–43 renders/s, 19–23 ms each              |
+| three 1080p layers  | 45–48 renders/s, 16–17 ms each | 17–18 renders/s, 48–53 ms each    | 21–22 renders/s          | 23–38 renders/s, 23–39 ms each              |
+
+Capping only the pass hardly helps: uploading the full-size frame is the cost (45 ms of the 52 at 4K).
+So the live engine (`capPasses`) draws the frame onto a 2D canvas at the size it lands at
+(`engine.shrink.ts`), uploads that and runs the pass there. Of what is left, most is that small 2D
+draw being forced to finish before the upload (17 ms a frame at 4K, 8 ms per 1080p layer), against
+no measurable cost when the frame is drawn straight onto the preview. Captures and renderers run at
+full size; an export of the 10 s test project still matches the one from before Task 2 in all 300
+frames, and a capture still reads black 0.
+
 ## Windows (WebView2)
 
 **Pending: owner check.** Also pending: the clean hidden run on Linux (window on another workspace for the
