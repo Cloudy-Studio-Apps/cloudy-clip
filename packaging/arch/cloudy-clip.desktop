@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Cloudy Clip
+Comment=An open-source video editor that agents can edit with you
+Exec=cloudy-clip
+Icon=cloudy-clip
+StartupWMClass=cloudy-clip
+Categories=AudioVideo;Video;AudioVideoEditing;
+Terminal=false

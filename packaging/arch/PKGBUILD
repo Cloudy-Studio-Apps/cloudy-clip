@@ -1,0 +1,29 @@
+# Local pacman package for Arch-based systems (Arch, CachyOS, …).
+# Packages the binary built by `tauri build --no-bundle`; run `pnpm release:arch`
+# from the repo root, then `sudo pacman -U packaging/arch/cloudy-clip-*.pkg.tar.zst`.
+
+_root="$startdir/../.."
+_tauri="$_root/src-tauri"
+
+pkgname=cloudy-clip
+pkgver=$(sed -n 's/^  "version": "\(.*\)",$/\1/p' "$_tauri/tauri.conf.json")
+pkgrel=1
+pkgdesc="Cloudy Clip — an open-source video editor that agents can edit with you"
+arch=('x86_64')
+url="https://github.com/Cloudy-Studio-Apps/cloudy-clip"
+license=('AGPL-3.0-only')
+depends=('webkit2gtk-4.1' 'gtk3' 'libsoup3' 'hicolor-icon-theme' 'gst-plugins-base' 'gst-plugins-good' 'gst-libav')
+optdepends=('ffmpeg: editing proxies for pro formats (ProRes, APV, 10-bit HEVC) and exporting')
+options=('!strip' '!debug')
+
+package() {
+  install -Dm755 "$_tauri/target/release/cloudy-clip" "$pkgdir/usr/bin/cloudy-clip"
+
+  install -Dm644 "$startdir/cloudy-clip.desktop" "$pkgdir/usr/share/applications/cloudy-clip.desktop"
+
+  local icons="$_tauri/icons" share="$pkgdir/usr/share/icons/hicolor"
+  install -Dm644 "$icons/32x32.png" "$share/32x32/apps/cloudy-clip.png"
+  install -Dm644 "$icons/128x128.png" "$share/128x128/apps/cloudy-clip.png"
+  install -Dm644 "$icons/128x128@2x.png" "$share/256x256/apps/cloudy-clip.png"
+  install -Dm644 "$icons/icon.png" "$share/512x512/apps/cloudy-clip.png"
+}

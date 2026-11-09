@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "release:linux": "NO_STRIP=true tauri build --bundles deb,rpm,appimage",
+    "release:arch": "tauri build --no-bundle && cd packaging/arch && makepkg -f",
     "release:tag": "node scripts/release-tag.mjs",
     "typecheck": "tsc",
     "lint": "eslint . && prettier --check .",
