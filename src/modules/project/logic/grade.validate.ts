@@ -1,8 +1,8 @@
 import type { ClipGrade, Correction, GradeNode, NodeRef } from "../project.types";
 import { GRADE_RANGES, correctionOf } from "./grade";
 
-/** The pictures a node reads. */
-function inputsOf(node: GradeNode): NodeRef[] {
+/** The pictures a node reads: its picture inputs, in order (none for a key join). */
+export function gradeInputs(node: GradeNode): NodeRef[] {
   switch (node.kind) {
     case "correct":
     case "split":
@@ -17,8 +17,8 @@ function inputsOf(node: GradeNode): NodeRef[] {
   }
 }
 
-/** The nodes a node reads besides pictures: shared keys and key joins' keys. */
-function keysOf(node: GradeNode): string[] {
+/** The nodes a node reads besides pictures: a correction's shared key, a key join's keys. */
+export function gradeKeys(node: GradeNode): string[] {
   if (node.kind === "correct") return node.limit?.from === undefined ? [] : [node.limit.from];
   if (node.kind === "keyJoin") return node.keys.map((key) => key.from);
   return [];
@@ -80,11 +80,11 @@ export function validateGrade(grade: ClipGrade): string | null {
   const ids = Object.keys(nodes);
   for (const id of ids) {
     const node = nodes[id]!;
-    for (const ref of inputsOf(node)) {
+    for (const ref of gradeInputs(node)) {
       const problem = check(ref, `node "${id}"`);
       if (problem) return problem;
     }
-    for (const from of keysOf(node)) {
+    for (const from of gradeKeys(node)) {
       const target = nodes[from];
       if (!target) return `node "${id}" reads missing node "${from}"`;
       if (target.kind !== "correct" && target.kind !== "keyJoin") {
@@ -118,7 +118,7 @@ export function validateGrade(grade: ClipGrade): string | null {
     if (state.get(id) === 1) return true;
     state.set(id, 1);
     const node = nodes[id]!;
-    const next = [...inputsOf(node).map((ref) => ref.node), ...keysOf(node)];
+    const next = [...gradeInputs(node).map((ref) => ref.node), ...gradeKeys(node)];
     for (const to of next) if (to !== "source" && visit(to)) return true;
     state.set(id, 2);
     return false;
@@ -131,7 +131,7 @@ export function validateGrade(grade: ClipGrade): string | null {
     if (ref.node === "source") return true;
     const known = reaches.get(ref.node);
     if (known !== undefined) return known;
-    const found = inputsOf(nodes[ref.node]!).some(fromSource);
+    const found = gradeInputs(nodes[ref.node]!).some(fromSource);
     reaches.set(ref.node, found);
     return found;
   };
