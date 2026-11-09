@@ -10,6 +10,7 @@ import {
 } from "./sound.effects.commands";
 import { BUILT_IN_PRESETS } from "./logic/presets";
 import { measureFloor } from "./sound.denoise.commands";
+import { moveLineKeys, removeLineKeys, setLineKey, writePass } from "./sound.line.commands";
 import { soundRef } from "./sound.ref";
 import { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
 
@@ -83,6 +84,10 @@ export const soundMcpTools = [
   commandTool(resetTrackMix, { name: "sound_reset_track_mix" }),
   commandTool(setMaster, { name: "sound_set_master" }),
   commandTool(switchMix, { name: "sound_switch_mix" }),
+  commandTool(setLineKey, { name: "sound_set_line_key" }),
+  commandTool(moveLineKeys, { name: "sound_move_line_keys" }),
+  commandTool(removeLineKeys, { name: "sound_remove_line_keys" }),
+  commandTool(writePass, { name: "sound_write_pass" }),
   commandTool(addEffect, { name: "sound_add_effect" }),
   commandTool(setEffect, { name: "sound_set_effect" }),
   commandTool(removeEffect, { name: "sound_remove_effect" }),

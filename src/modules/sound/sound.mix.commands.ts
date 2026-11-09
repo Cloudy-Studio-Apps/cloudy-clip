@@ -53,15 +53,15 @@ export const resetTrackMix = defineCommand({
   id: "sound.resetTrackMix",
   label: "Reset track mix",
   description:
-    "Puts an audio track's volume and pan back to 0 dB and centre; its effects stay. Fails with sound.not_audio on a video track and sound.track_not_found.",
+    "Puts an audio track's volume and pan back to 0 dB and centre; its effects and volume line stay. Fails with sound.not_audio on a video track and sound.track_not_found.",
   undoable: true,
   input: z.object({ trackId: z.string() }),
   run(ctx, { trackId }) {
     const { store } = ctx.require(projectRef);
     const track = audioTrack(store.getState(), trackId);
     ctx.mutate(store, (draft) => {
-      const effects = trackMixOf(track).effects;
-      writeTrack(draft.tracks[trackId]!, effects && { ...DEFAULT_TRACK_MIX, effects });
+      const { effects, volumeLine } = trackMixOf(track);
+      writeTrack(draft.tracks[trackId]!, { ...DEFAULT_TRACK_MIX, effects, volumeLine });
     });
   },
 });

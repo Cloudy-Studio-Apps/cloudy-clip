@@ -96,6 +96,13 @@ export interface TrackMix {
   pan: number;
   /** The effects before the pan and the fader, in order. Missing means none; an empty chain is never stored. */
   effects?: SoundEffect[];
+  /**
+   * The track's volume drawn over time, in dB: a `KeyTrack` (`blend` "number", `min` -60, `max` 12)
+   * whose keys' `t` is timeline time, so moving or splitting a clip never moves it. Holds before the
+   * first key and after the last. The fader's `volumeDb` is an offset on top of it. Missing means
+   * none; a line with no keys is never stored.
+   */
+  volumeLine?: KeyTrack;
 }
 
 /** What the master does to the sound of a whole composition. */
