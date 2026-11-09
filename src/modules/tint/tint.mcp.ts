@@ -85,7 +85,7 @@ const scopes = defineMcpTool({
   name: "tint_scopes",
   readOnly: true,
   description:
-    "Measures the graded frame of your open composition (or compositionId) at `at` microseconds (default your playhead): r, g, b each { min, max, mean } as 8-bit values 0 to 255; clipped.low and clipped.high, the shares 0 to 1 of pixels with luma at or under 1% and at or over 99%; histogram, 16 luma buckets from black to white, each a share of the pixels (they sum to 1); skinDistance, the mean angle in degrees (0 to 180, 0 on the line) between each pixel's vectorscope hue and the 123 degree skin line, weighted by saturation. The user's preview doesn't move. Fails with preview.capture_failed.",
+    "Measures the graded frame of your open composition (or compositionId) at `at` microseconds (default: your playhead, in your open composition; with a compositionId other than the open one, pass `at`): r, g, b each { min, max, mean } as 8-bit values 0 to 255; clipped.low and clipped.high, the shares 0 to 1 of pixels with luma at or under 1% and at or over 99%; histogram, 16 luma buckets from black to white, each a share of the pixels (they sum to 1); skinDistance, the mean angle in degrees (0 to 180, 0 on the line) between each pixel's vectorscope hue and the 123 degree skin line, weighted by saturation. Returns the time measured as `time`. Neither the user's preview nor your playhead moves. Fails with preview.capture_failed.",
   input: z.object({
     at: z.number().int().min(0).optional().describe("Microseconds"),
     compositionId: z.string().optional(),
@@ -95,7 +95,6 @@ const scopes = defineMcpTool({
     try {
       const id = compositionId ?? ctx.require(projectRef).view.requireOpen(ctx.caller.key).id;
       const clock = preview.clockFor(ctx.caller.key);
-      if (at !== undefined) clock.seek(at);
       const time = at ?? clock.getTime();
       const frame = await pixelsOf(await preview.captureAt(time, id));
       return textResult({ time, ...scopeStats(frame) });

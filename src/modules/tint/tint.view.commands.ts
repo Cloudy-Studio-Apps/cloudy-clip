@@ -121,5 +121,28 @@ export const setBypass = defineCommand({
   },
 });
 
+/** Draws grades again and ends before/after. Run when the user leaves the Tint page, where they show. */
+export const clearViewing = defineCommand({
+  id: "tint.clearViewing",
+  label: "Show grades again",
+  description:
+    "Turns bypass and before/after off so the live preview draws every grade. The user's view only: not saved, no MCP tool.",
+  undoable: false,
+  input: z.object({}),
+  run(ctx) {
+    const { picture } = ctx.require(previewRef);
+    if (picture.view.getState().bypass) picture.setBypass(false);
+    if (picture.view.getState().compare !== null) picture.setCompare(null);
+  },
+});
+
 /** The view commands, for the module. */
-export const tintViewCommands = [setMode, pinClip, selectNode, setTool, setLevel, setBypass];
+export const tintViewCommands = [
+  setMode,
+  pinClip,
+  selectNode,
+  setTool,
+  setLevel,
+  setBypass,
+  clearViewing,
+];
