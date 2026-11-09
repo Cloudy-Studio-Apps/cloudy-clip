@@ -230,6 +230,47 @@ describe("validateGrade value shapes", () => {
     expect(validateGrade(withValues({ warper: { pinned: ["a"] } }))).toContain(
       "values.warper.pinned[0]",
     );
+    const bad = (values: unknown) => validateGrade(withValues(values));
+    expect(bad({ curves: { hueSat: [[0]] } })).toContain("values.curves.hueSat[0]");
+    expect(bad({ curves: { hueSat: [[0, 0.5, 0.2]] } })).toContain("values.curves.hueSat[0]");
+    expect(bad({ curves: { hueSat: [] } })).toContain("values.curves.hueSat");
+    expect(bad({ curves: { hueSat: [[0, 0.5]] } })).toContain("values.curves.hueSat");
+    expect(
+      bad({
+        curves: {
+          hueSat: [
+            [0, 0.5],
+            [0.7, 0.5],
+            [0.3, 0.5],
+            [1, 0.5],
+          ],
+        },
+      }),
+    ).toContain("sorted");
+    expect(
+      bad({
+        mixer: {
+          matrix: [
+            [1, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+          ],
+        },
+      }),
+    ).toContain("values.mixer.matrix[0]");
+    expect(
+      bad({
+        mixer: {
+          matrix: [
+            [1, 0, 0],
+            [0, 1, 0],
+          ],
+        },
+      }),
+    ).toContain("values.mixer.matrix");
+    expect(bad({ warper: { pinned: [1.5] } })).toContain("values.warper.pinned[0]");
+    expect(bad({ warper: { pinned: [-1] } })).toContain("values.warper.pinned[0]");
+    expect(bad({ warper: { pinned: [0, 5, 35] } })).toBeNull();
     expect(
       validateGrade(
         withValues({

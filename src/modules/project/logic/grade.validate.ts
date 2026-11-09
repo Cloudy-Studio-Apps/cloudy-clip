@@ -44,11 +44,29 @@ function shapeProblem(id: string, values: unknown): string | null {
     }
     if (Array.isArray(base)) {
       if (!Array.isArray(value)) return bad("must be a list");
-      // Each element has the shape of the default's first (the pinned list is empty: numbers).
+      // Each element has the shape of the default's first (the pinned list is empty: indices).
       const template = base[0] ?? 0;
       for (const [i, cell] of value.entries()) {
-        const problem = walk(cell, template, `${path}[${i}]`);
+        const here = `${path}[${i}]`;
+        const problem = walk(cell, template, here);
         if (problem) return problem;
+        if (path === "warper.pinned" && !(Number.isInteger(cell) && (cell as number) >= 0)) {
+          return `values.${here} of ${id} must be a whole number from 0`;
+        }
+      }
+      // A row of a list of lists has as many cells as the default's; the matrix has its 3 rows.
+      if (path.endsWith("]") && value.length !== base.length) {
+        return bad(`must have ${base.length} cells`);
+      }
+      if (path === "mixer.matrix" && value.length !== base.length) {
+        return bad(`must have ${base.length} rows`);
+      }
+      // Curve points: at least 2, x sorted from 0 to 1 (every default is built that way).
+      if (path.startsWith("curves.") && !path.endsWith("]")) {
+        if (value.length < 2) return bad("needs at least 2 points");
+        const xs = (value as number[][]).map((point) => point[0]!);
+        if (xs.some((x, i) => i > 0 && x < xs[i - 1]!)) return bad("must be sorted by x");
+        if (xs[0] !== 0 || xs[xs.length - 1] !== 1) return bad("must run from x 0 to x 1");
       }
       return null;
     }
