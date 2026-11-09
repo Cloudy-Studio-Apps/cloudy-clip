@@ -57,6 +57,13 @@ export interface LevelAt {
   db: number;
 }
 
+/** One stretch of a fader pass: its points replace the line from `from` to `to`. */
+export interface PassSpan {
+  from: Micros;
+  to: Micros;
+  points: LevelAt[];
+}
+
 /** What the automation writer tells the page: the tracks whose pass is being written. */
 export interface AutomationState {
   writing: TrackId[];

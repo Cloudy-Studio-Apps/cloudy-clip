@@ -1,8 +1,8 @@
 import { createStore } from "zustand/vanilla";
 import { notify, type Micros } from "@/core";
 import { trackMixOf, type TrackId } from "@/modules/project";
-import { clampDb, lineDb, passLevels, returnToLine } from "./logic/automation";
-import { writePass } from "./sound.line.commands";
+import { clampDb, lineDb, passSpans, returnToLine } from "./logic/automation";
+import { writePasses } from "./sound.line.commands";
 import { followCompositionSwitch, followSoundPageLeave } from "./sound.leave";
 import type {
   AutomationDeps,
@@ -22,7 +22,8 @@ const JUMP: Micros = 500_000;
  * lowered by how far the fader is from the track's volume. A seek or the loop going round starts
  * another lap of the same pass, never a send, so a looped Latch writes the same change each lap
  * rather than adding it up. Touch's release returns to the line (its own levels, its curve kept up
- * to the next key). The whole pass is one `sound.writePass`, sent once when it ends; a pass in
+ * to the next key). The whole pass is one `sound.writePasses` (a span per stretch it wrote, what it
+ * skipped left alone), sent once when it ends; a pass in
  * which the fader never left its place sends nothing. While it runs the fader's level is heard
  * through `previewMix` over the unchanged line; once its command has landed, the saved mix plays.
  */
@@ -64,11 +65,9 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
     if (returning && lap && last) {
       lap.push(...returnToLine(pass.snapshot, Math.max(playback.getTime(), last.at + 1)));
     }
-    const points = passLevels(pass.laps, pass.snapshot);
-    const first = points[0];
-    const final = points[points.length - 1];
-    if (pass.changed && first && final && final.at > first.at && trackOf(trackId)) {
-      const result = await bus.run(writePass, { trackId, from: first.at, to: final.at, points });
+    const spans = passSpans(pass.laps).filter((span) => span.to > span.from);
+    if (pass.changed && spans.length > 0 && trackOf(trackId)) {
+      const result = await bus.run(writePasses, { trackId, spans });
       if (!result.ok) notify("error", `The fader pass wasn't written: ${result.error.message}`);
     }
     // A new pass keeps playing its own level.

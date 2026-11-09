@@ -6,7 +6,7 @@ import {
   VOLUME_DB_MIN,
   type KeyTrack,
 } from "@/modules/project";
-import type { AutomationMode, LevelAt } from "../sound.types";
+import type { AutomationMode, LevelAt, PassSpan } from "../sound.types";
 
 /** How far, in dB, a written point may sit off the straight line and still be dropped. */
 export const THIN_DB = 0.5;
@@ -81,12 +81,12 @@ export function returnToLine(line: KeyTrack | undefined, at: Micros): LevelAt[] 
 }
 
 /**
- * The points of a whole pass, ready for one `sound.writePass`: its laps in the order written, a
- * later lap replacing an earlier one where their spans overlap, and between laps that don't
- * touch (a seek ahead) the line's own levels as they were (`snapshot`), then thinned
- * (`thinLevels`). Empty when nothing was written.
+ * The stretches a whole pass wrote, ready for `sound.writePasses`: its laps in the order written, a
+ * later lap replacing an earlier one where their spans overlap, joined into disjoint spans in time
+ * order, each thinned (`thinLevels`). What lies between laps that don't touch (a seek ahead) is in
+ * no span, so the line there stays as it is. Empty when nothing was written.
  */
-export function passLevels(laps: readonly LevelAt[][], snapshot: KeyTrack | undefined): LevelAt[] {
+export function passSpans(laps: readonly LevelAt[][]): PassSpan[] {
   const written = new Map<Micros, number>();
   const spans: [Micros, Micros][] = [];
   for (const lap of laps) {
@@ -98,12 +98,17 @@ export function passLevels(laps: readonly LevelAt[][], snapshot: KeyTrack | unde
     spans.push([first.at, last.at]);
   }
   spans.sort((a, b) => a[0] - b[0]);
-  let reach = spans[0]?.[1];
-  for (const [from, to] of spans.slice(1)) {
-    if (reach !== undefined && from > reach + 2) {
-      for (const { at, db } of lineStretch(snapshot, reach + 1, from - 1)) written.set(at, db);
-    }
-    reach = Math.max(reach ?? to, to);
+  const joined: [Micros, Micros][] = [];
+  for (const [from, to] of spans) {
+    const previous = joined[joined.length - 1];
+    if (previous && from <= previous[1]) previous[1] = Math.max(previous[1], to);
+    else joined.push([from, to]);
   }
-  return thinLevels([...written].map(([at, db]) => ({ at, db })));
+  return joined.map(([from, to]) => ({
+    from,
+    to,
+    points: thinLevels(
+      [...written].filter(([at]) => at >= from && at <= to).map(([at, db]) => ({ at, db })),
+    ),
+  }));
 }

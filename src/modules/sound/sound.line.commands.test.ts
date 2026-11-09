@@ -7,10 +7,16 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { previewModule } from "@/modules/preview";
 import { createProjectModule, projectRef, seedProject, trackValue } from "@/modules/project";
 import { addClip, moveClip, timelineModule } from "@/modules/timeline";
-import { passLevels } from "./logic/automation";
+import { passSpans } from "./logic/automation";
 import { soundModule } from "./sound.module";
 import { setTrackMix } from "./sound.mix.commands";
-import { moveLineKeys, removeLineKeys, setLineKey, writePass } from "./sound.line.commands";
+import {
+  moveLineKeys,
+  removeLineKeys,
+  setLineKey,
+  writePass,
+  writePasses,
+} from "./sound.line.commands";
 
 const S = 1_000_000;
 let kernel: Kernel;
@@ -132,17 +138,36 @@ describe("writePass", () => {
 
   it("writes a looped Latch pass once, each lap on the line it began with", async () => {
     await ok(setLineKey, { trackId: "a1", at: 0, db: -6 });
-    const snapshot = line();
     // Two laps of a 0-4 s loop with the fader 4 dB under the track's volume.
     const lap = () => [0, S, 2 * S, 3 * S, 4 * S].map((at) => ({ at, db: -10 }));
-    const points = passLevels([lap(), lap()], snapshot);
-    await ok(writePass, { trackId: "a1", from: 0, to: 4 * S, points });
+    await ok(writePasses, { trackId: "a1", spans: passSpans([lap(), lap()]) });
     expect(keys()).toEqual([
       [0, -10],
       [4 * S, -10],
     ]);
     kernel.history.undo();
     expect(keys()).toEqual([[0, -6]]);
+  });
+
+  it("leaves the keys a pass skipped over as they were, in one step", async () => {
+    await ok(setLineKey, { trackId: "a1", at: 6 * S, db: -20, ease: { kind: "hold" } });
+    const skipped = line()!.keys[0]!;
+    // A lap from 0 to 2 s, a seek ahead, a lap from 8 to 10 s.
+    const laps = [
+      [0, S, 2 * S].map((at) => ({ at, db: -3 })),
+      [8 * S, 9 * S, 10 * S].map((at) => ({ at, db: -3 })),
+    ];
+    await ok(writePasses, { trackId: "a1", spans: passSpans(laps) });
+    expect(line()!.keys.find((key) => key.t === 6 * S)).toEqual(skipped);
+    expect(keys()).toEqual([
+      [0, -3],
+      [2 * S, -3],
+      [6 * S, -20],
+      [8 * S, -3],
+      [10 * S, -3],
+    ]);
+    kernel.history.undo();
+    expect(keys()).toEqual([[6 * S, -20]]);
   });
 
   it("leaves the line after a Touch release unchanged", async () => {

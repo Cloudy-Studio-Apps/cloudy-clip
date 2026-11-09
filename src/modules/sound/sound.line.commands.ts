@@ -175,5 +175,26 @@ export const writePass = defineCommand({
   },
 });
 
+const span = z.object({
+  from: at,
+  to: at,
+  points: z.array(z.object({ at, db: volumeDbSchema })),
+});
+
+/** Replaces several stretches of a track's volume line at once, leaving what's between them alone. */
+export const writePasses = defineCommand({
+  id: "sound.writePasses",
+  label: "Write volume line",
+  description:
+    'Replaces several stretches of an audio track\'s volume line in one step, each as sound.writePass does: "spans" is a list of {from, to, points} (timeline microseconds, points {at, db} inside their span, db -60 to 12). Points between the spans stay as they were, ids and eases included. A fader pass that went round a loop or jumped ahead writes this way. Fails with sound.line_range, sound.not_audio and sound.track_not_found, changing nothing.',
+  undoable: true,
+  input: z.object({ trackId: z.string(), spans: z.array(span).min(1) }),
+  async run(ctx, { trackId, spans }) {
+    for (const { from, to, points } of spans) {
+      await ctx.execute(writePass, { trackId, from, to, points });
+    }
+  },
+});
+
 /** Every track-line command, for the module. */
-export const soundLineCommands = [setLineKey, moveLineKeys, removeLineKeys, writePass];
+export const soundLineCommands = [setLineKey, moveLineKeys, removeLineKeys, writePass, writePasses];
