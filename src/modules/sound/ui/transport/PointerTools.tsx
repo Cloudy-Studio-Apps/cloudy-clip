@@ -2,13 +2,12 @@ import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { timelineRef } from "@/modules/timeline";
 import { soundRef } from "../../sound.ref";
-import { soon } from "../soon";
 import { TransportTool } from "./TransportTool";
 
 /**
- * The pointer tools: Select and Draw volume (the current one underlined; the timeline's pen is the
- * same tool), the blade Cut, Fade and Scrub (coming soon; they give way on a narrow window), and
- * Snap, the Sound timeline's own snapping switch.
+ * The pointer tools: Select, Cut, Fade, Draw volume (the timeline's pen is the same tool) and
+ * Scrub, the current one underlined (`view.tool`, a view write); Cut, Fade and Scrub give way
+ * first on a narrow window. Then Snap, the Sound timeline's own snapping switch.
  */
 export function PointerTools() {
   const timeline = useModule(timelineRef);
@@ -25,10 +24,21 @@ export function PointerTools() {
       >
         Select
       </TransportTool>
-      {/* Coming soon: on a narrow window these clip (after the quick tools), never what works. */}
       <span className="flex min-w-0 shrink items-center overflow-hidden">
-        <TransportTool {...soon("transport.cut")}>Cut</TransportTool>
-        <TransportTool {...soon("transport.fade")}>Fade</TransportTool>
+        <TransportTool
+          current={tool === "cut"}
+          title="Cut: click a clip to cut it there, Shift for every track. To cut at the playhead: Split, or S"
+          onClick={() => sound.setTool("cut")}
+        >
+          Cut
+        </TransportTool>
+        <TransportTool
+          current={tool === "fade"}
+          title="Fade: drag from a clip's edge to set its fade"
+          onClick={() => sound.setTool("fade")}
+        >
+          Fade
+        </TransportTool>
       </span>
       <TransportTool
         current={tool === "draw"}
@@ -38,7 +48,13 @@ export function PointerTools() {
         Draw volume
       </TransportTool>
       <span className="flex min-w-0 shrink items-center overflow-hidden">
-        <TransportTool {...soon("transport.scrub")}>Scrub</TransportTool>
+        <TransportTool
+          current={tool === "scrub"}
+          title="Scrub: drag over the lanes to hear the sound under the pointer"
+          onClick={() => sound.setTool("scrub")}
+        >
+          Scrub
+        </TransportTool>
       </span>
       <TransportTool
         pressed={snaps}

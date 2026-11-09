@@ -40,6 +40,7 @@ import {
   SheetNote,
   SoloButton,
   SoundPage,
+  PointerLayer,
   TrackVolumeLine,
 } from "./ui";
 
@@ -104,6 +105,11 @@ export const soundModule = defineModule({
       id: "sound.clipLineKeys",
       scopes: ["all", "sound"],
       component: ClipLineKeys,
+    });
+    contribute(timelineOverlays, {
+      id: "sound.pointerLayer",
+      scopes: ["sound"],
+      component: PointerLayer,
     });
     contribute(timelineOverlays, {
       id: "sound.trackLine",

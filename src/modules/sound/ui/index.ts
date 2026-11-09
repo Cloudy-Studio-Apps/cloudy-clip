@@ -10,6 +10,7 @@ export {
   RecordingTake,
   SheetNote,
   SoloButton,
+  PointerLayer,
   TrackVolumeLine,
 } from "./lanes";
 export { SoundPage } from "./SoundPage";

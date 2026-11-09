@@ -7,24 +7,6 @@ import type { SoonEntry, SoonId } from "../../sound.types";
  * the `ui/soon/` folder goes.
  */
 export const SOON: Record<SoonId, SoonEntry> = {
-  "transport.cut": {
-    id: "transport.cut",
-    label: "Cut",
-    what: "A blade: cuts a clip where you click it. To cut at the playhead now: Split on the timeline's toolbar, or S.",
-    stage: 3,
-  },
-  "transport.fade": {
-    id: "transport.fade",
-    label: "Fade",
-    what: "Drags a fade in or out from a clip's edge.",
-    stage: 3,
-  },
-  "transport.scrub": {
-    id: "transport.scrub",
-    label: "Scrub",
-    what: "Plays the sound under the pointer as you drag over the clips.",
-    stage: 3,
-  },
   "transport.findBeats": {
     id: "transport.findBeats",
     label: "Find beats",

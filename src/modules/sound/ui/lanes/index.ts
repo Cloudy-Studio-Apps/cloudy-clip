@@ -5,6 +5,7 @@ export { ClipLineKeys } from "./ClipLineKeys";
 export { ClipVolumeLine } from "./ClipVolumeLine";
 export { DrawVolumeTool } from "./DrawVolumeTool";
 export { LineViewButton } from "./LineViewButton";
+export { PointerLayer } from "./PointerLayer";
 export { RecordingTake } from "./RecordingTake";
 export { SheetNote } from "./SheetNote";
 export { SoloButton } from "./SoloButton";

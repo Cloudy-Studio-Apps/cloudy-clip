@@ -43,7 +43,9 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   - `ui/`: page-virtualized lanes (`TimelinePanel`, with `TimelineLanes` for the track rows; `panel.scroller.hook.ts` holds its scroller: visible page, attach, Ctrl+wheel zoom, media drop; `scope.hook.ts` the scope context), `clip.gesture.ts` (DOM feedback while dragging,
     one command on release), the playhead positioned by `playhead.hook.ts` without renders.
     `Ruler.tsx`: press and drag scrubs (snapped unless Ctrl/Cmd), and each move asks `preview`
-    for a slice of sound (`PreviewApi.scrub`), in both scopes. `MarksRow.tsx`: on the sound
+    for a slice of sound (`PreviewApi.scrub`), in both scopes; the drag is `useScrubDrag()`
+    (`ui/scrub.hook.ts`, exported: `(pointerdown, target) => void`, the target's left edge is time
+    0), which the Sound page's Scrub tool uses over the lanes. `MarksRow.tsx`: on the sound
     scope only, a 20 px row (`MARKS_HEIGHT`) sticky under the ruler (`top: RULER_HEIGHT`), a
     header-wide corner in `--muted` and a strip in `--surface` with a bottom rule in `--border`;
     it holds the loop band and the playhead's line (`PlayheadHead bare`), and takes no scrub (the

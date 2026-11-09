@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { CommandBus, Micros, PagesState } from "@/core";
 import type {
+  Clip,
   CompositionId,
   CompressorEffect,
   GateEffect,
@@ -47,8 +48,36 @@ export interface SoundViewState {
  */
 export type AutomationMode = "read" | "touch" | "latch";
 
-/** The pointer tool on the Sound page's lanes: Select, or Draw volume. */
-export type SoundTool = "select" | "draw";
+/**
+ * The pointer tool on the Sound page's lanes: Select (move, trim, fade handles), Cut (the blade),
+ * Fade (drag a clip's edge), Draw volume, or Scrub.
+ */
+export type SoundTool = "select" | "cut" | "fade" | "draw" | "scrub";
+
+/** A cut with the blade: one clip where it was clicked, or (Shift) every clip under that time. */
+export interface BladeCut {
+  bus: CommandBus;
+  /** The audio clips of the open composition (the Sound page's scope). */
+  clips: readonly Clip[];
+  /** The clip clicked, or null over none. */
+  hit: Clip | null;
+  /** The cut time, snapped as a split is. */
+  at: Micros;
+  /** Shift: every clip under `at`, on every track. */
+  every: boolean;
+}
+
+/** A fade dragged from a clip's edge on the Sound page's lanes. */
+export interface FadeDrag {
+  down: PointerEvent;
+  bus: CommandBus;
+  clip: Clip;
+  /** The clip's box on screen. */
+  box: DOMRect;
+  pxPerSecond: number;
+  /** Shows the fade's width over the clip with `style`, or hides it (null). */
+  show(box: { left: number; width: number } | null): void;
+}
 
 /** A level written at a timeline time: a point of a stroke or of a fader pass. */
 export interface LevelAt {
@@ -465,9 +494,6 @@ export interface ChainDrag {
  * Each stage removes its own ids as it builds them.
  */
 export type SoonId =
-  | "transport.cut"
-  | "transport.fade"
-  | "transport.scrub"
   | "transport.findBeats"
   | "transport.stripSilence"
   | "transport.matchLevel"

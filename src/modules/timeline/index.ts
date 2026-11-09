@@ -103,6 +103,12 @@ export { playheadSplit } from "./logic/split";
 export { nextTrackName } from "./logic/naming";
 /** Snaps a time to the closest candidate within a threshold. */
 export { snapTime } from "./logic/placement";
+/**
+ * Starts a scrub drag from a `pointerdown`, as the ruler does: the playhead follows the pointer
+ * (snapping unless Ctrl/Cmd), a slice of sound plays at each move, nothing is written. The
+ * target's left edge is time 0.
+ */
+export { useScrubDrag } from "./ui/scrub.hook";
 /** What drags snap to (clip edges, cuts, the playhead and `timelineSnapTargets`), as a hook. */
 export { useSnapCandidates } from "./ui/snap.hook";
 /** The `timeline.overlap` failure for a spot taken by another clip, with where it is. */
