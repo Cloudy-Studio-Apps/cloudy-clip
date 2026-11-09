@@ -1,5 +1,6 @@
 import type { StoreApi } from "zustand";
 import type { Micros } from "@/core";
+import type { GpuTexture } from "@/modules/preview";
 import type {
   Clip,
   ClipId,
@@ -39,6 +40,12 @@ export type ScopeKind = "parade" | "wave" | "hist";
 /** The curve the Curves tool shows. */
 export type CurveKind = "custom" | "hueHue" | "hueSat" | "hueLum" | "lumSat";
 
+/**
+ * How a curve behaves in the editor: `tone` (a custom curve, neutral on the diagonal), `flat`
+ * (Brightness vs Saturation, neutral at 0.5) or `hue` (neutral at 0.5, wrapping at 1).
+ */
+export type CurveShape = "tone" | "flat" | "hue";
+
 /** What the left panel shows. */
 export type GradeTab = "grade" | "looks";
 
@@ -63,6 +70,10 @@ export interface TintView {
   samples: boolean;
   /** The viewer fills the window. */
   clean: boolean;
+  /** The viewer waits for one click to pick a hue (the Curves tool's Pick hue); Escape stops it. */
+  picking: boolean;
+  /** The hue the viewer picked (0…1, red at 0), until the Curves tool takes it. */
+  picked: number | null;
 }
 
 /** The tint module's API for one kernel. */
@@ -159,6 +170,22 @@ export interface CorrectionParams {
   hue: [number, number];
   /** 1 protects skin hues from saturation, vibrance and hue, 0 doesn't. */
   skin: number;
+  /** Whether the custom curves and the hue and brightness curves change anything (1) or not (0). */
+  curveOn: [number, number];
+  /** The curves sampled (`sampleCurves`), or null when no curve changes anything. */
+  curveTable: Float32Array | null;
+}
+
+/** A correction's curves baked for the shader: the texture and the table it holds. */
+export interface BakedCurves {
+  texture: GpuTexture;
+  table: Float32Array;
+}
+
+/** Bakes curves for one picture filter, again only when they change (`render/textures.ts`). */
+export interface CurveTextures {
+  /** The curves of the correction `key` baked, or null when no curve changes anything. */
+  bake(curves: CorrectionValues["curves"], key: string): BakedCurves | null;
 }
 
 /** A point in the node graph, in graph units. */

@@ -118,6 +118,44 @@ The CPU reference (`tint/logic/color/correct.ts`, `evaluate.ts`) against the sha
   off by 1 (5.5 %).
 - **Windows:** pending, with the rest of the Windows check.
 
+## Stage 2
+
+### Curves: parity (Task 14)
+
+The curve step of `tint/logic/color/curves.apply.ts` (through `correctPixel`) against the shader
+(`tint/render/correct.glsl.ts` with the baked `RGBA16F` curve texture of `render/textures.ts`), 2026-11-09.
+
+- **Method:** a temporary dev page (removed before the commit) on the web build (`pnpm vite --port 1540`),
+  in headless Chromium 1243 with SwiftShader WebGL2 (`--headless=new --use-gl=angle --use-angle=swiftshader
+--enable-unsafe-swiftshader`), driven over CDP. It called `gradePasses` (one correction) through
+  `createGpuRunner` directly on a 16 × 16 canvas of the same 256 fixed colors as Task 7 (half-float
+  targets), drew the result back on a 2D canvas and compared each channel with
+  `round(clamp(correctPixel(source / 255)) × 255)`. Each value set is random curves (seeded), checked
+  with `validateGrade`: every fourth set the custom curves only, every fourth the hue and brightness
+  curves only, the rest both; custom curves of 2 to 5 points moved up to ±0.3 off the diagonal per
+  point, hue curves of 3 to 6 points (ends sharing y). "Extra" sets add saturation 0.5–1.5, contrast
+  0.7–1.3 and exposure ±0.5 around the curves.
+- **Results** (20 sets each, 15 360 channel values per row; "changed" is how many differ from the
+  source, so the curves really applied):
+
+| Seed | Hue curve y | Extra | Max | Off by 1 | Over 1 | Changed |
+| ---- | ----------- | ----- | --- | -------- | ------ | ------- |
+| 14   | 0.1…0.9     | no    | 1   | 34       | 0      | 14 691  |
+| 15   | 0.1…0.9     | no    | 1   | 24       | 0      | 14 581  |
+| 16   | 0.1…0.9     | yes   | 1   | 19       | 0      | 14 771  |
+| 21   | 0…1         | no    | 1   | 26       | 0      | 14 736  |
+| 22   | 0…1         | yes   | 1   | 25       | 0      | 14 698  |
+| 23   | 0…1         | no    | 1   | 13       | 0      | 14 441  |
+
+- **What it took:** with the table kept at full float on the CPU, the full-range hue curves gave a few
+  values off by 2 (3 of 30 720): the GPU's half-float storage, made visible by a steep hue curve. The
+  table is now rounded to half-floats when sampled, so both sides read the same numbers; off-by-ones
+  fell from about 3 % to about 0.2 %. A first run also showed that a texture's `version` must change
+  with its content across filters (the runner keeps textures by key): it is a hash of the points.
+- **Untouched corrections** add no curve work: curves at their defaults get no texture and the
+  shader skips the step (`u_curveOn` 0), so Task 7's numbers stand.
+- **Linux desktop (WebKitGTK) and Windows:** not run for the curves; same method as Task 7 if wanted.
+
 ## Windows (WebView2)
 
 **Pending: owner check.** Also pending: the clean hidden run on Linux (window on another workspace for the

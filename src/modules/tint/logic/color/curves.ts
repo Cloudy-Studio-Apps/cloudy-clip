@@ -53,15 +53,37 @@ export function monotoneCurve(points: readonly CurvePoint[]): (x: number) => num
   };
 }
 
-/** The curve sampled into an SVG path over a `width × height` box (y up). */
-export function curvePath(points: readonly CurvePoint[], width: number, height: number): string {
-  const curve = monotoneCurve(points);
-  const steps = 64;
+/**
+ * A hue curve: a monotone cubic that wraps at 1, so it runs smoothly from the last point into the
+ * first. The point at x 1 is the point at x 0 again (its y is not read; the editor keeps the two
+ * equal). Any `hue` is taken modulo 1.
+ */
+export function periodicCurve(points: readonly CurvePoint[]): (hue: number) => number {
+  const last = points[points.length - 1];
+  const cycle = points.length > 1 && last && last[0] >= 1 ? points.slice(0, -1) : points.slice();
+  if (cycle.length === 0) return () => 0.5;
+  if (cycle.length === 1) return () => cycle[0]![1];
+  // Two points of the turn before and after, so the tangents at the seam see their neighbours.
+  const before = cycle.slice(-2).map(([x, y]): CurvePoint => [x - 1, y]);
+  const after = cycle.slice(0, 2).map(([x, y]): CurvePoint => [x + 1, y]);
+  const curve = monotoneCurve([...before, ...cycle, ...after]);
+  return (hue) => curve(hue - Math.floor(hue));
+}
+
+/** The curve sampled into an SVG path over a `width × height` box (y up); `periodic` for a hue curve. */
+export function curvePath(
+  points: readonly CurvePoint[],
+  width: number,
+  height: number,
+  periodic = false,
+): string {
+  const curve = periodic ? periodicCurve(points) : monotoneCurve(points);
+  const steps = 128;
   let d = "";
   for (let i = 0; i <= steps; i++) {
     const x = i / steps;
     const y = Math.min(1, Math.max(0, curve(x)));
-    d += `${i === 0 ? "M" : "L"}${(x * width).toFixed(1)} ${((1 - y) * height).toFixed(1)}`;
+    d += `${i === 0 ? "M" : "L"}${(x * width).toFixed(2)} ${((1 - y) * height).toFixed(2)}`;
   }
   return d;
 }

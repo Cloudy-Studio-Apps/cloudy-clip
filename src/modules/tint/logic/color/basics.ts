@@ -44,6 +44,11 @@ export const BANDS: readonly (readonly [number, number, number, number])[] = [
   [0.7, 1.0, 2.0, 3.0],
   [-2.0, -1.0, 0.0, 0.3],
 ];
+/**
+ * Angle of pure red in CbCr, in radians: where the hue of the hue curves is 0. Hue runs from there
+ * the way the Basics' hue turn does (red toward yellow, green, blue), a full turn being 1.
+ */
+export const HUE_ZERO = Math.atan2((1 - LUMA[0]) / CR, -LUMA[0] / CB);
 /** Chroma (CbCr length) taken as fully saturated by vibrance. */
 export const CHROMA_FULL = 0.5;
 /** Chroma under which a color has no hue (protect skin skips it). */

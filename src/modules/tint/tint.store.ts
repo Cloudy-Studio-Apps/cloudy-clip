@@ -20,6 +20,8 @@ export function createTintView() {
     guides: false,
     samples: false,
     clean: false,
+    picking: false,
+    picked: null,
   }));
 }
 

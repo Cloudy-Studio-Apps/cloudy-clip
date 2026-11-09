@@ -1,6 +1,7 @@
 import type { PictureFilter } from "@/modules/preview";
 import { canGrade, gradeOf } from "@/modules/project";
 import { gradePasses } from "./render/passes";
+import { createCurveTextures } from "./render/textures";
 import type { TintLive } from "./tint.types";
 
 /** Id of the picture filter that draws clip grades. */
@@ -17,6 +18,7 @@ export const TINT_CUT = "tint.cut";
  * that kernel's live values.
  */
 export function createTintFilter(live: TintLive): PictureFilter {
+  const curves = createCurveTextures();
   return {
     id: TINT_GRADE_FILTER,
     order: 100,
@@ -26,7 +28,7 @@ export function createTintFilter(live: TintLive): PictureFilter {
       if (!whole) return [];
       const cut = target === "capture" ? options?.[TINT_CUT] : undefined;
       const grade = typeof cut === "string" ? { ...whole, out: { node: cut } } : whole;
-      return gradePasses(grade, target === "preview" ? live.get(clip.id) : undefined);
+      return gradePasses(grade, target === "preview" ? live.get(clip.id) : undefined, curves);
     },
   };
 }

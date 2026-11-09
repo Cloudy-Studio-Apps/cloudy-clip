@@ -13,21 +13,6 @@ export const DEMO_FAMILIES = [
 /** Saturation of each family, 0..1, for the bar chart. */
 export const DEMO_FAMILY_SAT = [0.5, 0.62, 0.5, 0.4, 0.5, 0.32, 0.5, 0.5] as const;
 
-/** Points of the custom curve and of a hue curve, x and y in 0..1. */
-export const DEMO_CURVE: readonly [number, number][] = [
-  [0, 0],
-  [0.3, 0.26],
-  [0.72, 0.78],
-  [1, 1],
-];
-export const DEMO_HUE_CURVE: readonly [number, number][] = [
-  [0, 0.5],
-  [0.08, 0.5],
-  [0.14, 0.62],
-  [0.22, 0.5],
-  [1, 0.5],
-];
-
 /** 24-patch chart reference colors. */
 export const DEMO_CHART = [
   "#735244",

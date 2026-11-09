@@ -3,6 +3,7 @@ import { useRef } from "react";
 import type { Wheel } from "@/modules/project";
 import { NumberField } from "@/ui";
 import { PUCK_REACH, wheelColorNumbers, wheelWithChannel } from "../../logic/color/wheels";
+import { CHANNEL_COLORS } from "./channel.colors";
 import { JogBar } from "./JogBar";
 import type { WheelEdit } from "./tools.types";
 import { startWheelDrag } from "./wheel.gesture";
@@ -12,7 +13,7 @@ const RING =
   "radial-gradient(circle, var(--muted) 0 22%, transparent 70%), conic-gradient(hsl(0 75% 55%), hsl(60 75% 55%), hsl(120 75% 50%), hsl(180 75% 50%), hsl(240 75% 60%), hsl(300 75% 58%), hsl(360 75% 55%))";
 
 /** Underline colors of the four numbers: master, red, green, blue. */
-const NUMBER_COLORS = ["var(--muted-foreground)", "#e0545a", "#4fbf6a", "#4d8fe0"] as const;
+const NUMBER_COLORS = ["var(--muted-foreground)", ...CHANNEL_COLORS] as const;
 const NUMBER_NAMES = ["Y", "R", "G", "B"] as const;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;

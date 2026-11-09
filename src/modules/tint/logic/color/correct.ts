@@ -21,16 +21,25 @@ import {
   unlogish,
   whiteBalance,
 } from "./basics";
+import { applyCurves, curvesActive, sampleCurves } from "./curves.apply";
 import { primaryChannel, primaryWheels } from "./wheels";
 
 // One correction, in the spec's order: exposure and white balance, wheels, contrast and pivot,
-// highlights / shadows / whites / blacks, rolloff, saturation / vibrance / hue (with protect skin).
-// Curves, Color mix, the warper, skin pull, the mixer, Creative and LUTs come in later tasks, at
+// highlights / shadows / whites / blacks, rolloff, curves, saturation / vibrance / hue (with
+// protect skin). Color mix, the warper, skin pull, the mixer, Creative and LUTs come in later tasks, at
 // their place in that order. `prepareCorrection` works out once what the shader gets as uniforms;
 // `applyCorrection` is the per-pixel math, the CPU reference of `render/correct.glsl.ts`.
 
-/** What a correction's values come to for every pixel. */
-export function prepareCorrection(values: CorrectionValues): CorrectionParams {
+/**
+ * What a correction's values come to for every pixel. The curve table is sampled here when a curve
+ * changes anything, unless `table` (already sampled from these values) is given.
+ */
+export function prepareCorrection(
+  values: CorrectionValues,
+  table?: Float32Array | null,
+): CorrectionParams {
+  const curves = curvesActive(values.curves);
+  const curved = curves.rgb || curves.hue;
   const wb = whiteBalance(values.temperature, values.tint);
   const exposure = 2 ** values.exposure;
   const hue = (values.hue * Math.PI) / 180;
@@ -50,6 +59,8 @@ export function prepareCorrection(values: CorrectionValues): CorrectionParams {
     vibrance: values.vibrance / 100,
     hue: [Math.cos(hue), Math.sin(hue)],
     skin: values.protectSkin ? 1 : 0,
+    curveOn: [curves.rgb ? 1 : 0, curves.hue ? 1 : 0],
+    curveTable: curved ? (table ?? sampleCurves(values.curves)) : null,
   };
 }
 
@@ -91,6 +102,7 @@ export function applyCorrection(rgb: Rgb, p: CorrectionParams, _at: PixelAt): Rg
   const w = bandWeights(luma(c));
   const shift = p.bands[0] * w[0] + p.bands[1] * w[1] + p.bands[2] * w[2] + p.bands[3] * w[3];
   c = mapRgb(c, (x) => rolloff(x + shift, p.knee));
+  if (p.curveTable) c = applyCurves(c, p.curveTable, p.curveOn[0] > 0, p.curveOn[1] > 0);
   return chroma(c, p);
 }
 

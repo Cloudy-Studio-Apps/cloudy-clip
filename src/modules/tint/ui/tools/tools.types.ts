@@ -1,6 +1,6 @@
 import type { Wheel } from "@/modules/project";
 import type { ComponentType } from "react";
-import type { ToolId } from "../../tint.types";
+import type { CurvePoint, CurveShape, ToolId } from "../../tint.types";
 
 /** A tool in the rail: its icon, name, what it's for, its key, and the body it shows. */
 export interface ToolEntry {
@@ -66,4 +66,27 @@ export interface BasicField {
   key: ScalarKey;
   label: string;
   step: number;
+}
+
+/** How a curve point is dragged: the box it moves in, the curve as it was, and where it goes. */
+export interface CurveDragOptions {
+  /** The pointerdown that started it, on the box. */
+  event: PointerEvent;
+  box: HTMLElement;
+  points: readonly CurvePoint[];
+  /** The point being dragged. */
+  index: number;
+  shape: CurveShape;
+  /** Fires on every move with the points as they would be (without the point while it is off the box). */
+  onMove(points: CurvePoint[]): void;
+  /** Fires once: the points on release, or null when Escape or the system cancelled it. */
+  onEnd(points: CurvePoint[] | null): void;
+}
+
+/** What the curve editor can do to its curve: live while a point moves, saved once on release. */
+export interface CurveEdit {
+  preview(points: CurvePoint[]): void;
+  commit(points: CurvePoint[]): void;
+  /** Drops the live value (the gesture was cancelled or changed nothing). */
+  cancel(): void;
 }

@@ -1,9 +1,10 @@
-import type { GpuPass, GpuUniform } from "@/modules/preview";
+import type { GpuPass, GpuTexture, GpuUniform } from "@/modules/preview";
 import {
   BANDS,
   CB,
   CHROMA_FULL,
   CR,
+  HUE_ZERO,
   LOG_K,
   LOG_SCALE,
   LOG_SLOPE,
@@ -15,6 +16,7 @@ import {
   SKIN_FAR,
   SKIN_NEAR,
 } from "../logic/color/basics";
+import { CURVE_ROWS, CURVE_SAMPLES, ROW } from "../logic/color/curves.apply";
 import type { CorrectionParams } from "../tint.types";
 
 // One correction as GLSL: the same math as `logic/color/correct.ts`, line for line, with every
@@ -40,6 +42,8 @@ uniform float u_saturation;
 uniform float u_vibrance;
 uniform vec2 u_hue;
 uniform float u_skin;
+uniform vec2 u_curveOn;
+uniform sampler2D u_curves;
 uniform float u_opacity;
 
 const vec3 LUMA = ${vec3(LUMA)};
@@ -73,6 +77,43 @@ float rolloff(float x) {
   if (u_knee >= 1.0 || x <= u_knee) return x;
   float span = 1.0 - u_knee;
   return u_knee + span * (1.0 - exp(-(x - u_knee) / span));
+}
+
+float curveAt(float row, float x) {
+  float u = (clamp(x, 0.0, 1.0) * ${f(CURVE_SAMPLES - 1)} + 0.5) / ${f(CURVE_SAMPLES)};
+  return texture(u_curves, vec2(u, (row + 0.5) / ${f(CURVE_ROWS.length)})).r;
+}
+
+float tone(float row, float x) {
+  if (x < 0.0) return curveAt(row, 0.0) + x;
+  if (x > 1.0) return curveAt(row, 1.0) + x - 1.0;
+  return curveAt(row, x);
+}
+
+vec3 curves(vec3 c) {
+  if (u_curveOn.x > 0.0) {
+    for (int i = 0; i < 3; i++) c[i] = tone(float(${ROW.r} + i), tone(${f(ROW.y)}, c[i]));
+  }
+  if (u_curveOn.y <= 0.0) return c;
+  float y = dot(c, LUMA);
+  float cb = (c.b - y) / ${f(CB)};
+  float cr = (c.r - y) / ${f(CR)};
+  float len = length(vec2(cb, cr));
+  float k = 2.0 * curveAt(${f(ROW.lumSat)}, y);
+  float lum = y;
+  if (len > ${f(NO_HUE)}) {
+    float turn = (atan(cr, cb) - ${f(HUE_ZERO)}) / (2.0 * PI);
+    float h = turn - floor(turn);
+    float a = (curveAt(${f(ROW.hueHue)}, h) - 0.5) * 2.0 * PI;
+    k *= 2.0 * curveAt(${f(ROW.hueSat)}, h);
+    lum = y * (1.0 + (2.0 * curveAt(${f(ROW.hueLum)}, h) - 1.0) * min(len / ${f(CHROMA_FULL)}, 1.0));
+    float turnedCb = cos(a) * cb - sin(a) * cr;
+    cr = sin(a) * cb + cos(a) * cr;
+    cb = turnedCb;
+  }
+  float r = lum + ${f(CR)} * cr * k;
+  float b = lum + ${f(CB)} * cb * k;
+  return vec3(r, (lum - LUMA.r * r - LUMA.b * b) / LUMA.g, b);
 }
 
 vec3 chroma(vec3 rgb) {
@@ -111,6 +152,7 @@ vec3 correct(vec3 c) {
   }
   float shift = dot(u_bands, w);
   for (int i = 0; i < 3; i++) c[i] = rolloff(c[i] + shift);
+  if (u_curveOn.x > 0.0 || u_curveOn.y > 0.0) c = curves(c);
   return chroma(c);
 }
 
@@ -122,8 +164,17 @@ void main() {
 /** Program key of a correction pass. */
 export const CORRECT_KEY = "tint.correct";
 
-/** A correction's pass over `input` (-1 the picture so far, n pass n), mixed over it by `opacity`. */
-export function correctPass(params: CorrectionParams, opacity: number, input: number): GpuPass {
+/**
+ * A correction's pass over `input` (-1 the picture so far, n pass n), mixed over it by `opacity`.
+ * `curves` is its baked curve texture, left out when no curve changes anything (the shader then
+ * skips the curve step).
+ */
+export function correctPass(
+  params: CorrectionParams,
+  opacity: number,
+  input: number,
+  curves?: GpuTexture,
+): GpuPass {
   const uniforms: Record<string, GpuUniform> = {
     u_linear: params.linear,
     u_lift: params.lift,
@@ -138,7 +189,9 @@ export function correctPass(params: CorrectionParams, opacity: number, input: nu
     u_vibrance: params.vibrance,
     u_hue: params.hue,
     u_skin: params.skin,
+    u_curveOn: curves ? params.curveOn : [0, 0],
     u_opacity: opacity,
   };
-  return { key: CORRECT_KEY, fragment: FRAGMENT, inputs: [input], uniforms };
+  const pass: GpuPass = { key: CORRECT_KEY, fragment: FRAGMENT, inputs: [input], uniforms };
+  return curves ? { ...pass, textures: { u_curves: curves } } : pass;
 }

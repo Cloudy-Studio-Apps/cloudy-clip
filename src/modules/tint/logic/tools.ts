@@ -69,4 +69,5 @@ export const PAGE_RESET: Partial<Record<ToolId, { tools: ToolId[]; fields?: stri
     tools: ["wheels"],
     fields: ["temperature", "tint", "contrast", "pivot", "saturation", "hue"],
   },
+  curves: { tools: ["curves"] },
 };
