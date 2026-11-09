@@ -31,15 +31,24 @@ export function envelope(
     if (at > 0 && at < span) times.add(Math.max(0, at - EDGE)).add(at);
   }
   const samples = [...times].sort((a, b) => a - b).map((at) => ({ at, value: value(from + at) }));
+  return simplify(samples, TOLERANCE);
+}
 
-  const kept: EnvelopePoint[] = [samples[0]!];
-  for (let i = 1; i < samples.length - 1; i++) {
+/**
+ * Thins points to draw straight lines between: a point within `tolerance` of the line from the last
+ * kept point to its next neighbour is dropped. The first and last points are always kept, and so is
+ * every corner.
+ */
+export function simplify(points: readonly EnvelopePoint[], tolerance: number): EnvelopePoint[] {
+  if (points.length === 0) return [];
+  const kept: EnvelopePoint[] = [points[0]!];
+  for (let i = 1; i < points.length - 1; i++) {
     const a = kept[kept.length - 1]!;
-    const here = samples[i]!;
-    const b = samples[i + 1]!;
+    const here = points[i]!;
+    const b = points[i + 1]!;
     const online = a.value + ((b.value - a.value) * (here.at - a.at)) / (b.at - a.at);
-    if (Math.abs(here.value - online) > TOLERANCE) kept.push(here);
+    if (Math.abs(here.value - online) > tolerance) kept.push(here);
   }
-  if (samples.length > 1) kept.push(samples[samples.length - 1]!);
+  if (points.length > 1) kept.push(points[points.length - 1]!);
   return kept;
 }
