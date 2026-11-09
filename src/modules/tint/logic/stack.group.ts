@@ -1,6 +1,7 @@
 import type { ClipGrade, GradeNodeId, NodeRef } from "@/modules/project";
 import { validateGrade } from "@/modules/project";
-import { CHANNELS, locate, rewire, rewireAt, upstream } from "./rewire";
+import { sameRef } from "./order";
+import { CHANNELS, bareSplit, locate, rewire, rewireAt, swapRefs, upstream } from "./rewire";
 import { parseStack } from "./seal";
 
 /**
@@ -30,6 +31,7 @@ export function groupLayers(
   const last = first + ids.length - 1;
   const entries = list.entries.slice(first, last + 1);
   const input = upstream(list, first);
+  if (bareSplit(grade, input) || bareSplit(grade, entries[entries.length - 1]!.exit)) return null;
   const next = structuredClone(grade);
   rewireAt(next, list, last + 1, entries[entries.length - 1]!.exit, { node: joinId });
   if (channels) {
@@ -59,7 +61,9 @@ export function groupLayers(
 /**
  * A new grade with a group taken apart: its branches' items in a row, branch by branch, where
  * the group was; empty branches vanish, and the join (and a per-channel group's split) go.
- * Throws when `joinId` is not a group of the stack.
+ * Nodes off the picture path that read the join read the last branch's end instead; those that
+ * read the split read the group's input. Throws when `joinId` is not a group of the stack, or
+ * when the result would not be a valid grade.
  */
 export function ungroup(grade: ClipGrade, joinId: GradeNodeId): ClipGrade {
   const parse = parseStack(grade);
@@ -77,8 +81,19 @@ export function ungroup(grade: ClipGrade, joinId: GradeNodeId): ClipGrade {
     above = branch.entries[branch.entries.length - 1]!.exit;
   }
   rewireAt(next, found.list, found.index + 1, found.entry.exit, above);
+  const split = found.entry.item.kind === "channels" ? branches[0]?.entry.node : undefined;
+  const input = found.entry.entry;
+  const swap = (ref: NodeRef): NodeRef => {
+    if (ref.node === joinId) return { ...above };
+    if (split !== undefined && ref.node === split) return { ...input };
+    return ref;
+  };
   delete next.nodes[joinId];
-  if (found.entry.item.kind === "channels" && branches[0])
-    delete next.nodes[branches[0].entry.node];
+  if (split !== undefined) delete next.nodes[split];
+  for (const node of Object.values(next.nodes)) swapRefs(node, swap);
+  if (sameRef(next.out, { node: joinId })) next.out = { ...above };
+  const problem = validateGrade(next);
+  if (problem !== null)
+    throw new Error(`ungrouping "${joinId}" makes an invalid grade: ${problem}`);
   return next;
 }

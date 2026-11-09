@@ -2,7 +2,7 @@ import type { ClipGrade, Correction, GradeNodeId, NodeRef } from "@/modules/proj
 import { validateGrade } from "@/modules/project";
 import type { StackPosition } from "../tint.types";
 import { sameRef } from "./order";
-import { locate, rewire, rewireAt, slotOf, swapRefs, upstream } from "./rewire";
+import { bareSplit, locate, rewire, rewireAt, slotOf, swapRefs, upstream } from "./rewire";
 import { parseStack } from "./seal";
 
 /**
@@ -16,7 +16,7 @@ export function insertLayer(
   id: GradeNodeId,
   node: Correction,
 ): ClipGrade {
-  const slot = slotOf(parseStack(grade), at);
+  const slot = slotOf(grade, parseStack(grade), at);
   if (!slot) throw new Error(`no place in the stack at ${JSON.stringify(at)}`);
   if (grade.nodes[id]) throw new Error(`node "${id}" already exists`);
   const next = structuredClone(grade);
@@ -35,9 +35,10 @@ export function insertLayer(
 export function moveLayer(grade: ClipGrade, id: GradeNodeId, to: StackPosition): ClipGrade | null {
   const parse = parseStack(grade);
   const from = locate(parse, id);
-  const slot = slotOf(parse, to);
+  const slot = slotOf(grade, parse, to);
   if (!from || !slot) return null;
   const { list, index, entry: moved } = from;
+  if (bareSplit(grade, moved.entry) || bareSplit(grade, moved.exit)) return null;
   if (slot.list === list && (slot.k === index || slot.k === index + 1)) {
     return structuredClone(grade);
   }

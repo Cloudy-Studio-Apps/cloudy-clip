@@ -67,7 +67,13 @@ export function gradeGraph(grade: ClipGrade): GradeGraph {
       consumers.set(ref.node, set);
     }
   }
-  const draft: GradeGraph = { nodes: grade.nodes, index, onPath: new Set(), succ: new Map() };
+  const draft: GradeGraph = {
+    nodes: grade.nodes,
+    index,
+    out: grade.out,
+    onPath: new Set(),
+    succ: new Map(),
+  };
   const fromSource = reach("source", (id) => consumers.get(id) ?? [], all);
   const toOut = reach(grade.out.node, (id) => inputIds(draft, id), all);
   for (const id of order) if (fromSource.has(id) && toOut.has(id)) draft.onPath.add(id);

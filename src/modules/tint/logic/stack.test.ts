@@ -244,6 +244,33 @@ describe("stack edits", () => {
     expect(groupLayers(grade, ["a", "c"], "parallel", "g")).toBeNull();
   });
 
+  it("ungroup rewires off-path readers of the group", () => {
+    const grade = chain("a", "b", "z");
+    const grouped = groupLayers(grade, ["a", "b"], "parallel", "j")!;
+    grouped.nodes.k = correct("j");
+    grouped.nodes.z = correct("j", { limit: { from: "k" } });
+    expect(toStack(grouped)[0]).toMatchObject({ type: "group", id: "j" });
+    const flat = ungroup(grouped, "j");
+    expect(validateGrade(flat)).toBeNull();
+    expect(flat.nodes.k).toMatchObject({ input: { node: "b" } });
+    const split = groupLayers(grade, ["a"], "channels", "g", "s")!;
+    split.nodes.k = correct("s");
+    split.nodes.k.input = { node: "s", channel: "g" };
+    split.nodes.z = correct("g", { limit: { from: "k" } });
+    expect(validateGrade(ungroup(split, "g"))).toBeNull();
+  });
+
+  it("an insert next to a split-channel exit keeps the channel", () => {
+    const grade: ClipGrade = {
+      nodes: { s: { kind: "split", input: { node: "source" } } },
+      out: { node: "s", channel: "r" },
+    };
+    const added = insertLayer(grade, {}, "n", correct("source"));
+    expect(added.nodes.n).toMatchObject({ input: { node: "s", channel: "r" } });
+    expect(added.out).toEqual({ node: "n" });
+    expect(removeNodes(added, ["n"])).toEqual(grade);
+  });
+
   it("every result passes validateGrade", () => {
     const grades = [sideBySide(), crossing(), chain("a", "b", "c")];
     const results: (ClipGrade | null)[] = [];

@@ -69,6 +69,14 @@ export function upstream(list: StackList, k: number): NodeRef {
   return k === 0 ? list.entry : list.entries[k - 1]!.exit;
 }
 
+/**
+ * A whole split read with no channel: a picture between items that may be read through several
+ * channels at once, so no layer can be put on it without changing what is read.
+ */
+export function bareSplit(grade: ClipGrade, ref: NodeRef): boolean {
+  return ref.channel === undefined && grade.nodes[ref.node]?.kind === "split";
+}
+
 /** Where an item (layer, group or sealed card, by id) sits. */
 export function locate(
   parse: StackParse,
@@ -91,18 +99,25 @@ function isBranch(list: StackList, branch: { group: GradeNodeId; index: number }
   return false;
 }
 
-/** A position as a list and a slot in it, or null when it names nothing in the stack. */
+/**
+ * A position as a list and a slot in it, or null when it names nothing in the stack or its
+ * picture is a whole split (see {@link bareSplit}).
+ */
 export function slotOf(
+  grade: ClipGrade,
   parse: StackParse,
   at: StackPosition,
 ): { list: StackList; k: number } | null {
   const id = at.before ?? at.after;
+  let slot: { list: StackList; k: number } | null;
   if (id !== undefined) {
     const found = locate(parse, id);
     if (!found || (at.branch && !isBranch(found.list, at.branch))) return null;
-    return { list: found.list, k: at.before !== undefined ? found.index : found.index + 1 };
+    slot = { list: found.list, k: at.before !== undefined ? found.index : found.index + 1 };
+  } else {
+    const branch = at.branch;
+    const list = branch ? parse.lists.find((l) => isBranch(l, branch)) : parse.lists[0];
+    slot = list ? { list, k: list.entries.length } : null;
   }
-  const branch = at.branch;
-  const list = branch ? parse.lists.find((l) => isBranch(l, branch)) : parse.lists[0];
-  return list ? { list, k: list.entries.length } : null;
+  return slot && !bareSplit(grade, upstream(slot.list, slot.k)) ? slot : null;
 }

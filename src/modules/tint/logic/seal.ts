@@ -92,6 +92,18 @@ function spansOf(pairs: StackPair[], clusters: KeyCluster[], down: Map<number, K
   return merged;
 }
 
+/** The ref a list's sink reads now, channel included. */
+function sinkRef(graph: GradeGraph, sink: StackSink): NodeRef | undefined {
+  if (sink.kind === "out") return graph.out;
+  const join = graph.nodes[sink.node];
+  if (sink.kind === "input") {
+    return join?.kind === "parallel" || join?.kind === "layer"
+      ? join.inputs[sink.index]
+      : undefined;
+  }
+  return join?.kind === "join" ? join[sink.channel] : undefined;
+}
+
 /** Reads one list (the top or a branch) into items, recording its wiring in `acc`. */
 function readList(
   graph: GradeGraph,
@@ -129,7 +141,10 @@ function readList(
       );
       item = { type: "group", id: pair.exit, kind: pair.shape.kind, branches };
     } else item = { type: "layer", id: pair.exit };
-    entries.push({ item, entry: pair.entry, exit: { node: exit }, nodes });
+    // The last item's exit is what the sink reads, so a split's channel stays.
+    const read = exit === list.exit ? sinkRef(graph, list.sink) : undefined;
+    const exitRef = read?.node === exit ? { ...read } : { node: exit };
+    entries.push({ item, entry: pair.entry, exit: exitRef, nodes });
     items.push(item);
   }
   return items;

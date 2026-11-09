@@ -150,6 +150,8 @@ export interface GradeGraph {
   index: Map<string, number>;
   /** Nodes on a picture path from the source to `out`. */
   onPath: Set<GradeNodeId>;
+  /** The grade's `out`. */
+  out: NodeRef;
   /** Picture consumers of each vertex (`"source"` included), on the path only. */
   succ: Map<string, Set<GradeNodeId>>;
 }
