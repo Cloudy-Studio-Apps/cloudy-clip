@@ -1,15 +1,20 @@
-import { Diamond, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+import { useKernel } from "@/core";
 import { IconButton } from "@/ui";
+import { resetGrade } from "../tint.commands";
 import { TINT_LAYOUT } from "../tint.layout";
+import type { ToolId } from "../tint.types";
+import { useEditTarget } from "./edit.target.hook";
 import { HeaderGap } from "./HeaderGap";
 import { PanelNote } from "./PanelNote";
+import { settle } from "./settle";
 import { useTintView } from "./view.hook";
 
-const nothing = () => {};
-
-/** Names the open tool and the layer it edits, with the keyframe diamond and reset. */
-export function ToolHeader({ name }: { name: string }) {
+/** Names the open tool and the layer it edits, with reset. */
+export function ToolHeader({ id, name }: { id: ToolId; name: string }) {
+  const { bus } = useKernel();
   const leader = useTintView((v) => v.mode === "leader");
+  const { clipId, grade, title } = useEditTarget();
   return (
     <header
       style={{ height: TINT_LAYOUT.headerHeight }}
@@ -17,11 +22,18 @@ export function ToolHeader({ name }: { name: string }) {
     >
       {name}
       <HeaderGap />
-      <PanelNote>{leader ? "Node" : "Layer"} 03 Skin</PanelNote>
-      <IconButton label="Keyframe: animate this correction over time (K)" onClick={nothing}>
-        <Diamond />
-      </IconButton>
-      <IconButton label="Reset this correction: back to neutral, the layer stays" onClick={nothing}>
+      {title && (
+        <PanelNote>
+          {leader ? "Node" : "Layer"} {title}
+        </PanelNote>
+      )}
+      <IconButton
+        label={`Reset ${name}: back to neutral on every layer, the layers stay`}
+        disabled={!clipId || !grade}
+        onClick={() => {
+          if (clipId) void settle(bus.run(resetGrade, { target: { clipId }, tools: [id] }));
+        }}
+      >
         <RotateCcw />
       </IconButton>
     </header>

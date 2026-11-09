@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { ClipGrade, ClipId, GradeNodeId } from "@/modules/project";
+import type { ClipGrade, ClipId, CorrectionValues, GradeNodeId } from "@/modules/project";
 import type { StackPosition, TintView } from "../tint.types";
 
 /** The viewer's on/off tools, by their key in the view state. */
@@ -49,4 +49,38 @@ export interface LayersEnv {
   actions: LayerActions;
   /** Starts a drag from a row's grip. */
   drag(event: PointerEvent, id: string): void;
+}
+
+/** A change to a correction's values, opacity or on, from a tool. */
+export interface EditPatch {
+  values?: Partial<CorrectionValues>;
+  opacity?: number;
+  on?: boolean;
+}
+
+/** Edits one correction: live while a gesture goes, one command when it ends. */
+export interface LiveEdit {
+  /** False without a clip to grade: nothing can be edited. */
+  enabled: boolean;
+  /** Counts the commands that were refused: key a control's body by it to put the saved values back. */
+  rev: number;
+  /** Shows the patch in the viewer at once (not saved). Merges with what was previewed before. */
+  preview(patch: EditPatch): void;
+  /** Saves the patch as one undo step and drops the live values. Without a correction, the first edit adds one. */
+  commit(patch: EditPatch): Promise<void>;
+  /** Drops the live values. */
+  cancel(): void;
+}
+
+/** The correction the tools edit: the selected layer, else the first one, else none yet. */
+export interface EditTarget {
+  /** The current clip, or null when there is nothing to grade. */
+  clipId: ClipId | null;
+  grade: ClipGrade | null;
+  /** The correction being edited; null before the clip has one (the first edit makes it). */
+  nodeId: GradeNodeId | null;
+  /** The correction's values over the defaults. */
+  values: CorrectionValues;
+  /** Layer number and name for the tool header, or null. */
+  title: string | null;
 }

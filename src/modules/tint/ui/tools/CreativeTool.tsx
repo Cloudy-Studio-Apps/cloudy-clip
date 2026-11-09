@@ -18,14 +18,6 @@ const VIGNETTE: readonly DemoField[] = [
   { label: "Feather", value: 50, min: 0, max: 100, step: 1 },
 ];
 
-const tint = (label: string, x: number, y: number) => ({
-  label,
-  x,
-  y,
-  numbers: [0, 0, 0, 0] as [number, number, number, number],
-  master: 0,
-});
-
 /** Creative: split toning, faded film and a vignette. */
 export function CreativeTool() {
   return (
@@ -35,8 +27,18 @@ export function CreativeTool() {
         info="Tint the shadows and the highlights with different colors, like teal shadows and warm highlights."
       >
         <div className="mb-3 flex gap-4">
-          <ColorWheel wheel={tint("Shadow tint", -0.35, 0.3)} size={84} numbers="one" />
-          <ColorWheel wheel={tint("Highlight tint", 0.25, -0.3)} size={84} numbers="one" />
+          <ColorWheel
+            label="Shadow tint"
+            wheel={{ x: -0.35, y: 0.3, m: 0 }}
+            size={84}
+            numbers="one"
+          />
+          <ColorWheel
+            label="Highlight tint"
+            wheel={{ x: 0.25, y: -0.3, m: 0 }}
+            size={84}
+            numbers="one"
+          />
         </div>
         <DemoSliders fields={BALANCE} />
       </ToolColumn>

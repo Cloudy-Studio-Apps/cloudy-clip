@@ -94,12 +94,7 @@ export function LayerRow({ id, nested = false }: { id: string; nested?: boolean 
           <LayerChip chip={layerChip(node)} />
         </span>
       </span>
-      <OpacityScrub
-        clipId={clipId}
-        nodeId={id}
-        opacity={node.opacity}
-        onEnd={(opacity) => actions.change(id, { opacity })}
-      />
+      <OpacityScrub clipId={clipId} nodeId={id} opacity={node.opacity} />
     </div>
   );
 }

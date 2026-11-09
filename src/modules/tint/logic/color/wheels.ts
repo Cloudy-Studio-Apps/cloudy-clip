@@ -65,3 +65,37 @@ export function primaryChannel(
   const base = x + lift * (1 - x);
   return gain * (base > 0 ? Math.pow(base, gammaInv) : base) + offset;
 }
+
+/** How far a puck may go from the middle of its ring, as a share of the ring's radius. */
+export const PUCK_REACH = 0.8;
+
+/** A wheel with its puck moved to `(dx, dy)` px from the ring's middle (y down) on a ring of `radius` px; the master stays. */
+export function wheelPuckAt(wheel: Wheel, dx: number, dy: number, radius: number): Wheel {
+  const scale = radius * PUCK_REACH;
+  let x = dx / scale;
+  let y = dy / scale;
+  const length = Math.hypot(x, y);
+  if (length > 1) {
+    x /= length;
+    y /= length;
+  }
+  return { x: Math.round(x * 1000) / 1000, y: Math.round(y * 1000) / 1000, m: wheel.m };
+}
+
+/** The color part of a wheel per channel (red, green, blue): how far the puck points at each. They add up to 0. */
+export function wheelColorNumbers(wheel: Wheel): Rgb {
+  return wheelChannels({ x: wheel.x, y: wheel.y, m: 0 }, { m: 0, color: 1 });
+}
+
+/** The wheel with one channel's color part set to `value` (0 red, 1 green, 2 blue): the puck moves along that channel's hue. */
+export function wheelWithChannel(wheel: Wheel, channel: 0 | 1 | 2, value: number): Wheel {
+  const h = CHANNEL_HUES[channel];
+  const delta = value - wheelColorNumbers(wheel)[channel];
+  const moved = wheelPuckAt(
+    wheel,
+    (wheel.x + delta * Math.sin(h)) * PUCK_REACH,
+    (wheel.y - delta * Math.cos(h)) * PUCK_REACH,
+    1,
+  );
+  return moved;
+}

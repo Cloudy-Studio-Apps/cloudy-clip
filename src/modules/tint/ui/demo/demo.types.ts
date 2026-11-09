@@ -36,15 +36,6 @@ export interface DemoLook {
   look: string;
 }
 
-/** A wheel's four numbers (master, red, green, blue), its puck and master ring. */
-export interface DemoWheel {
-  label: string;
-  x: number;
-  y: number;
-  numbers: [number, number, number, number];
-  master: number;
-}
-
 /** A slider row of the demo tools. */
 export interface DemoField {
   label: string;

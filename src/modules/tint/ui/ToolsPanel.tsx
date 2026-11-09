@@ -12,7 +12,7 @@ export function ToolsPanel() {
     <section className="flex min-h-0 min-w-0 overflow-hidden rounded-md bg-surface shadow-[0_0_0_1px_var(--border)]">
       <ToolRail />
       <div className="flex min-w-0 flex-1 flex-col">
-        <ToolHeader name={entry.name} />
+        <ToolHeader id={entry.id} name={entry.name} />
         <div className="min-h-0 flex-1 overflow-auto px-6 py-3">
           <Body />
         </div>

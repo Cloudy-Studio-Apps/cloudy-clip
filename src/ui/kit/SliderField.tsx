@@ -18,6 +18,8 @@ interface SliderFieldProps {
   bare?: boolean;
   /** `log` spaces the line by ratios, for a value like speed, where 1 sits between 0.1 and 10. */
   scale?: "linear" | "log";
+  /** A double click on the label puts the value back to this (`onInput`, then `onCommit`). */
+  resetTo?: number;
 }
 
 /**
@@ -37,6 +39,7 @@ export function SliderField({
   disabled,
   bare,
   scale = "linear",
+  resetTo,
 }: SliderFieldProps) {
   const log = scale === "log";
   const toLine = (next: number) => (log ? Math.log10(next) : next);
@@ -71,7 +74,21 @@ export function SliderField({
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      {!bare && <span className="w-[74px] shrink-0 text-base text-muted-foreground">{label}</span>}
+      {!bare && (
+        <span
+          title={resetTo === undefined || disabled ? undefined : "Double-click to reset"}
+          onDoubleClick={() => {
+            if (resetTo === undefined || disabled) return;
+            if (range.current) range.current.value = String(toLine(resetTo));
+            show(resetTo);
+            onInput(resetTo);
+            onCommit(resetTo);
+          }}
+          className="w-[74px] shrink-0 text-base text-muted-foreground"
+        >
+          {label}
+        </span>
+      )}
       <input
         ref={range}
         type="range"
