@@ -1,8 +1,8 @@
 import { cn } from "@/ui";
-import type { DemoChip } from "./demo/demo.types";
+import type { LayerChipInfo } from "../tint.types";
 
 /** What a layer changes: the whole picture, picked colors, or a LUT. */
-export function LayerChip({ chip }: { chip: DemoChip }) {
+export function LayerChip({ chip }: { chip: LayerChipInfo }) {
   return (
     <span
       className={cn(

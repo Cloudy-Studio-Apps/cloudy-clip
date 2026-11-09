@@ -1,45 +1,5 @@
 /** Demo data the page is drawn from until the grade lives in the project. */
 
-/** What a layer's chip says it is limited to. */
-export interface DemoChip {
-  kind: "whole" | "key" | "lut" | "agent";
-  label: string;
-}
-
-export interface DemoLayer {
-  type: "layer";
-  id: string;
-  no: string;
-  name: string;
-  on: boolean;
-  opacity: number;
-  chip: DemoChip;
-  /** CSS filter that stands in for the picture at this layer. */
-  look: string;
-}
-
-export interface DemoGroup {
-  type: "group";
-  id: string;
-  name: string;
-  /** Side by side, stacked, or per channel. */
-  kind: "parallel" | "layer" | "channels";
-  on: boolean;
-  opacity: number;
-  layers: DemoLayer[];
-}
-
-export interface DemoSealed {
-  type: "sealed";
-  id: string;
-  name: string;
-  nodes: number;
-  on: boolean;
-  layers: DemoLayer[];
-}
-
-export type DemoItem = DemoLayer | DemoGroup | DemoSealed;
-
 /** A node of the demo graph, in graph units (the SVG's view box). */
 export interface DemoNode {
   id: string;

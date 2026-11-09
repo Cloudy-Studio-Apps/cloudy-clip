@@ -81,7 +81,20 @@ export interface TintApi {
   onCurrent(fn: (id: ClipId | null) => void): () => void;
   /** Where the playhead was last inside each clip, for coming back to it. */
   viewedAt(clipId: ClipId): Micros | undefined;
+  /**
+   * A small picture (a data URL) of the clip alone, at `time`, as its grade leaves `nodeId`.
+   * Captures are taken one at a time. Rejects as `PreviewApi.captureAt` does.
+   */
+  thumb(
+    clipId: ClipId,
+    nodeId: GradeNodeId,
+    time: Micros,
+    compositionId: CompositionId,
+  ): Promise<string>;
 }
+
+/** Where each clip's grade is cut while a thumbnail of it is captured (only captures see it). */
+export type TintCuts = Map<ClipId, GradeNodeId>;
 
 /** The current clip and where each clip was last viewed (`followCurrent` writes, `TintApi` reads). */
 export interface CurrentClip {
@@ -278,3 +291,18 @@ export interface StackPair {
 /** Which grade a command edits: a clip's, a shot group's, or a composition's whole-frame one. */
 export type GradeTarget =
   { clipId: ClipId } | { groupId: GradeGroupId } | { compositionId: CompositionId };
+
+/** What a layer's chip says it changes: the whole picture, picked colors, or a LUT. */
+export interface LayerChipInfo {
+  kind: "whole" | "key" | "lut";
+  label: string;
+}
+
+/** A layer row's place on screen while one is dragged, in visual order. */
+export interface DropRow {
+  id: GradeNodeId;
+  top: number;
+  bottom: number;
+  /** Inside a group (not at the top level of the stack). */
+  nested: boolean;
+}

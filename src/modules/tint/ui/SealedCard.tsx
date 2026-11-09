@@ -1,8 +1,9 @@
 import { ChevronDown, Eye, Lock } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/ui";
-import type { DemoSealed } from "./demo/demo.types";
+import type { StackItem } from "../tint.types";
 import { LayerRow } from "./LayerRow";
+import { useLayers } from "./layers.context";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
 
@@ -13,7 +14,9 @@ const CHANNELS = ["#e0545a", "#4fbf6a", "#4d8fe0"] as const;
  * Part of the grade wired in Leader Seal that has no layer shape. Its values stay editable
  * (expand it); its wiring changes only in Leader Seal.
  */
-export function SealedCard({ card }: { card: DemoSealed }) {
+export function SealedCard({ card }: { card: Extract<StackItem, { type: "sealed" }> }) {
+  const { grade } = useLayers();
+  const corrections = card.nodes.filter((id) => grade.nodes[id]?.kind === "correct");
   const [open, setOpen] = useState(false);
   const selected = useTintView((v) => v.selected === card.id);
   const set = useTintSet();
@@ -39,9 +42,9 @@ export function SealedCard({ card }: { card: DemoSealed }) {
           onClick={() => set({ selected: card.id })}
           className="min-w-0 cursor-pointer text-left"
         >
-          <span className="block font-hand text-base font-bold">{card.name}</span>
+          <span className="block font-hand text-base font-bold">Sealed part</span>
           <span className="block text-xs text-subtle-foreground">
-            Wired in Leader Seal · {card.nodes} nodes ·{" "}
+            Wired in Leader Seal · {card.nodes.length} nodes ·{" "}
             <span
               role="link"
               tabIndex={0}
@@ -67,8 +70,8 @@ export function SealedCard({ card }: { card: DemoSealed }) {
       </div>
       {open && (
         <div className="mt-2 ml-2.5 flex flex-col gap-1.5 border-l-[1.5px] border-dashed border-border-strong pl-3">
-          {card.layers.map((layer) => (
-            <LayerRow key={layer.id} layer={layer} />
+          {corrections.map((id) => (
+            <LayerRow key={id} id={id} nested />
           ))}
         </div>
       )}

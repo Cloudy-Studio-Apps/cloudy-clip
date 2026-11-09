@@ -5,6 +5,7 @@ import { projectRef } from "@/modules/project";
 import { followCurrent, createCurrent } from "./tint.current";
 import { tintCommands } from "./tint.commands";
 import { createTintFilter } from "./tint.filter";
+import { createThumbs } from "./tint.thumb";
 import { tintKeys } from "./tint.keys";
 import { tintMcpTools } from "./tint.mcp";
 import { TINT_PAGE, tintRef } from "./tint.ref";
@@ -29,7 +30,10 @@ export const tintModule = defineModule({
     onDispose(
       followCurrent({ project: ctx.require(projectRef), clock: preview.playback, view, holder }),
     );
-    contribute(pictureFilters, createTintFilter(live));
+    const thumbs = createThumbs((time, compositionId, options) =>
+      preview.captureAt(time, compositionId, options),
+    );
+    contribute(pictureFilters, createTintFilter(live, thumbs.cuts));
     contribute(appPages, {
       id: TINT_PAGE,
       label: "Tint",
@@ -50,6 +54,7 @@ export const tintModule = defineModule({
         current: holder.current,
         onCurrent: holder.onCurrent,
         viewedAt: holder.viewedAt,
+        thumb: thumbs.thumb,
       },
     };
   },

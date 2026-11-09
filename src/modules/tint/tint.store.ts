@@ -2,7 +2,7 @@ import { createStore } from "zustand/vanilla";
 import type { ClipId } from "@/modules/project";
 import type { LiveGrade, TintLive, TintView } from "./tint.types";
 
-/** The page's view state for one kernel: Baby Seal on Basics, with the demo's Skin layer selected. */
+/** The page's view state for one kernel: Baby Seal on Basics, no layer selected. */
 export function createTintView() {
   return createStore<TintView>()(() => ({
     mode: "baby",
@@ -13,7 +13,7 @@ export function createTintView() {
     curve: "custom",
     leftTab: "grade",
     pinned: null,
-    selected: "n3",
+    selected: null,
     family: 1,
     bypass: false,
     compare: false,

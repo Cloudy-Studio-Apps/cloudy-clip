@@ -1,16 +1,16 @@
-import { DEMO_FRAME } from "./demo/demo.images";
-
-/** The picture as it is after a layer (a demo stand-in). */
-export function LayerThumb({ look, dim }: { look: string; dim?: boolean }) {
+/** The picture after a layer, once drawn; a plain block until then (or when it can't be drawn). */
+export function LayerThumb({ src, dim }: { src?: string; dim?: boolean }) {
   return (
     <span className="block h-9 w-16 shrink-0 overflow-hidden rounded-xs bg-stage">
-      <img
-        src={DEMO_FRAME}
-        alt=""
-        draggable={false}
-        className="size-full object-cover"
-        style={{ filter: look, opacity: dim ? 0.45 : 1 }}
-      />
+      {src && (
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          className="size-full object-cover"
+          style={{ opacity: dim ? 0.45 : 1 }}
+        />
+      )}
     </span>
   );
 }
