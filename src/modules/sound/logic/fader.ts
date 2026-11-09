@@ -12,6 +12,9 @@ const TAPER: readonly (readonly [db: number, position: number])[] = [
   [VOLUME_DB_MAX, 1],
 ];
 
+/** The levels, in dB, where the taper changes slope: a line drawn in dB kinks there. */
+export const TAPER_DBS: readonly number[] = TAPER.map(([db]) => db);
+
 /** Where a level sits along a fader, 0 to 1. */
 export function faderPosition(db: number): number {
   return along(db, 0, 1);

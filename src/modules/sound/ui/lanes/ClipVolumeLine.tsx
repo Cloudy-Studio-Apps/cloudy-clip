@@ -101,7 +101,7 @@ export function ClipVolumeLine({ clip, selected }: { clip: Clip; selected: boole
     <div
       ref={area}
       className={cn(
-        "absolute inset-x-0 bottom-1 top-3",
+        "absolute inset-x-0 bottom-1 top-6",
         !keyed && !selected && "opacity-0 group-hover:opacity-100",
       )}
     >
@@ -121,9 +121,14 @@ export function ClipVolumeLine({ clip, selected }: { clip: Clip; selected: boole
           ref={(element) => void (lines.current[1] = element)}
           points={polyline}
           vectorEffect="non-scaling-stroke"
-          className="fill-none stroke-transparent"
+          className={cn(
+            "fill-none stroke-transparent",
+            // Hidden until the clip is hovered or selected, it can't be hit before then.
+            keyed || selected
+              ? "[pointer-events:stroke]"
+              : "[pointer-events:none] group-hover:[pointer-events:stroke]",
+          )}
           strokeWidth={9}
-          style={{ pointerEvents: "stroke" }}
           onDoubleClick={(e) => {
             e.stopPropagation();
             add(e.clientX);

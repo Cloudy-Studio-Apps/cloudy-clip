@@ -5,12 +5,13 @@ import {
   trackValue,
   VOLUME_DB_MAX,
   VOLUME_DB_MIN,
+  rampOf,
   type Clip,
   type KeyTrack,
 } from "@/modules/project";
 import { pxToTime, timeToPx } from "@/modules/timeline";
 import type { LineKey, LinePoint } from "../sound.types";
-import { faderDb, faderPosition } from "./fader";
+import { faderDb, faderPosition, TAPER_DBS } from "./fader";
 
 /** The path of the value the clip's line shows. */
 export const VOLUME_PATH = "sound.volumeDb";
@@ -51,11 +52,22 @@ export function linePoints(
   const keys = lineKeys(clip, track, pxPerSecond);
   const at = (x: number) => ({ x, db: levelAt(clip, track, x, pxPerSecond) });
   if (!track || keys.length === 0) return [at(0), at(width)];
-  const bends = track.keys.some((k) => k.ease !== undefined && k.ease.kind !== "linear");
+  // A ramp bends time, so a segment between linear keys curves too.
+  const bends =
+    rampOf(clip) !== undefined ||
+    track.keys.some((k) => k.ease !== undefined && k.ease.kind !== "linear");
   const xs = new Set<number>([0, width]);
   for (const key of keys) {
     xs.add(key.x);
     if (key.x > STEP_PX) xs.add(key.x - STEP_PX);
+  }
+  // Where a straight segment crosses a taper breakpoint the drawn line kinks, so a point goes there.
+  for (let i = 1; i < keys.length; i++) {
+    const a = keys[i - 1]!;
+    const b = keys[i]!;
+    for (const db of TAPER_DBS) {
+      if ((db - a.db) * (db - b.db) < 0) xs.add(a.x + ((db - a.db) / (b.db - a.db)) * (b.x - a.x));
+    }
   }
   if (bends) for (let x = SAMPLE_PX; x < width; x += SAMPLE_PX) xs.add(x);
   return [...xs]
