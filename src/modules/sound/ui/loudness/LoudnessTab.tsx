@@ -4,9 +4,10 @@ import { useModule } from "@/core";
 import { previewRef, type LoudnessReading } from "@/modules/preview";
 import { formatDb } from "@/modules/project";
 import { Button } from "@/ui";
-import type { LoudnessHistoryHandle } from "../../sound.types";
+import type { LoudnessHistoryHandle, PhaseMeterHandle } from "../../sound.types";
 import { PanelCard, PanelValue } from "../card";
 import { LoudnessHistory } from "./LoudnessHistory";
+import { useDeliveryTarget } from "../deliver";
 import { useLoudnessFeed } from "./loudness.hook";
 import { PhaseCard } from "./PhaseCard";
 import { SpectrumCard } from "./SpectrumCard";
@@ -28,8 +29,8 @@ function text(reading: LoudnessReading | null, key: keyof LoudnessReading): stri
 /**
  * Live loudness of the master, as BS.1770 measures it while the timeline plays: integrated over
  * all the playing since Reset (large), momentary, short term, true peak and range, and the
- * short-term history of the last 60 s; then the frequency spectrum and the stereo phase, coming
- * soon. One feed (`useLoudnessFeed`, 10 Hz while playing, nothing while paused) writes the numbers
+ * short-term history of the last 60 s with the delivery target dashed across it; then the frequency
+ * spectrum (its own loop while playing) and the stereo phase. One feed (`useLoudnessFeed`, 10 Hz while playing, nothing while paused) writes the numbers
  * through the DOM and feeds the history; stopping keeps them. `shown`: whether the tab is the one
  * showing, so the graph draws only then.
  */
@@ -38,6 +39,8 @@ export function LoudnessTab({ shown }: { shown: boolean }) {
   const integratedRef = useRef<HTMLSpanElement>(null);
   const valueRefs = useRef<Partial<Record<keyof LoudnessReading, HTMLSpanElement | null>>>({});
   const historyRef = useRef<LoudnessHistoryHandle>(null);
+  const phaseRef = useRef<PhaseMeterHandle>(null);
+  const target = useDeliveryTarget();
 
   const write = useCallback((reading: LoudnessReading | null) => {
     if (integratedRef.current) integratedRef.current.textContent = text(reading, "integrated");
@@ -45,6 +48,8 @@ export function LoudnessTab({ shown }: { shown: boolean }) {
       const cell = valueRefs.current[key];
       if (cell) cell.textContent = text(reading, key);
     }
+    // Before a window has filled, the correlation is not a measurement.
+    phaseRef.current?.show(reading && reading.momentary > -Infinity ? reading.correlation : null);
   }, []);
   const onReading = useCallback(
     (reading: LoudnessReading | null, playing: boolean) => {
@@ -91,10 +96,10 @@ export function LoudnessTab({ shown }: { shown: boolean }) {
         ))}
       </PanelCard>
       <PanelCard title="Loudness over time">
-        <LoudnessHistory ref={historyRef} shown={shown} />
+        <LoudnessHistory ref={historyRef} shown={shown} target={target} />
       </PanelCard>
-      <SpectrumCard />
-      <PhaseCard />
+      <SpectrumCard shown={shown} />
+      <PhaseCard ref={phaseRef} />
     </div>
   );
 }

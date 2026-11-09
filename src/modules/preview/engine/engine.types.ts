@@ -122,6 +122,8 @@ export interface SoundGraph {
   follow(time: Micros, playing: boolean, until: Micros): void;
   /** Peaks now; silence before any sound went through. */
   levels(): MixLevels;
+  /** Fills `into` with the master's spectrum now and returns the sample rate (`PreviewSound.spectrum`). */
+  spectrum(into: Float32Array<ArrayBuffer>): number;
   /** Loudness of the master since the last reset, measured while playing; null until measured. */
   loudness(): LoudnessReading | null;
   /** Starts the loudness measurement over. */
@@ -182,6 +184,8 @@ export interface SoundMix {
   /** New live sound from the controller, applied at once. */
   setSound(live: LiveSound): void;
   levels(): MixLevels;
+  /** Fills `into` with the master's spectrum now and returns the sample rate (`PreviewSound.spectrum`). */
+  spectrum(into: Float32Array<ArrayBuffer>): number;
   loudness(): LoudnessReading | null;
   resetLoudness(): void;
   /** Whether the engine plays (`SoundGraph.setPlaying`). */
@@ -213,6 +217,8 @@ export type PitchNode = AudioWorkletNode & { pitch: AudioParam };
 export interface Meter {
   /** The peak of each side over the last few hundredths of a second. */
   read(): StereoLevel;
+  /** The spectrum of both sides together, in dB per bin, into `into`; the sample rate. */
+  spectrum(into: Float32Array<ArrayBuffer>): number;
   dispose(): void;
 }
 
@@ -310,6 +316,8 @@ export interface MixBus {
   readonly master: AudioNode;
   mix(update: MixUpdate): void;
   levels(): MixLevels;
+  /** Fills `into` with the master's spectrum now and returns the sample rate (`PreviewSound.spectrum`). */
+  spectrum(into: Float32Array<ArrayBuffer>): number;
   dispose(): void;
 }
 

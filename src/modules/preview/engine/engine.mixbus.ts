@@ -183,6 +183,7 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
       for (const [id, group] of groups) levels[id] = group.meter.read();
       return { tracks: levels, master: masterMeter.read() };
     },
+    spectrum: (into) => masterMeter.spectrum(into),
     dispose() {
       for (const bus of buses.values()) dropTrackBus(bus);
       buses.clear();

@@ -1,4 +1,5 @@
 import { peakToDb } from "../logic/db";
+import { SPECTRUM_BINS } from "../logic/spectrum";
 import type { MixLevels, StereoLevel } from "../preview.types";
 import type { Meter } from "./engine.types";
 
@@ -32,8 +33,17 @@ export function createMeter(context: BaseAudioContext, source: AudioNode): Meter
     return analyser;
   });
   const samples = new Float32Array(WINDOW);
+  let other: Float32Array<ArrayBuffer> | null = null;
   source.connect(splitter);
   return {
+    spectrum(into) {
+      sides[0]!.getFloatFrequencyData(into);
+      other ??= new Float32Array(SPECTRUM_BINS);
+      sides[1]!.getFloatFrequencyData(other);
+      // The louder side shows: a hard-panned sound isn't halved.
+      for (let i = 0; i < SPECTRUM_BINS; i++) into[i] = Math.max(into[i]!, other[i]!);
+      return context.sampleRate;
+    },
     read: () => ({ left: peakDb(sides[0]!, samples), right: peakDb(sides[1]!, samples) }),
     dispose() {
       source.disconnect(splitter);

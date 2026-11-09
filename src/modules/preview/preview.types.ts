@@ -113,6 +113,12 @@ export interface PreviewEngine {
   /** Peaks of each track bus and the master now; silence when nothing went through the graph. */
   levels(): MixLevels;
   /**
+   * Fills `into` (`SPECTRUM_BINS` long) with the master's spectrum now, in dB per bin, the louder
+   * of the two sides, `-Infinity` where there is no sound; bin `i` is at `i * rate / (2 * SPECTRUM_BINS)` Hz. Returns that `rate` (the context's sample rate), 0 when nothing can be read. Read it per
+   * frame; it allocates nothing.
+   */
+  spectrum(into: Float32Array<ArrayBuffer>): number;
+  /**
    * Loudness of the master, measured while playing, since the last reset; null while it isn't
    * measured. Paused, the last reading stands.
    */
@@ -260,6 +266,8 @@ export interface LoudnessReading {
   range: number;
   /** dBTP: the largest true peak since the last reset (a maximum, it never falls back). */
   truePeak: number;
+  /** Correlation of left and right over the last 400 ms, -1 (opposite) to 1 (the same); 1 for silence. */
+  correlation: number;
 }
 
 /** A BS.1770 meter for a stereo signal (`createLoudnessMeter`). */
@@ -331,6 +339,12 @@ export interface PreviewSound {
   setSolo(trackIds: TrackId[]): void;
   /** Peaks now, of each track bus and the master. Read it per frame; it holds no peaks. */
   levels(): MixLevels;
+  /**
+   * Fills `into` (`SPECTRUM_BINS` long) with the master's spectrum now, in dB per bin, the louder
+   * of the two sides, `-Infinity` where there is no sound; bin `i` is at `i * rate / (2 * SPECTRUM_BINS)` Hz. Returns that `rate` (the context's sample rate), 0 when nothing can be read. Read it per
+   * frame; it allocates nothing.
+   */
+  spectrum(into: Float32Array<ArrayBuffer>): number;
   /**
    * Loudness of the master, measured while playing, since the last reset; null while it isn't
    * measured. Paused, the last reading stands.

@@ -31,28 +31,4 @@ export const SOON: Record<SoonId, SoonEntry> = {
     what: "Shows how far the compressor turns the sound down as it plays.",
     stage: "2-followup",
   },
-  "loudness.spectrum": {
-    id: "loudness.spectrum",
-    label: "Frequency spectrum",
-    what: "Shows how loud each frequency of the mix is as it plays.",
-    stage: 5,
-  },
-  "loudness.phase": {
-    id: "loudness.phase",
-    label: "Stereo phase",
-    what: "Shows how far left and right agree, and whether the mix holds up in mono.",
-    stage: 5,
-  },
-  "deliver.standard": {
-    id: "deliver.standard",
-    label: "Delivery standard",
-    what: "Picks the loudness and peak limit a platform asks for.",
-    stage: 5,
-  },
-  "deliver.analyze": {
-    id: "deliver.analyze",
-    label: "Analyze whole mix",
-    what: "Measures the whole mix against the standard and lists what goes over.",
-    stage: 5,
-  },
 };

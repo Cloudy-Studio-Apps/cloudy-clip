@@ -17,8 +17,8 @@ const TABS: readonly SegmentedOption<SoundPanelTab>[] = [
 /**
  * The panel under the Sound page's timeline, opening on Channel. Clip: the inspector's Audio
  * sections of the selected clip. Channel: the effects of the marked strip. Loudness: the live
- * reading. Deliver: the delivery cards, laid out (their controls come later). Whose it is (`PanelWho`) sits at the right
- * of the tabs. All stay mounted, so the loudness history goes on behind the others.
+ * reading. Deliver: the standard, Analyze and Match target, the problems, the format and the stems. Whose it is
+ * (`PanelWho`) sits at the right of the tabs. All stay mounted, so the loudness history goes on behind the others.
  */
 export function SoundPanel() {
   const [tab, setTab] = useState<SoundPanelTab>("channel");

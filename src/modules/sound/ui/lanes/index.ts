@@ -7,6 +7,7 @@ export { DrawVolumeTool } from "./DrawVolumeTool";
 export { LineViewButton } from "./LineViewButton";
 export { MasterLine } from "./MasterLine";
 export { PointerLayer } from "./PointerLayer";
+export { ProblemMarks } from "./ProblemMarks";
 export { RecordingTake } from "./RecordingTake";
 export { SheetNote } from "./SheetNote";
 export { SoloButton } from "./SoloButton";

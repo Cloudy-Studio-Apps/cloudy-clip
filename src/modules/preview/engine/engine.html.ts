@@ -240,6 +240,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   setSound = (live: LiveSound): void => this.sound.setSound(live);
   levels = (): MixLevels => this.sound.levels();
+  spectrum = (into: Float32Array<ArrayBuffer>): number => this.sound.spectrum(into);
   loudness = (): LoudnessReading | null => this.sound.loudness();
   resetLoudness = (): void => this.sound.resetLoudness();
 

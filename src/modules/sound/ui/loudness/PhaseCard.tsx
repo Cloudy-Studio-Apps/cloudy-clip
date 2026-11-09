@@ -1,14 +1,13 @@
-import { PanelCard, PanelValue } from "../card";
+import type { Ref } from "react";
+import type { PhaseMeterHandle } from "../../sound.types";
+import { PanelCard } from "../card";
+import { PhaseMeter } from "./PhaseMeter";
 
-/**
- * "Stereo phase": Correlation and Mono safe, both `—` until the phase is measured
- * (`loudness.phase`, stage 5).
- */
-export function PhaseCard() {
+/** "Stereo phase": Correlation and Mono safe of the master, from the Loudness tab's feed. */
+export function PhaseCard({ ref }: { ref?: Ref<PhaseMeterHandle> }) {
   return (
     <PanelCard title="Stereo phase">
-      <PanelValue label="Correlation" soon="loudness.phase" />
-      <PanelValue label="Mono safe" soon="loudness.phase" />
+      <PhaseMeter ref={ref} />
     </PanelCard>
   );
 }

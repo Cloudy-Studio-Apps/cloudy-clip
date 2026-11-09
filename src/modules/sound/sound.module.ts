@@ -48,6 +48,7 @@ import {
   SoundPage,
   MasterLine,
   PointerLayer,
+  ProblemMarks,
   TrackVolumeLine,
 } from "./ui";
 
@@ -130,6 +131,11 @@ export const soundModule = defineModule({
       id: "sound.trackLine",
       scopes: ["all", "sound"],
       component: TrackVolumeLine,
+    });
+    contribute(timelineOverlays, {
+      id: "sound.problemMarks",
+      scopes: ["all", "sound"],
+      component: ProblemMarks,
     });
     contribute(timelineOverlays, {
       id: "sound.masterLine",

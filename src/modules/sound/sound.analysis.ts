@@ -57,7 +57,7 @@ export function createAnalyzer(
       if (cancelled.delete(compositionId)) void cancelAnalysis(jobId).catch(() => undefined);
       const done = finishAnalysis(jobId).then(
         (result) => {
-          const stored: StoredAnalysis = { result, measured, peakDbtp };
+          const stored: StoredAnalysis = { result, measured, peakDbtp, at: Date.now() };
           state.setState((s) => ({
             running: without(s.running, compositionId),
             results: { ...s.results, [compositionId]: stored },

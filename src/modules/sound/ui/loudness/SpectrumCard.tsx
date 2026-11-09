@@ -1,35 +1,26 @@
-import { cn } from "@/ui";
-import { soon } from "../soon";
+import { frequencyX } from "../../logic/spectrum";
 import { PanelCard } from "../card";
+import { SPECTRUM_LINES, SpectrumGraph } from "./SpectrumGraph";
 
-/** Where the grid's lines fall across the box, in % of its width and height. */
-const COLUMNS = [20, 40, 60, 80];
-const ROWS = [25, 50, 75];
+/** The label of a line of the grid: `100`, `1k`, `10k`. */
+const label = (hz: number) => (hz >= 1000 ? `${hz / 1000}k` : String(hz));
 
-/**
- * "Frequency spectrum": the graph's box with its grid and no curve, since nothing measures the
- * spectrum yet (`loudness.spectrum`, stage 5). The box is the placeholder: its tooltip says what's
- * coming.
- */
-export function SpectrumCard() {
-  const props = soon("loudness.spectrum");
+/** "Frequency spectrum": how loud each frequency of the master is while the timeline plays. */
+export function SpectrumCard({ shown }: { shown: boolean }) {
   return (
     <PanelCard title="Frequency spectrum">
-      <button
-        type="button"
-        aria-label="Frequency spectrum"
-        {...props}
-        className={cn("block h-[84px] w-full bg-surface-sunken", props.className)}
-      >
-        <svg className="block size-full" aria-hidden="true">
-          {COLUMNS.map((x) => (
-            <line key={`x${x}`} x1={`${x}%`} x2={`${x}%`} y1="0" y2="100%" stroke="var(--border)" />
-          ))}
-          {ROWS.map((y) => (
-            <line key={`y${y}`} x1="0" x2="100%" y1={`${y}%`} y2={`${y}%`} stroke="var(--border)" />
-          ))}
-        </svg>
-      </button>
+      <SpectrumGraph shown={shown} />
+      <div className="relative mt-0.5 h-3 font-mono text-2xs text-subtle-foreground" aria-hidden>
+        {SPECTRUM_LINES.map((hz) => (
+          <span
+            key={hz}
+            className="absolute -translate-x-1/2"
+            style={{ left: `${frequencyX(hz) * 100}%` }}
+          >
+            {label(hz)}
+          </span>
+        ))}
+      </div>
     </PanelCard>
   );
 }

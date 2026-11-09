@@ -12,6 +12,7 @@ export {
   SheetNote,
   SoloButton,
   PointerLayer,
+  ProblemMarks,
   TrackVolumeLine,
 } from "./lanes";
 export { SoundPage } from "./SoundPage";

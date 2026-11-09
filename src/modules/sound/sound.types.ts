@@ -8,6 +8,7 @@ import type {
   GateEffect,
   KeyTrack,
   ProjectState,
+  DeliverySettings,
   StandardId,
   SoundEffect,
   TrackId,
@@ -469,6 +470,22 @@ export interface LoudnessHistoryHandle {
 export interface GraphColours {
   grid: string;
   line: string;
+  /** The delivery target and the spectrum's fill: the theme's `--on`. */
+  on: string;
+}
+
+/** What the Loudness tab tells its stereo phase meter. */
+export interface PhaseMeterHandle {
+  /** Shows a reading's correlation (`null`, or one before anything was measured, shows `—`). */
+  show(correlation: number | null): void;
+}
+
+/** How a whole-mix analysis stands against the delivery target (`verdictOf`). */
+export interface DeliveryVerdict {
+  /** Integrated loudness minus the target, LU; null for a silent mix. */
+  loudnessDiff: number | null;
+  /** Peak limit minus the true peak, dB: negative when over; null for digital silence. */
+  peakMargin: number | null;
 }
 
 /** How far a chain's noise reduction is rendered into its files. */
@@ -539,11 +556,7 @@ export type SoonId =
   | "transport.findBeats"
   | "transport.stripSilence"
   | "transport.matchLevel"
-  | "compressor.reduction"
-  | "loudness.spectrum"
-  | "loudness.phase"
-  | "deliver.standard"
-  | "deliver.analyze";
+  | "compressor.reduction";
 
 /** A placeholder: what it will be and the stage that builds it. */
 export interface SoonEntry {
@@ -717,6 +730,8 @@ export interface StoredAnalysis {
   measured: ProjectState;
   /** The peak limit it looked for, dBTP. */
   peakDbtp: number;
+  /** When it ended, ms since the epoch: what the panel says it measured. */
+  at: number;
 }
 
 /** An analysis under way. */
@@ -784,4 +799,19 @@ export interface Matcher {
   match: LoudnessMatcher["match"];
   /** Stops everything running (the kernel is going away). */
   dispose(): void;
+}
+
+/** What the Deliver tab shows for the open composition. */
+export interface DeliverView {
+  compositionId: CompositionId | undefined;
+  delivery: DeliverySettings;
+  /** The last whole-mix analysis, if any. */
+  stored: StoredAnalysis | undefined;
+  /** The document has changed since it was measured. */
+  stale: boolean;
+  running: RunningAnalysis | undefined;
+  failed: string | undefined;
+  matching: MatchRun | undefined;
+  matched: MatchOutcome | undefined;
+  matchFailed: string | undefined;
 }

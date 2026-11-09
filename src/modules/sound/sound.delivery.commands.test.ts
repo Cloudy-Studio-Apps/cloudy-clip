@@ -23,7 +23,7 @@ function measured(integrated: number | null): void {
   const result: MixAnalysis = { integrated, range: 5, truePeak: -3, problems: [] };
   analyzer().state.setState({
     results: {
-      c1: { result, measured: project().store.getState(), peakDbtp: -1 },
+      c1: { result, measured: project().store.getState(), peakDbtp: -1, at: 0 },
     },
   });
 }

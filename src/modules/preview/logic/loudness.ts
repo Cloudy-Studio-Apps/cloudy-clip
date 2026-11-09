@@ -11,6 +11,7 @@ export const NO_LOUDNESS: LoudnessReading = {
   integrated: -Infinity,
   range: 0,
   truePeak: -Infinity,
+  correlation: 1,
 };
 
 /** A 400 ms block steps by 100 ms (75 % overlap), so energy is kept per 100 ms. */
@@ -26,6 +27,15 @@ const mean = (values: number[], count: number): number => {
   for (let i = values.length - count; i < values.length; i++) sum += values[i]!;
   return sum / count;
 };
+
+const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
+
+/** The correlation of the sums over some steps; 1 when one side is silent (nothing disagrees). */
+function correlationOf(cross: number[], left: number[], right: number[]): number {
+  const product = sum(left) * sum(right);
+  if (product <= 0) return 1;
+  return Math.max(-1, Math.min(1, sum(cross) / Math.sqrt(product)));
+}
 
 /**
  * A BS.1770-4 loudness meter for a stereo signal: K-weighting derived for `sampleRate`, 400 ms
@@ -48,14 +58,32 @@ export function createLoudnessMeter(sampleRate: number): LoudnessMeter {
   const shortTerms = createHistogram();
   /** Mean-square energy (both sides summed) of each 100 ms step, newest last. */
   const steps: number[] = [];
+  /** Sums of l*r, l*l and r*r of each 100 ms step, newest last, for the correlation. */
+  const crossSteps: number[] = [];
+  const leftSteps: number[] = [];
+  const rightSteps: number[] = [];
   let energy = 0;
   let filled = 0;
+  let cross = 0;
+  let leftPower = 0;
+  let rightPower = 0;
 
   const endStep = () => {
     steps.push(energy / filled);
     if (steps.length > SHORT_TERM_STEPS) steps.shift();
+    crossSteps.push(cross);
+    leftSteps.push(leftPower);
+    rightSteps.push(rightPower);
+    if (crossSteps.length > MOMENTARY_STEPS) {
+      crossSteps.shift();
+      leftSteps.shift();
+      rightSteps.shift();
+    }
     energy = 0;
     filled = 0;
+    cross = 0;
+    leftPower = 0;
+    rightPower = 0;
     if (steps.length >= MOMENTARY_STEPS) integrated.add(mean(steps, MOMENTARY_STEPS));
     if (steps.length >= SHORT_TERM_STEPS) shortTerms.add(mean(steps, SHORT_TERM_STEPS));
   };
@@ -71,6 +99,9 @@ export function createLoudnessMeter(sampleRate: number): LoudnessMeter {
         const wl = rlbLeft.next(shelfLeft.next(l));
         const wr = rlbRight.next(shelfRight.next(r));
         energy += wl * wl + wr * wr;
+        cross += l * r;
+        leftPower += l * l;
+        rightPower += r * r;
         if (++filled === stepLength) endStep();
       }
     },
@@ -84,6 +115,7 @@ export function createLoudnessMeter(sampleRate: number): LoudnessMeter {
         integrated: toLoudness(integrated.gatedEnergy(INTEGRATED_GATE)),
         range: Number.isFinite(low) && Number.isFinite(high) ? Math.max(0, high! - low!) : 0,
         truePeak: peakToDb(Math.max(peakLeft.peak(), peakRight.peak())),
+        correlation: correlationOf(crossSteps, leftSteps, rightSteps),
       };
     },
     reset() {
@@ -93,8 +125,14 @@ export function createLoudnessMeter(sampleRate: number): LoudnessMeter {
       integrated.reset();
       shortTerms.reset();
       steps.length = 0;
+      crossSteps.length = 0;
+      leftSteps.length = 0;
+      rightSteps.length = 0;
       energy = 0;
       filled = 0;
+      cross = 0;
+      leftPower = 0;
+      rightPower = 0;
     },
   };
 }
