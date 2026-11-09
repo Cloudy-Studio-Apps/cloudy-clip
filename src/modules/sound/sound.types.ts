@@ -37,8 +37,8 @@ export interface SoundViewState {
   monitor: MonitorState;
   /** The track a recording goes onto: an audio track that isn't muted. */
   armed: TrackId | null;
-  /** How each track's fader writes its volume line while playing; missing is Read. */
-  automation: Record<TrackId, AutomationMode>;
+  /** How each track's fader (and the master's, `"master"`) writes its volume line while playing; missing is Read. */
+  automation: Record<LineTarget, AutomationMode>;
   /** Tracks whose volume line is in front of their clips' lines: Draw volume draws on it. */
   lineView: Record<TrackId, boolean>;
   /** The pointer tool of the Sound page's lanes. */
@@ -99,34 +99,35 @@ export interface PassSpan {
   points: LevelAt[];
 }
 
-/** What the automation writer tells the page: the tracks whose pass is being written. */
+/** What the automation writer tells the page: the tracks (and the master) whose pass is being written. */
 export interface AutomationState {
-  writing: TrackId[];
+  writing: LineTarget[];
 }
 
 /**
- * Turns fader moves into a track's volume line while playing, per kernel. In Touch, holding the
+ * Turns fader moves into a volume line while playing, per kernel: a track's, or the master's of
+ * the open composition (`"master"`). In Touch, holding the
  * fader writes; in Latch, writing goes on after the release until playback stops. The fader is an
  * offset on the line: a pass writes the line raised or lowered by how far the fader moved. Each
- * pass is sent as one `sound.writePass` when it ends (release in Touch, stop, a jump of the
- * playhead, leaving the page or the composition, the project being left).
+ * pass is sent as one `sound.writePasses` when it ends (stop, a change of mode, leaving the page
+ * or the composition, the project being left).
  */
 export interface AutomationWriter {
   state: StoreApi<AutomationState>;
   /** The fader was pressed at `db`. True when the press writes the line (Touch or Latch, playing). */
-  press(trackId: TrackId, db: number): boolean;
+  press(target: LineTarget, db: number): boolean;
   /**
    * The fader of a writing press moved to `db`: heard at once, written each frame. With its pass
    * ended (playback stopped under the hold) it's still heard, and writes again once playing.
    */
-  move(trackId: TrackId, db: number): void;
+  move(target: LineTarget, db: number): void;
   /**
    * The fader of a writing press was let go: Touch returns to the line and stops writing until the
    * next press (its pass still sent once, at stop), Latch keeps writing.
    */
-  release(trackId: TrackId): void;
-  /** The fader level a pass holds for the track, or null when none does (Touch let go). */
-  level(trackId: TrackId): number | null;
+  release(target: LineTarget): void;
+  /** The fader level a pass holds for the target, or null when none does (Touch let go). */
+  level(target: LineTarget): number | null;
   /** Ends every pass, sending what each wrote. */
   finish(): Promise<void>;
   /**
@@ -146,10 +147,12 @@ export interface AutomationDeps {
   view: StoreApi<SoundViewState>;
 }
 
-/** A pass being written on one track. */
+/** A pass being written on one track or the master. */
 export interface AutomationPass {
   mode: AutomationMode;
-  /** The track's fader volume when the pass began: the offset the line sits under. */
+  /** The composition open when the pass began: the master's it writes. */
+  compositionId: CompositionId | null;
+  /** The fader volume when the pass began: the offset the line sits under. */
   offset: number;
   /** The fader level held now. */
   level: number;
@@ -212,8 +215,8 @@ export interface SoundApi {
   recorder: Recorder;
   /** Chooses the pointer tool of the lanes. */
   setTool(tool: SoundTool): void;
-  /** Sets how a track's fader writes its volume line while playing. */
-  setAutomation(trackId: TrackId, mode: AutomationMode): void;
+  /** Sets how a track's fader, or the master's, writes its volume line while playing. */
+  setAutomation(target: LineTarget, mode: AutomationMode): void;
   /** Puts a track's volume line in front of its clips' lines, or behind. */
   setLineView(trackId: TrackId, inFront: boolean): void;
   /** Writes fader passes onto volume lines. */
@@ -344,6 +347,24 @@ export type ListenNodes = Record<TrackId, { mix?: { busId?: BusId; effects?: Sou
 
 /** What a mixer strip addresses: an audio track, a group (its `BusId`), or the master. */
 export type MixTarget = TrackId | BusId | "master";
+
+/** What has a volume line: an audio track, or the master of a composition. */
+export type LineTarget = TrackId | "master";
+
+/** Where a line command acts: a track, or the master of `compositionId` (default: the open one). */
+export interface LineWhere {
+  target: LineTarget;
+  compositionId?: CompositionId;
+}
+
+/** A volume line found for a command (`lineOwner`): the line, how close two keys merge, and how to write it. */
+export interface LineOwner {
+  line: KeyTrack | undefined;
+  /** Half a frame of its composition, in µs. */
+  tolerance: Micros;
+  /** Stores `line` on the owner in `draft`, or removes it when it has no keys. */
+  write(draft: ProjectState, line: KeyTrack | undefined): void;
+}
 
 /** Where a chain command acts: a track, or the master or a group of `compositionId` (default: the open one). */
 export interface ChainWhere {
@@ -518,9 +539,6 @@ export type SoonId =
   | "transport.findBeats"
   | "transport.stripSilence"
   | "transport.matchLevel"
-  | "master.pan"
-  | "master.mute"
-  | "master.read"
   | "compressor.reduction"
   | "loudness.spectrum"
   | "loudness.phase"

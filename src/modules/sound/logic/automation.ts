@@ -1,12 +1,16 @@
 import type { Micros } from "@/core";
 import {
+  compositionMixOf,
   simplify,
+  trackMixOf,
   trackValue,
   VOLUME_DB_MAX,
   VOLUME_DB_MIN,
+  type CompositionId,
   type KeyTrack,
+  type ProjectState,
 } from "@/modules/project";
-import type { AutomationMode, LevelAt, PassSpan } from "../sound.types";
+import type { AutomationMode, LevelAt, LineTarget, PassSpan } from "../sound.types";
 
 /** How far, in dB, a written point may sit off the straight line and still be dropped. */
 export const THIN_DB = 0.5;
@@ -22,6 +26,25 @@ export function nextMode(mode: AutomationMode): AutomationMode {
 /** How a mode is named on its button and in the timeline's tools. */
 export function modeName(mode: AutomationMode): string {
   return mode === "read" ? "Read" : mode === "touch" ? "Touch" : "Latch";
+}
+
+/**
+ * The volume line and fader volume of an audio track, or of the master of `compositionId`;
+ * undefined when the track or the composition is gone.
+ */
+export function lineFader(
+  state: ProjectState,
+  target: LineTarget,
+  compositionId: CompositionId | null,
+): { line: KeyTrack | undefined; volumeDb: number } | undefined {
+  if (target === "master") {
+    const composition = compositionId === null ? undefined : state.compositions[compositionId];
+    if (!composition) return undefined;
+    const { master } = compositionMixOf(composition);
+    return { line: master.volumeLine, volumeDb: master.volumeDb };
+  }
+  const track = state.tracks[target];
+  return track && { line: track.mix?.volumeLine, volumeDb: trackMixOf(track).volumeDb };
 }
 
 /** The level of a track's volume line at a timeline time: 0 dB when it has none. */

@@ -2,9 +2,9 @@
 //! track's effects, pan and level (its volume line, when it has one) apply to that sum; the tracks
 //! sent to a group are summed and the group's effects and level apply to that, built by the same
 //! `Bus` as a track; the tracks sent to the master and the groups are summed, and the master's
-//! level, then its effects, apply to the result. A muted group adds nothing. A duck's key is the
-//! sum of the tracks and groups it listens to after their levels, split off them (`asplit`);
-//! those are built first.
+//! level (its volume line, when it has one) and pan, then its effects, apply to the result. A
+//! muted group adds nothing. A duck's key is the sum of the tracks and groups it listens to after
+//! their levels, split off them (`asplit`); those are built first.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -249,9 +249,15 @@ pub(super) fn sound_graph(
     } else {
         stem_taps(&mut graph, outputs, stems, &end)
     };
+    // The master's level (its line, when it has one), then its pan, as a track bus's.
     let mut master = String::new();
-    if mix.master.gain != 1.0 {
+    if !mix.master.gain_envelope.is_empty() {
+        master.push_str(&gain_envelope_filter(&mix.master.gain_envelope));
+    } else if mix.master.gain != 1.0 {
         master.push_str(&format!(",volume={:.6}", mix.master.gain));
+    }
+    if mix.master.pan != 0.0 {
+        master.push_str(&pan_filter(mix.master.pan));
     }
     let effects: String = mix.master.effects.iter().map(effect_filter).collect();
     if !effects.is_empty() {
@@ -417,7 +423,7 @@ mod tests {
             buses: Vec::new(),
             master: MasterMixSpec {
                 gain: master,
-                effects: Vec::new(),
+                ..MasterMixSpec::DEFAULT
             },
         }
     }
@@ -528,16 +534,14 @@ mod tests {
     }
 
     #[test]
-    fn master_volume_comes_last() {
-        let graph = sound_graph(
-            &[chain(0)],
-            &[segment(0)],
-            &mix_of(&[TrackMixSpec::DEFAULT], 2.0),
-            1_000_000,
-        );
+    fn master_volume_and_pan_come_last() {
+        let mut mix = mix_of(&[TrackMixSpec::DEFAULT], 2.0);
+        mix.master.pan = 0.5;
+        let graph = sound_graph(&[chain(0)], &[segment(0)], &mix, 1_000_000);
         let volume = graph.find("volume=2.000000").unwrap();
+        let pan = graph.find("pan=stereo").unwrap();
         assert!(graph.find("amix=").unwrap() < volume, "{graph}");
-        assert!(volume < graph.find("apad").unwrap(), "{graph}");
+        assert!(volume < pan && pan < graph.find("apad").unwrap(), "{graph}");
     }
 
     #[test]

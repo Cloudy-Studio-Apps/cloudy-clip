@@ -31,6 +31,13 @@ describe("track and master mix", () => {
     expect(state().compositions.c1!.mix).toBeUndefined();
   });
 
+  it("stores nothing with the master centred and not muted", async () => {
+    await ok(setMaster, { pan: -0.5, muted: true });
+    expect(state().compositions.c1!.mix?.master).toEqual({ volumeDb: 0, pan: -0.5, muted: true });
+    await ok(setMaster, { pan: 0, muted: false });
+    expect(state().compositions.c1!.mix).toBeUndefined();
+  });
+
   it("refuses a video track and a missing one", async () => {
     const video = await run(setTrackMix, { trackId: "v1", pan: 0.5 });
     expect(video).toMatchObject({ ok: false, error: { code: "sound.not_audio" } });
@@ -66,6 +73,16 @@ describe("mix A and B", () => {
     await ok(switchMix, { to: "a" });
     expect(compositionMixOf(state().compositions.c1!).master.volumeDb).toBe(-4);
     expect(compositionMixOf(state().compositions.c1!).otherMix?.master.volumeDb).toBe(-9);
+  });
+
+  it("swaps the master's pan and mute", async () => {
+    await ok(setMaster, { pan: -0.5, muted: true });
+    await ok(switchMix, { to: "b" });
+    await ok(setMaster, { pan: 0.25, muted: false });
+    await ok(switchMix, { to: "a" });
+    const mix = compositionMixOf(state().compositions.c1!);
+    expect(mix.master).toEqual({ volumeDb: 0, pan: -0.5, muted: true });
+    expect(mix.otherMix?.master).toEqual({ volumeDb: 0, pan: 0.25 });
   });
 
   it("leaves out tracks that were deleted since", async () => {

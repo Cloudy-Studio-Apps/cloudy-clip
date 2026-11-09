@@ -67,22 +67,30 @@ export const resetTrackMix = defineCommand({
   },
 });
 
-/** Sets the master volume of a composition. */
+/** Sets the master of a composition: its volume, pan and mute. */
 export const setMaster = defineCommand({
   id: "sound.setMaster",
-  label: "Change master volume",
+  label: "Change master",
   description:
-    "Sets the master volume (volumeDb, -60 to 12) of your open composition, or of compositionId. It applies to the whole composition's sound.",
+    "Changes the master of your open composition, or of compositionId: volumeDb (-60 to 12), pan (-1 left to 1 right, a balance of the stereo mix) and muted (silences the whole mix; stems are taken before the master and still sound). Only the values you pass change; its effects and volume line stay. Fails with composition.not_found.",
   undoable: true,
-  input: z.object({ compositionId: z.string().optional(), volumeDb: volumeDbSchema }),
-  run(ctx, { compositionId, volumeDb }) {
+  input: z.object({
+    compositionId: z.string().optional(),
+    volumeDb: volumeDbSchema.optional(),
+    pan: panSchema.optional(),
+    muted: z.boolean().optional(),
+  }),
+  run(ctx, { compositionId, volumeDb, pan, muted }) {
     const { store } = ctx.require(projectRef);
     const id = targetComposition(ctx, compositionId);
     ctx.mutate(store, (draft) => {
       const composition = draft.compositions[id]!;
       const mix = compositionMixOf(composition);
-      // Only the volume: whatever else the master holds stays.
-      writeComposition(composition, { ...mix, master: { ...mix.master, volumeDb } });
+      const master = { ...mix.master };
+      if (volumeDb !== undefined) master.volumeDb = volumeDb;
+      if (pan !== undefined) master.pan = pan;
+      if (muted !== undefined) master.muted = muted;
+      writeComposition(composition, { ...mix, master });
     });
   },
 });
@@ -92,7 +100,7 @@ export const switchMix = defineCommand({
   id: "sound.switchMix",
   label: "Switch mix",
   description:
-    'Switches your open composition (or compositionId) to mix "a" or "b": every audio track\'s volume, pan, send, effects and volume line, the groups and the master, are swapped with those of the other mix. The first time, B starts as a copy of A. Switching to the mix that is active does nothing.',
+    'Switches your open composition (or compositionId) to mix "a" or "b": every audio track\'s volume, pan, send, effects and volume line, the groups and the master (volume, pan, mute, effects and volume line), are swapped with those of the other mix. The first time, B starts as a copy of A. Switching to the mix that is active does nothing.',
   undoable: true,
   input: z.object({ compositionId: z.string().optional(), to: z.enum(["a", "b"]) }),
   run(ctx, { compositionId, to }) {

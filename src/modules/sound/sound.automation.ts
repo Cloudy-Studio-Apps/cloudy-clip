@@ -1,7 +1,6 @@
 import { createStore } from "zustand/vanilla";
-import { notify, type Micros } from "@/core";
-import { trackMixOf, type TrackId } from "@/modules/project";
-import { clampDb, lineDb, passSpans, returnToLine } from "./logic/automation";
+import { LOCAL_ACTOR, notify, type Micros } from "@/core";
+import { clampDb, lineDb, lineFader, passSpans, returnToLine } from "./logic/automation";
 import { writePasses } from "./sound.line.commands";
 import { followCompositionSwitch, followSoundPageLeave } from "./sound.leave";
 import type {
@@ -10,13 +9,15 @@ import type {
   AutomationPass,
   AutomationState,
   AutomationWriter,
+  LineTarget,
 } from "./sound.types";
 
 /** A playhead this far past the last written frame has jumped: the next lap starts there (µs). */
 const JUMP: Micros = 500_000;
 
 /**
- * Creates the automation writer of one kernel (see `AutomationWriter`). A pass keeps the track's
+ * Creates the automation writer of one kernel (see `AutomationWriter`), for tracks and the master
+ * of the open composition alike (a `LineTarget`). A pass keeps the target's
  * line as it was when it began (`snapshot`) and writes relative to it: first the line's own level
  * (so the line before it stays as it was), then, each frame while playing, the line raised or
  * lowered by how far the fader is from the track's volume. A seek or the loop going round starts
@@ -34,22 +35,26 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
   const { bus, preview, project, workspace, pages, view } = deps;
   const { playback } = preview;
   const state = createStore<AutomationState>()(() => ({ writing: [] }));
-  const passes = new Map<TrackId, AutomationPass>();
+  const passes = new Map<LineTarget, AutomationPass>();
 
-  const modeOf = (trackId: TrackId) => view.getState().automation[trackId] ?? "read";
-  const trackOf = (trackId: TrackId) => project.store.getState().tracks[trackId];
+  const modeOf = (target: LineTarget) => view.getState().automation[target] ?? "read";
+  /** The target's line and fader now; the master's of `compositionId`, default the open one. */
+  const faderOf = (target: LineTarget, compositionId = project.view.openFor(LOCAL_ACTOR)) =>
+    lineFader(project.store.getState(), target, compositionId);
   const publish = () => state.setState({ writing: [...passes.keys()] });
 
-  /** Starts a pass with the track's line as it is now; false when the track is gone. */
-  const begin = (trackId: TrackId, mode: AutomationMode, level: number) => {
-    const track = trackOf(trackId);
-    if (!track) return false;
+  /** Starts a pass with the target's line as it is now; false when the target is gone. */
+  const begin = (trackId: LineTarget, mode: AutomationMode, level: number) => {
+    const compositionId = project.view.openFor(LOCAL_ACTOR);
+    const fader = faderOf(trackId, compositionId);
+    if (!fader) return false;
     passes.set(trackId, {
       mode,
-      offset: trackMixOf(track).volumeDb,
+      compositionId,
+      offset: fader.volumeDb,
       level,
       held: true,
-      snapshot: track.mix?.volumeLine,
+      snapshot: fader.line,
       laps: [],
       changed: false,
     });
@@ -57,22 +62,26 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
     return true;
   };
 
-  /** Ends a track's pass, sending nothing, and lets the saved mix play. */
-  const drop = (trackId: TrackId) => {
+  /** Ends a target's pass, sending nothing, and lets the saved mix play. */
+  const drop = (trackId: LineTarget) => {
     if (!passes.delete(trackId)) return;
     publish();
     preview.sound.previewMix(trackId, null);
   };
 
-  /** Ends a track's pass and sends it. */
-  const end = async (trackId: TrackId): Promise<void> => {
+  /** Ends a target's pass and sends it. */
+  const end = async (trackId: LineTarget): Promise<void> => {
     const pass = passes.get(trackId);
     if (!pass) return;
     passes.delete(trackId);
     publish();
     const spans = passSpans(pass.laps).filter((span) => span.to > span.from);
-    if (pass.changed && spans.length > 0 && trackOf(trackId)) {
-      const result = await bus.run(writePasses, { trackId, spans });
+    if (pass.changed && spans.length > 0 && faderOf(trackId, pass.compositionId)) {
+      const where =
+        trackId === "master" && pass.compositionId !== null
+          ? { compositionId: pass.compositionId }
+          : {};
+      const result = await bus.run(writePasses, { target: trackId, ...where, spans });
       if (!result.ok) notify("error", `The fader pass wasn't written: ${result.error.message}`);
     }
     // A new pass keeps playing its own level.
@@ -119,7 +128,7 @@ export function createAutomation(deps: AutomationDeps): AutomationWriter {
     // The line changed under a pass, not by it (a pass is gone before it sends): drop the pass.
     project.store.subscribe((now) => {
       for (const [trackId, pass] of passes) {
-        if (now.tracks[trackId]?.mix?.volumeLine !== pass.snapshot) drop(trackId);
+        if (lineFader(now, trackId, pass.compositionId)?.line !== pass.snapshot) drop(trackId);
       }
     }),
     // A mode changed under a pass ends it.

@@ -16,7 +16,7 @@ import { ReadButton } from "./ReadButton";
 import { SendsTo } from "./SendsTo";
 import { StripLabel } from "./StripLabel";
 import { StripName } from "./StripName";
-import { TrackFader } from "./TrackFader";
+import { LineFader } from "./LineFader";
 import { TrackSends } from "./TrackSends";
 
 /** `A1`, `A2`… for a track by its place among the audio tracks; `G1`, `G2`… for a group. */
@@ -117,7 +117,9 @@ export const MixerStrip = memo(function MixerStrip({
         </div>
       )}
       {track ? (
-        <TrackFader track={track}>{meters}</TrackFader>
+        <LineFader target={track.id} compositionId={compositionId} label={`${track.name} level`}>
+          {meters}
+        </LineFader>
       ) : (
         <GroupFader group={group} compositionId={compositionId}>
           {meters}

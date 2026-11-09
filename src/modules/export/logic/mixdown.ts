@@ -369,12 +369,12 @@ function mixEffects(
 const withEffects = (effects: MixEffect[]) => (effects.length > 0 ? { effects } : {});
 
 /**
- * A track's level over the export: its volume line with the fader's offset on top, as linear
+ * A track's (or the master's) level over the export: its volume line with the fader's offset on top, as linear
  * points counted from the range's start (the same sampling a clip's keyed volume gets), or its
  * fader alone when it has no line.
  */
 function trackLevel(
-  { volumeDb, volumeLine }: TrackMix,
+  { volumeDb, volumeLine }: Pick<TrackMix, "volumeDb" | "volumeLine">,
   range: ExportRange,
 ): Pick<TrackMixSpec, "gain" | "gainEnvelope"> {
   if (!volumeLine?.keys.length) return { gain: dbToLinear(volumeDb) };
@@ -387,7 +387,8 @@ function trackLevel(
 /**
  * The mix of the composition's audio tracks, in order, of its groups and of its master, as linear
  * levels, with the effects that work. Muted tracks keep their place (their clips are left out, so
- * a duck listening to one hears nothing). A track with a volume line follows it over `range`. A
+ * a duck listening to one hears nothing). A track (or the master) with a volume line follows it
+ * over `range`; a muted master's gain is 0. A
  * track names its group by index; one naming a group that isn't there sends to the master.
  */
 function mixOf(
@@ -415,7 +416,9 @@ function mixOf(
     tracks,
     buses,
     master: {
-      gain: dbToLinear(master.volumeDb),
+      // Muted, the master adds nothing: stems are taken before it and still sound.
+      ...(master.muted ? { gain: 0 } : trackLevel(master, range)),
+      ...(master.pan !== undefined && master.pan !== 0 && { pan: master.pan }),
       ...withEffects(mixEffects(master.effects, audio, busIds)),
     },
   };

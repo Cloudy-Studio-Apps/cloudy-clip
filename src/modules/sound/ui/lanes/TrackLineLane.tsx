@@ -99,7 +99,7 @@ export function TrackLineLane(props: TrackLineLaneProps) {
         while (key.db + deltaDb > VOLUME_DB_MAX) deltaDb -= 1e-9;
         while (key.db + deltaDb < VOLUME_DB_MIN) deltaDb += 1e-9;
         void bus
-          .run(moveLineKeys, { trackId: track.id, keyIds: [key.keyId], delta, deltaDb })
+          .run(moveLineKeys, { target: track.id, keyIds: [key.keyId], delta, deltaDb })
           .then((result) => {
             if (result.ok) return;
             notify("error", result.error.message);
@@ -114,7 +114,7 @@ export function TrackLineLane(props: TrackLineLaneProps) {
       0,
       pxToTime(clientX - box.current.getBoundingClientRect().left, pxPerSecond),
     );
-    void bus.run(setLineKey, { trackId: track.id, at, db: lineDb(line, at) }).then((result) => {
+    void bus.run(setLineKey, { target: track.id, at, db: lineDb(line, at) }).then((result) => {
       if (!result.ok) notify("error", result.error.message);
     });
   };

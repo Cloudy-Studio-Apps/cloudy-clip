@@ -41,7 +41,13 @@ export function mixUpdateOf(
   return {
     tracks,
     groups,
-    master: { volumeDb: master.volumeDb, effects: master.effects },
+    master: {
+      volumeDb: master.volumeDb,
+      pan: master.pan,
+      muted: master.muted,
+      effects: master.effects,
+      volumeLine: master.volumeLine,
+    },
     solo: soloed,
     monitor,
   };

@@ -1,22 +1,40 @@
-import { cn } from "@/ui";
-import { soon } from "../soon";
+import { useStore } from "zustand";
+import { useKernel, useModule } from "@/core";
+import { previewRef } from "@/modules/preview";
+import { compositionMixOf, projectRef, type CompositionId } from "@/modules/project";
+import { formatPan, panAt, panPosition } from "../../logic/fader";
+import { setMaster } from "../../sound.mix.commands";
+import { LineSlider } from "../controls";
 
 /**
- * The master's pan, drawn as a strip's (`PanSlider`) with its thumb at the centre. Coming soon
- * (`master.pan`, stage 4): it doesn't move and changes nothing; the mix is centred.
+ * The master's pan, a balance of the stereo mix, −1 (left) to 1 (right), drawn as a track's
+ * (`PanSlider`): the drag plays live through `previewMix("master", …)` and sends one
+ * `sound.setMaster` on release; a double-click centres it.
  */
-export function MasterPan() {
-  const props = soon("master.pan");
+export function MasterPan({ compositionId }: { compositionId: CompositionId | undefined }) {
+  const { bus } = useKernel();
+  const preview = useModule(previewRef);
+  const project = useModule(projectRef).store;
+  const read = () => {
+    const composition = compositionId && project.getState().compositions[compositionId];
+    return composition ? (compositionMixOf(composition).master.pan ?? 0) : 0;
+  };
+  const value = useStore(project.api, () => read());
+
   return (
-    <button
-      type="button"
-      aria-label="Master pan"
-      {...props}
-      className={cn("relative block h-3.5 w-full shrink-0", props.className)}
-    >
-      <span className="absolute inset-x-0 top-1.5 h-0.5 bg-border-strong" />
-      <span className="absolute left-1/2 top-[3px] h-2 w-px bg-subtle-foreground" />
-      <span className="absolute left-1/2 top-px z-10 -ml-1.5 size-3 rounded-full bg-foreground" />
-    </button>
+    <LineSlider
+      value={value}
+      label="Master pan"
+      toPosition={panPosition}
+      fromPosition={panAt}
+      rest={0}
+      format={formatPan}
+      centred
+      onInput={(pan) => preview.sound.previewMix("master", pan === null ? null : { pan })}
+      onCommit={async (pan) =>
+        void (await bus.run(setMaster, { ...(compositionId && { compositionId }), pan }))
+      }
+      read={read}
+    />
   );
 }

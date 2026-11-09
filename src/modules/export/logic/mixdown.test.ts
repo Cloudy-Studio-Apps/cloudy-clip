@@ -372,6 +372,28 @@ describe("mixdown", () => {
     expect(mix.master.effects).toEqual([{ kind: "limiter", ceilingDb: -1, releaseMs: 50 }]);
   });
 
+  it("gives the master its pan and line, and a gain of 0 when muted", () => {
+    const state = project([clip("a", "a1")]);
+    const volumeLine: KeyTrack = {
+      blend: "number",
+      min: -60,
+      max: 12,
+      keys: [
+        { id: "l1", t: 0, value: 0 },
+        { id: "l2", t: 2_000_000, value: -20 },
+      ],
+    };
+    state.compositions.c1!.mix = { master: { volumeDb: -6, pan: 0.5, volumeLine }, activeMix: "a" };
+    const { mix } = mixdownWithMix(state, "c1", everything, sounds);
+    expect(mix.master.pan).toBe(0.5);
+    expect(mix.master.gainEnvelope![0]!.value).toBeCloseTo(dbToLinear(-6), 6);
+    expect(mix.master.gainEnvelope!.at(-1)!.value).toBeCloseTo(dbToLinear(-26), 6);
+    state.compositions.c1!.mix.master.muted = true;
+    const muted = mixdownWithMix(state, "c1", everything, sounds).mix.master;
+    expect(muted.gain).toBe(0);
+    expect(muted.gainEnvelope).toBeUndefined();
+  });
+
   it("gives a track with a volume line a gain envelope from the export range's start", () => {
     const state = project([clip("a", "a1")]);
     state.tracks.a1!.mix = {

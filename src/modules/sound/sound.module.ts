@@ -165,7 +165,7 @@ export const soundModule = defineModule({
         arm: recorder.arm,
         automation,
         setTool: (tool) => view.setState({ tool }),
-        setAutomation: (trackId, mode) => setAutomationMode(view, trackId, mode),
+        setAutomation: (target, mode) => setAutomationMode(view, target, mode),
         setLineView: (trackId, inFront) => setLineInFront(view, trackId, inFront),
       },
     };

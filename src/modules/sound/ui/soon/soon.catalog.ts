@@ -25,24 +25,6 @@ export const SOON: Record<SoonId, SoonEntry> = {
     what: "Brings the selected clips to the same loudness.",
     stage: 6,
   },
-  "master.pan": {
-    id: "master.pan",
-    label: "Master pan",
-    what: "Balances the whole mix left and right.",
-    stage: 4,
-  },
-  "master.mute": {
-    id: "master.mute",
-    label: "Master mute",
-    what: "Silences the whole mix.",
-    stage: 4,
-  },
-  "master.read": {
-    id: "master.read",
-    label: "Master read",
-    what: "Plays back the volume drawn or recorded on the master.",
-    stage: 4,
-  },
   "compressor.reduction": {
     id: "compressor.reduction",
     label: "Reduction",

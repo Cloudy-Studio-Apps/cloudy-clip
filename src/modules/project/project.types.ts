@@ -111,8 +111,17 @@ export interface TrackMix {
 export interface MasterMix {
   /** -60 to 12. */
   volumeDb: number;
+  /** -1 (left) to 1 (right): a balance on the stereo mix, with a track pan's law. Missing means centred; 0 is never stored. */
+  pan?: number;
+  /** Silences the whole mix (stems are taken before the master, so they still sound). Missing means false; false is never stored. */
+  muted?: boolean;
   /** The effects after the fader, in order. Missing means none; an empty chain is never stored. */
   effects?: SoundEffect[];
+  /**
+   * The master's volume drawn over time, in dB, as a track's `volumeLine` is (timeline time; the
+   * fader's `volumeDb` an offset on top). Missing means none; a line with no keys is never stored.
+   */
+  volumeLine?: KeyTrack;
 }
 
 /** The id of a group track (`MixBus`), from `createId("bus")`. Unique across the project. */

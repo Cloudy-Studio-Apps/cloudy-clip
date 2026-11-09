@@ -33,7 +33,7 @@ export function ClipLineKeys() {
         e.stopImmediatePropagation();
         sound.setState({ linePoint: null });
         void bus
-          .run(removeLineKeys, { trackId: point.trackId, keyIds: [point.keyId] })
+          .run(removeLineKeys, { target: point.trackId, keyIds: [point.keyId] })
           .then((result) => {
             if (!result.ok) notify("error", result.error.message);
           });

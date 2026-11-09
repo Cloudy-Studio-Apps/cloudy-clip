@@ -26,7 +26,7 @@ function onLine(points: readonly StrokePoint[], { bus, trackId, box, pxPerSecond
   const from = levels[0]?.at;
   const to = levels[levels.length - 1]?.at;
   if (from === undefined || to === undefined || to <= from) return null;
-  return bus.run(writePass, { trackId, from, to, points: levels });
+  return bus.run(writePass, { target: trackId, from, to, points: levels });
 }
 
 /** The stroke on the line of the clip it starts over, kept inside it. */

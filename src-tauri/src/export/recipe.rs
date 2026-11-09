@@ -203,19 +203,37 @@ pub struct BusMixSpec {
     pub effects: Vec<MixEffect>,
 }
 
-/// The level of everything together, then its effects.
+/// The level of everything together (0 when the master is muted), its pan, then its effects.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct MasterMixSpec {
     /// Linear level.
     #[serde(default = "one")]
     pub gain: f64,
-    /// The effects after the level, in order. A duck here is ignored: the document refuses one.
+    /// Linear level over the export, the master's volume line with its fader on top, as a
+    /// track's. Replaces `gain` when it has points.
+    #[serde(default, rename = "gainEnvelope")]
+    pub gain_envelope: Vec<EnvelopePoint>,
+    /// -1 (left) to 1 (right): a balance of the stereo mix, with a track pan's law.
+    #[serde(default)]
+    pub pan: f64,
+    /// The effects after the level and the pan, in order. A duck here is ignored: the document
+    /// refuses one.
     #[serde(default)]
     pub effects: Vec<MixEffect>,
 }
 
+impl MasterMixSpec {
+    /// Leaves the sound as it is.
+    pub const DEFAULT: MasterMixSpec = MasterMixSpec {
+        gain: 1.0,
+        gain_envelope: Vec::new(),
+        pan: 0.0,
+        effects: Vec::new(),
+    };
+}
+
 /// How the tracks mix: each track's effects, pan and level, then the groups' effects and level,
-/// then the master's level and effects.
+/// then the master's level, pan and effects.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct SoundMix {
     pub tracks: Vec<TrackMixSpec>,
@@ -231,10 +249,7 @@ impl SoundMix {
         SoundMix {
             tracks: vec![TrackMixSpec::DEFAULT; tracks],
             buses: Vec::new(),
-            master: MasterMixSpec {
-                gain: 1.0,
-                effects: Vec::new(),
-            },
+            master: MasterMixSpec::DEFAULT,
         }
     }
 }

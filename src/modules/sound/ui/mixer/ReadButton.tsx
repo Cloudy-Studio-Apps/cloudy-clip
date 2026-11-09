@@ -3,27 +3,16 @@ import { useModule } from "@/core";
 import { LetterToggle } from "@/ui";
 import { modeName, nextMode } from "../../logic/automation";
 import { soundRef } from "../../sound.ref";
-import type { MixTarget } from "../../sound.types";
-import { soon } from "../soon";
+import type { LineTarget } from "../../sound.types";
 
 /**
- * Under a strip's fader: the track's automation mode, named (Read, Touch, Latch); a click goes to
- * the next. On (in `--mark`) while the fader writes the line, Touch or Latch. The master's Read
- * (`master.read`) comes in stage 4: drawn off, does nothing.
+ * Under a strip's fader: the automation mode of a track or the master, named (Read, Touch,
+ * Latch); a click goes to the next. On (in `--mark`) while the fader writes the line, Touch or
+ * Latch.
  */
-export function ReadButton({ target }: { target: MixTarget }) {
+export function ReadButton({ target }: { target: LineTarget }) {
   const sound = useModule(soundRef);
-  const mode = useStore(sound.view, (s) =>
-    target === "master" ? "read" : (s.automation[target] ?? "read"),
-  );
-  if (target === "master") {
-    const props = soon("master.read");
-    return (
-      <LetterToggle on={false} label="Read" tone="mark" onToggle={props.onClick} {...props}>
-        Read
-      </LetterToggle>
-    );
-  }
+  const mode = useStore(sound.view, (s) => s.automation[target] ?? "read");
   const name = modeName(mode);
   return (
     <LetterToggle

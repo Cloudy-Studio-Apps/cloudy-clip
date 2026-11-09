@@ -86,19 +86,24 @@ function createMonitor(context: BaseAudioContext, master: AudioNode) {
 /**
  * The buses of one context: a bus per audio track of the open composition and one per group, made
  * and dropped as they come and go; a track goes into its group's bus or the master, a group into
- * the master (fader, then its effects), metered after them, then the monitor. Solo silences the
+ * the master (fader: its volume, 0 when muted, or its volume line with the volume on top; then its
+ * pan, a balance with a track's law; then its effects), metered after them, then the monitor. A
+ * muted master meters and measures silence, as a muted track's bus does. Solo silences the
  * tracks' buses only, so a soloed track is heard through its group. Dynamics effects run in the
  * worklet `dynamics` loads.
  */
 export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes): MixBus {
   const masterFader = context.createGain();
+  const masterLevel = createFaderLevel(masterFader.gain, context, 0);
+  const masterPan = createPanner(context);
+  masterFader.connect(masterPan);
   const master = context.createGain();
-  const masterEffects = createEffectChain(context, masterFader, master, dynamics);
+  const masterEffects = createEffectChain(context, masterPan, master, dynamics);
   const masterMeter = createMeter(context, master);
   const monitor = createMonitor(context, master);
   const buses = new Map<TrackId, TrackBus>();
   const groups = new Map<BusId, TrackBus>();
-  /** The first mix sets the master's level outright, so it never glides in from unity. */
+  /** The first mix sets the master's pan outright, so it never glides in from the centre. */
   let started = false;
   /** The playhead, for a bus made between frames. */
   let clock: Micros = 0;
@@ -110,6 +115,7 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
     follow(time, playing, until) {
       clock = time;
       for (const bus of buses.values()) bus.level.follow(time, playing, until);
+      masterLevel.follow(time, playing, until);
     },
     mix({ tracks, groups: groupMixes, master: masterMix, solo, monitor: monitorState }) {
       // Groups first, so the tracks find the bus they send to.
@@ -158,9 +164,15 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
       for (const { id, mix } of tracks) buses.get(id)?.effects.set(mix.effects ?? [], keyOf);
       for (const { id, effects } of groupMixes) groups.get(id)?.effects.set(effects ?? [], keyOf);
       masterEffects.set(masterMix.effects ?? [], keyOf);
-      const masterLevel = dbToLinear(masterMix.volumeDb);
-      if (started) glide(masterFader.gain, masterLevel, context);
-      else masterFader.gain.value = masterLevel;
+      const masterLines = masterMix.volumeLine ? [{ line: masterMix.volumeLine, shift: 0 }] : [];
+      masterLevel.set({
+        lines: masterLines,
+        offsetDb: masterMix.volumeDb,
+        muted: masterMix.muted === true,
+      });
+      const pan = masterMix.pan ?? 0;
+      if (started) glide(masterPan.pan, pan, context);
+      else masterPan.pan.value = pan;
       started = true;
       monitor(monitorState);
     },
@@ -178,6 +190,7 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
       masterEffects.dispose();
       masterMeter.dispose();
       masterFader.disconnect();
+      masterPan.disconnect();
       master.disconnect();
     },
   };

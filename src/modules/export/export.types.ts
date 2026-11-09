@@ -116,8 +116,23 @@ export interface SoundMix {
   tracks: TrackMixSpec[];
   /** The composition's groups in order; a track's `bus` indexes this. */
   buses: BusMixSpec[];
-  /** Its level, then its effects. */
-  master: { gain: number; effects?: MixEffect[] };
+  /** Its level, its pan, then its effects. */
+  master: MasterMixSpec;
+}
+
+/** The master (mirrors `MasterMixSpec` in Rust): the sum of the tracks and groups, then these, in order. */
+export interface MasterMixSpec {
+  /** Linear level; 0 when the master is muted. */
+  gain: number;
+  /**
+   * The level over the export when the master has a volume line, as a track's (`TrackMixSpec`).
+   * Replaces `gain`; missing when muted.
+   */
+  gainEnvelope?: EnvelopePoint[];
+  /** -1 (left) to 1 (right), a balance with a track pan's law. Missing means centred. */
+  pan?: number;
+  /** After the level and the pan, in order. Missing when none works. */
+  effects?: MixEffect[];
 }
 
 /** What sounds in an export: the stretches of files, and how the tracks they sit on mix. */
