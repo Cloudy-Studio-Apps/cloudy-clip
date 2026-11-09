@@ -9,8 +9,8 @@ import { LUMA, luma } from "./basics";
 // luma of the mixed color in all three channels: with the identity, plain black and white; raise a
 // row to let that channel count more.
 
-/** Below this, `LUMA · row sums` is taken as 0 and keep brightness does nothing. */
-const FLAT = 1e-3;
+/** Below this (or negative), `LUMA · row sums` is too small to scale by: keep brightness does nothing. */
+export const KEEP_FLOOR = 0.05;
 
 /** The mixer worked out, or null when it changes nothing (the identity, not monochrome). */
 export function mixerOf(mixer: CorrectionValues["mixer"]): MixerParams | null {
@@ -19,7 +19,7 @@ export function mixerOf(mixer: CorrectionValues["mixer"]): MixerParams | null {
   if (identity && !mixer.mono) return null;
   const sums = mixer.matrix.map((row) => row[0] + row[1] + row[2]);
   const gray = LUMA[0] * sums[0]! + LUMA[1] * sums[1]! + LUMA[2] * sums[2]!;
-  const scale = mixer.keepBrightness && Math.abs(gray) > FLAT ? 1 / gray : 1;
+  const scale = mixer.keepBrightness && gray >= KEEP_FLOOR ? 1 / gray : 1;
   return { matrix: flat.map((v) => v * scale), mono: mixer.mono };
 }
 

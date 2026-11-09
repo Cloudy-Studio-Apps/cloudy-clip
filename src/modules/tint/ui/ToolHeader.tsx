@@ -30,7 +30,7 @@ export function ToolHeader({ id, name }: { id: ToolId; name: string }) {
         </PanelNote>
       )}
       <IconButton
-        label={`Reset ${name}${title ? ` on ${title}` : ""}: back to neutral, the layer stays`}
+        label={`Reset ${name}${id === "wheels" ? " (every mode)" : ""}${title ? ` on ${title}` : ""}: back to neutral, the layer stays`}
         disabled={!clipId || !nodeId || !page}
         onClick={() => {
           if (clipId && nodeId && page) {
