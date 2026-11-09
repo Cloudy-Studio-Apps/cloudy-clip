@@ -21,24 +21,29 @@ import {
   unlogish,
   whiteBalance,
 } from "./basics";
-import { applyCurves, curvesActive, sampleCurves } from "./curves.apply";
+import { applyCurves } from "./curves.apply";
+import { curveStepActive, sampleCurveStep } from "./mix";
+import { applyWarper, sampleWarper, warperActive } from "./warper";
 import { primaryChannel, primaryWheels } from "./wheels";
 
 // One correction, in the spec's order: exposure and white balance, wheels, contrast and pivot,
-// highlights / shadows / whites / blacks, rolloff, curves, saturation / vibrance / hue (with
-// protect skin). Color mix, the warper, skin pull, the mixer, Creative and LUTs come in later tasks, at
-// their place in that order. `prepareCorrection` works out once what the shader gets as uniforms;
-// `applyCorrection` is the per-pixel math, the CPU reference of `render/correct.glsl.ts`.
+// highlights / shadows / whites / blacks, rolloff, curves and Color mix, the warper, saturation /
+// vibrance / hue (with protect skin). Color mix is folded into the hue curves (`mix.ts`), so it runs
+// in the curve step; the warper follows it. Skin pull, the mixer, Creative and LUTs come in later
+// tasks, at their place in that order. `prepareCorrection` works out once what the shader gets as
+// uniforms; `applyCorrection` is the per-pixel math, the CPU reference of `render/correct.glsl.ts`.
 
 /**
- * What a correction's values come to for every pixel. The curve table is sampled here when a curve
- * changes anything, unless `table` (already sampled from these values) is given.
+ * What a correction's values come to for every pixel. The curve table (curves and Color mix) and the
+ * warp table are sampled here when they change anything, unless `table` or `warp` (already sampled
+ * from these values) is given.
  */
 export function prepareCorrection(
   values: CorrectionValues,
   table?: Float32Array | null,
+  warp?: Float32Array | null,
 ): CorrectionParams {
-  const curves = curvesActive(values.curves);
+  const curves = curveStepActive(values);
   const curved = curves.rgb || curves.hue;
   const wb = whiteBalance(values.temperature, values.tint);
   const exposure = 2 ** values.exposure;
@@ -60,7 +65,8 @@ export function prepareCorrection(
     hue: [Math.cos(hue), Math.sin(hue)],
     skin: values.protectSkin ? 1 : 0,
     curveOn: [curves.rgb ? 1 : 0, curves.hue ? 1 : 0],
-    curveTable: curved ? (table ?? sampleCurves(values.curves)) : null,
+    curveTable: curved ? (table ?? sampleCurveStep(values)) : null,
+    warpTable: warperActive(values.warper) ? (warp ?? sampleWarper(values.warper)) : null,
   };
 }
 
@@ -103,6 +109,7 @@ export function applyCorrection(rgb: Rgb, p: CorrectionParams, _at: PixelAt): Rg
   const shift = p.bands[0] * w[0] + p.bands[1] * w[1] + p.bands[2] * w[2] + p.bands[3] * w[3];
   c = mapRgb(c, (x) => rolloff(x + shift, p.knee));
   if (p.curveTable) c = applyCurves(c, p.curveTable, p.curveOn[0] > 0, p.curveOn[1] > 0);
+  if (p.warpTable) c = applyWarper(c, p.warpTable);
   return chroma(c, p);
 }
 

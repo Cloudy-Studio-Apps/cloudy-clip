@@ -82,7 +82,10 @@ function runPasses(
   try {
     passes.forEach((pass, index) => {
       const last = index === passes.length - 1;
-      // Making a target binds textures, so it comes before the inputs are bound.
+      // Making a target binds its texture to the active unit, so that is unit 0, bound again to the
+      // input below: a data unit left holding the target would be a feedback loop for any sampler
+      // of the program still pointing at it from an earlier pass.
+      gl.activeTexture(gl.TEXTURE0);
       const target = last ? null : targets.acquire(width, height, floatTargets);
       if (target) outputs[index] = target;
       const found = programs.get(pass);

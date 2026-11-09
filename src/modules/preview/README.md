@@ -63,7 +63,9 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
     the caller draws before the next `run`. Targets go back to the pool in a `finally`. Uniforms: a
     number is a `float`, 2–4 numbers a `vec`, `gpuInt(…)` an `int`. Data textures
     (`GpuTexture`, `gpu.textures.ts`: `"1d"` as one row, `"2d"`, `"3d"`; bytes `RGBA8`, floats
-    `RGBA16F`) are kept by key and uploaded again only when `version` changes. A lost context
+    `RGBA16F`) are kept by key and uploaded again only when `version` changes; they take the units
+    after the inputs. A new target is made on unit 0 (bound to the input right after), so a sampler
+    a pass leaves unbound never points at the target being drawn. A lost context
     (`webglcontextlost`) is made again on the next `run`; if that fails, `available` is false for good
     and `run` throws `GpuUnavailable` (`gpu.errors.ts`), as it does without WebGL2. `gpu.levels.ts`:
     `levelsPass(levels)`. `gpu.blend.ts`: `BLEND_GLSL`, `vec3 blend(int mode, vec3 base, vec3 top)`

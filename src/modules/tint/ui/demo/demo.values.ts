@@ -1,18 +1,3 @@
-/** The eight Color mix families. */
-export const DEMO_FAMILIES = [
-  { name: "Reds", hue: 0 },
-  { name: "Oranges", hue: 30 },
-  { name: "Yellows", hue: 55 },
-  { name: "Greens", hue: 120 },
-  { name: "Aquas", hue: 180 },
-  { name: "Blues", hue: 220 },
-  { name: "Purples", hue: 270 },
-  { name: "Magentas", hue: 310 },
-] as const;
-
-/** Saturation of each family, 0..1, for the bar chart. */
-export const DEMO_FAMILY_SAT = [0.5, 0.62, 0.5, 0.4, 0.5, 0.32, 0.5, 0.5] as const;
-
 /** 24-patch chart reference colors. */
 export const DEMO_CHART = [
   "#735244",

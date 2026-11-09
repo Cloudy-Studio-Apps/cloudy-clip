@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef } from "react";
-import { hueOf } from "../../logic/color/curves.apply";
 import { insertPoint, nearestPoint, resetPoint } from "../../logic/color/curves.edit";
-import type { CurvePoint, CurveShape, Rgb } from "../../tint.types";
+import type { CurvePoint, CurveShape } from "../../tint.types";
 import { startCurveDrag } from "./curve.gesture";
 import { paintCurve } from "./curve.paint";
+import { HUE_STOPS } from "./hue.stops";
 import type { CurveEdit } from "./tools.types";
 
 /** How near a point (px) a press takes it rather than adding one. */
@@ -13,18 +13,7 @@ const HIT = 9;
 const ADDED_DOUBLE = 600;
 
 /** The hue strip under a hue curve (data colors): each color where the hue curves read its hue. */
-const HUES = (() => {
-  const named: [string, Rgb][] = [
-    ["red", [1, 0, 0]],
-    ["#ff0", [1, 1, 0]],
-    ["lime", [0, 1, 0]],
-    ["cyan", [0, 1, 1]],
-    ["blue", [0, 0, 1]],
-    ["#f0f", [1, 0, 1]],
-  ];
-  const stops = named.map(([css, rgb]) => `${css} ${((hueOf(rgb) ?? 0) * 100).toFixed(1)}%`);
-  return `linear-gradient(90deg, ${stops.join(", ")}, red 100%)`;
-})();
+const HUES = `linear-gradient(90deg, ${HUE_STOPS})`;
 
 /** The brightness strip under Brightness vs Saturation (data colors). */
 const GRAYS = "linear-gradient(90deg, #000, #fff)";

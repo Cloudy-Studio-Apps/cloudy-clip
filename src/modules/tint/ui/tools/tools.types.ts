@@ -1,4 +1,4 @@
-import type { Wheel } from "@/modules/project";
+import type { CorrectionValues, Wheel } from "@/modules/project";
 import type { ComponentType } from "react";
 import type { CurvePoint, CurveShape, ToolId } from "../../tint.types";
 
@@ -89,4 +89,32 @@ export interface CurveEdit {
   commit(points: readonly CurvePoint[]): void;
   /** Drops the live value (the gesture was cancelled or changed nothing). */
   cancel(): void;
+}
+
+/** What the Warper's grid can do to the warper: live while a point moves, saved once on release. */
+export interface WarperEdit {
+  preview(warper: CorrectionValues["warper"]): void;
+  commit(warper: CorrectionValues["warper"]): void;
+  /** Drops the live value (the gesture was cancelled or changed nothing). */
+  cancel(): void;
+}
+
+/** How a Warper point is dragged: the grid's SVG, the warper as it was, and the point. */
+export interface WarpDragOptions {
+  /** The pointerdown that started it, on the point. */
+  event: PointerEvent;
+  svg: SVGSVGElement;
+  warper: CorrectionValues["warper"];
+  index: number;
+  /** Fires on every move with the warper as it would be. */
+  onMove(warper: CorrectionValues["warper"]): void;
+  /** Fires once: the warper on release, or null when Escape or the system cancelled it. */
+  onEnd(warper: CorrectionValues["warper"] | null): void;
+}
+
+/** The Warper grid's elements its painter moves: one polygon per ring, one line per hue, one dot per point. */
+export interface WarpShapes {
+  rings: SVGPolygonElement[];
+  spokes: SVGPolylineElement[];
+  dots: SVGCircleElement[];
 }

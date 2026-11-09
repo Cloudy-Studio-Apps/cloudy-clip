@@ -70,9 +70,9 @@ export interface TintView {
   samples: boolean;
   /** The viewer fills the window. */
   clean: boolean;
-  /** The viewer waits for one click to pick a hue (the Curves tool's Pick hue); Escape stops it. */
+  /** The viewer waits for one click to pick a hue (Pick hue of Curves, Pick of Color mix); Escape stops it. */
   picking: boolean;
-  /** The hue the viewer picked (0…1, red at 0), until the Curves tool takes it. */
+  /** The hue the viewer picked (0…1, red at 0), until the open tool takes it. */
   picked: number | null;
 }
 
@@ -191,22 +191,51 @@ export interface CorrectionParams {
   hue: [number, number];
   /** 1 protects skin hues from saturation, vibrance and hue, 0 doesn't. */
   skin: number;
-  /** Whether the custom curves and the hue and brightness curves change anything (1) or not (0). */
+  /**
+   * Whether the custom curves and the hue and brightness curves (Color mix folded in) change
+   * anything (1) or not (0).
+   */
   curveOn: [number, number];
-  /** The curves sampled (`sampleCurves`), or null when no curve changes anything. */
+  /** The curves sampled with Color mix (`sampleCurves`), or null when the curve step changes nothing. */
   curveTable: Float32Array | null;
+  /** The warper sampled (`sampleWarper`), or null when it moves nothing. */
+  warpTable: Float32Array | null;
 }
 
-/** A correction's curves baked for the shader: the texture and the table it holds. */
-export interface BakedCurves {
+/** A table baked for the shader: the texture and the table it holds. */
+export interface BakedTable {
   texture: GpuTexture;
   table: Float32Array;
 }
 
-/** Bakes curves for one picture filter, again only when they change (`render/textures.ts`). */
-export interface CurveTextures {
-  /** The curves of the correction `key` baked, or null when no curve changes anything. */
-  bake(curves: CorrectionValues["curves"], key: string): BakedCurves | null;
+/**
+ * Bakes a picture filter's lookup tables, each again only when what it is made of changes
+ * (`render/textures.ts`).
+ */
+export interface GradeTextures {
+  /** The curve step of the correction `key` (curves and Color mix), or null when it changes nothing. */
+  curves(values: CorrectionValues, key: string): BakedTable | null;
+  /** The warper of the correction `key`, or null when it moves nothing. */
+  warper(warper: CorrectionValues["warper"], key: string): BakedTable | null;
+}
+
+/** Color mix as hue curves (`mixToHueCurves`), folded into the correction's own when sampled. */
+export interface MixCurves {
+  hueHue: CurvePoint[];
+  hueSat: CurvePoint[];
+  hueLum: CurvePoint[];
+}
+
+/** How far the warper moves a color: `dh` in turns of hue, `ds` in strength (1 = chroma 0.5). */
+export interface WarpOffset {
+  dh: number;
+  ds: number;
+}
+
+/** A place on the warper's disc: hue in turns from red, strength 0 (gray) to 1 (chroma 0.5) and on. */
+export interface WarpPlace {
+  hue: number;
+  strength: number;
 }
 
 /** A point in the node graph, in graph units. */

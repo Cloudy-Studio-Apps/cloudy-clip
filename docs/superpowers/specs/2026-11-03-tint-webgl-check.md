@@ -156,6 +156,37 @@ The curve step of `tint/logic/color/curves.apply.ts` (through `correctPixel`) ag
   shader skips the step (`u_curveOn` 0), so Task 7's numbers stand.
 - **Linux desktop (WebKitGTK) and Windows:** not run for the curves; same method as Task 7 if wanted.
 
+### Color mix and the warper: parity (Task 15)
+
+Color mix (folded into the hue rows of the curve texture) and the warper (`tint/logic/color/warper.ts`,
+its `RGBA16F` 180 × 32 table) against the shader, 2026-11-09.
+
+- **Method:** the same as the curves (temporary dev page on the web build, `pnpm vite --port 1540`,
+  headless Chromium 1243 with SwiftShader WebGL2, CDP; removed before the commit), but the reference
+  is `evaluatePixel` over the whole grade, so chains of corrections are checked too. Each set, checked
+  with `validateGrade`: Color mix on 1 to 4 random families (hue, sat, lum anywhere in −100…100,
+  range 0…100) and a warper of 1 to 5 random points (dh ±90°, ds ±0.6, smoothing 0…100, up to 3
+  pinned), every fourth set Color mix only and every fourth the warper only; every other set adds
+  random curves (as in Task 14). "Chain" rows put a second correction after the first (random Color
+  mix and warper, or curves only every third set). "Wide" hue curves have y in 0…1.
+- **Results** (20 sets each, 15 360 channel values per row):
+
+| Seed | Chain | Hue curve y | Max | Off by 1 | Over 1 | Changed |
+| ---- | ----- | ----------- | --- | -------- | ------ | ------- |
+| 31   | no    | 0.1…0.9     | 1   | 54       | 0      | 12 904  |
+| 32   | no    | 0.1…0.9     | 1   | 48       | 0      | 12 872  |
+| 34   | no    | 0…1         | 1   | 35       | 0      | 12 191  |
+| 36   | no    | 0.1…0.9     | 1   | 31       | 0      | 11 741  |
+| 33   | yes   | 0.1…0.9     | 1   | 333      | 0      | 14 106  |
+| 35   | yes   | 0…1         | 1   | 370      | 0      | 13 894  |
+
+- **Notes:** the warp table is rounded to half-floats when sampled (signed, `half`), as the curve
+  table is, so both sides read the same offsets. Chains have more off-by-ones (about 2 %) because the
+  GPU keeps the picture between passes in half-floats and the reference in full floats; none is off
+  by 2. A correction whose Color mix and warper are at their defaults bakes nothing and the shader
+  skips both (`u_curveOn`, `u_warpOn` 0), so earlier numbers stand.
+- **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.
+
 ## Windows (WebView2)
 
 **Pending: owner check.** Also pending: the clean hidden run on Linux (window on another workspace for the

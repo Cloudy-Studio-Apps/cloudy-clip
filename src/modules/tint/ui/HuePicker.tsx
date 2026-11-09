@@ -7,7 +7,7 @@ import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
 
 /**
- * Over the viewer while the Curves tool picks a hue (`view.picking`): a click on the picture reads
+ * Over the viewer while a tool picks a hue (`view.picking`: Curves' Pick hue, Color mix's Pick): a click on the picture reads
  * the color the edited correction gets there (`TintApi.pickColor`: the clip's own ungraded picture
  * through the corrections above it), hands its hue to the tool (`view.picked`) and stops picking.
  * A click off the frame or off the clip's picture keeps picking; Escape stops without a pick.

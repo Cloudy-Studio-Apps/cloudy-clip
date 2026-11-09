@@ -1,58 +1,117 @@
-/** The hue circle under the grid (data colors), neutral in the middle. */
-const DISC =
-  "radial-gradient(circle, #d9dde0 0, rgb(217 221 224 / 0) 72%), conic-gradient(from 90deg, hsl(0 70% 55%), hsl(60 70% 55%), hsl(120 60% 50%), hsl(180 60% 50%), hsl(240 65% 60%), hsl(300 65% 58%), hsl(360 70% 55%))";
+import { useLayoutEffect, useRef } from "react";
+import { WARPER_POINTS, type CorrectionValues } from "@/modules/project";
+import { WARP_HUES, WARP_RINGS } from "../../logic/color/warper";
+import { togglePin } from "../../logic/color/warper.edit";
+import { HUE_STOPS } from "./hue.stops";
+import type { WarperEdit, WarpShapes } from "./tools.types";
+import { startWarpDrag } from "./warper.gesture";
+import { WARP_VIEW, paintWarp } from "./warper.paint";
 
-const HUES = 12;
-const RINGS = 3;
-const STEP = 36;
+/** The hue circle under the grid (data colors), neutral in the middle, hues where the warper reads them. */
+const DISC = `radial-gradient(circle, #d9dde0 0, rgb(217 221 224 / 0) 72%), conic-gradient(from 90deg, ${HUE_STOPS})`;
 
-/** Grid points by ring and spoke; one skin-tone point is moved, to show a warp. */
-function points(): { x: number; y: number; moved: boolean }[][] {
-  return Array.from({ length: RINGS }, (_, r) =>
-    Array.from({ length: HUES }, (_, a) => {
-      const angle = (a / HUES) * Math.PI * 2;
-      const moved = r === 1 && a === 4;
-      return {
-        x: Math.cos(angle) * (r + 1) * STEP + (moved ? 9 : 0),
-        y: Math.sin(angle) * (r + 1) * STEP - (moved ? 6 : 0),
-        moved,
-      };
-    }),
-  );
+const HALF = WARP_VIEW.size / 2;
+
+type Warper = CorrectionValues["warper"];
+
+const same = (a: Warper, b: Warper) => JSON.stringify(a) === JSON.stringify(b);
+
+interface WarperGridProps {
+  warper: Warper;
+  /** While on, a click on a point pins or unpins it instead of dragging it. */
+  pinning: boolean;
+  /** Makes the grid editable. Without it the grid only shows the warper. */
+  edit?: WarperEdit;
 }
 
-const GRID = points();
+/**
+ * The warper's grid over the color circle: 12 hues by 3 rings around a fixed center. Drag a point
+ * (from where it was grabbed; it starts moving after 3 px) and its neighbours follow by smoothing;
+ * pinned points are hollow and don't move. While a point moves, the grid and the live values follow
+ * in the DOM; the warper is saved once, on release (Escape cancels).
+ */
+export function WarperGrid({ warper, pinning, edit }: WarperGridProps) {
+  const svg = useRef<SVGSVGElement>(null);
+  const shapes = useRef<WarpShapes>({ rings: [], spokes: [], dots: [] });
+  useLayoutEffect(() => paintWarp(shapes.current, warper), [warper]);
 
-/** The warper's grid over the color circle. */
-export function WarperGrid() {
+  const down = (event: React.PointerEvent, index: number) => {
+    if (!edit || event.button !== 0 || !svg.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (pinning) {
+      edit.commit(togglePin(warper, index));
+      return;
+    }
+    if (warper.pinned.includes(index)) return;
+    startWarpDrag({
+      event: event.nativeEvent,
+      svg: svg.current,
+      warper,
+      index,
+      onMove(next) {
+        paintWarp(shapes.current, next);
+        edit.preview(next);
+      },
+      onEnd(next) {
+        if (next && !same(next, warper)) {
+          edit.commit(next);
+          return;
+        }
+        paintWarp(shapes.current, warper);
+        edit.cancel();
+      },
+    });
+  };
+
+  const cursor = (index: number) =>
+    !edit
+      ? "cursor-default"
+      : pinning
+        ? "cursor-pointer"
+        : warper.pinned.includes(index)
+          ? "cursor-not-allowed"
+          : "cursor-grab";
+
   return (
     <div
       className="size-[232px] rounded-full shadow-[0_0_0_1px_var(--border-strong)]"
       style={{ background: DISC }}
     >
-      <svg viewBox="-120 -120 240 240" className="size-full overflow-visible">
+      <svg
+        ref={svg}
+        viewBox={`${-HALF} ${-HALF} ${WARP_VIEW.size} ${WARP_VIEW.size}`}
+        className="size-full touch-none overflow-visible"
+      >
         <g stroke="rgb(20 23 27 / 0.7)" fill="none">
-          {GRID.map((ring, r) => (
-            <polygon key={r} points={ring.map((p) => `${p.x},${p.y}`).join(" ")} />
+          {Array.from({ length: WARP_RINGS }, (_, r) => (
+            <polygon
+              key={r}
+              ref={(el) => {
+                if (el) shapes.current.rings[r] = el;
+              }}
+            />
           ))}
-          {GRID[0]!.map((_, a) => (
+          {Array.from({ length: WARP_HUES }, (_, k) => (
             <polyline
-              key={a}
-              points={["0,0", ...GRID.map((ring) => `${ring[a]!.x},${ring[a]!.y}`)].join(" ")}
+              key={k}
+              ref={(el) => {
+                if (el) shapes.current.spokes[k] = el;
+              }}
             />
           ))}
         </g>
         <circle r={4.5} fill="var(--foreground)" stroke="var(--background)" strokeWidth={1.5} />
-        {GRID.flat().map((p, i) => (
+        {Array.from({ length: WARPER_POINTS }, (_, i) => (
           <circle
             key={i}
-            cx={p.x}
-            cy={p.y}
             r={3.8}
-            fill={p.moved ? "var(--mark)" : "var(--foreground)"}
-            stroke="var(--background)"
             strokeWidth={1.5}
-            className="cursor-grab"
+            className={cursor(i)}
+            onPointerDown={(event) => down(event, i)}
+            ref={(el) => {
+              if (el) shapes.current.dots[i] = el;
+            }}
           />
         ))}
       </svg>

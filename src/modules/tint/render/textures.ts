@@ -1,11 +1,13 @@
 import type { GpuTexture } from "@/modules/preview";
-import { CURVE_ROWS, CURVE_SAMPLES, curvesActive, sampleCurves } from "../logic/color/curves.apply";
-import type { BakedCurves, CurveTextures } from "../tint.types";
+import { CURVE_ROWS, CURVE_SAMPLES } from "../logic/color/curves.apply";
+import { curveStepActive, sampleCurveStep } from "../logic/color/mix";
+import { WARP_TABLE, sampleWarper, warperActive } from "../logic/color/warper";
+import type { BakedTable, GradeTextures } from "../tint.types";
 
-/** How many corrections' curves one filter keeps baked; the oldest goes first. */
+/** How many corrections' tables of each kind one filter keeps baked; the oldest goes first. */
 const KEPT = 64;
 
-/** A 53-bit hash of a text (cyrb53): the version of curves baked from it. */
+/** A 53-bit hash of a text (cyrb53): the version of a table baked from it. */
 function hash(text: string): number {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;
@@ -37,26 +39,62 @@ export function bakeCurves(table: Float32Array, key: string, version: number): G
 }
 
 /**
- * Curve textures for one picture filter (one per kernel, like the filter): each correction's
- * curves are sampled and baked again only when its points change. The `version` is a hash of the
- * points, so it changes with them whichever filter baked them (renderers share runners' keys by
- * node). Curves that change nothing bake to null.
+ * A warp table (`sampleWarper`) as the texture the shader samples: 180 hues by 32 strengths
+ * (`WARP_TABLE`), the hue offset in red and the strength offset in green, half-float on the GPU.
  */
-export function createCurveTextures(): CurveTextures {
-  const held = new Map<string, { points: string; baked: BakedCurves }>();
+export function bakeWarper(table: Float32Array, key: string, version: number): GpuTexture {
+  const { width, height } = WARP_TABLE;
+  const data = new Float32Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    data[i * 4] = table[i * 2]!;
+    data[i * 4 + 1] = table[i * 2 + 1]!;
+    data[i * 4 + 3] = 1;
+  }
+  return { key, version, kind: "2d", width, height, data };
+}
+
+/** Keeps the `KEPT` most recent tables baked, by key; `make` runs only when `source` changed. */
+function createCache(): (
+  source: string,
+  key: string,
+  make: (version: number) => BakedTable,
+) => BakedTable {
+  const held = new Map<string, { source: string; baked: BakedTable }>();
+  return (source, key, make) => {
+    const kept = held.get(key);
+    if (kept?.source === source) return kept.baked;
+    const baked = make(hash(source));
+    held.delete(key);
+    held.set(key, { source, baked });
+    if (held.size > KEPT) held.delete(held.keys().next().value!);
+    return baked;
+  };
+}
+
+/**
+ * The lookup tables of one picture filter (one per kernel, like the filter): each correction's curve
+ * step (curves and Color mix) and warper are sampled and baked again only when they change. The
+ * `version` is a hash of what they are made of, so it changes with them whichever filter baked them
+ * (renderers share runners' keys by node). What changes nothing bakes to null.
+ */
+export function createGradeTextures(): GradeTextures {
+  const curves = createCache();
+  const warpers = createCache();
   return {
-    bake(curves, key) {
-      const active = curvesActive(curves);
+    curves(values, key) {
+      const active = curveStepActive(values);
       if (!active.rgb && !active.hue) return null;
-      const points = JSON.stringify(curves);
-      const kept = held.get(key);
-      if (kept?.points === points) return kept.baked;
-      const table = sampleCurves(curves);
-      const baked = { table, texture: bakeCurves(table, key, hash(points)) };
-      held.delete(key);
-      held.set(key, { points, baked });
-      if (held.size > KEPT) held.delete(held.keys().next().value!);
-      return baked;
+      return curves(JSON.stringify([values.curves, values.mix]), key, (version) => {
+        const table = sampleCurveStep(values);
+        return { table, texture: bakeCurves(table, key, version) };
+      });
+    },
+    warper(warper, key) {
+      if (!warperActive(warper)) return null;
+      return warpers(JSON.stringify(warper), key, (version) => {
+        const table = sampleWarper(warper);
+        return { table, texture: bakeWarper(table, key, version) };
+      });
     },
   };
 }

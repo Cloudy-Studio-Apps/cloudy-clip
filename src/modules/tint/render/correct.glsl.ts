@@ -17,6 +17,7 @@ import {
   SKIN_NEAR,
 } from "../logic/color/basics";
 import { CURVE_ROWS, CURVE_SAMPLES, ROW } from "../logic/color/curves.apply";
+import { WARP_TABLE } from "../logic/color/warper";
 import type { CorrectionParams } from "../tint.types";
 
 // One correction as GLSL: the same math as `logic/color/correct.ts`, line for line, with every
@@ -44,6 +45,8 @@ uniform vec2 u_hue;
 uniform float u_skin;
 uniform vec2 u_curveOn;
 uniform sampler2D u_curves;
+uniform float u_warpOn;
+uniform sampler2D u_warp;
 uniform float u_opacity;
 
 const vec3 LUMA = ${vec3(LUMA)};
@@ -116,6 +119,30 @@ vec3 curves(vec3 c) {
   return vec3(r, (lum - LUMA.r * r - LUMA.b * b) / LUMA.g, b);
 }
 
+vec3 warp(vec3 c) {
+  float y = dot(c, LUMA);
+  float cb = (c.b - y) / ${f(CB)};
+  float cr = (c.r - y) / ${f(CR)};
+  float len = length(vec2(cb, cr));
+  if (len <= ${f(NO_HUE)}) return c;
+  float s = len / ${f(CHROMA_FULL)};
+  float turn = (atan(cr, cb) - ${f(HUE_ZERO)}) / (2.0 * PI);
+  float h = turn - floor(turn);
+  vec2 at = vec2(
+    (h * ${f(WARP_TABLE.width - 1)} + 0.5) / ${f(WARP_TABLE.width)},
+    (clamp(s, 0.0, 1.0) * ${f(WARP_TABLE.height - 1)} + 0.5) / ${f(WARP_TABLE.height)}
+  );
+  vec2 o = texture(u_warp, at).rg;
+  float k = max(s + o.y, 0.0) / s;
+  float a = o.x * 2.0 * PI;
+  float turnedCb = (cos(a) * cb - sin(a) * cr) * k;
+  cr = (sin(a) * cb + cos(a) * cr) * k;
+  cb = turnedCb;
+  float r = y + ${f(CR)} * cr;
+  float b = y + ${f(CB)} * cb;
+  return vec3(r, (y - LUMA.r * r - LUMA.b * b) / LUMA.g, b);
+}
+
 vec3 chroma(vec3 rgb) {
   float y = dot(rgb, LUMA);
   float cb = (rgb.b - y) / ${f(CB)};
@@ -153,6 +180,7 @@ vec3 correct(vec3 c) {
   float shift = dot(u_bands, w);
   for (int i = 0; i < 3; i++) c[i] = rolloff(c[i] + shift);
   if (u_curveOn.x > 0.0 || u_curveOn.y > 0.0) c = curves(c);
+  if (u_warpOn > 0.0) c = warp(c);
   return chroma(c);
 }
 
@@ -166,15 +194,16 @@ export const CORRECT_KEY = "tint.correct";
 
 /**
  * A correction's pass over `input` (-1 the picture so far, n pass n), mixed over it by `opacity`.
- * `curves` is its baked curve texture, left out when no curve changes anything (the shader then
- * skips the curve step).
+ * `tables.curves` is its baked curve step (curves and Color mix) and `tables.warper` its warper,
+ * each left out when it changes nothing (the shader then skips that step).
  */
 export function correctPass(
   params: CorrectionParams,
   opacity: number,
   input: number,
-  curves?: GpuTexture,
+  tables: { curves?: GpuTexture; warper?: GpuTexture } = {},
 ): GpuPass {
+  const { curves, warper } = tables;
   const uniforms: Record<string, GpuUniform> = {
     u_linear: params.linear,
     u_lift: params.lift,
@@ -190,8 +219,12 @@ export function correctPass(
     u_hue: params.hue,
     u_skin: params.skin,
     u_curveOn: curves ? params.curveOn : [0, 0],
+    u_warpOn: warper ? 1 : 0,
     u_opacity: opacity,
   };
+  const textures: Record<string, GpuTexture> = {};
+  if (curves) textures.u_curves = curves;
+  if (warper) textures.u_warp = warper;
   const pass: GpuPass = { key: CORRECT_KEY, fragment: FRAGMENT, inputs: [input], uniforms };
-  return curves ? { ...pass, textures: { u_curves: curves } } : pass;
+  return curves || warper ? { ...pass, textures } : pass;
 }

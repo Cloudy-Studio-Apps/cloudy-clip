@@ -1,5 +1,5 @@
 import { DEFAULT_CORRECTION, type CorrectionValues } from "@/modules/project";
-import type { Rgb } from "../../tint.types";
+import type { MixCurves, Rgb } from "../../tint.types";
 import { CB, CHROMA_FULL, CR, HUE_ZERO, LUMA, NO_HUE, luma } from "./basics";
 import { monotoneCurve, periodicCurve } from "./curves";
 
@@ -46,10 +46,11 @@ export function curvesActive(curves: Curves): { rgb: boolean; hue: boolean } {
 }
 
 /**
- * `v` (0…1) rounded to a half-float, as the GPU's `RGBA16F` texture holds it: the table is exactly
- * what the shader reads, so a steep hue curve doesn't turn a storage step into a visible one.
+ * `v` rounded to a half-float, as the GPU's `RGBA16F` texture holds it: a table is exactly what the
+ * shader reads, so a steep curve doesn't turn a storage step into a visible one.
  */
-function half(v: number): number {
+export function half(v: number): number {
+  if (v < 0) return -half(-v);
   if (v < 2 ** -14) return Math.round(v * 2 ** 24) / 2 ** 24;
   let e = Math.floor(Math.log2(v));
   if (2 ** e > v) e--;
@@ -59,9 +60,23 @@ function half(v: number): number {
 
 /**
  * The curves sampled: 8 rows (`CURVE_ROWS`) of 1024 values, sample `i` at `x = i / 1023`, each
- * clamped to 0…1 and rounded to a half-float.
+ * clamped to 0…1 and rounded to a half-float. `mix` (Color mix as hue curves, `logic/color/mix.ts`)
+ * is folded into the three hue rows: Hue vs Hue and Hue vs Brightness add its offset from 0.5, Hue vs
+ * Saturation multiplies the two scales (`2u · 2m`, so `v = 2um`).
  */
-export function sampleCurves(curves: Curves): Float32Array {
+export function sampleCurves(curves: Curves, mix?: MixCurves | null): Float32Array {
+  const mixed = mix && {
+    hueHue: periodicCurve(mix.hueHue),
+    hueSat: periodicCurve(mix.hueSat),
+    hueLum: periodicCurve(mix.hueLum),
+  };
+  const fold = (row: number, x: number, v: number): number => {
+    if (!mixed) return v;
+    if (row === ROW.hueHue) return v + mixed.hueHue(x) - 0.5;
+    if (row === ROW.hueSat) return 2 * v * mixed.hueSat(x);
+    if (row === ROW.hueLum) return v + mixed.hueLum(x) - 0.5;
+    return v;
+  };
   const fns = [
     monotoneCurve(curves.rgb.y),
     monotoneCurve(curves.rgb.r),
@@ -75,7 +90,8 @@ export function sampleCurves(curves: Curves): Float32Array {
   const table = new Float32Array(CURVE_ROWS.length * CURVE_SAMPLES);
   fns.forEach((fn, row) => {
     for (let i = 0; i < CURVE_SAMPLES; i++) {
-      const v = fn(i / (CURVE_SAMPLES - 1));
+      const x = i / (CURVE_SAMPLES - 1);
+      const v = fold(row, x, fn(x));
       table[row * CURVE_SAMPLES + i] = half(Math.min(1, Math.max(0, v)));
     }
   });

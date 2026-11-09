@@ -1,6 +1,6 @@
-import { DEFAULT_CORRECTION, GRADE_RANGES, type CorrectionValues } from "@/modules/project";
-import { SliderField } from "@/ui";
+import { DEFAULT_CORRECTION, type CorrectionValues } from "@/modules/project";
 import type { LiveEdit } from "../ui.types";
+import { GradeSlider } from "./GradeSlider";
 import type { BasicField } from "./tools.types";
 
 interface ValueSlidersProps {
@@ -13,26 +13,18 @@ interface ValueSlidersProps {
 export function ValueSliders({ fields, values, edit }: ValueSlidersProps) {
   return (
     <div className="flex flex-col gap-1">
-      {fields.map(({ key, label, step }) => {
-        const { min, max } = GRADE_RANGES[key]!;
-        return (
-          <SliderField
-            key={key}
-            label={label}
-            value={values[key]}
-            min={min}
-            max={max}
-            step={step}
-            disabled={!edit.enabled}
-            resetTo={DEFAULT_CORRECTION[key]}
-            onInput={(value) => edit.preview({ values: { [key]: value } })}
-            onCommit={(value) => {
-              if (value === values[key]) edit.cancel();
-              else void edit.commit({ values: { [key]: value } });
-            }}
-          />
-        );
-      })}
+      {fields.map(({ key, label, step }) => (
+        <GradeSlider
+          key={key}
+          path={key}
+          label={label}
+          step={step}
+          value={values[key]}
+          resetTo={DEFAULT_CORRECTION[key]}
+          edit={edit}
+          patch={(value) => ({ values: { [key]: value } })}
+        />
+      ))}
     </div>
   );
 }

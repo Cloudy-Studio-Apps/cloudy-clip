@@ -70,4 +70,6 @@ export const PAGE_RESET: Partial<Record<ToolId, { tools: ToolId[]; fields?: stri
     fields: ["temperature", "tint", "contrast", "pivot", "saturation", "hue"],
   },
   curves: { tools: ["curves"] },
+  cmix: { tools: ["cmix"] },
+  warper: { tools: ["warper"] },
 };
