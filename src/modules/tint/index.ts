@@ -5,6 +5,7 @@
  */
 export type {
   CurveKind,
+  GradeTarget,
   GradeLevel,
   GradeTab,
   LiveGrade,

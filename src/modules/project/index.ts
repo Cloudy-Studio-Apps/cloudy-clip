@@ -169,7 +169,13 @@ export {
 } from "./logic/grade";
 /** The graph rules of a grade (refs, cycles, ranges), what each node reads, and the schema every command setting one is built from. */
 export { gradeInputs, gradeKeys, validateGrade } from "./logic/grade.validate";
-export { gradeNodeSchema, gradeSchema, nodeRefSchema } from "./logic/grade.schema";
+export {
+  correctionValuesSchema,
+  gradeLimitSchema,
+  gradeNodeSchema,
+  gradeSchema,
+  nodeRefSchema,
+} from "./logic/grade.schema";
 
 /** A clip's sound: defaults, reading it, and the levels preview and export share. */
 export {

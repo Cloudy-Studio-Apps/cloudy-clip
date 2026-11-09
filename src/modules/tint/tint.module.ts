@@ -1,7 +1,9 @@
 import { Palette } from "lucide-react";
 import { appPages, defineModule, topBarItems } from "@/core";
 import { pictureFilters, previewRef } from "@/modules/preview";
+import { tintCommands } from "./tint.commands";
 import { createTintFilter } from "./tint.filter";
+import { tintMcpTools } from "./tint.mcp";
 import { TINT_PAGE, tintRef } from "./tint.ref";
 import { createTintLive, createTintView } from "./tint.store";
 import { SealSwitch, TintPage } from "./ui";
@@ -12,6 +14,8 @@ export const tintModule = defineModule({
   name: "Tint",
   tier: "feature",
   requires: ["project", "preview"],
+  commands: tintCommands,
+  mcpTools: tintMcpTools,
   setup(ctx) {
     const { contribute } = ctx;
     const preview = ctx.require(previewRef);

@@ -23,7 +23,7 @@ export const gradeLimitSchema = z.object({
 });
 
 /** A correction's values: an object; each field's bounds are checked by `validateGrade` (`GRADE_RANGES`). */
-const valuesSchema = z.custom<Partial<CorrectionValues>>(
+export const correctionValuesSchema = z.custom<Partial<CorrectionValues>>(
   (value) => typeof value === "object" && value !== null && !Array.isArray(value),
   "values must be an object",
 );
@@ -37,7 +37,7 @@ export const gradeNodeSchema = z.discriminatedUnion("kind", [
     input: nodeRefSchema,
     ...base,
     name: z.string().optional(),
-    values: valuesSchema.optional(),
+    values: correctionValuesSchema.optional(),
     limit: gradeLimitSchema.optional(),
     lut: z.object({ id: z.string().min(1), strength: z.number().min(0).max(1) }).optional(),
   }),

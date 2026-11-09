@@ -1,5 +1,13 @@
 import type { StoreApi } from "zustand";
-import type { ClipId, CorrectionValues, GradeNode, GradeNodeId, NodeRef } from "@/modules/project";
+import type {
+  ClipId,
+  CompositionId,
+  CorrectionValues,
+  GradeGroupId,
+  GradeNode,
+  GradeNodeId,
+  NodeRef,
+} from "@/modules/project";
 
 /** How the grade is shown: as layers (Baby Seal) or as nodes (Leader Seal). */
 export type TintMode = "baby" | "leader";
@@ -236,3 +244,7 @@ export interface StackPair {
     | { type: "group"; kind: "parallel" | "layer" | "channels"; branches: StackBranch[] }
     | null;
 }
+
+/** Which grade a command edits: a clip's, a shot group's, or a composition's whole-frame one. */
+export type GradeTarget =
+  { clipId: ClipId } | { groupId: GradeGroupId } | { compositionId: CompositionId };
