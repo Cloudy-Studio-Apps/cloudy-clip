@@ -23,10 +23,20 @@ export const EFFECT_NAMES: Record<SoundEffectKind, { name: string; short: string
   duck: { name: "Ducking", short: "Ducking" },
 };
 
-/** The kinds `+ Effect` offers on a chain: those not in it yet, and no ducking on the master. */
-export function addableKinds(chain: readonly SoundEffect[], target: MixTarget): SoundEffectKind[] {
+/**
+ * The kinds `+ Effect` offers on a chain: those not in it yet, no ducking on the master and no
+ * noise reduction on a group (`group`: it renders files, and a group has none of its own).
+ */
+export function addableKinds(
+  chain: readonly SoundEffect[],
+  target: MixTarget,
+  group = false,
+): SoundEffectKind[] {
   return SOUND_EFFECT_KINDS.filter(
-    (kind) => !chain.some((e) => e.kind === kind) && !(target === "master" && kind === "duck"),
+    (kind) =>
+      !chain.some((e) => e.kind === kind) &&
+      !(target === "master" && kind === "duck") &&
+      !(group && kind === "denoise"),
   );
 }
 
@@ -71,7 +81,8 @@ export function placesUnheardEffects(state: ProjectState, trackId: TrackId): boo
     const composition = state.compositions[id];
     if (seen.has(id) || !composition) continue;
     seen.add(id);
-    if (compositionMixOf(composition).master.effects?.length) return true;
+    const mix = compositionMixOf(composition);
+    if (mix.master.effects?.length || mix.buses?.some((bus) => bus.effects?.length)) return true;
     for (const inner of composition.trackOrder) {
       const track = state.tracks[inner];
       if (!track) continue;

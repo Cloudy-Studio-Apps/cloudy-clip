@@ -66,7 +66,8 @@ export interface SoundSegment {
 /**
  * An effect that works, as the export applies it (mirrors `MixEffect` in Rust): the document's
  * `SoundEffect` without its id and switch, the EQ as the bands that change the sound, and a
- * duck's tracks as indexes into `SoundMix.tracks`. Noise reduction isn't one: it plays a file.
+ * duck's tracks as indexes into `SoundMix.tracks` and its groups as indexes into
+ * `SoundMix.buses` (`listensToBuses`, missing when none). Noise reduction isn't one: it plays a file.
  */
 export type MixEffect =
   | { kind: "eq"; bands: EqFilter[] }
@@ -74,7 +75,10 @@ export type MixEffect =
   | Pick<GateEffect, "kind" | "thresholdDb" | "ratio" | "attackMs" | "releaseMs">
   | Pick<DeesserEffect, "kind" | "frequencyHz" | "amount">
   | Pick<LimiterEffect, "kind" | "ceilingDb" | "releaseMs">
-  | (Pick<DuckEffect, "kind" | "depthDb" | "attackMs" | "releaseMs"> & { listensTo: number[] });
+  | (Pick<DuckEffect, "kind" | "depthDb" | "attackMs" | "releaseMs"> & {
+      listensTo: number[];
+      listensToBuses?: number[];
+    });
 
 /** How a track mixes its clips: effects, a pan and a level on their sum (mirrors `TrackMixSpec` in Rust). */
 export interface TrackMixSpec {
@@ -89,12 +93,29 @@ export interface TrackMixSpec {
    * on top, linear, `at` counted from the export's start. Replaces `gain`.
    */
   gainEnvelope?: EnvelopePoint[];
+  /** The group it sends to, an index into `SoundMix.buses`; missing means the master. */
+  bus?: number;
 }
 
-/** How the tracks mix, then the master (mirrors `SoundMix` in Rust). Solo is never in it. */
+/**
+ * A group track: the tracks sent to it summed, its effects, then its level, into the master
+ * (mirrors `BusMixSpec` in Rust). A muted one adds nothing and keys no duck.
+ */
+export interface BusMixSpec {
+  /** Linear level. */
+  gain: number;
+  /** Missing is false. */
+  muted?: boolean;
+  /** Before the level, in order. Missing when none works. */
+  effects?: MixEffect[];
+}
+
+/** How the tracks mix, then the groups, then the master (mirrors `SoundMix` in Rust). Solo is never in it. */
 export interface SoundMix {
   /** The composition's audio tracks in order; a segment's `track` indexes this. */
   tracks: TrackMixSpec[];
+  /** The composition's groups in order; a track's `bus` indexes this. */
+  buses: BusMixSpec[];
   /** Its level, then its effects. */
   master: { gain: number; effects?: MixEffect[] };
 }

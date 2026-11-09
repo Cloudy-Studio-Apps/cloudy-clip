@@ -1,15 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useKernel } from "@/core";
-import {
-  EFFECT_RANGES,
-  useOpenComposition,
-  type DenoiseEffect,
-  type Track,
-} from "@/modules/project";
+import { EFFECT_RANGES, useOpenComposition, type DenoiseEffect } from "@/modules/project";
 import { Button, ProgressBar } from "@/ui";
 import { defaultSpec } from "../../logic/effects";
 import { measureFloor } from "../../sound.denoise.commands";
-import type { EffectEdit } from "../../sound.types";
+import type { DuckOwner, EffectEdit } from "../../sound.types";
 import { useDenoiseRendering } from "./denoise.hook";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
@@ -18,8 +13,8 @@ const REST = defaultSpec("denoise");
 
 interface DenoiseSectionProps {
   effect: DenoiseEffect;
-  /** The track the chain is on; undefined for the master. */
-  owner: Track | undefined;
+  /** The track the chain is on (never a group: it has no files); undefined for the master. */
+  owner: DuckOwner | undefined;
   edit: EffectEdit;
 }
 

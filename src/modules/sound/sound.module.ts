@@ -159,6 +159,7 @@ export const soundModule = defineModule({
         presets,
         select: (selected) => view.setState({ selected }),
         setExpanded: (expanded) => view.setState({ expanded }),
+        setFilter: (filter) => view.setState({ filter }),
         recorder,
         arm: recorder.arm,
         automation,

@@ -1,5 +1,5 @@
-import type { SoundEffect, Track } from "@/modules/project";
-import type { EffectEdit } from "../../sound.types";
+import type { SoundEffect } from "@/modules/project";
+import type { DuckOwner, EffectEdit } from "../../sound.types";
 import { CompressorSection } from "./CompressorSection";
 import { DeesserSection } from "./DeesserSection";
 import { DenoiseSection } from "./DenoiseSection";
@@ -10,8 +10,8 @@ import { LimiterSection } from "./LimiterSection";
 
 interface EffectBodyProps {
   effect: SoundEffect;
-  /** The track the chain is on; undefined for the master. */
-  owner: Track | undefined;
+  /** The track or group the chain is on; undefined for the master. */
+  owner: DuckOwner | undefined;
   edit: EffectEdit;
 }
 

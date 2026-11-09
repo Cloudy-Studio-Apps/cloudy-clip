@@ -157,6 +157,9 @@ pub struct TrackMixSpec {
     /// from the export's start. Replaces `gain` when it has points.
     #[serde(default, rename = "gainEnvelope")]
     pub gain_envelope: Vec<EnvelopePoint>,
+    /// The group it sends to, an index into `SoundMix::buses`; none (or one not there) is the master.
+    #[serde(default)]
+    pub bus: Option<usize>,
 }
 
 impl TrackMixSpec {
@@ -166,7 +169,30 @@ impl TrackMixSpec {
         pan: 0.0,
         effects: Vec::new(),
         gain_envelope: Vec::new(),
+        bus: None,
     };
+
+    /// Whether its bus leaves the sum of its clips as it is (where it sends aside).
+    pub fn is_plain(&self) -> bool {
+        self.gain == 1.0
+            && self.pan == 0.0
+            && self.effects.is_empty()
+            && self.gain_envelope.is_empty()
+    }
+}
+
+/// A group track: the tracks sent to it summed, then its effects and level, into the master.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct BusMixSpec {
+    /// Linear level.
+    #[serde(default = "one")]
+    pub gain: f64,
+    /// A muted group adds nothing to the master and keys no duck.
+    #[serde(default)]
+    pub muted: bool,
+    /// The effects before the level, in order.
+    #[serde(default)]
+    pub effects: Vec<MixEffect>,
 }
 
 /// The level of everything together, then its effects.
@@ -180,10 +206,14 @@ pub struct MasterMixSpec {
     pub effects: Vec<MixEffect>,
 }
 
-/// How the tracks mix: each track's effects, pan and level, then the master's level and effects.
+/// How the tracks mix: each track's effects, pan and level, then the groups' effects and level,
+/// then the master's level and effects.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct SoundMix {
     pub tracks: Vec<TrackMixSpec>,
+    /// The groups, between the tracks sent to them and the master.
+    #[serde(default)]
+    pub buses: Vec<BusMixSpec>,
     pub master: MasterMixSpec,
 }
 
@@ -192,6 +222,7 @@ impl SoundMix {
     pub fn default_for(tracks: usize) -> Self {
         SoundMix {
             tracks: vec![TrackMixSpec::DEFAULT; tracks],
+            buses: Vec::new(),
             master: MasterMixSpec {
                 gain: 1.0,
                 effects: Vec::new(),
@@ -734,7 +765,12 @@ mod sound_tests {
             },
             ..worst_case(0)
         };
-        let recipe = arguments(&hour, Path::new("/o.partial.mp3"), None, ScriptOption::Slash);
+        let recipe = arguments(
+            &hour,
+            Path::new("/o.partial.mp3"),
+            None,
+            ScriptOption::Slash,
+        );
         let graph = recipe.script.expect("a long line is written to a file");
         assert!(graph.contains("aeval='val(ch)*("));
         assert!(recipe.args.iter().all(|a| a.len() < 1_000));

@@ -1,10 +1,12 @@
 //! The tree the sound is mixed in, as the preview's buses are: a track's clips are summed, the
-//! track's effects, pan and level (its volume line, when it has one) apply to that sum, the
-//! tracks are summed, and the master's level, then its effects, apply to the result. A duck's
-//! key is the sum of the tracks it listens to after their levels, split off them (`asplit`);
-//! those tracks are built first.
+//! track's effects, pan and level (its volume line, when it has one) apply to that sum; the tracks
+//! sent to a group are summed and the group's effects and level apply to that, built by the same
+//! `Bus` as a track; the tracks sent to the master and the groups are summed, and the master's
+//! level, then its effects, apply to the result. A muted group adds nothing. A duck's key is the
+//! sum of the tracks and groups it listens to after their levels, split off them (`asplit`);
+//! those are built first.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::mixeffects::{MixEffect, duck_filter, effect_filter};
 use super::recipe::{SoundMix, SoundSegment, TrackMixSpec, seconds};
@@ -18,9 +20,167 @@ const TAIL: u64 = 100_000;
 /// What a track missing from the mix does: nothing.
 static UNCHANGED: TrackMixSpec = TrackMixSpec::DEFAULT;
 
+/// A bus of the tree: a track, or a group. Tracks sort before groups.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Node {
+    Track(usize),
+    Group(usize),
+}
+
+impl Node {
+    /// Its output's label, without brackets: `t<n>` or `g<n>`.
+    fn label(self) -> String {
+        match self {
+            Node::Track(i) => format!("t{i}"),
+            Node::Group(i) => format!("g{i}"),
+        }
+    }
+}
+
+/// Where a bus's output goes.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Dest {
+    Master,
+    Group(usize),
+    /// A track of a muted group: heard by nothing but the ducks it keys.
+    Nowhere,
+}
+
+/// The mix as buses: their specs, where each sends, and which of them sound.
+struct Tree<'a> {
+    mix: &'a SoundMix,
+    /// The groups as track specs (no pan, no line), so one `Bus` builds both.
+    groups: Vec<TrackMixSpec>,
+    /// The tracks with clips in the range, and the unmuted groups with one of them sent to it.
+    sounding: BTreeSet<Node>,
+}
+
+impl<'a> Tree<'a> {
+    fn new(mix: &'a SoundMix, tracks: impl Iterator<Item = usize>) -> Self {
+        let groups = mix
+            .buses
+            .iter()
+            .map(|bus| TrackMixSpec {
+                gain: bus.gain,
+                effects: bus.effects.clone(),
+                ..TrackMixSpec::DEFAULT
+            })
+            .collect();
+        let mut tree = Tree {
+            mix,
+            groups,
+            sounding: tracks.map(Node::Track).collect(),
+        };
+        let groups: Vec<Node> = tree
+            .sounding
+            .iter()
+            .filter_map(|&node| match tree.dest(node) {
+                Dest::Group(g) => Some(Node::Group(g)),
+                _ => None,
+            })
+            .collect();
+        tree.sounding.extend(groups);
+        tree
+    }
+
+    fn spec(&self, node: Node) -> &TrackMixSpec {
+        match node {
+            Node::Track(i) => self.mix.tracks.get(i).unwrap_or(&UNCHANGED),
+            Node::Group(i) => self.groups.get(i).unwrap_or(&UNCHANGED),
+        }
+    }
+
+    /// A track goes to its group (nowhere when that's muted), or to the master when it has none
+    /// or one that isn't there; a group goes to the master.
+    fn dest(&self, node: Node) -> Dest {
+        let Node::Track(_) = node else {
+            return Dest::Master;
+        };
+        match self.spec(node).bus {
+            Some(g) if g < self.mix.buses.len() => {
+                if self.mix.buses[g].muted {
+                    Dest::Nowhere
+                } else {
+                    Dest::Group(g)
+                }
+            }
+            _ => Dest::Master,
+        }
+    }
+
+    /// The tracks sent to a group that sound.
+    fn members(&self, group: usize) -> Vec<Node> {
+        self.sounding
+            .iter()
+            .copied()
+            .filter(|&node| self.dest(node) == Dest::Group(group))
+            .collect()
+    }
+
+    /// What each bus's duck listens to: only buses that sound, never itself. A duck with none is
+    /// left out, as a silent key lowers nothing.
+    fn duck_keys(&self) -> BTreeMap<Node, Vec<Node>> {
+        let mut keys = BTreeMap::new();
+        for &node in &self.sounding {
+            for effect in &self.spec(node).effects {
+                let MixEffect::Duck(duck) = effect else {
+                    continue;
+                };
+                let listened = duck.listens_to.iter().map(|&i| Node::Track(i));
+                let groups = duck.listens_to_buses.iter().map(|&i| Node::Group(i));
+                let mut from: Vec<Node> = listened
+                    .chain(groups)
+                    .filter(|other| *other != node && self.sounding.contains(other))
+                    .collect();
+                from.sort_unstable();
+                from.dedup();
+                if !from.is_empty() {
+                    keys.insert(node, from);
+                }
+            }
+        }
+        keys
+    }
+
+    /// The buses in an order where each comes after those it listens to and, for a group, the
+    /// tracks sent to it. The document refuses a loop; should one come anyway, the first bus in
+    /// it with a key loses its key rather than the graph its sense.
+    fn order(&self, keys: &mut BTreeMap<Node, Vec<Node>>) -> Vec<Node> {
+        let mut order: Vec<Node> = Vec::with_capacity(self.sounding.len());
+        let mut left: Vec<Node> = self.sounding.iter().copied().collect();
+        let members: BTreeMap<Node, Vec<Node>> = left
+            .iter()
+            .filter_map(|&node| match node {
+                Node::Group(g) => Some((node, self.members(g))),
+                Node::Track(_) => None,
+            })
+            .collect();
+        while !left.is_empty() {
+            let done = |others: Option<&Vec<Node>>| {
+                others.is_none_or(|others| others.iter().all(|other| order.contains(other)))
+            };
+            let ready = left
+                .iter()
+                .position(|node| done(keys.get(node)) && done(members.get(node)));
+            if let Some(at) = ready {
+                order.push(left.remove(at));
+                continue;
+            }
+            match left.iter().copied().find(|node| keys.contains_key(node)) {
+                Some(node) => {
+                    keys.remove(&node);
+                }
+                // Never: a group waits only on tracks, and a track only on keys.
+                None => order.append(&mut left),
+            }
+        }
+        order
+    }
+}
+
 /// The mixed sound as a filter graph, whose output is `[mixed]`. `chains[i]` is the chain of
-/// `segments[i]`, whole and ending in `[s<i>];`. A track that leaves its clips as they are and
-/// keys no duck adds no filter at all, so a default mix is one `amix` of every clip.
+/// `segments[i]`, whole and ending in `[s<i>];`. A bus that leaves its sum as it is and keys no
+/// duck adds no filter at all, so a default mix is one `amix` of every clip.
 pub(super) fn sound_graph(
     chains: &[String],
     segments: &[SoundSegment],
@@ -28,42 +188,50 @@ pub(super) fn sound_graph(
     total: u64,
 ) -> String {
     let mut graph = chains.concat();
-    let mut by_track: BTreeMap<usize, Vec<String>> = BTreeMap::new();
+    let mut inputs: BTreeMap<Node, Vec<String>> = BTreeMap::new();
     for (i, segment) in segments.iter().enumerate() {
-        by_track
-            .entry(segment.track)
+        inputs
+            .entry(Node::Track(segment.track))
             .or_default()
             .push(format!("[s{i}]"));
     }
-    let spec_of = |track: usize| mix.tracks.get(track).unwrap_or(&UNCHANGED);
-    let mut keys = duck_keys(&by_track, spec_of);
-    let order = listened_first(&by_track, &mut keys);
+    let tree = Tree::new(mix, segments.iter().map(|segment| segment.track));
+    let mut keys = tree.duck_keys();
+    let order = tree.order(&mut keys);
     let length = samples((total + TAIL) as f64);
-    let mut outputs: BTreeMap<usize, Vec<String>> = BTreeMap::new();
-    for track in order {
-        let Some(labels) = by_track.get(&track) else {
-            continue;
-        };
-        let spec = spec_of(track);
-        let heard_by: Vec<usize> = keys
+    let mut outputs: BTreeMap<Node, Vec<String>> = BTreeMap::new();
+    for node in order {
+        let labels = inputs.remove(&node).unwrap_or_default();
+        let spec = tree.spec(node);
+        let dest = tree.dest(node);
+        let heard_by: Vec<Node> = keys
             .iter()
-            .filter(|(_, from)| from.contains(&track))
+            .filter(|(_, from)| from.contains(&node))
             .map(|(listener, _)| *listener)
             .collect();
-        if *spec == TrackMixSpec::DEFAULT && heard_by.is_empty() {
-            outputs.insert(track, labels.clone());
-            continue;
-        }
-        let bus = Bus {
-            track,
-            labels,
-            spec,
-            keys: keys.get(&track).map_or(&[], Vec::as_slice),
-            heard_by: &heard_by,
-            length,
+        let sent = if spec.is_plain() && heard_by.is_empty() {
+            if dest == Dest::Nowhere {
+                graph.push_str(&format!("{},anullsink;", sum(&labels)));
+            }
+            labels
+        } else {
+            let bus = Bus {
+                node,
+                labels: &labels,
+                spec,
+                keys: keys.get(&node).map_or(&[], Vec::as_slice),
+                heard_by: &heard_by,
+                heard: dest != Dest::Nowhere,
+                length,
+            };
+            graph.push_str(&bus.text());
+            vec![format!("[{}]", node.label())]
         };
-        graph.push_str(&bus.text());
-        outputs.insert(track, vec![format!("[t{track}]")]);
+        match dest {
+            Dest::Master => outputs.entry(node).or_default().extend(sent),
+            Dest::Group(g) => inputs.entry(Node::Group(g)).or_default().extend(sent),
+            Dest::Nowhere => {}
+        }
     }
     let outputs: Vec<String> = outputs.into_values().flatten().collect();
     let end = seconds(total);
@@ -75,6 +243,14 @@ pub(super) fn sound_graph(
     if !effects.is_empty() {
         master.push_str(&format!(",apad=whole_len={length}{effects}"));
     }
+    if outputs.is_empty() {
+        // Everything went to muted groups: the master hears silence.
+        graph.push_str(&format!(
+            "anullsrc=r={}:cl=stereo,atrim=0:{end}{master},apad=whole_dur={end},atrim=0:{end}[mixed]",
+            super::recipe::SAMPLE_RATE
+        ));
+        return graph;
+    }
     graph.push_str(&format!(
         "{}amix=inputs={}:normalize=0:dropout_transition=0{master},apad=whole_dur={end},atrim=0:{end}[mixed]",
         outputs.concat(),
@@ -83,74 +259,28 @@ pub(super) fn sound_graph(
     graph
 }
 
-/// The tracks each duck listens to, by the track it lowers: only tracks that sound, never its own.
-/// A duck with none is left out, as a silent key lowers nothing.
-fn duck_keys<'a>(
-    tracks: &BTreeMap<usize, Vec<String>>,
-    spec_of: impl Fn(usize) -> &'a TrackMixSpec,
-) -> BTreeMap<usize, Vec<usize>> {
-    let mut keys = BTreeMap::new();
-    for &track in tracks.keys() {
-        for effect in &spec_of(track).effects {
-            let MixEffect::Duck(duck) = effect else {
-                continue;
-            };
-            let mut from: Vec<usize> = duck
-                .listens_to
-                .iter()
-                .copied()
-                .filter(|&other| other != track && tracks.contains_key(&other))
-                .collect();
-            from.sort_unstable();
-            from.dedup();
-            if !from.is_empty() {
-                keys.insert(track, from);
-            }
-        }
-    }
-    keys
-}
-
-/// The tracks in an order where each comes after those its duck listens to. The document refuses
-/// a loop; should one come anyway, its first track loses its key rather than the graph its sense.
-fn listened_first(
-    tracks: &BTreeMap<usize, Vec<String>>,
-    keys: &mut BTreeMap<usize, Vec<usize>>,
-) -> Vec<usize> {
-    let mut order: Vec<usize> = Vec::with_capacity(tracks.len());
-    let mut left: Vec<usize> = tracks.keys().copied().collect();
-    while !left.is_empty() {
-        let ready = left.iter().position(|track| {
-            keys.get(track)
-                .is_none_or(|from| from.iter().all(|other| order.contains(other)))
-        });
-        let at = ready.unwrap_or_else(|| {
-            keys.remove(&left[0]);
-            0
-        });
-        order.push(left.remove(at));
-    }
-    order
-}
-
-/// One track's bus, as `[t<track>]`, plus a `[k<track>_<listener>]` for each duck it keys.
+/// One bus, a track's or a group's, as `[t<n>]` / `[g<n>]` (when something hears it), plus a
+/// `[k<bus>_<listener>]` for each duck it keys.
 struct Bus<'a> {
-    track: usize,
+    node: Node,
     labels: &'a [String],
     spec: &'a TrackMixSpec,
-    /// The tracks its own duck listens to.
-    keys: &'a [usize],
-    /// The tracks whose ducks listen to it.
-    heard_by: &'a [usize],
+    /// The buses its own duck listens to.
+    keys: &'a [Node],
+    /// The buses whose ducks listen to it.
+    heard_by: &'a [Node],
+    /// Whether its output goes on (to a group or the master); a track of a muted group only keys.
+    heard: bool,
     /// Samples a chain with effects is padded to.
     length: u64,
 }
 
 impl Bus<'_> {
-    /// The clips summed, then the effects in order, the pan and the level, as the preview's bus.
+    /// The inputs summed, then the effects in order, the pan and the level, as the preview's bus.
     /// A volume line is the level: `t` after the sum counts from the export's start.
     fn text(&self) -> String {
-        let Bus { track, spec, .. } = *self;
+        let Bus { spec, .. } = *self;
+        let name = self.node.label();
         let mut text = sum(self.labels);
         if !spec.effects.is_empty() {
             text.push_str(&format!(",apad=whole_len={}", self.length));
@@ -158,9 +288,9 @@ impl Bus<'_> {
         for effect in &spec.effects {
             match effect {
                 MixEffect::Duck(duck) if !self.keys.is_empty() => {
-                    text.push_str(&format!("[main{track}];"));
+                    text.push_str(&format!("[main{name}];"));
                     text.push_str(&self.key());
-                    text.push_str(&format!("[main{track}][key{track}]{}", duck_filter(duck)));
+                    text.push_str(&format!("[main{name}][key{name}]{}", duck_filter(duck)));
                 }
                 other => text.push_str(&effect_filter(other)),
             }
@@ -173,28 +303,35 @@ impl Bus<'_> {
         } else if spec.gain != 1.0 {
             text.push_str(&format!(",volume={:.6}", spec.gain));
         }
-        if self.heard_by.is_empty() {
-            text.push_str(&format!("[t{track}];"));
-            return text;
-        }
-        text.push_str(&format!(",asplit={}[t{track}]", self.heard_by.len() + 1));
-        for listener in self.heard_by {
-            text.push_str(&format!("[k{track}_{listener}]"));
+        let out: Vec<String> = self
+            .heard
+            .then(|| format!("[{name}]"))
+            .into_iter()
+            .chain(
+                self.heard_by
+                    .iter()
+                    .map(|listener| format!("[k{name}_{}]", listener.label())),
+            )
+            .collect();
+        match out.len() {
+            0 => text.push_str(",anullsink"),
+            1 => text.push_str(&out[0]),
+            n => text.push_str(&format!(",asplit={n}{}", out.concat())),
         }
         text.push(';');
         text
     }
 
-    /// The key of this track's duck: the tracks it listens to, summed, as long as the track.
+    /// The key of this bus's duck: the buses it listens to, summed, as long as the export.
     fn key(&self) -> String {
-        let track = self.track;
+        let name = self.node.label();
         let inputs: Vec<String> = self
             .keys
             .iter()
-            .map(|from| format!("[k{from}_{track}]"))
+            .map(|from| format!("[k{}_{name}]", from.label()))
             .collect();
         format!(
-            "{},apad=whole_len={}[key{track}];",
+            "{},apad=whole_len={}[key{name}];",
             sum(&inputs),
             self.length
         )
@@ -217,7 +354,7 @@ fn sum(labels: &[String]) -> String {
 mod tests {
     use super::*;
     use crate::export::mixeffects::{CompressorSpec, DuckSpec, LimiterSpec, MixEffect};
-    use crate::export::recipe::{EnvelopePoint, MasterMixSpec, segment as plain};
+    use crate::export::recipe::{BusMixSpec, EnvelopePoint, MasterMixSpec, segment as plain};
 
     fn segment(track: usize) -> SoundSegment {
         SoundSegment { track, ..plain() }
@@ -231,6 +368,7 @@ mod tests {
     fn mix_of(tracks: &[TrackMixSpec], master: f64) -> SoundMix {
         SoundMix {
             tracks: tracks.to_vec(),
+            buses: Vec::new(),
             master: MasterMixSpec {
                 gain: master,
                 effects: Vec::new(),
@@ -248,6 +386,7 @@ mod tests {
     fn duck(listens_to: Vec<usize>) -> MixEffect {
         MixEffect::Duck(DuckSpec {
             listens_to,
+            listens_to_buses: Vec::new(),
             depth_db: -12.0,
             attack_ms: 20.0,
             release_ms: 300.0,
@@ -317,7 +456,10 @@ mod tests {
             1_000_000,
         );
         let envelope = graph.find("aeval='val(ch)*(").unwrap();
-        assert!(graph.find("[s0][s1]amix=inputs=2").unwrap() < envelope, "{graph}");
+        assert!(
+            graph.find("[s0][s1]amix=inputs=2").unwrap() < envelope,
+            "{graph}"
+        );
         assert!(graph.contains("1+-0.75*(t-0)"), "{graph}");
         assert!(!graph.contains("volume=0.500000"), "{graph}");
         assert_wired(&graph);
@@ -507,6 +649,126 @@ mod tests {
             "{graph}"
         );
         assert!(graph.find("volume=2.000000").unwrap() < graph.find("alimiter").unwrap());
+        assert_wired(&graph);
+    }
+
+    fn sent_to(bus: usize) -> TrackMixSpec {
+        TrackMixSpec {
+            bus: Some(bus),
+            ..TrackMixSpec::DEFAULT
+        }
+    }
+
+    fn group(gain: f64, muted: bool) -> BusMixSpec {
+        BusMixSpec {
+            gain,
+            muted,
+            effects: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn tracks_of_a_group_mix_into_one_chain_with_its_volume_before_the_master() {
+        let mut mix = mix_of(&[sent_to(0), sent_to(0), TrackMixSpec::DEFAULT], 1.0);
+        mix.buses = vec![group(0.5, false)];
+        let graph = sound_graph(
+            &[chain(0), chain(1), chain(2)],
+            &[segment(0), segment(1), segment(2)],
+            &mix,
+            1_000_000,
+        );
+        assert!(
+            graph.contains(
+                "[s0][s1]amix=inputs=2:normalize=0:dropout_transition=0,volume=0.500000[g0];"
+            ),
+            "{graph}"
+        );
+        assert!(graph.contains("[s2][g0]amix=inputs=2"), "{graph}");
+        assert!(graph.find("[g0];").unwrap() < graph.find("[mixed]").unwrap());
+        assert_wired(&graph);
+    }
+
+    #[test]
+    fn a_group_applies_its_effects_after_its_tracks_own_levels() {
+        let quiet = TrackMixSpec {
+            gain: 0.25,
+            bus: Some(0),
+            ..TrackMixSpec::DEFAULT
+        };
+        let mut mix = mix_of(&[quiet], 1.0);
+        mix.buses = vec![BusMixSpec {
+            effects: vec![MixEffect::Limiter(LimiterSpec {
+                ceiling_db: -1.0,
+                release_ms: 50.0,
+            })],
+            ..group(2.0, false)
+        }];
+        let graph = sound_graph(&[chain(0)], &[segment(0)], &mix, 1_000_000);
+        let track = graph.find("volume=0.250000[t0]").unwrap();
+        let limiter = graph.find("alimiter").unwrap();
+        let level = graph.find("volume=2.000000[g0]").unwrap();
+        assert!(track < limiter && limiter < level, "{graph}");
+        assert!(graph.contains("[g0]amix=inputs=1"), "{graph}");
+        assert_wired(&graph);
+    }
+
+    #[test]
+    fn a_muted_group_adds_no_input() {
+        let mut mix = mix_of(&[sent_to(0), TrackMixSpec::DEFAULT], 1.0);
+        mix.buses = vec![group(1.0, true)];
+        let graph = sound_graph(
+            &[chain(0), chain(1)],
+            &[segment(0), segment(1)],
+            &mix,
+            1_000_000,
+        );
+        assert!(!graph.contains("[g0]"), "{graph}");
+        assert!(graph.contains("[s1]amix=inputs=1:"), "{graph}");
+        assert_wired(&graph);
+    }
+
+    #[test]
+    fn a_track_of_a_muted_group_still_keys_a_duck() {
+        // The key is taken after the track's own fader, as the preview's is.
+        let mut mix = mix_of(&[sent_to(0), with_effects(vec![duck(vec![0])])], 1.0);
+        mix.buses = vec![group(1.0, true)];
+        let graph = sound_graph(
+            &[chain(0), chain(1)],
+            &[segment(0), segment(1)],
+            &mix,
+            1_000_000,
+        );
+        assert!(graph.contains("sidechaincompress"), "{graph}");
+        assert!(!graph.contains("[g0]"), "{graph}");
+        assert!(graph.contains("[t1]amix=inputs=1:"), "{graph}");
+        assert_wired(&graph);
+    }
+
+    #[test]
+    fn a_duck_listening_to_a_group_keys_after_the_group_fader() {
+        let listening = with_effects(vec![MixEffect::Duck(DuckSpec {
+            listens_to: Vec::new(),
+            listens_to_buses: vec![0],
+            depth_db: -12.0,
+            attack_ms: 20.0,
+            release_ms: 300.0,
+        })]);
+        let mut mix = mix_of(&[sent_to(0), listening], 1.0);
+        mix.buses = vec![group(0.5, false)];
+        let graph = sound_graph(
+            &[chain(0), chain(1)],
+            &[segment(0), segment(1)],
+            &mix,
+            1_000_000,
+        );
+        let fader = graph.find("volume=0.500000").unwrap();
+        let split = graph.find("asplit=2[g0]").unwrap();
+        assert!(fader < split, "{graph}");
+        assert!(split < graph.find("sidechaincompress").unwrap(), "{graph}");
+        assert!(
+            graph.contains("[g0][t1]amix=inputs=2") || graph.contains("[t1][g0]amix=inputs=2"),
+            "{graph}"
+        );
         assert_wired(&graph);
     }
 }

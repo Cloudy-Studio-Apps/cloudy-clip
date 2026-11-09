@@ -13,6 +13,7 @@ export function createSoundView() {
     selected: null,
     solo: [],
     expanded: false,
+    filter: null,
     monitor: DEFAULT_MONITOR,
     armed: null,
     automation: {},

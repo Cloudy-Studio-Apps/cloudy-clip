@@ -1,25 +1,40 @@
+import { useMemo } from "react";
+import { useStore } from "zustand";
+import { useModule } from "@/core";
+import type { MixBus } from "@/modules/project";
 import { SegmentedControl, type SegmentedOption } from "@/ui";
-import { soon } from "../soon";
+import { soundRef } from "../../sound.ref";
 
-const PLACEHOLDER = soon("mixer.filter");
-
-const FILTERS: readonly SegmentedOption<"all">[] = [
-  { value: "all", label: "All", hint: PLACEHOLDER.title },
-];
+/** Every strip. A group id never reads like it (`createId("bus")`). */
+const ALL = "all";
 
 /**
- * Which strips the mixer shows: All, the only filter yet, always chosen; choosing it changes
- * nothing. A filter per group (Dialogue, Music & FX…) comes in stage 4 with the groups; this
- * project has none, so none is offered (Ruling 1). Its tooltip says so.
+ * Which strips the mixer shows: All, or one button per group of the open composition (that group
+ * and the tracks sent to it; Master always shows). View state (`sound.setFilter`), never in the
+ * document. A filter whose group goes shows All.
  */
-export function MixerFilter() {
+export function MixerFilter({ groups }: { groups: readonly MixBus[] }) {
+  const sound = useModule(soundRef);
+  const filter = useStore(sound.view, (s) => s.filter);
+  const options = useMemo(
+    (): SegmentedOption<string>[] => [
+      { value: ALL, label: "All", hint: "Every strip" },
+      ...groups.map((group) => ({
+        value: group.id,
+        label: group.name,
+        hint: `${group.name} and the tracks sent to it`,
+      })),
+    ],
+    [groups],
+  );
+  const shown = groups.find((group) => group.id === filter)?.id ?? ALL;
   return (
     <SegmentedControl
       label="Show strips"
-      className="shrink-0 [&_button]:cursor-default"
-      options={FILTERS}
-      value="all"
-      onChange={PLACEHOLDER.onClick}
+      className="min-w-0 shrink overflow-x-auto"
+      options={options}
+      value={shown}
+      onChange={(value) => sound.setFilter(value === ALL ? null : value)}
     />
   );
 }

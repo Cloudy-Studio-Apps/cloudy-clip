@@ -47,6 +47,14 @@ describe("groups", () => {
     expect(state().tracks.a1!.mix?.busId).toBe(busId);
   });
 
+  it("a new group takes its tracks in the same undo step", async () => {
+    const { busId } = await ok<{ busId: string }>(addBus, { name: "Dialogue", trackIds: ["a1"] });
+    expect(state().tracks.a1!.mix?.busId).toBe(busId);
+    kernel.history.undo();
+    expect(buses()).toEqual([]);
+    expect(state().tracks.a1!.mix).toBeUndefined();
+  });
+
   it("removing a group drops the ducks that listen to it", async () => {
     const { busId } = await ok<{ busId: string }>(addBus, { name: "Music" });
     const { effectId } = await ok<{ effectId: string }>(addEffect, { target: "a1", kind: "duck" });

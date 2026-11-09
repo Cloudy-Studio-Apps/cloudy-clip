@@ -30,7 +30,7 @@ import {
 } from "@/modules/project";
 import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
-import { placeSound } from "../logic/mix";
+import { mutedInPlacement, placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
 import type { LiveSound, LoudnessReading, MixLevels, PreviewEngine } from "../preview.types";
 import { elementUrl, quietSlot, voiceSlot } from "./engine.audio";
@@ -284,6 +284,9 @@ export class HtmlMediaEngine implements PreviewEngine {
     // Sound clips crossfading under a junction (junction rule 4); fadeLevel folds them in.
     const gains = soundGains(project, composition, time);
     for (const { track, clips } of tracks) {
+      // Inside a placement, an inner group's mute silences its tracks as their own mute does;
+      // top-level, the group's bus does it.
+      const quiet = silenced || (nesting !== null && mutedInPlacement(composition, track));
       // During a junction's overlap both clips are here, each on its own element (one per path),
       // and both frames must be ready before anything is painted.
       for (const { clip, path, inner } of clips) {
@@ -300,10 +303,10 @@ export class HtmlMediaEngine implements PreviewEngine {
         const trackDenoise = track.kind === "audio" ? heardDenoise(track, composition) : undefined;
         const denoise = nesting ? nesting.denoise : trackDenoise;
         if (inner) {
-          const { bus, gain: through, pan } = placeSound(track, nesting, own, 0);
-          const quiet = silenced || track.muted;
+          const { bus, gain: through, pan } = placeSound(composition, track, nesting, own, 0);
           const around = { bus, pan, denoise, lines, playhead: nesting?.playhead ?? time };
-          this.prepare(project, inner, playing, propsOverrides, through, quiet, around);
+          const within = quiet || track.muted;
+          this.prepare(project, inner, playing, propsOverrides, through, within, around);
           continue;
         }
         if (!hasMedia(clip)) continue; // drawn from the document, no media element
@@ -341,8 +344,8 @@ export class HtmlMediaEngine implements PreviewEngine {
         // The pitch of a ramp follows its rate now, in steps, since each rate keeps its own sound.
         const heardRate = ramped ? Math.round(rate / RAMP_RATE_STEP) * RAMP_RATE_STEP : rate;
         const heard = this.sound.heard(sound, { ...speed, rate: heardRate });
-        const placed = placeSound(track, nesting, own, heard.pan);
-        const voice = { ...placed, lines, silenced, sound: heard, name: media.name };
+        const placed = placeSound(composition, track, nesting, own, heard.pan);
+        const voice = { ...placed, lines, silenced: quiet, sound: heard, name: media.name };
         const heardVoice = track.kind === "audio" ? voice : null;
         voiceSlot(slot, track, heardVoice, this.sound.graph, this.clock);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;

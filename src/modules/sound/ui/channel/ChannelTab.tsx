@@ -9,7 +9,7 @@ import { EffectBody } from "../effects";
 import { PresetCard } from "./PresetCard";
 
 /**
- * The chain of the marked strip (an audio track of the open composition, or its master): the
+ * The chain of the marked strip (an audio track or a group of the open composition, or its master): the
  * preset card, then a card per effect in signal order, each with its switch, in a grid of 216 px
  * columns (the preset, EQ and compressor two rows tall). Drags play live; a release is one command.
  */
@@ -21,14 +21,18 @@ export function ChannelTab() {
   const track = useStore(project.api, (s) =>
     selected && selected !== "master" ? s.tracks[selected] : undefined,
   );
-  const target = selected === "master" || track?.compositionId === open?.id ? selected : null;
+  const group = open?.mix?.buses?.find((bus) => bus.id === selected);
+  const owner = group && open ? { id: group.id, name: group.name, compositionId: open.id } : track;
+  const target =
+    selected === "master" || track?.compositionId === open?.id || group ? selected : null;
   const chain = useStore(project.api, (s) => chainOf(s, target ?? "master", open?.id));
   const edit = useEffectEdit(target ?? "master", open?.id);
 
   if (!target || !open) {
     return (
       <EmptyState title="Select a strip" className="m-3">
-        Click a track&apos;s strip in the mixer, or Master, to see its effects here.
+        Click a track&apos;s or a group&apos;s strip in the mixer, or Master, to see its effects
+        here.
       </EmptyState>
     );
   }
@@ -36,7 +40,7 @@ export function ChannelTab() {
     <div className="grid grid-cols-[repeat(auto-fill,minmax(216px,1fr))] content-start">
       <PresetCard target={target} compositionId={open.id} chain={chain} />
       {chain.map((effect) => (
-        <EffectBody key={effect.id} effect={effect} owner={track} edit={edit} />
+        <EffectBody key={effect.id} effect={effect} owner={owner} edit={edit} />
       ))}
     </div>
   );

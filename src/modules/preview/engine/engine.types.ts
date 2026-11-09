@@ -15,6 +15,7 @@ import type {
   VideoLevels,
 } from "../preview.types";
 import type {
+  BusId,
   Clip,
   ClipSound,
   ClipSpeed,
@@ -77,10 +78,21 @@ export interface MixTrack {
   muted: boolean;
 }
 
+/** One group of the open composition in a mix update: tracks send to it in `TrackMix.busId`. */
+export interface MixGroup {
+  id: BusId;
+  volumeDb: number;
+  /** Silences everything sent to it; its key, too. */
+  muted: boolean;
+  effects?: SoundEffect[];
+}
+
 /** Everything the buses play by: the document's mix with live values over it, solo and monitor. */
 export interface MixUpdate {
   /** The open composition's audio tracks, top to bottom. */
   tracks: MixTrack[];
+  /** Its groups, in order; a track sending to one not here sends to the master. */
+  groups: MixGroup[];
   master: MasterMix;
   /** Tracks soloed; none means every track sounds. */
   solo: TrackId[];
@@ -204,7 +216,10 @@ export interface Meter {
   dispose(): void;
 }
 
-/** One audio track's bus: upmix, its effects, pan, fader (volume, mute), solo, and a meter after them. */
+/**
+ * One audio track's bus, or a group's: upmix, its effects, pan, fader (volume, mute), solo, and a
+ * meter after them, into `to` (a group's input or the master).
+ */
 export interface TrackBus {
   input: GainNode;
   effects: EffectChain;
@@ -212,9 +227,11 @@ export interface TrackBus {
   fader: GainNode;
   /** What sets the fader: its volume, mute, or the volume line with the volume on top. */
   level: FaderLevel;
-  /** 0 while another track is soloed; a duck's key is taken before it. */
+  /** 0 while another track is soloed; a duck's key is taken before it. Always 1 on a group. */
   solo: GainNode;
   meter: Meter;
+  /** Where it sends: a group's input, or the master's fader. */
+  to: AudioNode;
 }
 
 /** What a gain plays: a volume, a mute and volume lines (a track bus's fader, a chain's lines). */
@@ -244,7 +261,10 @@ export interface FaderLevel {
   follow(time: Micros, playing: boolean, until: Micros): void;
 }
 
-/** The node a duck listens to for a track (its bus after the fader); nothing when it has no bus. */
+/**
+ * The node a duck listens to for a track or a group (its bus after the fader); nothing when it
+ * has no bus.
+ */
 export type KeyOf = (trackId: TrackId) => AudioNode | undefined;
 
 /**

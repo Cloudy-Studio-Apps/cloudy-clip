@@ -137,7 +137,7 @@ export interface StereoLevel {
   right: number;
 }
 
-/** Peaks of the open composition's audio tracks and of its master. */
+/** Peaks of the open composition's audio tracks and groups (by id) and of its master. */
 export interface MixLevels {
   tracks: Record<TrackId, StereoLevel>;
   master: StereoLevel;
@@ -306,7 +306,7 @@ export interface LoudnessMessage {
 
 /** What the user hears beside the document: live drag values, solo and the monitor. */
 export interface LiveSound {
-  /** Live values of tracks and the master (`"master"`), drawn over the saved ones. */
+  /** Live values of tracks, groups (by id) and the master (`"master"`), drawn over the saved ones. */
   mix: ReadonlyMap<TrackId | "master", Partial<TrackMix>>;
   /** Tracks soloed; none means every track sounds. */
   solo: TrackId[];
@@ -316,9 +316,9 @@ export interface LiveSound {
 /** What the user hears in the preview, beside the document. Ephemeral: never in history. */
 export interface PreviewSound {
   /**
-   * Plays a track (or the master) with this live patch of its mix, without changing the project
+   * Plays a track (or a group, or the master) with this live patch of its mix, without changing the project
    * (feedback while a fader or pan is dragged). Pass null to go back to the saved mix. The edit
-   * commits with `sound.setTrackMix` or `sound.setMaster`.
+   * commits with `sound.setTrackMix`, `sound.setBus` or `sound.setMaster`.
    */
   previewMix(target: TrackId | "master", patch: Partial<TrackMix> | null): void;
   /** How the user listens: mono, dim and speaker volume. */

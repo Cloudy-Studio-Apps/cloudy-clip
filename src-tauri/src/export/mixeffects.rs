@@ -63,12 +63,15 @@ pub struct LimiterSpec {
     pub release_ms: f64,
 }
 
-/// `sidechaincompress` keyed by the sum of other tracks after their faders.
+/// `sidechaincompress` keyed by the sum of other tracks and groups after their faders.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DuckSpec {
     /// Indexes into `SoundMix::tracks`.
     pub listens_to: Vec<usize>,
+    /// Indexes into `SoundMix::buses`.
+    #[serde(default)]
+    pub listens_to_buses: Vec<usize>,
     pub depth_db: f64,
     pub attack_ms: f64,
     pub release_ms: f64,

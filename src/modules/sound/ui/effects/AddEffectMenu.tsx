@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from "react";
-import { useKernel } from "@/core";
-import type { CompositionId, SoundEffect } from "@/modules/project";
+import { useStore } from "zustand";
+import { useKernel, useModule } from "@/core";
+import { projectRef, type CompositionId, type SoundEffect } from "@/modules/project";
 import { MenuList, Popover } from "@/ui";
 import { addableKinds, chainWhere, EFFECT_NAMES } from "../../logic/effects";
 import { addEffect } from "../../sound.effects.commands";
@@ -18,7 +19,11 @@ interface AddEffectMenuProps {
 export function AddEffectMenu({ target, compositionId, chain, trigger }: AddEffectMenuProps) {
   const { bus } = useKernel();
   const [open, setOpen] = useState(false);
-  const kinds = addableKinds(chain, target);
+  const group = useStore(
+    useModule(projectRef).store.api,
+    (s) => target !== "master" && s.tracks[target] === undefined,
+  );
+  const kinds = addableKinds(chain, target, group);
   if (kinds.length === 0) return null;
   const items = kinds.map((kind) => ({
     label: EFFECT_NAMES[kind].name,

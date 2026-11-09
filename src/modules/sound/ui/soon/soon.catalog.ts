@@ -25,12 +25,6 @@ export const SOON: Record<SoonId, SoonEntry> = {
     what: "Brings the selected clips to the same loudness.",
     stage: 6,
   },
-  "mixer.filter": {
-    id: "mixer.filter",
-    label: "Filter",
-    what: "Shows the strips of one group at a time.",
-    stage: 4,
-  },
   "master.pan": {
     id: "master.pan",
     label: "Master pan",

@@ -442,6 +442,48 @@ describe("mixdown", () => {
     expect(mix.tracks[0]).not.toHaveProperty("gainEnvelope");
   });
 
+  it("sends a track to its group by index, and a muted group's tracks are left out", () => {
+    const state = project([clip("a", "a1"), clip("b", "a3")]);
+    state.tracks.a3 = { ...state.tracks.a1!, id: "a3", name: "A3", clipIds: ["b"] };
+    state.tracks.a1!.clipIds = ["a"];
+    state.tracks.a3.mix = { volumeDb: 0, pan: 0, busId: "dialogue" };
+    state.compositions.c1!.trackOrder = ["a1", "a3"];
+    const music = { id: "music", name: "Music", volumeDb: 0, muted: true };
+    const dialogue = { id: "dialogue", name: "Dialogue", volumeDb: -6, muted: false };
+    state.compositions.c1!.mix = {
+      master: { volumeDb: 0 },
+      buses: [music, dialogue],
+      activeMix: "a",
+    };
+    const heard = mixdownWithMix(state, "c1", everything, sounds);
+    expect(heard.mix.tracks[0]).toEqual({ gain: 1, pan: 0 });
+    expect(heard.mix.tracks[1]).toEqual({ gain: 1, pan: 0, bus: 1 });
+    expect(heard.mix.buses).toHaveLength(2);
+    expect(heard.mix.buses[1]!.gain).toBeCloseTo(dbToLinear(-6), 6);
+    expect(heard.mix.buses[0]).toEqual({ gain: 1, muted: true });
+    // Sent to the muted group, A3 sounds nowhere: its clips are left out.
+    state.tracks.a3.mix = { volumeDb: 0, pan: 0, busId: "music" };
+    const muted = mixdownWithMix(state, "c1", everything, sounds);
+    expect(muted.segments.map((segment) => segment.track)).toEqual([0]);
+  });
+
+  it("folds an inner group's volume and mute into the clips of its tracks", () => {
+    const state = withPlacement(project([]), { innerMuted: false });
+    state.tracks.a2!.mix = { volumeDb: -6, pan: 0, busId: "inner" };
+    const group = { id: "inner", name: "Inner", volumeDb: -6, muted: false };
+    state.compositions.c2!.mix = { master: { volumeDb: 0 }, buses: [group], activeMix: "a" };
+    const { segments, mix } = mixdownWithMix(state, "c1", everything, sounds);
+    expect(segments[0]!.gain).toBeCloseTo(dbToLinear(-12), 6);
+    // The open composition has no groups: the inner one isn't a bus here.
+    expect(mix.buses).toEqual([]);
+    state.compositions.c2!.mix = {
+      master: { volumeDb: 0 },
+      buses: [{ ...group, muted: true }],
+      activeMix: "a",
+    };
+    expect(mixdown(state, "c1", everything, sounds)).toEqual([]);
+  });
+
   it("leaves a clip without keys as it was", () => {
     const [segment] = mixdown(project([clip("a", "a1")]), "c1", everything, sounds);
     expect(segment).not.toHaveProperty("gainEnvelope");

@@ -43,20 +43,37 @@ export function minimizeCompositionMix(mix: CompositionMix): CompositionMix | un
 }
 
 /**
+ * The group `track` sends to in `composition`; undefined when it sends to Master, or names a group
+ * the composition doesn't have (which then sounds as Master).
+ */
+export function trackBus(
+  composition: Pick<Composition, "mix"> | undefined,
+  track: Pick<Track, "mix">,
+): MixBus | undefined {
+  const busId = track.mix?.busId;
+  if (busId === undefined || !composition) return undefined;
+  return composition.mix?.buses?.find((bus) => bus.id === busId);
+}
+
+/**
  * The gain and pan of a clip (or a placement) on an inner `track` of a placed composition, where
- * the inner tracks above it have panned `nestingPan` in total: gain times the track's volume, and
- * the pans summed with the track's, kept within -1..1. The preview's `placeSound` and the export's
- * mixdown both use it, so they fold nesting alike.
+ * the inner tracks above it have panned `nestingPan` in total: gain times the track's volume (and
+ * the volume of the group it sends to there, `bus`), and the pans summed with the track's, kept
+ * within -1..1. The preview's `placeSound` and the export's mixdown both use it, so they fold
+ * nesting alike. A muted group silences its tracks as their own mute does, which the callers
+ * check with the track's `muted`.
  */
 export function soundInPlacement(
   track: Pick<Track, "mix">,
   nestingPan: number,
   gain: number,
   pan: number,
+  bus?: Pick<MixBus, "volumeDb">,
 ): { gain: number; pan: number } {
   const inner = trackMixOf(track);
+  const group = bus ? dbToLinear(bus.volumeDb) : 1;
   return {
-    gain: gain * dbToLinear(inner.volumeDb),
+    gain: gain * dbToLinear(inner.volumeDb) * group,
     pan: Math.min(1, Math.max(-1, pan + nestingPan + inner.pan)),
   };
 }

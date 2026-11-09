@@ -28,6 +28,11 @@ export interface SoundViewState {
   solo: TrackId[];
   /** The mixer takes the whole page (Expand all). */
   expanded: boolean;
+  /**
+   * The mixer shows the strips of this group only (the group and the tracks sent to it), or every
+   * strip when null or a group the open composition lacks. Master always shows.
+   */
+  filter: BusId | null;
   /** Mono, Dim and the speaker volume. Never in an export. */
   monitor: MonitorState;
   /** The track a recording goes onto: an audio track that isn't muted. */
@@ -199,6 +204,8 @@ export interface SoundApi {
   presets: StoreApi<UserPresets>;
   /** Lets the mixer take the whole page, or gives the timeline its place back. */
   setExpanded(expanded: boolean): void;
+  /** Shows the strips of one group in the mixer, or (null) every strip. */
+  setFilter(busId: BusId | null): void;
   /** Arms a track for recording, or none. Refused (nothing changes) while a take is recorded. */
   arm(trackId: TrackId | null): void;
   /** Records the microphone onto the armed track, or onto a new Voice track when none is armed. */
@@ -511,7 +518,6 @@ export type SoonId =
   | "transport.findBeats"
   | "transport.stripSilence"
   | "transport.matchLevel"
-  | "mixer.filter"
   | "master.pan"
   | "master.mute"
   | "master.read"

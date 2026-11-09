@@ -28,14 +28,31 @@ export const addBus = defineCommand({
   id: "sound.addBus",
   label: "Add group",
   description:
-    "Adds a group track to your open composition (or compositionId): a mixer strip that audio tracks send to (sound_send_to) and that sends to Master. It starts at 0 dB, unmuted, with no effects (give it a chain with sound_add_effect, target the returned id). Returns { busId }.",
+    "Adds a group track to your open composition (or compositionId): a mixer strip that audio tracks send to (sound_send_to) and that sends to Master. It starts at 0 dB, unmuted, with no effects (give it a chain with sound_add_effect, target the returned id). trackIds (audio tracks of that composition) send to it in the same step. Returns { busId }. Fails with sound.track_not_found, sound.not_audio.",
   undoable: true,
-  input: z.object({ compositionId, name: z.string().trim().min(1).max(64) }),
-  run(ctx, { compositionId: comp, name }) {
+  input: z.object({
+    compositionId,
+    name: z.string().trim().min(1).max(64),
+    trackIds: z.array(z.string()).optional(),
+  }),
+  run(ctx, { compositionId: comp, name, trackIds = [] }) {
     const { store } = ctx.require(projectRef);
     const id = targetComposition(ctx, comp);
+    const state = store.getState();
+    // A new group has no effects and nothing listens to it, so sending to it can't make a loop.
+    const tracks = [...new Set(trackIds)].map((trackId) => audioTrack(state, trackId));
+    const stranger = tracks.find((track) => track.compositionId !== id);
+    if (stranger) {
+      throw new CommandFailure(
+        "sound.track_not_found",
+        `Track "${stranger.name}" isn't in that composition.`,
+      );
+    }
     const bus: MixBus = { id: createId("bus"), name, volumeDb: 0, muted: false };
     ctx.mutate(store, (draft) => {
+      for (const track of tracks) {
+        writeTrack(draft.tracks[track.id]!, sentTo(trackMixOf(track), bus.id));
+      }
       const composition = draft.compositions[id]!;
       const mix = compositionMixOf(composition);
       // Groups are shared structure: the other mix has the group too, at the defaults.

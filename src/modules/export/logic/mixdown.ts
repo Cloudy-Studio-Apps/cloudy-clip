@@ -14,14 +14,17 @@ import {
   soundInPlacement,
   speedOf,
   timeOfContent,
+  trackBus,
   trackMixOf,
   trackValue,
+  type BusId,
   type Clip,
   type ClipSound,
   type EqBand,
   type SoundEffect,
   type ClipSpeed,
   type KeyTrack,
+  type Composition,
   type CompositionId,
   type MediaId,
   type ProjectState,
@@ -32,6 +35,7 @@ import {
 import { envelope } from "./envelope";
 import { withLine } from "./swell";
 import type {
+  BusMixSpec,
   ExportRange,
   EqFilter,
   MixEdges,
@@ -53,7 +57,7 @@ import type {
 const ITS_OWN_FILE: SoundFile = (asset) => asset.path;
 
 /** The mix of a composition without audio tracks: nothing to mix, the master as it is. */
-export const NO_MIX: SoundMix = { tracks: [], master: { gain: 1 } };
+export const NO_MIX: SoundMix = { tracks: [], buses: [], master: { gain: 1 } };
 
 /** Timeline time a tempo step of a ramp covers, short enough that the steps aren't heard. */
 const TEMPO_STEP: Micros = 250_000;
@@ -222,17 +226,24 @@ function walk(
   const composition = project.compositions[compositionId];
   if (!composition) return;
   const end = Math.min(to, composition.duration);
+  // Top-level, a track sent to a muted group still keys the ducks listening to it.
+  const listened = nesting ? new Set<string>() : listenedIn(project, composition);
   let audioIndex = -1;
   for (const trackId of composition.trackOrder) {
     const track: Track | undefined = project.tracks[trackId];
     if (track?.kind !== "audio") continue;
     audioIndex++;
     if (track.muted) continue;
-    // Top-level, a track's own mix is its bus's, applied once there; inside a placement, the
-    // clips sound through the outer track's bus, with this track's mix folded in as the preview does.
+    const group = trackBus(composition, track);
+    // A muted group silences its tracks: inside a placement as their own mute does; top-level its
+    // bus adds nothing, so its tracks' clips are needed only for a duck's key.
+    if (group?.muted && (nesting || !listened.has(track.id))) continue;
+    // Top-level, a track's own mix is its bus's, applied once there (and its group's in the
+    // group's bus); inside a placement, the clips sound through the outer track's bus, with this
+    // track's mix and its group's level folded in as the preview does.
     const index = nesting ? nesting.track : audioIndex;
     const place: Place = (gain, pan) =>
-      nesting ? soundInPlacement(track, nesting.pan, gain, pan) : { gain, pan };
+      nesting ? soundInPlacement(track, nesting.pan, gain, pan, group) : { gain, pan };
     const through = nesting?.gain ?? 1;
     // Top-level, a track's line is its bus's; inside a placement it joins the lines above.
     const swell = nesting
@@ -305,14 +316,27 @@ function walk(
   }
 }
 
+/** The tracks and groups of a composition that a duck there listens to. */
+function listenedIn(project: ProjectState, composition: Composition): Set<string> {
+  const chains = [
+    ...composition.trackOrder.map((id) => project.tracks[id]?.mix?.effects),
+    ...(composition.mix?.buses ?? []).map((bus) => bus.effects),
+  ];
+  return new Set(
+    chains.flatMap((chain) => (chain ?? []).flatMap((e) => (e.kind === "duck" ? e.listensTo : []))),
+  );
+}
+
 /**
  * The effects of a chain that change the sound, as the preview runs them: off ones, noise
  * reduction (a rendered file) and an EQ without a working band are left out, and a duck listens
- * to tracks by their index in `tracks` (one that isn't there keys nothing).
+ * to tracks by their index in `tracks` and to groups by their index in `buses` (one that isn't
+ * there keys nothing).
  */
 function mixEffects(
   effects: readonly SoundEffect[] | undefined,
   tracks: readonly TrackId[],
+  buses: readonly BusId[],
 ): MixEffect[] {
   return (effects ?? []).flatMap((effect): MixEffect[] => {
     if (!effect.on) return [];
@@ -335,11 +359,22 @@ function mixEffects(
         return [];
       case "duck": {
         const { depthDb, attackMs, releaseMs } = effect;
-        const listensTo = effect.listensTo.flatMap((id) => {
-          const index = tracks.indexOf(id);
-          return index < 0 ? [] : [index];
-        });
-        return [{ kind: "duck", listensTo, depthDb, attackMs, releaseMs }];
+        const indexes = (ids: readonly string[]) =>
+          effect.listensTo.flatMap((id) => {
+            const index = ids.indexOf(id);
+            return index < 0 ? [] : [index];
+          });
+        const listensToBuses = indexes(buses);
+        return [
+          {
+            kind: "duck",
+            listensTo: indexes(tracks),
+            ...(listensToBuses.length > 0 && { listensToBuses }),
+            depthDb,
+            attackMs,
+            releaseMs,
+          },
+        ];
       }
     }
   });
@@ -365,9 +400,10 @@ function trackLevel(
 }
 
 /**
- * The mix of the composition's audio tracks, in order, and of its master, as linear levels, with
- * the effects that work. Muted tracks keep their place (their clips are left out, so a duck
- * listening to one hears nothing). A track with a volume line follows it over `range`.
+ * The mix of the composition's audio tracks, in order, of its groups and of its master, as linear
+ * levels, with the effects that work. Muted tracks keep their place (their clips are left out, so
+ * a duck listening to one hears nothing). A track with a volume line follows it over `range`. A
+ * track names its group by index; one naming a group that isn't there sends to the master.
  */
 function mixOf(
   project: ProjectState,
@@ -377,17 +413,25 @@ function mixOf(
   const composition = project.compositions[compositionId];
   if (!composition) return NO_MIX;
   const audio = composition.trackOrder.filter((id) => project.tracks[id]?.kind === "audio");
+  const { master, buses: groups = [] } = compositionMixOf(composition);
+  const busIds = groups.map((bus) => bus.id);
   const tracks = audio.map((id) => {
     const mix = trackMixOf(project.tracks[id]!);
-    const effects = withEffects(mixEffects(mix.effects, audio));
-    return { ...trackLevel(mix, range), pan: mix.pan, ...effects };
+    const effects = withEffects(mixEffects(mix.effects, audio, busIds));
+    const bus = mix.busId === undefined ? -1 : busIds.indexOf(mix.busId);
+    return { ...trackLevel(mix, range), pan: mix.pan, ...effects, ...(bus >= 0 && { bus }) };
   });
-  const master = compositionMixOf(composition).master;
+  const buses = groups.map((bus): BusMixSpec => ({
+    gain: dbToLinear(bus.volumeDb),
+    ...(bus.muted && { muted: true }),
+    ...withEffects(mixEffects(bus.effects, audio, busIds)),
+  }));
   return {
     tracks,
+    buses,
     master: {
       gain: dbToLinear(master.volumeDb),
-      ...withEffects(mixEffects(master.effects, audio)),
+      ...withEffects(mixEffects(master.effects, audio, busIds)),
     },
   };
 }

@@ -171,6 +171,7 @@ export {
   minimizeCompositionMix,
   minimizeTrackMix,
   soundInPlacement,
+  trackBus,
   trackMixOf,
 } from "./logic/mix";
 
