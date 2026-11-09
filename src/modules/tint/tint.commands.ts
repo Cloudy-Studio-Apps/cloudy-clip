@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import { DEFAULT_CORRECTION, projectRef, type Correction } from "@/modules/project";
+import { groupOf } from "./logic/stack.group";
 import { clearTools, ownedValues } from "./logic/tools";
+import { group, setGroup, ungroup } from "./tint.group.commands";
 import { checkedGrade, dropTracks, readGrade, writeGrade } from "./tint.guards";
 import {
   addCorrection,
@@ -30,7 +32,7 @@ export const resetGrade = defineCommand({
   id: "tint.reset",
   label: "Reset grade",
   description:
-    'Resets a grade. With no tools, nodeId or fields, the whole grade goes and the target is ungraded (its key tracks go too). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are cleared (the limit for "limit", the LUT for "luts"), along with their key tracks; the layers stay. With nodeId, only that correction is touched (all tools when none are given); with fields (top-level value names such as "saturation"), those fields are cleared on top of the tools, and given alone they clear only those. Resetting an ungraded target does nothing. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found or tint.invalid_grade (a field that is not a correction field).',
+    'Resets a grade. With no tools, nodeId or fields, the whole grade goes and the target is ungraded (its key tracks go too). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are cleared (the limit for "limit", the LUT for "luts"), along with their key tracks; the layers stay. With nodeId, only that correction is touched, or with the id of a group every correction inside it (all tools when none are given); with fields (top-level value names such as "saturation"), those fields are cleared on top of the tools, and given alone they clear only those. Resetting an ungraded target does nothing. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found or tint.invalid_grade (a field that is not a correction field).',
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -49,10 +51,20 @@ export const resetGrade = defineCommand({
     }
     const grade = readGrade(store.getState(), target);
     if (!grade) return;
-    if (nodeId && grade.nodes[nodeId]?.kind !== "correct") {
-      throw new CommandFailure("tint.node_not_found", `No correction "${nodeId}" in this grade`, {
-        nodeId,
-      });
+    // A group's id stands for every correction inside it.
+    const only = nodeId
+      ? grade.nodes[nodeId]?.kind === "correct"
+        ? [nodeId]
+        : groupOf(grade, nodeId)?.corrections
+      : undefined;
+    if (nodeId && !only) {
+      throw new CommandFailure(
+        "tint.node_not_found",
+        `No correction or group "${nodeId}" in this grade`,
+        {
+          nodeId,
+        },
+      );
     }
     const tools = given ?? (nodeId || fields ? (fields ? [] : [...TOOL_IDS]) : undefined);
     if (!tools) {
@@ -64,7 +76,7 @@ export const resetGrade = defineCommand({
     }
     const next = structuredClone(grade);
     for (const [id, node] of Object.entries(next.nodes)) {
-      if (node.kind !== "correct" || (nodeId && id !== nodeId)) continue;
+      if (node.kind !== "correct" || (only && !only.includes(id))) continue;
       clearTools(node as Correction, tools, fields);
     }
     const stored = checkedGrade(next);
@@ -73,7 +85,7 @@ export const resetGrade = defineCommand({
     for (const field of fields ?? []) owned.add(field);
     const keyed = (path: string): boolean => {
       const [, , id, part, ...rest] = path.split(".");
-      if (nodeId && id !== nodeId) return false;
+      if (only && !only.includes(id ?? "")) return false;
       if (part === "limit") return tools.includes("limit");
       if (part === "lut") return tools.includes("luts");
       return part === "values" && owned.has((rest[0] ?? "").trim());
@@ -85,4 +97,13 @@ export const resetGrade = defineCommand({
   },
 });
 
-export const tintCommands = [addCorrection, setCorrection, removeNodes, moveLayer, resetGrade];
+export const tintCommands = [
+  addCorrection,
+  setCorrection,
+  removeNodes,
+  moveLayer,
+  resetGrade,
+  group,
+  ungroup,
+  setGroup,
+];

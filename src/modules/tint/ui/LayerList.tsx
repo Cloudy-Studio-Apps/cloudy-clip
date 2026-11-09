@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 import { useModule } from "@/core";
 import { gradeOf } from "@/modules/project";
 import { numberOf, toStack } from "../logic/stack";
-import { layerIds } from "../logic/layers";
+import { groupPick, layerIds } from "../logic/layers";
 import { tintRef } from "../tint.ref";
 import { AddMenu } from "./AddMenu";
 import { useCurrentEntry } from "./current.hook";
@@ -12,6 +12,7 @@ import { useLayerActions } from "./layers.actions.hook";
 import { startLayerDrag } from "./layer.drag.gesture";
 import { StackItems } from "./StackItems";
 import { useNodeThumbs } from "./thumbs.hook";
+import { useTintView } from "./view.hook";
 import type { LayersEnv } from "./ui.types";
 
 const INPUT_NAMES = {
@@ -45,6 +46,15 @@ function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gr
   const numbers = useMemo(() => numberOf(grade), [grade]);
   const ids = useMemo(() => layerIds(stack), [stack]);
   const thumbs = useNodeThumbs(clipId, grade, ids);
+  const selected = useTintView((v) => v.selected);
+  const picks = useMemo(
+    () => ({
+      parallel: groupPick(stack, selected, "parallel"),
+      layer: groupPick(stack, selected, "layer"),
+      channels: groupPick(stack, selected, "channels"),
+    }),
+    [stack, selected],
+  );
   const list = useRef<HTMLDivElement>(null);
   const line = useRef<HTMLDivElement>(null);
   const shown = grade ?? { nodes: {}, out: { node: "source" as const } };
@@ -95,10 +105,19 @@ function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gr
         <div className="flex shrink-0 items-center gap-2 border-t border-border px-3 py-2.5">
           <AddMenu
             onCorrection={() => {
-              const selected = tint.view.getState().selected;
+              const at = tint.view.getState().selected;
               void actions.add(
-                selected && shown.nodes[selected]?.kind === "correct" ? selected : undefined,
+                at && shown.nodes[at]?.kind === "correct" ? { before: at } : undefined,
               );
+            }}
+            onGroup={(kind) => {
+              const ids = picks[kind];
+              if (ids) void actions.group(ids, kind);
+            }}
+            canGroup={{
+              parallel: picks.parallel !== null,
+              layer: picks.layer !== null,
+              channels: picks.channels !== null,
             }}
           />
         </div>

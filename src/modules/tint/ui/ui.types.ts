@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type {
+  BlendMode,
   ClipGrade,
   ClipId,
   CorrectionValues,
@@ -29,10 +30,23 @@ export interface LayerPatch {
   name?: string;
 }
 
+/** A change to a side-by-side or stacked group from its folder (`tint.setGroup`'s patch). */
+export interface GroupPatch {
+  opacity?: number;
+  on?: boolean;
+  blends?: BlendMode[];
+}
+
 /** What the layer list can do to the current clip's grade. Each runs a command and tells the user if it is refused. */
 export interface LayerActions {
-  /** Adds a correction before the layer `before`, or at the bottom of the stack, and selects it. */
-  add(before?: string): Promise<void>;
+  /** Adds a correction at a place in the stack (the bottom without one) and selects it. */
+  add(at?: StackPosition): Promise<void>;
+  /** Puts items of one list in a group and selects the group. */
+  group(ids: string[], kind: "parallel" | "layer" | "channels"): Promise<void>;
+  /** Takes a group apart. */
+  ungroup(joinId: string): void;
+  /** Changes a group's opacity, on or blends. Resolves false when refused. */
+  changeGroup(joinId: string, patch: GroupPatch): Promise<boolean>;
   /** Resolves false when the command was refused (the user was told). */
   change(nodeId: string, patch: LayerPatch): Promise<boolean>;
   remove(nodeId: string): void;
@@ -51,12 +65,13 @@ export interface LayersEnv {
   drag(event: PointerEvent, id: string): void;
 }
 
-/** A change to a correction's values, opacity, on or limit (null removes it), from a tool. */
+/** A change to a correction's values, opacity, on or limit (null removes it), from a tool; or to a group's opacity, on or blends. */
 export interface EditPatch {
   values?: Partial<CorrectionValues>;
   opacity?: number;
   on?: boolean;
   limit?: GradeLimit | null;
+  blends?: BlendMode[];
 }
 
 /** Edits one correction: live while a gesture goes, one command when it ends. */
@@ -80,6 +95,8 @@ export interface EditTarget {
   grade: ClipGrade | null;
   /** The correction being edited; null before the clip has one (the first edit makes it). */
   nodeId: GradeNodeId | null;
+  /** The selected group, when a group is selected: the header's reset covers all of it. */
+  group: { id: GradeNodeId; kind: "parallel" | "layer" | "channels" } | null;
   /** The correction's values over the defaults. */
   values: CorrectionValues;
   /** Layer number and name for the tool header, or null. */

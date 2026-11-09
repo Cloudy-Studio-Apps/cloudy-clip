@@ -300,3 +300,51 @@ Then, with an MCP client on `http://127.0.0.1:7420/mcp` (`media_import` both fil
 
 If WebView2 fails WebGL2, the video upload or the hidden render, write it here: the plan goes on, and that
 platform gets `TintUnavailable` (Task 9) and `tint.unavailable` exports (Task 3).
+
+### Groups and shared keys: parity (Task 18)
+
+Side-by-side, stacked and per-channel groups and a shared key against the shader, 2026-11-10. On
+the GPU a group is one pass reading the picture its branches start from (`u_in0`) and each branch
+(`render/joins.glsl.ts`; stacked groups call `preview`'s `BLEND_GLSL`), a per-channel branch starts
+with a pass taking its channel as gray, and a shared key reads the key pass of the correction that
+picks, made once; on the CPU `evaluatePixel` walks the same graph (`logic/walk.ts`) with
+`logic/color/joins.ts` and `logic/color/blend.ts`.
+
+- **Method:** as Task 17 (temporary dev page on the web build, `pnpm vite --port 1540`, headless
+  Chromium 1243 with SwiftShader WebGL2, half-float targets, CDP; removed before the commit), the
+  same 256 colors, reference `evaluatePixel`, 20 sets per row, each checked with `validateGrade`.
+  Every correction is random (exposure ±1.2, saturation 0…2, hue ±90, temperature ±60, opacity
+  0.5…1). Side by side: a correction, then 2 or 3 branches of one correction each, group opacity
+  0.3…1. Stacked: a correction, then 2 branches, the top one with the row's blend and the lower one
+  normal or the same blend, opacity 0.3…1. Per channel: a correction, a split, each channel a
+  correction or (odds 0.25) empty. Shared key: a limited correction (a random color window,
+  brightness with odds 0.5, invert with odds 0.5; on with odds 0.7), a plain one, then one using its
+  pick (`from`, inverted again with odds 0.5).
+- **Results** (15 360 channel values per row):
+
+| Seed | Grade                | Max | Off by 1 | Over 1 | Changed |
+| ---- | -------------------- | --- | -------- | ------ | ------- |
+| 401  | side by side         | 1   | 394      | 0      | 14 762  |
+| 402  | side by side         | 1   | 376      | 0      | 14 643  |
+| 411  | stacked, Normal      | 1   | 318      | 0      | 14 561  |
+| 412  | stacked, Multiply    | 1   | 297      | 0      | 14 693  |
+| 413  | stacked, Screen      | 1   | 245      | 0      | 14 964  |
+| 414  | stacked, Soft Light  | 1   | 300      | 0      | 14 654  |
+| 415  | stacked, Overlay     | 1   | 358      | 0      | 14 665  |
+| 416  | stacked, Difference  | 1   | 347      | 0      | 14 924  |
+| 417  | stacked, Color       | 1   | 302      | 0      | 14 842  |
+| 418  | stacked, Color Dodge | 1   | 271      | 0      | 14 683  |
+| 419  | stacked, Luminosity  | 1   | 299      | 0      | 14 693  |
+| 420  | stacked, Add         | 1   | 189      | 0      | 14 881  |
+| 421  | per channel          | 1   | 311      | 0      | 14 462  |
+| 422  | per channel          | 1   | 297      | 0      | 14 576  |
+| 431  | shared key           | 1   | 320      | 0      | 14 713  |
+| 432  | shared key           | 1   | 321      | 0      | 14 637  |
+
+- **Pass:** every row is within one 8-bit step. The shared key rows drew 74 and 72 passes for 20
+  sets: the key pass once per set, not once per correction using it.
+- **Unchanged without groups:** for 300 random chains (0 to 4 corrections, on or off, opacity 0 or
+  0.5, limits with and without refine softness, curves, with and without Show) the new
+  `gradePasses` gave the same passes, as JSON, as the one before this task (a temporary test,
+  deleted).
+- **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.

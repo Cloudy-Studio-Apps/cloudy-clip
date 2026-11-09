@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useKernel, useModule } from "@/core";
 import type { ClipId } from "@/modules/project";
+import { group, setGroup, ungroup } from "../tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "../tint.node.commands";
 import { tintRef } from "../tint.ref";
 import { settle } from "./settle";
@@ -13,11 +14,17 @@ export function useLayerActions(clipId: ClipId): LayerActions {
   return useMemo(() => {
     const target = { clipId };
     return {
-      async add(before) {
-        const at = before ? { before } : undefined;
+      async add(at) {
         const result = await settle(bus.run(addCorrection, { target, at }));
         if (result.ok) tint.view.setState({ selected: result.value.nodeId });
       },
+      async group(nodeIds, kind) {
+        const result = await settle(bus.run(group, { target, nodeIds, kind }));
+        if (result.ok) tint.view.setState({ selected: result.value.joinId });
+      },
+      ungroup: (joinId) => void settle(bus.run(ungroup, { target, joinId })),
+      changeGroup: async (joinId, patch) =>
+        (await settle(bus.run(setGroup, { target, joinId, patch }))).ok,
       change: async (nodeId, patch) =>
         (await settle(bus.run(setCorrection, { target, nodeId, patch }))).ok,
       remove: (nodeId) => void settle(bus.run(removeNodes, { target, nodeIds: [nodeId] })),

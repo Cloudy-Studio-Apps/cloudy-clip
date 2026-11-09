@@ -8,6 +8,7 @@ import { previewModule } from "@/modules/preview";
 import { createProjectModule, projectRef, seedProject } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
 import { resetGrade } from "./tint.commands";
+import { group, ungroup } from "./tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "./tint.node.commands";
 import { tintModule } from "./tint.module";
 import type { GradeTarget } from "./tint.types";
@@ -196,6 +197,47 @@ describe("grade commands", () => {
     await ok(setCorrection, { target, nodeId: b.nodeId, patch: { values: {} } });
     await ok(resetGrade, { target, tools: ["wheels"], nodeId: b.nodeId });
     expect(clip().grade).toBe(before);
+  });
+
+  it("groups two layers side by side and ungroup restores them", async () => {
+    const a = (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId;
+    const b = (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId;
+    const before = clip().grade;
+    const { joinId } = await ok<{ joinId: string }>(group, {
+      target,
+      nodeIds: [a, b],
+      kind: "parallel",
+    });
+    expect(clip().grade?.nodes[joinId]).toMatchObject({
+      kind: "parallel",
+      inputs: [{ node: a }, { node: b }],
+    });
+    expect(clip().grade?.nodes[b]).toMatchObject({ input: { node: "source" } });
+    expect(clip().grade?.out).toEqual({ node: joinId });
+    kernel.history.undo();
+    expect(clip().grade).toEqual(before);
+    kernel.history.redo();
+    await ok(ungroup, { target, joinId });
+    expect(clip().grade).toEqual(before);
+    const lone = await run(group, { target, nodeIds: [a], kind: "parallel" });
+    expect(lone).toMatchObject({ ok: false, error: { code: "tint.cant_group" } });
+  });
+
+  it("refuses a shared key that makes a cycle", async () => {
+    const color = { on: true, hue: [0, 40], sat: [0, 1], lum: [0, 1], soft: 0 };
+    const a = (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId;
+    const b = (await ok<{ nodeId: string }>(addCorrection, { target, limit: { color } })).nodeId;
+    const before = clip().grade;
+    const cycle = await run(setCorrection, { target, nodeId: a, patch: { limit: { from: b } } });
+    expect(cycle).toMatchObject({ ok: false, error: { code: "tint.key_cycle" } });
+    const self = await run(setCorrection, { target, nodeId: b, patch: { limit: { from: b } } });
+    expect(self).toMatchObject({ ok: false, error: { code: "tint.key_cycle" } });
+    const plain = await run(setCorrection, { target, nodeId: b, patch: { limit: { from: a } } });
+    expect(plain).toMatchObject({ ok: false, error: { code: "tint.key_not_limited" } });
+    expect(clip().grade).toEqual(before);
+    await ok(setCorrection, { target, nodeId: a, patch: { limit: { color } } });
+    await ok(setCorrection, { target, nodeId: b, patch: { limit: { from: a } } });
+    expect(clip().grade?.nodes[b]).toMatchObject({ limit: { from: a } });
   });
 });
 

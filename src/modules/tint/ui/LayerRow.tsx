@@ -91,7 +91,7 @@ export function LayerRow({ id, nested = false }: { id: string; nested?: boolean 
           )}
         </span>
         <span className="mt-1 flex">
-          <LayerChip chip={layerChip(node)} />
+          <LayerChip chip={layerChip(node, numbers)} />
         </span>
       </span>
       <OpacityScrub clipId={clipId} nodeId={id} opacity={node.opacity} />

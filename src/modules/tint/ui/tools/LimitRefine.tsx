@@ -7,8 +7,11 @@ import { useTintSet } from "../view.set.hook";
 import { LimitSlider } from "./LimitSlider";
 import { ToolColumn } from "./ToolColumn";
 
-/** Refine: soften and clean up the edge of what is kept, show it, invert it. */
-export function LimitRefine({ edit }: { edit: LimitEdit }) {
+/**
+ * Refine: soften and clean up the edge of what is kept, show it, invert it. With a `shared` pick
+ * the edge is the picking correction's, so only Show and Invert are here.
+ */
+export function LimitRefine({ edit, shared = false }: { edit: LimitEdit; shared?: boolean }) {
   const showing = useTintView((v) => v.showPicked !== null && v.showPicked === edit.nodeId);
   const set = useTintSet();
   const { limit } = edit;
@@ -20,20 +23,24 @@ export function LimitRefine({ edit }: { edit: LimitEdit }) {
   const inverted = limit?.invert === true;
   return (
     <ToolColumn title="Refine" info="Soften and clean the edge of what was picked, then check it.">
-      <LimitSlider
-        label="Softness"
-        value={refine.soft}
-        resetTo={0}
-        edit={edit}
-        limitWith={(soft) => withRefine({ soft })}
-      />
-      <LimitSlider
-        label="Clean up"
-        value={refine.clean}
-        resetTo={0}
-        edit={edit}
-        limitWith={(clean) => withRefine({ clean })}
-      />
+      {!shared && (
+        <>
+          <LimitSlider
+            label="Softness"
+            value={refine.soft}
+            resetTo={0}
+            edit={edit}
+            limitWith={(soft) => withRefine({ soft })}
+          />
+          <LimitSlider
+            label="Clean up"
+            value={refine.clean}
+            resetTo={0}
+            edit={edit}
+            limitWith={(clean) => withRefine({ clean })}
+          />
+        </>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         <Button
           size="sm"

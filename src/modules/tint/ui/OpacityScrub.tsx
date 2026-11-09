@@ -7,14 +7,16 @@ interface OpacityScrubProps {
   nodeId: string;
   /** Saved opacity, 0 to 1. */
   opacity: number;
+  /** `nodeId` is a group's join (`tint.setGroup`). */
+  group?: boolean;
 }
 
 /**
- * The opacity of a layer: drag sideways to change it (one percent per pixel). While dragging, the
+ * The opacity of a layer or a group: drag sideways to change it (one percent per pixel). While dragging, the
  * number and the picture follow through the live values; the command goes once, on release.
  */
-export function OpacityScrub({ clipId, nodeId, opacity }: OpacityScrubProps) {
-  const edit = useLiveEdit(clipId, nodeId);
+export function OpacityScrub({ clipId, nodeId, opacity, group = false }: OpacityScrubProps) {
+  const edit = useLiveEdit(clipId, nodeId, group);
   const label = useRef<HTMLSpanElement>(null);
   const drag = useRef<{ x: number; start: number; last: number; off(): void } | null>(null);
   const show = (value: number) => {

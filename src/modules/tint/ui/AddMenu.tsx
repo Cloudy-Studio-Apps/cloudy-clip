@@ -1,10 +1,46 @@
-import { Plus } from "lucide-react";
+import { Columns3, Folder, Layers, Plus } from "lucide-react";
 import { useState } from "react";
 import { Button, MenuList, Popover, type MenuItem } from "@/ui";
 
-/** + Add: a correction above the selected layer (else at the bottom). Groups and looks join the menu as they can be made. */
-export function AddMenu({ onCorrection }: { onCorrection(): void }) {
-  const items: readonly MenuItem[] = [{ label: "Correction", icon: Plus, onSelect: onCorrection }];
+type GroupKind = "parallel" | "layer" | "channels";
+
+interface AddMenuProps {
+  onCorrection(): void;
+  onGroup(kind: GroupKind): void;
+  /** Which groups can be made around the selected layer. */
+  canGroup: Record<GroupKind, boolean>;
+}
+
+/**
+ * + Add: a correction above the selected layer (else at the bottom), or a group around the
+ * selected layer: side by side or stacked with the layer after it, per channel with it alone in
+ * the red branch. Looks join the menu later.
+ */
+export function AddMenu({ onCorrection, onGroup, canGroup }: AddMenuProps) {
+  const items: readonly MenuItem[] = [
+    { label: "Correction", icon: Plus, onSelect: onCorrection },
+    {
+      label: "Group (side by side)",
+      icon: Folder,
+      group: "groups",
+      disabled: !canGroup.parallel,
+      onSelect: () => onGroup("parallel"),
+    },
+    {
+      label: "Group (stacked)",
+      icon: Layers,
+      group: "groups",
+      disabled: !canGroup.layer,
+      onSelect: () => onGroup("layer"),
+    },
+    {
+      label: "Per channel",
+      icon: Columns3,
+      group: "groups",
+      disabled: !canGroup.channels,
+      onSelect: () => onGroup("channels"),
+    },
+  ];
   const [open, setOpen] = useState(false);
   return (
     <Popover
@@ -14,7 +50,7 @@ export function AddMenu({ onCorrection }: { onCorrection(): void }) {
         <Button
           variant="primary"
           size="sm"
-          title="Add a correction, a group or a look. Top runs first; drag to reorder."
+          title="Add a correction, or group the selected layer: side by side or stacked with the one after it, or per channel. Top runs first; drag to reorder."
         >
           + Add
         </Button>

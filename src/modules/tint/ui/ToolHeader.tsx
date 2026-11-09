@@ -11,12 +11,17 @@ import { PanelNote } from "./PanelNote";
 import { settle } from "./settle";
 import { useTintView } from "./view.hook";
 
-/** Names the open tool and the layer it edits, with reset. */
+const GROUP_NAMES = { parallel: "side by side", layer: "stacked", channels: "per channel" };
+
+/** Names the open tool and the layer it edits, with reset (of every layer in a selected group). */
 export function ToolHeader({ id, name }: { id: ToolId; name: string }) {
   const { bus } = useKernel();
   const leader = useTintView((v) => v.mode === "leader");
-  const { clipId, nodeId, title } = useEditTarget();
+  const { clipId, nodeId, title, group } = useEditTarget();
   const page = PAGE_RESET[id];
+  // A selected group's reset covers every correction inside it.
+  const resetId = group?.id ?? nodeId;
+  const on = group ? `the ${GROUP_NAMES[group.kind]} group` : title;
   return (
     <header
       style={{ height: TINT_LAYOUT.headerHeight }}
@@ -30,11 +35,11 @@ export function ToolHeader({ id, name }: { id: ToolId; name: string }) {
         </PanelNote>
       )}
       <IconButton
-        label={`Reset ${name}${id === "wheels" ? " (every mode)" : ""}${title ? ` on ${title}` : ""}: back to neutral, the layer stays`}
-        disabled={!clipId || !nodeId || !page}
+        label={`Reset ${name}${id === "wheels" ? " (every mode)" : ""}${on ? ` on ${on}` : ""}: back to neutral, the ${group ? "layers stay" : "layer stays"}`}
+        disabled={!clipId || !resetId || !page}
         onClick={() => {
-          if (clipId && nodeId && page) {
-            void settle(bus.run(resetGrade, { target: { clipId }, nodeId, ...page }));
+          if (clipId && resetId && page) {
+            void settle(bus.run(resetGrade, { target: { clipId }, nodeId: resetId, ...page }));
           }
         }}
       >

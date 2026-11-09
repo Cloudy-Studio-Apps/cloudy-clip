@@ -2,8 +2,10 @@ import type { StoreApi } from "zustand";
 import type { Micros } from "@/core";
 import type { GpuTexture } from "@/modules/preview";
 import type {
+  BlendMode,
   Clip,
   ClipId,
+  Correction,
   CompositionId,
   CorrectionValues,
   GradeGroupId,
@@ -160,12 +162,14 @@ export interface PickFrame {
 
 /**
  * A node's live values: a correction's values being dragged, its opacity, whether it is on, and its
- * limit (null: none).
+ * limit (null: none); or a group's opacity, on and blends.
  */
 export type LiveNode = Partial<CorrectionValues> & {
   opacity?: number;
   on?: boolean;
   limit?: GradeLimit | null;
+  /** A stacked group's blends, one per branch. */
+  blends?: BlendMode[];
 };
 
 /** A clip's live values by node, laid over its saved grade. */
@@ -496,3 +500,53 @@ export type RangePart = "from" | "to" | "move";
 
 /** What Limit's dropper does with the next pick: set the ranges around it, add it, or leave it out. */
 export type LimitPick = "pick" | "add" | "cut";
+
+/** The key a correction mixes by (`sharedKey`): whose key pass it reads, and how it is finished. */
+export interface SharedKey {
+  /** The correction whose pick it is: the node itself, or the one its `limit.from` leads to. */
+  owner: GradeNodeId;
+  /** That pick's windows and blur, with clean up and the invert as this correction reads them. */
+  params: LimitParams;
+}
+
+/** Why a correction can't take its key from a node (`keyProblem`). */
+export type KeyProblem = "missing" | "not_limited" | "cycle" | null;
+
+/** What a picture through the grade is made of, for `walkGrade`: GPU passes or a CPU pixel. */
+export interface GradeOps<P, K> {
+  /** The picture coming in. */
+  source: P;
+  /** One channel of a picture, as gray (what a branch of a per-channel group reads). */
+  channel(picture: P, channel: "r" | "g" | "b"): P;
+  /** The raw key of a limit read from `input` (before clean up and invert). */
+  key(params: LimitParams, input: P): K;
+  /** A correction that is on and shows, over `input`, mixed by its key when it has one. */
+  correct(
+    id: GradeNodeId,
+    node: Correction,
+    input: P,
+    key: { key: K; params: LimitParams } | null,
+  ): P;
+  /** Side by side: `entry + opacity · Σ (branchᵢ − entry)`. */
+  parallel(entry: P, branches: P[], opacity: number): P;
+  /** Stacked: each branch over the picture so far by its blend, from `entry`, mixed by opacity. */
+  layer(entry: P, branches: P[], blends: BlendMode[], opacity: number): P;
+  /** Red of `r`, green of `g`, blue of `b`. */
+  join(r: P, g: P, b: P): P;
+}
+
+/** A grade being walked: each picture and key worked out once, on demand. */
+export interface GradeWalk<P, K> {
+  /** The picture at a ref. */
+  picture(ref: NodeRef): P;
+  /** The key a correction mixes by, or null. */
+  key(id: GradeNodeId): { key: K; params: LimitParams } | null;
+}
+
+/** What a group of the stack holds (`groupOf`). */
+export interface StackGroupInfo {
+  /** Every correction inside it, nested groups included. */
+  corrections: GradeNodeId[];
+  /** A per-channel group's split. */
+  split?: GradeNodeId;
+}

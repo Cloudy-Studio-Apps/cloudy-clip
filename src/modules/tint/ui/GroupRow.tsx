@@ -1,8 +1,12 @@
-import { Eye, EyeOff, Folder } from "lucide-react";
-import { cn } from "@/ui";
+import { Eye, EyeOff, Folder, Plus, Ungroup } from "lucide-react";
+import { BLEND_MODES, type BlendMode } from "@/modules/project";
+import { IconButton, SelectField, cn } from "@/ui";
+import { blendName } from "../logic/layers";
 import type { StackItem } from "../tint.types";
 import { useLayers } from "./layers.context";
+import { OpacityScrub } from "./OpacityScrub";
 import { StackItems } from "./StackItems";
+import { CHANNEL_COLORS } from "./tools/channel.colors";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
 
@@ -14,15 +18,35 @@ const KIND_NAMES: Record<Group["kind"], string> = {
   channels: "Per channel",
 };
 
-/** A group of layers: a folder with its blend, opacity and on/off, its layers indented. */
+const KIND_NOTES: Record<Group["kind"], string> = {
+  parallel: "Each branch starts from the picture above; their changes are added together.",
+  layer:
+    "Each branch starts from the picture above and lands over the ones before it by its blend; the last is on top.",
+  channels:
+    "Each branch grades one channel of the picture above as gray; together they make the color again.",
+};
+
+const CHANNEL_NAMES = ["Red", "Green", "Blue"] as const;
+const BLEND_OPTIONS = BLEND_MODES.map((mode) => ({ value: mode, label: blendName(mode) }));
+
+/**
+ * A group of layers: a folder with its kind, opacity and on/off (side by side and stacked), each
+ * branch's blend (stacked), its branches indented with an add at the bottom of each, and ungroup.
+ */
 export function GroupRow({ group }: { group: Group }) {
-  const { grade } = useLayers();
+  const { clipId, grade, actions } = useLayers();
   const join = grade.nodes[group.id];
-  const on = join && "on" in join ? join.on : true;
-  const opacity = join && "opacity" in join ? join.opacity : 1;
+  const mixes = join?.kind === "parallel" || join?.kind === "layer";
+  const on = mixes ? join.on : true;
   const Visible = on ? Eye : EyeOff;
   const selected = useTintView((v) => v.selected === group.id);
   const set = useTintSet();
+  const setBlend = (index: number, mode: BlendMode) => {
+    if (join?.kind !== "layer") return;
+    void actions.changeGroup(group.id, {
+      blends: join.blends.map((blend, i) => (i === index ? mode : blend)),
+    });
+  };
   return (
     <div
       className={cn(
@@ -32,29 +56,76 @@ export function GroupRow({ group }: { group: Group }) {
           : "shadow-[inset_0_0_0_1px_var(--border-strong)]",
       )}
     >
-      <button
-        type="button"
-        onClick={() => set({ selected: group.id })}
-        className="flex w-full cursor-pointer items-center gap-2 px-0.5 pt-1 pb-2 font-hand text-base font-bold"
-      >
-        <Folder className="size-4 text-primary" />
-        {KIND_NAMES[group.kind]} group
-        <span className="flex-1" />
-        <span className="font-mono text-xs font-normal text-muted-foreground">
-          {Math.round(opacity * 100)}%
-        </span>
-        <Visible className="size-3.5 text-muted-foreground" />
-      </button>
-      <div className="ml-2.5 flex flex-col gap-1.5 border-l-[1.5px] border-dashed border-border-strong pl-3">
+      <div className="flex items-center gap-1.5 px-0.5 pt-1 pb-2">
+        <button
+          type="button"
+          onClick={() => set({ selected: group.id })}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left font-hand text-base font-bold"
+        >
+          <Folder className="size-4 shrink-0 text-primary" />
+          <span className="truncate">{KIND_NAMES[group.kind]} group</span>
+        </button>
+        {mixes && (
+          <>
+            <OpacityScrub clipId={clipId} nodeId={group.id} opacity={join.opacity} group />
+            <IconButton
+              label={on ? "On: click to turn the group off" : "Off: click to turn the group on"}
+              onClick={() => void actions.changeGroup(group.id, { on: !on })}
+            >
+              <Visible />
+            </IconButton>
+          </>
+        )}
+        <IconButton
+          label="Ungroup: its layers stay, in a row"
+          onClick={() => actions.ungroup(group.id)}
+        >
+          <Ungroup />
+        </IconButton>
+      </div>
+      <div className="ml-2.5 flex flex-col gap-2 border-l-[1.5px] border-dashed border-border-strong pl-3">
         {group.branches.map((branch, index) => (
           <div key={index} className="flex flex-col gap-1.5">
-            <StackItems items={branch} nested />
+            <div className="flex h-6 items-center gap-2 text-xs text-muted-foreground">
+              {group.kind === "channels" ? (
+                <>
+                  <span
+                    className="size-2 rounded-xs"
+                    style={{ background: CHANNEL_COLORS[index] }}
+                  />
+                  {CHANNEL_NAMES[index]}
+                </>
+              ) : (
+                <>Branch {index + 1}</>
+              )}
+              {join?.kind === "layer" && (
+                <SelectField
+                  label={`Blend of branch ${index + 1}`}
+                  value={join.blends[index] ?? "normal"}
+                  options={BLEND_OPTIONS}
+                  onChange={(mode) => setBlend(index, mode as BlendMode)}
+                  className="ml-auto h-6 text-xs"
+                />
+              )}
+            </div>
+            {branch.length === 0 ? (
+              <p className="px-1 text-xs text-subtle-foreground">
+                Empty: the picture passes as it is.
+              </p>
+            ) : (
+              <StackItems items={branch} nested />
+            )}
+            <button
+              type="button"
+              onClick={() => void actions.add({ branch: { group: group.id, index } })}
+              className="flex w-fit cursor-pointer items-center gap-1 px-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="size-3" /> Correction
+            </button>
           </div>
         ))}
       </div>
-      <p className="pt-2 pl-6 text-xs text-subtle-foreground">
-        Each branch starts from the picture above and they are blended back together.
-      </p>
+      <p className="pt-2 pl-6 text-xs text-subtle-foreground">{KIND_NOTES[group.kind]}</p>
     </div>
   );
 }

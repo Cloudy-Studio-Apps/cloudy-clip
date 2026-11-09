@@ -9,6 +9,7 @@ import {
   type GradeNodeId,
   type ProjectState,
 } from "@/modules/project";
+import { keyProblem } from "./logic/keys";
 import type { GradeTarget } from "./tint.types";
 
 /** The clip a target names, or null for a group or a composition. Throws when it is missing or can't be graded. */
@@ -112,4 +113,35 @@ export function dropTracks(
     if (path.startsWith("grade.") && drop(path)) delete clip.animation[path];
   }
   if (Object.keys(clip.animation).length === 0) delete clip.animation;
+}
+
+/**
+ * Throws when correction `id` of `grade` takes its key (`limit.from`) from where it can't:
+ * `tint.node_not_found` (no such node), `tint.key_not_limited` (not a correction whose limit
+ * limits something) or `tint.key_cycle` (the key's node reads this one, or is it).
+ */
+export function checkSharedKey(grade: ClipGrade, id: GradeNodeId): void {
+  const node = grade.nodes[id];
+  const from = node?.kind === "correct" ? node.limit?.from : undefined;
+  if (from === undefined) return;
+  const problem = keyProblem(grade, id, from);
+  if (problem === "missing") {
+    throw new CommandFailure("tint.node_not_found", `No node "${from}" to take a key from`, {
+      nodeId: from,
+    });
+  }
+  if (problem === "not_limited") {
+    throw new CommandFailure(
+      "tint.key_not_limited",
+      `Node "${from}" is not a correction with a limit, so it has no pick to share.`,
+      { nodeId: from },
+    );
+  }
+  if (problem === "cycle") {
+    throw new CommandFailure(
+      "tint.key_cycle",
+      `Node "${id}" can't use the pick of "${from}": that one is drawn from this one, so the key would read itself. Use the pick of a correction above it.`,
+      { nodeId: id, from },
+    );
+  }
 }

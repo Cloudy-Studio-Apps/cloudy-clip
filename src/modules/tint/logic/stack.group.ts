@@ -1,4 +1,5 @@
 import type { ClipGrade, GradeNodeId, NodeRef } from "@/modules/project";
+import type { StackGroupInfo } from "../tint.types";
 import { validateGrade } from "@/modules/project";
 import { sameRef } from "./order";
 import { CHANNELS, bareSplit, locate, rewire, rewireAt, swapRefs, upstream } from "./rewire";
@@ -96,4 +97,21 @@ export function ungroup(grade: ClipGrade, joinId: GradeNodeId): ClipGrade {
   if (problem !== null)
     throw new Error(`ungrouping "${joinId}" makes an invalid grade: ${problem}`);
   return next;
+}
+
+/**
+ * A group of the stack by its join id: the corrections inside it (every branch, nested groups
+ * included) and, for a per-channel group, its split. Null when `joinId` is not a group the stack
+ * shows.
+ */
+export function groupOf(grade: ClipGrade, joinId: GradeNodeId): StackGroupInfo | null {
+  const parse = parseStack(grade);
+  const found = locate(parse, joinId);
+  const item = found?.entry.item;
+  if (!found || item?.type !== "group") return null;
+  const corrections = found.entry.nodes.filter((id) => grade.nodes[id]?.kind === "correct");
+  const branch = parse.lists.find((list) => list.sink.kind !== "out" && list.sink.node === joinId);
+  return item.kind === "channels" && branch
+    ? { corrections, split: branch.entry.node }
+    : { corrections };
 }
