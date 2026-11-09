@@ -1,4 +1,4 @@
-import type { Composition, CompositionMix, Track, TrackMix } from "../project.types";
+import type { Composition, CompositionMix, MixBus, Track, TrackMix } from "../project.types";
 import { dbToLinear, minimize } from "./sound";
 
 /** How an audio track mixes until it's changed: as its clips sound. */
@@ -25,10 +25,21 @@ export function minimizeTrackMix(mix: TrackMix): TrackMix | undefined {
   return minimize(effects?.length ? mix : rest, DEFAULT_TRACK_MIX);
 }
 
-/** `mix`, or undefined when it's what a composition has anyway; an empty master chain is dropped. */
+/** A group without an empty chain. */
+function minimizeBus(bus: MixBus): MixBus {
+  const { effects, ...rest } = bus;
+  return effects?.length ? bus : rest;
+}
+
+/** `mix`, or undefined when it's what a composition has anyway; no groups means none stored; an empty master chain is dropped. */
 export function minimizeCompositionMix(mix: CompositionMix): CompositionMix | undefined {
   const { effects, ...master } = mix.master;
-  return minimize(effects?.length ? mix : { ...mix, master }, DEFAULT_COMPOSITION_MIX);
+  const { buses, ...rest } = mix;
+  const kept = buses?.length ? { buses: buses.map(minimizeBus) } : {};
+  return minimize(
+    { ...rest, ...kept, master: effects?.length ? mix.master : master },
+    DEFAULT_COMPOSITION_MIX,
+  );
 }
 
 /**

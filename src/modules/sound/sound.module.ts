@@ -18,6 +18,7 @@ import { soundEffectCommands } from "./sound.effects.commands";
 import { soundDenoiseCommands } from "./sound.denoise.commands";
 import { followDenoiseNeeds } from "./sound.denoise.follow";
 import { soundLineCommands } from "./sound.line.commands";
+import { soundBusCommands } from "./sound.bus.commands";
 import { soundMixCommands } from "./sound.mix.commands";
 import { followSoundPageLeave } from "./sound.leave";
 import { clearListening, soundMonitorCommands } from "./sound.monitor.commands";
@@ -62,6 +63,7 @@ export const soundModule = defineModule({
   ],
   commands: [
     ...soundMixCommands,
+    ...soundBusCommands,
     ...soundLineCommands,
     ...soundClipLineCommands,
     ...soundEffectCommands,

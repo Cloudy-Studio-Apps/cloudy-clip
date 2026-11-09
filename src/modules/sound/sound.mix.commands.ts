@@ -21,7 +21,22 @@ function liveMix(state: ProjectState, compositionId: CompositionId): MixSnapshot
   for (const track of orderedTracks(state, compositionId)) {
     if (track.kind === "audio" && track.mix) tracks[track.id] = trackMixOf(track);
   }
-  return { tracks, master: compositionMixOf(state.compositions[compositionId]!).master };
+  const mix = compositionMixOf(state.compositions[compositionId]!);
+  return { tracks, master: mix.master, ...(mix.buses?.length && { buses: mix.buses }) };
+}
+
+/** A mix whose tracks send only to groups it has (a group can be removed from one mix and not seen by the other). */
+function validSends(mix: MixSnapshot): MixSnapshot {
+  const ids = new Set((mix.buses ?? []).map((b) => b.id));
+  const tracks = Object.fromEntries(
+    Object.entries(mix.tracks).map(([id, m]) => {
+      if (m.busId === undefined || ids.has(m.busId)) return [id, m];
+      const rest = { ...m };
+      delete rest.busId;
+      return [id, rest];
+    }),
+  );
+  return { ...mix, tracks };
 }
 
 /** Sets how an audio track sounds in the mix. */
@@ -91,7 +106,7 @@ export const switchMix = defineCommand({
   id: "sound.switchMix",
   label: "Switch mix",
   description:
-    'Switches your open composition (or compositionId) to mix "a" or "b": every audio track\'s volume, pan, effects and volume line, and the master, are swapped with those of the other mix. The first time, B starts as a copy of A. Switching to the mix that is active does nothing.',
+    'Switches your open composition (or compositionId) to mix "a" or "b": every audio track\'s volume, pan, send, effects and volume line, the groups and the master, are swapped with those of the other mix. The first time, B starts as a copy of A. Switching to the mix that is active does nothing.',
   undoable: true,
   input: z.object({ compositionId: z.string().optional(), to: z.enum(["a", "b"]) }),
   run(ctx, { compositionId, to }) {
@@ -101,13 +116,14 @@ export const switchMix = defineCommand({
     const current = compositionMixOf(state.compositions[id]!);
     if (current.activeMix === to) return;
     const live = liveMix(state, id);
-    const incoming = current.otherMix ?? live;
+    const incoming = validSends(current.otherMix ?? live);
     ctx.mutate(store, (draft) => {
       for (const track of orderedTracks(draft, id)) {
         if (track.kind === "audio") writeTrack(track, incoming.tracks[track.id]);
       }
       writeComposition(draft.compositions[id]!, {
         master: incoming.master,
+        ...(incoming.buses?.length && { buses: incoming.buses }),
         activeMix: to,
         otherMix: live,
       });

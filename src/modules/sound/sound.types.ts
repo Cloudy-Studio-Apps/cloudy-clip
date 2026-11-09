@@ -10,6 +10,7 @@ import type {
   ProjectState,
   SoundEffect,
   TrackId,
+  BusId,
 } from "@/modules/project";
 import type { LoopRange, MonitorState, PreviewApi } from "@/modules/preview";
 import type { MediaApi } from "@/modules/media";
@@ -324,10 +325,13 @@ export interface LiveTake {
   failure: unknown;
 }
 
-/** What a mixer strip addresses: an audio track, or the master. */
-export type MixTarget = TrackId | "master";
+/** The tracks that listen through ducks or send to groups, as `closesLoop` reads them. */
+export type ListenNodes = Record<TrackId, { mix?: { busId?: BusId; effects?: SoundEffect[] } }>;
 
-/** Where a chain command acts: a track, or the master of `compositionId` (default: the open one). */
+/** What a mixer strip addresses: an audio track, a group (its `BusId`), or the master. */
+export type MixTarget = TrackId | BusId | "master";
+
+/** Where a chain command acts: a track, or the master or a group of `compositionId` (default: the open one). */
 export interface ChainWhere {
   target: MixTarget;
   compositionId?: CompositionId;

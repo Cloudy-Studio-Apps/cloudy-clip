@@ -260,6 +260,45 @@ describe("composition commands", () => {
     expect(state().tracks[audio]!.mix!.effects![0]).toMatchObject({ listensTo: [video] });
   });
 
+  it("a copy's groups are its own, and its sends and ducks follow them", async () => {
+    const { compositionId } = await ok(createComposition, { name: "Intro" });
+    const [video, audio] = state().compositions[compositionId]!.trackOrder as [string, string];
+    const bus = { id: "bus1", name: "Music", volumeDb: -3, muted: false };
+    write((draft) => {
+      draft.tracks[audio]!.mix = {
+        volumeDb: 0,
+        pan: 0,
+        busId: "bus1",
+        effects: [
+          {
+            id: "fx1",
+            kind: "duck",
+            on: true,
+            listensTo: [video, "bus1"],
+            depthDb: -9,
+            attackMs: 20,
+            releaseMs: 300,
+          },
+        ],
+      };
+      draft.compositions[compositionId]!.mix = {
+        master: { volumeDb: 0 },
+        activeMix: "a",
+        buses: [bus],
+      };
+    });
+    const copy = await ok(duplicateComposition, { compositionId });
+    const made = state().compositions[copy.compositionId]!;
+    const [copyVideo, copyAudio] = made.trackOrder as [string, string];
+    const copyBus = made.mix!.buses![0]!;
+    expect(copyBus).toMatchObject({ name: "Music", volumeDb: -3 });
+    expect(copyBus.id).not.toBe("bus1");
+    const mix = state().tracks[copyAudio]!.mix!;
+    expect(mix.busId).toBe(copyBus.id);
+    expect(mix.effects![0]).toMatchObject({ listensTo: [copyVideo, copyBus.id] });
+    expect(state().tracks[audio]!.mix!.busId).toBe("bus1");
+  });
+
   describe("the automatic start", () => {
     const ready = (media: Record<string, MediaProbe>) =>
       kernel.modules.require(mediaRef).probes.setState({ probes: media });

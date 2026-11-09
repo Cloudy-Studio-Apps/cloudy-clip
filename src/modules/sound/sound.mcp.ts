@@ -19,6 +19,7 @@ import {
   writePasses,
 } from "./sound.line.commands";
 import { soundRef } from "./sound.ref";
+import { addBus, removeBus, sendTo, setBus } from "./sound.bus.commands";
 import { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
 
 /** A level for JSON: dBFS to a tenth, null for silence (JSON has no -Infinity). */
@@ -91,6 +92,10 @@ export const soundMcpTools = [
   commandTool(resetTrackMix, { name: "sound_reset_track_mix" }),
   commandTool(setMaster, { name: "sound_set_master" }),
   commandTool(switchMix, { name: "sound_switch_mix" }),
+  commandTool(addBus, { name: "sound_add_bus" }),
+  commandTool(setBus, { name: "sound_set_bus" }),
+  commandTool(removeBus, { name: "sound_remove_bus" }),
+  commandTool(sendTo, { name: "sound_send_to" }),
   commandTool(setLineKey, { name: "sound_set_line_key" }),
   commandTool(moveLineKeys, { name: "sound_move_line_keys" }),
   commandTool(removeLineKeys, { name: "sound_remove_line_keys" }),
