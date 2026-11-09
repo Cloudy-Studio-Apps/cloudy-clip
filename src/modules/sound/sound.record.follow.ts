@@ -1,9 +1,9 @@
 import type { StoreApi } from "zustand/vanilla";
-import { LOCAL_ACTOR, type PagesState } from "@/core";
+import { followPageLeave, LOCAL_ACTOR, type PagesState } from "@/core";
 import type { PlaybackClock } from "@/modules/preview";
 import { frameDuration, type ProjectApi } from "@/modules/project";
 import type { WorkspaceApi } from "@/modules/workspace";
-import { followSoundPageLeave } from "./sound.leave";
+import { SOUND_PAGE } from "./sound.ref";
 import type { Recorder } from "./sound.types";
 
 /** How far ahead of the time passed the playhead may be before it counts as a jump (µs). */
@@ -46,7 +46,7 @@ export function followRecordingEnds(
       const ahead = Math.max(frame, FORWARD_SLACK_US);
       if (time < before - frame || time > before + moved + ahead) void recorder.stop();
     }),
-    followSoundPageLeave(pages, () => void recorder.stop()),
+    followPageLeave(pages, SOUND_PAGE, () => void recorder.stop()),
     project.view.store.subscribe(() => {
       const next = project.view.openFor(LOCAL_ACTOR);
       if (next !== open && status() !== "idle") void recorder.stop();

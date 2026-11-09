@@ -49,7 +49,7 @@ export { createPointRegistry, definePoint } from "./module/points";
 export type { Point, PointOptions, PointReader, PointRegistry } from "./module/points.types";
 
 // Shell points (panels, keybindings)
-export { EDITOR_PAGE, pagesRef, showPage } from "./shell/shell.pages";
+export { EDITOR_PAGE, followPageLeave, pagesRef, showPage } from "./shell/shell.pages";
 export {
   appOverlays,
   appPageGroups,

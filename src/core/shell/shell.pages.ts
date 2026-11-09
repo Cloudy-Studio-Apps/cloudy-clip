@@ -1,6 +1,6 @@
 import { Scissors } from "lucide-react";
 import { z } from "zod";
-import { createStore } from "zustand/vanilla";
+import { createStore, type StoreApi } from "zustand/vanilla";
 import { defineCommand } from "../command/command.define";
 import { defineModule, defineModuleRef } from "../module/module.define";
 import { appPageGroups, appPages, PAGE_GROUP_CREATE, PAGE_GROUP_DELIVER } from "./shell.points";
@@ -23,6 +23,22 @@ export const showPage = defineCommand({
     ctx.require(pagesRef).store.setState({ active: page });
   },
 });
+
+/**
+ * Calls `onLeave` each time the active page stops being `pageId`. Returns what stops following.
+ * For state that shows only on one page and mustn't outlive it (solo, bypass).
+ */
+export function followPageLeave(
+  pages: StoreApi<PagesState>,
+  pageId: string,
+  onLeave: () => void,
+): () => void {
+  let previous = pages.getState().active;
+  return pages.subscribe(({ active }) => {
+    if (previous === pageId && active !== pageId) onLeave();
+    previous = active;
+  });
+}
 
 /** The built-in `pages` module: which page shows, the tab groups and the editor's tab. */
 export const pagesModule = defineModule({

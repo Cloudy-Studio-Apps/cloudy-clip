@@ -1,5 +1,12 @@
 import { Palette } from "lucide-react";
-import { appPages, defineModule, keybindings, pagesRef, topBarItems } from "@/core";
+import {
+  appPages,
+  defineModule,
+  followPageLeave,
+  keybindings,
+  pagesRef,
+  topBarItems,
+} from "@/core";
 import { pictureFilters, previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { followCurrent, createCurrent } from "./tint.current";
@@ -7,7 +14,6 @@ import { tintCommands } from "./tint.commands";
 import { createTintFilter } from "./tint.filter";
 import { createThumbs } from "./tint.thumb";
 import { tintKeys } from "./tint.keys";
-import { followTintPageLeave } from "./tint.leave";
 import { tintMcpTools } from "./tint.mcp";
 import { TINT_PAGE, tintRef } from "./tint.ref";
 import { createTintLive, createTintView } from "./tint.store";
@@ -32,7 +38,7 @@ export const tintModule = defineModule({
       followCurrent({ project: ctx.require(projectRef), clock: preview.playback, view, holder }),
     );
     onDispose(
-      followTintPageLeave(ctx.require(pagesRef).store, () => void bus.run(clearViewing, {})),
+      followPageLeave(ctx.require(pagesRef).store, TINT_PAGE, () => void bus.run(clearViewing, {})),
     );
     const thumbs = createThumbs((time, compositionId, options) =>
       preview.captureAt(time, compositionId, options),
