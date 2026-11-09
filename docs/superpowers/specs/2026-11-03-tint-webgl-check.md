@@ -94,6 +94,30 @@ no measurable cost when the frame is drawn straight onto the preview. Captures a
 full size; an export of the 10 s test project still matches the one from before Task 2 in all 300
 frames, and a capture still reads black 0.
 
+## Basics and primary wheels: parity (Task 7)
+
+The CPU reference (`tint/logic/color/correct.ts`, `evaluate.ts`) against the shader
+(`tint/render/correct.glsl.ts` through `gradePasses`, the `tint.grade` picture filter and a
+`createRenderer` frame), Linux only, same machine as above, 2026-11-09.
+
+- **Method:** a 16×16 PNG of 256 fixed colors (16 grays, ramps of the six primaries and secondaries,
+  32 skin-like tones, the rest seeded random) as the only clip of a 16×16 composition. A temporary
+  dev-only MCP tool (removed before the commit) drew the frame without a grade, then once per value
+  set with a one-correction grade, each through its own `createRenderer` (full size, the export
+  path), and compared each channel with `round(clamp(correctPixel(source / 255)) × 255)`. Values:
+  exposure, contrast, pivot, highlights, shadows, whites, blacks, temperature, tint, vibrance,
+  saturation, hue and rolloff uniform over their whole range, lift / gamma / gain / offset `x`, `y`,
+  `m` uniform in −1…1, protect skin on or off at random. The PNG decodes exactly (0, 17, 34… read
+  back unchanged).
+- **One correction, 60 value sets** (seeds 7, 11, 12345; 46 080 channel values): **max difference 1
+  step**, 0 values off by more than 1. Seed 7: 436 of 15 360 values off by 1, seed 11: 382, seed
+  12345: 451 (2.5 to 3 %). The ones off by one lean one way (reference above the GPU), as a float
+  written to an 8-bit target rounds a hair differently near the half step.
+- **Chains, 20 sets** (seed 3): three corrections at half range, the middle one at opacity 0.3…1,
+  half-float targets between them, against `evaluatePixel`: **max 1 step**, 0 above, 838 of 15 360
+  off by 1 (5.5 %).
+- **Windows:** pending, with the rest of the Windows check.
+
 ## Windows (WebView2)
 
 **Pending: owner check.** Also pending: the clean hidden run on Linux (window on another workspace for the

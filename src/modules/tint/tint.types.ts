@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand";
-import type { GradeNode, GradeNodeId, NodeRef } from "@/modules/project";
+import type { ClipId, CorrectionValues, GradeNode, GradeNodeId, NodeRef } from "@/modules/project";
 
 /** How the grade is shown: as layers (Baby Seal) or as nodes (Leader Seal). */
 export type TintMode = "baby" | "leader";
@@ -59,6 +59,60 @@ export interface TintView {
 export interface TintApi {
   /** The page's view state. Read with `useStore(api.view, selector)`. */
   readonly view: StoreApi<TintView>;
+  /** Values being dragged, drawn over the saved grade until cleared (never in history). */
+  readonly live: TintLive;
+}
+
+/** A color, each channel 0 to 1 when in range: display-referred Rec.709. */
+export type Rgb = [number, number, number];
+
+/** Where a pixel is in the picture: `u` 0 (left) to 1, `v` 0 (bottom) to 1 (top), as `v_uv`. */
+export interface PixelAt {
+  u: number;
+  v: number;
+}
+
+/** A node's live values: a correction's values being dragged, its opacity and whether it is on. */
+export type LiveNode = Partial<CorrectionValues> & { opacity?: number; on?: boolean };
+
+/** A clip's live values by node, laid over its saved grade. */
+export interface LiveGrade {
+  nodes: Record<GradeNodeId, LiveNode>;
+}
+
+/** Live values of every clip being edited, per kernel. */
+export interface TintLive {
+  /** The clip's live values, if any. */
+  get(clipId: ClipId): LiveGrade | undefined;
+  /** Sets a clip's live values, or clears them with null, and asks the preview to redraw. */
+  set(clipId: ClipId, live: LiveGrade | null): void;
+  /** Calls `fn` after each change. Returns the unsubscribe. */
+  subscribe(fn: () => void): () => void;
+}
+
+/** One correction worked out once for every pixel: what its shader's uniforms hold. */
+export interface CorrectionParams {
+  /** Multiplies linear light: `2^exposure` times the white balance gain of each channel. */
+  linear: Rgb;
+  lift: Rgb;
+  /** 1 / gamma of each channel. */
+  gammaInv: Rgb;
+  gain: Rgb;
+  offset: Rgb;
+  contrast: number;
+  /** The pivot in the log-ish space. */
+  pivot: number;
+  /** Highlights, shadows, whites and blacks as the most each band moves a value. */
+  bands: [number, number, number, number];
+  /** Where rolloff starts; 1 is off. */
+  knee: number;
+  saturation: number;
+  /** Vibrance, -1 to 1. */
+  vibrance: number;
+  /** cos and sin of the hue turn. */
+  hue: [number, number];
+  /** 1 protects skin hues from saturation, vibrance and hue, 0 doesn't. */
+  skin: number;
 }
 
 /** A point in the node graph, in graph units. */
