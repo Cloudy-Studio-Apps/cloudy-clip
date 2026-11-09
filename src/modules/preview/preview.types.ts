@@ -13,6 +13,7 @@ import type {
   ProjectState,
   SoundEffect,
   TrackId,
+  MasterMix,
   TrackMix,
 } from "@/modules/project";
 
@@ -304,10 +305,13 @@ export interface LoudnessMessage {
   reading: LoudnessReading;
 }
 
+/** A live patch of a track's, a group's or the master's mix; `trimDb` is the master's only. */
+export type LiveMixPatch = Partial<TrackMix> & Pick<Partial<MasterMix>, "trimDb">;
+
 /** What the user hears beside the document: live drag values, solo and the monitor. */
 export interface LiveSound {
   /** Live values of tracks, groups (by id) and the master (`"master"`), drawn over the saved ones. */
-  mix: ReadonlyMap<TrackId | "master", Partial<TrackMix>>;
+  mix: ReadonlyMap<TrackId | "master", LiveMixPatch>;
   /** Tracks soloed; none means every track sounds. */
   solo: TrackId[];
   monitor: MonitorState;
@@ -320,7 +324,7 @@ export interface PreviewSound {
    * (feedback while a fader or pan is dragged). Pass null to go back to the saved mix. The edit
    * commits with `sound.setTrackMix`, `sound.setBus` or `sound.setMaster`.
    */
-  previewMix(target: TrackId | "master", patch: Partial<TrackMix> | null): void;
+  previewMix(target: TrackId | "master", patch: LiveMixPatch | null): void;
   /** How the user listens: mono, dim and speaker volume. */
   setMonitor(state: MonitorState): void;
   /** Silences every other track's bus; an empty list lets every track sound. */

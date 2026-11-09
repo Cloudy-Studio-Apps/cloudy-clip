@@ -23,9 +23,8 @@ export function createAnalyzer(
 
   return {
     state,
-    async start(compositionId, spec, peakDbtp) {
+    async start(compositionId, spec, peakDbtp, measured = project()) {
       if (state.getState().running[compositionId]) return;
-      const measured = project();
       let progress = 0;
       // Marked before the first await, so a second start can't pass the check above.
       state.setState((s) => ({

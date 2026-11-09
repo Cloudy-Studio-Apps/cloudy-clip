@@ -111,6 +111,12 @@ export interface TrackMix {
 export interface MasterMix {
   /** -60 to 12. */
   volumeDb: number;
+  /**
+   * The master's input trim, -24 to 24 dB, on the sum before the fader (and its line), pan and
+   * effects, after stems are taken: what Match target sets, so the fader stays the user's. Missing
+   * means 0; 0 is never stored.
+   */
+  trimDb?: number;
   /** -1 (left) to 1 (right): a balance on the stereo mix, with a track pan's law. Missing means centred; 0 is never stored. */
   pan?: number;
   /** Silences the whole mix (stems are taken before the master, so they still sound). Missing means false; false is never stored. */

@@ -416,8 +416,11 @@ function mixOf(
     tracks,
     buses,
     master: {
-      // Muted, the master adds nothing: stems are taken before it and still sound.
-      ...(master.muted ? { gain: 0 } : trackLevel(master, range)),
+      // Muted, the master adds nothing: stems are taken before it and still sound. Its trim is
+      // the same level stage as the fader (and a correction), before its pan and effects.
+      ...(master.muted
+        ? { gain: 0 }
+        : trackLevel({ ...master, volumeDb: master.volumeDb + (master.trimDb ?? 0) }, range)),
       ...(master.pan !== undefined && master.pan !== 0 && { pan: master.pan }),
       ...withEffects(mixEffects(master.effects, audio, busIds)),
     },

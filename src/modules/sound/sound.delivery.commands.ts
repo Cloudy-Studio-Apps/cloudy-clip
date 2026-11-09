@@ -2,12 +2,12 @@ import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import { compositionMixOf, projectRef, type DeliverySettings } from "@/modules/project";
 import { soundOnlySpec } from "@/modules/export";
-import { addEffect, setEffect } from "./sound.effects.commands";
+import { addEffect, moveEffect, setEffect } from "./sound.effects.commands";
 import { setMaster } from "./sound.mix.commands";
 import { isStale, storedFor } from "./sound.analysis.store";
 import { targetComposition, writeComposition } from "./sound.mix.write";
 import { DEFAULT_STANDARD, deliveryOf, settingsOf } from "./logic/standards";
-import { faderAfter, firstChange } from "./logic/match";
+import { limiterPlan, trimAfter, trimChange } from "./logic/match";
 import { soundRef } from "./sound.ref";
 
 const STANDARD_IDS = [
@@ -76,8 +76,9 @@ export const analyzeMix = defineCommand({
     if (analyzer.state.getState().running[id]) {
       return { started: false, running: true, compositionId: id };
     }
-    const { peakDbtp } = deliveryOf(compositionMixOf(store.getState().compositions[id]!));
-    await analyzer.start(id, soundOnlySpec(ctx, id), peakDbtp);
+    const measured = store.getState();
+    const { peakDbtp } = deliveryOf(compositionMixOf(measured.compositions[id]!));
+    await analyzer.start(id, soundOnlySpec(ctx, id), peakDbtp, measured);
     return { started: true, compositionId: id };
   },
 });
@@ -100,7 +101,7 @@ export const startMatch = defineCommand({
   id: "sound.startMatch",
   label: "Match target",
   description:
-    "Brings the whole mix of your open composition (or compositionId) to its delivery target, in the background, and returns at once ({ started: true }). It uses the last analysis when fresh (or measures the mix), works out Master's change and a Limiter at the peak limit, measures the mix again with them on the side (the project isn't touched yet), corrects once by what is still missing (at most 3 dB, so the limiter isn't left doing all the work), then makes the one change (sound.matchTarget, one undo step) and analyzes where the mix landed. If one already runs, returns { started: false, running: true }. If the project changes meanwhile, it stops and changes nothing. Fails at once with export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending, composition.not_found.",
+    "Brings the whole mix of your open composition (or compositionId) to its delivery target, in the background, and returns at once ({ started: true }). It uses the last analysis when fresh (or measures the mix), works out Master's change and a Limiter at the peak limit, measures the mix again with them on the side (the project isn't touched yet), corrects once by what is still missing (at most 3 dB, so the limiter isn't left doing all the work), then makes the one change (sound.matchTarget, one undo step) and analyzes where the mix landed. If one already runs, returns { started: false, running: true }. If the project changes meanwhile, it stops and changes nothing. Fails at once only when the mix can't be built: composition.not_found, export.noComposition, export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending. What fails later (a silent mix, a failed analysis, a change to the project, a cancel) ends it without a change: the reason is in the analyses' matchFailed (and a toast), and sound_match_target returns it as sound.match_failed.",
   undoable: false,
   input: z.object({ compositionId: z.string().optional() }),
   run(ctx, { compositionId }) {
@@ -114,12 +115,12 @@ export const startMatch = defineCommand({
   },
 });
 
-/** Moves Master's volume by the measured difference to the target, and guards the peak with a limiter. */
+/** Moves Master's trim by the measured difference to the target, and guards the peak with a limiter. */
 export const matchTarget = defineCommand({
   id: "sound.matchTarget",
   label: "Match target",
   description:
-    "Raises or lowers Master's volume (the fader, on top of any master volume line, which is not touched) by the difference between the delivery target and the last analysis, plus correctionDb (-60 to 12 dB in all), and adds a Limiter to Master at the peak limit (or at ceilingDb, under it) if the master has none, in one undo step. Needs a fresh analysis: fails with sound.no_analysis, sound.analysis_stale (the document changed since) or sound.silent_mix. Returns { volumeDb, changeDb, limiterAdded, clamped } (clamped: the fader's range kept the mix from the target). A limiter already on Master that is switched off is switched on and set to that ceiling instead of adding a second; one that works is left as it is. sound.startMatch (Match target) runs it with the correction its second measurement found.",
+    "Raises or lowers Master's input trim (before the fader, its volume line, pan and effects; the fader and the line are not touched) by the difference between the delivery target and the last analysis, plus correctionDb (the trim stays within -24 to 24 dB), and guards the peak limit with a Limiter at the end of Master's chain, in one undo step: one that works is left as it is; one that is off is switched on at the peak limit (or ceilingDb, under it), and moved to the end when it isn't last; otherwise one is added there. Needs a fresh analysis: fails with sound.no_analysis, sound.analysis_stale (the document changed since) or sound.silent_mix. Returns { trimDb, changeDb, limiterAdded, clamped } (clamped: the trim's range kept the mix from the target). sound.startMatch (Match target) runs it with the correction its second measurement found.",
   undoable: true,
   input: z.object({
     compositionId: z.string().optional(),
@@ -158,42 +159,33 @@ export const matchTarget = defineCommand({
     }
     const mix = compositionMixOf(store.getState().compositions[id]!);
     const delivery = deliveryOf(mix);
-    const before = mix.master.volumeDb;
-    const wanted = before + delivery.loudnessLufs - integrated + correctionDb;
-    const volumeDb = faderAfter(
-      before,
-      firstChange(before, delivery.loudnessLufs, integrated) + correctionDb,
-    );
-    await ctx.execute(setMaster, { compositionId: id, volumeDb });
-    const limit = Math.min(0, Math.max(-20, delivery.peakDbtp));
-    const ceilingDb = Math.min(limit, ceilingIn ?? limit);
-    const limiter = mix.master.effects?.find((e) => e.kind === "limiter");
-    const limiterAdded = !limiter;
-    if (!limiter) {
-      const { effectId } = await ctx.execute(addEffect, {
-        target: "master",
-        compositionId: id,
-        kind: "limiter",
-      });
+    const before = mix.master.trimDb ?? 0;
+    const gap = delivery.loudnessLufs - integrated;
+    const trimDb = trimAfter(before, trimChange(before, gap) + correctionDb);
+    await ctx.execute(setMaster, { compositionId: id, trimDb });
+    const plan = limiterPlan(mix.master, delivery.peakDbtp);
+    if (plan.own) {
+      const ceilingDb = Math.min(plan.ceilingDb, ceilingIn ?? plan.ceilingDb);
+      const effectId =
+        plan.switchOn ??
+        (await ctx.execute(addEffect, { target: "master", compositionId: id, kind: "limiter" }))
+          .effectId;
       await ctx.execute(setEffect, {
         target: "master",
         compositionId: id,
         effectId,
-        patch: { ceilingDb },
-      });
-    } else if (!limiter.on) {
-      await ctx.execute(setEffect, {
-        target: "master",
-        compositionId: id,
-        effectId: limiter.id,
         patch: { on: true, ceilingDb },
       });
+      if (plan.toEnd) {
+        const to = (mix.master.effects?.length ?? 1) - 1;
+        await ctx.execute(moveEffect, { target: "master", compositionId: id, effectId, to });
+      }
     }
     return {
-      volumeDb,
-      changeDb: Math.round((volumeDb - before) * 100) / 100,
-      limiterAdded,
-      clamped: Math.abs(volumeDb - wanted) > 0.005,
+      trimDb,
+      changeDb: Math.round((trimDb - before) * 100) / 100,
+      limiterAdded: plan.own && plan.switchOn === null,
+      clamped: Math.abs(trimDb - (before + gap + correctionDb)) > 0.005,
     };
   },
 });

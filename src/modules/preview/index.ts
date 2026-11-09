@@ -19,6 +19,7 @@ export { peakToDb } from "./logic/db";
 export type {
   FrameRenderer,
   FrameRendererOptions,
+  LiveMixPatch,
   LiveSound,
   LoopRange,
   LoudnessReading,

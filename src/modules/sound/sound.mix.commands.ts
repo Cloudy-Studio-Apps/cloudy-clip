@@ -7,6 +7,7 @@ import {
   panSchema,
   projectRef,
   trackMixOf,
+  trimDbSchema,
   volumeDbSchema,
   type CompositionId,
   type MixSnapshot,
@@ -67,20 +68,21 @@ export const resetTrackMix = defineCommand({
   },
 });
 
-/** Sets the master of a composition: its volume, pan and mute. */
+/** Sets the master of a composition: its volume, input trim, pan and mute. */
 export const setMaster = defineCommand({
   id: "sound.setMaster",
   label: "Change master",
   description:
-    "Changes the master of your open composition, or of compositionId: volumeDb (-60 to 12), pan (-1 left to 1 right, a balance of the stereo mix) and muted (silences the whole mix; stems are taken before the master and still sound). Only the values you pass change; its effects and volume line stay. Fails with composition.not_found.",
+    "Changes the master of your open composition, or of compositionId: volumeDb (-60 to 12), trimDb (the input trim, -24 to 24, on the sum before the fader, after stems are taken; what match target sets), pan (-1 left to 1 right, a balance of the stereo mix) and muted (silences the whole mix; stems are taken before the master and still sound). Only the values you pass change; its effects and volume line stay. Fails with composition.not_found.",
   undoable: true,
   input: z.object({
     compositionId: z.string().optional(),
     volumeDb: volumeDbSchema.optional(),
+    trimDb: trimDbSchema.optional(),
     pan: panSchema.optional(),
     muted: z.boolean().optional(),
   }),
-  run(ctx, { compositionId, volumeDb, pan, muted }) {
+  run(ctx, { compositionId, volumeDb, trimDb, pan, muted }) {
     const { store } = ctx.require(projectRef);
     const id = targetComposition(ctx, compositionId);
     ctx.mutate(store, (draft) => {
@@ -88,6 +90,9 @@ export const setMaster = defineCommand({
       const mix = compositionMixOf(composition);
       const master = { ...mix.master };
       if (volumeDb !== undefined) master.volumeDb = volumeDb;
+      // 0 is never stored.
+      if (trimDb === 0) delete master.trimDb;
+      else if (trimDb !== undefined) master.trimDb = trimDb;
       if (pan !== undefined) master.pan = pan;
       if (muted !== undefined) master.muted = muted;
       writeComposition(composition, { ...mix, master });

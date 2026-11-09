@@ -157,11 +157,14 @@ export {
 export { keyEase } from "./logic/keys.schema";
 /** The schemas of sound values, shared by every command that sets them. */
 export {
+  TRIM_DB_MAX,
+  TRIM_DB_MIN,
   VOLUME_DB_MAX,
   VOLUME_DB_MIN,
   eqBandSchema,
   eqSchema,
   panSchema,
+  trimDbSchema,
   volumeDbSchema,
 } from "./logic/sound.schema";
 

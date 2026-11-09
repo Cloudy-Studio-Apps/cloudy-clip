@@ -167,7 +167,8 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
       const masterLines = masterMix.volumeLine ? [{ line: masterMix.volumeLine, shift: 0 }] : [];
       masterLevel.set({
         lines: masterLines,
-        offsetDb: masterMix.volumeDb,
+        // The trim is on the same stage as the fader, as in the export.
+        offsetDb: masterMix.volumeDb + (masterMix.trimDb ?? 0),
         muted: masterMix.muted === true,
       });
       const pan = masterMix.pan ?? 0;

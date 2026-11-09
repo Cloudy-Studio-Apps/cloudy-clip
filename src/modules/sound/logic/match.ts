@@ -1,9 +1,9 @@
-import { VOLUME_DB_MAX, VOLUME_DB_MIN, type MasterMix } from "@/modules/project";
+import { TRIM_DB_MAX, TRIM_DB_MIN, type MasterMix } from "@/modules/project";
 import type { LimiterPlan, SecondStep, SecondStepInput } from "../sound.types";
 import { defaultSpec } from "./effects";
 
 /**
- * The most the second step moves Master, either way, in dB. Past it, more level would only push
+ * The most the second step moves Master's trim, either way, in dB. Past it, more level would only push
  * the mix harder into the limiter: the limiter's ceiling would be the only thing working, so the
  * mix lands short of the target instead.
  */
@@ -15,38 +15,42 @@ const MIN_SLOPE = 0.25;
 /** A dB figure to hundredths. */
 const hundredths = (db: number) => Math.round(db * 100) / 100;
 
-/** The most a correction of an export moves its master, dB, either way (as `export` takes it). */
-const CORRECTION_MAX_DB = 72;
+/** Master's trim moved by `changeDb`, kept in the trim's range, to hundredths. */
+export function trimAfter(trimDb: number, changeDb: number): number {
+  return hundredths(Math.min(TRIM_DB_MAX, Math.max(TRIM_DB_MIN, trimDb + changeDb)));
+}
 
 /**
- * The level a correction of one export adds, to hundredths: with no fader to move, as far as it
- * must, within what a correction takes.
+ * How far Master's trim moves for `wantedDb` (here, and as an export's correction: the same
+ * stage), within the trim's range.
  */
-export function correctionGain(changeDb: number): number {
-  return hundredths(Math.min(CORRECTION_MAX_DB, Math.max(-CORRECTION_MAX_DB, changeDb)));
-}
-
-/** Master's fader moved by `changeDb`, kept in the fader's range, to hundredths. */
-export function faderAfter(volumeDb: number, changeDb: number): number {
-  return hundredths(Math.min(VOLUME_DB_MAX, Math.max(VOLUME_DB_MIN, volumeDb + changeDb)));
-}
-
-/** The first step: how far Master moves for the gap between the target and what was measured. */
-export function firstChange(volumeDb: number, targetLufs: number, integrated: number): number {
-  return hundredths(faderAfter(volumeDb, targetLufs - integrated) - volumeDb);
+export function trimChange(trimDb: number, wantedDb: number): number {
+  return hundredths(trimAfter(trimDb, wantedDb) - trimDb);
 }
 
 /**
- * The limiter matching uses: a working one on Master is the user's and stays as it is; one that is
- * off is switched on at the peak limit, keeping its release; with none, a new one at the peak
- * limit.
+ * The limiter matching uses: a working one on Master is the user's and stays as it is. One that
+ * is off is switched on at the peak limit, keeping its release, and moved to the end of the chain
+ * when it isn't last (a chain holds one of each kind): where a correction's limiter sits.
+ * Otherwise a new one at the peak limit, at the end.
  */
 export function limiterPlan(master: MasterMix, peakDbtp: number): LimiterPlan {
   const ceilingDb = Math.min(0, Math.max(-20, peakDbtp));
-  const limiter = master.effects?.find((effect) => effect.kind === "limiter");
-  if (limiter?.on) return { own: false, ceilingDb: limiter.ceilingDb };
-  const releaseMs = limiter?.releaseMs ?? defaultSpec("limiter").releaseMs;
-  return { own: true, ceilingDb, releaseMs };
+  const effects = master.effects ?? [];
+  const index = effects.findIndex((effect) => effect.kind === "limiter");
+  const limiter = effects[index];
+  if (limiter?.kind !== "limiter") {
+    return {
+      own: true,
+      ceilingDb,
+      releaseMs: defaultSpec("limiter").releaseMs,
+      switchOn: null,
+      toEnd: false,
+    };
+  }
+  if (limiter.on) return { own: false, ceilingDb: limiter.ceilingDb };
+  const toEnd = index !== effects.length - 1;
+  return { own: true, ceilingDb, releaseMs: limiter.releaseMs, switchOn: limiter.id, toEnd };
 }
 
 /**

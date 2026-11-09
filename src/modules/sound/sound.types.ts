@@ -645,7 +645,16 @@ export interface MixAnalysis {
  * whose ceiling it sets, at the peak limit; or the user's working one, left as it is.
  */
 export type LimiterPlan =
-  { own: true; ceilingDb: number; releaseMs: number } | { own: false; ceilingDb: number };
+  | {
+      own: true;
+      ceilingDb: number;
+      releaseMs: number;
+      /** The id of the off limiter on Master that is switched on; null: a new one is added. */
+      switchOn: string | null;
+      /** The off limiter isn't last: it moves to the end, where a correction's limiter sits. */
+      toEnd: boolean;
+    }
+  | { own: false; ceilingDb: number };
 
 /** What Match target needs from the rest of the module. */
 export interface MatcherDeps {
@@ -689,10 +698,11 @@ export interface MatchRun {
 
 /** What Match target did (`sound.matchTarget`'s result) and where the mix landed. */
 export interface MatchOutcome {
-  volumeDb: number;
+  /** Master's input trim after it. */
+  trimDb: number;
   changeDb: number;
   limiterAdded: boolean;
-  /** The fader's range kept the mix from the target. */
+  /** The trim's range kept the mix from the target. */
   clamped: boolean;
   /** The second step's share of `changeDb`. */
   correctionDb: number;
@@ -734,8 +744,17 @@ export interface AnalysisState {
 /** Runs analyses of whole mixes outside the bus, which times out after 30 s. */
 export interface Analyzer {
   state: StoreApi<AnalysisState>;
-  /** Starts measuring (see `sound.analyzeMix`); rejects if the mix has no sound. Returns at once. */
-  start(compositionId: CompositionId, spec: SoundOnlySpec, peakDbtp: number): Promise<void>;
+  /**
+   * Starts measuring (see `sound.analyzeMix`); rejects if the mix has no sound. Returns at once.
+   * `measured` is the project `spec` was built from (default: the project now); the result is
+   * labelled with it, never with a later one.
+   */
+  start(
+    compositionId: CompositionId,
+    spec: SoundOnlySpec,
+    peakDbtp: number,
+    measured?: ProjectState,
+  ): Promise<void>;
   /** Stops the analysis of a composition. */
   cancel(compositionId: CompositionId): Promise<void>;
   /** Resolves when the analysis running for the composition ends; the stored result, or null (failed or cancelled). */

@@ -1,7 +1,7 @@
-import type { TrackId, TrackMix } from "@/modules/project";
+import type { TrackId } from "@/modules/project";
 import { NO_LEVELS } from "./engine/engine.meters";
 import { NO_LIVE_SOUND } from "./logic/mix";
-import type { LiveSound, PreviewEngine, PreviewSound } from "./preview.types";
+import type { LiveMixPatch, LiveSound, PreviewEngine, PreviewSound } from "./preview.types";
 
 /**
  * What the user hears beside the document, kept per kernel and handed to whichever engine is
@@ -15,7 +15,7 @@ export function createPreviewSound(engine: () => PreviewEngine | null) {
   };
 
   const sound: PreviewSound = {
-    previewMix(target: TrackId | "master", patch: Partial<TrackMix> | null) {
+    previewMix(target: TrackId | "master", patch: LiveMixPatch | null) {
       const mix = new Map(live.mix);
       if (patch) mix.set(target, patch);
       else mix.delete(target);

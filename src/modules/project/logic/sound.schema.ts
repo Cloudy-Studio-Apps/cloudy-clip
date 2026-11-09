@@ -8,6 +8,14 @@ export const VOLUME_DB_MAX = 12;
 /** A volume in decibels: `VOLUME_DB_MIN` to `VOLUME_DB_MAX` (-60 to 12). */
 export const volumeDbSchema = z.number().min(VOLUME_DB_MIN).max(VOLUME_DB_MAX);
 
+/** The lowest input trim of the master, in decibels. */
+export const TRIM_DB_MIN = -24;
+/** The highest input trim of the master, in decibels. */
+export const TRIM_DB_MAX = 24;
+
+/** The master's input trim in decibels: `TRIM_DB_MIN` to `TRIM_DB_MAX` (-24 to 24). */
+export const trimDbSchema = z.number().min(TRIM_DB_MIN).max(TRIM_DB_MAX);
+
 /** A pan: -1 (left) to 1 (right). */
 export const panSchema = z.number().min(-1).max(1);
 

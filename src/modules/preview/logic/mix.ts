@@ -43,6 +43,7 @@ export function mixUpdateOf(
     groups,
     master: {
       volumeDb: master.volumeDb,
+      trimDb: master.trimDb,
       pan: master.pan,
       muted: master.muted,
       effects: master.effects,

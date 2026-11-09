@@ -3,7 +3,7 @@ import { createKernel, defineModule, type Kernel } from "@/core";
 import { createProjectModule, projectRef, seedProject, compositionMixOf } from "@/modules/project";
 import { createAnalyzer } from "./sound.analysis";
 import { createAnalysisStore } from "./sound.analysis.store";
-import { addEffect, setEffect } from "./sound.effects.commands";
+import { addEffect, moveEffect, setEffect } from "./sound.effects.commands";
 import type { SoundApi } from "./sound.types";
 import { soundRef } from "./sound.ref";
 import { matchTarget, setDelivery } from "./sound.delivery.commands";
@@ -32,7 +32,7 @@ function measured(integrated: number | null): void {
 const delivery = defineModule({
   ref: soundRef,
   name: "Sound",
-  commands: [setDelivery, matchTarget, setMaster, addEffect, setEffect],
+  commands: [setDelivery, matchTarget, setMaster, addEffect, setEffect, moveEffect],
   setup({ require, log }) {
     const analyzer = createAnalyzer(createAnalysisStore(), require(projectRef).store.getState, log);
     return { api: { analyzer } as SoundApi };
@@ -59,36 +59,43 @@ describe("an analysis after an edit", () => {
 });
 
 describe("match target", () => {
-  it("raises Master by the gap and adds a limiter at the peak limit, in one undo step", async () => {
+  it("raises Master's trim by the gap and adds a limiter at the peak limit, in one undo step", async () => {
     await run(setDelivery, { standard: "youtube" });
-    measured(-18);
+    measured(-32);
     const result = await run(matchTarget, {});
-    expect(result).toMatchObject({ ok: true, value: { volumeDb: 4, limiterAdded: true } });
-    expect(master().volumeDb).toBe(4);
+    expect(result).toMatchObject({
+      ok: true,
+      value: { trimDb: 18, limiterAdded: true, clamped: false },
+    });
+    expect(master()).toMatchObject({ volumeDb: 0, trimDb: 18 });
     expect(master().effects).toMatchObject([{ kind: "limiter", ceilingDb: -1 }]);
     kernel.history.undo();
-    expect(master().volumeDb).toBe(0);
+    expect(master().trimDb).toBeUndefined();
     expect(master().effects).toBeUndefined();
   });
 
   it("adds the second step's correction and lower ceiling in the same one undo step", async () => {
     measured(-18);
     const result = await run(matchTarget, { correctionDb: 1.5, ceilingDb: -1.3 });
-    expect(result).toMatchObject({ ok: true, value: { volumeDb: 5.5, clamped: false } });
+    expect(result).toMatchObject({ ok: true, value: { trimDb: 5.5, clamped: false } });
     expect(master().effects).toMatchObject([{ kind: "limiter", ceilingDb: -1.3 }]);
     kernel.history.undo();
-    expect(master().volumeDb).toBe(0);
+    expect(master().trimDb).toBeUndefined();
     expect(master().effects).toBeUndefined();
   });
 
-  it("switches on a limiter that is off instead of adding a second", async () => {
+  it("switches on a limiter that is off, at the end of the chain, instead of adding a second", async () => {
     const added = await run(addEffect, { target: "master", kind: "limiter" });
     const effectId = (added as { value: { effectId: string } }).value.effectId;
     await run(setEffect, { target: "master", effectId, patch: { on: false, ceilingDb: -6 } });
+    await run(addEffect, { target: "master", kind: "eq" });
     measured(-18);
     const result = await run(matchTarget, {});
     expect(result).toMatchObject({ ok: true, value: { limiterAdded: false } });
-    expect(master().effects).toMatchObject([{ kind: "limiter", on: true, ceilingDb: -1 }]);
+    expect(master().effects).toMatchObject([
+      { kind: "eq" },
+      { kind: "limiter", on: true, ceilingDb: -1 },
+    ]);
   });
 
   it("refuses without a result and for a silent mix", async () => {

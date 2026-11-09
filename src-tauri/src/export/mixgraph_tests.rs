@@ -453,26 +453,34 @@ fn a_correction_raises_the_master_and_adds_its_limiter_last() {
 }
 
 #[test]
-fn a_correction_scales_each_point_of_the_master_line() {
-    let mut master = MasterMixSpec {
-        gain_envelope: vec![
-            EnvelopePoint { at: 0, value: 0.5 },
-            EnvelopePoint {
-                at: 500_000,
-                value: 1.0,
-            },
-        ],
-        correction: Some(MasterCorrection {
-            gain_db: 20.0 * 2f64.log10(),
-            limiter: None,
+fn a_stem_never_gets_the_correction() {
+    let mut mix = mix_of(&[TrackMixSpec::DEFAULT], 1.0);
+    mix.master.correction = Some(MasterCorrection {
+        gain_db: 20.0 * 2f64.log10(),
+        limiter: Some(LimiterSpec {
+            ceiling_db: -1.0,
+            release_ms: 50.0,
         }),
-        ..MasterMixSpec::DEFAULT
-    }
-    .corrected();
-    assert!(master.correction.is_none());
-    for (point, want) in master.gain_envelope.iter_mut().zip([1.0, 2.0]) {
-        assert!((point.value - want).abs() < 1e-9);
-    }
+    });
+    let graph = super::sound_graph(&[chain(0)], &[segment(0)], &mix, 1_000_000, &[None]);
+    // The stem is split off before the master: its own chain ends in [stem0] with neither the
+    // correction's level nor its limiter, which only the master's chain into [mixed] has.
+    let stem = graph
+        .split(';')
+        .find(|part| part.ends_with("[stem0]"))
+        .unwrap();
+    assert!(
+        !stem.contains("volume") && !stem.contains("alimiter"),
+        "{graph}"
+    );
+    let mixed = graph
+        .split(';')
+        .find(|part| part.ends_with("[mixed]"))
+        .unwrap();
+    assert!(
+        mixed.contains("volume=2.000000") && mixed.contains("alimiter"),
+        "{graph}"
+    );
 }
 
 #[test]

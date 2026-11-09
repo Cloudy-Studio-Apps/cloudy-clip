@@ -5,12 +5,13 @@ import {
   type CompositionId,
   type DeliverySettings,
   type MasterMix,
+  type ProjectState,
 } from "@/modules/project";
 import { isStale, storedFor } from "./sound.analysis.store";
 import { analyzeMix, matchTarget } from "./sound.delivery.commands";
 import { measureOnce } from "./sound.measure";
 import { deliveryOf } from "./logic/standards";
-import { correctionGain, firstChange, limiterPlan, secondStep } from "./logic/match";
+import { limiterPlan, secondStep, trimChange } from "./logic/match";
 import type {
   AnalysisState,
   LimiterPlan,
@@ -108,48 +109,54 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
     return stored && !isStale(stored, project()) ? stored : null;
   }
 
-  /** A fresh analysis of the composition: the stored one, or a new one of `spec`. */
-  async function fresh(
+  /**
+   * An analysis of `origin`, the project `spec` was built from: the stored one when it measured
+   * `origin`, or a new one of `spec`. Fails with CHANGED as soon as the project isn't `origin`.
+   */
+  async function measured(
     id: CompositionId,
     spec: SoundOnlySpec,
+    origin: ProjectState,
     signal: AbortSignal,
   ): Promise<StoredAnalysis> {
     if (state.getState().running[id]) await follow(id);
-    let stored = storedFor(state, id);
-    if (!stored || isStale(stored, project())) {
-      const { peakDbtp } = deliveryOf(compositionMixOf(project().compositions[id]!));
-      await analyzer.start(id, spec, peakDbtp);
-      stored = (await follow(id)) ?? undefined;
-      if (!stored)
-        throw new Error(state.getState().failed[id] ?? (signal.aborted ? CANCELLED : CHANGED));
-    }
-    if (isStale(stored, project())) throw new Error(CHANGED);
-    return stored;
+    if (project() !== origin) throw new Error(CHANGED);
+    const stored = storedFor(state, id);
+    if (stored?.measured === origin) return stored;
+    const { peakDbtp } = deliveryOf(compositionMixOf(origin.compositions[id]!));
+    await analyzer.start(id, spec, peakDbtp, origin);
+    await follow(id);
+    const result = storedFor(state, id);
+    if (result?.measured === origin && project() === origin) return result;
+    throw new Error(state.getState().failed[id] ?? (signal.aborted ? CANCELLED : CHANGED));
   }
 
   async function run(
     id: CompositionId,
     spec: SoundOnlySpec,
+    origin: ProjectState,
     by: MatchBy,
     signal: AbortSignal,
   ): Promise<MatchOutcome> {
-    const stored = await fresh(id, spec, signal);
+    const stored = await measured(id, spec, origin, signal);
     const { integrated } = stored.result;
     if (integrated === null) throw new Error("The mix is silent: there is nothing to match.");
-    const mix = compositionMixOf(project().compositions[id]!);
+    const mix = compositionMixOf(origin.compositions[id]!);
     enter(id, { step: "correcting", progress: 0 });
     const delivery = deliveryOf(mix);
+    const trimDb = mix.master.trimDb ?? 0;
     const { step } = await correct(
       spec,
       mix.master,
       delivery,
       stored.result,
-      firstChange(mix.master.volumeDb, delivery.loudnessLufs, integrated),
+      trimChange(trimDb, delivery.loudnessLufs - integrated),
       (progress) => enter(id, { step: "correcting", progress }),
       signal,
     );
     if (signal.aborted) throw new Error(CANCELLED);
-    if (isStale(stored, project())) throw new Error(CHANGED);
+    // Never a change worked out from one project written into another.
+    if (project() !== origin) throw new Error(CHANGED);
     const applied = await bus.run(
       matchTarget,
       { compositionId: id, correctionDb: step.correctionDb, ceilingDb: step.ceilingDb },
@@ -171,7 +178,9 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
         matching: { ...s.matching, [id]: { step: "measuring", progress: 0 } },
         matchFailed: without(s.matchFailed, id),
       }));
-      const done = run(id, spec, by, abort.signal).then(
+      // The project `spec` was just built from.
+      const origin = project();
+      const done = run(id, spec, origin, by, abort.signal).then(
         (outcome) => {
           state.setState((s) => ({ matched: { ...s.matched, [id]: outcome } }));
           return outcome;
@@ -207,8 +216,9 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
       if (before.integrated === null) {
         throw new Error("The mix is silent: there is nothing to match.");
       }
-      // No fader here: the correction goes as far as it must.
-      const changeDb = correctionGain(delivery.loudnessLufs - before.integrated);
+      // The correction is the trim's stage, held to the trim's range, as Match target here.
+      const trimDb = mix.master.trimDb ?? 0;
+      const changeDb = trimChange(trimDb, delivery.loudnessLufs - before.integrated);
       const { limiter, step } = await correct(
         spec,
         mix.master,
@@ -218,7 +228,8 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
         (p) => onProgress(0.5 + p / 2),
         signal,
       );
-      return correctionOf(correctionGain(changeDb + step.correctionDb), limiter, step.ceilingDb);
+      const gainDb = trimChange(trimDb, changeDb + step.correctionDb);
+      return correctionOf(gainDb, limiter, step.ceilingDb);
     },
     dispose() {
       for (const abort of aborts.values()) abort.abort();
