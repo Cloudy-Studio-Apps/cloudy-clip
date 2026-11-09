@@ -288,6 +288,16 @@ pub struct ExportSpec {
     pub stems: Vec<StemSpec>,
 }
 
+/// The sound of an export without a file: what an analysis measures, the mix of `sound` under
+/// `mix` for `duration` microseconds (`recipe::measure_arguments`).
+#[derive(Debug, Clone, Deserialize)]
+pub struct SoundOnlySpec {
+    pub duration: u64,
+    pub sound: Vec<SoundSegment>,
+    #[serde(default)]
+    pub mix: SoundMix,
+}
+
 /// A stem: what one group, or every track sent straight to the master (`bus` none, "Other"),
 /// adds to the mix, taken before the master's level and effects.
 #[derive(Debug, Clone, Deserialize)]

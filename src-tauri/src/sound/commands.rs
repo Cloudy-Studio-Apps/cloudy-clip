@@ -4,11 +4,15 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use tauri::State;
-use tauri::ipc::{InvokeBody, Request};
+use tauri::ipc::{Channel, InvokeBody, Request};
 
+use super::analyses::{self, Analyses};
+use super::analyze::Analysis;
 use super::floor::{MEASURE_ARGS, parse_floor, stretch_args};
 use super::record::{TakeStarted, TakeWritten, Takes};
-use crate::error::AppError;
+use crate::error::{AppError, AppResult};
+use crate::export::spec::SoundOnlySpec;
+use crate::export::{Jobs, PartialNotes};
 use crate::media::MediaRegistry;
 use crate::media::denoise::AFFTDN_NF;
 use crate::media::proxy::{command, find_tools};
@@ -86,4 +90,45 @@ pub async fn sound_record_write(
     let id = header("id").ok_or_else(|| AppError::InvalidInput("No recording id".into()))?;
     let done = header("done") == Some("1");
     takes.write(id, samples, done).await
+}
+
+/// Starts measuring a whole mix without playing it: `spec` is the sound of a Mix export (never
+/// its stems), `peak_limit` the dBTP over which a stretch is a problem. Reports 0 to 1 to
+/// `on_progress`. Returns the job's id, for `sound_analyze_finish` and `sound_analyze_cancel`.
+/// A mix with no sound is refused.
+#[tauri::command]
+pub async fn sound_analyze_begin(
+    spec: SoundOnlySpec,
+    peak_limit: f64,
+    on_progress: Channel<f32>,
+    jobs: State<'_, Arc<Jobs>>,
+    notes: State<'_, PartialNotes>,
+    analyses: State<'_, Analyses>,
+) -> AppResult<String> {
+    analyses::begin(spec, peak_limit, on_progress, &jobs, &notes, &analyses).await
+}
+
+/// Waits for an analysis to end and returns its figures: integrated loudness (LUFS; null when
+/// there is nothing to measure), loudness range (LU), true peak (dBTP; null for silence) and the
+/// problem stretches. Fails with "Cancelled" when it was.
+#[tauri::command]
+pub async fn sound_analyze_finish(
+    job_id: String,
+    jobs: State<'_, Arc<Jobs>>,
+    notes: State<'_, PartialNotes>,
+    analyses: State<'_, Analyses>,
+) -> AppResult<Analysis> {
+    analyses::finish(&job_id, &jobs, &notes, &analyses).await
+}
+
+/// Stops an analysis. One that already ended is left alone.
+#[tauri::command]
+pub async fn sound_analyze_cancel(
+    job_id: String,
+    jobs: State<'_, Arc<Jobs>>,
+    notes: State<'_, PartialNotes>,
+    analyses: State<'_, Analyses>,
+) -> AppResult<()> {
+    analyses::cancel(&job_id, &jobs, &notes, &analyses).await;
+    Ok(())
 }

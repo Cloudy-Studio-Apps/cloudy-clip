@@ -9,7 +9,7 @@ use tauri::State;
 
 use super::encoders::{Capabilities, capabilities};
 use super::job::{Job, script_option};
-use super::spec::{ExportSpec, Format};
+use super::spec::{ExportSpec, Format, SoundSegment};
 use super::{FrameUrl, Jobs, PartialNotes};
 use crate::error::{AppError, AppResult};
 use crate::media::MediaRegistry;
@@ -44,9 +44,9 @@ async fn card_for(spec: &ExportSpec) -> Option<String> {
 }
 
 /// Marks the sounds of one-channel files.
-async fn find_mono(tools: &Tools, spec: &mut ExportSpec) {
+pub(crate) async fn find_mono(tools: &Tools, sound: &mut [SoundSegment]) {
     let mut known: HashMap<String, bool> = HashMap::new();
-    for segment in &mut spec.sound {
+    for segment in sound {
         if let Some(mono) = known.get(&segment.path) {
             segment.mono = *mono;
             continue;
@@ -117,7 +117,7 @@ pub async fn export_begin(
     if let Some(folder) = Path::new(&spec.output).parent() {
         tokio::fs::create_dir_all(folder).await?;
     }
-    find_mono(&tools, &mut spec).await;
+    find_mono(&tools, &mut spec.sound).await;
     let card = card_for(&spec).await;
     let option = script_option(&tools.ffmpeg).await;
     let job = Job::start(&tools, &spec, card.as_deref(), option).map_err(AppError::Unavailable)?;

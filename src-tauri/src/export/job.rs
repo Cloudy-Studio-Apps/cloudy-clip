@@ -1,6 +1,6 @@
 //! One running FFmpeg. It writes to partial files (the export, and its stems when it has some),
 //! renamed only when all are complete, so a failed export never leaves something that looks
-//! finished.
+//! finished. A measurement (the sound module's analysis) runs as a job too, writing nothing.
 
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
@@ -14,7 +14,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin};
 use tokio::sync::{Mutex, OnceCell};
 
-use super::recipe::{ScriptOption, arguments, partial_of, script_of};
+use super::recipe::{Recipe, ScriptOption, arguments, partial_of, script_of};
 use super::spec::ExportSpec;
 use crate::media::proxy::{Tools, command};
 
@@ -42,6 +42,9 @@ pub async fn script_option(ffmpeg: &Path) -> ScriptOption {
         })
         .await
 }
+
+/// What hears each line a job's FFmpeg prints.
+type Listener = Box<dyn FnMut(&str) + Send>;
 
 /// An export FFmpeg is working on.
 pub struct Job {
@@ -79,14 +82,49 @@ impl Job {
         let partial = &partials[0];
         let picture = spec.format.has_picture();
         let recipe = arguments(spec, partial, card, option);
-        let script = recipe.script.as_ref().map(|_| script_of(partial));
+        let job = Self::spawn(tools, recipe, script_of(partial), picture, None)?;
+        let frame_bytes = if picture {
+            spec.width as usize * spec.height as usize * 4
+        } else {
+            0
+        };
+        Ok(Self {
+            frame_bytes,
+            partials,
+            outputs,
+            ..job
+        })
+    }
+
+    /// Starts an FFmpeg that measures and writes no file (`recipe::measure_arguments`, with its
+    /// long graph in `script`). Every line it prints goes to `listen` as it comes. It is
+    /// cancelled as an export is; `measured` waits for it.
+    pub fn measure(
+        tools: &Tools,
+        recipe: Recipe,
+        script: PathBuf,
+        listen: impl FnMut(&str) + Send + 'static,
+    ) -> Result<Self, String> {
+        Self::spawn(tools, recipe, script, false, Some(Box::new(listen)))
+    }
+
+    /// Runs `recipe`, its long graph written to `script` first, with frames on stdin when
+    /// `frames`. Its stderr goes to `listen`, and its last lines are kept to explain a failure.
+    fn spawn(
+        tools: &Tools,
+        recipe: Recipe,
+        script: PathBuf,
+        frames: bool,
+        mut listen: Option<Listener>,
+    ) -> Result<Self, String> {
+        let script = recipe.script.as_ref().map(|_| script);
         if let (Some(file), Some(graph)) = (&script, &recipe.script) {
             std::fs::write(file, graph)
                 .map_err(|e| format!("Could not write the filter graph: {e}"))?;
         }
         let mut cmd = command(&tools.ffmpeg);
         cmd.args(recipe.args)
-            .stdin(if picture {
+            .stdin(if frames {
                 Stdio::piped()
             } else {
                 Stdio::null()
@@ -106,6 +144,9 @@ impl Job {
             tauri::async_runtime::spawn(async move {
                 let mut lines = BufReader::new(stderr).lines();
                 while let Ok(Some(line)) = lines.next_line().await {
+                    if let Some(listen) = listen.as_mut() {
+                        listen(&line);
+                    }
                     if let Ok(mut kept) = tail.lock() {
                         kept.push_back(line);
                         if kept.len() > TAIL_LINES {
@@ -116,16 +157,11 @@ impl Job {
             })
         });
         let stdin = child.stdin.take();
-        let frame_bytes = if picture {
-            spec.width as usize * spec.height as usize * 4
-        } else {
-            0
-        };
         Ok(Self {
-            frame_bytes,
-            partials,
+            frame_bytes: 0,
+            partials: Vec::new(),
             script,
-            outputs,
+            outputs: Vec::new(),
             stdin: Mutex::new(stdin),
             child: Mutex::new(child),
             tail,
@@ -191,8 +227,8 @@ impl Job {
         }
     }
 
-    /// Ends the input, waits for FFmpeg and moves the files into place. Returns the export's.
-    pub async fn finish(&self) -> Result<PathBuf, String> {
+    /// Ends the input and waits for FFmpeg. Fails with why it stopped, or when it was cancelled.
+    async fn ended(&self) -> Result<(), String> {
         // Dropping the pipe tells FFmpeg there are no more frames.
         self.stdin.lock().await.take();
         let succeeded = self.wait().await;
@@ -204,6 +240,21 @@ impl Job {
             self.remove_partials().await;
             return Err(self.complaint().await);
         }
+        Ok(())
+    }
+
+    /// Waits for a measurement (`measure`) to end, and for every line it printed to be heard.
+    pub async fn measured(&self) -> Result<(), String> {
+        self.ended().await?;
+        if let Some(reader) = self.reader.lock().await.take() {
+            let _ = reader.await;
+        }
+        Ok(())
+    }
+
+    /// Ends the input, waits for FFmpeg and moves the files into place. Returns the export's.
+    pub async fn finish(&self) -> Result<PathBuf, String> {
+        self.ended().await?;
         if let Err(e) = self.publish().await {
             self.remove_partials().await;
             return Err(e);

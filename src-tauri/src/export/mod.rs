@@ -21,24 +21,24 @@ use tauri::{App, Manager};
 
 use job::Job;
 
-/// Exports running now, by id.
+/// Exports running now, by id, and the sound module's analyses (`Job::measure`).
 #[derive(Default)]
 pub struct Jobs {
     running: RwLock<HashMap<String, Arc<Job>>>,
 }
 
 impl Jobs {
-    fn get(&self, id: &str) -> Option<Arc<Job>> {
+    pub(crate) fn get(&self, id: &str) -> Option<Arc<Job>> {
         self.running.read().ok()?.get(id).cloned()
     }
 
-    fn add(&self, id: String, job: Arc<Job>) {
+    pub(crate) fn add(&self, id: String, job: Arc<Job>) {
         if let Ok(mut running) = self.running.write() {
             running.insert(id, job);
         }
     }
 
-    fn take(&self, id: &str) -> Option<Arc<Job>> {
+    pub(crate) fn take(&self, id: &str) -> Option<Arc<Job>> {
         self.running.write().ok()?.remove(id)
     }
 }
@@ -49,6 +49,13 @@ pub struct FrameUrl(RwLock<Option<String>>);
 
 /// Folder of notes saying which partial files are in progress.
 pub struct PartialNotes(PathBuf);
+
+impl PartialNotes {
+    /// The folder of the notes; a note is a file named after its job.
+    pub(crate) fn folder(&self) -> &Path {
+        &self.0
+    }
+}
 
 /// Removes partial files a crash or a quit left behind. Each export leaves a note while it runs:
 /// its partial files, one a line, the first the one its filter graph file is named after.

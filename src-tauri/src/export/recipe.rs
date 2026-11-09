@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 
 use super::mixgraph;
 use super::soundfilters::{STEP_LEAD, effects, gain_envelope_filter, pan_envelope_filter};
-use super::spec::{Effort, ExportSpec, Format, SAMPLE_RATE, SoundMix, SoundSegment, StemSpec};
+use super::spec::{
+    Effort, ExportSpec, Format, SAMPLE_RATE, SoundMix, SoundOnlySpec, SoundSegment, StemSpec,
+};
 
 /// Seconds as FFmpeg reads them.
 pub(super) fn seconds(micros: u64) -> String {
@@ -24,6 +26,30 @@ fn source_length(segment: &SoundSegment) -> u64 {
         }
         None => (segment.duration as f64 * segment.speed).round() as u64,
     }
+}
+
+/// The inputs of `sound`, each the stretch of its file a segment plays.
+fn sound_inputs(sound: &[SoundSegment]) -> Vec<String> {
+    sound
+        .iter()
+        .flat_map(|segment| {
+            let length = seconds(source_length(segment));
+            [
+                "-ss",
+                &seconds(segment.from),
+                "-t",
+                &length,
+                "-i",
+                &segment.path,
+            ]
+            .map(str::to_owned)
+        })
+        .collect()
+}
+
+/// `values` as the `&str`s `push` takes.
+fn strs(values: &[String]) -> Vec<&str> {
+    values.iter().map(String::as_str).collect()
 }
 
 /// Each segment's chain from its input to `[s<i>]`, the filters of its own settings in the
@@ -204,6 +230,21 @@ fn output_args(spec: &ExportSpec, hardware: Option<&str>) -> Vec<String> {
 /// command line, so a longer graph goes in a file.
 const INLINE_GRAPH_LIMIT: usize = 8_000;
 
+/// The arguments that give FFmpeg `graph`: inline, or in `file` when it is long, with the graph
+/// to write there.
+fn graph_arguments(
+    graph: String,
+    file: &Path,
+    script_option: ScriptOption,
+) -> (Vec<String>, Option<String>) {
+    if graph.len() > INLINE_GRAPH_LIMIT {
+        let flag = script_option.flag().to_owned();
+        (vec![flag, file.to_string_lossy().into_owned()], Some(graph))
+    } else {
+        (vec!["-filter_complex".to_owned(), graph], None)
+    }
+}
+
 /// The file a long filter graph of the export writing to `partial` goes in.
 pub fn script_of(partial: &Path) -> PathBuf {
     let mut name = partial.as_os_str().to_owned();
@@ -273,10 +314,7 @@ pub fn arguments(
     } else {
         &[]
     };
-    for segment in sound {
-        push(&["-ss", &seconds(segment.from)]);
-        push(&["-t", &seconds(source_length(segment)), "-i", &segment.path]);
-    }
+    push(&strs(&sound_inputs(sound)));
 
     let mut graph = Vec::new();
     if picture {
@@ -316,15 +354,8 @@ pub fn arguments(
             ));
         }
     }
-    let graph = graph.join(";");
-    let script = (graph.len() > INLINE_GRAPH_LIMIT).then(|| graph.clone());
-    match &script {
-        Some(_) => {
-            let file = script_of(partial);
-            push(&[script_option.flag(), &file.to_string_lossy()]);
-        }
-        None => push(&["-filter_complex", &graph]),
-    }
+    let (graph, script) = graph_arguments(graph.join(";"), &script_of(partial), script_option);
+    push(&strs(&graph));
     if picture {
         push(&["-map", "[picture]"]);
     }
@@ -346,6 +377,48 @@ pub fn arguments(
         args.push(partial_of(Path::new(&stem.output)).into_os_string());
     }
     Recipe { args, script }
+}
+
+/// Every FFmpeg argument of measuring `spec`'s mix: the graph a Mix export runs (no stems, nor the
+/// rate and dither of its file), its master output `[mixed]` through `measure` into `[measured]`,
+/// written nowhere (`-f null`). The mix stays in 32-bit float, so a sample over full scale is
+/// measured before a file would cut it off. FFmpeg says what it measured at the `info` level. A
+/// long graph goes in `script`, as an export's does. `spec` has sound.
+pub fn measure_arguments(
+    spec: &SoundOnlySpec,
+    measure: &str,
+    script: &Path,
+    script_option: ScriptOption,
+) -> Recipe {
+    let mut args: Vec<String> = ["-hide_banner", "-nostats", "-loglevel", "info"]
+        .map(str::to_owned)
+        .into();
+    args.extend(sound_inputs(&spec.sound));
+    let graph = format!(
+        "{};[mixed]{measure}[measured]",
+        sound_graph(&spec.sound, 0, &spec.mix, spec.duration, &[])
+    );
+    let (graph, script) = graph_arguments(graph, script, script_option);
+    args.extend(graph);
+    let end = seconds(spec.duration);
+    args.extend(
+        [
+            "-map",
+            "[measured]",
+            "-c:a",
+            "pcm_f32le",
+            "-t",
+            &end,
+            "-f",
+            "null",
+            "-",
+        ]
+        .map(str::to_owned),
+    );
+    Recipe {
+        args: args.into_iter().map(OsString::from).collect(),
+        script,
+    }
 }
 
 /// `clip.mp4` next to itself as `clip.partial.mp4`: what FFmpeg writes, renamed once complete.
