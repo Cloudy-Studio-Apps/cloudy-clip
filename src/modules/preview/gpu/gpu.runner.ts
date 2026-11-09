@@ -92,6 +92,8 @@ function runPasses(
   uploadSource(gl, source, picture);
   gl.viewport(0, 0, width, height);
   const outputs: GpuTarget[] = [];
+  // The most texture units a pass has bound, emptied again however the run ends.
+  let used = 0;
   try {
     passes.forEach((pass, index) => {
       const last = index === passes.length - 1;
@@ -99,6 +101,7 @@ function runPasses(
       // input below: a data unit left holding the target would be a feedback loop for any sampler
       // of the program still pointing at it from an earlier pass.
       gl.activeTexture(gl.TEXTURE0);
+      used = Math.max(used, pass.inputs.length + Object.keys(pass.textures ?? {}).length);
       const target = last ? null : targets.acquire(width, height, floatTargets);
       if (target) outputs[index] = target;
       const found = programs.get(pass);
@@ -125,7 +128,8 @@ function runPasses(
       });
     });
   } finally {
-    // A pass that threw leaves its targets free for the next run.
+    // A pass that threw leaves its targets free for the next run, and none still bound on a unit.
+    unbindUnits(gl, used);
     outputs.forEach((output) => targets.release(output));
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.activeTexture(gl.TEXTURE0);

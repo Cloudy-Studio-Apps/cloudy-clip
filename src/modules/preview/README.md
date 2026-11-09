@@ -69,7 +69,7 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
     from 1 up that the pass used are emptied (`unbindUnits`): a sampler of a shared program keeps
     the unit it was last set to, so a pooled target left bound there as a pass's second input could
     come back as a later pass's output while that sampler still reads it (a feedback loop, and WebGL
-    drops the draw). A lost context
+    drops the draw); the `finally` empties them too, so a pass that throws leaves no released target bound. A lost context
     (`webglcontextlost`) is made again on the next `run`; if that fails, `available` is false for good
     and `run` throws `GpuUnavailable` (`gpu.errors.ts`), as it does without WebGL2. `gpu.levels.ts`:
     `levelsPass(levels)`. `gpu.blend.ts`: `BLEND_GLSL`, `vec3 blend(int mode, vec3 base, vec3 top)`

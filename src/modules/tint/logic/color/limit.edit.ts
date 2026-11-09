@@ -2,7 +2,7 @@ import type { GradeLimit } from "@/modules/project";
 import type { Rgb } from "../../tint.types";
 import { CB, CHROMA_FULL, CR, NO_HUE, luma } from "./basics";
 import { cbcrHue } from "./curves.apply";
-import { HUE_SOFT, RANGE_SOFT } from "./limit";
+import { HUE_SOFT, RANGE_SOFT, keyOf } from "./limit";
 
 // What Limit's controls do to a limit, every result valid for `validateGrade` (`LIMIT_RANGES`).
 // The dropper sets the color ranges around the picked color, `PICK_REACH` either side; + widens
@@ -27,6 +27,8 @@ export const BRIGHT_SOFT_START = 30;
 const clamp01 = (x: number) => Math.min(Math.max(x, 0), 1);
 const round = (x: number, step: number) => Number((Math.round(x / step) * step).toFixed(4));
 /** Degrees to 0…360, rounded to a tenth. */
+/** The hue's rounding step in degrees: a window this close to empty or whole is taken as such. */
+const HUE_STEP = 0.1;
 const degrees = (x: number) => round(((x % 360) + 360) % 360, 0.1);
 
 /** A color's hue in degrees (null for a gray), saturation and brightness as a limit reads them. */
@@ -73,7 +75,8 @@ function widenHue(window: [number, number], h: number): [number, number] {
   if (at <= width) return window;
   const after = at - width + PICK_MARGIN.hue;
   const before = 360 - at + PICK_MARGIN.hue;
-  if (width + Math.min(after, before) >= 360) return [0, 360];
+  // Within a rounding step of the whole circle: the whole circle (never a window of width 0).
+  if (width + Math.min(after, before) >= 360 - HUE_STEP) return [0, 360];
   return after <= before
     ? [window[0], degrees(window[1] + after)]
     : [degrees(window[0] - before), window[1]];
@@ -104,9 +107,13 @@ export function widenLimit(limit: GradeLimit | undefined, rgb: Rgb): GradeLimit 
   };
 }
 
-/** Cuts `[a, b]` (0…1) so `x` falls out past the nearer end; null when `x` is outside or nothing would be left. */
-function cutPair([a, b]: readonly [number, number], x: number, margin: number) {
-  if (x < a || x > b) return null;
+/**
+ * Cuts `[a, b]` (0…1) so `x` falls out past the nearer end; null when `x` is past the soft edge
+ * `edge` (already out on this range) or nothing would be left.
+ */
+function cutPair([a, b]: readonly [number, number], x: number, edge: number, pick: number) {
+  if (x < a - edge || x > b + edge) return null;
+  const margin = edge + pick;
   const pair: [number, number] =
     x - a <= b - x
       ? [round(Math.min(x + margin, 1), 0.001), b]
@@ -115,19 +122,28 @@ function cutPair([a, b]: readonly [number, number], x: number, margin: number) {
   return { pair, kept: b > a ? (pair[1] - pair[0]) / (b - a) : 0 };
 }
 
-/** Cuts a hue window so `h` falls out past the nearer end (the whole circle: either side of `h`). */
-function cutHue(window: [number, number], h: number, margin: number) {
+/**
+ * Cuts a hue window so `h` falls out past the nearer end (the whole circle: either side of `h`);
+ * null when `h` is past the soft edge `edge` (degrees) or under two rounding steps would be left
+ * (the rounded ends could meet).
+ */
+function cutHue(window: [number, number], h: number, edge: number) {
   const { at, width } = alongHue(window, h);
-  if (at > width) return null;
+  const margin = edge + PICK_MARGIN.hue;
   if (width >= 360) {
-    const kept = (360 - 2 * margin) / 360;
+    const left = 360 - 2 * margin;
     const pair: [number, number] = [degrees(h + margin), degrees(h - margin)];
-    return kept > 0 ? { pair, kept } : null;
+    return left >= 2 * HUE_STEP ? { pair, kept: left / 360 } : null;
   }
-  const pair: [number, number] =
-    at <= width / 2 ? [degrees(h + margin), window[1]] : [window[0], degrees(h - margin)];
-  const left = width - (at <= width / 2 ? at : width - at) - margin;
-  if (left <= 0) return null;
+  // Where `h` sits from the window's start, negative in the soft rim before it.
+  const from = at > width && 360 - at <= edge ? at - 360 : at;
+  if (from > width + edge) return null;
+  const early = from <= width / 2;
+  const pair: [number, number] = early
+    ? [degrees(h + margin), window[1]]
+    : [window[0], degrees(h - margin)];
+  const left = early ? width - from - margin : from - margin;
+  if (left < 2 * HUE_STEP) return null;
   return { pair, kept: left / width };
 }
 
@@ -141,16 +157,14 @@ function cutHue(window: [number, number], h: number, margin: number) {
 export function narrowLimit(limit: GradeLimit | undefined, rgb: Rgb): GradeLimit | null {
   const color = limit?.color;
   if (!color?.on) return null;
+  // Out already when the color part keys it 0, soft rim included: what the preview shows.
+  if (keyOf(rgb, { color }) <= 0) return null;
   const { hue, sat, lum } = colorOf(rgb);
-  const inHue = hue === null || alongHue(color.hue, hue).at <= alongHue(color.hue, hue).width;
-  const inSat = sat >= color.sat[0] && sat <= color.sat[1];
-  if (!inHue || !inSat || lum < color.lum[0] || lum > color.lum[1]) return null;
-  // Past the soft edge too, so the color is fully out.
+  // Cut past the soft edge too, so the color is fully out.
   const soft = color.soft / 100;
-  const hueCut =
-    hue === null ? null : cutHue(color.hue, hue, PICK_MARGIN.hue + soft * HUE_SOFT * 360);
-  const satCut = cutPair(color.sat, sat, PICK_MARGIN.sat + soft * RANGE_SOFT);
-  const lumCut = cutPair(color.lum, lum, PICK_MARGIN.lum + soft * RANGE_SOFT);
+  const hueCut = hue === null ? null : cutHue(color.hue, hue, soft * HUE_SOFT * 360);
+  const satCut = cutPair(color.sat, sat, soft * RANGE_SOFT, PICK_MARGIN.sat);
+  const lumCut = cutPair(color.lum, lum, soft * RANGE_SOFT, PICK_MARGIN.lum);
   // Each cut keeps a share of its range; the one keeping the most wins.
   const cuts = [
     hueCut && { field: "hue" as const, ...hueCut },
