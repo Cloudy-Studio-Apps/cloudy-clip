@@ -62,6 +62,19 @@ function lastReaders(passes: readonly GpuPass[]): number[] {
   return lastRead;
 }
 
+/**
+ * Empties texture units 1 to `used - 1` after a draw. A sampler of a shared program keeps the unit
+ * it was last pointed at, so a pooled target left bound there (an input on unit 1, say) could be
+ * handed out as a later pass's output while that sampler still reads it: a feedback loop, and
+ * WebGL drops the draw. Unit 0 is bound to each pass's first input before it draws.
+ */
+function unbindUnits(gl: WebGL2RenderingContext, used: number): void {
+  for (let unit = 1; unit < used; unit++) {
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+  }
+}
+
 /** Uploads the source and runs the passes on `context`; the last one draws on its canvas. */
 function runPasses(
   context: GpuContext,
@@ -103,6 +116,7 @@ function runPasses(
       });
       gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      unbindUnits(gl, pass.inputs.length + Object.keys(pass.textures ?? {}).length);
       outputs.forEach((output, read) => {
         if (lastRead[read] === index) {
           targets.release(output);
