@@ -74,7 +74,7 @@ export function MixerTool() {
         <div key={edit.rev}>
           <ToggleLine
             label="Keep brightness"
-            info="The matrix shown is scaled so a gray keeps its brightness (not when its rows add up to almost nothing or less)."
+            info="The numbers stay as typed; the picture is mixed with them scaled so a gray keeps its brightness (not when the rows add up to almost nothing or less)."
             checked={mixer.keepBrightness}
             disabled={!edit.enabled}
             onChange={(keepBrightness) =>

@@ -26,9 +26,9 @@ export const BRIGHT_SOFT_START = 30;
 
 const clamp01 = (x: number) => Math.min(Math.max(x, 0), 1);
 const round = (x: number, step: number) => Number((Math.round(x / step) * step).toFixed(4));
-/** Degrees to 0…360, rounded to a tenth. */
 /** The hue's rounding step in degrees: a window this close to empty or whole is taken as such. */
 const HUE_STEP = 0.1;
+/** Degrees to 0…360, rounded to a tenth. */
 const degrees = (x: number) => round(((x % 360) + 360) % 360, 0.1);
 
 /** A color's hue in degrees (null for a gray), saturation and brightness as a limit reads them. */

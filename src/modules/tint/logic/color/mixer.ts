@@ -5,9 +5,11 @@ import { LUMA, luma } from "./basics";
 // The RGB mixer, after skin pull and before Creative, as the CPU reference (the GLSL is in
 // `render/correct.tail.glsl.ts`). Each output channel is its row of the matrix times the input
 // (rows out, columns in). Keep brightness scales the whole matrix by `1 / (LUMA · row sums)`, so a
-// gray keeps its luma whatever the rows add up to (skipped when that is near 0). Monochrome puts the
-// luma of the mixed color in all three channels: with the identity, plain black and white; raise a
-// row to let that channel count more.
+// gray keeps its luma whatever the rows add up to, but only when that sum is at least `KEEP_FLOOR`
+// (0.05): below it, or when it is negative, the matrix is used unscaled, so keep brightness never
+// blows the picture out (a scale past ×20) or inverts it. Monochrome puts the luma of the mixed
+// color in all three channels: with the identity, plain black and white; raise a row to let that
+// channel count more.
 
 /** Below this (or negative), `LUMA · row sums` is too small to scale by: keep brightness does nothing. */
 export const KEEP_FLOOR = 0.05;

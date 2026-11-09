@@ -73,13 +73,16 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
     (`webglcontextlost`) is made again on the next `run`; if that fails, `available` is false for good
     and `run` throws `GpuUnavailable` (`gpu.errors.ts`), as it does without WebGL2. `gpu.levels.ts`:
     `levelsPass(levels)`. `gpu.blend.ts`: `BLEND_GLSL`, `vec3 blend(int mode, vec3 base, vec3 top)`
-    with modes numbered in `BLEND_MODES` order (W3C formulas, as the canvas). The engine sends a video
+    with modes numbered in `BLEND_MODES` order (W3C formulas, as the canvas), for a filter's own
+    fragment (`tint`'s stacked groups call it; its CPU twin is `tint`'s `logic/color/blend.ts`). A
+    pass may read any number of earlier outputs (`tint`'s joins read a group's entry and every
+    branch); programs are kept by pass key and input count (`gpu.programs.ts`). The engine sends a video
     frame through the levels pass once per draw (a playing video can move on between two draws). The
     live engine (`EngineOptions.capPasses`) runs it no larger than the frame lands on the canvas
     (`logic/capping.ts` `cappedPassSize`, aspect kept) and draws the frame that small onto a 2D canvas
-    first (`engine/engine.shrink.ts`), since the upload is the cost; captures and renderers run at full
-    size, so export keeps every pixel; if
-    the GPU fails, video draws uncorrected and the user is told once per engine. What WebKitGTK
+    first (`engine/engine.shrink.ts`), since the upload is the cost. Captures and renderers run at
+    full size, so export keeps every pixel. If the GPU fails, video draws uncorrected and the user is
+    told once per engine. What WebKitGTK
     offers is in `docs/superpowers/specs/2026-11-03-tint-webgl-check.md`.
   - `engine/engine.filters.ts` (`EngineFilters`, one per engine): the levels pass, picture and
     frame filters and viewer passes on the engine's runner. Asks the filters (`forClip`,
