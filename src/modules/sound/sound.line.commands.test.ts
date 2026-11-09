@@ -107,7 +107,10 @@ describe("track volume line", () => {
 });
 
 describe("writePass", () => {
-  it("replaces only the keys of its span", async () => {
+  /** The line's level at each time, to compare before and after a write. */
+  const levels = (times: number[]) => times.map((t) => Number(trackValue(line()!, t)));
+
+  it("replaces only the keys of its span, the line outside it playing as before", async () => {
     for (const [at, db] of [
       [S, -6],
       [3 * S, -9],
@@ -116,6 +119,8 @@ describe("writePass", () => {
     ] as const) {
       await ok(setLineKey, { trackId: "a1", at, db });
     }
+    const outside = [0, S, 1.5 * S, 2 * S - 1, 5 * S + 1, 6 * S, 7 * S, 9 * S];
+    const before = levels(outside);
     await ok(writePass, {
       trackId: "a1",
       from: 2 * S,
@@ -125,12 +130,9 @@ describe("writePass", () => {
         { at: 5 * S, db: -2 },
       ],
     });
-    expect(keys()).toEqual([
-      [S, -6],
-      [2 * S, 0],
-      [5 * S, -2],
-      [8 * S, -20],
-    ]);
+    expect(levels([2 * S, 5 * S])).toEqual([0, -2]);
+    levels(outside).forEach((db, i) => expect(db).toBeCloseTo(before[i]!, 6));
+    expect(keys().map(([t]) => t)).toEqual([S, 2 * S - 1, 2 * S, 5 * S, 5 * S + 1, 8 * S]);
     kernel.history.undo();
     expect(keys()).toHaveLength(4);
     expect(keys()[1]).toEqual([3 * S, -9]);
@@ -141,33 +143,32 @@ describe("writePass", () => {
     // Two laps of a 0-4 s loop with the fader 4 dB under the track's volume.
     const lap = () => [0, S, 2 * S, 3 * S, 4 * S].map((at) => ({ at, db: -10 }));
     await ok(writePasses, { trackId: "a1", spans: passSpans([lap(), lap()]) });
-    expect(keys()).toEqual([
-      [0, -10],
-      [4 * S, -10],
-    ]);
+    expect(levels([0, 2 * S, 4 * S])).toEqual([-10, -10, -10]);
+    expect(levels([4 * S + 1, 6 * S])).toEqual([-6, -6]);
     kernel.history.undo();
     expect(keys()).toEqual([[0, -6]]);
   });
 
-  it("leaves the keys a pass skipped over as they were, in one step", async () => {
+  it("leaves the stretches a pass skipped over as they were, in one step", async () => {
+    await ok(setLineKey, { trackId: "a1", at: 4 * S, db: -8 });
     await ok(setLineKey, { trackId: "a1", at: 6 * S, db: -20, ease: { kind: "hold" } });
-    const skipped = line()!.keys[0]!;
+    const skipped = line()!.keys.find((key) => key.t === 6 * S);
     // A lap from 0 to 2 s, a seek ahead, a lap from 8 to 10 s.
+    const outside = [2 * S + 1, 3 * S, 4 * S, 5 * S, 6 * S, 7 * S, 8 * S - 1, 10 * S + 1, 12 * S];
+    const before = levels(outside);
     const laps = [
       [0, S, 2 * S].map((at) => ({ at, db: -3 })),
       [8 * S, 9 * S, 10 * S].map((at) => ({ at, db: -3 })),
     ];
     await ok(writePasses, { trackId: "a1", spans: passSpans(laps) });
     expect(line()!.keys.find((key) => key.t === 6 * S)).toEqual(skipped);
-    expect(keys()).toEqual([
-      [0, -3],
-      [2 * S, -3],
-      [6 * S, -20],
-      [8 * S, -3],
-      [10 * S, -3],
-    ]);
+    levels(outside).forEach((db, i) => expect(db).toBeCloseTo(before[i]!, 6));
+    expect(levels([0, S, 2 * S, 8 * S, 10 * S])).toEqual([-3, -3, -3, -3, -3]);
     kernel.history.undo();
-    expect(keys()).toEqual([[6 * S, -20]]);
+    expect(keys()).toEqual([
+      [4 * S, -8],
+      [6 * S, -20],
+    ]);
   });
 
   it("leaves the line after a Touch release unchanged", async () => {
@@ -181,10 +182,9 @@ describe("writePass", () => {
         { at: 3 * S, db: -4 },
       ],
     });
-    expect(keys()).toEqual([
-      [S, -4],
-      [3 * S, -4],
-      [6 * S, -10],
+    expect(levels([S, 3 * S])).toEqual([-4, -4]);
+    expect(levels([0, S - 1, 3 * S + 1, 4 * S, 6 * S, 7 * S])).toEqual([
+      -10, -10, -10, -10, -10, -10,
     ]);
   });
 

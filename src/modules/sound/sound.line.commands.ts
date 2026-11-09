@@ -12,11 +12,14 @@ import {
   volumeDbSchema,
   withoutKeys,
   writeKey,
+  type KeyEase,
   type KeyTrack,
   type ProjectState,
   type Track,
   type TrackId,
 } from "@/modules/project";
+import type { Micros } from "@/core";
+import { lineDb } from "./logic/automation";
 import { audioTrack } from "./sound.guards";
 import { writeTrack } from "./sound.mix.write";
 
@@ -27,6 +30,29 @@ const EMPTY_LINE: KeyTrack = { blend: "number", min: VOLUME_DB_MIN, max: VOLUME_
 
 /** A stroke or a pass is straight lines between its points, whatever eased before it. */
 const LINEAR = { kind: "linear" } as const;
+
+/** How far outside a written span its edges are held at the old line's level (µs). */
+const EDGE = 1;
+
+/**
+ * Points just outside a span at the level the line had there before it was written, so the line
+ * outside the span plays as before and the change is a step at its edges: one `EDGE` before
+ * `from` (none before 0) and one after `to`, the one after easing as the old line did there.
+ * None where the old line already has a key.
+ */
+function edgeAnchors(old: KeyTrack, from: Micros, to: Micros) {
+  const taken = (t: Micros) => old.keys.some((key) => key.t === t);
+  const anchors: { t: Micros; db: number; ease: KeyEase }[] = [];
+  const before = from - EDGE;
+  if (before >= 0 && !taken(before))
+    anchors.push({ t: before, db: lineDb(old, before), ease: LINEAR });
+  const after = to + EDGE;
+  if (!taken(after)) {
+    const ease = old.keys.filter((key) => key.t < after).at(-1)?.ease ?? LINEAR;
+    anchors.push({ t: after, db: lineDb(old, after), ease });
+  }
+  return anchors;
+}
 
 /** Two keys closer than half a frame are the same key. */
 function tolerance(state: ProjectState, trackId: TrackId): number {
@@ -144,7 +170,7 @@ export const writePass = defineCommand({
   id: "sound.writePass",
   label: "Write volume line",
   description:
-    'Replaces the points of an audio track\'s volume line from "from" to "to" (timeline microseconds, both included) with "points" ({at, db}, each inside that span, db -60 to 12); points outside the span stay as they were; the line runs straight from each written point to the next (and from the last to the point after the span). With no points the span is cleared. This is one stroke of drawing or of a recorded fader pass. Fails with sound.line_range (a point outside the span or from after to), sound.not_audio and sound.track_not_found, changing nothing.',
+    'Replaces the points of an audio track\'s volume line from "from" to "to" (timeline microseconds, both included) with "points" ({at, db}, each inside that span, db -60 to 12); points outside the span stay as they were, and the line outside it plays as before: a point 1 microsecond before "from" and 1 after "to" holds the level it had there (none where a point already sits), so the change is a step at the span\'s edges. The line runs straight from each written point to the next. With no points the span is cleared. This is one stroke of drawing or of a recorded fader pass. Fails with sound.line_range (a point outside the span or from after to), sound.not_audio and sound.track_not_found, changing nothing.',
   undoable: true,
   input: z.object({
     trackId: z.string(),
@@ -170,6 +196,9 @@ export const writePass = defineCommand({
     let next: KeyTrack | undefined = outside ?? { ...old, keys: [] };
     for (const point of [...points].sort((a, b) => a.at - b.at)) {
       next = writeKey(next, point.at, point.db, 0, LINEAR);
+    }
+    for (const anchor of edgeAnchors(old, from, to)) {
+      next = writeKey(next, anchor.t, anchor.db, 0, anchor.ease);
     }
     ctx.mutate(store, (draft) => writeLine(draft.tracks[trackId]!, next));
   },
