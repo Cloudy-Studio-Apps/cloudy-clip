@@ -1,4 +1,5 @@
 import { useImperativeHandle, useRef, type Ref } from "react";
+import { formatDb } from "@/modules/project";
 import { meterHeight } from "../../logic/meter";
 import type { GraphColours, LoudnessHistoryHandle } from "../../sound.types";
 import { useGraphCanvas } from "./graph.canvas.hook";
@@ -40,6 +41,14 @@ function draw(
     ctx.lineTo(width, Math.round(y(target)) + 0.5);
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.fillStyle = colours.on;
+    ctx.font = `${10 * scale}px "Courier Prime", monospace`;
+    ctx.textBaseline = target < -24 ? "bottom" : "top";
+    ctx.fillText(
+      `${formatDb(target, 0)} LUFS`,
+      4 * scale,
+      Math.round(y(target)) + (target < -24 ? -3 : 3) * scale,
+    );
   }
   ctx.strokeStyle = colours.line;
   ctx.lineWidth = 1.5 * (window.devicePixelRatio || 1);

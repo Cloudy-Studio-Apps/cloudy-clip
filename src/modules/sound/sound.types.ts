@@ -566,7 +566,7 @@ export interface SoonEntry {
   /** What it will do, one sentence. */
   what: string;
   /** The stage plan that builds it: `docs/superpowers/plans/2026-11-03-sound-<stage>-*.md`. */
-  stage: "2-followup" | 3 | 5 | 6;
+  stage: "2-followup" | 3 | 6;
 }
 
 /** The props a placeholder spreads: dimmed for screen readers, its tooltip, an arrow pointer, a click that does nothing. */

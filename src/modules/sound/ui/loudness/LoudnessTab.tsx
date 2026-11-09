@@ -30,9 +30,9 @@ function text(reading: LoudnessReading | null, key: keyof LoudnessReading): stri
  * Live loudness of the master, as BS.1770 measures it while the timeline plays: integrated over
  * all the playing since Reset (large), momentary, short term, true peak and range, and the
  * short-term history of the last 60 s with the delivery target dashed across it; then the frequency
- * spectrum (its own loop while playing) and the stereo phase. One feed (`useLoudnessFeed`, 10 Hz while playing, nothing while paused) writes the numbers
- * through the DOM and feeds the history; stopping keeps them. `shown`: whether the tab is the one
- * showing, so the graph draws only then.
+ * spectrum (its own loop while playing) and the stereo phase. One feed (`useLoudnessFeed`, 10 Hz
+ * while playing, nothing while paused) writes the numbers through the DOM and feeds the history;
+ * stopping keeps them. `shown`: whether the tab is the one showing, so the graph draws only then.
  */
 export function LoudnessTab({ shown }: { shown: boolean }) {
   const preview = useModule(previewRef);
