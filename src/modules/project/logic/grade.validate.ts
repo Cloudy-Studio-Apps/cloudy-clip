@@ -1,5 +1,5 @@
 import type { ClipGrade, Correction, GradeNode, NodeRef } from "../project.types";
-import { GRADE_RANGES, correctionOf } from "./grade";
+import { DEFAULT_CORRECTION, GRADE_RANGES, correctionOf } from "./grade";
 
 /** The pictures a node reads: its picture inputs, in order (none for a key join). */
 export function gradeInputs(node: GradeNode): NodeRef[] {
@@ -22,6 +22,33 @@ export function gradeKeys(node: GradeNode): string[] {
   if (node.kind === "correct") return node.limit?.from === undefined ? [] : [node.limit.from];
   if (node.kind === "keyJoin") return node.keys.map((key) => key.from);
   return [];
+}
+
+const isPlain = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** A key the defaults don't have, or a value of another type than its default (at any depth), or null. */
+function shapeProblem(id: string, values: unknown): string | null {
+  const walk = (value: unknown, base: unknown, path: string): string | null => {
+    const bad = (why: string) => `values.${path} of ${id} ${why}`;
+    if (typeof base === "number") return typeof value === "number" ? null : bad("must be a number");
+    if (typeof base === "boolean") {
+      return typeof value === "boolean" ? null : bad("must be true or false");
+    }
+    if (Array.isArray(base)) return Array.isArray(value) ? null : bad("must be a list");
+    if (!isPlain(value)) return bad("must be an object");
+    // Sparse offsets by grid index: any keys.
+    if (path === "warper.points") return null;
+    for (const [key, inner] of Object.entries(value)) {
+      const here = path === "" ? key : `${path}.${key}`;
+      const known = isPlain(base) ? base[key] : undefined;
+      if (known === undefined) return `values.${here} of ${id} is not a correction field`;
+      const problem = walk(inner, known, here);
+      if (problem) return problem;
+    }
+    return null;
+  };
+  return walk(values, DEFAULT_CORRECTION, "");
 }
 
 function rangeProblem(id: string, node: Correction): string | null {
@@ -61,8 +88,9 @@ function rangeProblem(id: string, node: Correction): string | null {
  * What is wrong with a grade, or null: a ref to a node that is not there, a cycle, an `out` that
  * does not come from the source, a channel ref not from a split, a join with fewer than two
  * inputs or with `blends` not matching its inputs, a `limit.from` that is missing, not a
- * correction or key join, or makes a cycle, an opacity or strength outside 0 to 1, and a value
- * outside its range (`GRADE_RANGES`).
+ * correction or key join, or makes a cycle, an opacity or strength outside 0 to 1, a value of a
+ * correction that is not a field or has another type than its default, and a value outside its
+ * range (`GRADE_RANGES`).
  */
 export function validateGrade(grade: ClipGrade): string | null {
   const { nodes } = grade;
@@ -104,7 +132,7 @@ export function validateGrade(grade: ClipGrade): string | null {
       if (node.lut && (node.lut.strength < 0 || node.lut.strength > 1)) {
         return `lut strength of ${id} is out of range (0 to 1)`;
       }
-      const problem = rangeProblem(id, node);
+      const problem = (node.values && shapeProblem(id, node.values)) || rangeProblem(id, node);
       if (problem) return problem;
     }
   }

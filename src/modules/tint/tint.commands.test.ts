@@ -69,6 +69,12 @@ describe("grade commands", () => {
   });
 
   it("refuses a value out of range with tint.invalid_grade and writes nothing", async () => {
+    const typo = await run(setCorrection, {
+      target,
+      nodeId: (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId,
+      patch: { values: { exposure: "x" } },
+    });
+    expect(typo).toMatchObject({ ok: false, error: { code: "tint.invalid_grade" } });
     const { nodeId } = await ok<{ nodeId: string }>(addCorrection, { target });
     const before = clip().grade;
     const result = await run(setCorrection, { target, nodeId, patch: { values: { exposure: 9 } } });

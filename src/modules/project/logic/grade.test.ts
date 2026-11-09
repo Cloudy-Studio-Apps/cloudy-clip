@@ -201,3 +201,30 @@ describe("the grade in the policy", () => {
     expect((next.clips["k1"]!.grade!.nodes["n1"] as Correction).lut).toBeUndefined();
   });
 });
+
+describe("validateGrade value shapes", () => {
+  const withValues = (values: unknown): ClipGrade => ({
+    nodes: { n1: correct("source", { values: values as Correction["values"] }) },
+    out: { node: "n1" },
+  });
+
+  it("refuses unknown or mistyped correction values", () => {
+    expect(validateGrade(withValues({ bogus: 1 }))).toContain("values.bogus");
+    expect(validateGrade(withValues({ exposure: "x" }))).toContain("values.exposure");
+    expect(validateGrade(withValues({ lift: 5 }))).toContain("values.lift");
+    expect(validateGrade(withValues({ lift: { x: 0, y: 0, m: 0, z: 1 } }))).toContain(
+      "values.lift.z",
+    );
+    expect(validateGrade(withValues({ protectSkin: 1 }))).toContain("values.protectSkin");
+    expect(validateGrade(withValues({ curves: { hueSat: 3 } }))).toContain("values.curves.hueSat");
+    expect(
+      validateGrade(
+        withValues({
+          exposure: 1,
+          lift: { x: 0.1, y: 0, m: 0 },
+          warper: { points: { 3: { dh: 1, ds: 0 } } },
+        }),
+      ),
+    ).toBeNull();
+  });
+});
