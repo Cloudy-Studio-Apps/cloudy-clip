@@ -25,6 +25,12 @@ const flat = (): CurvePoints => [
 ];
 const ZONE_AT = [0.06, 0.2, 0.38, 0.62, 0.82, 0.96] as const;
 
+/** How many points the warper's grid has: 12 hues by 3 strength rings, indexed 0 to 35. */
+export const WARPER_POINTS = 36;
+
+/** Keys never allowed in stored values: they reach an object's prototype. */
+export const UNSAFE_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
+
 /** A correction that does nothing: every value as the picture is. Values equal to it are never stored. */
 export const DEFAULT_CORRECTION: CorrectionValues = {
   exposure: 0,
@@ -109,6 +115,9 @@ function ranges(): Record<string, { min: number; max: number }> {
     "log.highRange": range(0, 1),
     "mix.range": range(0, 100),
     "warper.smoothing": range(0, 100),
+    // Every warper point's offset, whatever its index: hue in degrees, strength as a fraction.
+    "warper.points.dh": range(-180, 180),
+    "warper.points.ds": range(-1, 1),
     "creative.shadowTint.x": range(-1, 1),
     "creative.shadowTint.y": range(-1, 1),
     "creative.highlightTint.x": range(-1, 1),
@@ -144,11 +153,17 @@ function isPlain(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** `over` laid on `base`, going into plain objects only (arrays and numbers are replaced). */
+/**
+ * `over` laid on `base`, going into plain objects only (arrays and numbers are replaced). Only
+ * own keys are read, and `UNSAFE_KEYS` are skipped, so nothing reaches a prototype.
+ */
 function overlay(base: unknown, over: unknown): unknown {
   if (!isPlain(base) || !isPlain(over)) return over === undefined ? base : over;
   const out: Record<string, unknown> = { ...base };
-  for (const [key, value] of Object.entries(over)) out[key] = overlay(base[key], value);
+  for (const [key, value] of Object.entries(over)) {
+    if (UNSAFE_KEYS.has(key)) continue;
+    out[key] = overlay(Object.hasOwn(base, key) ? base[key] : undefined, value);
+  }
   return out;
 }
 

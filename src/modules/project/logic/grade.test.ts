@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { seedProject } from "../project.testing";
 import type { Clip, ClipGrade, Correction, GradeNode } from "../project.types";
 import { projectPolicy } from "./fields";
-import { canGrade, correctionOf, minimizeGrade } from "./grade";
+import { DEFAULT_CORRECTION, canGrade, correctionOf, minimizeGrade } from "./grade";
 import { validateGrade } from "./grade.validate";
 
 function correct(input: string, extra: Partial<Correction> = {}): Correction {
@@ -271,6 +271,48 @@ describe("validateGrade value shapes", () => {
     expect(bad({ warper: { pinned: [1.5] } })).toContain("values.warper.pinned[0]");
     expect(bad({ warper: { pinned: [-1] } })).toContain("values.warper.pinned[0]");
     expect(bad({ warper: { pinned: [0, 5, 35] } })).toBeNull();
+    expect(bad({ warper: { pinned: [36] } })).toContain("values.warper.pinned[0]");
+    expect(bad({ warper: { points: { "0": "x" } } })).toContain("values.warper.points.0");
+    expect(bad({ warper: { points: { "0": {} } } })).toContain("values.warper.points.0");
+    expect(bad({ warper: { points: { "0": { dh: 1 } } } })).toContain("values.warper.points.0");
+    expect(bad({ warper: { points: { "0": null } } })).toContain("values.warper.points.0");
+    expect(bad({ warper: { points: { "0": { dh: "a", ds: Infinity } } } })).toContain(
+      "values.warper.points.0",
+    );
+    expect(bad({ warper: { points: { "0": { dh: 0, ds: 0, x: 1 } } } })).toContain(
+      "values.warper.points.0.x",
+    );
+    expect(bad({ warper: { points: { "0": { dh: 0, ds: 5 } } } })).toContain("out of range");
+    expect(bad({ warper: { points: { "0": { dh: 0, ds: Infinity } } } })).toContain(
+      "values.warper.points.0.ds",
+    );
+    expect(bad({ warper: { points: { "36": { dh: 0, ds: 0 } } } })).toContain(
+      "values.warper.points.36",
+    );
+    expect(bad({ warper: { points: { "1.5": { dh: 0, ds: 0 } } } })).toContain(
+      "values.warper.points.1.5",
+    );
+    expect(bad({ warper: { points: { "35": { dh: -10, ds: 0.5 } } } })).toBeNull();
+    expect(bad(DEFAULT_CORRECTION)).toBeNull();
+    expect(
+      validateGrade({ nodes: { n1: correct("source", { opacity: NaN }) }, out: { node: "n1" } }),
+    ).toContain("opacity");
+    expect(bad({ constructor: {} })).toContain("values.constructor");
+    expect(bad({ toString: {} })).toContain("values.toString");
+    expect(bad(JSON.parse('{"__proto__":{}}'))).toContain("values.__proto__");
+    expect(bad({ lift: JSON.parse('{"__proto__":{"x":1}}') })).toContain("values.lift.__proto__");
+    expect(
+      bad({
+        curves: {
+          hueSat: [
+            [0, 0.5],
+            [0.5, 0.5],
+            [0.5, 0.2],
+            [1, 0.5],
+          ],
+        },
+      }),
+    ).toContain("x, increasing");
     expect(
       validateGrade(
         withValues({

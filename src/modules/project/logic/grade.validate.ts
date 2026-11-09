@@ -1,5 +1,11 @@
 import type { ClipGrade, Correction, GradeNode, NodeRef } from "../project.types";
-import { DEFAULT_CORRECTION, GRADE_RANGES, correctionOf } from "./grade";
+import {
+  DEFAULT_CORRECTION,
+  GRADE_RANGES,
+  UNSAFE_KEYS,
+  WARPER_POINTS,
+  correctionOf,
+} from "./grade";
 
 /** The pictures a node reads: its picture inputs, in order (none for a key join). */
 export function gradeInputs(node: GradeNode): NodeRef[] {
@@ -27,6 +33,13 @@ export function gradeKeys(node: GradeNode): string[] {
 const isPlain = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/** A warper point's index as stored: a whole number 0 to `WARPER_POINTS - 1`, written plainly. */
+const isPointIndex = (key: string): boolean =>
+  /^(0|[1-9][0-9]?)$/.test(key) && Number(key) < WARPER_POINTS;
+
+/** What a warper point holds; every point has both. */
+const WARPER_POINT = { dh: 0, ds: 0 };
+
 /** A key the defaults don't have, or a value of another type than its default (at any depth), or null. */
 function shapeProblem(id: string, values: unknown): string | null {
   const walk = (value: unknown, base: unknown, path: string): string | null => {
@@ -50,8 +63,11 @@ function shapeProblem(id: string, values: unknown): string | null {
         const here = `${path}[${i}]`;
         const problem = walk(cell, template, here);
         if (problem) return problem;
-        if (path === "warper.pinned" && !(Number.isInteger(cell) && (cell as number) >= 0)) {
-          return `values.${here} of ${id} must be a whole number from 0`;
+        if (
+          path === "warper.pinned" &&
+          !(Number.isInteger(cell) && (cell as number) >= 0 && (cell as number) < WARPER_POINTS)
+        ) {
+          return `values.${here} of ${id} must be a whole number from 0 to ${WARPER_POINTS - 1}`;
         }
       }
       // A row of a list of lists has as many cells as the default's; the matrix has its 3 rows.
@@ -65,17 +81,29 @@ function shapeProblem(id: string, values: unknown): string | null {
       if (path.startsWith("curves.") && !path.endsWith("]")) {
         if (value.length < 2) return bad("needs at least 2 points");
         const xs = (value as number[][]).map((point) => point[0]!);
-        if (xs.some((x, i) => i > 0 && x < xs[i - 1]!)) return bad("must be sorted by x");
+        if (xs.some((x, i) => i > 0 && x <= xs[i - 1]!))
+          return bad("must be sorted by x, increasing");
         if (xs[0] !== 0 || xs[xs.length - 1] !== 1) return bad("must run from x 0 to x 1");
       }
       return null;
     }
     if (!isPlain(value)) return bad("must be an object");
-    // Sparse offsets by grid index: any keys.
-    if (path === "warper.points") return null;
     for (const [key, inner] of Object.entries(value)) {
       const here = path === "" ? key : `${path}.${key}`;
-      const known = isPlain(base) ? base[key] : undefined;
+      if (UNSAFE_KEYS.has(key)) return `values.${here} of ${id} is not a correction field`;
+      if (path === "warper.points") {
+        // Sparse offsets by grid index, each a whole { dh, ds }.
+        if (!isPointIndex(key)) {
+          return `values.${here} of ${id} is not a grid index (0 to ${WARPER_POINTS - 1})`;
+        }
+        const problem = walk(inner, WARPER_POINT, here);
+        if (problem) return problem;
+        if (!Object.hasOwn(inner as object, "dh") || !Object.hasOwn(inner as object, "ds")) {
+          return `values.${here} of ${id} needs both dh and ds`;
+        }
+        continue;
+      }
+      const known = isPlain(base) && Object.hasOwn(base, key) ? base[key] : undefined;
       if (known === undefined) return `values.${here} of ${id} is not a correction field`;
       const problem = walk(inner, known, here);
       if (problem) return problem;
@@ -107,8 +135,15 @@ function rangeProblem(id: string, node: Correction): string | null {
       return null;
     }
     if (typeof value === "object" && value !== null) {
+      if (path === "warper.points") {
+        // Every point is ranged alike, whatever its index.
+        for (const point of Object.values(value as Record<string, { dh: number; ds: number }>)) {
+          const problem = walk(point.dh, `${path}.dh`) || walk(point.ds, `${path}.ds`);
+          if (problem) return problem;
+        }
+        return null;
+      }
       for (const [key, inner] of Object.entries(value)) {
-        if (path === "warper" && key === "points") continue;
         const problem = walk(inner, path === "" ? key : `${path}.${key}`);
         if (problem) return problem;
       }
@@ -159,11 +194,12 @@ export function validateGrade(grade: ClipGrade): string | null {
     if (node.kind === "layer" && node.blends.length !== node.inputs.length) {
       return `layer "${id}" needs one blends entry per input`;
     }
-    if ("opacity" in node && (node.opacity < 0 || node.opacity > 1)) {
+    // Written so NaN fails too.
+    if ("opacity" in node && !(node.opacity >= 0 && node.opacity <= 1)) {
       return `opacity of ${id} is out of range (0 to 1)`;
     }
     if (node.kind === "correct") {
-      if (node.lut && (node.lut.strength < 0 || node.lut.strength > 1)) {
+      if (node.lut && !(node.lut.strength >= 0 && node.lut.strength <= 1)) {
         return `lut strength of ${id} is out of range (0 to 1)`;
       }
       const problem = (node.values && shapeProblem(id, node.values)) || rangeProblem(id, node);
