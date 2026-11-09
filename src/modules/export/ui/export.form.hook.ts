@@ -139,6 +139,7 @@ export function useExportForm() {
       effort: values.effort,
       sound: values.sound,
       stems,
+      matchTarget: values.matchTarget && info.sound && values.sound && api.canMatchTarget(),
       hardware,
       sampleRate: values.sampleRate,
       ...(hasBitDepth(values.format) && { bitDepth: values.bitDepth }),

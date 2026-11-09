@@ -6,7 +6,7 @@ import { clearFinished, start } from "../export.commands";
 import { exportRef } from "../export.ref";
 import { QueueItem } from "./QueueItem";
 
-const WORKING = ["preparing", "rendering", "finishing"];
+const WORKING = ["preparing", "measuring", "rendering", "finishing"];
 const OVER = ["done", "failed", "cancelled"];
 
 /** Who is in the queue, as text: stays equal while only progress moves. */

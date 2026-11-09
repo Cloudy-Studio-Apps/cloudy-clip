@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 
-use super::mixeffects::MixEffect;
+use super::mixeffects::{LimiterSpec, MixEffect};
 
 /// Rate the sound is mixed at, whatever the file's rate: the mix is resampled to
 /// `ExportSpec::sample_rate` on the way out.
@@ -215,7 +215,25 @@ pub struct MasterMixSpec {
     /// refuses one.
     #[serde(default)]
     pub effects: Vec<MixEffect>,
+    /// What matching a delivery target adds to this one export or analysis, never the project's.
+    #[serde(default)]
+    pub correction: Option<MasterCorrection>,
 }
+
+/// What matching a delivery target adds to the master of one export or analysis without changing
+/// the project: a level on top of the master's own (its line, or its fader), and a limiter after
+/// its effects for a master that has none working.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MasterCorrection {
+    /// Added to the master's level, in dB.
+    pub gain_db: f64,
+    #[serde(default)]
+    pub limiter: Option<LimiterSpec>,
+}
+
+/// The most a correction moves the master: the fader's whole range (-60 to 12 dB) either way.
+const CORRECTION_MAX_DB: f64 = 72.0;
 
 impl MasterMixSpec {
     /// Leaves the sound as it is.
@@ -224,7 +242,53 @@ impl MasterMixSpec {
         gain_envelope: Vec::new(),
         pan: 0.0,
         effects: Vec::new(),
+        correction: None,
     };
+
+    /// The master with its correction folded in: the level times the correction's (each point of
+    /// a line too), and its limiter after the effects.
+    pub(super) fn corrected(&self) -> MasterMixSpec {
+        let mut master = self.clone();
+        let Some(correction) = master.correction.take() else {
+            return master;
+        };
+        let factor = 10f64.powf(correction.gain_db / 20.0);
+        master.gain *= factor;
+        for point in &mut master.gain_envelope {
+            point.value *= factor;
+        }
+        if let Some(limiter) = correction.limiter {
+            master.effects.push(MixEffect::Limiter(limiter));
+        }
+        master
+    }
+
+    /// Refuses a correction that is not a number, moves the master further than its fader could,
+    /// has a limiter out of a limiter's range, or adds one to a master that has a limiter.
+    pub fn check(&self) -> Result<(), String> {
+        let Some(correction) = &self.correction else {
+            return Ok(());
+        };
+        if !correction.gain_db.is_finite() || correction.gain_db.abs() > CORRECTION_MAX_DB {
+            return Err("The master's correction is out of range.".to_owned());
+        }
+        let Some(limiter) = correction.limiter else {
+            return Ok(());
+        };
+        let ceiling = (-20.0..=0.0).contains(&limiter.ceiling_db);
+        let release = limiter.release_ms.is_finite() && limiter.release_ms > 0.0;
+        if !(ceiling && release) {
+            return Err("The correction's limiter is out of range.".to_owned());
+        }
+        if self
+            .effects
+            .iter()
+            .any(|effect| matches!(effect, MixEffect::Limiter(_)))
+        {
+            return Err("The master already has a limiter: a correction can't add one.".to_owned());
+        }
+        Ok(())
+    }
 }
 
 /// How the tracks mix: each track's effects, pan and level, then the groups' effects and level,
@@ -316,6 +380,7 @@ impl ExportSpec {
     /// Refuses a rate or a depth the formats don't take, and stems of a format with a picture,
     /// of a group that isn't there, or twice the same, and stems of no sound.
     pub fn check(&self) -> Result<(), String> {
+        self.mix.master.check()?;
         if !self.stems.is_empty() && self.format.has_picture() {
             return Err("Stems are sound only: choose MP3, WAV, FLAC, AAC or Opus.".to_owned());
         }

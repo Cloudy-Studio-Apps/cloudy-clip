@@ -72,6 +72,12 @@ const ENQUEUE_INPUT = z.object({
     .default(DEFAULT_IF_EXISTS)
     .describe("What to do when the file is already there"),
   reveal: z.boolean().default(false).describe("Show the file when it's done"),
+  matchTarget: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Brings the mix in the file to the composition's delivery target (sound_set_delivery): before rendering, the job measures the mix (status measuring), raises or lowers Master by the difference, adds a limiter at the peak limit if Master has none working, measures again and corrects once. Only in this file: the project is not changed. Stems are taken before Master, so they don't get it. Needs sound",
+    ),
 });
 
 /** Adds an export to the queue. The document is kept as it is now. */
@@ -79,7 +85,7 @@ export const enqueue = defineCommand({
   id: "export.enqueue",
   label: "Add to export queue",
   description:
-    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. With stems, also writes each group (and Other) as a file of its own in the same run. Fails with export.noFfmpeg, export.formatUnavailable, export.stemsSoundOnly, export.noGroups (the composition has no group), export.noComposition, export.emptyRange, export.noSound, export.badBitDepth, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName or export.fileExists.",
+    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. With stems, also writes each group (and Other) as a file of its own in the same run. Fails with export.noFfmpeg, export.formatUnavailable, export.stemsSoundOnly, export.noGroups (the composition has no group), export.noComposition, export.emptyRange, export.noSound, export.badBitDepth, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName, export.fileExists, export.matchNeedsSound (matchTarget on an export with no sound) or export.cantMatch (no module matches loudness).",
   undoable: false,
   input: ENQUEUE_INPUT,
   async run(ctx, input) {
@@ -126,6 +132,15 @@ export const enqueue = defineCommand({
     if (!info.picture && sound.length === 0) {
       throw new CommandFailure("export.noSound", "This part of the timeline has no sound.");
     }
+    if (input.matchTarget && sound.length === 0) {
+      throw new CommandFailure(
+        "export.matchNeedsSound",
+        "Matching the delivery target needs an export with sound.",
+      );
+    }
+    if (input.matchTarget && !api.canMatchTarget()) {
+      throw new CommandFailure("export.cantMatch", "Nothing here can match the delivery target.");
+    }
     if (input.bitDepth !== undefined && !hasBitDepth(input.format)) {
       throw new CommandFailure("export.badBitDepth", "Only WAV and FLAC have a bit depth.");
     }
@@ -170,6 +185,7 @@ export const enqueue = defineCommand({
       reveal: input.reveal,
       range,
       project,
+      ...(input.matchTarget && { matchTarget: true }),
       spec: {
         output: path,
         format: input.format,
@@ -240,7 +256,7 @@ export const remove = defineCommand({
     const { queue } = ctx.require(exportRef);
     const job = queue.getState().jobs.find((one) => one.id === jobId);
     if (!job) throw new CommandFailure("export.noJob", "That export isn't in the queue.");
-    if (["preparing", "rendering", "finishing"].includes(job.status)) {
+    if (["preparing", "measuring", "rendering", "finishing"].includes(job.status)) {
       throw new CommandFailure("export.running", "Cancel this export first.");
     }
     queue.setState(({ jobs }) => ({ jobs: jobs.filter((one) => one.id !== jobId) }));

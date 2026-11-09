@@ -9,7 +9,7 @@ import {
   setEffect,
 } from "./sound.effects.commands";
 import { BUILT_IN_PRESETS } from "./logic/presets";
-import { analyzeMix, cancelAnalysis, matchTarget, setDelivery } from "./sound.delivery.commands";
+import { analyzeMix, cancelAnalysis, setDelivery, startMatch } from "./sound.delivery.commands";
 import { writeClipPass } from "./sound.clipline.commands";
 import { measureFloor } from "./sound.denoise.commands";
 import {
@@ -95,7 +95,7 @@ const analyzeMixTool = defineMcpTool({
   name: "sound_analyze_mix",
   readOnly: true,
   description:
-    "Measures the whole mix of your open composition (or compositionId) without playing it, and waits for the result (it can take a while on a long mix): integrated loudness (LUFS), loudness range (LU), true peak (dBTP), the delivery target and peak limit it was measured against, and problems (stretches over the peak limit, or clipped; at and duration in microseconds). The result stays until the document changes, then it is stale; sound_match_target needs a fresh one. Waits up to four minutes: if the analysis is still running it says so, and calling again keeps waiting for the same job. Fails like sound.analyzeMix: export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending.",
+    "Measures the whole mix of your open composition (or compositionId) without playing it, and waits for the result (it can take a while on a long mix): integrated loudness (LUFS), loudness range (LU), true peak (dBTP), the delivery target and peak limit it was measured against, and problems (stretches over the peak limit, or clipped; at and duration in microseconds). The result stays until the document changes, then it is stale. Waits up to four minutes: if the analysis is still running it says so, and calling again keeps waiting for the same job. Fails like sound.analyzeMix: export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending.",
   input: z.object({ compositionId: z.string().optional() }),
   async handler(input, ctx) {
     const started = await ctx.bus.execute(analyzeMix.id, input);
@@ -130,6 +130,42 @@ const analyzeMixTool = defineMcpTool({
   },
 });
 
+/** Brings the mix to the delivery target and waits for where it landed; the command returns at once. */
+const matchTargetTool = defineMcpTool({
+  name: "sound_match_target",
+  description:
+    "Brings the whole mix of your open composition (or compositionId) to its delivery target (sound_set_delivery), as the Deliver tab's Match target does, and waits for it: it uses the last analysis when fresh (or measures the mix), raises or lowers Master's volume by the gap (the fader, on top of any master volume line, which is not touched) and adds a Limiter to Master at the peak limit if it has none working (one that is off is switched on), measures again with that on the side and corrects once (at most 3 dB more, so the limiter isn't left doing all the work; a limiter of its own comes down when the true peak went over), then makes the one change (one undo step) and analyzes where the mix landed. Returns { volumeDb, changeDb, correctionDb, limiterAdded, clamped, landed: { integrated, truePeak, problems, ... } }. If the project changes while it runs, it changes nothing. Waits up to four minutes, then says it still runs; calling again waits for the same one; sound_cancel_analysis stops it. Fails with sound.silent_mix-like messages (sound.match_failed), export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending.",
+  input: z.object({ compositionId: z.string().optional() }),
+  async handler(input, ctx) {
+    const started = await ctx.bus.execute(startMatch.id, input);
+    if (!started.ok) return errorResult(started.error);
+    const { compositionId } = started.value as { compositionId: string };
+    const { analyzer, matcher } = ctx.require(soundRef);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<"late">((resolve) => {
+      timer = setTimeout(() => resolve("late"), ANALYSIS_WAIT_MS);
+    });
+    const outcome = await Promise.race([matcher.settled(compositionId), late]);
+    clearTimeout(timer);
+    if (outcome === "late") {
+      return textResult({
+        running: true,
+        ...analyzer.state.getState().matching[compositionId],
+        message:
+          "Match target is still running. Call sound_match_target again to keep waiting for it, or sound_cancel_analysis to stop it.",
+      });
+    }
+    if (!outcome) {
+      const why = analyzer.state.getState().matchFailed[compositionId];
+      return errorResult({
+        code: "sound.match_failed",
+        message: why ?? "Match target was cancelled.",
+      });
+    }
+    return textResult(outcome);
+  },
+});
+
 /** Agents mix with the same commands as the user, and read the meters. Solo and monitoring stay the user's. */
 export const soundMcpTools = [
   commandTool(setTrackMix, { name: "sound_set_track_mix" }),
@@ -153,7 +189,7 @@ export const soundMcpTools = [
   commandTool(applyPreset, { name: "sound_apply_preset" }),
   analyzeMixTool,
   commandTool(cancelAnalysis, { name: "sound_cancel_analysis" }),
-  commandTool(matchTarget, { name: "sound_match_target" }),
+  matchTargetTool,
   commandTool(setDelivery, { name: "sound_set_delivery" }),
   commandTool(measureFloor, { name: "sound_measure_floor" }),
   listPresets,

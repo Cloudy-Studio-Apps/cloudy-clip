@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { CommandBus, Micros, PagesState } from "@/core";
+import type { ActorId, CommandBus, CommandOrigin, Logger, Micros, PagesState } from "@/core";
 import type {
   Clip,
   CompositionId,
@@ -16,7 +16,7 @@ import type {
 import type { LoopRange, MonitorState, PreviewApi } from "@/modules/preview";
 import type { MediaApi } from "@/modules/media";
 import type { ProjectApi } from "@/modules/project";
-import type { SoundOnlySpec } from "@/modules/export";
+import type { LoudnessMatcher, SoundOnlySpec } from "@/modules/export";
 import type { WorkspaceApi } from "@/modules/workspace";
 
 /** What the Sound page shows and how the user listens, per kernel. Never in history. */
@@ -225,6 +225,8 @@ export interface SoundApi {
   automation: AutomationWriter;
   /** Whole-mix analyses: results, progress, start and cancel. */
   analyzer: Analyzer;
+  /** Runs Match target outside the bus, and matches an export's mix (see `sound.startMatch`). */
+  matcher: Matcher;
 }
 
 /** Where the webview runs, for what has been checked there. */
@@ -541,8 +543,7 @@ export type SoonId =
   | "loudness.spectrum"
   | "loudness.phase"
   | "deliver.standard"
-  | "deliver.analyze"
-  | "deliver.matchTarget";
+  | "deliver.analyze";
 
 /** A placeholder: what it will be and the stage that builds it. */
 export interface SoonEntry {
@@ -639,6 +640,66 @@ export interface MixAnalysis {
   problems: MixProblem[];
 }
 
+/**
+ * The limiter Match target works with (see `limiterPlan`): matching's own (added, or switched on),
+ * whose ceiling it sets, at the peak limit; or the user's working one, left as it is.
+ */
+export type LimiterPlan =
+  { own: true; ceilingDb: number; releaseMs: number } | { own: false; ceilingDb: number };
+
+/** What Match target needs from the rest of the module. */
+export interface MatcherDeps {
+  analyzer: Analyzer;
+  bus: CommandBus;
+  project: () => ProjectState;
+  log: Logger;
+}
+
+/** What the second step of Match target is worked out from (see `secondStep`). */
+export interface SecondStepInput {
+  /** The mix as it is. */
+  before: MixAnalysis;
+  /** The mix measured with the first step and the limiter. */
+  after: MixAnalysis;
+  /** The first step: how far Master moved, dB. */
+  changeDb: number;
+  targetLufs: number;
+  peakDbtp: number;
+  limiter: LimiterPlan;
+}
+
+/** The second step of Match target. */
+export interface SecondStep {
+  /** Level added on top of the first step, dB. */
+  correctionDb: number;
+  /** Where the limiter's ceiling goes, dB (the user's own limiter's, unchanged). */
+  ceilingDb: number;
+}
+
+/** Where Match target is, for a composition. */
+export interface MatchRun {
+  /**
+   * `measuring`: the analysis it starts from (none fresh was there); `correcting`: the mix
+   * measured again with the change, on the side; `landing`: the analysis of where it landed.
+   */
+  step: "measuring" | "correcting" | "landing";
+  /** 0 to 1 of the step. */
+  progress: number;
+}
+
+/** What Match target did (`sound.matchTarget`'s result) and where the mix landed. */
+export interface MatchOutcome {
+  volumeDb: number;
+  changeDb: number;
+  limiterAdded: boolean;
+  /** The fader's range kept the mix from the target. */
+  clamped: boolean;
+  /** The second step's share of `changeDb`. */
+  correctionDb: number;
+  /** The analysis after it; null when it couldn't be made (it says why in `failed`). */
+  landed: MixAnalysis | null;
+}
+
 /** An analysis kept with the document it measured. */
 export interface StoredAnalysis {
   result: MixAnalysis;
@@ -662,6 +723,12 @@ export interface AnalysisState {
   running: Record<CompositionId, RunningAnalysis>;
   /** Why the last analysis of a composition failed. */
   failed: Record<CompositionId, string>;
+  /** Match target running, per composition. */
+  matching: Record<CompositionId, MatchRun>;
+  /** The last Match target that ended, per composition. */
+  matched: Record<CompositionId, MatchOutcome>;
+  /** Why the last Match target of a composition failed. */
+  matchFailed: Record<CompositionId, string>;
 }
 
 /** Runs analyses of whole mixes outside the bus, which times out after 30 s. */
@@ -674,5 +741,28 @@ export interface Analyzer {
   /** Resolves when the analysis running for the composition ends; the stored result, or null (failed or cancelled). */
   settled(compositionId: CompositionId): Promise<StoredAnalysis | null>;
   /** Stops every running analysis (the kernel is going away). */
+  dispose(): void;
+}
+
+/** Who asked for a Match target: its change is theirs, in their undo history. */
+export interface MatchBy {
+  origin: CommandOrigin;
+  actor: ActorId;
+}
+
+/** Runs Match target outside the bus (see `sound.startMatch`), in the analyses' store. */
+export interface Matcher {
+  /**
+   * Starts matching the composition whose mix `spec` is (built from the document as it is now),
+   * returning at once. Its one change to the project is `sound.matchTarget`, run as `by`.
+   */
+  start(compositionId: CompositionId, spec: SoundOnlySpec, by: MatchBy): void;
+  /** Stops it, and its analyses. */
+  cancel(compositionId: CompositionId): Promise<void>;
+  /** Resolves when the Match target running for the composition ends: what it did, or null. */
+  settled(compositionId: CompositionId): Promise<MatchOutcome | null>;
+  /** Matches one export's mix, in its spec only (`export`'s `loudnessMatchers`). */
+  match: LoudnessMatcher["match"];
+  /** Stops everything running (the kernel is going away). */
   dispose(): void;
 }

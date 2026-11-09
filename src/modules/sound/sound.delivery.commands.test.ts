@@ -71,6 +71,16 @@ describe("match target", () => {
     expect(master().effects).toBeUndefined();
   });
 
+  it("adds the second step's correction and lower ceiling in the same one undo step", async () => {
+    measured(-18);
+    const result = await run(matchTarget, { correctionDb: 1.5, ceilingDb: -1.3 });
+    expect(result).toMatchObject({ ok: true, value: { volumeDb: 5.5, clamped: false } });
+    expect(master().effects).toMatchObject([{ kind: "limiter", ceilingDb: -1.3 }]);
+    kernel.history.undo();
+    expect(master().volumeDb).toBe(0);
+    expect(master().effects).toBeUndefined();
+  });
+
   it("switches on a limiter that is off instead of adding a second", async () => {
     const added = await run(addEffect, { target: "master", kind: "limiter" });
     const effectId = (added as { value: { effectId: string } }).value.effectId;

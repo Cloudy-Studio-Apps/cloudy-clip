@@ -3,6 +3,7 @@ import type { VideoLevels } from "@/modules/preview";
 import { reversedMedia, usedMedia } from "./logic/sources";
 import { frameCount, frameTime } from "./logic/timing";
 import { formatInfo } from "./logic/presets";
+import { withCorrection } from "./logic/correction";
 import {
   beginExport,
   cancelExport,
@@ -11,7 +12,7 @@ import {
   revealFile,
   sendFrame,
 } from "./export.service";
-import type { ExportJob, ExportRunner, ExportStatus, RunnerDeps } from "./export.types";
+import type { ExportJob, ExportRunner, ExportSpec, ExportStatus, RunnerDeps } from "./export.types";
 
 /** A webview this close to black 0 and white 255 draws video as it should. */
 const LEVELS_TOLERANCE = 6;
@@ -20,11 +21,17 @@ const LEVELS_TOLERANCE = 6;
 class Cancelled extends Error {}
 
 /** Runs the queue, one export at a time, outside the bus: an export takes minutes. */
-export function createExportRunner({ queue, preview, media, log }: RunnerDeps): ExportRunner {
+export function createExportRunner({
+  queue,
+  preview,
+  media,
+  log,
+  matcher,
+}: RunnerDeps): ExportRunner {
   let running = false;
   let disposed = false;
-  /** The job at work and its FFmpeg. */
-  let active: { id: string; nativeId: string | null } | null = null;
+  /** The job at work, its FFmpeg, and what stops its measuring. */
+  let active: { id: string; nativeId: string | null; abort: AbortController } | null = null;
   let levels: Promise<VideoLevels | null> | null = null;
 
   // A cancelled job stays cancelled, whatever was under way when it happened.
@@ -83,6 +90,28 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
     }
   }
 
+  /**
+   * With match target, measures the mix and returns the job's spec with the correction that brings
+   * it to the delivery target; the job's document is never changed. Otherwise the spec as it is.
+   */
+  async function matchedSpec(job: ExportJob, signal: AbortSignal): Promise<ExportSpec> {
+    if (!job.matchTarget) return job.spec;
+    const match = matcher();
+    if (!match) throw new Error("Nothing here can match the delivery target.");
+    enter(job.id, "measuring", "Measuring the mix");
+    const { duration, sound, mix } = job.spec;
+    const correction = await match.match({
+      project: job.project,
+      compositionId: job.compositionId,
+      spec: { duration, sound, mix },
+      onProgress: (progress) => update(job.id, { progress }),
+      signal,
+    });
+    if (stopped(job.id)) throw new Cancelled();
+    log.info(`${job.file}: master ${correction.gainDb} dB to match the target`);
+    return withCorrection(job.spec, correction);
+  }
+
   async function renderFrames(job: ExportJob, frameUrl: string): Promise<void> {
     const { fps } = job.spec;
     const total = frameCount(job.range, fps);
@@ -107,11 +136,13 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
   }
 
   async function run(job: ExportJob): Promise<void> {
-    active = { id: job.id, nativeId: null };
+    active = { id: job.id, nativeId: null, abort: new AbortController() };
     try {
       await prepareSources(job);
       if (stopped(job.id)) throw new Cancelled();
-      const { jobId, frameUrl } = await beginExport(job.spec);
+      const spec = await matchedSpec(job, active.abort.signal);
+      if (stopped(job.id)) throw new Cancelled();
+      const { jobId, frameUrl } = await beginExport(spec);
       active.nativeId = jobId;
       if (stopped(job.id)) throw new Cancelled();
       if (formatInfo(job.spec.format).picture) {
@@ -163,10 +194,12 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
     },
     async cancel(id) {
       update(id, { status: "cancelled", message: undefined });
+      if (active?.id === id) active.abort.abort();
       if (active?.id === id && active.nativeId) await cancelExport(active.nativeId);
     },
     dispose() {
       disposed = true;
+      active?.abort.abort();
       if (active?.nativeId) void cancelExport(active.nativeId);
     },
   };

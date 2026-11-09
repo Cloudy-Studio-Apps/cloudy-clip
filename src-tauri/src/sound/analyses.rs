@@ -69,6 +69,7 @@ pub async fn begin(
             "The mix has no sound to measure".into(),
         ));
     }
+    spec.mix.master.check().map_err(AppError::InvalidInput)?;
     if !peak_limit.is_finite() {
         return Err(AppError::InvalidInput(
             "The peak limit is not a number".into(),

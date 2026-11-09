@@ -17,6 +17,9 @@ export type {
   ExportRange,
   ExportSampleRate,
   ExportStatus,
+  LoudnessMatcher,
+  MasterCorrection,
+  MatchRequest,
   SoundOnlySpec,
   SoundSegment,
   StemPlan,
@@ -31,6 +34,8 @@ export {
 } from "./logic/presets";
 export { MIX_LABEL, stemsOf } from "./logic/stems";
 export { soundOnlySpec } from "./export.mixspec";
+export { withCorrection } from "./logic/correction";
+export { loudnessMatchers } from "./export.points";
 export { useExportComposition } from "./ui/export.composition.hook";
 
 /** Module definition, loaded by the app shell. */

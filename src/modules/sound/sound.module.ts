@@ -1,5 +1,6 @@
 import { AudioLines } from "lucide-react";
 import { LOCAL_ACTOR, appPages, defineModule, pagesRef } from "@/core";
+import { loudnessMatchers } from "@/modules/export";
 import { mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import { settingsSections } from "@/modules/settings";
@@ -16,6 +17,7 @@ import { createAutomation } from "./sound.automation";
 import { soundClipLineCommands } from "./sound.clipline.commands";
 import { createAnalysisStore } from "./sound.analysis.store";
 import { createAnalyzer } from "./sound.analysis";
+import { createMatcher } from "./sound.match";
 import { soundEffectCommands } from "./sound.effects.commands";
 import { soundDeliveryCommands } from "./sound.delivery.commands";
 import { soundDenoiseCommands } from "./sound.denoise.commands";
@@ -91,6 +93,9 @@ export const soundModule = defineModule({
     const workspace = require(workspaceRef);
     const analyzer = createAnalyzer(createAnalysisStore(), project.store.getState, log);
     onDispose(analyzer.dispose);
+    const matcher = createMatcher({ analyzer, bus, project: project.store.getState, log });
+    onDispose(matcher.dispose);
+    contribute(loudnessMatchers, { id: "sound.match", match: matcher.match });
     const media = require(mediaRef);
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());
@@ -177,6 +182,7 @@ export const soundModule = defineModule({
         arm: recorder.arm,
         automation,
         analyzer,
+        matcher,
         setTool: (tool) => view.setState({ tool }),
         setAutomation: (target, mode, compositionId) =>
           setAutomationMode(view, target, mode, compositionId ?? project.view.openFor(LOCAL_ACTOR)),

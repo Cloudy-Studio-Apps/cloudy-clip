@@ -133,6 +133,43 @@ export interface MasterMixSpec {
   pan?: number;
   /** After the level and the pan, in order. Missing when none works. */
   effects?: MixEffect[];
+  /** What matching the delivery target adds for this one export or analysis (see `withCorrection`). */
+  correction?: MasterCorrection;
+}
+
+/**
+ * What matching a delivery target adds to the master of one export or analysis, never written to
+ * the project (mirrors `MasterCorrection` in Rust): a level on top of the master's own (its line,
+ * or its fader), and a limiter after its effects, for a master that has none working.
+ */
+export interface MasterCorrection {
+  /** Added to the master's level, -72 to 72 dB. */
+  gainDb: number;
+  /** Missing when the master has a limiter of its own that works. */
+  limiter?: Pick<LimiterEffect, "ceilingDb" | "releaseMs">;
+}
+
+/** What a loudness matcher is asked: one mix, and the document it comes from. */
+export interface MatchRequest {
+  /** The document the mix was built from (a queued export's own copy). */
+  project: ProjectState;
+  compositionId: CompositionId;
+  /** The mix to match: a Mix export's sound, never its stems. */
+  spec: SoundOnlySpec;
+  /** 0 to 1 over every pass. */
+  onProgress(progress: number): void;
+  /** Aborted when the export is cancelled: the matcher stops and rejects. */
+  signal: AbortSignal;
+}
+
+/**
+ * Measures a mix and works out the correction that brings it to its composition's delivery target
+ * (`sound` contributes the one, to `loudnessMatchers`). Rejects with a message a person can read
+ * when it can't (a silent mix), or when `signal` aborts.
+ */
+export interface LoudnessMatcher {
+  id: string;
+  match(request: MatchRequest): Promise<MasterCorrection>;
 }
 
 /** What sounds in an export: the stretches of files, and how the tracks they sit on mix. */
@@ -283,7 +320,14 @@ export interface StemPlan {
 
 /** Where an export is. */
 export type ExportStatus =
-  "waiting" | "preparing" | "rendering" | "finishing" | "done" | "failed" | "cancelled";
+  | "waiting"
+  | "preparing"
+  | "measuring"
+  | "rendering"
+  | "finishing"
+  | "done"
+  | "failed"
+  | "cancelled";
 
 /** One export in the queue. */
 export interface ExportJob {
@@ -309,6 +353,11 @@ export interface ExportJob {
   range: ExportRange;
   /** The document as it was when queued. */
   project: ProjectState;
+  /**
+   * Whether the runner measures the mix first and brings it to the delivery target, in its own
+   * spec only (`MasterMixSpec.correction`); the project is never changed. Missing is false.
+   */
+  matchTarget?: boolean;
 }
 
 /** The queue of one kernel. */
@@ -337,6 +386,8 @@ export interface ExportFormState {
   sound: boolean;
   /** Each group, and Other, as files of their own beside the mix (sound-only formats). */
   stems: boolean;
+  /** Bring the mix to the delivery target in the file, without changing the project. */
+  matchTarget: boolean;
   hardware: boolean;
   ifExists: ExportIfExists | "ask";
   reveal: boolean;
@@ -378,6 +429,8 @@ export interface RunnerDeps {
     "prepareMaster" | "masterUrl" | "prepareReversed" | "reversedUrl" | "getProbe"
   >;
   log: Logger;
+  /** What matches a mix to its target, when a module contributes one. Read at run time. */
+  matcher(): LoudnessMatcher | undefined;
 }
 
 /** Runs the queue. */
@@ -399,6 +452,8 @@ export interface ExportApi {
   /** What can be exported here; null until known. */
   readonly capabilities: StoreApi<{ value: ExportCapabilities | null }>;
   readonly runner: ExportRunner;
+  /** Whether a module matches mixes to their delivery target (`sound` does): `matchTarget` needs one. */
+  canMatchTarget(): boolean;
 }
 
 /** One band of a clip's equalizer that changes the sound (mirrors `EqFilter` in Rust). */

@@ -78,7 +78,12 @@ export function ExportPage() {
             </SettingsSection>
           </FoldSection>
           <FoldSection {...fold("When saving")}>
-            <WhenSavingSection ifExists={values.ifExists} reveal={values.reveal} />
+            <WhenSavingSection
+              ifExists={values.ifExists}
+              reveal={values.reveal}
+              matchTarget={values.matchTarget}
+              sound={info.sound && values.sound}
+            />
           </FoldSection>
         </div>
         <div className="shrink-0 border-t border-border-strong px-3 py-2.5">

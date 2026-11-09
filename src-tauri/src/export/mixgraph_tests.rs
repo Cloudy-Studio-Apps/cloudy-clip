@@ -1,6 +1,8 @@
 use super::*;
 use crate::export::mixeffects::{CompressorSpec, DuckSpec, LimiterSpec, MixEffect};
-use crate::export::spec::{BusMixSpec, EnvelopePoint, MasterMixSpec, segment as plain};
+use crate::export::spec::{
+    BusMixSpec, EnvelopePoint, MasterCorrection, MasterMixSpec, segment as plain,
+};
 
 fn segment(track: usize) -> SoundSegment {
     SoundSegment { track, ..plain() }
@@ -429,4 +431,70 @@ fn a_duck_listening_to_a_group_keys_after_the_group_fader() {
         "{graph}"
     );
     assert_wired(&graph);
+}
+
+#[test]
+fn a_correction_raises_the_master_and_adds_its_limiter_last() {
+    let mut mix = mix_of(&[TrackMixSpec::DEFAULT], 2.0);
+    mix.master.correction = Some(MasterCorrection {
+        gain_db: 20.0 * 2f64.log10(),
+        limiter: Some(LimiterSpec {
+            ceiling_db: -1.5,
+            release_ms: 50.0,
+        }),
+    });
+    let graph = sound_graph(&[chain(0)], &[segment(0)], &mix, 1_000_000);
+    assert!(graph.contains("volume=4.000000"), "{graph}");
+    assert!(
+        graph.contains("alimiter=limit=-1.5dB:attack=5:release=50:level=disabled,apad=whole_dur"),
+        "{graph}"
+    );
+    assert_wired(&graph);
+}
+
+#[test]
+fn a_correction_scales_each_point_of_the_master_line() {
+    let mut master = MasterMixSpec {
+        gain_envelope: vec![
+            EnvelopePoint { at: 0, value: 0.5 },
+            EnvelopePoint {
+                at: 500_000,
+                value: 1.0,
+            },
+        ],
+        correction: Some(MasterCorrection {
+            gain_db: 20.0 * 2f64.log10(),
+            limiter: None,
+        }),
+        ..MasterMixSpec::DEFAULT
+    }
+    .corrected();
+    assert!(master.correction.is_none());
+    for (point, want) in master.gain_envelope.iter_mut().zip([1.0, 2.0]) {
+        assert!((point.value - want).abs() < 1e-9);
+    }
+}
+
+#[test]
+fn a_correction_is_refused_out_of_range_or_with_a_second_limiter() {
+    let limiter = LimiterSpec {
+        ceiling_db: -1.0,
+        release_ms: 50.0,
+    };
+    let with = |gain_db: f64, effects: Vec<MixEffect>| MasterMixSpec {
+        effects,
+        correction: Some(MasterCorrection {
+            gain_db,
+            limiter: Some(limiter),
+        }),
+        ..MasterMixSpec::DEFAULT
+    };
+    assert!(with(6.0, Vec::new()).check().is_ok());
+    assert!(with(f64::NAN, Vec::new()).check().is_err());
+    assert!(with(100.0, Vec::new()).check().is_err());
+    assert!(
+        with(6.0, vec![MixEffect::Limiter(limiter)])
+            .check()
+            .is_err()
+    );
 }

@@ -250,17 +250,19 @@ pub(super) fn sound_graph(
     } else {
         stem_taps(&mut graph, outputs, stems, &end)
     };
-    // The master's level (its line, when it has one), then its pan, as a track bus's.
+    // The master's level (its line, when it has one), then its pan, as a track bus's; a
+    // correction is folded in, after the stems are split off.
+    let spec = mix.master.corrected();
     let mut master = String::new();
-    if !mix.master.gain_envelope.is_empty() {
-        master.push_str(&gain_envelope_filter(&mix.master.gain_envelope));
-    } else if mix.master.gain != 1.0 {
-        master.push_str(&format!(",volume={:.6}", mix.master.gain));
+    if !spec.gain_envelope.is_empty() {
+        master.push_str(&gain_envelope_filter(&spec.gain_envelope));
+    } else if spec.gain != 1.0 {
+        master.push_str(&format!(",volume={:.6}", spec.gain));
     }
-    if mix.master.pan != 0.0 {
-        master.push_str(&pan_filter(mix.master.pan));
+    if spec.pan != 0.0 {
+        master.push_str(&pan_filter(spec.pan));
     }
-    let effects: String = mix.master.effects.iter().map(effect_filter).collect();
+    let effects: String = spec.effects.iter().map(effect_filter).collect();
     if !effects.is_empty() {
         master.push_str(&format!(",apad=whole_len={length}{effects}"));
     }

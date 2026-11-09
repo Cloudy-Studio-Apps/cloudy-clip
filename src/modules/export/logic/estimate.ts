@@ -65,6 +65,8 @@ export function statusText({ status, progress, message }: ExportJob): string {
       return "Waiting";
     case "preparing":
       return `Preparing ${percent}`;
+    case "measuring":
+      return `Measuring ${percent}`;
     case "rendering":
       return percent;
     case "finishing":
