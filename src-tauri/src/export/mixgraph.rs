@@ -1,7 +1,8 @@
 //! The tree the sound is mixed in, as the preview's buses are: a track's clips are summed, the
-//! track's effects, pan and level (its volume line, when it has one) apply to that sum, the tracks are summed, and the master's
-//! level, then its effects, apply to the result. A duck's key is the sum of the tracks it listens
-//! to after their levels, split off them (`asplit`); those tracks are built first.
+//! track's effects, pan and level (its volume line, when it has one) apply to that sum, the
+//! tracks are summed, and the master's level, then its effects, apply to the result. A duck's
+//! key is the sum of the tracks it listens to after their levels, split off them (`asplit`);
+//! those tracks are built first.
 
 use std::collections::BTreeMap;
 

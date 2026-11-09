@@ -1,10 +1,13 @@
 import type { Micros } from "@/core";
 import { dbToLinear } from "@/modules/project";
-import { lineLevel, lineSchedule } from "../logic/line";
+import { lineLevel, lineSchedule, sameLines } from "../logic/line";
 import { glide } from "./engine.soundnodes";
 import type { FaderLevel, FaderTarget } from "./engine.types";
 
-/** How far ahead of the clock the line is scheduled, in timeline time. */
+/**
+ * How far ahead of the clock the lines are scheduled, in timeline time. The clock plays at 1x
+ * (there is no shuttle speed), so timeline time maps 1:1 to the context's time.
+ */
 const AHEAD: Micros = 1_000_000;
 /** Scheduled less than this far ahead (seconds), the next stretch is added. */
 const REFILL = 0.5;
@@ -34,11 +37,13 @@ function cancel(param: AudioParam, context: BaseAudioContext): void {
 }
 
 /**
- * The level of a track bus's fader: the fader's volume, 0 when muted, or, when the track has a
- * volume line, the line with the fader's offset on top. While playing, the line is scheduled a
- * second ahead as straight ramps (`lineSchedule`), topped up as the clock goes, and scheduled
- * again on a seek, a loop or a change; paused, the fader glides to the line's level at the
- * playhead. `time` is the clock when the bus is made: the first level is set outright.
+ * A gain that plays a `FaderTarget`: its volume, 0 when muted, or, with volume lines, the lines
+ * with the volume as an offset on top (a track bus's fader; the lines of the tracks a clip sits in
+ * inside placements, on its chain). While playing, the lines are scheduled a second ahead as
+ * straight ramps (`lineSchedule`), never past where playback stops or goes round, topped up as
+ * the clock goes, and scheduled again on a seek, a loop or a change; paused, the gain glides to
+ * the lines' level at the playhead. `time` is the clock when it is made: the first level is set
+ * outright.
  */
 export function createFaderLevel(
   param: AudioParam,
@@ -48,13 +53,14 @@ export function createFaderLevel(
   let target: FaderTarget | null = null;
   let clock = time;
   let playing = false;
+  let until = Infinity;
   let plan: Plan | null = null;
   /** The paused time the line's level was last set for. */
   let held: Micros | null = null;
   let started = false;
 
-  const lineOf = (next: FaderTarget) =>
-    !next.muted && next.line && next.line.keys.length > 0 ? next.line : undefined;
+  const linesOf = (next: FaderTarget) =>
+    next.muted ? [] : next.lines.filter(({ line }) => line.keys.length > 0);
 
   const drop = () => {
     if (!plan) return;
@@ -63,28 +69,31 @@ export function createFaderLevel(
   };
 
   const apply = () => {
-    const line = target && lineOf(target);
-    if (!target || !line) return;
+    const lines = target ? linesOf(target) : [];
+    if (!target || lines.length === 0) return;
     const offset = target.offsetDb;
     if (!playing) {
       drop();
       if (held === clock) return;
       held = clock;
-      glide(param, lineLevel(line, offset, clock), context);
+      glide(param, lineLevel(lines, offset, clock), context);
       return;
     }
     held = null;
     const now = context.currentTime;
     if (plan && Math.abs(plan.time + (now - plan.at) * 1e6 - clock) > SLIP) drop();
+    // A loop set while playing ends before what is scheduled.
+    if (plan && until < plan.until && until > clock) drop();
     if (!plan) {
       cancel(param, context);
-      param.linearRampToValueAtTime(lineLevel(line, offset, clock + CATCH), now + CATCH / 1e6);
+      param.linearRampToValueAtTime(lineLevel(lines, offset, clock + CATCH), now + CATCH / 1e6);
       plan = { time: clock, at: now, until: clock + CATCH };
     }
     const { time: from, at } = plan;
     if (at + (plan.until - from) / 1e6 - now >= REFILL) return;
-    const to = Math.round(from + (now - at) * 1e6) + AHEAD;
-    for (const point of lineSchedule(line, offset, plan.until, to)) {
+    const to = Math.min(Math.round(from + (now - at) * 1e6) + AHEAD, until);
+    if (to <= plan.until) return;
+    for (const point of lineSchedule(lines, offset, plan.until, to)) {
       param.linearRampToValueAtTime(point.gain, at + (point.at - from) / 1e6);
     }
     plan.until = to;
@@ -94,28 +103,29 @@ export function createFaderLevel(
     set(next) {
       const same =
         target !== null &&
-        target.line === next.line &&
+        sameLines(target.lines, next.lines) &&
         target.offsetDb === next.offsetDb &&
         target.muted === next.muted;
       if (same) return;
       target = next;
       held = null;
       drop();
-      const line = lineOf(next);
-      if (!line) {
+      const lines = linesOf(next);
+      if (lines.length === 0) {
         const level = next.muted ? 0 : dbToLinear(next.offsetDb);
         if (started) glide(param, level, context);
         else param.value = level;
       } else if (!started) {
-        param.value = lineLevel(line, next.offsetDb, clock);
+        param.value = lineLevel(lines, next.offsetDb, clock);
         held = clock;
       }
       started = true;
       apply();
     },
-    follow(time, isPlaying) {
+    follow(time, isPlaying, end) {
       clock = time;
       playing = isPlaying;
+      until = end;
       apply();
     },
   };

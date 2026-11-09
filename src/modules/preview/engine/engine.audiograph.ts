@@ -112,7 +112,7 @@ export function createSoundGraph(): SoundGraph {
       update = next;
       buses?.mix(next);
     },
-    follow: (time, playing) => buses?.follow(time, playing),
+    follow: (time, playing, until) => buses?.follow(time, playing, until),
     levels: () => buses?.levels() ?? NO_LEVELS,
     loudness: () => loudness?.read() ?? null,
     resetLoudness: () => loudness?.reset(),

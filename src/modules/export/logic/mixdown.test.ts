@@ -414,6 +414,34 @@ describe("mixdown", () => {
     expect(mix.tracks[0]!.gain).toBeCloseTo(dbToLinear(-3), 6);
   });
 
+  it("folds an inner track's volume line into its clips, on the inner composition's clock", () => {
+    const state = withPlacement(project([]), { innerMuted: false });
+    state.tracks.a2!.mix = {
+      volumeDb: -6,
+      pan: 0,
+      volumeLine: {
+        blend: "number",
+        min: -60,
+        max: 12,
+        keys: [
+          { id: "l1", t: 1_000_000, value: 0 },
+          { id: "l2", t: 3_000_000, value: -20 },
+        ],
+      },
+    };
+    const { segments, mix } = mixdownWithMix(state, "c1", everything, sounds);
+    // The placement plays c2 from 1 s at 2 s: the segment covers c2's 1 s to 3 s.
+    const points = segments[0]!.gainEnvelope!;
+    expect(segments[0]).not.toHaveProperty("gain");
+    expect(points[0]).toMatchObject({ at: 0 });
+    expect(points[0]!.value).toBeCloseTo(dbToLinear(-6), 6);
+    expect(points.find((point) => point.at === 1_000_000)!.value).toBeCloseTo(dbToLinear(-16), 6);
+    expect(points.at(-1)).toMatchObject({ at: 2_000_000 });
+    expect(points.at(-1)!.value).toBeCloseTo(dbToLinear(-26), 6);
+    // The outer track has no line: its bus keeps a plain level.
+    expect(mix.tracks[0]).not.toHaveProperty("gainEnvelope");
+  });
+
   it("leaves a clip without keys as it was", () => {
     const [segment] = mixdown(project([clip("a", "a1")]), "c1", everything, sounds);
     expect(segment).not.toHaveProperty("gainEnvelope");

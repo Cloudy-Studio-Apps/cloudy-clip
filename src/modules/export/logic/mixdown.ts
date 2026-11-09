@@ -30,6 +30,7 @@ import {
   type TrackMix,
 } from "@/modules/project";
 import { envelope } from "./envelope";
+import { withLine } from "./swell";
 import type {
   ExportRange,
   EqFilter,
@@ -43,6 +44,7 @@ import type {
   SoundFile,
   SoundMix,
   SoundSegment,
+  Swell,
   TempoStep,
   TrackMixSpec,
 } from "../export.types";
@@ -85,15 +87,22 @@ function soundFields(
   };
 }
 
-/** The envelopes of a clip's keyed volume and pan over the part of it that sounds. */
+/**
+ * The envelopes of a clip's keyed volume and pan over the part of it that sounds. The volume's
+ * also carries the lines of the inner tracks around it (`swell`, on the export's clock, which is
+ * this composition's plus `shift`), so a clip under a line gets one even without keys.
+ */
 function keyedFields(
   clip: Clip,
   place: Place,
   parentGain: number,
   start: Micros,
   stop: Micros,
+  swell: Swell | undefined,
+  shift: Micros,
 ): Pick<SoundSegment, "gainEnvelope" | "panEnvelope"> {
-  const volume = clip.animation?.["sound.volumeDb"];
+  const keyed = clip.animation?.["sound.volumeDb"];
+  const volume = keyed?.keys.length ? keyed : undefined;
   const pan = clip.animation?.["sound.pan"];
   const read = (track: KeyTrack, time: Micros) =>
     Number(trackValue(track, contentTime(clip, time)));
@@ -101,13 +110,19 @@ function keyedFields(
     keyMoments(track, contentTime(clip, start), contentTime(clip, stop)).map((t) =>
       timeOfContent(clip, t),
     );
+  const db = (time: Micros) => (volume ? read(volume, time) : soundOf(clip).volumeDb);
+  const around = (time: Micros) => (swell ? swell.gain(time + shift) : 1);
+  const gainBreaks = [
+    ...(volume ? breaks(volume) : []),
+    ...(swell?.breaks.map((time) => time - shift) ?? []),
+  ];
   return {
-    ...(volume?.keys.length && {
+    ...((volume || swell) && {
       gainEnvelope: envelope(
-        (time) => place(parentGain * dbToLinear(read(volume, time)), 0).gain,
+        (time) => place(parentGain * dbToLinear(db(time)), 0).gain * around(time),
         start,
         stop,
-        breaks(volume),
+        gainBreaks,
       ),
     }),
     ...(pan?.keys.length && {
@@ -219,6 +234,10 @@ function walk(
     const place: Place = (gain, pan) =>
       nesting ? soundInPlacement(track, nesting.pan, gain, pan) : { gain, pan };
     const through = nesting?.gain ?? 1;
+    // Top-level, a track's line is its bus's; inside a placement it joins the lines above.
+    const swell = nesting
+      ? withLine(nesting.swell, track.mix?.volumeLine, shift, from, end)
+      : undefined;
     // Inside a placement, the clips get the noise reduction of the track it sits on.
     const denoise = nesting ? nesting.denoise : heardDenoise(track, composition);
     const clips = track.clipIds.map((id) => project.clips[id]);
@@ -255,7 +274,7 @@ function walk(
           clip.compositionRef,
           inner,
           fades,
-          { track: index, ...placed, denoise },
+          { track: index, ...placed, denoise, swell },
           hasSound,
           soundFile,
           out,
@@ -278,7 +297,7 @@ function walk(
         ...soundFields(
           sound,
           place(level, sound.pan),
-          keyedFields(clip, place, through, start, stop),
+          keyedFields(clip, place, through, start, stop, swell, shift),
         ),
         ...(ramp ? rampFields(clip, ramp, start, stop) : speedFields(speedOf(clip))),
       });

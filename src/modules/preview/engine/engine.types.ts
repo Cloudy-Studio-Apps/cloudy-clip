@@ -6,6 +6,7 @@ import type { DenoiseSettings, MediaApi } from "@/modules/media";
 import type { Micros } from "@/core";
 import type {
   DynamicsCommand,
+  LineAt,
   LiveSound,
   LoudnessReading,
   MixLevels,
@@ -18,7 +19,6 @@ import type {
   ClipSound,
   ClipSpeed,
   Composition,
-  KeyTrack,
   MasterMix,
   MediaId,
   ProjectFormat,
@@ -62,6 +62,11 @@ export interface SoundChain {
   apply(sound: ClipSound, gain: number, pan?: number): void;
   /** Sends the chain into a bus; does nothing when it already goes there. */
   routeTo(bus: AudioNode): void;
+  /**
+   * At each frame: the volume lines of the tracks it sits in inside placements (none outside
+   * one), followed on a gain after the level (`createFaderLevel`), up to `until`.
+   */
+  follow(lines: readonly LineAt[], time: Micros, playing: boolean, until: Micros): void;
 }
 
 /** One audio track of the open composition in a mix update. */
@@ -97,8 +102,11 @@ export interface SoundGraph {
   busOf(trackId: TrackId): AudioNode | undefined;
   /** Makes and drops track buses and sets every level. Call it on a change, not per frame. */
   mix(update: MixUpdate): void;
-  /** Keeps volume lines on the clock: call it at each frame with the playhead. Cheap. */
-  follow(time: Micros, playing: boolean): void;
+  /**
+   * Keeps volume lines on the clock: call it at each frame with the playhead, and `until`, where
+   * playback stops or goes round (nothing is scheduled past it). Cheap.
+   */
+  follow(time: Micros, playing: boolean, until: Micros): void;
   /** Peaks now; silence before any sound went through. */
   levels(): MixLevels;
   /** Loudness of the master since the last reset, measured while playing; null until measured. */
@@ -118,6 +126,10 @@ export interface Nesting {
   pan: number;
   /** The noise reduction of that track (or its master), which the clips inside get. */
   denoise: DenoiseSettings | undefined;
+  /** The volume lines of the inner tracks above, each on its composition's clock. */
+  lines: readonly LineAt[];
+  /** The open composition's time: the playhead. */
+  playhead: Micros;
 }
 
 /** Where a clip sounds from: the bus, and its gain and pan once inner tracks apply. */
@@ -125,6 +137,16 @@ export interface Placed {
   bus: TrackId;
   gain: number;
   pan: number;
+  /** The volume lines of the inner tracks it sits in, on their clocks; none outside a placement. */
+  lines: readonly LineAt[];
+}
+
+/** The playhead as sound follows it: where it is, whether it plays, and where it stops or wraps. */
+export interface SoundClock {
+  time: Micros;
+  playing: boolean;
+  /** Where playback stops or goes round (a loop's end): nothing is scheduled past it. */
+  until: Micros;
 }
 
 /** The sound side of one engine: its graph, the live sound, and when the buses are set. */
@@ -136,7 +158,7 @@ export interface SoundMix {
   /** At each frame: sets the buses when the tracks, the composition or the live sound changed. */
   update(project: ProjectState, composition: Composition): void;
   /** At each frame: the playhead, which track volume lines follow (`SoundGraph.follow`). */
-  follow(time: Micros, playing: boolean): void;
+  follow(time: Micros, playing: boolean, until: Micros): void;
   /** New live sound from the controller, applied at once. */
   setSound(live: LiveSound): void;
   levels(): MixLevels;
@@ -160,6 +182,8 @@ export interface Voice {
   bus: TrackId;
   /** The file's name, for the report when its element can't enter the graph. */
   name: string;
+  /** The volume lines of the inner tracks it sits in (`Placed.lines`). */
+  lines: readonly LineAt[];
 }
 
 /** The pitch worklet's node (SoundTouch), with its pitch ratio. */
@@ -185,21 +209,21 @@ export interface TrackBus {
   meter: Meter;
 }
 
-/** What a track bus's fader plays: its volume, its mute and its volume line. */
+/** What a gain plays: a volume, a mute and volume lines (a track bus's fader, a chain's lines). */
 export interface FaderTarget {
-  /** The track's volume line (timeline time), on which the volume is an offset in dB. */
-  line: KeyTrack | undefined;
-  /** The fader's volume in dB: the level, or the offset on top of the line. */
+  /** Volume lines (each on its composition's clock), added in dB; the volume is an offset on top. */
+  lines: readonly LineAt[];
+  /** The volume in dB: the level, or the offset on top of the lines. */
   offsetDb: number;
   muted: boolean;
 }
 
-/** Sets a fader's gain from a `FaderTarget`, following a volume line on the clock (`createFaderLevel`). */
+/** Sets a gain from a `FaderTarget`, following volume lines on the clock (`createFaderLevel`). */
 export interface FaderLevel {
   /** A new target; the same one again does nothing. */
   set(target: FaderTarget): void;
-  /** The playhead, at each frame. */
-  follow(time: Micros, playing: boolean): void;
+  /** The playhead at each frame, and where playback stops or goes round. */
+  follow(time: Micros, playing: boolean, until: Micros): void;
 }
 
 /** The node a duck listens to for a track (its bus after the fader); nothing when it has no bus. */
@@ -243,7 +267,7 @@ export interface MixBus {
   /** The input of a track's bus, or the master's when the track has none. */
   inputOf(trackId: TrackId): AudioNode;
   /** Keeps volume lines on the clock (`SoundGraph.follow`). */
-  follow(time: Micros, playing: boolean): void;
+  follow(time: Micros, playing: boolean, until: Micros): void;
   /** The master after its fader and effects, before the monitor: what loudness is measured on. */
   readonly master: AudioNode;
   mix(update: MixUpdate): void;

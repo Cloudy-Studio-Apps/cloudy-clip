@@ -116,6 +116,8 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly awaited = new Set<MediaId>();
   /** Inside `playSlice`: the loudness tap stays off. */
   private slicing = false;
+  /** Where playback stops or goes round, from the last `render`: sound isn't scheduled past it. */
+  private until: Micros = Infinity;
   private readonly levelCorrection: LevelCorrection | null;
 
   constructor(
@@ -149,9 +151,11 @@ export class HtmlMediaEngine implements PreviewEngine {
     playing: boolean,
     transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>> = new Map(),
+    until: Micros = Infinity,
   ): void {
     this.sound.update(project, composition);
-    this.sound.follow(time, playing);
+    this.until = Math.min(until, composition.duration);
+    this.sound.follow(time, playing, this.until);
     // A scrub slice is heard and metered as playback is, but never reaches the loudness reading.
     this.sound.setPlaying(playing && !this.slicing);
     const frame = resolveFrame(project, composition.id, time, {
@@ -286,9 +290,10 @@ export class HtmlMediaEngine implements PreviewEngine {
         const trackDenoise = track.kind === "audio" ? heardDenoise(track, composition) : undefined;
         const denoise = nesting ? nesting.denoise : trackDenoise;
         if (inner) {
-          const { bus, gain: through, pan } = placeSound(track, nesting, own, 0);
+          const placement = placeSound(track, nesting, own, 0, time);
+          const { bus, gain: through, pan, lines } = placement;
           const quiet = silenced || track.muted;
-          const around = { bus, pan, denoise };
+          const around = { bus, pan, denoise, lines, playhead: nesting?.playhead ?? time };
           this.prepare(project, inner, playing, propsOverrides, through, quiet, around);
           continue;
         }
@@ -327,9 +332,10 @@ export class HtmlMediaEngine implements PreviewEngine {
         // The pitch of a ramp follows its rate now, in steps, since each rate keeps its own sound.
         const heardRate = ramped ? Math.round(rate / RAMP_RATE_STEP) * RAMP_RATE_STEP : rate;
         const heard = this.sound.heard(sound, { ...speed, rate: heardRate });
-        const placed = placeSound(track, nesting, own, heard.pan);
+        const placed = placeSound(track, nesting, own, heard.pan, time);
         const voice = { ...placed, silenced, sound: heard, name: media.name };
-        voiceSlot(slot, track, track.kind === "audio" ? voice : null, this.sound.graph);
+        const clock = { time: nesting?.playhead ?? time, playing, until: this.until };
+        voiceSlot(slot, track, track.kind === "audio" ? voice : null, this.sound.graph, clock);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
         const lead = pitched ? PITCH_LEAD_SECONDS * rate : 0;
         syncSlot(slot, exact + lead, playing && rate > 0, rate, ramped);

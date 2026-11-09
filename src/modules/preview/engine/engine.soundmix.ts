@@ -32,7 +32,7 @@ export function createSoundMix(pictureOnly: boolean): SoundMix {
       live = next;
       if (mixed) update(mixed.project, mixed.composition);
     },
-    follow: (time, playing) => graph?.follow(time, playing),
+    follow: (time, playing, until) => graph?.follow(time, playing, until),
     levels: () => graph?.levels() ?? NO_LEVELS,
     loudness: () => graph?.loudness() ?? null,
     resetLoudness: () => graph?.resetLoudness(),

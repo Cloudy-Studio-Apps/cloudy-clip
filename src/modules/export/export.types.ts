@@ -115,6 +115,16 @@ export interface MixNesting {
   pan: number;
   /** The noise reduction of that track (or its master), which the clips inside get. */
   denoise: DenoiseEffect | undefined;
+  /** The volume lines of the inner tracks above; none when they have no line. */
+  swell: Swell | undefined;
+}
+
+/** A level that changes over the export: the volume lines of the inner tracks around a clip. */
+export interface Swell {
+  /** The factor at a time on the export's clock. */
+  gain(time: Micros): number;
+  /** Times on the export's clock where it bends: the lines' keys. */
+  breaks: Micros[];
 }
 
 /**

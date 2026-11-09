@@ -8,6 +8,7 @@ import type {
   Composition,
   CompositionId,
   Junction,
+  KeyTrack,
   MediaId,
   ProjectState,
   SoundEffect,
@@ -66,7 +67,9 @@ export interface PlaybackClock {
 export interface PreviewEngine {
   /**
    * Draws (and, while playing, keeps media in sync with) the project at `time`. `transforms`
-   * replaces clips' saved transforms while a gesture is in progress.
+   * replaces clips' saved transforms while a gesture is in progress. `until` is where playback
+   * stops or goes round (a loop's end; the composition's end at most): volume lines aren't
+   * scheduled past it.
    */
   render(
     project: ProjectState,
@@ -75,6 +78,7 @@ export interface PreviewEngine {
     playing: boolean,
     transforms?: ReadonlyMap<ClipId, ClipTransform>,
     propsOverrides?: ReadonlyMap<ClipId, Record<string, unknown>>,
+    until?: Micros,
   ): void;
   /**
    * Plays a short slice of sound at `time` (audio scrub) through the sound graph, so it is mixed
@@ -568,9 +572,17 @@ export interface ActiveJunction {
   elapsed: number;
 }
 
-/** A level a track's bus reaches at a timeline time, on the way along its volume line. */
+/** A level a gain reaches at a playhead time, on the way along volume lines. */
 export interface LinePoint {
   at: Micros;
-  /** Linear: the line with the fader's offset on top. */
+  /** Linear: the lines with the fader's offset on top. */
   gain: number;
+}
+
+/** A track's volume line, and how far its composition's clock is ahead of the playhead. */
+export interface LineAt {
+  /** Keys on its own composition's timeline time. */
+  line: KeyTrack;
+  /** Its composition's time minus the open composition's (0 for the open one's own tracks). */
+  shift: Micros;
 }

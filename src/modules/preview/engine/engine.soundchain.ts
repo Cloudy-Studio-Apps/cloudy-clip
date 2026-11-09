@@ -1,5 +1,6 @@
 import { createLogger } from "@/core";
 import { pitchShift, type ClipSound } from "@/modules/project";
+import { createFaderLevel } from "./engine.line";
 import { createEqFilters, createPanner, createUpmix, glide, setBand } from "./engine.soundnodes";
 import type { PitchNode, SoundChain } from "./engine.types";
 
@@ -22,7 +23,11 @@ export async function loadPitch(context: AudioContext): Promise<() => PitchNode>
   return () => new SoundTouchNode({ context }) as unknown as PitchNode;
 }
 
-/** The Web Audio chain of one element: pitch, equalizer, pan, then level, into a bus. */
+/**
+ * The Web Audio chain of one element: pitch, equalizer, pan, level, then the volume lines of the
+ * tracks it sits in inside placements (a gain of their own, scheduled, while the level glides each
+ * frame), into a bus.
+ */
 export function createChain(
   context: AudioContext,
   element: HTMLMediaElement,
@@ -33,8 +38,10 @@ export function createChain(
   const filters = createEqFilters(context);
   const panner = createPanner(context);
   const level = context.createGain();
+  const lines = context.createGain();
+  const lineLevel = createFaderLevel(lines.gain, context, 0);
   source.connect(input);
-  const nodes: AudioNode[] = [input, ...filters, panner, level];
+  const nodes: AudioNode[] = [input, ...filters, panner, level, lines];
   nodes.slice(1).forEach((node, i) => nodes[i]!.connect(node));
 
   let shown: ClipSound | null = null;
@@ -87,9 +94,13 @@ export function createChain(
     routeTo(next) {
       // The pool hands an element to clips of any track, so its chain follows the slot.
       if (next === bus) return;
-      if (bus) level.disconnect(bus);
-      level.connect(next);
+      if (bus) lines.disconnect(bus);
+      lines.connect(next);
       bus = next;
+    },
+    follow(heard, time, playing, until) {
+      lineLevel.set({ lines: heard, offsetDb: 0, muted: false });
+      lineLevel.follow(time, playing, until);
     },
   };
 }

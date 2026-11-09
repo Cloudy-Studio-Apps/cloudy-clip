@@ -94,9 +94,9 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
   return {
     master,
     inputOf: (trackId) => buses.get(trackId)?.input ?? masterFader,
-    follow(time, playing) {
+    follow(time, playing, until) {
       clock = time;
-      for (const bus of buses.values()) bus.level.follow(time, playing);
+      for (const bus of buses.values()) bus.level.follow(time, playing, until);
     },
     mix({ tracks, master: masterMix, solo, monitor: monitorState }) {
       const wanted = new Set(tracks.map((track) => track.id));
@@ -108,7 +108,8 @@ export function createMixBus(context: BaseAudioContext, dynamics: DynamicsNodes)
       for (const { id, mix, muted } of tracks) {
         // Solo silences the other buses, never their elements, so they stay in sync.
         const soloLevel = solo.length === 0 || solo.includes(id) ? 1 : 0;
-        const level = { line: mix.volumeLine, offsetDb: mix.volumeDb, muted };
+        const lines = mix.volumeLine ? [{ line: mix.volumeLine, shift: 0 }] : [];
+        const level = { lines, offsetDb: mix.volumeDb, muted };
         const bus = buses.get(id);
         if (!bus) {
           const made = createTrackBus(
