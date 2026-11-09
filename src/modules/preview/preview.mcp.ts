@@ -3,7 +3,6 @@ import { commandTool, defineMcpTool, errorResult, toAppError } from "@/core";
 import { projectRef } from "@/modules/project";
 import { pause, play, seek } from "./preview.commands";
 import { previewRef } from "./preview.ref";
-import { gpuCheck } from "./gpu/gpu.check";
 
 const captureFrame = defineMcpTool({
   name: "preview_capture_frame",
@@ -41,5 +40,4 @@ export const previewMcpTools = [
   commandTool(pause, { name: "preview_pause" }),
   commandTool(seek, { name: "preview_seek" }),
   captureFrame,
-  ...(import.meta.env.DEV ? [gpuCheck] : []),
 ];

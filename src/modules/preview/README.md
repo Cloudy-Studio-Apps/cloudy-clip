@@ -34,6 +34,10 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
     shortened composition is clamped, or cleared when under a frame is left; the module does
     this (and keeps the playhead inside) on every project change, with or without a preview on
     screen.
+  - `gpu/`: the GPU runner (`createGpuRunner`: one WebGL2 context, a source uploaded per `run`, then
+    `GpuPass`es in order on pooled half-float or 8-bit targets, the last one on its canvas). The only
+    place in the app that creates a WebGL context. Not wired to the engine yet (Tint, Task 2); what
+    WebKitGTK offers is in `docs/superpowers/specs/2026-11-03-tint-webgl-check.md`.
   - `engine/`: the v1 `PreviewEngine`. `engine.html.ts` renders and draws video layers bottom → top,
     each placed with `clipPlacement` (`project`); `engine.slots.ts` pools media elements (reused
     across clips of the same file, so splits play seamlessly; clips starting within 1.5 s are
