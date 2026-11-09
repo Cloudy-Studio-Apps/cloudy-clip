@@ -94,7 +94,7 @@ export interface TrackMix {
   volumeDb: number;
   /** -1 (left) to 1 (right). */
   pan: number;
-  /** The group the track sends to; missing means Master. Never a group the composition lacks. */
+  /** The group the track sends to; missing means Master. An id the composition lacks (a stale one) is tolerated and sends to Master. */
   busId?: BusId;
   /** The effects before the pan and the fader, in order. Missing means none; an empty chain is never stored. */
   effects?: SoundEffect[];

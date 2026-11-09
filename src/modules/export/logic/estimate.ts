@@ -1,4 +1,5 @@
 import { microsToSeconds } from "@/core";
+import { encoderValues } from "./presets";
 import type { EstimateInput, ExportEffort, ExportJob } from "../export.types";
 
 /** Pixels of a 1080p frame. */
@@ -10,11 +11,16 @@ const EFFORT_SIZE: Record<ExportEffort, number> = { fast: 1.15, balanced: 1, sma
 const EFFORT_TIME: Record<ExportEffort, number> = { fast: 0.5, balanced: 1, small: 2.2 };
 
 /** Bits a second of sound takes: PCM as it is, FLAC about 60% of that, the rest by their bitrate. */
-function audioBitsPerSecond({ info, sampleRate = 48000, bitDepth = 16 }: EstimateInput): number {
+function audioBitsPerSecond({
+  info,
+  quality,
+  sampleRate = 48000,
+  bitDepth = 16,
+}: EstimateInput): number {
   const pcm = sampleRate * bitDepth * 2;
   if (info.id === "wav") return pcm;
   if (info.id === "flac") return pcm * 0.6;
-  return 240_000;
+  return encoderValues(info.id, quality).audioKbps * 1000;
 }
 
 /** Roughly how many bytes the file takes. */

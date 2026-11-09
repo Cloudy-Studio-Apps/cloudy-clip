@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import {
   compositionMixOf,
+  minimizeTrackMix,
   orderedTracks,
   projectRef,
   trackMixOf,
@@ -144,15 +145,18 @@ export const removeBus = defineCommand({
       }
       const composition = draft.compositions[id]!;
       const mix = compositionMixOf(composition);
-      const other = mix.otherMix && {
-        ...mix.otherMix,
+      // The other mix is stored as lean as the live one: no entry at the defaults, no empty list.
+      const { otherMix } = mix;
+      const rest = otherMix?.buses?.filter((b) => b.id !== busId);
+      const other = otherMix && {
+        master: otherMix.master,
         tracks: Object.fromEntries(
-          Object.entries(mix.otherMix.tracks).map(([trackId, m]) => [
-            trackId,
-            m.busId === busId ? sentTo(m, null) : m,
-          ]),
+          Object.entries(otherMix.tracks).flatMap(([trackId, m]) => {
+            const kept = minimizeTrackMix(m.busId === busId ? sentTo(m, null) : m);
+            return kept ? [[trackId, kept]] : [];
+          }),
         ),
-        buses: mix.otherMix.buses?.filter((b) => b.id !== busId),
+        ...(rest?.length && { buses: rest }),
       };
       // Ducks that listened to the group are dropped by the project's settle, in this same step.
       writeComposition(composition, {

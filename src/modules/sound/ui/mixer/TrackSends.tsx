@@ -4,6 +4,7 @@ import { useKernel, useModule } from "@/core";
 import { projectRef, type MixBus, type Track } from "@/modules/project";
 import type { MenuItem } from "@/ui";
 import { addBus, sendTo } from "../../sound.bus.commands";
+import { report } from "../report";
 import { SendsTo } from "./SendsTo";
 
 const NO_GROUPS: readonly MixBus[] = [];
@@ -24,7 +25,8 @@ export function TrackSends({ track }: { track: Track }) {
   );
   // A group the composition lacks sends to Master, as the mix does.
   const current = groups.find((group) => group.id === track.mix?.busId);
-  const send = (busId: string | null) => void bus.run(sendTo, { trackIds: [track.id], busId });
+  const send = (busId: string | null) =>
+    void bus.run(sendTo, { trackIds: [track.id], busId }).then(report);
   const items: MenuItem[] = [
     { label: "Master", icon: current ? Blank : Check, group: "to", onSelect: () => send(null) },
     ...groups.map((group) => ({
@@ -38,10 +40,9 @@ export function TrackSends({ track }: { track: Track }) {
       icon: Plus,
       group: "new",
       onSelect: () =>
-        void bus.run(addBus, {
-          compositionId: track.compositionId,
-          trackIds: [track.id],
-        }),
+        void bus
+          .run(addBus, { compositionId: track.compositionId, trackIds: [track.id] })
+          .then(report),
     },
   ];
   return <SendsTo to={current?.name ?? "Master"} items={items} />;

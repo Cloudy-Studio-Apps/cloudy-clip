@@ -126,7 +126,9 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
       const stems = job.stems?.length ?? 0;
       notify(
         "info",
-        stems > 0 ? `${job.file} and ${stems} stems are ready` : `${job.file} is ready`,
+        stems > 0
+          ? `${job.file} and ${stems} ${stems === 1 ? "stem" : "stems"} are ready`
+          : `${job.file} is ready`,
       );
       if (job.reveal) await revealFile(path).catch((error) => log.warn("Reveal failed", error));
     } catch (error) {

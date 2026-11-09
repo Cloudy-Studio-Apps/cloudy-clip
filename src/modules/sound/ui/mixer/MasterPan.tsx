@@ -5,6 +5,7 @@ import { compositionMixOf, projectRef, type CompositionId } from "@/modules/proj
 import { formatPan, panAt, panPosition } from "../../logic/fader";
 import { setMaster } from "../../sound.mix.commands";
 import { LineSlider } from "../controls";
+import { report } from "../report";
 
 /**
  * The master's pan, a balance of the stereo mix, −1 (left) to 1 (right), drawn as a track's
@@ -32,7 +33,7 @@ export function MasterPan({ compositionId }: { compositionId: CompositionId | un
       centred
       onInput={(pan) => preview.sound.previewMix("master", pan === null ? null : { pan })}
       onCommit={async (pan) =>
-        void (await bus.run(setMaster, { ...(compositionId && { compositionId }), pan }))
+        report(await bus.run(setMaster, { ...(compositionId && { compositionId }), pan }))
       }
       read={read}
     />

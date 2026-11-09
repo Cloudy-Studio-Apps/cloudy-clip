@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useKernel } from "@/core";
 import type { CompositionId, MixBus } from "@/modules/project";
 import { setBus } from "../../sound.bus.commands";
+import { report } from "../report";
 
 const NAME = "truncate text-center font-hand text-base font-bold leading-tight";
 
@@ -36,11 +37,13 @@ export function StripName({ name, group }: StripNameProps) {
     setEditing(false);
     const next = value.trim();
     if (cancelled.current || !next || next === name) return;
-    void bus.run(setBus, {
-      compositionId: group.compositionId,
-      busId: group.bus.id,
-      patch: { name: next },
-    });
+    void bus
+      .run(setBus, {
+        compositionId: group.compositionId,
+        busId: group.bus.id,
+        patch: { name: next },
+      })
+      .then(report);
   };
   return (
     <input

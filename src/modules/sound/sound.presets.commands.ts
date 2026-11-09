@@ -27,7 +27,7 @@ export const savePreset = defineCommand({
     "Keeps the effects of an audio track or \"master\" (the open composition's, or compositionId) as one of the user's presets, with a name. A duck keeps its settings but listens to no track, since tracks belong to one project. Not undoable. Fails with sound.preset_empty when the chain has no effects, and sound.not_audio, sound.track_not_found.",
   undoable: false,
   input: z.object({
-    target: z.union([z.string(), z.literal("master")]),
+    target: z.string().describe('An audio track id, or "master".'),
     compositionId: z.string().optional(),
     name,
   }),

@@ -10,7 +10,7 @@ const ALL = "all";
 
 /**
  * Which strips the mixer shows: All, or one button per group of the open composition (that group
- * and the tracks sent to it; Master always shows). View state (`sound.setFilter`), never in the
+ * and the tracks sent to it; Master always shows). View state (`soundRef`'s `setFilter`, an API method, not a command), never in the
  * document. A filter whose group goes shows All.
  */
 export function MixerFilter({ groups }: { groups: readonly MixBus[] }) {

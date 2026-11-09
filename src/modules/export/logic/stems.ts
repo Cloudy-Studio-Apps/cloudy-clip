@@ -4,7 +4,7 @@ import {
   type CompositionId,
   type ProjectState,
 } from "@/modules/project";
-import type { StemPlan } from "../export.types";
+import type { StemPlan, StemSpec } from "../export.types";
 
 /** What the mix's own file is named with when it has stems. */
 export const MIX_LABEL = "Mix";
@@ -63,4 +63,20 @@ export function stemsOf(
 export function fileSuffixes(stems: readonly StemPlan[] | null): string[] {
   if (!stems) return [""];
   return [` - ${MIX_LABEL}`, ...stems.map(({ label }) => ` - ${label}`)];
+}
+
+/** Whether the plan has a group's stem: with none, "Other" would only repeat the mix. */
+export function hasGroups(stems: readonly StemPlan[]): boolean {
+  return stems.some(({ bus }) => bus !== undefined);
+}
+
+/**
+ * The stems as the native side takes them: each plan with the path of its file. `paths` is
+ * `outputPaths`' result without the mix's own, in the plan's order.
+ */
+export function stemSpecs(stems: readonly StemPlan[], paths: readonly string[]): StemSpec[] {
+  return stems.map(({ bus }, i) => ({
+    output: paths[i] ?? "",
+    ...(bus !== undefined && { bus }),
+  }));
 }

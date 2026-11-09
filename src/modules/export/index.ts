@@ -28,7 +28,8 @@ export {
   fileRate,
   hasBitDepth,
 } from "./logic/presets";
-export { stemsOf } from "./logic/stems";
+export { MIX_LABEL, stemsOf } from "./logic/stems";
+export { useExportComposition } from "./ui/export.composition.hook";
 
 /** Module definition, loaded by the app shell. */
 export { exportModule } from "./export.module";

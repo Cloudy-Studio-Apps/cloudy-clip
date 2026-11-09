@@ -22,7 +22,7 @@ import { soundRef } from "./sound.ref";
 import type { DuckOwner } from "./sound.types";
 
 const target = z
-  .union([z.string(), z.literal("master")])
+  .string()
   .describe('An audio track id, a group id (from sound_add_bus), or "master".');
 const compositionId = z
   .string()

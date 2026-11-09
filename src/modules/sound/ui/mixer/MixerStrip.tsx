@@ -18,6 +18,7 @@ import { StripLabel } from "./StripLabel";
 import { StripName } from "./StripName";
 import { LineFader } from "./LineFader";
 import { TrackSends } from "./TrackSends";
+import { report } from "../report";
 
 /** `A1`, `A2`… for a track by its place among the audio tracks; `G1`, `G2`… for a group. */
 type MixerStripProps = { code: string; selected: boolean } & (
@@ -72,7 +73,7 @@ export const MixerStrip = memo(function MixerStrip({
     {
       label: "Remove group",
       destructive: true,
-      onSelect: () => void bus.run(removeBus, where),
+      onSelect: () => void bus.run(removeBus, where).then(report),
     },
   ];
 
@@ -133,7 +134,7 @@ export const MixerStrip = memo(function MixerStrip({
               label={track.muted ? "Unmute track" : "Mute track"}
               tone="mark"
               onToggle={() =>
-                void bus.run(setTrackMuted, { trackId: track.id, muted: !track.muted })
+                void bus.run(setTrackMuted, { trackId: track.id, muted: !track.muted }).then(report)
               }
             >
               M
@@ -146,7 +147,9 @@ export const MixerStrip = memo(function MixerStrip({
             on={group.muted}
             label={group.muted ? "Unmute group" : "Mute group"}
             tone="mark"
-            onToggle={() => void bus.run(setBus, { ...where, patch: { muted: !group.muted } })}
+            onToggle={() =>
+              void bus.run(setBus, { ...where, patch: { muted: !group.muted } }).then(report)
+            }
           >
             M
           </LetterToggle>

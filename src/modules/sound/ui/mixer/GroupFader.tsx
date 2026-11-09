@@ -3,6 +3,7 @@ import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { projectRef, type CompositionId, type MixBus } from "@/modules/project";
 import { setBus } from "../../sound.bus.commands";
+import { report } from "../report";
 import { Fader } from "./Fader";
 
 interface GroupFaderProps {
@@ -26,7 +27,7 @@ export function GroupFader({ group, compositionId, children }: GroupFaderProps) 
       read={read}
       onInput={(db) => preview.sound.previewMix(group.id, db === null ? null : { volumeDb: db })}
       onCommit={async (volumeDb) =>
-        void (await bus.run(setBus, { compositionId, busId: group.id, patch: { volumeDb } }))
+        report(await bus.run(setBus, { compositionId, busId: group.id, patch: { volumeDb } }))
       }
     >
       {children}

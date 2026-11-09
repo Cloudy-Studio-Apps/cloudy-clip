@@ -13,6 +13,8 @@ interface WhatToExportProps {
   stems: boolean;
   /** Whether the format is sound only, which stems need. */
   soundOnly: boolean;
+  /** Whether the composition has a group, which stems need. */
+  groups: boolean;
   /** The stems that will be written, when they are. */
   plan: readonly StemPlan[] | null;
 }
@@ -26,6 +28,7 @@ export function WhatToExportSection({
   value,
   stems,
   soundOnly,
+  groups,
   plan,
 }: WhatToExportProps) {
   const { form } = useModule(exportRef);
@@ -44,17 +47,19 @@ export function WhatToExportSection({
       <ExportRow label="Stems">
         <Switch
           label="Stems"
-          checked={stems && soundOnly}
-          disabled={!soundOnly}
+          checked={stems && soundOnly && groups}
+          disabled={!soundOnly || !groups}
           onChange={(on) => form.setState({ stems: on })}
         />
       </ExportRow>
       <p className="pb-1 text-sm text-subtle-foreground">
         {!soundOnly
           ? "Stems need a sound-only format."
-          : files
-            ? `One file each: ${files}.`
-            : "Each group as a file of its own, before Master, beside the mix."}
+          : !groups
+            ? "Add a group to export stems."
+            : files
+              ? `One file each: ${files}.`
+              : "Each group as a file of its own, before Master, beside the mix."}
       </p>
     </>
   );

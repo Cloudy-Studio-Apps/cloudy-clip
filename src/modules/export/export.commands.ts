@@ -20,7 +20,7 @@ import {
 } from "./logic/presets";
 import { saveFolder } from "./export.store";
 import { exportRef } from "./export.ref";
-import { fileSuffixes, stemsOf } from "./logic/stems";
+import { fileSuffixes, hasGroups, stemSpecs, stemsOf } from "./logic/stems";
 import { checkDenoised, checkSources, denoisedFiles, outputPaths, rangeOf } from "./export.guards";
 import { readCapabilities } from "./export.service";
 import type { ExportJob } from "./export.types";
@@ -79,7 +79,7 @@ export const enqueue = defineCommand({
   id: "export.enqueue",
   label: "Add to export queue",
   description:
-    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. With stems, also writes each group (and Other) as a file of its own in the same run. Fails with export.noFfmpeg, export.formatUnavailable, export.stemsSoundOnly, export.noComposition, export.emptyRange, export.noSound, export.badBitDepth, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName or export.fileExists.",
+    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. With stems, also writes each group (and Other) as a file of its own in the same run. Fails with export.noFfmpeg, export.formatUnavailable, export.stemsSoundOnly, export.noGroups (the composition has no group), export.noComposition, export.emptyRange, export.noSound, export.badBitDepth, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName or export.fileExists.",
   undoable: false,
   input: ENQUEUE_INPUT,
   async run(ctx, input) {
@@ -132,6 +132,9 @@ export const enqueue = defineCommand({
     const { width, height, fps } = composition.format;
     const name = input.name.trim();
     const stems = input.stems ? stemsOf(project, composition.id) : null;
+    if (stems && !hasGroups(stems)) {
+      throw new CommandFailure("export.noGroups", "Add a group to export stems.");
+    }
     const [path = "", ...stemPaths] = await outputPaths(
       input.folder,
       name,
@@ -181,12 +184,7 @@ export const enqueue = defineCommand({
         hardware: input.hardware,
         sound,
         mix: mixed?.mix ?? NO_MIX,
-        ...(stems && {
-          stems: stems.map(({ bus }, i) => ({
-            output: stemPaths[i] ?? "",
-            ...(bus !== undefined && { bus }),
-          })),
-        }),
+        ...(stems && { stems: stemSpecs(stems, stemPaths) }),
       },
     };
     api.queue.setState(({ jobs }) => ({ jobs: [...jobs, job] }));

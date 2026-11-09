@@ -6,6 +6,7 @@ import { lineFader } from "../../logic/automation";
 import { setMaster, setTrackMix } from "../../sound.mix.commands";
 import { soundRef } from "../../sound.ref";
 import type { LineTarget } from "../../sound.types";
+import { report } from "../report";
 
 /**
  * The fader of a track, or of the master of `compositionId`, with automation: a press while
@@ -46,9 +47,9 @@ export function useAutomationFader(target: LineTarget, compositionId?: Compositi
     async onCommit(volumeDb: number) {
       if (writing.current) return;
       if (target === "master") {
-        await bus.run(setMaster, { ...(compositionId && { compositionId }), volumeDb });
+        report(await bus.run(setMaster, { ...(compositionId && { compositionId }), volumeDb }));
       } else {
-        await bus.run(setTrackMix, { trackId: target, volumeDb });
+        report(await bus.run(setTrackMix, { trackId: target, volumeDb }));
       }
     },
   };

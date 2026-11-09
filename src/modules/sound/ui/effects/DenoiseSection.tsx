@@ -8,6 +8,7 @@ import type { DuckOwner, EffectEdit } from "../../sound.types";
 import { useDenoiseRendering } from "./denoise.hook";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
+import { report } from "../report";
 
 const REST = defaultSpec("denoise");
 
@@ -42,7 +43,7 @@ export function DenoiseSection({ effect, owner, edit }: DenoiseSectionProps) {
     if (!owner) return;
     setMeasuring(true);
     try {
-      await bus.run(measureFloor, { trackId: owner.id });
+      report(await bus.run(measureFloor, { trackId: owner.id }));
     } finally {
       if (mounted.current) setMeasuring(false);
     }

@@ -6,6 +6,7 @@ import { MenuList, Popover } from "@/ui";
 import { addableKinds, chainWhere, EFFECT_NAMES } from "../../logic/effects";
 import { addEffect } from "../../sound.effects.commands";
 import type { MixTarget } from "../../sound.types";
+import { report } from "../report";
 
 interface AddEffectMenuProps {
   target: MixTarget;
@@ -28,7 +29,8 @@ export function AddEffectMenu({ target, compositionId, chain, trigger }: AddEffe
   if (kinds.length === 0) return null;
   const items = kinds.map((kind) => ({
     label: EFFECT_NAMES[kind].name,
-    onSelect: () => void bus.run(addEffect, { ...chainWhere(target, compositionId), kind }),
+    onSelect: () =>
+      void bus.run(addEffect, { ...chainWhere(target, compositionId), kind }).then(report),
   }));
   return (
     <Popover trigger={trigger} open={open} onOpenChange={setOpen}>

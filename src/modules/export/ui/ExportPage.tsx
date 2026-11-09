@@ -51,6 +51,7 @@ export function ExportPage() {
               value={composition.id}
               stems={values.stems}
               soundOnly={!info.picture}
+              groups={form.groups}
               plan={form.plan}
             />
           </FoldSection>

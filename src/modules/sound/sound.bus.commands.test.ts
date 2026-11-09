@@ -126,6 +126,10 @@ describe("mix A and B with groups", () => {
     await ok(sendTo, { trackIds: ["a1"], busId });
     await ok(switchMix, { to: "b" });
     await ok(removeBus, { busId });
+    // The other mix is stored as lean as the live one: no empty list, no entry at the defaults.
+    const other = compositionMixOf(state().compositions.c1!).otherMix!;
+    expect(other).not.toHaveProperty("buses");
+    expect(other.tracks).toEqual({});
     await ok(switchMix, { to: "a" });
     expect(buses()).toEqual([]);
     expect(state().tracks.a1!.mix?.busId).toBeUndefined();

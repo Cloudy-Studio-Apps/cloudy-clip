@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
-import { LOCAL_ACTOR, useKernel, useModule } from "@/core";
+import { notify, useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { projectRef } from "@/modules/project";
 import { workspaceRef } from "@/modules/workspace";
 import { enqueue } from "../export.commands";
 import { exportRef } from "../export.ref";
 import { confirmReplace, freeSpace, uniquePath } from "../export.service";
 import { estimateBytes, estimateSeconds, formatSize } from "../logic/estimate";
 import { fileName, formatInfo, hasBitDepth, joinPath, validName } from "../logic/presets";
-import { fileSuffixes, stemsOf } from "../logic/stems";
+import { fileSuffixes } from "../logic/stems";
+import { useExportComposition } from "./export.composition.hook";
 
 /** Past this length a GIF is worth a warning. */
 const LONG_GIF_MICROS = 15_000_000;
@@ -18,23 +18,11 @@ const LONG_GIF_MICROS = 15_000_000;
 export function useExportForm() {
   const { bus } = useKernel();
   const api = useModule(exportRef);
-  const project = useModule(projectRef);
   const preview = useModule(previewRef);
   const values = useStore(api.form);
   const capabilities = useStore(api.capabilities, (state) => state.value);
   const session = useStore(useModule(workspaceRef).session);
-  const records = useStore(project.store.api, (state) => state.compositions);
-  const tracks = useStore(project.store.api, (state) => state.tracks);
-  const order = useStore(project.store.api, (state) => state.compositionOrder);
-  const compositions = useMemo(
-    () => order.flatMap((id) => (records[id] ? [records[id]] : [])),
-    [order, records],
-  );
-  const open = useStore(project.view.store, () => project.view.openFor(LOCAL_ACTOR));
-  const composition =
-    (values.compositionId !== null ? records[values.compositionId] : undefined) ??
-    (open !== null ? records[open] : undefined) ??
-    compositions[0];
+  const { composition, compositions, stems: stemPlan, groups } = useExportComposition();
 
   const name = values.name || session.name;
   const info = formatInfo(values.format);
@@ -43,14 +31,11 @@ export function useExportForm() {
   const to = values.whole ? duration : Math.min(values.to || duration, duration);
   const length = Math.max(0, to - from);
   const card = values.format === "h265" ? capabilities?.h265Card : capabilities?.h264Card;
-  // Stems are sound only; a format with a picture keeps the choice for when it's back.
-  const stems = values.stems && !info.picture;
+  // Stems are sound only, and need a group; a format with a picture keeps the choice for when
+  // it's back.
+  const stems = values.stems && !info.picture && groups;
   const compositionId = composition?.id;
-  const plan = useMemo(
-    () =>
-      stems && compositionId ? stemsOf({ compositions: records, tracks }, compositionId) : null,
-    [stems, compositionId, records, tracks],
-  );
+  const plan = stems ? stemPlan : null;
   const hardware = values.hardware && Boolean(card);
 
   const estimateInput = useMemo(
@@ -145,7 +130,7 @@ export function useExportForm() {
       if (taken.length > 0 && !(await confirmReplace(taken.join(", ")))) return;
       ifExists = "replace";
     }
-    await bus.run(enqueue, {
+    const result = await bus.run(enqueue, {
       name,
       folder: values.folder,
       compositionId: composition.id,
@@ -161,6 +146,7 @@ export function useExportForm() {
       reveal: values.reveal,
       ...(!values.whole && { range: { start: from, duration: length } }),
     });
+    if (!result.ok) notify("error", result.error.message);
   }
 
   return {
@@ -178,6 +164,7 @@ export function useExportForm() {
     seconds,
     picture,
     plan,
+    groups,
     sizeAt,
     blocker,
     note,
