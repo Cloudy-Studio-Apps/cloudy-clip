@@ -2,6 +2,7 @@ import { z } from "zod";
 import { defineCommand } from "@/core";
 import {
   animatedClip,
+  keyEase,
   clampToClip,
   contentTime,
   formatOf,
@@ -21,7 +22,6 @@ import {
   checkKeyValue,
   grouped,
   invalidValue,
-  keyEase,
   keyRef,
   keyValue,
   requireClip,

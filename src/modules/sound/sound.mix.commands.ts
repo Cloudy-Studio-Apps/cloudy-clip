@@ -91,7 +91,7 @@ export const switchMix = defineCommand({
   id: "sound.switchMix",
   label: "Switch mix",
   description:
-    'Switches your open composition (or compositionId) to mix "a" or "b": every audio track\'s volume, pan and effects, and the master, are swapped with those of the other mix. The first time, B starts as a copy of A. Switching to the mix that is active does nothing.',
+    'Switches your open composition (or compositionId) to mix "a" or "b": every audio track\'s volume, pan, effects and volume line, and the master, are swapped with those of the other mix. The first time, B starts as a copy of A. Switching to the mix that is active does nothing.',
   undoable: true,
   input: z.object({ compositionId: z.string().optional(), to: z.enum(["a", "b"]) }),
   run(ctx, { compositionId, to }) {

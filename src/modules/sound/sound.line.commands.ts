@@ -4,6 +4,7 @@ import {
   VOLUME_DB_MAX,
   VOLUME_DB_MIN,
   formatOfTrack,
+  keyEase,
   frameDuration,
   moveTrackKeys,
   projectRef,
@@ -11,7 +12,6 @@ import {
   volumeDbSchema,
   withoutKeys,
   writeKey,
-  type KeyEase,
   type KeyTrack,
   type ProjectState,
   type Track,
@@ -19,16 +19,6 @@ import {
 } from "@/modules/project";
 import { audioTrack } from "./sound.guards";
 import { writeTrack } from "./sound.mix.write";
-
-const unit = z.number().min(0).max(1);
-
-/** How a point's level moves to the next point. */
-const lineEase = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("linear") }),
-  z.object({ kind: z.literal("hold") }),
-  z.object({ kind: z.literal("bezier"), x1: unit, y1: z.number(), x2: unit, y2: z.number() }),
-  z.object({ kind: z.literal("named"), name: z.enum(["bounce", "elastic"]) }),
-]) satisfies z.ZodType<KeyEase>;
 
 const at = z.number().int().min(0).describe("Timeline time in microseconds");
 
@@ -71,7 +61,7 @@ export const setLineKey = defineCommand({
   description:
     'Writes a point on an audio track\'s volume line: at "at" (timeline microseconds) the track\'s volume is "db" (-60 to 12). A point on that frame is updated; otherwise one is added, easing like the one before it unless "ease" is given ({kind:"linear"}, {kind:"hold"}, {kind:"bezier",x1,y1,x2,y2} or {kind:"named",name:"bounce"|"elastic"}). The line holds its first level before the first point and its last after the last, and the fader adds to it. Moving or splitting clips never moves it. Fails with sound.not_audio and sound.track_not_found.',
   undoable: true,
-  input: z.object({ trackId: z.string(), at, db: volumeDbSchema, ease: lineEase.optional() }),
+  input: z.object({ trackId: z.string(), at, db: volumeDbSchema, ease: keyEase.optional() }),
   run(ctx, input) {
     const { store } = ctx.require(projectRef);
     const state = store.getState();
