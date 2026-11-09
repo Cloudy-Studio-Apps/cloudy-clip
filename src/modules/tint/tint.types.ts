@@ -57,8 +57,6 @@ export interface TintView {
   selected: string | null;
   /** Index into the Color mix families. */
   family: number;
-  bypass: boolean;
-  compare: boolean;
   falseColor: boolean;
   warning: boolean;
   guides: boolean;
@@ -302,4 +300,24 @@ export interface DropRow {
   bottom: number;
   /** Inside a group (not at the top level of the stack). */
   nested: boolean;
+}
+
+/** The scopes `scopeData` bins a frame for. */
+export type ScopeBinning = "parade" | "wave" | "hist" | "vector";
+
+/** One channel's summary, 0..255. */
+export interface ChannelStats {
+  min: number;
+  max: number;
+  mean: number;
+}
+
+/** What a frame measures: see `scopeStats`. */
+export interface ScopeStats {
+  r: ChannelStats;
+  g: ChannelStats;
+  b: ChannelStats;
+  clipped: { low: number; high: number };
+  histogram: number[];
+  skinDistance: number;
 }

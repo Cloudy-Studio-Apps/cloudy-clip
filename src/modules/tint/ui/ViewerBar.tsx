@@ -1,60 +1,38 @@
-import {
-  Columns2,
-  Crosshair,
-  Frame,
-  Maximize2,
-  Power,
-  Rainbow,
-  SquareSplitHorizontal,
-  Zap,
-} from "lucide-react";
+import { Maximize2, Power, SquareSplitHorizontal } from "lucide-react";
+import { useStore } from "zustand";
+import { useModule } from "@/core";
+import { previewRef } from "@/modules/preview";
 import { IconButton } from "@/ui";
 import { HeaderRule } from "./HeaderRule";
 import type { ViewerTool } from "./ui.types";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
 
-/** The viewer's tools, in groups: compare, inspect, then the clean viewer. */
-const GROUPS: readonly (readonly ViewerTool[])[] = [
-  [
-    {
-      key: "compare",
-      icon: SquareSplitHorizontal,
-      label: "Before / after: wipe between the original and the grade (\\)",
-    },
-    {
-      key: "side",
-      icon: Columns2,
-      label: "Side by side: this clip next to another clip or a still",
-    },
-    { key: "bypass", icon: Power, label: "Bypass grades: see every clip with no grade (Shift+D)" },
-  ],
-  [
-    {
-      key: "samples",
-      icon: Crosshair,
-      label: "Sample points: hover to read a color, click to pin up to three",
-    },
-    {
-      key: "falseColor",
-      icon: Rainbow,
-      label: "False color: brightness as colors, to find clipping and skin level",
-    },
-    { key: "warning", icon: Zap, label: "Clip warning: blown-out areas in magenta" },
-    { key: "guides", icon: Frame, label: "Guides: safe areas for titles and action" },
-  ],
+/**
+ * The viewer's live tools: before/after and bypass. Sample points, false color, clip warning,
+ * guides and side by side come with the viewer's inspect tools.
+ */
+const TOOLS: readonly ViewerTool[] = [
+  {
+    key: "compare",
+    icon: SquareSplitHorizontal,
+    label: "Before / after: wipe between the original and the grade",
+  },
+  { key: "bypass", icon: Power, label: "Bypass grades: see every clip with no grade (Shift+D)" },
 ];
 
 function ToolButton({ tool }: { tool: ViewerTool }) {
+  const { picture } = useModule(previewRef);
   const key = tool.key;
-  const on = useTintView((v) => (key === "side" ? false : v[key]));
-  const set = useTintSet();
+  const on = useStore(picture.view, (v) => (key === "compare" ? v.compare !== null : v.bypass));
   const Icon = tool.icon;
   return (
     <IconButton
       label={tool.label}
       active={on}
-      onClick={() => key !== "side" && set({ [key]: !on })}
+      onClick={() =>
+        key === "compare" ? picture.setCompare(on ? null : 0.5) : picture.setBypass(!on)
+      }
     >
       <Icon />
     </IconButton>
@@ -67,13 +45,8 @@ export function ViewerBar() {
   const clean = useTintView((v) => v.clean);
   return (
     <>
-      {GROUPS.map((group, i) => (
-        <span key={i} className="flex items-center">
-          {i > 0 && <HeaderRule />}
-          {group.map((tool) => (
-            <ToolButton key={tool.key} tool={tool} />
-          ))}
-        </span>
+      {TOOLS.map((tool) => (
+        <ToolButton key={tool.key} tool={tool} />
       ))}
       <HeaderRule />
       <span

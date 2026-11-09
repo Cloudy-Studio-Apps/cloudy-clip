@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { commandTool, defineMcpTool, textResult } from "@/core";
+import { commandTool, defineMcpTool, errorResult, textResult, toAppError } from "@/core";
+import { previewRef } from "@/modules/preview";
 import { DEFAULT_CORRECTION, GRADE_RANGES, correctionOf, projectRef } from "@/modules/project";
 import { numberOf, toStack } from "./logic/stack";
+import { scopeStats } from "./logic/scopes";
 import { TOOL_FIELDS } from "./logic/tools";
 import { readGrade } from "./tint.guards";
 import { resetGrade } from "./tint.commands";
@@ -63,10 +65,51 @@ const describe = defineMcpTool({
   },
 });
 
+/** Reads a PNG data URL as pixels. */
+async function pixelsOf(data: string): Promise<ImageData> {
+  const url = data.startsWith("data:") ? data : `data:image/png;base64,${data}`;
+  const image = new Image();
+  image.src = url;
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no 2D canvas to read the frame with");
+  ctx.drawImage(image, 0, 0);
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+/** Measures a frame of the composition as numbers, so an agent can judge a grade without eyes. */
+const scopes = defineMcpTool({
+  name: "tint_scopes",
+  readOnly: true,
+  description:
+    "Measures the graded frame of your open composition (or compositionId) at `at` microseconds (default your playhead): r, g, b each { min, max, mean } as 8-bit values 0 to 255; clipped.low and clipped.high, the shares 0 to 1 of pixels with luma at or under 1% and at or over 99%; histogram, 16 luma buckets from black to white, each a share of the pixels (they sum to 1); skinDistance, the mean angle in degrees (0 to 180, 0 on the line) between each pixel's vectorscope hue and the 123 degree skin line, weighted by saturation. The user's preview doesn't move. Fails with preview.capture_failed.",
+  input: z.object({
+    at: z.number().int().min(0).optional().describe("Microseconds"),
+    compositionId: z.string().optional(),
+  }),
+  async handler({ at, compositionId }, ctx) {
+    const preview = ctx.require(previewRef);
+    try {
+      const id = compositionId ?? ctx.require(projectRef).view.requireOpen(ctx.caller.key).id;
+      const clock = preview.clockFor(ctx.caller.key);
+      if (at !== undefined) clock.seek(at);
+      const time = at ?? clock.getTime();
+      const frame = await pixelsOf(await preview.captureAt(time, id));
+      return textResult({ time, ...scopeStats(frame) });
+    } catch (error) {
+      return errorResult({ ...toAppError(error), code: "preview.capture_failed" });
+    }
+  },
+});
+
 /** Agents grade with the same commands as the user. */
 export const tintMcpTools = [
   getGrade,
   describe,
+  scopes,
   commandTool(addCorrection, { name: "tint_add_correction" }),
   commandTool(setCorrection, { name: "tint_set_correction" }),
   commandTool(removeNodes, { name: "tint_remove_nodes" }),

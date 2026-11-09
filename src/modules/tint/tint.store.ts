@@ -15,8 +15,6 @@ export function createTintView() {
     pinned: null,
     selected: null,
     family: 1,
-    bypass: false,
-    compare: false,
     falseColor: false,
     warning: false,
     guides: false,

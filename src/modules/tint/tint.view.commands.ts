@@ -107,5 +107,19 @@ export const setLevel = defineCommand({
   },
 });
 
+/** Shows every clip with no grade (on) or graded (off); no input flips it. */
+export const setBypass = defineCommand({
+  id: "tint.setBypass",
+  label: "Bypass grades",
+  description:
+    "Draws the live preview with no grade on any clip (on), or graded (off); no input flips it. Captures and exports are never bypassed. The user's view only: not saved, no MCP tool.",
+  undoable: false,
+  input: z.object({ on: z.boolean().optional() }),
+  run(ctx, { on }) {
+    const { picture } = ctx.require(previewRef);
+    picture.setBypass(on ?? !picture.view.getState().bypass);
+  },
+});
+
 /** The view commands, for the module. */
-export const tintViewCommands = [setMode, pinClip, selectNode, setTool, setLevel];
+export const tintViewCommands = [setMode, pinClip, selectNode, setTool, setLevel, setBypass];
