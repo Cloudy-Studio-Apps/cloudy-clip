@@ -2,6 +2,8 @@ import { Pipette } from "lucide-react";
 import { useEffect } from "react";
 import { MIX_FAMILIES, type CorrectionValues, type MixFamilyName } from "@/modules/project";
 import { Button, cn } from "@/ui";
+import { notify } from "@/core";
+import { hueOf } from "../../logic/color/curves.apply";
 import { FAMILY_DEGREES, nearestFamily, withFamily } from "../../logic/color/mix";
 import { useToolEdit } from "../tool.edit.hook";
 import { useTintView } from "../view.hook";
@@ -37,7 +39,9 @@ export function ColorMixTool() {
   // A color picked in the viewer chooses the family nearest its hue.
   useEffect(() => {
     if (picked === null) return;
-    set({ picked: null, family: nearestFamily(picked) });
+    const hue = hueOf(picked);
+    if (hue === null) notify("info", "That color is a gray: it has no hue to pick.");
+    set(hue === null ? { picked: null } : { picked: null, family: nearestFamily(hue) });
   }, [picked, set]);
 
   // Leaving the tool stops a pick that hasn't happened.

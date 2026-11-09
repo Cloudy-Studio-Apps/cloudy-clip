@@ -7,6 +7,7 @@ import type {
   CompositionId,
   CorrectionValues,
   GradeGroupId,
+  GradeLimit,
   GradeNode,
   GradeNodeId,
   NodeRef,
@@ -70,10 +71,12 @@ export interface TintView {
   samples: boolean;
   /** The viewer fills the window. */
   clean: boolean;
-  /** The viewer waits for one click to pick a hue (Pick hue of Curves, Pick of Color mix); Escape stops it. */
+  /** The viewer waits for one click to pick a color (Curves' Pick hue, Color mix's Pick, Limit's droppers); Escape stops it. */
   picking: boolean;
-  /** The hue the viewer picked (0…1, red at 0), until the open tool takes it. */
-  picked: number | null;
+  /** The color the viewer picked (what the edited correction reads there), until the open tool takes it. */
+  picked: Rgb | null;
+  /** The correction whose key the live preview shows instead of its picture (Limit's Show), or null. */
+  showPicked: GradeNodeId | null;
 }
 
 /** The tint module's API for one kernel. */
@@ -104,8 +107,8 @@ export interface TintApi {
    * The color the correction `nodeId` reads at a point of the viewer's frame (0…1): the clip
    * captured alone and ungraded at the playhead, run through the corrections before that node
    * with the CPU reference (`nodeId` null: through the whole grade). Null when the point is off
-   * the clip's picture. Rejects as `PreviewApi.captureAt` does. For pickers (Pick hue, and later
-   * Color mix, Limit and Match).
+   * the clip's picture. Rejects as `PreviewApi.captureAt` does. For pickers (Pick hue, Color mix's
+   * Pick, Limit's droppers, and later Match).
    */
   pickColor(clipId: ClipId, nodeId: GradeNodeId | null, point: FramePoint): Promise<Rgb | null>;
 }
@@ -155,8 +158,15 @@ export interface PickFrame {
   data: Uint8ClampedArray;
 }
 
-/** A node's live values: a correction's values being dragged, its opacity and whether it is on. */
-export type LiveNode = Partial<CorrectionValues> & { opacity?: number; on?: boolean };
+/**
+ * A node's live values: a correction's values being dragged, its opacity, whether it is on, and its
+ * limit (null: none).
+ */
+export type LiveNode = Partial<CorrectionValues> & {
+  opacity?: number;
+  on?: boolean;
+  limit?: GradeLimit | null;
+};
 
 /** A clip's live values by node, laid over its saved grade. */
 export interface LiveGrade {
@@ -457,3 +467,32 @@ export interface ScopeStats {
   histogram: number[];
   skinDistance: number;
 }
+
+/**
+ * A limit worked out for every pixel (`prepareLimit`), what the key pass's uniforms hold. Hue in
+ * turns of the hue curves' circle; saturation a share of full chroma; brightness luma.
+ */
+export interface LimitParams {
+  /** The hue window: its middle, half its width and the soft edge; null when not limited by color. */
+  hue: [number, number, number] | null;
+  /** The saturation window: from, to, soft edge. Read only with `hue`. */
+  sat: [number, number, number];
+  /** The brightness window of the color part: from, to, soft edge. Read only with `hue`. */
+  lum: [number, number, number];
+  /** The brightness part's window: from, to, soft edge; null when not limited by brightness. */
+  bright: [number, number, number] | null;
+  /** How far the key is blurred, as a share of the picture's height (0: not blurred). */
+  radius: number;
+  /** Clean up's threshold, 0 (off) to `CLEAN_REACH`. */
+  clean: number;
+  invert: boolean;
+}
+
+/** A range bar's window, two ends as shares of the bar (0…1); `from > to` wraps on a hue bar. */
+export type RangeWindow = [number, number];
+
+/** What a range bar's drag holds: one end or the whole window. */
+export type RangePart = "from" | "to" | "move";
+
+/** What Limit's dropper does with the next pick: set the ranges around it, add it, or leave it out. */
+export type LimitPick = "pick" | "add" | "cut";

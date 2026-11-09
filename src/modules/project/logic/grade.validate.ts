@@ -1,7 +1,8 @@
-import type { ClipGrade, Correction, GradeNode, NodeRef } from "../project.types";
+import type { ClipGrade, Correction, GradeLimit, GradeNode, NodeRef } from "../project.types";
 import {
   DEFAULT_CORRECTION,
   GRADE_RANGES,
+  LIMIT_RANGES,
   UNSAFE_KEYS,
   WARPER_POINTS,
   correctionOf,
@@ -154,12 +155,38 @@ function rangeProblem(id: string, node: Correction): string | null {
 }
 
 /**
+ * A limit's number out of `LIMIT_RANGES`, or a pair whose ends are the wrong way round (all but
+ * the hue, which wraps), or null.
+ */
+function limitProblem(id: string, limit: GradeLimit): string | null {
+  const parts = { color: limit.color, brightness: limit.brightness, refine: limit.refine };
+  for (const [part, fields] of Object.entries(parts)) {
+    if (!fields) continue;
+    for (const [field, value] of Object.entries(fields)) {
+      const range = LIMIT_RANGES[`${part}.${field}`];
+      if (!range) continue;
+      const path = `limit.${part}.${field}`;
+      const ends = Array.isArray(value) ? (value as number[]) : [value as number];
+      for (const end of ends) {
+        if (!(end >= range.min && end <= range.max)) {
+          return `${path} of ${id} is ${end}, out of range (${range.min} to ${range.max})`;
+        }
+      }
+      if (ends.length === 2 && field !== "hue" && ends[0]! > ends[1]!) {
+        return `${path} of ${id} runs backwards (${ends[0]} to ${ends[1]})`;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * What is wrong with a grade, or null: a ref to a node that is not there, a cycle, an `out` that
  * does not come from the source, a channel ref not from a split, a join with fewer than two
  * inputs or with `blends` not matching its inputs, a `limit.from` that is missing, not a
  * correction or key join, or makes a cycle, an opacity or strength outside 0 to 1, a value of a
- * correction that is not a field or has another type than its default, and a value outside its
- * range (`GRADE_RANGES`).
+ * correction that is not a field or has another type than its default, a value outside its
+ * range (`GRADE_RANGES`), and a limit's number outside `LIMIT_RANGES` or a pair running backwards.
  */
 export function validateGrade(grade: ClipGrade): string | null {
   const { nodes } = grade;
@@ -202,7 +229,10 @@ export function validateGrade(grade: ClipGrade): string | null {
       if (node.lut && !(node.lut.strength >= 0 && node.lut.strength <= 1)) {
         return `lut strength of ${id} is out of range (0 to 1)`;
       }
-      const problem = (node.values && shapeProblem(id, node.values)) || rangeProblem(id, node);
+      const problem =
+        (node.values && shapeProblem(id, node.values)) ||
+        rangeProblem(id, node) ||
+        (node.limit && limitProblem(id, node.limit));
       if (problem) return problem;
     }
   }

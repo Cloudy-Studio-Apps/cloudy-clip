@@ -18,10 +18,11 @@ import {
 } from "../logic/color/basics";
 import { CURVE_ROWS, CURVE_SAMPLES, ROW } from "../logic/color/curves.apply";
 import { WARP_TABLE } from "../logic/color/warper";
-import type { CorrectionParams } from "../tint.types";
+import type { CorrectionParams, LimitParams } from "../tint.types";
 import { TAIL_GLSL, tailUniforms } from "./correct.tail.glsl";
 import { WHEELS_GLSL, wheelsUniforms } from "./correct.wheels.glsl";
 import { glslFloat as f, glslVec3 as vec3 } from "./glsl.literals";
+import { FINISH_GLSL, finishUniforms } from "./limit.glsl";
 
 // One correction as GLSL: the same math as `logic/color/correct.ts`, line for line, with every
 // constant written in from `logic/color/`. What depends on the values comes in as uniforms worked
@@ -29,7 +30,7 @@ import { glslFloat as f, glslVec3 as vec3 } from "./glsl.literals";
 // the mixer and Creative in `correct.tail.glsl.ts`.
 const bands = BANDS.map((b) => `vec4(${b.map(f).join(", ")})`).join(", ");
 
-const FRAGMENT = `
+const BODY = `
 uniform vec3 u_linear;
 uniform vec3 u_lift;
 uniform vec3 u_gammaInv;
@@ -203,20 +204,34 @@ vec3 correct(vec3 c) {
   if (u_vignette.x != 0.0) c = vignette(c);
   return c;
 }
+`;
 
+const FRAGMENT = `${BODY}
 void main() {
   vec4 src = texture(u_in0, v_uv);
   o = vec4(mix(src.rgb, correct(src.rgb), u_opacity), src.a);
 }`;
 
+/** A limited correction: its key (`u_in1`, raw, from `keyPasses`) finished, times opacity. */
+const KEYED_FRAGMENT = `${BODY}
+${FINISH_GLSL}
+void main() {
+  vec4 src = texture(u_in0, v_uv);
+  float k = finish(texture(u_in1, v_uv).r);
+  o = vec4(mix(src.rgb, correct(src.rgb), k * u_opacity), src.a);
+}`;
+
 /** Program key of a correction pass. */
 export const CORRECT_KEY = "tint.correct";
+/** Program key of a limited correction pass. */
+export const CORRECT_KEYED_KEY = "tint.correct.keyed";
 
 /**
  * A correction's pass over `input` (-1 the picture so far, n pass n), mixed over it by `opacity`.
  * `aspect` is the picture's width over its height (the vignette's shape). `tables.curves` is its
  * baked curve step (curves and Color mix) and `tables.warper` its warper, each left out when it
- * changes nothing (the shader then skips that step).
+ * changes nothing (the shader then skips that step). With `limit`, the mix is also times the key
+ * of pass `limit.key` (`keyPasses`), cleaned up and inverted by `limit.params`.
  */
 export function correctPass(
   params: CorrectionParams,
@@ -224,6 +239,7 @@ export function correctPass(
   input: number,
   aspect: number,
   tables: { curves?: GpuTexture; warper?: GpuTexture } = {},
+  limit?: { key: number; params: LimitParams },
 ): GpuPass {
   const { curves, warper } = tables;
   const uniforms: Record<string, GpuUniform> = {
@@ -245,10 +261,13 @@ export function correctPass(
     u_opacity: opacity,
     ...wheelsUniforms(params),
     ...tailUniforms(params, aspect),
+    ...(limit && finishUniforms(limit.params)),
   };
   const textures: Record<string, GpuTexture> = {};
   if (curves) textures.u_curves = curves;
   if (warper) textures.u_warp = warper;
-  const pass: GpuPass = { key: CORRECT_KEY, fragment: FRAGMENT, inputs: [input], uniforms };
+  const pass: GpuPass = limit
+    ? { key: CORRECT_KEYED_KEY, fragment: KEYED_FRAGMENT, inputs: [input, limit.key], uniforms }
+    : { key: CORRECT_KEY, fragment: FRAGMENT, inputs: [input], uniforms };
   return curves || warper ? { ...pass, textures } : pass;
 }

@@ -235,6 +235,47 @@ Seeds 45 and 47 have wide hue curves (y 0…1).
   `u_skinPull`, `u_mixerOn`, `u_splitOn`, `u_fade`, `u_vignette.x` all 0), so the numbers above stand.
 - **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.
 
+## Stage 3
+
+### Limits by color and brightness: parity (Task 17)
+
+A correction limited by color, by brightness or both (with clean up and invert) against the shader,
+2026-11-10. On the GPU the key pass writes the raw key, the limited correction reads it as a second
+input and cleans up, inverts and mixes by key × opacity; on the CPU `evaluatePixel` does the same per
+pixel with `keyOf`.
+
+- **Method:** as Task 16 (temporary dev page on the web build, `pnpm vite --port 1540`, headless
+  Chromium 1243 with SwiftShader WebGL2, half-float targets, CDP; removed before the commit), 256
+  colors on a 16 × 16 canvas, reference `evaluatePixel`. Each set, checked with `validateGrade`, is
+  one correction (exposure ±1.5, saturation 0…2, hue ±120, temperature ±80, opacity 0.5…1) with a
+  limit: by color, by brightness, or both, in turn. Color: a random hue window (wrapping when its
+  start is past its end), saturation and brightness windows (each the whole range with odds 0.3),
+  softness 0…100 (0 with odds 0.25: hard edges); brightness: a random range, softness as color; clean
+  up 0…100 with odds 0.5, invert with odds 0.5; refine softness 0 (the blur is spatial, so the
+  per-pixel reference can't have it). "Keyed" counts pixels where the limit changed the result.
+- **Results** (20 sets each, 15 360 channel values per row):
+
+| Seed | Max | Off by 1 | Over 1 | Changed | Keyed pixels |
+| ---- | --- | -------- | ------ | ------- | ------------ |
+| 171  | 1   | 1        | 0      | 8 309   | 2 591        |
+| 172  | 1   | 4        | 0      | 7 733   | 2 740        |
+| 173  | 1   | 7        | 0      | 8 392   | 2 507        |
+| 174  | 1   | 2        | 0      | 7 308   | 2 928        |
+| 175  | 1   | 7        | 0      | 7 885   | 2 689        |
+
+- **Pass:** every single limited correction is within one 8-bit step.
+- **Show:** the Show pass (the key as white on black) against `keyOf` × 255, 20 sets of seed 301:
+  max 1.
+- **Chains** (not part of the rule): two limited corrections in a row (seeds 181–183) stay within 1.
+  A curves correction, then the limited one, then two plain ones (seeds 201, 202, also the runner's
+  unit fix: a feedback loop would drop whole draws) reach 5 and 2 on three values in all: the limited
+  correction reads its key from the half-float picture between passes, and a narrow soft edge (soft
+  5 to 7, 0.0125 to 0.0175 of luma) with clean up turns that rounding into a few steps. Modelling the
+  half-float rounding on the CPU gives the GPU's value exactly (set 14 of seed 201: 72, as drawn).
+- **Refine softness** (the blur) has no per-pixel reference; it was run (seeds 191, 192) to check the
+  passes draw, not compared.
+- **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.
+
 ## Windows (WebView2)
 
 **Pending: owner check.** Also pending: the clean hidden run on Linux (window on another workspace for the

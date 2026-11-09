@@ -22,6 +22,7 @@ export function createTintView() {
     clean: false,
     picking: false,
     picked: null,
+    showPicked: null,
   }));
 }
 

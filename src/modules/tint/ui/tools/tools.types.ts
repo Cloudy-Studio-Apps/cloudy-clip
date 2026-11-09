@@ -1,6 +1,6 @@
 import type { CorrectionValues, Wheel } from "@/modules/project";
 import type { ComponentType } from "react";
-import type { CurvePoint, CurveShape, ToolId } from "../../tint.types";
+import type { CurvePoint, CurveShape, RangePart, RangeWindow, ToolId } from "../../tint.types";
 import type { LiveEdit } from "../ui.types";
 
 /** A tool in the rail: its icon, name, what it's for, its key, and the body it shows. */
@@ -126,4 +126,20 @@ export interface WarpShapes {
 export interface WheelsBodyProps {
   values: CorrectionValues;
   edit: LiveEdit;
+}
+
+/** A drag on a range bar (`startRangeDrag`). */
+export interface RangeDragOptions {
+  /** The pointerdown that started it, on the bar. */
+  event: PointerEvent;
+  bar: HTMLElement;
+  window: RangeWindow;
+  /** What was grabbed: an end, or the whole window. */
+  part: RangePart;
+  /** A hue bar: the window turns around it. */
+  wrap: boolean;
+  /** Fires on every move past the dead zone with the window as it would be. */
+  onMove(window: RangeWindow): void;
+  /** Fires once: the window on release, or null when it never moved or was cancelled (Escape). */
+  onEnd(window: RangeWindow | null): void;
 }

@@ -74,5 +74,6 @@ export const PAGE_RESET: Partial<Record<ToolId, { tools: ToolId[]; fields?: stri
   cmix: { tools: ["cmix"] },
   warper: { tools: ["warper"] },
   creative: { tools: ["creative"] },
+  limit: { tools: ["limit"] },
   mixer: { tools: ["mixer"] },
 };

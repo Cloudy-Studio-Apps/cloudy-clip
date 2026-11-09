@@ -1,5 +1,11 @@
 import type { ComponentType } from "react";
-import type { ClipGrade, ClipId, CorrectionValues, GradeNodeId } from "@/modules/project";
+import type {
+  ClipGrade,
+  ClipId,
+  CorrectionValues,
+  GradeLimit,
+  GradeNodeId,
+} from "@/modules/project";
 import type { StackPosition } from "../tint.types";
 
 /** A button of the viewer's tool bar: before/after or bypass, both state of the preview's picture. */
@@ -45,11 +51,12 @@ export interface LayersEnv {
   drag(event: PointerEvent, id: string): void;
 }
 
-/** A change to a correction's values, opacity or on, from a tool. */
+/** A change to a correction's values, opacity, on or limit (null removes it), from a tool. */
 export interface EditPatch {
   values?: Partial<CorrectionValues>;
   opacity?: number;
   on?: boolean;
+  limit?: GradeLimit | null;
 }
 
 /** Edits one correction: live while a gesture goes, one command when it ends. */
@@ -77,4 +84,22 @@ export interface EditTarget {
   values: CorrectionValues;
   /** Layer number and name for the tool header, or null. */
   title: string | null;
+}
+
+/** Edits the limit of the correction the tools edit (Limit's controls). */
+export interface LimitEdit {
+  /** False without a clip to grade. */
+  enabled: boolean;
+  /** The correction being edited; null before the clip has one (the first edit makes it). */
+  nodeId: GradeNodeId | null;
+  /** Its limit as saved, if any. */
+  limit: GradeLimit | undefined;
+  /** Counts refused commands (`LiveEdit.rev`). */
+  rev: number;
+  /** Shows a limit in the viewer at once (not saved). */
+  preview(limit: GradeLimit): void;
+  /** Saves a limit as one undo step (none when it is the saved one). */
+  commit(limit: GradeLimit): void;
+  /** Drops what was previewed. */
+  cancel(): void;
 }

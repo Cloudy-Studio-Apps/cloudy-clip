@@ -6,8 +6,11 @@ export function layerChip(node: Correction): LayerChipInfo {
   if (node.lut) return { kind: "lut", label: "LUT" };
   const { limit } = node;
   if (limit?.from) return { kind: "key", label: "Shared key" };
-  if (limit?.color?.on) return { kind: "key", label: "Picked colors" };
-  if (limit?.brightness?.on) return { kind: "key", label: "Brightness range" };
+  const color = limit?.color?.on === true;
+  const brightness = limit?.brightness?.on === true;
+  if (color && brightness) return { kind: "key", label: "Color key + Brightness" };
+  if (color) return { kind: "key", label: "Color key" };
+  if (brightness) return { kind: "key", label: "Brightness" };
   return { kind: "whole", label: "Whole picture" };
 }
 

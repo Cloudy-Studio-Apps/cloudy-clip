@@ -157,11 +157,12 @@ export {
 
 /** The eight families of color mix and the six zones, in order. */
 export { MIX_FAMILIES, ZONE_NAMES } from "./project.types";
-/** A clip's grade: the defaults of a correction, the ranges of its values, the size of the warper grid, reading, minimizing and who can have one. */
+/** A clip's grade: the defaults of a correction, the ranges of its values and of a limit's numbers, the size of the warper grid, reading, minimizing and who can have one. */
 export {
   BUILTIN_LUT_PREFIX,
   DEFAULT_CORRECTION,
   GRADE_RANGES,
+  LIMIT_RANGES,
   WARPER_POINTS,
   canGrade,
   correctionOf,

@@ -6,7 +6,7 @@ import { FalseColorLegend } from "./FalseColorLegend";
 import { FALSE_COLOR_FILTER, FalseColorFilter } from "./FalseColorFilter";
 import { FrameTag } from "./FrameTag";
 import { GuidesOverlay } from "./GuidesOverlay";
-import { HuePicker } from "./HuePicker";
+import { ViewerPicker } from "./ViewerPicker";
 import { SamplePoints } from "./SamplePoints";
 import { useTintView } from "./view.hook";
 
@@ -14,8 +14,8 @@ import { useTintView } from "./view.hook";
  * The preview's own stage (bare: just the picture, so it plays and takes the preview's grades),
  * with whatever the viewer tools turn on drawn over it. Before/after and bypass are the preview's
  * own (`picture.setCompare`, `setBypass`); its wipe line is the divider. The false color stand-in
- * is still demo: it marks the frame but doesn't change what the preview draws. While the Curves
- * tool picks a hue, `HuePicker` takes the next click on the picture.
+ * is still demo: it marks the frame but doesn't change what the preview draws. While a tool picks
+ * a color, `ViewerPicker` takes the next click on the picture.
  */
 export function ViewerFrame() {
   const { picture } = useModule(previewRef);
@@ -44,7 +44,7 @@ export function ViewerFrame() {
         {guides && <GuidesOverlay />}
         {samples && <SamplePoints />}
       </div>
-      <HuePicker stage={stage} />
+      <ViewerPicker stage={stage} />
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { pictureFilters, previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { followCurrent, createCurrent } from "./tint.current";
 import { tintCommands } from "./tint.commands";
-import { createTintFilter } from "./tint.filter";
+import { createTintFilter, redrawOnShow } from "./tint.filter";
 import { createPicker } from "./tint.pick";
 import { createThumbs } from "./tint.thumb";
 import { tintKeys } from "./tint.keys";
@@ -46,7 +46,8 @@ export const tintModule = defineModule({
       preview.captureAt(time, compositionId, options),
     );
     const picker = createPicker(ctx.require(projectRef), preview, ctx.require(mediaRef));
-    contribute(pictureFilters, createTintFilter(live));
+    onDispose(redrawOnShow(view, () => preview.redraw()));
+    contribute(pictureFilters, createTintFilter(live, view));
     contribute(appPages, {
       id: TINT_PAGE,
       label: "Tint",

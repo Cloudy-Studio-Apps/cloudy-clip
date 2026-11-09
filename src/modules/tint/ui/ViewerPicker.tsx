@@ -1,18 +1,18 @@
 import { useEffect } from "react";
 import { notify, useModule } from "@/core";
-import { hueOf } from "../logic/color/curves.apply";
 import { tintRef } from "../tint.ref";
 import { useEditTarget } from "./edit.target.hook";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
 
 /**
- * Over the viewer while a tool picks a hue (`view.picking`: Curves' Pick hue, Color mix's Pick): a click on the picture reads
- * the color the edited correction gets there (`TintApi.pickColor`: the clip's own ungraded picture
- * through the corrections above it), hands its hue to the tool (`view.picked`) and stops picking.
- * A click off the frame or off the clip's picture keeps picking; Escape stops without a pick.
+ * Over the viewer while a tool picks a color (`view.picking`: Curves' Pick hue, Color mix's Pick,
+ * Limit's droppers): a click on the picture reads the color the edited correction gets there
+ * (`TintApi.pickColor`: the clip's own ungraded picture through the corrections above it), hands
+ * it to the tool (`view.picked`) and stops picking. A click off the frame or off the clip's
+ * picture keeps picking; Escape stops without a pick.
  */
-export function HuePicker({ stage }: { stage: React.RefObject<HTMLElement | null> }) {
+export function ViewerPicker({ stage }: { stage: React.RefObject<HTMLElement | null> }) {
   const tint = useModule(tintRef);
   const picking = useTintView((v) => v.picking);
   const { clipId, nodeId } = useEditTarget();
@@ -38,10 +38,7 @@ export function HuePicker({ stage }: { stage: React.RefObject<HTMLElement | null
     if (u < 0 || u > 1 || v < 0 || v > 1) return;
     try {
       const rgb = await tint.pickColor(clipId, nodeId, { u, v });
-      if (!rgb) return;
-      const hue = hueOf(rgb);
-      if (hue === null) notify("info", "That color is a gray: it has no hue to pick.");
-      set({ picking: false, picked: hue });
+      if (rgb) set({ picking: false, picked: rgb });
     } catch (error) {
       notify("error", `Couldn't read the color there: ${String(error)}`);
       set({ picking: false });
@@ -51,7 +48,7 @@ export function HuePicker({ stage }: { stage: React.RefObject<HTMLElement | null
     <div
       onPointerDown={(event) => void pick(event)}
       className="absolute inset-0 z-10 cursor-crosshair"
-      title="Click a color to pick its hue (Escape stops)"
+      title="Click a color in the picture (Escape stops)"
     />
   );
 }

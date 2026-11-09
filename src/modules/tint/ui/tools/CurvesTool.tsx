@@ -2,6 +2,8 @@ import { Pipette } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { CorrectionValues } from "@/modules/project";
 import { Button, cn } from "@/ui";
+import { notify } from "@/core";
+import { hueOf } from "../../logic/color/curves.apply";
 import { pickHuePoints } from "../../logic/color/curves.edit";
 import type { CurveKind, CurvePoint, CurveShape } from "../../tint.types";
 import { useToolEdit } from "../tool.edit.hook";
@@ -73,8 +75,10 @@ export function CurvesTool() {
   useEffect(() => {
     if (picked === null) return;
     set({ picked: null });
+    const hue = hueOf(picked);
+    if (hue === null) return void notify("info", "That color is a gray: it has no hue to pick.");
     if (shape !== "hue" || !edit.enabled) return;
-    const next = pickHuePoints(points, picked);
+    const next = pickHuePoints(points, hue);
     if (next) curveEdit.commit(next);
   }, [picked, set, shape, edit.enabled, points, curveEdit]);
 

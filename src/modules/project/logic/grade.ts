@@ -144,6 +144,23 @@ function ranges(): Record<string, { min: number; max: number }> {
 /** The smallest and largest of every number of a correction, by dotted field path (`lift.x`). */
 export const GRADE_RANGES: Record<string, { min: number; max: number }> = ranges();
 
+/**
+ * The smallest and largest of every number of a limit, by dotted path (`color.hue`; a pair's two
+ * ends alike). Hue in degrees of the hue curves' circle (red at 0), where `hue[0] > hue[1]` wraps
+ * through red; saturation as a share of full chroma; brightness (`lum`, `range`) of luma;
+ * softness and clean up 0 to 100.
+ */
+export const LIMIT_RANGES: Record<string, { min: number; max: number }> = {
+  "color.hue": range(0, 360),
+  "color.sat": range(0, 1),
+  "color.lum": range(0, 1),
+  "color.soft": range(0, 100),
+  "brightness.range": range(0, 1),
+  "brightness.soft": range(0, 100),
+  "refine.soft": range(0, 100),
+  "refine.clean": range(0, 100),
+};
+
 /** A clip's grade, or null when it has none (the picture as the file is). */
 export function gradeOf(clip: Pick<Clip, "grade">): ClipGrade | null {
   return clip.grade ?? null;

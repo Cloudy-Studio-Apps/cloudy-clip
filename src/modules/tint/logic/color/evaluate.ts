@@ -2,6 +2,7 @@ import type { ClipGrade, Correction, GradeNode, GradeNodeId, NodeRef } from "@/m
 import { correctionOf } from "@/modules/project";
 import type { PixelAt, Rgb } from "../../tint.types";
 import { correctPixel } from "./correct";
+import { keyOf } from "./limit";
 
 /**
  * The corrections a grade draws, source first, until joins come (Task 18): walking back from
@@ -44,7 +45,8 @@ export function gradeChain(grade: ClipGrade): { id: GradeNodeId; node: Correctio
 
 /**
  * A pixel of `source` through a grade, as the passes draw it: each correction in `gradeChain`
- * order, mixed over its input by its opacity. With `stopAt`, what that node reads (the pixel before
+ * order, mixed over its input by its opacity times its limit's key (`keyOf`, read from that
+ * input; the refine blur can't be had per pixel, so it is left out). With `stopAt`, what that node reads (the pixel before
  * it); a node not in the chain gives the whole grade's result.
  */
 export function evaluatePixel(
@@ -58,7 +60,7 @@ export function evaluatePixel(
     if (id === stopAt) break;
     if (!node.on) continue;
     const out = correctPixel(rgb, correctionOf(node), at);
-    const a = node.opacity;
+    const a = node.opacity * keyOf(rgb, node.limit);
     rgb = [
       rgb[0] + (out[0] - rgb[0]) * a,
       rgb[1] + (out[1] - rgb[1]) * a,
