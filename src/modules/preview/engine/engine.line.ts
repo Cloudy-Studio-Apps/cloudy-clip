@@ -1,8 +1,9 @@
 import type { Micros } from "@/core";
-import { dbToLinear } from "@/modules/project";
+import { dbToLinear, type KeyTrack } from "@/modules/project";
+import type { LineAt } from "../preview.types";
 import { lineLevel, lineSchedule, sameLines } from "../logic/line";
 import { glide } from "./engine.soundnodes";
-import type { FaderLevel, FaderTarget } from "./engine.types";
+import type { FaderLevel, FaderTarget, LineLists } from "./engine.types";
 
 /**
  * How far ahead of the clock the lines are scheduled, in timeline time. The clock plays at 1x
@@ -15,6 +16,9 @@ const REFILL = 0.5;
 const SLIP: Micros = 100_000;
 /** How long the bus takes to reach the line when a schedule starts: short, without a click. */
 const CATCH: Micros = 10_000;
+
+/** No volume lines: the one list every voice outside a placement, and every chain, starts with. */
+export const NO_LINES: readonly LineAt[] = Object.freeze([]);
 
 /** Where a schedule stands: the timeline time at a context time, and how far it is written. */
 interface Plan {
@@ -51,6 +55,8 @@ export function createFaderLevel(
   time: Micros,
 ): FaderLevel {
   let target: FaderTarget | null = null;
+  /** The target's lines that have keys, none when muted: worked out once per target. */
+  let active: readonly LineAt[] = NO_LINES;
   let clock = time;
   let playing = false;
   let until = Infinity;
@@ -59,8 +65,11 @@ export function createFaderLevel(
   let held: Micros | null = null;
   let started = false;
 
-  const linesOf = (next: FaderTarget) =>
-    next.muted ? [] : next.lines.filter(({ line }) => line.keys.length > 0);
+  const linesOf = (next: FaderTarget): readonly LineAt[] => {
+    if (next.muted) return NO_LINES;
+    const keyed = next.lines.every(({ line }) => line.keys.length > 0);
+    return keyed ? next.lines : next.lines.filter(({ line }) => line.keys.length > 0);
+  };
 
   const drop = () => {
     if (!plan) return;
@@ -69,7 +78,7 @@ export function createFaderLevel(
   };
 
   const apply = () => {
-    const lines = target ? linesOf(target) : [];
+    const lines = active;
     if (!target || lines.length === 0) return;
     const offset = target.offsetDb;
     if (!playing) {
@@ -108,9 +117,10 @@ export function createFaderLevel(
         target.muted === next.muted;
       if (same) return;
       target = next;
+      active = linesOf(next);
       held = null;
       drop();
-      const lines = linesOf(next);
+      const lines = active;
       if (lines.length === 0) {
         const level = next.muted ? 0 : dbToLinear(next.offsetDb);
         if (started) glide(param, level, context);
@@ -127,6 +137,27 @@ export function createFaderLevel(
       playing = isPlaying;
       until = end;
       apply();
+    },
+  };
+}
+
+/**
+ * Lists of volume lines, each made once for its (lines above, line, shift) and handed back the
+ * same after, so a voice's lines cost nothing per frame and compare by identity. Per engine; an
+ * entry goes with its line or list (weakly held).
+ */
+export function createLineLists(): LineLists {
+  const made = new WeakMap<readonly LineAt[], WeakMap<KeyTrack, Map<Micros, readonly LineAt[]>>>();
+  return {
+    inside(above, line, shift) {
+      if (!line) return above;
+      let byLine = made.get(above);
+      if (!byLine) made.set(above, (byLine = new WeakMap()));
+      let byShift = byLine.get(line);
+      if (!byShift) byLine.set(line, (byShift = new Map()));
+      let lines = byShift.get(shift);
+      if (!lines) byShift.set(shift, (lines = [...above, { line, shift }]));
+      return lines;
     },
   };
 }

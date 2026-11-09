@@ -47,6 +47,7 @@ export function lineSchedule(
 
 /** Whether two sets of lines are the same lines on the same clocks. */
 export function sameLines(a: readonly LineAt[], b: readonly LineAt[]): boolean {
+  if (a === b) return true;
   return (
     a.length === b.length && a.every((at, i) => at.line === b[i]!.line && at.shift === b[i]!.shift)
   );

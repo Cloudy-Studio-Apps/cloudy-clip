@@ -19,6 +19,7 @@ import type {
   ClipSound,
   ClipSpeed,
   Composition,
+  KeyTrack,
   MasterMix,
   MediaId,
   ProjectFormat,
@@ -137,8 +138,15 @@ export interface Placed {
   bus: TrackId;
   gain: number;
   pan: number;
-  /** The volume lines of the inner tracks it sits in, on their clocks; none outside a placement. */
-  lines: readonly LineAt[];
+}
+
+/** Lists of volume lines made once and handed back the same (`createLineLists`). */
+export interface LineLists {
+  /**
+   * `above` with `line` (on a clock `shift` ahead of the playhead) after them; `above` itself
+   * when there's no line. The same inputs give the same list.
+   */
+  inside(above: readonly LineAt[], line: KeyTrack | undefined, shift: Micros): readonly LineAt[];
 }
 
 /** The playhead as sound follows it: where it is, whether it plays, and where it stops or wraps. */
@@ -182,7 +190,7 @@ export interface Voice {
   bus: TrackId;
   /** The file's name, for the report when its element can't enter the graph. */
   name: string;
-  /** The volume lines of the inner tracks it sits in (`Placed.lines`). */
+  /** The volume lines of the inner tracks it sits in, on their clocks; none outside a placement. */
   lines: readonly LineAt[];
 }
 

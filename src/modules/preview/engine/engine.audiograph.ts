@@ -1,4 +1,4 @@
-import { createLogger, notify } from "@/core";
+import { createLogger, notify, type Micros } from "@/core";
 import { NO_LEVELS } from "./engine.meters";
 import { createDynamicsNodes } from "./engine.dynamics";
 import { createLoudnessTap } from "./engine.loudness";
@@ -27,6 +27,8 @@ export function createSoundGraph(): SoundGraph {
   let loudness: LoudnessTap | null = null;
   /** Whether the engine plays; a tap made later starts from it. */
   let playing = false;
+  /** The playhead at the last frame: a chain made now starts its lines there. */
+  let clock: Micros = 0;
   let closed = false;
   let pitch: Promise<() => PitchNode> | null = null;
   const chains = new WeakMap<HTMLMediaElement, SoundChain>();
@@ -93,7 +95,8 @@ export function createSoundGraph(): SoundGraph {
       const audio = open();
       if (!audio) return undefined;
       try {
-        const chain = createChain(audio, element, () => (pitch ??= loadPitch(audio)));
+        const pitchNodes = () => (pitch ??= loadPitch(audio));
+        const chain = createChain(audio, element, pitchNodes, clock);
         chains.set(element, chain);
         return chain;
       } catch (error) {
@@ -112,7 +115,10 @@ export function createSoundGraph(): SoundGraph {
       update = next;
       buses?.mix(next);
     },
-    follow: (time, playing, until) => buses?.follow(time, playing, until),
+    follow(time, playing, until) {
+      clock = time;
+      buses?.follow(time, playing, until);
+    },
     levels: () => buses?.levels() ?? NO_LEVELS,
     loudness: () => loudness?.read() ?? null,
     resetLoudness: () => loudness?.reset(),

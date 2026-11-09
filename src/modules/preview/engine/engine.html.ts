@@ -38,6 +38,7 @@ import { PITCH_LEAD_SECONDS } from "./engine.soundchain";
 import { ImageCache } from "./engine.images";
 import { landLayer } from "./engine.composite";
 import { LevelCorrection } from "./engine.levels";
+import { createLineLists, NO_LINES } from "./engine.line";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { createSoundMix } from "./engine.soundmix";
@@ -49,6 +50,7 @@ import type {
   Nesting,
   PlacementTarget,
   ResolvedFrame,
+  SoundClock,
   SoundMix,
 } from "./engine.types";
 
@@ -116,8 +118,10 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly awaited = new Set<MediaId>();
   /** Inside `playSlice`: the loudness tap stays off. */
   private slicing = false;
-  /** Where playback stops or goes round, from the last `render`: sound isn't scheduled past it. */
-  private until: Micros = Infinity;
+  /** The playhead as sound follows it, from the last `render` (one object, set in place). */
+  private readonly clock: SoundClock = { time: 0, playing: false, until: Infinity };
+  /** The volume lines of inner tracks, made once per placement and line. */
+  private readonly lineLists = createLineLists();
   private readonly levelCorrection: LevelCorrection | null;
 
   constructor(
@@ -154,8 +158,10 @@ export class HtmlMediaEngine implements PreviewEngine {
     until: Micros = Infinity,
   ): void {
     this.sound.update(project, composition);
-    this.until = Math.min(until, composition.duration);
-    this.sound.follow(time, playing, this.until);
+    this.clock.time = time;
+    this.clock.playing = playing;
+    this.clock.until = Math.min(until, composition.duration);
+    this.sound.follow(time, playing, this.clock.until);
     // A scrub slice is heard and metered as playback is, but never reaches the loudness reading.
     this.sound.setPlaying(playing && !this.slicing);
     const frame = resolveFrame(project, composition.id, time, {
@@ -286,12 +292,15 @@ export class HtmlMediaEngine implements PreviewEngine {
           track.kind === "audio"
             ? gain * fadeLevel(sound, clip, time, gains.get(clip.id)) * dbToLinear(sound.volumeDb)
             : gain;
+        // Inside a placement, an inner track's line joins those above, on its composition's clock.
+        const lines = nesting
+          ? this.lineLists.inside(nesting.lines, track.mix?.volumeLine, time - nesting.playhead)
+          : NO_LINES;
         // Inside a placement, the clips get the noise reduction of the track it sits on.
         const trackDenoise = track.kind === "audio" ? heardDenoise(track, composition) : undefined;
         const denoise = nesting ? nesting.denoise : trackDenoise;
         if (inner) {
-          const placement = placeSound(track, nesting, own, 0, time);
-          const { bus, gain: through, pan, lines } = placement;
+          const { bus, gain: through, pan } = placeSound(track, nesting, own, 0);
           const quiet = silenced || track.muted;
           const around = { bus, pan, denoise, lines, playhead: nesting?.playhead ?? time };
           this.prepare(project, inner, playing, propsOverrides, through, quiet, around);
@@ -332,10 +341,10 @@ export class HtmlMediaEngine implements PreviewEngine {
         // The pitch of a ramp follows its rate now, in steps, since each rate keeps its own sound.
         const heardRate = ramped ? Math.round(rate / RAMP_RATE_STEP) * RAMP_RATE_STEP : rate;
         const heard = this.sound.heard(sound, { ...speed, rate: heardRate });
-        const placed = placeSound(track, nesting, own, heard.pan, time);
-        const voice = { ...placed, silenced, sound: heard, name: media.name };
-        const clock = { time: nesting?.playhead ?? time, playing, until: this.until };
-        voiceSlot(slot, track, track.kind === "audio" ? voice : null, this.sound.graph, clock);
+        const placed = placeSound(track, nesting, own, heard.pan);
+        const voice = { ...placed, lines, silenced, sound: heard, name: media.name };
+        const heardVoice = track.kind === "audio" ? voice : null;
+        voiceSlot(slot, track, heardVoice, this.sound.graph, this.clock);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
         const lead = pitched ? PITCH_LEAD_SECONDS * rate : 0;
         syncSlot(slot, exact + lead, playing && rate > 0, rate, ramped);

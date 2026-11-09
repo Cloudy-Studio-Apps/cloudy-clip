@@ -1,4 +1,3 @@
-import type { Micros } from "@/core";
 import {
   compositionMixOf,
   soundInPlacement,
@@ -41,21 +40,16 @@ export function mixUpdateOf(
 
 /**
  * Where a clip (or a placement) on `track` sounds from: a top-level track's own bus, at its own
- * gain and pan (its volume line is the bus's); inside a placement, the bus of the track the
- * placement sits on, with this inner track's volume and pan added to those of the inner tracks
- * above it, and its volume line to theirs, read on its composition's clock (`time`, where the
- * playhead is `nesting.playhead`), as the export folds them.
+ * gain and pan; inside a placement, the bus of the track the placement sits on, with this inner
+ * track's volume and pan added to those of the inner tracks above it. (Its volume line joins
+ * theirs through the engine's `LineLists`; a top-level track's line is its bus's.)
  */
 export function placeSound(
   track: Track,
   nesting: Nesting | null,
   gain: number,
   pan: number,
-  time: Micros,
 ): Placed {
-  if (!nesting) return { bus: track.id, gain, pan, lines: [] };
-  const line = track.mix?.volumeLine;
-  const own = line ? [{ line, shift: time - nesting.playhead }] : [];
-  const lines = [...nesting.lines, ...own];
-  return { bus: nesting.bus, ...soundInPlacement(track, nesting.pan, gain, pan), lines };
+  if (!nesting) return { bus: track.id, gain, pan };
+  return { bus: nesting.bus, ...soundInPlacement(track, nesting.pan, gain, pan) };
 }

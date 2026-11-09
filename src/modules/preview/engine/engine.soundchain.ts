@@ -1,7 +1,8 @@
-import { createLogger } from "@/core";
+import { createLogger, type Micros } from "@/core";
 import { pitchShift, type ClipSound } from "@/modules/project";
 import { createFaderLevel } from "./engine.line";
 import { createEqFilters, createPanner, createUpmix, glide, setBand } from "./engine.soundnodes";
+import type { LineAt } from "../preview.types";
 import type { PitchNode, SoundChain } from "./engine.types";
 
 const log = createLogger("preview.engine");
@@ -32,6 +33,7 @@ export function createChain(
   context: AudioContext,
   element: HTMLMediaElement,
   pitchNodes: () => Promise<() => PitchNode>,
+  time: Micros,
 ): SoundChain {
   const source = context.createMediaElementSource(element);
   const input = createUpmix(context);
@@ -39,7 +41,7 @@ export function createChain(
   const panner = createPanner(context);
   const level = context.createGain();
   const lines = context.createGain();
-  const lineLevel = createFaderLevel(lines.gain, context, 0);
+  const lineLevel = createFaderLevel(lines.gain, context, time);
   source.connect(input);
   const nodes: AudioNode[] = [input, ...filters, panner, level, lines];
   nodes.slice(1).forEach((node, i) => nodes[i]!.connect(node));
@@ -48,6 +50,8 @@ export function createChain(
   let shownPan: number | null = null;
   let bus: AudioNode | null = null;
   let pitch: PitchNode | null = null;
+  /** The lines last given, by identity (`LineLists` hands the same list back). */
+  let heardLines: readonly LineAt[] | null = null;
   let wanted = 0;
 
   const route = (node: AudioNode | null) => {
@@ -98,9 +102,12 @@ export function createChain(
       lines.connect(next);
       bus = next;
     },
-    follow(heard, time, playing, until) {
-      lineLevel.set({ lines: heard, offsetDb: 0, muted: false });
-      lineLevel.follow(time, playing, until);
+    follow(heard, now, playing, until) {
+      if (heard !== heardLines) {
+        heardLines = heard;
+        lineLevel.set({ lines: heard, offsetDb: 0, muted: false });
+      }
+      lineLevel.follow(now, playing, until);
     },
   };
 }
