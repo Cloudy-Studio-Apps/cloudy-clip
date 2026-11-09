@@ -273,6 +273,19 @@ pub struct ExportSpec {
     /// How the tracks the sound comes from mix.
     #[serde(default)]
     pub mix: SoundMix,
+    /// Files written besides `output`, the mix, by the same FFmpeg: a sound-only export only.
+    #[serde(default)]
+    pub stems: Vec<StemSpec>,
+}
+
+/// A stem: what one group, or every track sent straight to the master (`bus` none, "Other"),
+/// adds to the mix, taken before the master's level and effects.
+#[derive(Debug, Clone, Deserialize)]
+pub struct StemSpec {
+    pub output: String,
+    /// The group, an index into `SoundMix::buses`; none is the tracks sent to the master.
+    #[serde(default)]
+    pub bus: Option<usize>,
 }
 
 fn default_rate() -> u32 {
@@ -280,8 +293,20 @@ fn default_rate() -> u32 {
 }
 
 impl ExportSpec {
-    /// Refuses a rate or a depth the formats don't take.
+    /// Refuses a rate or a depth the formats don't take, and stems of a format with a picture,
+    /// of a group that isn't there, or twice the same.
     pub fn check(&self) -> Result<(), String> {
+        if !self.stems.is_empty() && self.format.has_picture() {
+            return Err("Stems are sound only: choose MP3, WAV, FLAC, AAC or Opus.".to_owned());
+        }
+        for (i, stem) in self.stems.iter().enumerate() {
+            if stem.bus.is_some_and(|bus| bus >= self.mix.buses.len()) {
+                return Err("A stem names a group the mix doesn't have.".to_owned());
+            }
+            if self.stems[..i].iter().any(|other| other.bus == stem.bus) {
+                return Err("A stem is asked for twice.".to_owned());
+            }
+        }
         if !matches!(self.sample_rate, 44_100 | 48_000) {
             return Err(format!(
                 "A sample rate of {} Hz can't be exported: use 44100 or 48000.",
@@ -366,9 +391,23 @@ fn segment_chains(sound: &[SoundSegment], first_input: usize) -> Vec<String> {
         .collect()
 }
 
-/// The mixed sound as a filter graph, whose output is `[mixed]`.
-fn sound_graph(sound: &[SoundSegment], first_input: usize, mix: &SoundMix, total: u64) -> String {
-    mixgraph::sound_graph(&segment_chains(sound, first_input), sound, mix, total)
+/// The mixed sound as a filter graph, whose output is `[mixed]`, and `[stem<i>]` for each of
+/// `stems`.
+fn sound_graph(
+    sound: &[SoundSegment],
+    first_input: usize,
+    mix: &SoundMix,
+    total: u64,
+    stems: &[StemSpec],
+) -> String {
+    let stems: Vec<Option<usize>> = stems.iter().map(|stem| stem.bus).collect();
+    mixgraph::sound_graph(
+        &segment_chains(sound, first_input),
+        sound,
+        mix,
+        total,
+        &stems,
+    )
 }
 
 /// The picture filter: even size, BT.709 limited range, or a palette for GIF.
@@ -578,6 +617,7 @@ pub fn arguments(
             usize::from(picture),
             &spec.mix,
             spec.duration,
+            &spec.stems,
         ));
     }
     let graph = graph.join(";");
@@ -592,14 +632,30 @@ pub fn arguments(
     if picture {
         push(&["-map", "[picture]"]);
     }
+    let rate = spec.output_rate().to_string();
     if !sound.is_empty() {
-        push(&["-map", "[mixed]", "-ar", &spec.output_rate().to_string()]);
+        push(&["-map", "[mixed]", "-ar", &rate]);
     }
     let output = output_args(spec, hardware);
-    push(&output.iter().map(String::as_str).collect::<Vec<_>>());
+    let output: Vec<&str> = output.iter().map(String::as_str).collect();
+    push(&output);
     push(&["-t", &seconds(spec.duration)]);
     args.push(partial.as_os_str().to_owned());
+    // Each stem is an output of its own, with the mix's encoder settings.
+    for (i, stem) in spec.stems.iter().enumerate() {
+        let mut push = |values: &[&str]| args.extend(values.iter().map(OsString::from));
+        push(&["-map", &format!("[stem{i}]"), "-ar", &rate]);
+        push(&output);
+        push(&["-t", &seconds(spec.duration)]);
+        args.push(partial_of(Path::new(&stem.output)).into_os_string());
+    }
     Recipe { args, script }
+}
+
+/// `clip.mp4` next to itself as `clip.partial.mp4`: what FFmpeg writes, renamed once complete.
+pub fn partial_of(output: &Path) -> PathBuf {
+    let extension = output.extension().and_then(|e| e.to_str()).unwrap_or("mp4");
+    output.with_extension(format!("partial.{extension}"))
 }
 
 /// A segment at the defaults, for the tests of this folder.
@@ -634,7 +690,7 @@ mod sound_tests {
 
     /// The graph of segments under a mix that leaves them as they are.
     fn sound_graph(sound: &[SoundSegment], first_input: usize, total: u64) -> String {
-        super::sound_graph(sound, first_input, &SoundMix::default_for(1), total)
+        super::sound_graph(sound, first_input, &SoundMix::default_for(1), total, &[])
     }
 
     #[test]
@@ -760,6 +816,7 @@ mod sound_tests {
             hardware: false,
             sound: vec![segment; clips],
             mix: SoundMix::default_for(1),
+            stems: Vec::new(),
         }
     }
 
@@ -817,6 +874,71 @@ mod sound_tests {
         let aac = args_of(&audio_export(Format::Aac, 44_100, None));
         assert_eq!(after(&aac, "-c:a"), "aac");
         assert_eq!(after(&aac, "-ar"), "44100");
+    }
+
+    #[test]
+    fn two_groups_and_a_direct_track_give_four_outputs_each_mapped_once() {
+        let sent = |bus| TrackMixSpec {
+            bus,
+            ..TrackMixSpec::DEFAULT
+        };
+        let group = BusMixSpec {
+            gain: 1.0,
+            muted: false,
+            effects: Vec::new(),
+        };
+        let spec = ExportSpec {
+            output: "/o - Mix.wav".into(),
+            sound: (0..3)
+                .map(|track| SoundSegment { track, ..segment() })
+                .collect(),
+            mix: SoundMix {
+                tracks: vec![sent(Some(0)), sent(Some(1)), sent(None)],
+                buses: vec![group.clone(), group],
+                ..SoundMix::default_for(0)
+            },
+            stems: vec![
+                StemSpec {
+                    output: "/o - Dialogue.wav".into(),
+                    bus: Some(0),
+                },
+                StemSpec {
+                    output: "/o - Music.wav".into(),
+                    bus: Some(1),
+                },
+                StemSpec {
+                    output: "/o - Other.wav".into(),
+                    bus: None,
+                },
+            ],
+            ..audio_export(Format::Wav, 44_100, Some(24))
+        };
+        assert!(spec.check().is_ok());
+        let args = args_of(&spec);
+        let maps: Vec<&str> = args
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| *a == "-map")
+            .map(|(i, _)| args[i + 1].as_str())
+            .collect();
+        assert_eq!(maps, ["[mixed]", "[stem0]", "[stem1]", "[stem2]"]);
+        let outputs: Vec<&String> = args.iter().filter(|a| a.contains(".partial.")).collect();
+        assert_eq!(
+            outputs,
+            [
+                "/o.partial.wav",
+                "/o - Dialogue.partial.wav",
+                "/o - Music.partial.wav",
+                "/o - Other.partial.wav"
+            ]
+        );
+        // Every output has its own encoder, rate and length.
+        assert_eq!(args.iter().filter(|a| *a == "pcm_s24le").count(), 4);
+        assert_eq!(args.iter().filter(|a| *a == "44100").count(), 4);
+        let graph = after(&args, "-filter_complex");
+        for stem in ["[stem0]", "[stem1]", "[stem2]", "[mixed]"] {
+            assert_eq!(graph.matches(stem).count(), 1, "{stem} in {graph}");
+        }
     }
 
     #[test]

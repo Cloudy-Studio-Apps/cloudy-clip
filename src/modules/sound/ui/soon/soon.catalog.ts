@@ -73,10 +73,10 @@ export const SOON: Record<SoonId, SoonEntry> = {
     what: "Measures the whole mix against the standard and lists what goes over.",
     stage: 5,
   },
-  "deliver.stems": {
-    id: "deliver.stems",
-    label: "Stems",
-    what: "Exports the full mix, or each group, as files of their own.",
-    stage: 4,
+  "deliver.matchTarget": {
+    id: "deliver.matchTarget",
+    label: "Match target on export",
+    what: "Brings the exported mix to the delivery standard's loudness.",
+    stage: 5,
   },
 };

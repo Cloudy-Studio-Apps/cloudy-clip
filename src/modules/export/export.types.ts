@@ -237,6 +237,26 @@ export interface ExportSpec {
   hardware: boolean;
   sound: SoundSegment[];
   mix: SoundMix;
+  /** Files written besides `output` (the mix) by the same FFmpeg; sound-only formats only. */
+  stems?: StemSpec[];
+}
+
+/**
+ * A stem file (mirrors `StemSpec` in Rust): what one group sends to Master, or, without `bus`,
+ * what the tracks sent straight to Master do ("Other"), taken before Master's level and effects.
+ */
+export interface StemSpec {
+  output: string;
+  /** The group, an index into `SoundMix.buses`. */
+  bus?: number;
+}
+
+/** A stem a composition exports (see `stemsOf`). */
+export interface StemPlan {
+  /** What its file is named with: `<name> - <label>.<ext>`. Safe in a file name, and unique. */
+  label: string;
+  /** The group, an index into `SoundMix.buses`; missing for "Other". */
+  bus?: number;
 }
 
 /** Where an export is. */
@@ -248,8 +268,10 @@ export interface ExportJob {
   id: string;
   /** File name with its extension. */
   file: string;
-  /** Full path of the file. */
+  /** Full path of the file: the mix, when it has stems. */
   path: string;
+  /** Full paths of its stem files, when it has some. */
+  stems?: string[];
   kindLabel: string;
   compositionId: CompositionId;
   status: ExportStatus;
@@ -291,6 +313,8 @@ export interface ExportFormState {
   to: Micros;
   effort: ExportEffort;
   sound: boolean;
+  /** Each group, and Other, as files of their own beside the mix (sound-only formats). */
+  stems: boolean;
   hardware: boolean;
   ifExists: ExportIfExists | "ask";
   reveal: boolean;

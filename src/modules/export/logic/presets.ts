@@ -208,7 +208,7 @@ export function joinPath(folder: string, file: string): string {
   return `${folder.replace(/[\\/]+$/, "")}${separator}${file}`;
 }
 
-/** `name (n).ext`. */
-export function numberedName(name: string, extension: string, n: number): string {
-  return `${name} (${n}).${extension}`;
+/** The file name at the end of a path, whichever separator it uses. */
+export function fileName(path: string): string {
+  return path.slice(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")) + 1);
 }

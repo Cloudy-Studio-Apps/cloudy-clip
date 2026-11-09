@@ -46,7 +46,13 @@ export function ExportPage() {
             <SaveToSection name={form.name} folder={values.folder} />
           </FoldSection>
           <FoldSection {...fold("What to export")}>
-            <WhatToExportSection compositions={form.compositions} value={composition.id} />
+            <WhatToExportSection
+              compositions={form.compositions}
+              value={composition.id}
+              stems={values.stems}
+              soundOnly={!info.picture}
+              plan={form.plan}
+            />
           </FoldSection>
           <FoldSection {...fold("Kind of export")}>
             <KindTiles value={values.kind} picture={form.picture} sizeAt={form.sizeAt} />

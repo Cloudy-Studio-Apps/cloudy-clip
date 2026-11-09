@@ -9,7 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::mixeffects::{MixEffect, duck_filter, effect_filter};
-use super::recipe::{SoundMix, SoundSegment, TrackMixSpec, seconds};
+use super::recipe::{SAMPLE_RATE, SoundMix, SoundSegment, TrackMixSpec, seconds};
 use super::soundfilters::{gain_envelope_filter, pan_filter, samples};
 
 /// Time a chain with effects runs on in silence past the end, as the preview's effects run on
@@ -183,11 +183,16 @@ fn in_muted_group(mix: &SoundMix, track: usize) -> bool {
 /// duck adds no filter at all, so a default mix is one `amix` of every clip. A muted group adds
 /// nothing: the clips of its tracks are left out, as `mixdown` leaves out a muted track's (it
 /// sends none; any that come are dropped here with their chains, the inputs left unread).
+///
+/// With `stems`, the graph also ends in `[stem<i>]` for each: what `stems[i]`'s group (or, for
+/// none, every track sent straight to the master: "Other") sends to the master, split off before
+/// the master's level and effects (`stem_taps`).
 pub(super) fn sound_graph(
     chains: &[String],
     segments: &[SoundSegment],
     mix: &SoundMix,
     total: u64,
+    stems: &[Option<usize>],
 ) -> String {
     let mut graph = String::new();
     let mut inputs: BTreeMap<Node, Vec<String>> = BTreeMap::new();
@@ -238,8 +243,12 @@ pub(super) fn sound_graph(
             Dest::Group(g) => inputs.entry(Node::Group(g)).or_default().extend(sent),
         }
     }
-    let outputs: Vec<String> = outputs.into_values().flatten().collect();
     let end = seconds(total);
+    let outputs: Vec<String> = if stems.is_empty() {
+        outputs.into_values().flatten().collect()
+    } else {
+        stem_taps(&mut graph, outputs, stems, &end)
+    };
     let mut master = String::new();
     if mix.master.gain != 1.0 {
         master.push_str(&format!(",volume={:.6}", mix.master.gain));
@@ -254,6 +263,45 @@ pub(super) fn sound_graph(
         outputs.len(),
     ));
     graph
+}
+
+/// Sums what each stem sends to the master and splits it: one copy into the master, the other
+/// padded and cut to the export's length as `[stem<i>]`. A group's stem is the group's output, at
+/// its level, whatever its values (a default group, whose tracks would go straight to the master,
+/// is summed here all the same); Other's is the tracks sent to the master. A stem with nothing
+/// sounding (a muted or empty group, every direct track muted) is silence of the same length.
+/// Returns the master's inputs: the stems' copies, then whatever no stem takes.
+fn stem_taps(
+    graph: &mut String,
+    outputs: BTreeMap<Node, Vec<String>>,
+    stems: &[Option<usize>],
+    end: &str,
+) -> Vec<String> {
+    let mut sent: BTreeMap<Option<usize>, Vec<String>> = BTreeMap::new();
+    for (node, labels) in outputs {
+        let stem = match node {
+            Node::Group(g) => Some(g),
+            Node::Track(_) => None,
+        };
+        sent.entry(stem).or_default().extend(labels);
+    }
+    let mut master = Vec::new();
+    for (i, stem) in stems.iter().enumerate() {
+        match sent.remove(stem) {
+            Some(labels) => {
+                graph.push_str(&format!(
+                    "{},asplit=2[ms{i}][ps{i}];[ps{i}]apad=whole_dur={end},atrim=0:{end}[stem{i}];",
+                    sum(&labels)
+                ));
+                master.push(format!("[ms{i}]"));
+            }
+            None => graph.push_str(&format!(
+                "anullsrc=r={SAMPLE_RATE}:cl=stereo,atrim=0:{end}[stem{i}];"
+            )),
+        }
+    }
+    master.extend(sent.into_values().flatten());
+    master
 }
 
 /// One bus, a track's or a group's, as `[t<n>]` / `[g<n>]`, plus a
@@ -346,6 +394,16 @@ mod tests {
 
     fn segment(track: usize) -> SoundSegment {
         SoundSegment { track, ..plain() }
+    }
+
+    /// The graph of a mix with no stems.
+    fn sound_graph(
+        chains: &[String],
+        segments: &[SoundSegment],
+        mix: &SoundMix,
+        total: u64,
+    ) -> String {
+        super::sound_graph(chains, segments, mix, total, &[])
     }
 
     /// The chain of a segment that has no filters of its own.

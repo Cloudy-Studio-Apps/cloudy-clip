@@ -49,15 +49,20 @@ pub struct FrameUrl(RwLock<Option<String>>);
 /// Folder of notes saying which partial files are in progress.
 pub struct PartialNotes(PathBuf);
 
-/// Removes partial files a crash or a quit left behind. Each export leaves a note while it runs.
+/// Removes partial files a crash or a quit left behind. Each export leaves a note while it runs:
+/// its partial files, one a line, the first the one its filter graph file is named after.
 fn sweep_partials(notes: &Path) {
     let Ok(entries) = std::fs::read_dir(notes) else {
         return;
     };
     for entry in entries.flatten() {
-        if let Ok(partial) = std::fs::read_to_string(entry.path()) {
-            let _ = std::fs::remove_file(recipe::script_of(Path::new(&partial)));
-            let _ = std::fs::remove_file(partial);
+        if let Ok(note) = std::fs::read_to_string(entry.path()) {
+            if let Some(first) = note.lines().next() {
+                let _ = std::fs::remove_file(recipe::script_of(Path::new(first)));
+            }
+            for partial in note.lines() {
+                let _ = std::fs::remove_file(partial);
+            }
         }
         let _ = std::fs::remove_file(entry.path());
     }

@@ -8,7 +8,8 @@ import { enqueue } from "../export.commands";
 import { exportRef } from "../export.ref";
 import { confirmReplace, freeSpace, uniquePath } from "../export.service";
 import { estimateBytes, estimateSeconds, formatSize } from "../logic/estimate";
-import { formatInfo, hasBitDepth, joinPath, validName } from "../logic/presets";
+import { fileName, formatInfo, hasBitDepth, joinPath, validName } from "../logic/presets";
+import { fileSuffixes, stemsOf } from "../logic/stems";
 
 /** Past this length a GIF is worth a warning. */
 const LONG_GIF_MICROS = 15_000_000;
@@ -23,6 +24,7 @@ export function useExportForm() {
   const capabilities = useStore(api.capabilities, (state) => state.value);
   const session = useStore(useModule(workspaceRef).session);
   const records = useStore(project.store.api, (state) => state.compositions);
+  const tracks = useStore(project.store.api, (state) => state.tracks);
   const order = useStore(project.store.api, (state) => state.compositionOrder);
   const compositions = useMemo(
     () => order.flatMap((id) => (records[id] ? [records[id]] : [])),
@@ -41,6 +43,14 @@ export function useExportForm() {
   const to = values.whole ? duration : Math.min(values.to || duration, duration);
   const length = Math.max(0, to - from);
   const card = values.format === "h265" ? capabilities?.h265Card : capabilities?.h264Card;
+  // Stems are sound only; a format with a picture keeps the choice for when it's back.
+  const stems = values.stems && !info.picture;
+  const compositionId = composition?.id;
+  const plan = useMemo(
+    () =>
+      stems && compositionId ? stemsOf({ compositions: records, tracks }, compositionId) : null,
+    [stems, compositionId, records, tracks],
+  );
   const hardware = values.hardware && Boolean(card);
 
   const estimateInput = useMemo(
@@ -68,7 +78,11 @@ export function useExportForm() {
   );
   const sizeAt = (quality: number) =>
     estimateInput ? formatSize(estimateBytes({ ...estimateInput, quality })) : "—";
-  const bytes = estimateInput ? estimateBytes({ ...estimateInput, quality: values.quality }) : 0;
+  // Each stem is about as big as the mix.
+  const files = 1 + (plan?.length ?? 0);
+  const bytes = estimateInput
+    ? files * estimateBytes({ ...estimateInput, quality: values.quality })
+    : 0;
   const seconds = estimateInput
     ? estimateSeconds({ ...estimateInput, quality: values.quality })
     : 0;
@@ -86,7 +100,6 @@ export function useExportForm() {
   }, [values.folder]);
 
   const [picture, setPicture] = useState<string | null>(null);
-  const compositionId = composition?.id;
   useEffect(() => {
     if (!compositionId) return;
     let current = true;
@@ -124,10 +137,12 @@ export function useExportForm() {
     if (!composition || !ready) return;
     let { ifExists } = values;
     if (ifExists === "ask") {
-      const file = `${name.trim()}.${info.extension}`;
-      const path = joinPath(values.folder, file);
-      const taken = (await uniquePath(path)) !== path;
-      if (taken && !(await confirmReplace(file))) return;
+      const paths = fileSuffixes(plan).map((suffix) =>
+        joinPath(values.folder, `${name.trim()}${suffix}.${info.extension}`),
+      );
+      const free = await Promise.all(paths.map(uniquePath));
+      const taken = paths.filter((path, i) => free[i] !== path).map(fileName);
+      if (taken.length > 0 && !(await confirmReplace(taken.join(", ")))) return;
       ifExists = "replace";
     }
     await bus.run(enqueue, {
@@ -138,6 +153,7 @@ export function useExportForm() {
       quality: values.quality,
       effort: values.effort,
       sound: values.sound,
+      stems,
       hardware,
       sampleRate: values.sampleRate,
       ...(hasBitDepth(values.format) && { bitDepth: values.bitDepth }),
@@ -161,6 +177,7 @@ export function useExportForm() {
     bytes,
     seconds,
     picture,
+    plan,
     sizeAt,
     blocker,
     note,

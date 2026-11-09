@@ -123,8 +123,13 @@ pub async fn export_begin(
     let job = Job::start(&tools, &spec, card.as_deref(), option).map_err(AppError::Unavailable)?;
     let job_id = random_token()?;
     tokio::fs::create_dir_all(&notes.0).await?;
-    let partial = job.partial.display().to_string();
-    tokio::fs::write(notes.0.join(&job_id), partial).await?;
+    // One partial file a line: the export's, then its stems'.
+    let partials: Vec<String> = job
+        .partials
+        .iter()
+        .map(|p| p.display().to_string())
+        .collect();
+    tokio::fs::write(notes.0.join(&job_id), partials.join("\n")).await?;
     jobs.add(job_id.clone(), Arc::new(job));
     Ok(StartedExport {
         frame_url: format!("{base}/{job_id}"),

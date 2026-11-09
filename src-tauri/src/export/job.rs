@@ -1,5 +1,6 @@
-//! One running FFmpeg. It writes to a partial file, renamed only when complete, so a failed
-//! export never leaves something that looks finished.
+//! One running FFmpeg. It writes to partial files (the export, and its stems when it has some),
+//! renamed only when all are complete, so a failed export never leaves something that looks
+//! finished.
 
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
@@ -13,7 +14,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin};
 use tokio::sync::{Mutex, OnceCell};
 
-use super::recipe::{ExportSpec, ScriptOption, arguments, script_of};
+use super::recipe::{ExportSpec, ScriptOption, arguments, partial_of, script_of};
 use crate::media::proxy::{Tools, command};
 
 /// Lines of FFmpeg's complaints kept to explain a failure.
@@ -24,12 +25,6 @@ const WAIT_POLL: Duration = Duration::from_millis(50);
 const LAST_WORDS: Duration = Duration::from_secs(2);
 /// What FFmpeg says last on any failure; the reason is the line before.
 const GENERIC_ENDING: &str = "Conversion failed!";
-
-/// `clip.mp4` next to itself as `clip.partial.mp4`.
-fn partial_of(output: &Path) -> PathBuf {
-    let extension = output.extension().and_then(|e| e.to_str()).unwrap_or("mp4");
-    output.with_extension(format!("partial.{extension}"))
-}
 
 /// How this FFmpeg reads a filter graph from a file, by its `-version`. Unknown counts as new.
 /// Asked once, without blocking the async runtime, and kept for the app's lifetime: the system
@@ -51,10 +46,12 @@ pub async fn script_option(ffmpeg: &Path) -> ScriptOption {
 pub struct Job {
     /// Bytes of one frame; 0 for a sound-only export.
     pub frame_bytes: usize,
-    pub partial: PathBuf,
-    /// The filter graph file of a long graph, removed with the partial file.
+    /// What FFmpeg writes: the export's file first, then its stems'.
+    pub partials: Vec<PathBuf>,
+    /// The filter graph file of a long graph, removed with the partial files.
     script: Option<PathBuf>,
-    output: PathBuf,
+    /// Where each partial file goes once all are complete.
+    outputs: Vec<PathBuf>,
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Child>,
     tail: Arc<StdMutex<VecDeque<String>>>,
@@ -72,11 +69,16 @@ impl Job {
         card: Option<&str>,
         option: ScriptOption,
     ) -> Result<Self, String> {
-        let output = PathBuf::from(&spec.output);
-        let partial = partial_of(&output);
+        let stems = spec.stems.iter().map(|stem| stem.output.as_str());
+        let outputs: Vec<PathBuf> = std::iter::once(spec.output.as_str())
+            .chain(stems)
+            .map(PathBuf::from)
+            .collect();
+        let partials: Vec<PathBuf> = outputs.iter().map(|output| partial_of(output)).collect();
+        let partial = &partials[0];
         let picture = spec.format.has_picture();
-        let recipe = arguments(spec, &partial, card, option);
-        let script = recipe.script.as_ref().map(|_| script_of(&partial));
+        let recipe = arguments(spec, partial, card, option);
+        let script = recipe.script.as_ref().map(|_| script_of(partial));
         if let (Some(file), Some(graph)) = (&script, &recipe.script) {
             std::fs::write(file, graph)
                 .map_err(|e| format!("Could not write the filter graph: {e}"))?;
@@ -120,9 +122,9 @@ impl Job {
         };
         Ok(Self {
             frame_bytes,
-            partial,
+            partials,
             script,
-            output,
+            outputs,
             stdin: Mutex::new(stdin),
             child: Mutex::new(child),
             tail,
@@ -181,7 +183,14 @@ impl Job {
         }
     }
 
-    /// Ends the input, waits for FFmpeg and moves the file into place.
+    /// Removes the partial files that are still there.
+    async fn remove_partials(&self) {
+        for partial in &self.partials {
+            let _ = tokio::fs::remove_file(partial).await;
+        }
+    }
+
+    /// Ends the input, waits for FFmpeg and moves the files into place. Returns the export's.
     pub async fn finish(&self) -> Result<PathBuf, String> {
         // Dropping the pipe tells FFmpeg there are no more frames.
         self.stdin.lock().await.take();
@@ -191,14 +200,16 @@ impl Job {
             return Err("Cancelled".to_owned());
         }
         if !succeeded {
-            let _ = tokio::fs::remove_file(&self.partial).await;
+            self.remove_partials().await;
             return Err(self.complaint().await);
         }
-        if let Err(e) = tokio::fs::rename(&self.partial, &self.output).await {
-            let _ = tokio::fs::remove_file(&self.partial).await;
-            return Err(format!("Could not save the file: {e}"));
+        for (partial, output) in self.partials.iter().zip(&self.outputs) {
+            if let Err(e) = tokio::fs::rename(partial, output).await {
+                self.remove_partials().await;
+                return Err(format!("Could not save {}: {e}", output.display()));
+            }
         }
-        Ok(self.output.clone())
+        Ok(self.outputs[0].clone())
     }
 
     /// Stops FFmpeg and removes what it wrote.
@@ -208,6 +219,6 @@ impl Job {
         let _ = self.child.lock().await.kill().await;
         self.stdin.lock().await.take();
         self.remove_script().await;
-        let _ = tokio::fs::remove_file(&self.partial).await;
+        self.remove_partials().await;
     }
 }

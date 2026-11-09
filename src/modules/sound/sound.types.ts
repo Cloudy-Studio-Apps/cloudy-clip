@@ -526,7 +526,7 @@ export type SoonId =
   | "loudness.phase"
   | "deliver.standard"
   | "deliver.analyze"
-  | "deliver.stems";
+  | "deliver.matchTarget";
 
 /** A placeholder: what it will be and the stage that builds it. */
 export interface SoonEntry {

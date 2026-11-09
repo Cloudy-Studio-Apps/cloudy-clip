@@ -123,7 +123,11 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
       const path = await finishExport(jobId);
       active.nativeId = null;
       update(job.id, { status: "done", progress: 1, path, message: undefined });
-      notify("info", `${job.file} is ready`);
+      const stems = job.stems?.length ?? 0;
+      notify(
+        "info",
+        stems > 0 ? `${job.file} and ${stems} stems are ready` : `${job.file} is ready`,
+      );
       if (job.reveal) await revealFile(path).catch((error) => log.warn("Reveal failed", error));
     } catch (error) {
       if (active.nativeId) await cancelExport(active.nativeId).catch(() => undefined);

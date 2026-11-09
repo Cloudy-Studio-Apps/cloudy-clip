@@ -11,6 +11,7 @@ import {
   DEFAULT_SAMPLE_RATE,
   EXPORT_KINDS,
   encoderValues,
+  fileName,
   fileRate,
   formatInfo,
   hasBitDepth,
@@ -19,7 +20,8 @@ import {
 } from "./logic/presets";
 import { saveFolder } from "./export.store";
 import { exportRef } from "./export.ref";
-import { checkDenoised, checkSources, denoisedFiles, outputPath, rangeOf } from "./export.guards";
+import { fileSuffixes, stemsOf } from "./logic/stems";
+import { checkDenoised, checkSources, denoisedFiles, outputPaths, rangeOf } from "./export.guards";
 import { readCapabilities } from "./export.service";
 import type { ExportJob } from "./export.types";
 
@@ -54,6 +56,12 @@ const ENQUEUE_INPUT = z.object({
   quality: z.number().int().min(10).max(100).default(DEFAULT_QUALITY).describe("10 to 100"),
   effort: EFFORT.default(DEFAULT_EFFORT).describe("fast, balanced, or small (slow, smaller file)"),
   sound: z.boolean().default(true),
+  stems: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Also writes each group's sound, and Other (the tracks sent straight to Master) when some do, as files of their own: <name> - <group>.<ext>, taken after the group and before Master, so Master's volume and effects are only in the mix, which is then <name> - Mix.<ext>. Every group gets one, a muted group a silent one. Sound-only formats only",
+    ),
   hardware: z.boolean().default(false).describe("Use the graphics card when one works"),
   range: z
     .object({ start: z.number().int().min(0), duration: z.number().int().positive() })
@@ -71,7 +79,7 @@ export const enqueue = defineCommand({
   id: "export.enqueue",
   label: "Add to export queue",
   description:
-    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. Fails with export.noFfmpeg, export.formatUnavailable, export.noComposition, export.emptyRange, export.noSound, export.badBitDepth, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName or export.fileExists.",
+    "Adds an export to the queue and returns its jobId. Size and frame rate come from the composition. Run the queue with export_start and watch it with export_get_queue. Later edits don't change a queued export. With stems, also writes each group (and Other) as a file of its own in the same run. Fails with export.noFfmpeg, export.formatUnavailable, export.stemsSoundOnly, export.noComposition, export.emptyRange, export.noSound, export.badBitDepth, export.missingMedia, export.mediaNotReady, export.denoise_pending (noise reduction of a file is still being rendered; it starts if it hadn't, so try again once it's done), export.badName or export.fileExists.",
   undoable: false,
   input: ENQUEUE_INPUT,
   async run(ctx, input) {
@@ -86,6 +94,12 @@ export const enqueue = defineCommand({
       throw new CommandFailure(
         "export.formatUnavailable",
         "The FFmpeg on this computer can't write that format.",
+      );
+    }
+    if (input.stems && formatInfo(input.format).picture) {
+      throw new CommandFailure(
+        "export.stemsSoundOnly",
+        "Stems are sound only: choose MP3, WAV, FLAC, AAC or Opus.",
       );
     }
     if (!validName(input.name)) {
@@ -117,14 +131,16 @@ export const enqueue = defineCommand({
     }
     const { width, height, fps } = composition.format;
     const name = input.name.trim();
-    const path = await outputPath(
+    const stems = input.stems ? stemsOf(project, composition.id) : null;
+    const [path = "", ...stemPaths] = await outputPaths(
       input.folder,
       name,
+      fileSuffixes(stems),
       info.extension,
       input.ifExists,
       api.queue.getState().jobs,
     );
-    const file = path.slice(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")) + 1);
+    const file = fileName(path);
     const job: ExportJob = {
       id: createId("export"),
       file,
@@ -133,17 +149,21 @@ export const enqueue = defineCommand({
       compositionId: composition.id,
       status: "waiting",
       progress: 0,
-      estimatedBytes: estimateBytes({
-        format: composition.format,
-        info,
-        quality: input.quality,
-        duration: range.duration,
-        sound: sound.length > 0,
-        effort: input.effort,
-        hardware: input.hardware,
-        sampleRate: fileRate(input.format, input.sampleRate),
-        ...(input.bitDepth !== undefined && { bitDepth: input.bitDepth }),
-      }),
+      // Each stem is about as big as the mix.
+      estimatedBytes:
+        (1 + stemPaths.length) *
+        estimateBytes({
+          format: composition.format,
+          info,
+          quality: input.quality,
+          duration: range.duration,
+          sound: sound.length > 0,
+          effort: input.effort,
+          hardware: input.hardware,
+          sampleRate: fileRate(input.format, input.sampleRate),
+          ...(input.bitDepth !== undefined && { bitDepth: input.bitDepth }),
+        }),
+      ...(stems && { stems: stemPaths }),
       reveal: input.reveal,
       range,
       project,
@@ -161,11 +181,22 @@ export const enqueue = defineCommand({
         hardware: input.hardware,
         sound,
         mix: mixed?.mix ?? NO_MIX,
+        ...(stems && {
+          stems: stems.map(({ bus }, i) => ({
+            output: stemPaths[i] ?? "",
+            ...(bus !== undefined && { bus }),
+          })),
+        }),
       },
     };
     api.queue.setState(({ jobs }) => ({ jobs: [...jobs, job] }));
     saveFolder(input.folder);
-    return { jobId: job.id, path, estimatedBytes: job.estimatedBytes };
+    return {
+      jobId: job.id,
+      path,
+      ...(stems && { stems: stemPaths }),
+      estimatedBytes: job.estimatedBytes,
+    };
   },
 });
 

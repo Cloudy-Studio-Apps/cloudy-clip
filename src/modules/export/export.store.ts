@@ -41,6 +41,7 @@ export function createFormStore() {
     to: 0,
     effort: DEFAULT_EFFORT,
     sound: true,
+    stems: false,
     hardware: true,
     ifExists: "number",
     reveal: true,

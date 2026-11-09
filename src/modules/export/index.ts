@@ -18,6 +18,7 @@ export type {
   ExportSampleRate,
   ExportStatus,
   SoundSegment,
+  StemPlan,
 } from "./export.types";
 
 export {
@@ -27,6 +28,7 @@ export {
   fileRate,
   hasBitDepth,
 } from "./logic/presets";
+export { stemsOf } from "./logic/stems";
 
 /** Module definition, loaded by the app shell. */
 export { exportModule } from "./export.module";
