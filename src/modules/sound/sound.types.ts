@@ -8,6 +8,7 @@ import type {
   GateEffect,
   KeyTrack,
   ProjectState,
+  StandardId,
   SoundEffect,
   TrackId,
   BusId,
@@ -15,6 +16,7 @@ import type {
 import type { LoopRange, MonitorState, PreviewApi } from "@/modules/preview";
 import type { MediaApi } from "@/modules/media";
 import type { ProjectApi } from "@/modules/project";
+import type { SoundOnlySpec } from "@/modules/export";
 import type { WorkspaceApi } from "@/modules/workspace";
 
 /** What the Sound page shows and how the user listens, per kernel. Never in history. */
@@ -221,6 +223,8 @@ export interface SoundApi {
   setLineView(trackId: TrackId, inFront: boolean): void;
   /** Writes fader passes onto volume lines. */
   automation: AutomationWriter;
+  /** Whole-mix analyses: results, progress, start and cancel. */
+  analyzer: Analyzer;
 }
 
 /** Where the webview runs, for what has been checked there. */
@@ -598,4 +602,74 @@ export interface StrokeTarget {
   /** The timeline's content, where the clips' line boxes are found. */
   content: HTMLElement;
   pxPerSecond: number;
+}
+
+/** A delivery standard: a platform's or a broadcaster's loudness target and peak limit. */
+export interface Standard {
+  id: StandardId;
+  name: string;
+  /** Integrated loudness to reach, LUFS. */
+  loudnessLufs: number;
+  /** Highest true peak, dBTP. */
+  peakDbtp: number;
+  /** Whether the owner publishes these figures; false means a common convention. */
+  published: boolean;
+  /** The page the figures come from; null when none publishes them. */
+  source: string | null;
+}
+
+/** A stretch of a mix that breaks the peak limit or clips (mirrors `Problem` in Rust). */
+export interface MixProblem {
+  /** Microseconds from the start of the mix. */
+  at: Micros;
+  duration: Micros;
+  kind: "peak" | "clipped";
+  /** The highest level in it, dBTP (peak) or dBFS (clipped). */
+  level: number;
+}
+
+/** What measuring a whole mix found (mirrors `Analysis` in Rust). */
+export interface MixAnalysis {
+  /** LUFS; null when nothing is above the gate (a silent mix). */
+  integrated: number | null;
+  /** LU. */
+  range: number;
+  /** dBTP; null for digital silence. */
+  truePeak: number | null;
+  problems: MixProblem[];
+}
+
+/** An analysis kept with the document it measured. */
+export interface StoredAnalysis {
+  result: MixAnalysis;
+  /** The project as it was measured; any other state is a later edit. */
+  measured: ProjectState;
+  /** The peak limit it looked for, dBTP. */
+  peakDbtp: number;
+}
+
+/** An analysis under way. */
+export interface RunningAnalysis {
+  jobId: string;
+  /** 0 to 1. */
+  progress: number;
+}
+
+/** Analyses of whole mixes per composition, and those running. View state, never in history. */
+export interface AnalysisState {
+  results: Record<CompositionId, StoredAnalysis>;
+  running: Record<CompositionId, RunningAnalysis>;
+  /** Why the last analysis of a composition failed. */
+  failed: Record<CompositionId, string>;
+}
+
+/** Runs analyses of whole mixes outside the bus, which times out after 30 s. */
+export interface Analyzer {
+  state: StoreApi<AnalysisState>;
+  /** Starts measuring (see `sound.analyzeMix`); rejects if the mix has no sound. Returns at once. */
+  start(compositionId: CompositionId, spec: SoundOnlySpec, peakDbtp: number): Promise<void>;
+  /** Stops the analysis of a composition. */
+  cancel(compositionId: CompositionId): Promise<void>;
+  /** Resolves when the analysis running for the composition ends; the stored result, or null (failed or cancelled). */
+  settled(compositionId: CompositionId): Promise<StoredAnalysis | null>;
 }

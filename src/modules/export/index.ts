@@ -17,6 +17,7 @@ export type {
   ExportRange,
   ExportSampleRate,
   ExportStatus,
+  SoundOnlySpec,
   SoundSegment,
   StemPlan,
 } from "./export.types";
@@ -29,6 +30,7 @@ export {
   hasBitDepth,
 } from "./logic/presets";
 export { MIX_LABEL, stemsOf } from "./logic/stems";
+export { soundOnlySpec } from "./export.mixspec";
 export { useExportComposition } from "./ui/export.composition.hook";
 
 /** Module definition, loaded by the app shell. */

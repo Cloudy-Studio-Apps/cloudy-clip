@@ -1,7 +1,8 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import type { Micros } from "@/core";
+import type { SoundOnlySpec } from "@/modules/export";
 import type { MediaId } from "@/modules/project";
-import type { TakeStarted, TakeWritten } from "./sound.types";
+import type { MixAnalysis, TakeStarted, TakeWritten } from "./sound.types";
 
 /**
  * The noise floor of `from..to` of a file's sound (file time), in dBFS, rounded and within what
@@ -31,4 +32,28 @@ export function writeTake(id: string, samples: Uint8Array, done: boolean): Promi
   return invoke<TakeWritten>("sound_record_write", samples, {
     headers: { id, done: done ? "1" : "0" },
   });
+}
+
+/**
+ * Starts measuring a whole mix without playing it. `onProgress` gets 0 to 1. Returns the job's id,
+ * for `finishAnalysis` and `cancelAnalysis`. Rejects if the mix has no sound.
+ */
+export function beginAnalysis(
+  spec: SoundOnlySpec,
+  peakLimit: number,
+  onProgress: (progress: number) => void,
+): Promise<string> {
+  const channel = new Channel<number>();
+  channel.onmessage = onProgress;
+  return invoke<string>("sound_analyze_begin", { spec, peakLimit, onProgress: channel });
+}
+
+/** Waits for an analysis and returns its figures. Rejects with message "Cancelled" when it was stopped. */
+export function finishAnalysis(jobId: string): Promise<MixAnalysis> {
+  return invoke<MixAnalysis>("sound_analyze_finish", { jobId });
+}
+
+/** Stops an analysis. */
+export function cancelAnalysis(jobId: string): Promise<void> {
+  return invoke<void>("sound_analyze_cancel", { jobId });
 }

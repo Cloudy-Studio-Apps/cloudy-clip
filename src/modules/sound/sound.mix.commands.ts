@@ -118,6 +118,7 @@ export const switchMix = defineCommand({
       writeComposition(draft.compositions[id]!, {
         master: incoming.master,
         ...(incoming.buses?.length && { buses: incoming.buses }),
+        ...(current.delivery && { delivery: current.delivery }),
         activeMix: to,
         otherMix: live,
       });

@@ -124,6 +124,19 @@ export interface MasterMix {
   volumeLine?: KeyTrack;
 }
 
+/** Which delivery standard a composition is measured against; `custom` has figures of its own. */
+export type StandardId =
+  "youtube" | "spotify" | "applePodcasts" | "tiktok" | "ebuR128" | "atscA85" | "custom";
+
+/** What a composition is delivered against: a standard and its two figures (a standard's own, or the user's for `custom`). */
+export interface DeliverySettings {
+  standard: StandardId;
+  /** The integrated loudness to reach, in LUFS (-40 to -5). */
+  loudnessLufs: number;
+  /** The true peak the mix may not pass, in dBTP (-20 to 0). */
+  peakDbtp: number;
+}
+
 /** The id of a group track (`MixBus`), from `createId("bus")`. Unique across the project. */
 export type BusId = string;
 
@@ -160,6 +173,8 @@ export interface CompositionMix {
   buses?: MixBus[];
   /** Which of the two mixes the live values are. */
   activeMix: "a" | "b";
+  /** The standard and target the mix is delivered against; shared by mixes A and B. Missing means YouTube's. */
+  delivery?: DeliverySettings;
   /** The mix that is not active; missing until the first switch. */
   otherMix?: MixSnapshot;
 }

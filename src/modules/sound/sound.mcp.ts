@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { commandTool, defineMcpTool, textResult } from "@/core";
+import { commandTool, defineMcpTool, errorResult, textResult } from "@/core";
 import { previewRef, type StereoLevel } from "@/modules/preview";
 import {
   addEffect,
@@ -9,6 +9,7 @@ import {
   setEffect,
 } from "./sound.effects.commands";
 import { BUILT_IN_PRESETS } from "./logic/presets";
+import { analyzeMix, matchTarget, setDelivery } from "./sound.delivery.commands";
 import { writeClipPass } from "./sound.clipline.commands";
 import { measureFloor } from "./sound.denoise.commands";
 import {
@@ -86,6 +87,30 @@ const listPresets = defineMcpTool({
     ]),
 });
 
+/** Measures the whole mix and waits for the figures; the command itself returns at once. */
+const analyzeMixTool = defineMcpTool({
+  name: "sound_analyze_mix",
+  readOnly: true,
+  description:
+    "Measures the whole mix of your open composition (or compositionId) without playing it, and waits for the result (it can take a while on a long mix): integrated loudness (LUFS), loudness range (LU), true peak (dBTP), the delivery target and peak limit it was measured against, and problems (stretches over the peak limit, or clipped; at and duration in microseconds). The result stays until the document changes, then it is stale; sound_match_target needs a fresh one. Fails like sound.analyzeMix: export.noSound, export.missingMedia, export.mediaNotReady, export.denoise_pending, sound.analysis_running.",
+  input: z.object({ compositionId: z.string().optional() }),
+  async handler(input, ctx) {
+    const started = await ctx.bus.execute(analyzeMix.id, input);
+    if (!started.ok) return errorResult(started.error);
+    const { compositionId } = started.value as { compositionId: string };
+    const stored = await ctx.require(soundRef).analyzer.settled(compositionId);
+    if (!stored) {
+      const why = ctx.require(soundRef).analyzer.state.getState().failed[compositionId];
+      return errorResult({
+        code: "sound.analysis_failed",
+        message: why ?? "The analysis was cancelled.",
+      });
+    }
+    const { result, peakDbtp } = stored;
+    return textResult({ ...result, peakLimitDbtp: peakDbtp });
+  },
+});
+
 /** Agents mix with the same commands as the user, and read the meters. Solo and monitoring stay the user's. */
 export const soundMcpTools = [
   commandTool(setTrackMix, { name: "sound_set_track_mix" }),
@@ -107,6 +132,9 @@ export const soundMcpTools = [
   commandTool(removeEffect, { name: "sound_remove_effect" }),
   commandTool(moveEffect, { name: "sound_move_effect" }),
   commandTool(applyPreset, { name: "sound_apply_preset" }),
+  analyzeMixTool,
+  commandTool(matchTarget, { name: "sound_match_target" }),
+  commandTool(setDelivery, { name: "sound_set_delivery" }),
   commandTool(measureFloor, { name: "sound_measure_floor" }),
   listPresets,
   getLevels,

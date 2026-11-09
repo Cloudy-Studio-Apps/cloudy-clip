@@ -256,6 +256,13 @@ export interface ExportSpec {
   stems?: StemSpec[];
 }
 
+/** The sound of an export without a file: what an analysis measures (mirrors `SoundOnlySpec` in Rust). */
+export interface SoundOnlySpec {
+  duration: Micros;
+  sound: SoundSegment[];
+  mix: SoundMix;
+}
+
 /**
  * A stem file (mirrors `StemSpec` in Rust): what one group sends to Master, or, without `bus`,
  * what the tracks sent straight to Master do ("Other"), taken before Master's level and effects.

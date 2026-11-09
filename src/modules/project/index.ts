@@ -102,6 +102,8 @@ export type {
   CrossfadeLevels,
   BusId,
   CompositionMix,
+  DeliverySettings,
+  StandardId,
   MasterMix,
   MixBus,
   MixSnapshot,

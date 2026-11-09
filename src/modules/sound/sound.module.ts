@@ -14,7 +14,10 @@ import { workspaceRef } from "@/modules/workspace";
 import { soundMcpTools } from "./sound.mcp";
 import { createAutomation } from "./sound.automation";
 import { soundClipLineCommands } from "./sound.clipline.commands";
+import { createAnalysisStore } from "./sound.analysis.store";
+import { createAnalyzer } from "./sound.analysis";
 import { soundEffectCommands } from "./sound.effects.commands";
+import { soundDeliveryCommands } from "./sound.delivery.commands";
 import { soundDenoiseCommands } from "./sound.denoise.commands";
 import { followDenoiseNeeds } from "./sound.denoise.follow";
 import { soundLineCommands } from "./sound.line.commands";
@@ -69,13 +72,14 @@ export const soundModule = defineModule({
     ...soundLineCommands,
     ...soundClipLineCommands,
     ...soundEffectCommands,
+    ...soundDeliveryCommands,
     ...soundDenoiseCommands,
     ...soundPresetCommands,
     ...soundMonitorCommands,
     ...soundRecordCommands,
   ],
   mcpTools: soundMcpTools,
-  setup({ bus, contribute, onDispose, require }) {
+  setup({ bus, contribute, log, onDispose, require }) {
     const view = createSoundView();
     const presets = createUserPresets();
     onDispose(followDenoiseNeeds(require(projectRef).store.api, require(mediaRef)));
@@ -85,6 +89,7 @@ export const soundModule = defineModule({
     const preview = require(previewRef);
     const { playback } = preview;
     const workspace = require(workspaceRef);
+    const analyzer = createAnalyzer(createAnalysisStore(), project.store.getState, log);
     const media = require(mediaRef);
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());
@@ -170,6 +175,7 @@ export const soundModule = defineModule({
         recorder,
         arm: recorder.arm,
         automation,
+        analyzer,
         setTool: (tool) => view.setState({ tool }),
         setAutomation: (target, mode, compositionId) =>
           setAutomationMode(view, target, mode, compositionId ?? project.view.openFor(LOCAL_ACTOR)),
