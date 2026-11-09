@@ -31,11 +31,27 @@ const isPlain = (value: unknown): value is Record<string, unknown> =>
 function shapeProblem(id: string, values: unknown): string | null {
   const walk = (value: unknown, base: unknown, path: string): string | null => {
     const bad = (why: string) => `values.${path} of ${id} ${why}`;
-    if (typeof base === "number") return typeof value === "number" ? null : bad("must be a number");
+    if (typeof base === "number") {
+      if (typeof value !== "number" || !Number.isFinite(value)) return bad("must be a number");
+      // Curve points sit in 0 to 1.
+      if (path.startsWith("curves.") && (value < 0 || value > 1)) {
+        return bad(`is ${value}, out of range (0 to 1)`);
+      }
+      return null;
+    }
     if (typeof base === "boolean") {
       return typeof value === "boolean" ? null : bad("must be true or false");
     }
-    if (Array.isArray(base)) return Array.isArray(value) ? null : bad("must be a list");
+    if (Array.isArray(base)) {
+      if (!Array.isArray(value)) return bad("must be a list");
+      // Each element has the shape of the default's first (the pinned list is empty: numbers).
+      const template = base[0] ?? 0;
+      for (const [i, cell] of value.entries()) {
+        const problem = walk(cell, template, `${path}[${i}]`);
+        if (problem) return problem;
+      }
+      return null;
+    }
     if (!isPlain(value)) return bad("must be an object");
     // Sparse offsets by grid index: any keys.
     if (path === "warper.points") return null;

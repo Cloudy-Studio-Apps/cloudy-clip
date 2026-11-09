@@ -217,6 +217,19 @@ describe("validateGrade value shapes", () => {
     );
     expect(validateGrade(withValues({ protectSkin: 1 }))).toContain("values.protectSkin");
     expect(validateGrade(withValues({ curves: { hueSat: 3 } }))).toContain("values.curves.hueSat");
+    expect(validateGrade(withValues({ curves: { hueSat: [["a", 1]] } }))).toContain(
+      "values.curves.hueSat[0][0]",
+    );
+    expect(validateGrade(withValues({ curves: { hueSat: [5] } }))).toContain(
+      "values.curves.hueSat[0]",
+    );
+    expect(validateGrade(withValues({ curves: { hueSat: [[0, 2]] } }))).toContain("out of range");
+    expect(validateGrade(withValues({ mixer: { matrix: [["x"]] } }))).toContain(
+      "values.mixer.matrix[0][0]",
+    );
+    expect(validateGrade(withValues({ warper: { pinned: ["a"] } }))).toContain(
+      "values.warper.pinned[0]",
+    );
     expect(
       validateGrade(
         withValues({
