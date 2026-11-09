@@ -1,5 +1,6 @@
 import { Fragment } from "react";
-import { cn } from "@/ui";
+import { cn, Tooltip } from "@/ui";
+import { TINT_LAYOUT } from "../tint.layout";
 import { TOOLS } from "./tools/tools.registry";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
@@ -11,27 +12,30 @@ export function ToolRail() {
   return (
     <nav
       aria-label="Tools"
-      className="flex w-[52px] shrink-0 flex-col items-center gap-0.5 overflow-auto border-r border-border bg-muted py-2"
+      style={{ width: TINT_LAYOUT.railWidth }}
+      className="flex shrink-0 flex-col items-center gap-0.5 overflow-auto border-r border-border bg-muted py-2"
     >
       {TOOLS.map((entry, i) => {
         const Icon = entry.icon;
         const on = entry.id === tool;
         return (
           <Fragment key={entry.id}>
-            <button
-              type="button"
-              aria-pressed={on}
-              title={`${entry.name}${entry.key ? ` (${entry.key})` : ""}: ${entry.tip}`}
-              onClick={() => set({ tool: entry.id })}
-              className={cn(
-                "grid h-7 w-[38px] shrink-0 cursor-pointer place-items-center rounded-sm",
-                on
-                  ? "bg-surface text-foreground shadow-[inset_3px_0_0_var(--mark)]"
-                  : "text-subtle-foreground hover:bg-hover hover:text-foreground",
-              )}
-            >
-              <Icon className="size-4" />
-            </button>
+            <Tooltip name={entry.name} text={entry.tip} keys={entry.key}>
+              <button
+                type="button"
+                aria-pressed={on}
+                aria-label={entry.name}
+                onClick={() => set({ tool: entry.id })}
+                className={cn(
+                  "grid h-7 w-[38px] shrink-0 cursor-pointer place-items-center rounded-sm",
+                  on
+                    ? "bg-surface text-foreground shadow-[inset_3px_0_0_var(--mark)]"
+                    : "text-subtle-foreground hover:bg-hover hover:text-foreground",
+                )}
+              >
+                <Icon className="size-4" />
+              </button>
+            </Tooltip>
             {i === 0 && (
               <span
                 aria-hidden

@@ -1,11 +1,11 @@
 import { ClipboardPaste, Copy, Images, ListTree, RotateCcw, Workflow } from "lucide-react";
 import { IconButton, SegmentedControl } from "@/ui";
 import type { GradeTab } from "../tint.types";
+import { CurrentNote } from "./CurrentNote";
 import { HeaderGap } from "./HeaderGap";
 import { LayerList } from "./LayerList";
 import { LooksTab } from "./looks/LooksTab";
 import { NodeGraph } from "./NodeGraph";
-import { PanelNote } from "./PanelNote";
 import { TintPanel } from "./TintPanel";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
@@ -40,7 +40,7 @@ export function GradePanel() {
               },
             ]}
           />
-          <PanelNote>02 Plaza wide</PanelNote>
+          <CurrentNote />
           <HeaderGap />
           <IconButton label="Copy grade (Ctrl+C)" onClick={nothing}>
             <Copy />

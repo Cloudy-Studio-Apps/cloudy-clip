@@ -12,6 +12,7 @@ export function createTintView() {
     scope: "parade",
     curve: "custom",
     leftTab: "grade",
+    pinned: null,
     selected: "n3",
     family: 1,
     bypass: false,

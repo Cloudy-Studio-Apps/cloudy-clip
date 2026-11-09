@@ -1,9 +1,16 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../lib/cn";
+import type { TipContent } from "./kit.types";
+import { Tooltip } from "./Tooltip";
 
 interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
   /** Tooltip and accessible name. Include the shortcut, e.g. "Undo (Ctrl+Z)". */
   label: string;
+  /**
+   * A rich tooltip instead of the native one: `label` is its name, and this adds a sentence and
+   * the keys (so leave the shortcut out of `label`).
+   */
+  tip?: TipContent;
   /** A toggle that is on (snapping, mute, …). */
   active?: boolean;
   /** `solid` is the big round-cornered play button of the transport. */
@@ -39,15 +46,16 @@ export function IconButton({
   active,
   variant = "ghost",
   tone,
+  tip,
   busy = false,
   type = "button",
   className,
   ...props
 }: IconButtonProps) {
-  return (
+  const button = (
     <button
       type={type}
-      title={label}
+      title={tip ? undefined : label}
       aria-label={label}
       aria-pressed={active}
       aria-busy={busy || undefined}
@@ -61,5 +69,12 @@ export function IconButton({
       )}
       {...props}
     />
+  );
+  return tip ? (
+    <Tooltip name={label} {...tip}>
+      {button}
+    </Tooltip>
+  ) : (
+    button
   );
 }

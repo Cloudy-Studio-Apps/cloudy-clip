@@ -177,6 +177,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
       deps.capture.captureAt(time, compositionId, options),
     createRenderer: (options) => deps.createRenderer(options),
     videoLevels: () => deps.videoLevels(),
+    gpuAvailable: () => deps.gpuAvailable(),
     previewTransform(clipId, transform) {
       if (transform) transforms.set(clipId, transform);
       else transforms.delete(clipId);

@@ -1,7 +1,14 @@
 import { ClipboardPaste, Copy, CopyCheck, FolderPlus, WandSparkles } from "lucide-react";
-import { IconButton } from "@/ui";
+import type { MouseEvent } from "react";
+import { useStore } from "zustand";
+import { useKernel, useModule } from "@/core";
+import { gradeOf, useOpenComposition } from "@/modules/project";
+import { timelineRef } from "@/modules/timeline";
+import { EmptyState, IconButton } from "@/ui";
+import { pinClip } from "../tint.view.commands";
 import { ClipCard } from "./ClipCard";
-import { DEMO_CLIPS, DEMO_CURRENT } from "./demo/demo.clips";
+import { useCurrentClip } from "./current.hook";
+import { useStrip } from "./strip.hook";
 import { HeaderGap } from "./HeaderGap";
 import { HeaderRule } from "./HeaderRule";
 import { LevelSwitch } from "./LevelSwitch";
@@ -15,14 +22,25 @@ const nothing = () => {};
 
 /** The clips bar: picture clips of every video track in time order, and how grades move between them. */
 export function ClipStrip() {
-  const graded = DEMO_CLIPS.filter((clip) => clip.graded).length;
+  const { bus } = useKernel();
+  const timeline = useModule(timelineRef);
+  const strip = useStrip();
+  const current = useCurrentClip();
+  const selection = useStore(timeline.view, (s) => s.selection);
+  const name = useOpenComposition()?.name ?? "";
+  const graded = strip.filter((entry) => gradeOf(entry.clip) !== null).length;
+  // Ctrl or Shift selects (shared with Edit); a plain click grades the clip and goes there.
+  const pick = (id: string, event: MouseEvent) =>
+    event.ctrlKey || event.metaKey || event.shiftKey
+      ? timeline.selectClip(id, true)
+      : void bus.run(pinClip, { clipId: id });
   return (
     <TintPanel
       header={
         <>
           Clips
           <PanelNote>
-            {DEMO_CLIPS.length} in Main · {graded} graded
+            {strip.length} in {name} · {graded} graded
           </PanelNote>
           <HeaderGap />
           <LevelSwitch />
@@ -51,11 +69,22 @@ export function ClipStrip() {
       }
     >
       <div className="flex min-h-0 flex-1 gap-2.5 overflow-x-auto overflow-y-hidden px-3 pt-2.5 pb-1">
-        {DEMO_CLIPS.map((clip) => (
-          <ClipCard key={clip.id} clip={clip} current={clip.id === DEMO_CURRENT} />
+        {strip.length === 0 && (
+          <EmptyState title="No picture clips yet" className="border-0">
+            Put a video or a picture on the timeline to grade it here.
+          </EmptyState>
+        )}
+        {strip.map((entry) => (
+          <ClipCard
+            key={entry.clip.id}
+            entry={entry}
+            current={entry.clip.id === current}
+            selected={selection.includes(entry.clip.id)}
+            onPick={(event) => pick(entry.clip.id, event)}
+          />
         ))}
       </div>
-      <TimelineOverview />
+      <TimelineOverview strip={strip} />
     </TintPanel>
   );
 }

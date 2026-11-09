@@ -1,5 +1,7 @@
 import type { StoreApi } from "zustand";
+import type { Micros } from "@/core";
 import type {
+  Clip,
   ClipId,
   CompositionId,
   CorrectionValues,
@@ -49,6 +51,8 @@ export interface TintView {
   scope: ScopeKind;
   curve: CurveKind;
   leftTab: GradeTab;
+  /** The clip being graded because it was clicked in the strip; null follows the playhead. */
+  pinned: ClipId | null;
   /** The layer or node being edited. */
   selected: string | null;
   /** Index into the Color mix families. */
@@ -69,6 +73,32 @@ export interface TintApi {
   readonly view: StoreApi<TintView>;
   /** Values being dragged, drawn over the saved grade until cleared (never in history). */
   readonly live: TintLive;
+  /** Whether the GPU can draw grades here (`PreviewApi.gpuAvailable`); the page says so when not. */
+  readonly available: boolean;
+  /** The clip being graded: the pinned one, else the gradeable clip under the playhead. */
+  current(): ClipId | null;
+  /** Calls `fn` when the current clip changes. Returns the unsubscribe. Compatible with `useSyncExternalStore`. */
+  onCurrent(fn: (id: ClipId | null) => void): () => void;
+  /** Where the playhead was last inside each clip, for coming back to it. */
+  viewedAt(clipId: ClipId): Micros | undefined;
+}
+
+/** The current clip and where each clip was last viewed (`followCurrent` writes, `TintApi` reads). */
+export interface CurrentClip {
+  current(): ClipId | null;
+  onCurrent(fn: (id: ClipId | null) => void): () => void;
+  viewedAt(clipId: ClipId): Micros | undefined;
+  set(id: ClipId | null): void;
+  remember(clipId: ClipId, time: Micros): void;
+}
+
+/** One clip of the strip: a gradeable clip of a video track, tagged with its track's number. */
+export interface StripClip {
+  clip: Clip;
+  /** `"V1"` for the top video track, `"V2"` below it, and so on. */
+  track: string;
+  /** Its place in the strip, `"01"`. */
+  no: string;
 }
 
 /** A color, each channel 0 to 1 when in range: display-referred Rec.709. */

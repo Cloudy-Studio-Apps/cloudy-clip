@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/ui";
+import { TINT_LAYOUT } from "../tint.layout";
 
 interface TintPanelProps {
   /** The header row: title, tabs and actions. */
@@ -17,7 +18,10 @@ export function TintPanel({ header, className, children }: TintPanelProps) {
         className,
       )}
     >
-      <header className="flex h-[38px] shrink-0 items-center gap-1 overflow-hidden whitespace-nowrap border-b border-border pr-2 pl-3.5 font-hand text-md font-bold">
+      <header
+        style={{ height: TINT_LAYOUT.headerHeight }}
+        className="flex shrink-0 items-center gap-1 overflow-hidden whitespace-nowrap border-b border-border pr-2 pl-3.5 font-hand text-md font-bold"
+      >
         {header}
       </header>
       {children}

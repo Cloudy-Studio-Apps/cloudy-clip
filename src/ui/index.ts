@@ -18,8 +18,10 @@ export { SealSketch } from "./brand/SealSketch";
 export { SketchPage } from "./kit/SketchPage";
 /** A text button: `primary`, `secondary` or `mark`, `sm` or `md`. */
 export { Button } from "./kit/Button";
-/** A square icon-only button with a tooltip; `active` for toggles, `solid` for play. */
+/** A square icon-only button with a tooltip (`tip` makes it a rich one); `active` for toggles, `solid` for play. */
 export { IconButton } from "./kit/IconButton";
+/** A rich tooltip: the name, a sentence and the keys, in one layer that shows at once and flips above near the bottom. */
+export { Tooltip } from "./kit/Tooltip";
 /** A row of mutually exclusive choices. */
 export { SegmentedControl } from "./kit/SegmentedControl";
 /** Compact toolbar actions and the separator between their groups. */
@@ -77,4 +79,5 @@ export type {
   MenuItem,
   MenuPoint,
   PanelAnchor,
+  TipContent,
 } from "./kit/kit.types";

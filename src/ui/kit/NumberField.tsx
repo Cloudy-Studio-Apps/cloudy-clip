@@ -14,6 +14,8 @@ interface NumberFieldProps {
   onChange(value: number): void;
   /** Drawn first: a short name ("X") that can be dragged to change the number. */
   prefix?: string;
+  /** A double click on the prefix puts the number back to this (the default value). */
+  resetTo?: number;
   /** Fires on every step of a scrub (live preview). */
   onInput?(value: number): void;
   className?: string;
@@ -31,6 +33,7 @@ export function NumberField({
   unit,
   onChange,
   prefix,
+  resetTo,
   onInput,
   className,
   disabled,
@@ -63,6 +66,7 @@ export function NumberField({
           prefix={prefix}
           read={() => Number(input.current?.value ?? value)}
           bounds={scrubBounds}
+          resetTo={resetTo}
           onStep={(next) => {
             if (input.current) input.current.value = String(next);
             onInput?.(next);

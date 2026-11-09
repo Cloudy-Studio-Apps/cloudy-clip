@@ -69,20 +69,6 @@ export interface DemoRegion {
   height: number;
 }
 
-export interface DemoClip {
-  id: string;
-  no: string;
-  name: string;
-  track: "V1" | "V2";
-  start: string;
-  /** Where it sits on the timeline, in seconds. */
-  from: number;
-  to: number;
-  meta: string;
-  graded: boolean;
-  image: string;
-}
-
 export interface DemoLook {
   id: string;
   name: string;

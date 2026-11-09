@@ -364,6 +364,8 @@ export interface PreviewControllerDeps {
   createRenderer(options: FrameRendererOptions): FrameRenderer;
   /** This webview's video levels, measured once per kernel (`PreviewApi.videoLevels`). */
   videoLevels(): Promise<VideoLevels | null>;
+  /** Whether the GPU can be used (`PreviewApi.gpuAvailable`). */
+  gpuAvailable(): boolean;
 }
 
 /** What offscreen capture needs from the rest of the app. */
@@ -518,6 +520,11 @@ export interface PreviewApi {
    * video draws right. Rejects when it couldn't be measured; asking again tries again.
    */
   videoLevels(): Promise<VideoLevels | null>;
+  /**
+   * Whether this system can draw on the GPU (WebGL2), asked once per kernel. Pictures are graded
+   * on the GPU, so the Tint page needs it.
+   */
+  gpuAvailable(): boolean;
   /**
    * Draws a clip with `transform` instead of its saved one, without changing the project (live
    * feedback while dragging on the canvas). Pass null to go back to the saved transform. The

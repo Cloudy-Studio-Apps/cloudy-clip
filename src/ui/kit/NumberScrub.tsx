@@ -9,15 +9,22 @@ interface NumberScrubProps {
   onStep(value: number): void;
   /** Fires once, on release. */
   onEnd(value: number): void;
+  /** A double click on the label puts the number back to this (`onStep`, then `onEnd`). */
+  resetTo?: number;
 }
 
-/** A short label that changes a number when dragged sideways: one step per pixel. */
-export function NumberScrub({ prefix, read, bounds, onStep, onEnd }: NumberScrubProps) {
+/** A short label that changes a number when dragged sideways (one step per pixel); a double click resets it when `resetTo` is given. */
+export function NumberScrub({ prefix, read, bounds, onStep, onEnd, resetTo }: NumberScrubProps) {
   const drag = useRef<{ x: number; start: number; last: number } | null>(null);
   return (
     <span
       className="cursor-ew-resize touch-none select-none font-mono text-2xs font-semibold text-primary"
-      title="Drag to change"
+      title={resetTo === undefined ? "Drag to change" : "Drag to change, double-click to reset"}
+      onDoubleClick={() => {
+        if (resetTo === undefined) return;
+        onStep(resetTo);
+        onEnd(resetTo);
+      }}
       onPointerDown={(event) => {
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);

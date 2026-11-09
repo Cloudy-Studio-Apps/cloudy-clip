@@ -94,3 +94,11 @@ export interface MenuItem {
   /** Shown in the destructive colour. */
   destructive?: boolean;
 }
+
+/** What a rich tooltip says besides the name of the thing. */
+export interface TipContent {
+  /** One sentence on what it does. */
+  text?: string;
+  /** Its keyboard shortcut, as it reads ("Ctrl+C", "Up"). */
+  keys?: string;
+}

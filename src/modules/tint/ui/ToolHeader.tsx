@@ -1,5 +1,6 @@
 import { Diamond, RotateCcw } from "lucide-react";
 import { IconButton } from "@/ui";
+import { TINT_LAYOUT } from "../tint.layout";
 import { HeaderGap } from "./HeaderGap";
 import { PanelNote } from "./PanelNote";
 import { useTintView } from "./view.hook";
@@ -10,7 +11,10 @@ const nothing = () => {};
 export function ToolHeader({ name }: { name: string }) {
   const leader = useTintView((v) => v.mode === "leader");
   return (
-    <header className="flex h-[38px] shrink-0 items-center gap-1 border-b border-border pr-2 pl-[18px] font-hand text-md font-bold">
+    <header
+      style={{ height: TINT_LAYOUT.headerHeight }}
+      className="flex shrink-0 items-center gap-1 border-b border-border pr-2 pl-[18px] font-hand text-md font-bold"
+    >
       {name}
       <HeaderGap />
       <PanelNote>{leader ? "Node" : "Layer"} 03 Skin</PanelNote>

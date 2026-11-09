@@ -86,6 +86,16 @@ export const previewModule = defineModule({
           gpu: createGpuRunner(),
         }),
     };
+    // A runner opens its context on first ask: a throwaway one tells whether the GPU works.
+    let gpuKnown: boolean | null = null;
+    const gpuAvailable = () => {
+      if (gpuKnown === null) {
+        const probe = createGpuRunner();
+        gpuKnown = probe.available;
+        probe.dispose();
+      }
+      return gpuKnown;
+    };
     const controller = createPreviewController({
       clock,
       getProject: () => project.getState(),
@@ -115,6 +125,7 @@ export const previewModule = defineModule({
       capture: createCapture(captureDeps),
       createRenderer: (options) => createFrameRenderer(captureDeps, options),
       videoLevels: () => levels.measure(),
+      gpuAvailable: () => gpuAvailable(),
     });
     // The live preview shows the file's levels as soon as they are known.
     let live = true;

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { cn } from "@/ui";
+import { CurrentNote } from "./CurrentNote";
 import { HeaderGap } from "./HeaderGap";
-import { PanelNote } from "./PanelNote";
 import { TintPanel } from "./TintPanel";
 import { ViewerBar } from "./ViewerBar";
 import { ViewerFrame } from "./ViewerFrame";
@@ -9,7 +9,7 @@ import { ViewerTransport } from "./ViewerTransport";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
 
-/** The viewer: the graded picture, its tools, and the transport. Clean viewer fills the window. */
+/** The viewer: the preview's picture, graded, its tools, and the transport. Clean viewer fills the window. */
 export function Viewer() {
   const clean = useTintView((v) => v.clean);
   const set = useTintSet();
@@ -25,7 +25,7 @@ export function Viewer() {
       header={
         <>
           Viewer
-          <PanelNote>02 Plaza wide · 0:04.12</PanelNote>
+          <CurrentNote />
           <HeaderGap />
           <ViewerBar />
         </>
