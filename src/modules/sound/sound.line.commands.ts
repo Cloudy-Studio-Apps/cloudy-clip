@@ -12,14 +12,12 @@ import {
   volumeDbSchema,
   withoutKeys,
   writeKey,
-  type KeyEase,
+  writeSpan,
   type KeyTrack,
   type ProjectState,
   type Track,
   type TrackId,
 } from "@/modules/project";
-import type { Micros } from "@/core";
-import { lineDb } from "./logic/automation";
 import { audioTrack } from "./sound.guards";
 import { writeTrack } from "./sound.mix.write";
 
@@ -27,32 +25,6 @@ const at = z.number().int().min(0).describe("Timeline time in microseconds");
 
 /** A track's line with no keys yet: a number track over the volume range. */
 const EMPTY_LINE: KeyTrack = { blend: "number", min: VOLUME_DB_MIN, max: VOLUME_DB_MAX, keys: [] };
-
-/** A stroke or a pass is straight lines between its points, whatever eased before it. */
-const LINEAR = { kind: "linear" } as const;
-
-/** How far outside a written span its edges are held at the old line's level (µs). */
-const EDGE = 1;
-
-/**
- * Points just outside a span at the level the line had there before it was written, so the line
- * outside the span plays as before and the change is a step at its edges: one `EDGE` before
- * `from` (none before 0) and one after `to`, the one after easing as the old line did there.
- * None where the old line already has a key.
- */
-function edgeAnchors(old: KeyTrack, from: Micros, to: Micros) {
-  const taken = (t: Micros) => old.keys.some((key) => key.t === t);
-  const anchors: { t: Micros; db: number; ease: KeyEase }[] = [];
-  const before = from - EDGE;
-  if (before >= 0 && !taken(before))
-    anchors.push({ t: before, db: lineDb(old, before), ease: LINEAR });
-  const after = to + EDGE;
-  if (!taken(after)) {
-    const ease = old.keys.filter((key) => key.t < after).at(-1)?.ease ?? LINEAR;
-    anchors.push({ t: after, db: lineDb(old, after), ease });
-  }
-  return anchors;
-}
 
 /** Two keys closer than half a frame are the same key. */
 function tolerance(state: ProjectState, trackId: TrackId): number {
@@ -188,18 +160,13 @@ export const writePass = defineCommand({
         `Every point must sit between from (${from}) and to (${to}), and from must not be after to.`,
       );
     }
-    const old = track.mix?.volumeLine ?? EMPTY_LINE;
-    const outside = withoutKeys(
-      old,
-      new Set(old.keys.filter((key) => key.t >= from && key.t <= to).map((key) => key.id)),
+    const next = writeSpan(
+      track.mix?.volumeLine ?? EMPTY_LINE,
+      from,
+      to,
+      points.map((point) => ({ t: point.at, value: point.db })),
+      0,
     );
-    let next: KeyTrack | undefined = outside ?? { ...old, keys: [] };
-    for (const point of [...points].sort((a, b) => a.at - b.at)) {
-      next = writeKey(next, point.at, point.db, 0, LINEAR);
-    }
-    for (const anchor of edgeAnchors(old, from, to)) {
-      next = writeKey(next, anchor.t, anchor.db, 0, anchor.ease);
-    }
     ctx.mutate(store, (draft) => writeLine(draft.tracks[trackId]!, next));
   },
 });

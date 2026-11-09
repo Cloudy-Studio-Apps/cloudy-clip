@@ -225,6 +225,12 @@ export interface Keyframe {
   smooth?: true;
 }
 
+/** A value at a time, for `writeSpan`: a point of a drawn stroke or a fader pass, in the keys' time. */
+export interface SpanPoint {
+  t: Micros;
+  value: KeyValue;
+}
+
 /** The keys of one animated value. */
 export interface KeyTrack {
   /** How values blend: numbers and colors smoothly, everything else jumps. */

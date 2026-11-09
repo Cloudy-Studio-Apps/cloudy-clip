@@ -6,6 +6,7 @@ import { clearKeys } from "./keyframe.commands";
 import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
 import { moveKeys, removeKeys, setKey, setKeys, setKeyValues } from "./keyframe.edit.commands";
 import { time } from "./keyframe.guards";
+import { writeKeySpan } from "./keyframe.span.command";
 import { keyframeRef } from "./keyframe.ref";
 
 const MAX_SAMPLES = 1000;
@@ -97,6 +98,7 @@ export const keyframeMcpTools = [
   commandTool(removeKeys, { name: "keyframe_remove" }),
   commandTool(moveKeys, { name: "keyframe_move" }),
   commandTool(setKeyValues, { name: "keyframe_set_values" }),
+  commandTool(writeKeySpan, { name: "keyframe_write_span" }),
   commandTool(clearKeys, { name: "keyframe_clear" }),
   commandTool(setEase, { name: "keyframe_set_ease" }),
   commandTool(setAfter, { name: "keyframe_set_after" }),

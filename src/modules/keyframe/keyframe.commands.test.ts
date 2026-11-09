@@ -25,6 +25,7 @@ import { clearKeys } from "./keyframe.commands";
 import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
 import { moveKeys, removeKeys, setKey, setKeys } from "./keyframe.edit.commands";
 import { keyframeModule } from "./keyframe.module";
+import { writeKeySpan } from "./keyframe.span.command";
 import { keyframeRef } from "./keyframe.ref";
 import type { KeyRef } from "./keyframe.types";
 
@@ -389,5 +390,37 @@ describe("keys on a sound", () => {
     kernel.history.undo();
     expect(clipOf("snd").animation).toHaveProperty(["sound.pan"]);
     expect(clipOf("snd").sound?.volumeDb).toBe(-6);
+  });
+
+  it("writes a stroke over a span in one step, the clip outside it playing as before", async () => {
+    const level = (at: number) => soundOf(animatedClip(clipOf("snd"), at)).volumeDb;
+    const outside = [0, S, 2 * S - 1, 3 * S + 1, 5 * S];
+    const stroke = (from: number, to: number) =>
+      bus().run(writeKeySpan, {
+        clipId: "snd",
+        path: "sound.volumeDb",
+        from,
+        to,
+        points: [
+          { at: from, value: -20 },
+          { at: to, value: -10 },
+        ],
+      });
+    // No keys: the clip holds its static level outside the stroke.
+    await run(bus().run(setSound, { clipIds: ["snd"], patch: { volumeDb: -6 } }));
+    await run(stroke(2 * S, 3 * S));
+    outside.forEach((at) => expect(level(at)).toBeCloseTo(-6, 6));
+    expect(level(2.5 * S)).toBeCloseTo(-15, 6);
+    kernel.history.undo();
+    expect(clipOf("snd").animation).toBeUndefined();
+    expect(clipOf("snd").sound?.volumeDb).toBe(-6);
+    // Eased keys around it: the ramps into the stroke keep their shape.
+    const ease = { kind: "bezier", x1: 0.4, y1: 0, x2: 1, y2: 1 } as const;
+    await run(bus().run(setKey, { clipId: "snd", path: "sound.volumeDb", at: S, value: -6, ease }));
+    await run(bus().run(setKey, { clipId: "snd", path: "sound.volumeDb", at: 5 * S, value: -30 }));
+    const before = outside.map(level);
+    await run(stroke(2 * S, 3 * S));
+    outside.forEach((at, i) => expect(level(at)).toBeCloseTo(before[i]!, 6));
+    expect(level(2.5 * S)).toBeCloseTo(-15, 6);
   });
 });

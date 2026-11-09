@@ -6,6 +6,7 @@ import { keyframeRef } from "./keyframe.ref";
 import { copyKeys, pasteKeys } from "./keyframe.clipboard.commands";
 import { scaleKeys, setAfter, setEase } from "./keyframe.ease.commands";
 import { moveKeys, removeKeys, setKey, setKeys, setKeyValues } from "./keyframe.edit.commands";
+import { writeKeySpan } from "./keyframe.span.command";
 import { toggleMode } from "./keyframe.view.commands";
 import type { TrackEdit } from "./keyframe.types";
 import { writeTracks } from "./keyframe.write";
@@ -44,6 +45,7 @@ export const keyframeCommands = [
   removeKeys,
   moveKeys,
   setKeyValues,
+  writeKeySpan,
   clearKeys,
   setEase,
   setAfter,
