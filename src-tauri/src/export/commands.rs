@@ -12,8 +12,7 @@ use super::job::{Job, script_option};
 use super::recipe::{ExportSpec, Format};
 use super::{FrameUrl, Jobs, PartialNotes};
 use crate::error::{AppError, AppResult};
-use crate::media::MediaRegistry;
-use crate::media::proxy::{Tools, command, ffprobe, find_tools};
+use crate::media::proxy::{Tools, ffprobe, find_tools};
 use crate::media::server::random_token;
 
 /// Where a started export takes its frames.
@@ -56,42 +55,6 @@ async fn find_mono(tools: &Tools, spec: &mut ExportSpec) {
         known.insert(segment.path.clone(), mono);
         segment.mono = mono;
     }
-}
-
-/// A tiny clip of black and white, for measuring how the webview draws video levels. Registered
-/// like media, so it reaches a media element the same way. Returns its media id.
-#[tauri::command]
-pub async fn export_levels_clip(
-    notes: State<'_, PartialNotes>,
-    registry: State<'_, Arc<MediaRegistry>>,
-) -> AppResult<String> {
-    const ID: &str = "export-levels";
-    let tools =
-        find_tools().ok_or_else(|| AppError::Unavailable("FFmpeg was not found".to_owned()))?;
-    let folder = notes.0.parent().unwrap_or(&notes.0);
-    tokio::fs::create_dir_all(folder).await?;
-    let clip = folder.join("levels.mp4");
-    if !tokio::fs::try_exists(&clip).await.unwrap_or(false) {
-        let status = command(&tools.ffmpeg)
-            .args(["-hide_banner", "-loglevel", "error", "-y"])
-            .args(["-f", "lavfi", "-i", "color=black:s=64x64:r=30:d=0.5"])
-            .args(["-f", "lavfi", "-i", "color=white:s=64x64:r=30:d=0.5"])
-            .args(["-filter_complex", "hstack,format=yuv420p"])
-            .args(["-colorspace", "bt709", "-color_primaries", "bt709"])
-            .args(["-color_trc", "bt709", "-color_range", "tv"])
-            .args(["-c:v", "libx264", "-crf", "1", "-movflags", "+faststart"])
-            .arg(&clip)
-            .status()
-            .await?;
-        if !status.success() {
-            return Err(AppError::Unavailable(
-                "Could not make the levels clip".into(),
-            ));
-        }
-    }
-    let size = tokio::fs::metadata(&clip).await?.len();
-    registry.register(ID, &clip, size)?;
-    Ok(ID.to_owned())
 }
 
 /// Starts FFmpeg. Frames go to the returned URL, one POST each, then `export_finish`.

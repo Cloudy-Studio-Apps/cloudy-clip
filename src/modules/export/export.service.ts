@@ -30,11 +30,6 @@ export function cancelExport(jobId: string): Promise<void> {
   return invoke("export_cancel", { jobId });
 }
 
-/** Id of the clip that measures how video is drawn; `masterUrl` streams it. */
-export function levelsClip(): Promise<string> {
-  return invoke("export_levels_clip");
-}
-
 /** Bytes free on the disk of a folder. */
 export function freeSpace(folder: string): Promise<number> {
   return invoke("export_free_space", { folder });

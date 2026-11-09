@@ -166,7 +166,7 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     onScrubbingChange: (listener) => scrub.onChange(listener),
     captureAt: (time, compositionId) => deps.capture.captureAt(time, compositionId),
     createRenderer: (options) => deps.createRenderer(options),
-    measureVideoLevels: (url) => deps.measureVideoLevels(url),
+    videoLevels: () => deps.videoLevels(),
     previewTransform(clipId, transform) {
       if (transform) transforms.set(clipId, transform);
       else transforms.delete(clipId);

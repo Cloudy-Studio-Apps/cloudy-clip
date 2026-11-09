@@ -1,4 +1,9 @@
-import type { VideoLevels } from "./preview.types";
+import type { Logger } from "@/core";
+import type { MediaApi } from "@/modules/media";
+import type { VideoLevels, VideoLevelsMeter } from "./preview.types";
+
+/** A webview this close to black 0 and white 255 draws video as it should. */
+const LEVELS_TOLERANCE = 6;
 
 /** A frame that never arrives is reported, not waited on forever. */
 const LOAD_LIMIT_MS = 10_000;
@@ -48,4 +53,46 @@ export async function measureVideoLevels(url: string): Promise<VideoLevels> {
     video.removeAttribute("src");
     video.load();
   }
+}
+
+/**
+ * Measures this webview's video levels once, on `media`'s levels clip, for every engine of the
+ * kernel. A failed measure is forgotten, so the next ask tries again.
+ */
+export function createVideoLevelsMeter(
+  media: Pick<MediaApi, "levelsClip" | "masterUrl">,
+  log: Logger,
+): VideoLevelsMeter {
+  let known: VideoLevels | null = null;
+  let measuring: Promise<VideoLevels | null> | null = null;
+  let first: Promise<void> | null = null;
+  const meter: VideoLevelsMeter = {
+    current: () => known,
+    settled() {
+      first ??= meter.measure().then(
+        () => undefined,
+        () => undefined,
+      );
+      return first;
+    },
+    measure() {
+      measuring ??= media
+        .levelsClip()
+        .then((id) => measureVideoLevels(media.masterUrl(id)))
+        .then(({ black, white }) => {
+          log.info(`Video draws from ${black} to ${white}`);
+          // A frame that wasn't decoded reads as nonsense, which would wreck every video layer.
+          if (black > 64 || white < 192) throw new Error(`Unlikely levels: ${black} to ${white}`);
+          const right = black <= LEVELS_TOLERANCE && white >= 255 - LEVELS_TOLERANCE;
+          known = right ? null : { black, white };
+          return known;
+        })
+        .catch((error: unknown) => {
+          measuring = null;
+          throw error;
+        });
+      return measuring;
+    },
+  };
+  return meter;
 }

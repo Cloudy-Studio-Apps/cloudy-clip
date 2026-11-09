@@ -1,4 +1,4 @@
-import { microsToSeconds, type Micros } from "@/core";
+import { createLogger, microsToSeconds, notify, type Micros } from "@/core";
 import { canvasTextMeasure, mergeProps, type PictureDefinition } from "@/modules/element";
 import {
   clipComposite,
@@ -19,6 +19,7 @@ import {
   type Composition,
   type MediaAsset,
   type MediaId,
+  type PictureSize,
   type ProjectFormat,
   type ProjectState,
   speedOf,
@@ -32,12 +33,20 @@ import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
 import { placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
-import type { LiveSound, LoudnessReading, MixLevels, PreviewEngine } from "../preview.types";
+import { GpuUnavailable } from "../gpu/gpu.errors";
+import { levelsPass } from "../gpu/gpu.levels";
+import type { GpuPass } from "../gpu/gpu.types";
+import type {
+  LiveSound,
+  LoudnessReading,
+  MixLevels,
+  PreviewEngine,
+  VideoLevels,
+} from "../preview.types";
 import { elementUrl, quietSlot, voiceSlot } from "./engine.audio";
 import { PITCH_LEAD_SECONDS } from "./engine.soundchain";
 import { ImageCache } from "./engine.images";
 import { landLayer } from "./engine.composite";
-import { LevelCorrection } from "./engine.levels";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { createSoundMix } from "./engine.soundmix";
@@ -56,6 +65,8 @@ import type {
 function hasMedia(clip: Clip): clip is Clip & { mediaId: MediaId } {
   return clip.mediaId !== undefined;
 }
+
+const log = createLogger("preview.engine");
 
 /** Clips starting within this window are prepared ahead so cuts don't stutter. */
 const PRELOAD_AHEAD: Micros = 1_500_000;
@@ -116,7 +127,11 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly awaited = new Set<MediaId>();
   /** Inside `playSlice`: the loudness tap stays off. */
   private slicing = false;
-  private readonly levelCorrection: LevelCorrection | null;
+  /** The levels pass of the last levels asked for, made again only when they change. */
+  private correction: { from: VideoLevels; pass: GpuPass } | null = null;
+  /** The GPU failed: told once; without WebGL2 for good, video draws uncorrected from then on. */
+  private gpuWarned = false;
+  private gpuGone = false;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -132,7 +147,6 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.mixCanvases = new MixCanvases(canvas);
     this.pictureOnly = options.pictureOnly ?? false;
     this.sound = createSoundMix(this.pictureOnly);
-    this.levelCorrection = options.videoLevels ? new LevelCorrection(options.videoLevels) : null;
   }
 
   setCanvas(canvas: HTMLCanvasElement): void {
@@ -393,6 +407,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.images.dispose();
     this.mixCanvases.dispose();
     this.nested.dispose();
+    this.options.gpu?.dispose();
   }
 
   private draw(
@@ -542,8 +557,35 @@ export class HtmlMediaEngine implements PreviewEngine {
     if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) return;
 
     const size = { width: element.videoWidth, height: element.videoHeight };
-    const frame = this.levelCorrection?.correct(element, size.width, size.height) ?? element;
-    land(target, frame, clipPlacement(format, size, transform), kx, ky);
+    land(target, this.videoFrame(element, size), clipPlacement(format, size, transform), kx, ky);
+  }
+
+  /**
+   * A video frame as the file holds it: through the levels pass when this webview squeezes video
+   * levels, else the element itself. Uploaded once, so a playing video can't move on between two
+   * draws. A frame the GPU fails on draws uncorrected and the user is told once; without WebGL2
+   * it stops trying.
+   */
+  private videoFrame(element: HTMLVideoElement, size: PictureSize): CanvasImageSource {
+    const levels = this.options.videoLevels?.() ?? null;
+    const gpu = this.options.gpu;
+    if (!levels || !gpu || this.gpuGone) return element;
+    if (this.correction?.from !== levels)
+      this.correction = { from: levels, pass: levelsPass(levels) };
+    try {
+      return gpu.run(element, size, [this.correction.pass]);
+    } catch (error) {
+      if (error instanceof GpuUnavailable) this.gpuGone = true;
+      if (!this.gpuWarned) {
+        this.gpuWarned = true;
+        log.warn("Video levels could not be corrected", error);
+        notify(
+          "info",
+          "Video colors may look a little flat: the graphics card couldn't correct them.",
+        );
+      }
+      return element;
+    }
   }
 
   /** Draws an element that paints itself (text, a plugin's), at its placement. */

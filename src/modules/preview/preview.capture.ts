@@ -73,6 +73,7 @@ export function createCapture(deps: PreviewCaptureDeps): PreviewCapture {
 
   async function capture(time: Micros, compositionId: CompositionId): Promise<string> {
     clearTimeout(idleTimer);
+    await deps.levelsSettled();
     const project = deps.getProject();
     const composition = deps.getComposition(compositionId);
     if (!composition) throw new Error("That composition no longer exists");
@@ -127,6 +128,7 @@ export function createFrameRenderer(
   const engine = deps.createEngine(canvas, ensureFont, options);
   return {
     async frameAt(time) {
+      await deps.levelsSettled();
       await settle(
         engine,
         project,

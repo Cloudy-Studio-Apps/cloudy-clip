@@ -3,6 +3,7 @@ import type { MixCanvases } from "./engine.mix";
 import type { FontRequest } from "@/modules/fonts";
 import type { JunctionApi } from "@/modules/junction";
 import type { DenoiseSettings, MediaApi } from "@/modules/media";
+import type { GpuRunner } from "../gpu/gpu.types";
 import type { Micros } from "@/core";
 import type {
   DynamicsCommand,
@@ -273,8 +274,13 @@ export interface EngineOptions {
   onFrameReady(): void;
   /** Only pictures matter (offscreen capture): sound clips get no element at all. */
   pictureOnly?: boolean;
-  /** How this webview draws video, when it needs correcting. Costs a read of every video frame. */
-  videoLevels?: VideoLevels;
+  /**
+   * How this webview draws video, when it needs correcting (null until known or when it doesn't),
+   * asked at each video frame. A video frame then goes through `gpu`'s levels pass.
+   */
+  videoLevels?(): VideoLevels | null;
+  /** The engine's own GPU runner: made with the engine, disposed with it. */
+  gpu?: GpuRunner;
 }
 
 /** A track's clips under the playhead, in start order (two during a junction's overlap). */

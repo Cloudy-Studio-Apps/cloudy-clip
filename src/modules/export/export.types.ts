@@ -271,7 +271,7 @@ export interface EstimateInput {
 /** What the runner needs from the rest of the app. */
 export interface RunnerDeps {
   queue: StoreApi<ExportQueueState>;
-  preview: Pick<PreviewApi, "createRenderer" | "measureVideoLevels">;
+  preview: Pick<PreviewApi, "createRenderer" | "videoLevels">;
   media: Pick<
     MediaApi,
     "prepareMaster" | "masterUrl" | "prepareReversed" | "reversedUrl" | "getProbe"

@@ -1,20 +1,9 @@
 import { notify } from "@/core";
-import type { VideoLevels } from "@/modules/preview";
 import { reversedMedia, usedMedia } from "./logic/sources";
 import { frameCount, frameTime } from "./logic/timing";
 import { formatInfo } from "./logic/presets";
-import {
-  beginExport,
-  cancelExport,
-  finishExport,
-  levelsClip,
-  revealFile,
-  sendFrame,
-} from "./export.service";
+import { beginExport, cancelExport, finishExport, revealFile, sendFrame } from "./export.service";
 import type { ExportJob, ExportRunner, ExportStatus, RunnerDeps } from "./export.types";
-
-/** A webview this close to black 0 and white 255 draws video as it should. */
-const LEVELS_TOLERANCE = 6;
 
 /** Thrown out of a job that was cancelled. */
 class Cancelled extends Error {}
@@ -25,7 +14,6 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
   let disposed = false;
   /** The job at work and its FFmpeg. */
   let active: { id: string; nativeId: string | null } | null = null;
-  let levels: Promise<VideoLevels | null> | null = null;
 
   // A cancelled job stays cancelled, whatever was under way when it happened.
   const update = (id: string, patch: Partial<ExportJob>) =>
@@ -39,25 +27,17 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
   const enter = (id: string, status: ExportStatus, message?: string) =>
     update(id, { status, progress: 0, message });
 
-  /** How this webview draws video: measured once, null when it needs no correcting. */
-  async function videoLevels(): Promise<VideoLevels | null> {
-    levels ??= levelsClip()
-      .then((id) => preview.measureVideoLevels(media.masterUrl(id)))
-      .then(({ black, white }) => {
-        log.info(`Video draws from ${black} to ${white}`);
-        // A frame that wasn't decoded reads as nonsense, which would wreck every video layer.
-        if (black > 64 || white < 192) throw new Error(`Unlikely levels: ${black} to ${white}`);
-        return black <= LEVELS_TOLERANCE && white >= 255 - LEVELS_TOLERANCE
-          ? null
-          : { black, white };
-      })
-      .catch((error: unknown) => {
-        log.warn("Could not measure video levels", error);
-        notify("info", "Colors of this export may look a little flat.");
-        levels = null;
-        return null;
-      });
-    return levels;
+  /**
+   * Makes sure the preview knows how this webview draws video (it measures once and the renderer
+   * corrects video layers with it). When it can't be measured, the export goes on and says so.
+   */
+  async function checkVideoLevels(): Promise<void> {
+    try {
+      await preview.videoLevels();
+    } catch (error) {
+      log.warn("Could not measure video levels", error);
+      notify("info", "Colors of this export may look a little flat.");
+    }
   }
 
   /** A file that plays through a proxy gets its full-size copy first. */
@@ -86,13 +66,12 @@ export function createExportRunner({ queue, preview, media, log }: RunnerDeps): 
   async function renderFrames(job: ExportJob, frameUrl: string): Promise<void> {
     const { fps } = job.spec;
     const total = frameCount(job.range, fps);
-    const corrected = await videoLevels();
+    await checkVideoLevels();
     const renderer = preview.createRenderer({
       project: job.project,
       compositionId: job.compositionId,
       mediaUrl: media.masterUrl,
       reversedUrl: (id) => media.reversedUrl(id, true),
-      ...(corrected && { videoLevels: corrected }),
     });
     try {
       for (let n = 0; n < total; n++) {

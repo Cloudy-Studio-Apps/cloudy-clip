@@ -95,6 +95,7 @@ export function createMediaService(state: MediaState): MediaService {
     derivedFileUrl: (id, name) => fileUrl(id, { derived: name }),
     reversedFileUrl: (id, full) => fileUrl(id, { reversed: "1", ...(full && { master: "1" }) }),
     masterUrl: (id) => fileUrl(id, { master: "1" }),
+    levelsClip: () => invoke<string>("media_levels_clip"),
     frameUrl: (id, index) => fileUrl(id, {}, `/frames/${index}`),
     mediaUrl(id) {
       const ready = state.getProbe(id)?.proxy?.state === "ready";

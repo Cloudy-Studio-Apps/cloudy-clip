@@ -349,7 +349,8 @@ export interface PreviewControllerDeps {
   requestFrame(callback: () => void): void;
   capture: PreviewCapture;
   createRenderer(options: FrameRendererOptions): FrameRenderer;
-  measureVideoLevels(url: string): Promise<VideoLevels>;
+  /** This webview's video levels, measured once per kernel (`PreviewApi.videoLevels`). */
+  videoLevels(): Promise<VideoLevels | null>;
 }
 
 /** What offscreen capture needs from the rest of the app. */
@@ -358,11 +359,13 @@ export interface PreviewCaptureDeps {
   getComposition(id: CompositionId): Composition | null;
   /** Whether a font can be drawn now; when not, it starts loading. */
   ensureFont(request: FontRequest): boolean;
+  /** Resolves once the first measure of video levels has ended, either way (no retry). */
+  levelsSettled(): Promise<void>;
   /** A picture-only engine that asks `ensureFont` about fonts. */
   createEngine(
     canvas: HTMLCanvasElement,
     ensureFont: (request: FontRequest) => boolean,
-    options?: Pick<FrameRendererOptions, "mediaUrl" | "reversedUrl" | "videoLevels">,
+    options?: Pick<FrameRendererOptions, "mediaUrl" | "reversedUrl">,
   ): PreviewEngine;
 }
 
@@ -370,6 +373,22 @@ export interface PreviewCaptureDeps {
 export interface VideoLevels {
   black: number;
   white: number;
+}
+
+/** How this webview draws video levels, measured once per kernel on `media`'s levels clip. */
+export interface VideoLevelsMeter {
+  /** The levels to correct, once measured; null before, when no correcting is needed, or failed. */
+  current(): VideoLevels | null;
+  /**
+   * Measures (once; later calls share it). Null when video draws right. Rejects when it couldn't
+   * be measured, and asking again tries again.
+   */
+  measure(): Promise<VideoLevels | null>;
+  /**
+   * Resolves once the first measure has ended, either way (starting it if none has), and never
+   * measures again: what a frame waits for, so a failing measure isn't retried at every frame.
+   */
+  settled(): Promise<void>;
 }
 
 /** What a hidden renderer draws. */
@@ -381,8 +400,6 @@ export interface FrameRendererOptions {
   mediaUrl?(id: MediaId): string;
   /** Where reversed clips come from, when not from the preview's copies. */
   reversedUrl?(id: MediaId): string | null;
-  /** Corrects video layers drawn at these levels. Other layers are right as they are. */
-  videoLevels?: VideoLevels;
 }
 
 /** Draws frames of one composition at its full size, on an engine of its own. */
@@ -475,10 +492,12 @@ export interface PreviewApi {
    */
   createRenderer(options: FrameRendererOptions): FrameRenderer;
   /**
-   * How this webview draws video to a canvas, measured on a clip whose left half is video black
-   * and right half video white. Some webviews squeeze the range (WebKitGTK: black at 15).
+   * How this webview draws video to a canvas, measured once per kernel on a clip whose left half
+   * is video black and right half video white. Some webviews squeeze the range (WebKitGTK: black at
+   * 16); the preview, captures and renderers then correct every video layer on the GPU. Null when
+   * video draws right. Rejects when it couldn't be measured; asking again tries again.
    */
-  measureVideoLevels(url: string): Promise<VideoLevels>;
+  videoLevels(): Promise<VideoLevels | null>;
   /**
    * Draws a clip with `transform` instead of its saved one, without changing the project (live
    * feedback while dragging on the canvas). Pass null to go back to the saved transform. The

@@ -57,6 +57,24 @@ ungraded one, whatever the number of corrections, which fits 30 fps and is tight
 35 ms per layer, under 30 fps: the spec's cap of live grading to the preview canvas size matters (export
 renders full size, where speed matters less).
 
+## Levels on the GPU (Task 2)
+
+The levels pass replaced the CPU table (`LevelCorrection`) and now runs on every video layer of the live
+preview, captures and renderers. Checked on Linux, same machine, 2026-11-09:
+
+- **Untouched is unchanged.** A 10 s 1280×720 30 fps test clip (`testsrc2`, H.264, BT.709 TV range), one
+  composition, no edits, exported as ProRes from the commit before (9e9cf1f) and after: all 300 decoded
+  frames are identical (`framemd5`). The first version of the shader didn't round; then 0 of 300 frames
+  matched after encoding, though before encoding every value was within 1 of the table (0.3% of values
+  off by one at levels 16/235, 11% at 15/236; the encoder spreads a difference of one). The shader now
+  rounds the source to an 8-bit step and the result to one, as the table did.
+- **Frame by frame against the table** (a temporary dev tool, removed): `createRenderer` with the GPU
+  pass against the same frame without correction put through the old table, all 300 frames, levels
+  16/235 and 15/236: byte for byte equal.
+- **Captures read black 0.** `preview_capture_frame` of a black | gray | white clip (TV range) reads
+  (16, 16, 16), (123, 125, 125), (233, 235, 235) before and (0, 0, 0), (125, 127, 127), (253, 255, 255)
+  after. The live preview draws through the same engine code and the same measured levels.
+
 ## Windows (WebView2)
 
 **Pending: owner check.** Also pending: the clean hidden run on Linux (window on another workspace for the

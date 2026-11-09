@@ -222,6 +222,12 @@ export interface MediaApi {
   /** URL of the sharpest picture the webview can decode: the master, otherwise the original. */
   masterUrl(id: MediaId): string;
   /**
+   * Id of a tiny clip, video black on its left half and video white on its right (BT.709, TV
+   * range), made once with FFmpeg and registered like media: `masterUrl` streams it. For measuring
+   * how the webview draws video levels. Rejects without FFmpeg.
+   */
+  levelsClip(): Promise<MediaId>;
+  /**
    * Makes the copy of a file that runs backwards, reporting 0..1: for preview, or for export with
    * `full`. Rejects if it can't be made. Asking again while it's being made joins that job.
    */
@@ -291,6 +297,7 @@ export interface MediaState extends Omit<
   | "mediaUrl"
   | "prepareMaster"
   | "masterUrl"
+  | "levelsClip"
   | "prepareReversed"
   | "reversedUrl"
   | "denoised"
@@ -326,6 +333,7 @@ export interface MediaService {
   frameUrl(id: MediaId, index: number): string;
   prepareMaster: MediaApi["prepareMaster"];
   masterUrl: MediaApi["masterUrl"];
+  levelsClip: MediaApi["levelsClip"];
   /** Makes a reversed copy, reporting 0..1. */
   prepareReversed(
     id: MediaId,

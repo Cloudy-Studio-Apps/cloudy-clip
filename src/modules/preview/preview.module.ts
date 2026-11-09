@@ -14,11 +14,12 @@ import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
 import { frameDuration, projectRef } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/engine.html";
+import { createGpuRunner } from "./gpu/gpu.runner";
 import { rememberPlayheads } from "./logic/playheads";
 import { createCapture, createFrameRenderer } from "./preview.capture";
 import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
-import { measureVideoLevels } from "./preview.levels";
+import { createVideoLevelsMeter } from "./preview.levels";
 import { previewCommands, seek, togglePlay } from "./preview.commands";
 import { previewMcpTools } from "./preview.mcp";
 import { previewRef } from "./preview.ref";
@@ -51,6 +52,8 @@ export const previewModule = defineModule({
         return open ? frameDuration(open.format) : 0;
       },
     );
+    // Measured once per kernel; every engine asks for the result at each video frame.
+    const levels = createVideoLevelsMeter(media, ctx.log);
     const engineOptions = {
       mediaUrl: media.mediaUrl,
       reversedUrl: (id: string) => media.reversedUrl(id, false),
@@ -61,11 +64,13 @@ export const previewModule = defineModule({
       imageFrames: media.imageFrames,
       elements,
       junctions,
+      videoLevels: levels.current,
     };
     const captureDeps: PreviewCaptureDeps = {
       getProject: () => project.getState(),
       getComposition: (id) => project.getState().compositions[id] ?? null,
       ensureFont: (request) => fonts.ensure(request),
+      levelsSettled: levels.settled,
       createEngine: (canvas, ensureFont, options) =>
         new HtmlMediaEngine(canvas, {
           ...engineOptions,
@@ -73,6 +78,7 @@ export const previewModule = defineModule({
           ensureFont,
           onFrameReady: () => undefined,
           pictureOnly: true,
+          gpu: createGpuRunner(),
         }),
     };
     const controller = createPreviewController({
@@ -94,12 +100,23 @@ export const previewModule = defineModule({
           ...engineOptions,
           ensureFont: (request) => fonts.ensure(request),
           onFrameReady,
+          gpu: createGpuRunner(),
         }),
       requestFrame: (callback) => void requestAnimationFrame(callback),
       capture: createCapture(captureDeps),
       createRenderer: (options) => createFrameRenderer(captureDeps, options),
-      measureVideoLevels,
+      videoLevels: () => levels.measure(),
     });
+    // The live preview shows the file's levels as soon as they are known.
+    let live = true;
+    ctx.onDispose(() => {
+      live = false;
+    });
+    void levels.measure().then(
+      (found) => live && found && controller.redraw(),
+      (error: unknown) => ctx.log.warn("Could not measure video levels", error),
+    );
+    void levels.settled();
     // Each composition keeps its playhead and loop: a switch stops playback and goes where this
     // one was.
     const playheads = rememberPlayheads();

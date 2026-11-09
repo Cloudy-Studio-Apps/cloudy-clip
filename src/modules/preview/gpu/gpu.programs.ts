@@ -1,4 +1,9 @@
-import type { GpuPass, GpuProgram, GpuPrograms } from "./gpu.types";
+import type { GpuInt, GpuPass, GpuProgram, GpuPrograms, GpuUniform } from "./gpu.types";
+
+/** Marks a uniform value as `int` (`ivec2`…`ivec4` for 2 to 4 numbers). */
+export function gpuInt(value: number | readonly number[]): GpuInt {
+  return { int: value };
+}
 
 /** One triangle over the whole target, without buffers; `v_uv` runs 0…1 over the picture. */
 const VERTEX = `#version 300 es
@@ -70,19 +75,48 @@ export function createPrograms(gl: WebGL2RenderingContext): GpuPrograms {
   };
 }
 
+/** Where a uniform is, looked up once per program. */
+function locate(gl: WebGL2RenderingContext, found: GpuProgram, name: string) {
+  let location = found.locations.get(name);
+  if (location === undefined) {
+    location = gl.getUniformLocation(found.program, name);
+    found.locations.set(name, location);
+  }
+  return location;
+}
+
+function setInt(gl: WebGL2RenderingContext, at: WebGLUniformLocation, value: GpuInt["int"]): void {
+  if (typeof value === "number") gl.uniform1i(at, value);
+  else if (value.length === 2) gl.uniform2iv(at, value);
+  else if (value.length === 3) gl.uniform3iv(at, value);
+  else if (value.length === 4) gl.uniform4iv(at, value);
+  else gl.uniform1iv(at, value);
+}
+
+function setUniform(gl: WebGL2RenderingContext, at: WebGLUniformLocation, value: GpuUniform): void {
+  if (typeof value === "number") gl.uniform1f(at, value);
+  else if ("int" in value) setInt(gl, at, value.int);
+  else if (value.length === 2) gl.uniform2fv(at, value);
+  else if (value.length === 3) gl.uniform3fv(at, value);
+  else if (value.length === 4) gl.uniform4fv(at, value);
+  else gl.uniform1fv(at, value);
+}
+
 /** Sets a pass's uniforms on its (bound) program. */
 export function setUniforms(gl: WebGL2RenderingContext, found: GpuProgram, pass: GpuPass): void {
   for (const [name, value] of Object.entries(pass.uniforms ?? {})) {
-    let location = found.locations.get(name);
-    if (location === undefined) {
-      location = gl.getUniformLocation(found.program, name);
-      found.locations.set(name, location);
-    }
-    if (location === null) continue;
-    if (typeof value === "number") gl.uniform1f(location, value);
-    else if (value.length === 2) gl.uniform2fv(location, value);
-    else if (value.length === 3) gl.uniform3fv(location, value);
-    else if (value.length === 4) gl.uniform4fv(location, value);
-    else gl.uniform1fv(location, value);
+    const location = locate(gl, found, name);
+    if (location !== null) setUniform(gl, location, value);
   }
+}
+
+/** Points the sampler `name` of the (bound) program at texture unit `unit`. */
+export function setSampler(
+  gl: WebGL2RenderingContext,
+  found: GpuProgram,
+  name: string,
+  unit: number,
+): void {
+  const location = locate(gl, found, name);
+  if (location !== null) gl.uniform1i(location, unit);
 }

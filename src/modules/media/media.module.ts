@@ -109,6 +109,7 @@ export const mediaModule = defineModule({
         mediaUrl: service.mediaUrl,
         prepareMaster: service.prepareMaster,
         masterUrl: service.masterUrl,
+        levelsClip: service.levelsClip,
         ...createDerivedFiles(service, (id) => getProbe(id)?.revision),
         animation: state.animation,
         imageFrames(id, elapsed, ahead) {

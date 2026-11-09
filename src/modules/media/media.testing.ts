@@ -29,6 +29,7 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
           mediaUrl: (id: string) => `fake://${id}`,
           prepareMaster: async () => false,
           masterUrl: (id: string) => `fake://${id}`,
+          levelsClip: async () => "levels",
           prepareReversed: async () => undefined,
           reversedUrl: (id: string) => `fake://${id}?reversed`,
           denoised: (id: string) => `fake://${id}?denoised`,
