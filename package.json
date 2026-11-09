@@ -9,6 +9,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "release:linux": "NO_STRIP=true tauri build --bundles deb,rpm,appimage",
+    "release:tag": "node scripts/release-tag.mjs",
     "typecheck": "tsc",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",

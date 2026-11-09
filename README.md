@@ -27,6 +27,24 @@ pnpm lint && pnpm test && pnpm build
 cd src-tauri && cargo clippy --all-targets -- -D warnings && cargo test
 ```
 
+## Release builds
+
+| Command              | Builds                          | Output                             |
+| -------------------- | ------------------------------- | ---------------------------------- |
+| `pnpm release:linux` | The `.deb`, `.rpm` and AppImage | `src-tauri/target/release/bundle/` |
+
+### Publishing a release
+
+Releases are built by GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) when a version tag is pushed:
+
+```sh
+pnpm release:tag 0.2.0   # writes the version, commits "Release v0.2.0", tags v0.2.0 and pushes
+```
+
+The workflow builds the Windows installer, the `.deb`, the `.rpm` and the AppImage into a draft release, signs the installers and publishes it once every build passed. The Cloudy Launcher then offers the update. If a build fails, the draft stays unpublished: re-run the failed job and the release is published when it passes.
+
+The installers are signed with the `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` organization secrets, the one key every Cloudy app uses: the launcher refuses an installer whose `.sig` doesn't match it. The workflow stops at its first step if they aren't available to the repository.
+
 ## Connect an agent
 
 With the app running:
