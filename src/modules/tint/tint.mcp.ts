@@ -6,6 +6,7 @@ import { numberOf, toStack } from "./logic/stack";
 import { scopeStats } from "./logic/scopes";
 import { TOOL_FIELDS } from "./logic/tools";
 import { readGrade } from "./tint.guards";
+import { pixelsOf } from "./tint.pixels";
 import { resetGrade } from "./tint.commands";
 import {
   addCorrection,
@@ -64,21 +65,6 @@ const describe = defineMcpTool({
     });
   },
 });
-
-/** Reads a PNG data URL as pixels. */
-async function pixelsOf(data: string): Promise<ImageData> {
-  const url = data.startsWith("data:") ? data : `data:image/png;base64,${data}`;
-  const image = new Image();
-  image.src = url;
-  await image.decode();
-  const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("no 2D canvas to read the frame with");
-  ctx.drawImage(image, 0, 0);
-  return ctx.getImageData(0, 0, canvas.width, canvas.height);
-}
 
 /** Measures a frame of the composition as numbers, so an agent can judge a grade without eyes. */
 const scopes = defineMcpTool({

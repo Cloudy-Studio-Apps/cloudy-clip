@@ -7,11 +7,13 @@ import {
   pagesRef,
   topBarItems,
 } from "@/core";
+import { mediaRef } from "@/modules/media";
 import { pictureFilters, previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { followCurrent, createCurrent } from "./tint.current";
 import { tintCommands } from "./tint.commands";
 import { createTintFilter } from "./tint.filter";
+import { createPicker } from "./tint.pick";
 import { createThumbs } from "./tint.thumb";
 import { tintKeys } from "./tint.keys";
 import { tintMcpTools } from "./tint.mcp";
@@ -43,6 +45,7 @@ export const tintModule = defineModule({
     const thumbs = createThumbs((time, compositionId, options) =>
       preview.captureAt(time, compositionId, options),
     );
+    const picker = createPicker(ctx.require(projectRef), preview, ctx.require(mediaRef));
     contribute(pictureFilters, createTintFilter(live));
     contribute(appPages, {
       id: TINT_PAGE,
@@ -65,6 +68,7 @@ export const tintModule = defineModule({
         onCurrent: holder.onCurrent,
         viewedAt: holder.viewedAt,
         thumb: thumbs.thumb,
+        pickColor: picker.pickColor,
       },
     };
   },

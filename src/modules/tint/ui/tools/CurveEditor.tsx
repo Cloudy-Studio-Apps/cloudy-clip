@@ -9,6 +9,9 @@ import type { CurveEdit } from "./tools.types";
 /** How near a point (px) a press takes it rather than adding one. */
 const HIT = 9;
 
+/** How long (ms) after a click added a point a double-click belongs to that click (no reset). */
+const ADDED_DOUBLE = 600;
+
 /** The hue strip under a hue curve (data colors): each color where the hue curves read its hue. */
 const HUES = (() => {
   const named: [string, Rgb][] = [
@@ -39,14 +42,17 @@ interface CurveEditorProps {
 }
 
 /**
- * A curve over its grid with its points. Click adds a point, drag moves one, drag it off the box
- * removes it, double-click puts it back to neutral. While a point moves, the curve and the live
+ * A curve over its grid with its points. Click adds a point, drag moves one (from where it was
+ * grabbed), drag it off the box removes it, double-click puts it back to neutral. A click on a
+ * point sends nothing; a double-click sends one command, to reset or (on empty space) to add. While a point moves, the curve and the live
  * values follow in the DOM; the curve is saved once, on release (Escape cancels).
  */
 export function CurveEditor({ points, shape, color, edit }: CurveEditorProps) {
   const box = useRef<HTMLDivElement>(null);
   const path = useRef<SVGPathElement>(null);
   const dots = useRef<HTMLDivElement>(null);
+  /** When the last click added a point, so the double-click it starts doesn't reset that point. */
+  const added = useRef(-Infinity);
   const paint = (next: readonly CurvePoint[]) => {
     if (path.current && dots.current) paintCurve(path.current, dots.current, next, shape);
   };
@@ -74,6 +80,7 @@ export function CurveEditor({ points, shape, color, edit }: CurveEditorProps) {
       if (!placed) return;
       start = placed.points;
       index = placed.index;
+      added.current = event.timeStamp;
     }
     startCurveDrag({
       event: event.nativeEvent,
@@ -95,7 +102,7 @@ export function CurveEditor({ points, shape, color, edit }: CurveEditorProps) {
   };
 
   const reset = (event: React.MouseEvent) => {
-    if (!edit || !box.current) return;
+    if (!edit || !box.current || event.timeStamp - added.current < ADDED_DOUBLE) return;
     const { x, y, reach } = local(event);
     const index = nearestPoint(points, x, y, reach);
     if (index < 0) return;

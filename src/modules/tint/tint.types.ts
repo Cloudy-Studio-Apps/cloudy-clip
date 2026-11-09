@@ -100,6 +100,14 @@ export interface TintApi {
     time: Micros,
     compositionId: CompositionId,
   ): Promise<string>;
+  /**
+   * The color the correction `nodeId` reads at a point of the viewer's frame (0…1): the clip
+   * captured alone and ungraded at the playhead, run through the corrections before that node
+   * with the CPU reference (`nodeId` null: through the whole grade). Null when the point is off
+   * the clip's picture. Rejects as `PreviewApi.captureAt` does. For pickers (Pick hue, and later
+   * Color mix, Limit and Match).
+   */
+  pickColor(clipId: ClipId, nodeId: GradeNodeId | null, point: FramePoint): Promise<Rgb | null>;
 }
 
 /** The current clip and where each clip was last viewed (`followCurrent` writes, `TintApi` reads). */
@@ -127,6 +135,19 @@ export type Rgb = [number, number, number];
 export interface PixelAt {
   u: number;
   v: number;
+}
+
+/** A point of the composition's frame: `u` 0 (left) to 1, `v` 0 (top) to 1 (bottom). */
+export interface FramePoint {
+  u: number;
+  v: number;
+}
+
+/** Pixels read back from a picture: RGBA bytes, row by row from the top (an `ImageData`). */
+export interface PickFrame {
+  width: number;
+  height: number;
+  data: Uint8ClampedArray;
 }
 
 /** A node's live values: a correction's values being dragged, its opacity and whether it is on. */

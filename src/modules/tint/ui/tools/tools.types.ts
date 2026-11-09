@@ -78,15 +78,15 @@ export interface CurveDragOptions {
   index: number;
   shape: CurveShape;
   /** Fires on every move with the points as they would be (without the point while it is off the box). */
-  onMove(points: CurvePoint[]): void;
+  onMove(points: readonly CurvePoint[]): void;
   /** Fires once: the points on release, or null when Escape or the system cancelled it. */
-  onEnd(points: CurvePoint[] | null): void;
+  onEnd(points: readonly CurvePoint[] | null): void;
 }
 
 /** What the curve editor can do to its curve: live while a point moves, saved once on release. */
 export interface CurveEdit {
-  preview(points: CurvePoint[]): void;
-  commit(points: CurvePoint[]): void;
+  preview(points: readonly CurvePoint[]): void;
+  commit(points: readonly CurvePoint[]): void;
   /** Drops the live value (the gesture was cancelled or changed nothing). */
   cancel(): void;
 }
