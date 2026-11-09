@@ -9,7 +9,7 @@ use tauri::State;
 
 use super::encoders::{Capabilities, capabilities};
 use super::job::{Job, script_option};
-use super::recipe::{ExportSpec, Format};
+use super::spec::{ExportSpec, Format};
 use super::{FrameUrl, Jobs, PartialNotes};
 use crate::error::{AppError, AppResult};
 use crate::media::MediaRegistry;

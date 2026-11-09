@@ -1,7 +1,7 @@
 //! Export module: FFmpeg processes that turn frames and sound into a finished file.
 //!
 //! Frames are drawn by the webview, so they match the preview, and arrive at [`frames`]. Sound is
-//! mixed by FFmpeg from the original files ([`recipe`]). The system FFmpeg is used, as for proxies.
+//! mixed by FFmpeg from the original files ([`recipe`], its spec in [`spec`]). The system FFmpeg is used, as for proxies.
 
 pub mod commands;
 pub mod encoders;
@@ -11,6 +11,7 @@ mod mixeffects;
 mod mixgraph;
 pub mod recipe;
 mod soundfilters;
+pub mod spec;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

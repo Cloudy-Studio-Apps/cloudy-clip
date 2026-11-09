@@ -14,7 +14,8 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin};
 use tokio::sync::{Mutex, OnceCell};
 
-use super::recipe::{ExportSpec, ScriptOption, arguments, partial_of, script_of};
+use super::recipe::{ScriptOption, arguments, partial_of, script_of};
+use super::spec::ExportSpec;
 use crate::media::proxy::{Tools, command};
 
 /// Lines of FFmpeg's complaints kept to explain a failure.
@@ -203,13 +204,54 @@ impl Job {
             self.remove_partials().await;
             return Err(self.complaint().await);
         }
-        for (partial, output) in self.partials.iter().zip(&self.outputs) {
-            if let Err(e) = tokio::fs::rename(partial, output).await {
-                self.remove_partials().await;
-                return Err(format!("Could not save {}: {e}", output.display()));
-            }
+        if let Err(e) = self.publish().await {
+            self.remove_partials().await;
+            return Err(e);
         }
         Ok(self.outputs[0].clone())
+    }
+
+    /// Renames the partial files to their outputs, all or none: a file already there is set aside
+    /// first, and put back if a later rename fails, so a failed job never leaves new files next
+    /// to old ones.
+    async fn publish(&self) -> Result<(), String> {
+        let aside = |output: &PathBuf| {
+            let mut name = output.clone().into_os_string();
+            name.push(".replaced");
+            PathBuf::from(name)
+        };
+        let mut done: Vec<(&PathBuf, Option<PathBuf>)> = Vec::new();
+        let mut failure = None;
+        for (partial, output) in self.partials.iter().zip(&self.outputs) {
+            let kept = aside(output);
+            let moved = tokio::fs::rename(output, &kept)
+                .await
+                .is_ok()
+                .then_some(kept);
+            if let Err(e) = tokio::fs::rename(partial, output).await {
+                if let Some(kept) = moved {
+                    let _ = tokio::fs::rename(&kept, output).await;
+                }
+                failure = Some(format!("Could not save {}: {e}", output.display()));
+                break;
+            }
+            done.push((output, moved));
+        }
+        if let Some(message) = failure {
+            for (output, kept) in done {
+                let _ = tokio::fs::remove_file(output).await;
+                if let Some(kept) = kept {
+                    let _ = tokio::fs::rename(&kept, output).await;
+                }
+            }
+            return Err(message);
+        }
+        for (_, kept) in done {
+            if let Some(kept) = kept {
+                let _ = tokio::fs::remove_file(kept).await;
+            }
+        }
+        Ok(())
     }
 
     /// Stops FFmpeg and removes what it wrote.

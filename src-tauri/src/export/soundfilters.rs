@@ -3,7 +3,7 @@
 //! Each builds a piece of a segment's chain; `recipe` assembles the segments and `mixgraph` mixes
 //! them.
 
-use super::recipe::{EnvelopePoint, EqFilter, EqKind, SAMPLE_RATE, SoundSegment};
+use super::spec::{EnvelopePoint, EqFilter, EqKind, SAMPLE_RATE, SoundSegment};
 
 /// Timeline time each tempo step reads ahead of its end. `atempo` gives a few milliseconds more
 /// or less than its input over its tempo, so each step reads ahead and is cut to its exact length:
@@ -270,7 +270,7 @@ pub(super) fn effects(n: usize, segment: &SoundSegment) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::export::recipe::segment;
+    use crate::export::spec::segment;
 
     fn band(kind: EqKind, hz: f64, db: f64) -> EqFilter {
         EqFilter {

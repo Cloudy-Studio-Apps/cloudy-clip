@@ -5,8 +5,8 @@
 
 use serde::Deserialize;
 
-use super::recipe::EqFilter;
 use super::soundfilters::eq_filters;
+use super::spec::EqFilter;
 
 /// One effect that changes the sound. Off effects and noise reduction never reach the export.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
