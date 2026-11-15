@@ -278,28 +278,66 @@ pixel with `keyOf`.
 
 ## Windows (WebView2)
 
-**Pending: owner check.** Also pending: the clean hidden run on Linux (window on another workspace for the
-full 45 s, nobody switching to it).
-
-To run it: the tool lives in the commit before this one, so run the app in dev from there, import the two clips
-and open a composition with the video, then call each part.
+**Pending: owner check.** The `preview_gpu_check` tool of the first stage was removed from the code, so
+the old `git switch -c gpu-check a82f480` recipe is no longer the way. The Windows check now runs the
+finished Tint page from the `tint` branch (or master once it is merged) and judges it with the tools
+that stay in the app.
 
 ```sh
-git switch -c gpu-check a82f480
+git switch tint        # or master after the merge
+pnpm install
 pnpm tauri dev
-# test files (any FFmpeg):
-ffmpeg -f lavfi -i color=black:s=64x64:r=30:d=1 -f lavfi -i color=0x808080:s=64x64:r=30:d=1 -f lavfi -i color=white:s=64x64:r=30:d=1 -filter_complex "hstack=inputs=3,format=yuv420p" -color_range tv -c:v libx264 -crf 1 levels3.mp4
-ffmpeg -f lavfi -i testsrc2=s=1920x1080:r=30:d=6 -vf format=yuv420p -c:v libx264 -crf 18 clip1080.mp4
+# a test file (any FFmpeg):
+ffmpeg -f lavfi -i testsrc2=s=1280x720:r=30:d=2 -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" -c:v libx264 -crf 12 -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv src709.mp4
 ```
 
-Then, with an MCP client on `http://127.0.0.1:7420/mcp` (`media_import` both files,
-`composition_create_from_media` with the video), call `preview_gpu_check` with `part` set to `caps`,
-`levels` (`levelsMediaId`), `video` and `timing` (`videoMediaId`), and `hidden` (`videoMediaId`,
-`seconds: 22`, twice in a row with the window minimized or behind another). Each call returns the JSON
-(and logs it, with a toast). Afterwards switch back and delete the `gpu-check` branch.
+1. **The page opens.** Open the Tint page with a clip on the timeline. If it shows the "unavailable"
+   panel, WebView2 has no WebGL2 (or no float targets): write that here, and stop; that platform keeps
+   `TintUnavailable` and `tint.unavailable` exports, as planned.
+2. **Parity.** With an MCP client on `http://127.0.0.1:7420/mcp`: `media_import` the file,
+   `composition_create_from_media`, then `tint_add_correction` and `tint_set_correction` on the clip
+   (for example exposure 0.4, contrast 1.25, saturation 0.8, temperature 0.3, vibrance 0.3; then a
+   second correction at opacity 0.7 with lift, gamma and gain wheels, hue 15, highlights -0.3,
+   shadows 0.2). Call `tint_scopes` with `at` 500000, 1000000 and 1500000 and the open composition's
+   id. Compare each channel's `mean` with the CPU reference: decode the file with
+   `ffmpeg -i src709.mp4 -vf "select=eq(n\,30),scale=in_range=tv:out_range=pc:in_color_matrix=bt709" -frames:v 1 -f rawvideo -pix_fmt rgb24 f30.rgb`
+   and run `evaluatePixel` (`tint/logic/color/evaluate.ts`) over its pixels with `videoRange` false,
+   then `scopeStats` (`tint/logic/scopes.ts`). On Linux the means agree within 1.0 (below).
+3. **Untouched export.** `export_enqueue` (`format: "prores"`, `hardware: false`, `compositionId`) the
+   ungraded clip, then `export_start`. Compare the file's frames with the source in the YUV domain:
+   `ffmpeg -i out.mov -i src709.mp4 -filter_complex "[0:v]format=yuv444p10le[a];[1:v]format=yuv444p10le[b];[a][b]psnr" -f null -`.
+   On Linux Y is 49.7 dB, U 41.4, V 38.6; Windows should land in the same range.
+4. **Graded export.** The same with the grade on; the first frame's mean should match `tint_scopes`.
+5. **Hidden run** (Linux only, still pending): with the window on another workspace, run step 2 for
+   45 s from a script that calls `tint_scopes` every second; every call must still be graded.
 
-If WebView2 fails WebGL2, the video upload or the hidden render, write it here: the plan goes on, and that
-platform gets `TintUnavailable` (Task 9) and `tint.unavailable` exports (Task 3).
+If WebView2 fails WebGL2, the upload or the export, write it here: the plan goes on, and that platform
+gets `TintUnavailable` and `tint.unavailable` exports.
+
+## Final check (Task 30), Linux (WebKitGTK), 2026-11-15
+
+The finished app (`pnpm tauri dev` on test ports 1520 and 7520, one run) driven over MCP, on the same
+machine as above. A 1280x720, 2 s, 30 fps `testsrc2` file tagged Rec.709 limited range.
+
+- **Untouched export:** an ungraded clip exported as ProRes (`export_enqueue`, `format: "prores"`) and
+  compared with the source decoded without the app. YUV domain, all 60 frames: **Y 49.7 dB, U 41.4,
+  V 38.6** (what the 8-bit canvas round trip costs). In RGB the average is 29.6 dB (chroma upsampling of testsrc2's hard edges differs between the canvas and swscale). The
+  same file without a Rec.709 tag measured lower against FFmpeg's default matrix, which is the
+  reference's matrix choice, not the export. **Not compared with a build of master** (a second Rust
+  build was too heavy for this machine); the levels path is unchanged by the grade code, since an
+  ungraded clip adds no pass.
+- **Parity on WebKitGTK:** `tint_scopes` (the capture path, GPU) against `evaluatePixel` over the
+  ffmpeg decode, three corrections (basics, contrast, temperature, vibrance, saturation; a second at
+  opacity 0.7 with lift, gamma, gain, hue, highlights, shadows; a third with pivot, whites, blacks,
+  tint, rolloff), at 0.5, 1 and 1.5 s. Channel means (GPU / CPU): R 146.5 / 145.5, 146.2 / 145.3,
+  147.1 / 146.1; G 135.8 / 135.7, 135.9 / 135.9, 135.4 / 135.3; B 153.1 / 152.7, 152.5 / 152.0,
+  153.1 / 152.6. Largest difference 1.0 on a mean; minimum and maximum match to 1 step (R min 11 / 10).
+  Ungraded, the app's decode already reads 1.9, 0.2 and 2.5 higher than FFmpeg's, so the grade adds
+  nothing the decoder doesn't. A heavy exposure of -2 gave max 125 of 255 (about a quarter) as it should.
+  Per-pixel comparison was not done (the scopes tool gives statistics, not pixels).
+- **Graded export:** a -3 exposure export came out dark (Y average 193 of 1023, against 509 plain).
+- A `tint_scopes` call without `compositionId` measures the caller's open composition, which stays
+  the first one after `composition_create_from_media` makes another; pass the id.
 
 ### Groups and shared keys: parity (Task 18)
 

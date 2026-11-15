@@ -49,7 +49,7 @@ reference they point to. The module API itself is in [src/core/README.md](../src
 | `solid`       | feature | `project`, `element`, `media`, `transform`                                               | solid colors: the element, library items with their smart bin, the dialog                                                  |
 | `settings`    | feature | —                                                                                        | the Settings window and the `settingsSections` point                                                                       |
 | `theme`       | feature | `settings`                                                                               | themes: the `themes` point, the user's choice, applying it, the Appearance section                                         |
-| `tint`        | feature | `project`, `preview`, `timeline`, `media`                                                | the Tint page: grading as layers, scopes, and the `tint.grade` picture filter                                              |
+| `tint`        | feature | `project`, `preview`, `timeline`, `media`, `workspace`, `keyframe`, `inspector`          | the Tint page: grading as layers or nodes, scopes, looks, and the `tintLooks` point; the `tint.grade` picture filter       |
 | `sound`       | feature | `project`, `timeline`, `preview`, `inspector`, `audio`, `settings`, `media`, `workspace` | the Sound page and its mixer, meters and live loudness; the mix: track and master levels, effects and presets, mix A and B |
 | `export`      | feature | `project`, `media`, `preview`, `workspace`                                               | the Export page and queue, turning a composition into a file                                                               |
 
@@ -184,6 +184,8 @@ it, so does the UI, and it becomes a command.
 | `clipActions`       | `timeline`   | `{ id, doubleClick?, items?, badge? }`, a clip's double click, menu entries and badge  |
 | `timelineDocks`     | `timeline`   | `{ id, order?, component }`, a panel docked under the tracks                           |
 | `keyTargets`        | `keyframe`   | `{ id, fields(clip, track), afterWrite? }`, the values of a clip that can be keyed     |
+| `relinkKinds`       | `workspace`  | `{ id, order, note, component }`, a kind of missing file the relink dialog finds       |
+| `tintLooks`         | `tint`       | a `LookDef` (`{ id, name, corrections }`), keyed by `id`: the Looks tab                |
 
 `side` panels become tabs of the left rail (`title` + `icon`). Keybindings always resolve to a
 command, so shortcuts, buttons and agents share one path.

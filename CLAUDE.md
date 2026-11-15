@@ -128,7 +128,7 @@ src/
     theme/      themes for the interface: colors, fonts, corners, the Appearance section (feature)
     marker/     bookmarks on a composition's timeline: flags in the ruler, notes, colors, snapping, M keys (feature)
     collab/     agents as collaborators: presence, access, pointer, Follow (feature)
-    tint/       the Tint page: grading as layers, scopes, the grade picture filter (feature)
+    tint/       the Tint page: grading as layers or nodes, scopes, looks (feature)
     sound/      the Sound page, empty for now (feature)
     export/     the Export page and queue: frames from the preview engine, sound mixed by FFmpeg (feature)
     workspace/  the open project: start dialog, save, autosave, open, recent list
