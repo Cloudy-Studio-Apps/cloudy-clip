@@ -18,6 +18,20 @@ fn input_reads_duration_times_speed() {
 }
 
 #[test]
+fn a_segment_from_the_file_start_is_read_without_seeking() {
+    // Seeking to 0 in an AAC file drops its first frame: every output ran 1115 samples short.
+    let later = SoundSegment {
+        from: 2_000_000,
+        ..segment()
+    };
+    assert_eq!(
+        sound_inputs(&[segment()]),
+        ["-t", "1.000000", "-i", "/a.wav"]
+    );
+    assert_eq!(sound_inputs(&[later])[..2], ["-ss", "2.000000"]);
+}
+
+#[test]
 fn fades_stay_after_the_tempo_step() {
     let fast = SoundSegment {
         speed: 2.0,
@@ -32,7 +46,7 @@ fn fades_stay_after_the_tempo_step() {
 fn a_default_segment_adds_no_filter() {
     assert_eq!(
         sound_graph(&[segment()], 0, 1_000_000),
-        "[0:a]aresample=48000,aformat=sample_fmts=fltp,aformat=channel_layouts=stereo,adelay=0:all=1[s0];[s0]amix=inputs=1:normalize=0:dropout_transition=0,apad=whole_dur=1.000000,atrim=0:1.000000[mixed]"
+        "[0:a]aresample=48000:first_pts=0,aformat=sample_fmts=fltp,aformat=channel_layouts=stereo,adelay=0:all=1[s0];[s0]amix=inputs=1:normalize=0:dropout_transition=0,apad=whole_dur=1.000000,atrim=0:1.000000[mixed]"
     );
 }
 

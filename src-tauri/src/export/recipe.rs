@@ -28,21 +28,24 @@ fn source_length(segment: &SoundSegment) -> u64 {
     }
 }
 
-/// The inputs of `sound`, each the stretch of its file a segment plays.
+/// The inputs of `sound`, each the stretch of its file a segment plays. A segment from the file's
+/// start has no `-ss`: FFmpeg seeking to 0 in a file with encoder priming (AAC in MP4) drops the
+/// first frame of sound.
 fn sound_inputs(sound: &[SoundSegment]) -> Vec<String> {
     sound
         .iter()
         .flat_map(|segment| {
-            let length = seconds(source_length(segment));
-            [
-                "-ss",
-                &seconds(segment.from),
-                "-t",
-                &length,
-                "-i",
-                &segment.path,
-            ]
-            .map(str::to_owned)
+            let mut args = Vec::new();
+            if segment.from > 0 {
+                args.extend(["-ss".to_owned(), seconds(segment.from)]);
+            }
+            args.extend([
+                "-t".to_owned(),
+                seconds(source_length(segment)),
+                "-i".to_owned(),
+                segment.path.clone(),
+            ]);
+            args
         })
         .collect()
 }
@@ -65,8 +68,11 @@ fn segment_chains(sound: &[SoundSegment], first_input: usize) -> Vec<String> {
             } else {
                 "aformat=channel_layouts=stereo"
             };
-            let mut chain =
-                format!("[{input}:a]aresample={SAMPLE_RATE},aformat=sample_fmts=fltp,{layout}");
+            // `first_pts=0`: a decoder whose first sample comes late (or early) is padded (or
+            // cut) to start at the segment's start, or the mix and stems would run short.
+            let mut chain = format!(
+                "[{input}:a]aresample={SAMPLE_RATE}:first_pts=0,aformat=sample_fmts=fltp,{layout}"
+            );
             chain.push_str(&effects(i, segment));
             if !segment.gain_envelope.is_empty() {
                 chain.push_str(&gain_envelope_filter(&segment.gain_envelope));
