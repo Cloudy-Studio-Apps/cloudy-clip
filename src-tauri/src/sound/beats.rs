@@ -6,8 +6,9 @@
 //!    [`WINDOW`]-sample frame to the next, every [`HOP`] samples (about 5.8 ms).
 //! 2. **Tempo,** per [`SPAN_SECONDS`] window half a window apart: the autocorrelation of that
 //!    envelope between [`SLOWEST_BPM`] and [`FASTEST_BPM`], leaning towards 120 BPM so half and
-//!    double tempos lose. When it barely repeats at any tempo ([`PERIODIC`]: speech, a held tone,
-//!    silence), the window has no beats.
+//!    double tempos lose, each lag backed half as much by twice it (both within [`SWING`]), so
+//!    hits that alternate in strength or gap aren't taken at half speed. When it barely repeats
+//!    at any tempo ([`PERIODIC`]: speech, a held tone, silence), the window has no beats.
 //! 3. **Beats** of each window: the chains of onsets one period apart that score best (dynamic
 //!    programming, as Ellis's beat tracker), so strays off the beat are never picked; a chain
 //!    starts again after a gap, and a beat with no onset under it is dropped. Each window keeps
@@ -49,6 +50,8 @@ const LIKELY_BPM: f32 = 120.0;
 const LEAN_OCTAVES: f32 = 1.0;
 /// How strongly the envelope must repeat at its tempo (autocorrelation over its energy).
 const PERIODIC: f32 = 0.3;
+/// How far (one part in this many of a lag) a repeat may stray and still back that tempo.
+const SWING: usize = 25;
 /// How much a beat chain resists straying from the period (Ellis's tightness).
 const TIGHTNESS: f32 = 100.0;
 /// A beat needs an onset this strong (in standard deviations of the envelope) within
@@ -252,12 +255,27 @@ fn window_beats(envelope: &[f32]) -> Vec<usize> {
         let octaves = (lag as f32 / likely).log2() / LEAN_OCTAVES;
         (-0.5 * octaves * octaves).exp()
     };
-    let Some((period, strength)) = (shortest..=longest)
-        .map(|lag| (lag, correlation(lag)))
+    // A tempo is backed by its own lag and half as much by twice it, each the best within
+    // `SWING` of it, so hits that alternate (strong-weak, or uneven gaps) aren't heard at half
+    // speed.
+    let table: Vec<f32> = (0..n.min(2 * longest + 2 * longest / SWING + 2))
+        .map(correlation)
+        .collect();
+    let near = |lag: usize| {
+        let reach = lag / SWING + 1;
+        table[lag.saturating_sub(reach)..(lag + reach + 1).min(table.len())]
+            .iter()
+            .copied()
+            .fold(f32::MIN, f32::max)
+    };
+    let support = |lag: usize| near(lag) + 0.5 * near(2 * lag).max(0.0);
+    let Some((period, _)) = (shortest..=longest)
+        .map(|lag| (lag, support(lag)))
         .max_by(|a, b| (a.1 * lean(a.0)).total_cmp(&(b.1 * lean(b.0))))
     else {
         return Vec::new();
     };
+    let strength = near(period);
     if strength < PERIODIC {
         return Vec::new();
     }
@@ -624,5 +642,30 @@ mod tests {
             !beats.iter().any(|&b| (7_000_000..13_500_000).contains(&b)),
             "{beats:?}"
         );
+    }
+
+    #[test]
+    fn kicks_with_uneven_gaps_beat_every_kick() {
+        // Hard-gated 59 Hz bursts, 90 ms long, at gaps of 511 then 488 ms: they repeat exactly
+        // only every two kicks, which once won and gave a beat a second.
+        let starts: Vec<f32> = (0..38)
+            .map(|k| 0.25 + (k / 2) as f32 * 0.9985 + (k % 2) as f32 * 0.5108)
+            .collect();
+        let beats = beats_of(19.5, |t| {
+            starts
+                .iter()
+                .find(|&&at| t >= at && t < at + 0.09)
+                .map_or(0.0, |&at| {
+                    (std::f32::consts::TAU * 59.0 * (t - at) + 1.5).sin() * 0.08
+                })
+        });
+        assert!(beats.len() >= 34, "{beats:?}");
+        for pair in beats.windows(2) {
+            let gap = pair[1] - pair[0];
+            assert!(
+                (440_000..=560_000).contains(&gap),
+                "{gap} µs apart: {beats:?}"
+            );
+        }
     }
 }
