@@ -299,7 +299,7 @@ fn a_limiter_on_master_is_the_last_filter_before_apad() {
     let graph = sound_graph(&[chain(0)], &[segment(0)], &mix, 1_000_000);
     assert!(
         graph.contains(
-            "alimiter=limit=-1dB:attack=5:release=50:level=disabled,apad=whole_dur=1.000000,atrim"
+            "alimiter=limit=-1dB:attack=5:release=50:level=disabled,pan=stereo|c0=c0|c1=c1,apad=whole_dur=1.000000,atrim"
         ),
         "{graph}"
     );
@@ -446,7 +446,9 @@ fn a_correction_raises_the_master_and_adds_its_limiter_last() {
     let graph = sound_graph(&[chain(0)], &[segment(0)], &mix, 1_000_000);
     assert!(graph.contains("volume=4.000000"), "{graph}");
     assert!(
-        graph.contains("alimiter=limit=-1.5dB:attack=5:release=50:level=disabled,apad=whole_dur"),
+        graph.contains(
+            "alimiter=limit=-1.5dB:attack=5:release=50:level=disabled,pan=stereo|c0=c0|c1=c1,apad=whole_dur"
+        ),
         "{graph}"
     );
     assert_wired(&graph);

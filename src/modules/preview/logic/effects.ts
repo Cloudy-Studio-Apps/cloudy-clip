@@ -14,7 +14,12 @@ import {
   gateCurve,
   linkedLevel,
 } from "./dynamics";
-import { createLimiter, limiterSettings, limiterStep, resetLimiter } from "./limiter";
+import {
+  createTruePeakLimiter,
+  limiterSettings,
+  resetTruePeakLimiter,
+  truePeakLimiterStep,
+} from "./limiter";
 
 // What the dynamics worklet runs, kept here so it is plain code: one effect of any dynamics kind
 // on a stereo signal, block by block. Type-only imports (worklet).
@@ -41,7 +46,7 @@ function curveOf(command: DynamicsCommand, sampleRate: number): DynamicsCurve | 
 export function createEffectRunner(sampleRate: number): EffectRunner {
   const detector = createDynamicsState();
   const deessers = [createDeesserState(), createDeesserState()] as const;
-  const limiter = createLimiter(sampleRate, 2);
+  const limiter = createTruePeakLimiter(sampleRate, 2);
   const frame = new Float64Array(2);
   let command: DynamicsCommand | null = null;
   let curve: DynamicsCurve | null = null;
@@ -56,7 +61,7 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
         detector.envelope = 0;
         resetDeesser(deessers[0]);
         resetDeesser(deessers[1]);
-        resetLimiter(limiter);
+        resetTruePeakLimiter(limiter);
       }
       command = next;
       curve = curveOf(next, sampleRate);
@@ -99,7 +104,7 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
         for (let i = 0; i < n; i++) {
           frame[0] = left[i]!;
           frame[1] = right[i]!;
-          limiterStep(limiter, limit, frame);
+          truePeakLimiterStep(limiter, limit, frame);
           outLeft[i] = frame[0];
           outRight[i] = frame[1];
         }

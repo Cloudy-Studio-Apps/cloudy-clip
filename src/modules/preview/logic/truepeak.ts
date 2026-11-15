@@ -1,20 +1,39 @@
 /**
- * Taps per phase of the 4x interpolator. This is an approximation of BS.1770-4 Annex 2's 48-tap
- * filter, not its tabulated coefficients: a Hann-windowed sinc. Against the true peak of steady
- * sines from 1 to 22 kHz at 48 kHz it reads between about −0.3 and +0.1 dB (worst near a third of
- * the rate), inside the +0.2 / −0.4 dB Tech 3341 allows.
+ * Taps per phase of the 4x interpolator: the filter FFmpeg's resampler builds by default (so
+ * `ebur128`'s true peak, which oversamples with it), a Kaiser-windowed sinc (beta 9) over 32 taps,
+ * each phase scaled to sum to 1. The limiter listens with it too (`limiter.ts`).
  */
-const TAPS = 12;
+export const TAPS = 32;
 const FACTOR = 4;
+const KAISER_BETA = 9;
 
-/** The three in-between phases of a windowed sinc, aligned so a tap `k` reads sample `m - k`. */
-const PHASES = [1, 2, 3].map((phase) =>
-  Array.from({ length: TAPS }, (_, i) => {
-    const t = FACTOR * (i - TAPS / 2) + phase;
-    const window = 0.5 * (1 + Math.cos((Math.PI * t) / (FACTOR * (TAPS / 2))));
-    return (Math.sin((Math.PI * t) / FACTOR) / ((Math.PI * t) / FACTOR)) * window;
-  }),
-);
+/** The modified Bessel function of the first kind, order 0, as a series (as the resampler). */
+function besselI0(x: number): number {
+  let sum = 1;
+  let term = 1;
+  for (let k = 1; k <= 30; k++) {
+    const r = x / (2 * k);
+    term *= r * r;
+    sum += term;
+  }
+  return sum;
+}
+
+/**
+ * The three in-between phases, aligned so a tap `k` reads sample `m - k`: they fall between
+ * samples `m - TAPS / 2` and `m - TAPS / 2 + 1`. The same numbers as `true_peak_tap` in
+ * `src-tauri/src/export/mixeffects.rs`.
+ */
+export const PHASES = [1, 2, 3].map((phase) => {
+  const taps = Array.from({ length: TAPS }, (_, k) => {
+    const d = TAPS / 2 - phase / FACTOR - k;
+    const w = d / (TAPS / 2);
+    const x = Math.PI * d;
+    return (Math.sin(x) / x) * besselI0(KAISER_BETA * Math.sqrt(Math.max(1 - w * w, 0)));
+  });
+  const sum = taps.reduce((total, tap) => total + tap, 0);
+  return taps.map((tap) => tap / sum);
+});
 
 /**
  * True peak by 4x oversampling: the largest of the samples and the three samples between each

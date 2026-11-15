@@ -116,13 +116,13 @@ is met with the same margin as the compressor. Nothing is cut.
 
 **For export: the filters with the same parameters as the port.** Anything not named is FFmpeg's default.
 
-| Effect     | Filter                                                                                                                                         |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| compressor | `acompressor=threshold=<thresholdDb>dB:ratio=<ratio>:attack=<attackMs>:release=<releaseMs>:knee=<kneeDb>dB:makeup=<makeupDb>dB:detection=peak` |
-| gate       | `agate=threshold=<thresholdDb>dB:ratio=<ratio>:attack=<attackMs>:release=<releaseMs>:detection=peak` (knee 2.828427125, range 0.06125)         |
-| de-esser   | `deesser=i=<amount>:m=0.5:f=<√(1 − e^(−2π × frequencyHz / 22050))>`                                                                            |
-| limiter    | `alimiter=limit=<ceilingDb>dB:attack=5:release=<releaseMs>:level=disabled` (`level` defaults to on, which would raise the output to 0 dBFS)    |
-| duck       | `sidechaincompress=threshold=-40dB:ratio=20:attack=<attackMs>:release=<releaseMs>:detection=peak:mix=<1 − 10^(depthDb/20)>`                    |
+| Effect     | Filter                                                                                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| compressor | `acompressor=threshold=<thresholdDb>dB:ratio=<ratio>:attack=<attackMs>:release=<releaseMs>:knee=<kneeDb>dB:makeup=<makeupDb>dB:detection=peak`                                                |
+| gate       | `agate=threshold=<thresholdDb>dB:ratio=<ratio>:attack=<attackMs>:release=<releaseMs>:detection=peak` (knee 2.828427125, range 0.06125)                                                        |
+| de-esser   | `deesser=i=<amount>:m=0.5:f=<√(1 − e^(−2π × frequencyHz / 22050))>`                                                                                                                           |
+| limiter    | `alimiter=limit=<ceilingDb>dB:attack=5:release=<releaseMs>:level=disabled` (`level` defaults to on, which would raise the output to 0 dBFS); since 15 Nov wrapped to catch true peaks (below) |
+| duck       | `sidechaincompress=threshold=-40dB:ratio=20:attack=<attackMs>:release=<releaseMs>:detection=peak:mix=<1 − 10^(depthDb/20)>`                                                                   |
 
 Ducking has no depth in FFmpeg; `mix` gives it one: the output is `in × (gain × mix + 1 − mix)`, so however
 loud the key the track goes down by `depthDb` at most, and at 0 dB nothing happens. The threshold (−40 dBFS)
@@ -156,3 +156,56 @@ The check first found that the compressor's spec read its settings flat while th
 
 Not run: the EQ effect (the clip EQ's filters, checked in Stage 1), more than one key track, the app's own
 export path (the spec was written by hand to match `mixdown`'s output).
+
+## The limiter catches true peaks
+
+Checked on 15 Nov 2026 with the same `ffmpeg` n9.0.2. `alimiter` limits sample peaks: a signal limited so
+can go over its ceiling between samples, by up to 3 dB (a sine at a quarter of the rate, 45 degrees in,
+has every sample at 0.707 of its peak). FFmpeg 9's `alimiter` has no oversampling of its own, and running it
+at 4x (`aresample` around it) would make the preview port FFmpeg's resampler. Instead the limiter listens to
+a wider frame and stays at 1x:
+
+```sh
+pan=7.1|c0=c0|c1=c1|c2=c0|c3=c1|c4=c0|c5=c1|c6=c0|c7=c1,
+aiir=z=<16 zeros, 1>|<same>|<phase 1>|<phase 1>|<phase 2>|<phase 2>|<phase 3>|<phase 3>:p=1:f=tf:r=d:n=0,
+alimiter=limit=<ceilingDb>dB:attack=5:release=<releaseMs>:level=disabled,
+pan=stereo|c0=c0|c1=c1
+```
+
+`aiir` (direct form, in doubles, normalizing off) delays the two channels by 16 samples and turns the copies
+into the three in-between samples of a 4x interpolator; `alimiter` takes the largest of all eight in a frame
+and gives them one gain, so it limits the true peak; the last `pan` keeps the delayed two. The interpolator is
+the filter FFmpeg's resampler builds by default, which `ebur128` oversamples with (a Kaiser-windowed sinc,
+beta 9, 32 taps per phase, each phase summing to 1); a first try with the meter's old 12-tap Hann sinc left
+0.12 dB over on a square wave. The preview does the same arithmetic (`truePeakLimiterStep`), in the same
+order as `aiir` sums, and the meter (`truepeak.ts`) now uses the same `PHASES`. The output is 255 samples
+late at 48 kHz instead of 239.
+
+**Method.** Each signal made by `aevalsrc` at 48 kHz, 3 s, stereo, written as 32-bit floats; the same file
+through `alimiter` alone (before), the chain above (after), and the preview's `limiterStep` and
+`truePeakLimiterStep`. Sample peak by `astats`; true peak as `ebur128` reads it, by `aresample=192000` (its
+oversampler) and the largest magnitude, over the whole file and leaving out 0.1 s at each end (the file
+cuts off with sound still in the lookahead, and the resampler rings at that edge).
+
+| Signal (ceiling, release)                                     | Before: sample / true peak, dBFS | After: sample / true peak, dBFS | Preview vs export, before / after |
+| ------------------------------------------------------------- | -------------------------------- | ------------------------------- | --------------------------------- |
+| 12 kHz sine, 45° in, +6 dBFS (−1 dB, 50 ms)                   | −1.000 / +2.010                  | −4.010 / −1.000                 | 0 / 0                             |
+| 1 kHz square, ±1 (−1 dB, 50 ms)                               | −1.000 / +1.062                  | −2.924 / −1.000                 | 0 / 0                             |
+| 16 and 15 kHz sines at 1.5 (−1 dB, 50 ms)                     | −1.000 / −1.000                  | −1.000 / −1.000                 | 0 / 0                             |
+| White noise at 1.2 (−3 dB, 80 ms)                             | −3.000 / +2.284                  | −5.137 / −2.991                 | 0 / 0                             |
+| White noise at 4, +17 dBTP (−1 dB, 10 ms)                     | −1.000 / +4.284                  | −2.811 / −0.982                 | 0 / 0                             |
+| Music-like: bass, tones, noise bursts at 1.8 (−1 dB, 100 ms)  | −1.000 / +0.289                  | −1.000 / −0.997                 | 0 / 0                             |
+| 1 kHz, −12 dBFS stepping to +6 dBFS (−1 dB, 50 ms; the above) | −1.000 / −0.997                  | −1.000 / −1.000                 | 0 / 0                             |
+
+Over the whole files the "after" true peaks are the same except the 16 / 15 kHz case (−0.784, the cut-off
+edge; before, +1.127 there) and the loud noise (−0.960). The preview and the export are identical to the bit
+in every case, before and after (both read and write the same 32-bit floats).
+
+**Verdict.** The limiter keeps the true peak at its ceiling to a thousandth of a dB on steady signals; driven
+hard, its one gain per sample lets up to 0.02 dB through (0.009 dB on the noise at 1.2). Match target keeps
+lowering its own limiter's ceiling by a measured overshoot and a tenth (`secondStep`), now a safety margin
+that rarely acts. The export's filter string is checked by `the_limiter_listens_for_true_peaks`
+(`mixeffects.rs`).
+
+Not run: the worklet in WebKitGTK, sample rates other than 48 kHz, the end-to-end mix of the section above
+with the new chain, and codecs after the limiter (MP3, AAC, Opus add their own overshoot).

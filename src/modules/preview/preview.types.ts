@@ -234,6 +234,18 @@ export interface LimiterState {
 }
 
 /**
+ * The limiter that listens for true peaks (`logic/limiter.ts`): `alimiter` over a wide frame of each
+ * channel delayed and its three in-between samples, and the last `TAPS` samples of each channel.
+ */
+export interface TruePeakLimiterState {
+  limiter: LimiterState;
+  /** Per channel, the last `TAPS` samples, the newest first. */
+  history: Float64Array;
+  /** The frame the limiter takes: the channels, then each in-between phase of every channel. */
+  wide: Float64Array;
+}
+
+/**
  * What the dynamics worklet is told: run this effect (any kind it knows) with these settings. A
  * new message replaces the settings; the processor keeps its state.
  */

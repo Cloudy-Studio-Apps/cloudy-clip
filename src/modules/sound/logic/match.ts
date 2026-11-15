@@ -58,9 +58,10 @@ export function limiterPlan(master: MasterMix, peakDbtp: number): LimiterPlan {
  * missing, as level, and where the limiter's ceiling goes. A limiter lowers loudness a little,
  * more the harder it works, so the level is worked out from how much loudness the limiter gave
  * back over the first step (the share of the level over its ceiling it took), and capped
- * (`CORRECTION_CAP_DB`). The limiter (sample peaks) can let a true peak over its ceiling; when the
- * mix went over the peak limit and the limiter is matching's own, its ceiling comes down by as
- * much and a tenth more (as the analysis reads a tenth of a dB).
+ * (`CORRECTION_CAP_DB`). The limiter listens for true peaks, but its gain changes from one
+ * sample to the next, so a hard-driven mix can still pass its ceiling by a few hundredths of a
+ * dB: when the mix went over the peak limit and the limiter is matching's own, its ceiling comes
+ * down by as much and a tenth more (as the analysis reads a tenth of a dB), a safety margin.
  */
 export function secondStep({
   before,
