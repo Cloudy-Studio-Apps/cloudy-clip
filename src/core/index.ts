@@ -81,7 +81,13 @@ export type {
 } from "./shell/shell.types";
 
 // MCP
-export { commandTool, defineMcpTool, errorResult, textResult, toInputJsonSchema } from "./mcp/mcp.tool";
+export {
+  commandTool,
+  defineMcpTool,
+  errorResult,
+  textResult,
+  toInputJsonSchema,
+} from "./mcp/mcp.tool";
 export { createMcpBridge } from "./mcp/mcp.bridge";
 export { createTauriMcpTransport } from "./mcp/mcp.transport.tauri";
 export type {
