@@ -66,7 +66,7 @@ function placeFailure(grade: ClipGrade, at: StackPosition): CommandFailure {
 }
 
 function existing(grade: ClipGrade | null, id: string) {
-  const node = grade?.nodes[id];
+  const node = grade && Object.hasOwn(grade.nodes, id) ? grade.nodes[id] : undefined;
   if (!grade || !node) {
     throw new CommandFailure("tint.node_not_found", `No node "${id}" in this grade`, {
       nodeId: id,
@@ -204,7 +204,7 @@ export const moveLayer = defineCommand({
   id: "tint.moveLayer",
   label: "Move correction",
   description:
-    "Moves a layer (or a group, or a sealed card, by its first node id) to another place in the stack: { before }, { after } or { branch }. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found, or tint.sealed when the move can't be done in the stack (into or out of a sealed card, a group into itself, or a result that isn't a valid grade).",
+    "Moves a layer (or a group, or a sealed card, by its first node id) to another place in the stack: { before }, { after } or { branch }. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found, or tint.sealed when the move can't be done in the stack (into or out of a sealed card, a group into itself, or a result that isn't a valid grade, such as a shared pick no longer from above).",
   undoable: true,
   input: z.object({ target: targetSchema, nodeId, to: positionSchema }),
   run(ctx, { target, nodeId: id, to }) {

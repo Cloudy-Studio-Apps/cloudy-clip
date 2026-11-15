@@ -1,5 +1,5 @@
 import type { ClipGrade, Correction, GradeNodeId } from "@/modules/project";
-import { gradeInputs, gradeKeys } from "@/modules/project";
+import { gradeReads, keyFromAbove } from "@/modules/project";
 import type { KeyProblem, SharedKey } from "../tint.types";
 import { limitActive, prepareLimit } from "./color/limit";
 
@@ -28,32 +28,17 @@ export function sharedKey(grade: ClipGrade, id: GradeNodeId): SharedKey | null {
   return { owner, params: flip ? { ...params, invert: !params.invert } : params };
 }
 
-/** Whether `id` reads `of` (through pictures or keys), or is it. */
-export function dependsOn(grade: ClipGrade, id: string, of: string): boolean {
-  const seen = new Set<string>();
-  const stack = [id];
-  for (let at = stack.pop(); at !== undefined; at = stack.pop()) {
-    if (at === of) return true;
-    const node = grade.nodes[at];
-    if (!node || seen.has(at)) continue;
-    seen.add(at);
-    stack.push(...gradeInputs(node).map((ref) => ref.node), ...gradeKeys(node));
-  }
-  return false;
-}
-
 /**
  * What is wrong with correction `id` taking its key from `from`: `missing` (no such node),
  * `not_limited` (not a correction whose limit limits something, by its own pick or a shared one),
- * `cycle` (`from` is `id`, or reads it), `not_above` (`id` doesn't read `from`'s picture: a sibling
- * branch, which ungrouping would turn into a cycle), or null.
+ * `cycle` (`from` is `id`, or reads it), `not_above` (`from` is on the picture path but not above
+ * `id`: a sibling branch; project's `keyFromAbove`, the rule `validateGrade` keeps), or null.
  */
 export function keyProblem(grade: ClipGrade, id: GradeNodeId, from: GradeNodeId): KeyProblem {
-  const source = grade.nodes[from];
+  const source = Object.hasOwn(grade.nodes, from) ? grade.nodes[from] : undefined;
   if (!source) return "missing";
-  if (from === id || dependsOn(grade, from, id)) return "cycle";
-  const node = grade.nodes[id];
-  if (node?.kind !== "correct" || !dependsOn(grade, node.input.node, from)) return "not_above";
+  if (from === id || gradeReads(grade, from, id)) return "cycle";
+  if (!keyFromAbove(grade, id, from)) return "not_above";
   if (source.kind !== "correct") return "not_limited";
   if (source.limit?.from === undefined && !limitActive(source.limit)) return "not_limited";
   return null;
@@ -71,5 +56,8 @@ export function keyChoices(
 ): GradeNodeId[] {
   const node = grade.nodes[id];
   if (node?.kind !== "correct") return [];
-  return order.filter((from) => keyProblem(grade, id, from) === null);
+  // The menu offers only picks above it, not off-path ones (Leader Seal's).
+  return order.filter(
+    (from) => keyProblem(grade, id, from) === null && gradeReads(grade, node.input.node, from),
+  );
 }

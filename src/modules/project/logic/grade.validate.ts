@@ -31,6 +31,45 @@ export function gradeKeys(node: GradeNode): string[] {
   return [];
 }
 
+/** Whether node `id` reads `of` through pictures or keys, or is it. Never throws, even on a cycle. */
+export function gradeReads(grade: ClipGrade, id: string, of: string): boolean {
+  const seen = new Set<string>();
+  const stack = [id];
+  for (let at = stack.pop(); at !== undefined; at = stack.pop()) {
+    if (at === of) return true;
+    const node = Object.hasOwn(grade.nodes, at) ? grade.nodes[at] : undefined;
+    if (!node || seen.has(at)) continue;
+    seen.add(at);
+    stack.push(...gradeInputs(node).map((ref) => ref.node), ...gradeKeys(node));
+  }
+  return false;
+}
+
+/** The nodes whose picture `out` needs, read back through pictures (keys not followed). */
+function picturePath(grade: ClipGrade): Set<string> {
+  const found = new Set<string>();
+  const stack = [grade.out.node];
+  for (let at = stack.pop(); at !== undefined; at = stack.pop()) {
+    const node = Object.hasOwn(grade.nodes, at) ? grade.nodes[at] : undefined;
+    if (!node || found.has(at)) continue;
+    found.add(at);
+    stack.push(...gradeInputs(node).map((ref) => ref.node));
+  }
+  return found;
+}
+
+/**
+ * Whether correction `id` may take its key from `from` by where it sits: `from` is above it (its
+ * input reads it, through pictures or keys), or off the picture path (a node `out` doesn't read
+ * as a picture: a key join, or a pick only Leader Seal wires). A pick from another on-path branch
+ * (a sibling) is refused: ungrouping would put one below the other, a cycle.
+ */
+export function keyFromAbove(grade: ClipGrade, id: string, from: string): boolean {
+  const node = Object.hasOwn(grade.nodes, id) ? grade.nodes[id] : undefined;
+  if (node?.kind !== "correct") return false;
+  return gradeReads(grade, node.input.node, from) || !picturePath(grade).has(from);
+}
+
 const isPlain = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -184,7 +223,8 @@ function limitProblem(id: string, limit: GradeLimit): string | null {
  * What is wrong with a grade, or null: a ref to a node that is not there, a cycle, an `out` that
  * does not come from the source, a channel ref not from a split, a join with fewer than two
  * inputs or with `blends` not matching its inputs, a `limit.from` that is missing, not a
- * correction or key join, or makes a cycle, an opacity or strength outside 0 to 1, a value of a
+ * correction or key join, makes a cycle, or names a node on the picture path that isn't above it
+ * (`keyFromAbove`), an opacity or strength outside 0 to 1, a value of a
  * correction that is not a field or has another type than its default, a value outside its
  * range (`GRADE_RANGES`), and a limit's number outside `LIMIT_RANGES` or a pair running backwards.
  */
@@ -252,6 +292,15 @@ export function validateGrade(grade: ClipGrade): string | null {
     return false;
   };
   for (const id of ids) if (visit(id)) return "the grade has a cycle";
+
+  // A shared key comes from above, or from off the picture path.
+  for (const id of ids) {
+    const node = nodes[id]!;
+    const from = node.kind === "correct" ? node.limit?.from : undefined;
+    if (from !== undefined && !keyFromAbove(grade, id, from)) {
+      return `node "${id}" takes its key from "${from}", which is not above it`;
+    }
+  }
 
   // Out comes from the source through pictures.
   const reaches = new Map<string, boolean>();

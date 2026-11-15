@@ -9,7 +9,7 @@ const nodeId = z.string().min(1).describe("A node id, from tint_get_grade.");
 
 /** The grade a target holds; throws `tint.node_not_found` without one. */
 function gradeWith(grade: ClipGrade | null, id: string): ClipGrade {
-  if (!grade?.nodes[id]) {
+  if (!grade || !Object.hasOwn(grade.nodes, id)) {
     throw new CommandFailure("tint.node_not_found", `No node "${id}" in this grade`, {
       nodeId: id,
     });
@@ -22,7 +22,7 @@ export const group = defineCommand({
   id: "tint.group",
   label: "Group corrections",
   description:
-    'Puts layers that follow one another in one list of the stack (the top level or one branch of a group) into a group, in their place: kind "parallel" (Side by side: each layer becomes its own branch from the picture above, and their changes are added together: in + opacity · Σ (branch − in)), "layer" (Stacked: each layer its own branch, each branch landing over the picture so far by its blend, the first lowest, the last on top; every blend starts as normal, so the last branch shows; change blends with tint_set_group) or "channels" (Per channel: one to three layers go in the red, green and blue branches in that order, each grading one channel of the picture as gray, the others left empty; the group puts red, green and blue back together). Side by side and Stacked need at least two layers. nodeIds are layer ids or a group\'s join id. Returns { joinId }, the group\'s id. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found, or tint.cant_group (the layers are not in one list one after another, too few or too many, or the result can\'t be shown as layers).',
+    'Puts layers that follow one another in one list of the stack (the top level or one branch of a group) into a group, in their place: kind "parallel" (Side by side: each layer becomes its own branch from the picture above, and their changes are added together: in + opacity · Σ (branch − in)), "layer" (Stacked: each layer its own branch, each branch landing over the picture so far by its blend, the first lowest, the last on top; every blend starts as normal, so the last branch shows; change blends with tint_set_group) or "channels" (Per channel: one to three layers go in the red, green and blue branches in that order, each grading one channel of the picture as gray, the others left empty; the group puts red, green and blue back together). Side by side and Stacked need at least two layers. nodeIds are layer ids or a group\'s join id. Returns { joinId }, the group\'s id. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found, or tint.cant_group (the layers are not in one list one after another, too few or too many, or the result can\'t be shown as layers or is not a valid grade, such as a shared pick that would no longer come from above).',
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -44,7 +44,7 @@ export const group = defineCommand({
     if (!next) {
       throw new CommandFailure(
         "tint.cant_group",
-        "Those layers can't be grouped: they must follow one another in one list of the stack (Side by side and Stacked need two or more, Per channel one to three).",
+        "Those layers can't be grouped: they must follow one another in one list of the stack (Side by side and Stacked need two or more, Per channel one to three), and a shared pick between them must still come from above.",
       );
     }
     const stored = checkedGrade(next);

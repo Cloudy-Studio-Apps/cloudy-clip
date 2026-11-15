@@ -170,7 +170,13 @@ export {
   minimizeGrade,
 } from "./logic/grade";
 /** The graph rules of a grade (refs, cycles, ranges), what each node reads, and the schema every command setting one is built from. */
-export { gradeInputs, gradeKeys, validateGrade } from "./logic/grade.validate";
+export {
+  gradeInputs,
+  gradeKeys,
+  gradeReads,
+  keyFromAbove,
+  validateGrade,
+} from "./logic/grade.validate";
 export {
   correctionValuesSchema,
   gradeLimitSchema,
