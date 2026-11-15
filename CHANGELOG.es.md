@@ -1,0 +1,76 @@
+# Registro de cambios
+
+Aquí se recogen los cambios importantes de Cloudy Clip. El formato sigue
+[Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
+[Versionado Semántico](https://semver.org/lang/es/).
+
+Read in [English](CHANGELOG.md).
+
+## [Sin publicar]
+
+### Añadido
+
+**Líneas de volumen y automatización (página Sonido)**
+
+- Una línea de volumen sobre cada clip de audio, hecha con sus fotogramas clave de volumen: arrastra un punto, haz doble clic para añadir uno y pulsa Supr para borrar el seleccionado. Sigue los cambios de velocidad, las rampas y los cortes.
+- Una línea de volumen por pista que no se mueve cuando los clips se mueven o se cortan. Suena en la vista previa y se escribe en la exportación, también dentro de composiciones colocadas.
+- Dibujar volumen: dibuja la línea de una pista o de un clip con el lápiz. Los trazos se suavizan con un margen de 0,5 dB y solo cambian el tramo que dibujaste.
+- Automatización del fader con Read, Touch y Latch en cada canal. Mover el fader mientras suena se graba en la línea como ajuste; una reproducción es un solo paso de deshacer, los bucles no se acumulan y los tramos saltados no se tocan.
+- Herramientas de puntero en la barra de transporte: Seleccionar, Cortar (una cuchilla: haz clic en un clip para cortarlo ahí; con Mayús corta todas las pistas), Fundido, Dibujar volumen y Scrub.
+
+**Grupos, formatos de audio y stems**
+
+- Pistas de grupo (por ejemplo «Diálogo» o «Música y efectos») con su propio canal, fader, silencio y efectos. Las pistas se envían a un grupo desde el selector «Envía a», que también puede crear un grupo nuevo. Las mezclas A y B comparten los mismos grupos; solo cambian sus ajustes.
+- Un grupo silenciado no suena y ya no atenúa (ducking) a otras pistas.
+- Exportaciones de solo sonido en WAV, FLAC, AAC y Opus, a 44,1 o 48 kHz; WAV y FLAC en 16 o 24 bits, con dither a 16 bits.
+- Stems: un archivo por grupo, más «Otros» y la «Mezcla» completa, en una sola pasada de FFmpeg. Juntos suman la mezcla antes del Master.
+- El Master recibe Paneo, Silencio, Read/Touch/Latch y su propia línea de volumen en la línea de tiempo de Sonido.
+
+**Entrega**
+
+- Estándares de entrega: Spotify, Apple Podcasts, EBU R128 y ATSC A/85 (con sus fuentes), YouTube y TikTok (práctica habitual, sin cifra oficial) y Personalizado.
+- Analizar toda la mezcla: sonoridad integrada, rango de sonoridad y pico real de exactamente lo que se exporta, y una lista de puntos problemáticos que también se marcan en la regla. Al hacer clic en un problema el cursor de reproducción salta ahí. Funciona en segundo plano, se puede cancelar y avisa cuando queda desactualizado.
+- Ajustar al objetivo: un solo paso de deshacer mediante el nuevo Trim del Master (−24 a +24 dB), con un limitador si hace falta. Las exportaciones pueden ajustarse en su propia copia sin cambiar el proyecto.
+- Medidores de espectro y de fase estéreo en la pestaña Sonoridad, y la línea del objetivo en «Sonoridad en el tiempo».
+
+**Herramientas rápidas**
+
+- Buscar tiempos: encuentra los tiempos (beats) a partir del sonido, los muestra como marcas en la línea de tiempo y sirven para el ajuste magnético. Sigue los cambios de tempo.
+- Quitar silencios: elimina los tramos en silencio tras una vista previa de los cortes. En la página Sonido corta solo el sonido y deja los huecos; en la página Editar (menú del clip) corta imagen y sonido y cierra los huecos.
+- Igualar nivel: lleva los clips seleccionados a la misma sonoridad, medida tal como se oye, conservando la forma de sus fotogramas clave de volumen.
+
+**Otros**
+
+- El compresor muestra en directo su reducción de ganancia en la pestaña Canal.
+- El limitador mantiene ahora los picos reales (los picos entre muestras) por debajo de su techo, igual en la vista previa que en la exportación.
+- Los agentes pueden hacer todo lo anterior con nuevas herramientas MCP, incluido cancelar sus propios análisis y leer las mediciones guardadas.
+
+### Cambiado
+
+- Las envolventes de volumen exportadas (fotogramas clave de clips, fundidos, líneas de pista) cambian de forma suave, muestra a muestra, en lugar de en saltos de hasta 85 ms.
+- El medidor de sonoridad lee los picos reales igual que la medición de FFmpeg.
+- Las herramientas de agente que esperan un trabajo largo responden en unos 25 segundos e informan del progreso; volver a pedirlo se une al mismo trabajo.
+- Las herramientas de líneas de volumen reciben un `target` (una pista o `"master"`) en lugar de `trackId`.
+
+### Corregido
+
+- Los trabajos de FFmpeg ya no siguen en marcha después de cerrar la aplicación, y se borran sus archivos a medio escribir. Lo que quede de un cierre inesperado se limpia en el siguiente arranque.
+- La página Sonido ya no se hace más ancha que la ventana, así que el mezclador y la vista previa pequeña siempre se ven.
+
+## [0.0.1] - 2026-11-09
+
+Las partes de esta versión que pertenecen a la página Sonido.
+
+### Añadido
+
+- La página Sonido: la línea de tiempo de solo audio, un mezclador con un canal por pista de audio y el Master fijo en su borde, una vista previa pequeña y las pestañas Clip, Canal, Sonoridad y Entrega.
+- Volumen, paneo, silencio y solo por pista; Mezcla A/B; Mono, Atenuar y el volumen del altavoz.
+- Medición de sonoridad (BS.1770) y un gráfico del historial de sonoridad.
+- Efectos en pistas y en el Master: ecualizador, compresor, puerta de ruido, de-esser, limitador, ducking y reducción de ruido. La vista previa coincide con la exportación muestra a muestra. Preajustes, incluidos y propios.
+- Bucle y scrub de audio en la página Sonido.
+- Grabación de voz en una pista (Linux), guardada como WAV junto al proyecto. Grabar funciona sin armar una pista: crea una pista de Voz nueva.
+- Marcadores en la página Sonido, en su propia fila bajo la regla.
+
+### Corregido
+
+- La aplicación ya no se congela cuando el reproductor de un vídeo se silencia sin estar en pantalla (un fallo de WebKitGTK).
