@@ -8,6 +8,9 @@
 /** Joins class names, skipping falsy ones. */
 export { cn } from "./lib/cn";
 
+/** Shrinks a picture (a data URL or base64 PNG) to a width as a JPEG data URL. */
+export { shrinkDataUrl } from "./lib/image";
+
 /** The foca watona of the Cloudy Studio family, for the logo, empty states and waiting; `rough` adds its blue construction lines. */
 export { SealMark } from "./brand/SealMark";
 

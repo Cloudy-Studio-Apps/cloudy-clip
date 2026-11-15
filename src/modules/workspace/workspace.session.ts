@@ -1,5 +1,6 @@
 import { documentDir, join } from "@tauri-apps/api/path";
 import { CommandFailure, createLogger, LOCAL_ACTOR, notify } from "@/core";
+import { shrinkDataUrl } from "@/ui";
 import { createStore } from "zustand/vanilla";
 import type { Composition, ProjectState } from "@/modules/project";
 import { decodeProject, encodeProject } from "./logic/format";
@@ -23,7 +24,6 @@ import {
   uniquePath,
   writeProject,
 } from "./workspace.service";
-import { shrinkFrame } from "./workspace.thumbnail";
 import type {
   LeaveTask,
   PreparedProject,
@@ -38,6 +38,7 @@ const log = createLogger("workspace");
 const PROJECTS_FOLDER = "Cloudy Clip";
 /** Where the thumbnail is taken from, at most: past any fade in. */
 const THUMBNAIL_TIME = 1_000_000;
+const THUMBNAIL_WIDTH = 240;
 
 /** The file's own name: the library's can be another. */
 const fileNameOf = (path: string) => path.split(/[\\/]/).pop() ?? path;
@@ -110,7 +111,10 @@ export function createWorkspace({ project, media, preview, nameOf }: WorkspaceDe
     if (path === null || !main) return;
     try {
       const time = Math.min(THUMBNAIL_TIME, Math.floor(main.duration / 10));
-      recents.setThumbnail(path, await shrinkFrame(await preview.captureAt(time, main.id)));
+      recents.setThumbnail(
+        path,
+        await shrinkDataUrl(await preview.captureAt(time, main.id), THUMBNAIL_WIDTH),
+      );
     } catch (error) {
       log.warn("No thumbnail this time", error);
     }
