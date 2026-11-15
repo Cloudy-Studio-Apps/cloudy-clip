@@ -58,7 +58,7 @@ export const ungroup = defineCommand({
   id: "tint.ungroup",
   label: "Ungroup corrections",
   description:
-    "Takes a group apart: its branches' layers in a row where the group was, branch by branch (top branch first), the group itself gone. Key tracks of the group go with it. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found, or tint.not_a_group (joinId is not a group the stack shows).",
+    "Takes a group apart: its branches' layers in a row where the group was, branch by branch (top branch first), the group itself gone. Key tracks of the group go with it. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found, tint.not_a_group (joinId is not a group the stack shows) or tint.invalid_grade (the layers in a row would make an invalid grade; nothing is written).",
   undoable: true,
   input: z.object({ target: targetSchema, joinId: nodeId }),
   run(ctx, { target, joinId }) {
@@ -70,7 +70,13 @@ export const ungroup = defineCommand({
         nodeId: joinId,
       });
     }
-    const stored = checkedGrade(ungroupInGrade(grade, joinId));
+    let ungrouped: ClipGrade;
+    try {
+      ungrouped = ungroupInGrade(grade, joinId);
+    } catch (error) {
+      throw new CommandFailure("tint.invalid_grade", String((error as Error).message ?? error));
+    }
+    const stored = checkedGrade(ungrouped);
     const gone = [joinId, ...(found.split ? [found.split] : [])].map((id) => `grade.nodes.${id}.`);
     ctx.mutate(store, (draft) => {
       writeGrade(draft, target, stored);

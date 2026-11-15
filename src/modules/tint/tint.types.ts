@@ -510,7 +510,7 @@ export interface SharedKey {
 }
 
 /** Why a correction can't take its key from a node (`keyProblem`). */
-export type KeyProblem = "missing" | "not_limited" | "cycle" | null;
+export type KeyProblem = "missing" | "not_limited" | "cycle" | "not_above" | null;
 
 /** What a picture through the grade is made of, for `walkGrade`: GPU passes or a CPU pixel. */
 export interface GradeOps<P, K> {

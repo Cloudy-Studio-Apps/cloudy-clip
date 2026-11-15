@@ -238,6 +238,10 @@ describe("grade commands", () => {
     await ok(setCorrection, { target, nodeId: a, patch: { limit: { color } } });
     await ok(setCorrection, { target, nodeId: b, patch: { limit: { from: a } } });
     expect(clip().grade?.nodes[b]).toMatchObject({ limit: { from: a } });
+    await ok(setCorrection, { target, nodeId: b, patch: { limit: { color } } });
+    await ok(group, { target, nodeIds: [a, b], kind: "parallel" });
+    const sibling = await run(setCorrection, { target, nodeId: a, patch: { limit: { from: b } } });
+    expect(sibling).toMatchObject({ ok: false, error: { code: "tint.key_not_above" } });
   });
 });
 

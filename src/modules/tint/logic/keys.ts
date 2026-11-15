@@ -45,12 +45,15 @@ export function dependsOn(grade: ClipGrade, id: string, of: string): boolean {
 /**
  * What is wrong with correction `id` taking its key from `from`: `missing` (no such node),
  * `not_limited` (not a correction whose limit limits something, by its own pick or a shared one),
- * `cycle` (`from` is `id`, or reads it), or null.
+ * `cycle` (`from` is `id`, or reads it), `not_above` (`id` doesn't read `from`'s picture: a sibling
+ * branch, which ungrouping would turn into a cycle), or null.
  */
 export function keyProblem(grade: ClipGrade, id: GradeNodeId, from: GradeNodeId): KeyProblem {
   const source = grade.nodes[from];
   if (!source) return "missing";
   if (from === id || dependsOn(grade, from, id)) return "cycle";
+  const node = grade.nodes[id];
+  if (node?.kind !== "correct" || !dependsOn(grade, node.input.node, from)) return "not_above";
   if (source.kind !== "correct") return "not_limited";
   if (source.limit?.from === undefined && !limitActive(source.limit)) return "not_limited";
   return null;
@@ -68,10 +71,5 @@ export function keyChoices(
 ): GradeNodeId[] {
   const node = grade.nodes[id];
   if (node?.kind !== "correct") return [];
-  return order.filter(
-    (from) =>
-      from !== id &&
-      keyProblem(grade, id, from) === null &&
-      dependsOn(grade, node.input.node, from),
-  );
+  return order.filter((from) => keyProblem(grade, id, from) === null);
 }

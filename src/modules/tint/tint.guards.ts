@@ -118,7 +118,8 @@ export function dropTracks(
 /**
  * Throws when correction `id` of `grade` takes its key (`limit.from`) from where it can't:
  * `tint.node_not_found` (no such node), `tint.key_not_limited` (not a correction whose limit
- * limits something) or `tint.key_cycle` (the key's node reads this one, or is it).
+ * limits something), `tint.key_cycle` (the key's node reads this one, or is it) or
+ * `tint.key_not_above` (this one doesn't read the key's node: a sibling branch).
  */
 export function checkSharedKey(grade: ClipGrade, id: GradeNodeId): void {
   const node = grade.nodes[id];
@@ -135,6 +136,13 @@ export function checkSharedKey(grade: ClipGrade, id: GradeNodeId): void {
       "tint.key_not_limited",
       `Node "${from}" is not a correction with a limit, so it has no pick to share.`,
       { nodeId: from },
+    );
+  }
+  if (problem === "not_above") {
+    throw new CommandFailure(
+      "tint.key_not_above",
+      `Node "${id}" can't use the pick of "${from}": a shared pick must come from a correction above it (one whose picture it reads).`,
+      { nodeId: id, from },
     );
   }
   if (problem === "cycle") {
