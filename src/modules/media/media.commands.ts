@@ -5,6 +5,15 @@ import { MEDIA_PAGE, mediaRef } from "./media.ref";
 import { registerFiles, statFile } from "./media.service";
 import type { ImportResult } from "./media.types";
 
+/** A POSIX, Windows drive or UNC path. */
+const isAbsolute = (path: string) => /^([\\/]|[A-Za-z]:[\\/])/.test(path);
+
+function requireAbsolute(path: string): void {
+  if (!isAbsolute(path)) {
+    throw new CommandFailure("media.relative_path", `The path must be absolute: "${path}".`);
+  }
+}
+
 /**
  * Imports local files. Each file is validated natively; bad files are reported in `failed`
  * without failing the others. Metadata is read in the background (see `media_list`).
@@ -13,7 +22,7 @@ export const importMedia = defineCommand({
   id: "media.import",
   label: "Import media",
   description:
-    "Imports local video, audio or image files by absolute path, into binId or Master. Returns the imported media (with ids) and the files that failed. Fails with media.no_bin.",
+    "Imports local video, audio or image files by absolute path, into binId or Master. Returns the imported media (with ids) and the files that failed. Fails with media.relative_path (a path must be absolute) or media.no_bin.",
   undoable: true,
   input: z.object({
     paths: z.array(z.string().min(1)).min(1).max(200),
@@ -21,6 +30,7 @@ export const importMedia = defineCommand({
   }),
   async run(ctx, { paths, binId }): Promise<ImportResult> {
     const { store } = ctx.require(projectRef);
+    paths.forEach(requireAbsolute);
     if (binId !== undefined && !store.getState().bins[binId]) {
       throw new CommandFailure("media.no_bin", `No bin with id "${binId}"`);
     }
@@ -104,13 +114,14 @@ export const relinkMedia = defineCommand({
   id: "media.relink",
   label: "Locate media",
   description:
-    'Points a media item at the file at an absolute path, keeping its clips. Use it for media with status "missing". Fails with media.not_found, or media.wrong_kind when the new file is a different kind (audio for video, an image for either).',
+    "Points a media item at the file at an absolute path, keeping its clips. Use it for media with status \"missing\". Keeps a name set with media_rename; a name that was still the old file's becomes the new file's. Fails with media.relative_path, media.not_found, or media.wrong_kind when the new file is a different kind (audio for video, an image for either).",
   undoable: true,
   input: z.object({ mediaId: z.string(), path: z.string().min(1) }),
   async run(ctx, { mediaId, path }) {
     const { store } = ctx.require(projectRef);
     const asset = store.getState().media[mediaId];
     if (!asset) throw new CommandFailure("media.not_found", `No media with id "${mediaId}"`);
+    requireAbsolute(path);
     const file = await statFile(path).catch((error: { message?: string }) => {
       throw new CommandFailure("media.not_found", error.message ?? `File not found: ${path}`);
     });
@@ -122,7 +133,10 @@ export const relinkMedia = defineCommand({
     }
     ctx.mutate(store, (draft) => {
       const target = draft.media[mediaId];
-      if (target) Object.assign(target, { path, name: file.name, size: file.size });
+      if (!target) return;
+      // A name the user (or an agent) chose stays; only the old file's own name follows the file.
+      const keepsName = target.name !== asset.path.split(/[\\/]/).pop();
+      Object.assign(target, { path, size: file.size, ...(keepsName ? {} : { name: file.name }) });
     });
   },
 });
