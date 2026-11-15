@@ -195,7 +195,7 @@ soft }, refine?: { soft, clean }, invert?: true, from?: GradeNodeId | KeyJoin id
 - **Validity** (`validateGrade` in `project`): every `tint.*` command checks the graph it would write and
   fails with `tint.invalid_grade` before writing; `projectPolicy.validate` (`logic/fields.ts`) calls it too,
   so an undo reaching past someone else's newer step can't leave a broken graph. The rules:
-  every ref exists; no cycles; `out` reachable from `source`; a `channel` ref only from a `split`; a join has
+  every ref exists; no cycles; `out` reachable from `source`; a picture ref (an input or `out`) never names a key join; a `channel` ref only from a `split`; a join has
   at least two inputs and `blends` matches `inputs`; a `limit.from` names a correction or key join and makes no
   cycle; values in range. This and the layer conversion are the tests this project keeps (rule 3).
 - **Numbers:** layers and nodes are numbered 01, 02, … in stack order (below), not stored.

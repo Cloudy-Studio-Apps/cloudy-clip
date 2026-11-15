@@ -9,9 +9,13 @@ import {
   projectRef,
   type GradeNode,
 } from "@/modules/project";
+import { sameRef } from "./logic/order";
 import { emptyGrade } from "./logic/stack";
 import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
 import { targetSchema } from "./tint.node.commands";
+
+/** What `createId` makes ids of (`node_k3j9x2`), so an id never breaks a `grade.nodes.<id>.` track path. */
+const NODE_ID = /^[A-Za-z0-9_]+$/;
 
 const nodeId = z.string().min(1).describe("A node id, from tint_get_grade.");
 
@@ -45,7 +49,7 @@ export const wire = defineCommand({
   id: "tint.wire",
   label: "Wire nodes",
   description:
-    'Leader Seal\'s free wiring, in one undo step: add puts new nodes in the grade first (each { id, node }, id your own, not taken, not "source" or "out"; node any grade node as tint_get_grade shows them: a correction, a parallel or layer join, a split, a channel join, or a key join { kind: "keyJoin", keys: [{ from, mode }] }), then set rewires nodes: input (a correction or split, or nodeId "out" for the grade\'s result), inputs (a Side by side or Stacked join; a Stacked join\'s blends keep theirs by place, new places normal), r, g, b (a channel join) and keys (a key join). Refs are { node, channel? }: "source", a node id, a split\'s r, g or b. A key join combines keys: the first as it is, then each next one x by its mode: add k + x − k·x, subtract k·(1 − x), intersect k·x; a correction takes the joined key with limit.from (tint_set_correction). Any shape is allowed: what Baby Seal can\'t show becomes a sealed card covering only that region. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (a nodeId or ref names no node), tint.node_exists (an added id is taken), tint.cant_wire (a field that kind of node doesn\'t have), tint.wire_cycle (a node would read itself, through pictures or keys) or tint.invalid_grade (any other rule of a grade; nothing is written).',
+    'Leader Seal\'s free wiring, in one undo step: add puts new nodes in the grade first (each { id, node }, id your own: letters, digits and _ only, not taken, not "source" or "out"; node any grade node as tint_get_grade shows them: a correction, a parallel or layer join, a split, a channel join, or a key join { kind: "keyJoin", keys: [{ from, mode }] }), then set rewires nodes: input (a correction or split, or nodeId "out" for the grade\'s result), inputs (a Side by side or Stacked join; a Stacked join\'s blends stay with their refs, new refs normal; never a key join, which has no picture), r, g, b (a channel join) and keys (a key join). Refs are { node, channel? }: "source", a node id, a split\'s r, g or b. A key join combines keys: the first as it is, then each next one x by its mode: add k + x − k·x, subtract k·(1 − x), intersect k·x; a correction takes the joined key with limit.from (tint_set_correction). Any shape is allowed: what Baby Seal can\'t show becomes a sealed card covering only that region. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (a nodeId or ref names no node), tint.bad_id (an added id with other characters), tint.node_exists (an added id is taken), tint.cant_wire (a field that kind of node doesn\'t have), tint.wire_cycle (a node would read itself, through pictures or keys) or tint.invalid_grade (any other rule of a grade; nothing is written).',
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -58,7 +62,14 @@ export const wire = defineCommand({
     const next = structuredClone(before ?? emptyGrade());
     const touched = new Set<string>();
     for (const { id, node } of add ?? []) {
-      if (id === "source" || id === "out" || id === "__proto__" || Object.hasOwn(next.nodes, id)) {
+      if (!NODE_ID.test(id) || id === "__proto__") {
+        throw new CommandFailure(
+          "tint.bad_id",
+          `Node id "${id}" must be letters, digits and _ only (like node_k3j9x2)`,
+          { nodeId: id },
+        );
+      }
+      if (id === "source" || id === "out" || Object.hasOwn(next.nodes, id)) {
         throw new CommandFailure("tint.node_exists", `Node id "${id}" is taken`, { nodeId: id });
       }
       next.nodes[id] = structuredClone(node as GradeNode);
@@ -93,7 +104,14 @@ export const wire = defineCommand({
       }
       if (fields.inputs && (node.kind === "parallel" || node.kind === "layer")) {
         if (node.kind === "layer") {
-          node.blends = fields.inputs.map((_, i) => node.blends[i] ?? "normal");
+          // Each blend stays with its ref; a new ref is normal.
+          const used = new Set<number>();
+          node.blends = fields.inputs.map((ref) => {
+            const i = node.inputs.findIndex((old, at) => !used.has(at) && sameRef(old, ref));
+            if (i < 0) return "normal";
+            used.add(i);
+            return node.blends[i] ?? "normal";
+          });
         }
         node.inputs = fields.inputs;
       }
@@ -138,7 +156,7 @@ export const placeNodes = defineCommand({
   id: "tint.placeNodes",
   label: "Move nodes",
   description:
-    "Sets where nodes sit in Leader Seal, in graph units, by node id; nodes not given keep theirs (or auto-layout). One undo step. Fails with tint.target_not_found, tint.not_gradeable or tint.node_not_found.",
+    "Sets where nodes sit in Leader Seal, in graph units (about 150 between columns, 100 between rows), by node id from tint_get_grade; nodes not given keep theirs (or are laid out automatically). One undo step; nothing is written when no place changes. Fails with tint.target_not_found, tint.not_gradeable or tint.node_not_found.",
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -146,8 +164,8 @@ export const placeNodes = defineCommand({
   }),
   run(ctx, { target, pos }) {
     const { store } = ctx.require(projectRef);
-    const grade = readGrade(store.getState(), target) ?? emptyGrade();
-    const next = structuredClone(grade);
+    const before = readGrade(store.getState(), target);
+    const next = structuredClone(before ?? emptyGrade());
     for (const [id, { x, y }] of Object.entries(pos)) {
       if (!Object.hasOwn(next.nodes, id)) {
         throw new CommandFailure("tint.node_not_found", `No node "${id}" in this grade`, {
@@ -157,6 +175,7 @@ export const placeNodes = defineCommand({
       next.nodes[id]!.pos = { x, y };
     }
     const stored = checkedGrade(next);
+    if (JSON.stringify(stored) === JSON.stringify(before ?? undefined)) return;
     ctx.mutate(store, (draft) => writeGrade(draft, target, stored));
   },
 });

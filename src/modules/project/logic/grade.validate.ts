@@ -220,7 +220,8 @@ function limitProblem(id: string, limit: GradeLimit): string | null {
 }
 
 /**
- * What is wrong with a grade, or null: a ref to a node that is not there, a cycle, an `out` that
+ * What is wrong with a grade, or null: a ref to a node that is not there, a picture ref (an
+ * input or `out`) naming a key join, a cycle, an `out` that
  * does not come from the source, a channel ref not from a split, a join with fewer than two
  * inputs or with `blends` not matching its inputs, a `limit.from` that is missing, not a
  * correction or key join, makes a cycle, or names a node on the picture path that isn't above it
@@ -234,8 +235,11 @@ export function validateGrade(grade: ClipGrade): string | null {
     if (ref.node === "source") {
       return ref.channel ? `${who} takes a channel of the source, which is not a split` : null;
     }
-    const target = nodes[ref.node];
+    const target = Object.hasOwn(nodes, ref.node) ? nodes[ref.node] : undefined;
     if (!target) return `${who} reads missing node "${ref.node}"`;
+    if (target.kind === "keyJoin") {
+      return `${who} reads key join "${ref.node}" as a picture; a key join has a key, not a picture from the source`;
+    }
     if (ref.channel && target.kind !== "split") {
       return `${who} takes a channel of "${ref.node}", which is not a split`;
     }

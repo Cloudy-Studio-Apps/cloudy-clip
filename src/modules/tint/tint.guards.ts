@@ -134,7 +134,7 @@ export function checkSharedKey(grade: ClipGrade, id: GradeNodeId): void {
   if (problem === "not_limited") {
     throw new CommandFailure(
       "tint.key_not_limited",
-      `Node "${from}" is not a correction with a limit, so it has no pick to share.`,
+      `Node "${from}" is neither a key join nor a correction with a limit, so it has no key to share.`,
       { nodeId: from },
     );
   }

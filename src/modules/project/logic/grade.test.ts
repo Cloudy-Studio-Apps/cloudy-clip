@@ -57,6 +57,19 @@ describe("validateGrade", () => {
     expect(validateGrade(grade)).toContain("source");
   });
 
+  it("refuses a picture ref naming a key join, even beside a path from the source", () => {
+    const grade = chain(1);
+    grade.nodes["key"] = { kind: "keyJoin", keys: [] };
+    grade.nodes["p"] = {
+      kind: "parallel",
+      inputs: [{ node: "n1" }, { node: "key" }],
+      on: true,
+      opacity: 1,
+    };
+    grade.out = { node: "p" };
+    expect(validateGrade(grade)).toContain("key join");
+  });
+
   it("refuses a channel ref not from a split", () => {
     const grade = chain(2);
     grade.nodes["n2"] = correct("n1");
