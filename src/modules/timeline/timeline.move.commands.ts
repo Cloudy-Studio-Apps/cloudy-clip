@@ -115,6 +115,7 @@ export const trimClip = defineCommand({
       const next = rippleTrim(state, trimmed, groupIds, edge, junctionKindOf(ctx));
       checkLayout(next, new Set(groupIds));
       commitState(ctx, state, next);
-      return next.clips[clipId];
+      // The store's settle may adjust the clip (fades clamped), so return what was stored.
+      return ctx.require(projectRef).store.getState().clips[clipId];
     }),
 });
