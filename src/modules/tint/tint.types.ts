@@ -5,6 +5,7 @@ import type {
   BlendMode,
   Clip,
   ClipId,
+  ClipPlacement,
   Correction,
   CompositionId,
   ClipGrade,
@@ -96,6 +97,12 @@ export interface TintView {
   picking: boolean;
   /** The color the viewer picked (what the edited correction reads there), until the open tool takes it. */
   picked: Rgb | null;
+  /** Where in the frame that color was picked. */
+  pickedAt: FramePoint | null;
+  /** Which balance the next pick runs (Match's and Basics' Pick white or gray), or null. */
+  balancePick: "white" | "gray" | null;
+  /** The color chart's four corners over the viewer while it is being placed, or null (not shown). */
+  chart: ChartCorners | null;
   /** The correction whose key the live preview shows instead of its picture (Limit's Show), or null. */
   showPicked: GradeNodeId | null;
 }
@@ -153,6 +160,12 @@ export interface TintApi {
     compositionId: CompositionId,
     level?: GradeLevel,
   ): Promise<string>;
+  /**
+   * The clip alone and ungraded at `time` (`captureAt` with `only` and `bypassFilters`), decoded,
+   * with its placement, video range and LUTs: what reading its picture through its grade needs (`pickColor` at the clip level, `tint.match`). Rejects as `captureAt` does, or
+   * when the clip is gone.
+   */
+  clipFrame(clipId: ClipId, time: Micros): Promise<ClipFrame>;
   /**
    * The color the correction `nodeId` reads at a point of the viewer's frame (0…1): the clip
    * captured alone and ungraded at the playhead, run through the corrections before that node
@@ -212,6 +225,39 @@ export interface PixelAt {
 export interface FramePoint {
   u: number;
   v: number;
+}
+
+/** What `tint.match` does: balance (auto, or at a white or gray point), match another shot, or calibrate from a chart. */
+export type MatchKind = "auto" | "white" | "gray" | "shot" | "chart";
+
+/**
+ * A 24-patch color chart's corners in the frame, in reading order: top left (dark skin), top right
+ * (bluish green), bottom right (black), bottom left (white).
+ */
+export type ChartCorners = [FramePoint, FramePoint, FramePoint, FramePoint];
+
+/** One pixel of a clip's ungraded picture: its color and where it is in the picture. */
+export interface SourceSample {
+  rgb: Rgb;
+  at: PixelAt;
+}
+
+/** A clip captured alone and ungraded, with what reading it through its grade needs (`TintApi.clipFrame`). */
+export interface ClipFrame {
+  frame: PickFrame;
+  /** Where the clip's picture sits in the frame, or null when its size isn't known here. */
+  placement: ClipPlacement | null;
+  /** Whether its picture is video range (`tint.range.ts`). */
+  videoRange: boolean;
+  /** The LUTs that are read. */
+  lutOf: LutLookup;
+}
+
+/** One clip `tint.match` read: its id, the time and its captured frame. */
+export interface MatchRead {
+  clipId: ClipId;
+  time: Micros;
+  frame: ClipFrame;
 }
 
 /** Pixels read back from a picture: RGBA bytes, row by row from the top (an `ImageData`). */

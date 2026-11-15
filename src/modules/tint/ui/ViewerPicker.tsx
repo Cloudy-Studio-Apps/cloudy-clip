@@ -9,7 +9,7 @@ import { useTintSet } from "./view.set.hook";
  * Over the viewer while a tool picks a color (`view.picking`: Curves' Pick hue, Color mix's Pick,
  * Limit's droppers): a click on the picture reads the color the edited correction gets there
  * (`TintApi.pickColor`: the picture coming into the edited level through the corrections above it), hands
- * it to the tool (`view.picked`) and stops picking. A click off the frame or off the clip's
+ * it to the tool (`view.picked`, and where: `view.pickedAt`) and stops picking. A click off the frame or off the clip's
  * picture keeps picking; Escape stops without a pick.
  */
 export function ViewerPicker({ stage }: { stage: React.RefObject<HTMLElement | null> }) {
@@ -22,7 +22,7 @@ export function ViewerPicker({ stage }: { stage: React.RefObject<HTMLElement | n
     const stop = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.stopImmediatePropagation();
-      set({ picking: false });
+      set({ picking: false, balancePick: null });
     };
     window.addEventListener("keydown", stop, true);
     return () => window.removeEventListener("keydown", stop, true);
@@ -38,10 +38,10 @@ export function ViewerPicker({ stage }: { stage: React.RefObject<HTMLElement | n
     if (u < 0 || u > 1 || v < 0 || v > 1) return;
     try {
       const rgb = await tint.pickColor(subject.clipId, nodeId, { u, v }, subject.level);
-      if (rgb) set({ picking: false, picked: rgb });
+      if (rgb) set({ picking: false, picked: rgb, pickedAt: { u, v } });
     } catch (error) {
       notify("error", `Couldn't read the color there: ${String(error)}`);
-      set({ picking: false });
+      set({ picking: false, balancePick: null });
     }
   };
   return (

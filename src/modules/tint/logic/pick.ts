@@ -1,5 +1,5 @@
 import type { ClipGrade, ClipPlacement, GradeNodeId } from "@/modules/project";
-import type { FramePoint, LutLookup, PickFrame, PixelAt, Rgb } from "../tint.types";
+import type { FramePoint, LutLookup, PickFrame, PixelAt, Rgb, SourceSample } from "../tint.types";
 import { evaluatePixel } from "./color/evaluate";
 
 /** The color around pixel `(x, y)` of a frame: the mean of up to 3 × 3 pixels, 0…1. */
@@ -57,6 +57,22 @@ export function pickAt(
   videoRange = true,
   lutOf?: LutLookup,
 ): Rgb | null {
+  const sample = sourceAt(frame, point, placement);
+  if (!sample) return null;
+  const { rgb, at } = sample;
+  return grade ? evaluatePixel(grade, rgb, at, nodeId ?? undefined, videoRange, lutOf) : rgb;
+}
+
+/**
+ * The clip's own ungraded color around a point of the frame (`meanAround`) and where that is in its
+ * picture (`pictureAt`). With a placement, a point off the picture gives null; without one, `at`
+ * is the frame's own.
+ */
+export function sourceAt(
+  frame: PickFrame,
+  point: FramePoint,
+  placement: ClipPlacement | null,
+): SourceSample | null {
   const x = Math.min(frame.width - 1, Math.max(0, Math.floor(point.u * frame.width)));
   const y = Math.min(frame.height - 1, Math.max(0, Math.floor(point.v * frame.height)));
   let at: PixelAt = { u: point.u, v: 1 - point.v, aspect: frame.width / frame.height };
@@ -64,6 +80,26 @@ export function pickAt(
     at = pictureAt(placement, point.u * frame.width, point.v * frame.height);
     if (at.u < 0 || at.u > 1 || at.v < 0 || at.v > 1) return null;
   }
-  const source = meanAround(frame, x, y);
-  return grade ? evaluatePixel(grade, source, at, nodeId ?? undefined, videoRange, lutOf) : source;
+  return { rgb: meanAround(frame, x, y), at };
+}
+
+/**
+ * Pixels of the clip's picture spread evenly over the frame, at most about `most` of them (the
+ * statistics of auto balance and shot match): each its own color and where it is, off-picture
+ * ones left out.
+ */
+export function frameSamples(
+  frame: PickFrame,
+  placement: ClipPlacement | null,
+  most = 2400,
+): SourceSample[] {
+  const step = Math.max(1, Math.sqrt((frame.width * frame.height) / most));
+  const out: SourceSample[] = [];
+  for (let y = step / 2; y < frame.height; y += step) {
+    for (let x = step / 2; x < frame.width; x += step) {
+      const sample = sourceAt(frame, { u: x / frame.width, v: y / frame.height }, placement);
+      if (sample) out.push(sample);
+    }
+  }
+  return out;
 }

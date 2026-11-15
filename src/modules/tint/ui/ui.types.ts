@@ -8,7 +8,13 @@ import type {
   GradeLimit,
   GradeNodeId,
 } from "@/modules/project";
-import type { GradeLevel, GradeTarget, StackPosition, WireEntry } from "../tint.types";
+import type {
+  ChartCorners,
+  GradeLevel,
+  GradeTarget,
+  StackPosition,
+  WireEntry,
+} from "../tint.types";
 
 /**
  * The grade the page edits: the current clip's own, its shot group's or the open composition's
@@ -179,4 +185,19 @@ export interface GraphActions {
 export interface SpaceName {
   name: string;
   short: string;
+}
+
+/** A drag of one of the color chart's corners over the viewer. */
+export interface CornerDragOptions {
+  /** The pointerdown that started it, on the corner. */
+  event: PointerEvent;
+  /** The box over the frame the corners are measured in. */
+  box: HTMLElement;
+  corners: ChartCorners;
+  /** The corner being dragged. */
+  index: number;
+  /** Fires on every move past the dead zone with the corners as they would be. Draw to the DOM only. */
+  onMove(corners: ChartCorners): void;
+  /** Fires once: the corners on release, or null on Escape, a cancel, or a click that never moved. */
+  onEnd(corners: ChartCorners | null): void;
 }

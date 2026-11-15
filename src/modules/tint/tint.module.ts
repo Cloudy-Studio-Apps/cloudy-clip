@@ -101,6 +101,7 @@ export const tintModule = defineModule({
         thumb: thumbs.thumb,
         lookThumb: thumbs.lookThumb,
         pickColor: picker.pickColor,
+        clipFrame: picker.clipFrame,
       },
     };
   },

@@ -23,6 +23,9 @@ export function createTintView() {
     clean: false,
     picking: false,
     picked: null,
+    pickedAt: null,
+    balancePick: null,
+    chart: null,
     showPicked: null,
   }));
 }

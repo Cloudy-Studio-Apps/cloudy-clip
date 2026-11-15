@@ -75,6 +75,8 @@ export const PAGE_RESET: Partial<Record<ToolId, { tools: ToolId[]; fields?: stri
   warper: { tools: ["warper"] },
   creative: { tools: ["creative"] },
   limit: { tools: ["limit"] },
+  // Match writes into other tools' fields; its page shows only skin pull and protect skin.
+  match: { tools: ["match"], fields: ["skinPull", "protectSkin"] },
   mixer: { tools: ["mixer"] },
 };
 

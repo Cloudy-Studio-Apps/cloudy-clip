@@ -4,6 +4,7 @@ import { DEFAULT_CORRECTION, projectRef, type Correction } from "@/modules/proje
 import { groupOf } from "./logic/stack.group";
 import { TOOL_IDS, clearTools, ownedValues } from "./logic/tools";
 import { applyLook, importLut, relinkLut, setInput } from "./tint.color.commands";
+import { match } from "./tint.match.commands";
 import { copyGrade, pasteGrade } from "./tint.clipboard.commands";
 import { grabStill, removeStill } from "./tint.still.commands";
 import { setShotGroup, setVersion } from "./tint.shot.commands";
@@ -111,4 +112,5 @@ export const tintCommands = [
   removeStill,
   setShotGroup,
   setVersion,
+  match,
 ];

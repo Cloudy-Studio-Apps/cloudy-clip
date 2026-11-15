@@ -15,6 +15,7 @@ import { useStrip } from "./strip.hook";
 import { HeaderGap } from "./HeaderGap";
 import { HeaderRule } from "./HeaderRule";
 import { LevelSwitch } from "./LevelSwitch";
+import { useMatch } from "./match.hook";
 import { settle } from "./settle";
 import { useGradeSubject } from "./subject.hook";
 import { PanelNote } from "./PanelNote";
@@ -24,8 +25,6 @@ import { TintPanel } from "./TintPanel";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
 import { VersionMenu } from "./VersionMenu";
-
-const nothing = () => {};
 
 /**
  * The clips bar: picture clips of every video track in time order, and how grades move between
@@ -43,6 +42,7 @@ export function ClipStrip() {
   const groups = useStore(useModule(projectRef).store.api, (s) => s.gradeGroups);
   const level = useTintView((v) => v.level);
   const set = useTintSet();
+  const m = useMatch();
   const gradedAt = (clip: Clip) =>
     level === "clip"
       ? gradeOf(clip) !== null
@@ -110,7 +110,14 @@ export function ClipStrip() {
           </IconButton>
           <IconButton
             label="Match all to this: every selected clip takes this clip's colors"
-            onClick={nothing}
+            disabled={!m.enabled || m.others.length === 0}
+            onClick={() =>
+              m.clipId &&
+              m.shot(
+                m.others.map((entry) => entry.clip.id),
+                m.clipId,
+              )
+            }
           >
             <WandSparkles />
           </IconButton>

@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { ChartOverlay } from "./ChartOverlay";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { PreviewStage, previewRef } from "@/modules/preview";
@@ -15,7 +16,8 @@ import { useTintView } from "./view.hook";
  * with whatever the viewer tools turn on drawn over it. Before/after and bypass are the preview's
  * own (`picture.setCompare`, `setBypass`); its wipe line is the divider. The false color stand-in
  * is still demo: it marks the frame but doesn't change what the preview draws. While a tool picks
- * a color, `ViewerPicker` takes the next click on the picture.
+ * a color, `ViewerPicker` takes the next click on the picture; while Match places a color chart,
+ * `ChartOverlay` shows its grid and corners.
  */
 export function ViewerFrame() {
   const { picture } = useModule(previewRef);
@@ -44,6 +46,7 @@ export function ViewerFrame() {
         {guides && <GuidesOverlay />}
         {samples && <SamplePoints />}
       </div>
+      <ChartOverlay stage={stage} />
       <ViewerPicker stage={stage} />
     </div>
   );

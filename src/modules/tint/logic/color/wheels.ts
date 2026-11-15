@@ -42,6 +42,22 @@ export function wheelChannels(wheel: Wheel, reach: { m: number; color: number })
   return [out[0]!, out[1]!, out[2]!];
 }
 
+/**
+ * The wheel whose channels (`wheelChannels` with `reach`) are `channels`, as near as its ranges
+ * allow: the mean goes on the master ring, the rest (which adds up to 0) on the puck; each of
+ * `x`, `y` and `m` is clamped to -1…1.
+ */
+export function wheelFor(channels: Rgb, reach: { m: number; color: number }): Wheel {
+  const mean = (channels[0] + channels[1] + channels[2]) / 3;
+  const d = channels.map((c) => c - mean);
+  const clamp = (v: number) => Math.min(Math.max(v, -1), 1);
+  return {
+    x: clamp((d[1]! - d[2]!) / (Math.sqrt(3) * reach.color)),
+    y: clamp(-d[0]! / reach.color),
+    m: clamp(mean / reach.m),
+  };
+}
+
 /** What the primary wheels do to each channel. */
 export function primaryWheels(values: CorrectionValues): {
   lift: Rgb;
