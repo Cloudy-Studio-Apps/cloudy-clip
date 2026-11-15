@@ -114,7 +114,7 @@ export interface SilenceFinder {
 export interface ClipLoudness {
   /** The clip that carries the sound (a picture clip is measured through its linked sound). */
   clipId: ClipId;
-  /** Integrated loudness (LUFS) of the part of its file the clip plays, before its own volume; null when silent. */
+  /** Integrated loudness (LUFS) of the part of its file the clip plays as heard through its own volume (static or keyed), before fades, EQ and track; null when silent. */
   lufs: number | null;
   /** The clip has no sound of its own to measure (no sound stream, text, a held frame, a nested composition). */
   noSound?: true;
@@ -140,7 +140,7 @@ export interface LevelChange {
   clipId: ClipId;
   /** Its measured loudness (LUFS). */
   lufs: number;
-  /** The change (dB): the target minus its loudness. */
+  /** The change (dB): the target minus its loudness, added to its volume (or every key). */
   deltaDb: number;
   /** Its new volume (dB) when it has none keyed; null when its volume keys shift instead. */
   volumeDb: number | null;

@@ -10,7 +10,7 @@ pub mod job;
 mod mixeffects;
 mod mixgraph;
 pub mod recipe;
-mod soundfilters;
+pub(crate) mod soundfilters;
 pub mod spec;
 
 use std::collections::HashMap;

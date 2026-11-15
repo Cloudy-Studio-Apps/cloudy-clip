@@ -35,6 +35,11 @@ export {
 export { MIX_LABEL, stemsOf } from "./logic/stems";
 export { soundOnlySpec } from "./export.mixspec";
 export { withCorrection } from "./logic/correction";
+/**
+ * A value over a stretch as straight-line points, as the export writes a clip's keyed volume
+ * (`envelope(value, from, to, breaks)`; `at` counts from `from`).
+ */
+export { envelope } from "./logic/envelope";
 export { loudnessMatchers } from "./export.points";
 export { useExportComposition } from "./ui/export.composition.hook";
 

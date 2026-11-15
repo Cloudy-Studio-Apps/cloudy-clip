@@ -40,7 +40,7 @@ const measureClips = defineMcpTool({
   name: "sound_measure_clips",
   readOnly: true,
   description:
-    "Measures the integrated loudness (LUFS, BS.1770) of clipIds as { clips: [{ clipId, lufs, noSound? }] }, nothing changed. Each clip is measured as its file plays between its trims and speed, before its own volume. A picture clip is measured through its linked sound (listed under the sound clip). lufs is null for a silent clip; noSound: true for a clip with no sound of its own (text, an image, a held frame, a nested composition, a file with no sound stream). It measures (a long file takes a while, two at a time) and keeps the result: sound_match_level only works from a measurement of the same clipIds. Fails with sound.clip_not_found, sound.measure_failed (also when cancelled).",
+    "Measures the integrated loudness (LUFS, BS.1770) of clipIds as { clips: [{ clipId, lufs, noSound? }] }, nothing changed. Each clip is measured as heard through its own volume (static or keyed) over the part of its file it plays between its trims and speed, before its fades, EQ, track and master; a later volume change makes the measurement stale. A picture clip is measured through its linked sound (listed under the sound clip). lufs is null for a silent clip; noSound: true for a clip with no sound of its own (text, an image, a held frame, a nested composition, a file with no sound stream). It measures (a long file takes a while, two at a time) and keeps the result: sound_match_level only works from a measurement of the same clipIds. Fails with sound.clip_not_found, sound.measure_failed (also when cancelled).",
   input: z.object({ clipIds: z.array(z.string()).min(1) }),
   async handler({ clipIds }, ctx) {
     const state = ctx.require(projectRef).store.getState();

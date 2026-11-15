@@ -1,10 +1,13 @@
-//! The integrated loudness of a part of a file's sound, for Match level. The same reading of
-//! FFmpeg's `ebur128` summary as a whole-mix analysis ([`super::analyze::Listening`]), over
-//! `from..to` of the file's first sound stream and before any clip volume or effect. It is an
+//! The integrated loudness of a part of a file's sound as the clip's own volume lets it be heard,
+//! for Match level. The same reading of FFmpeg's `ebur128` summary as a whole-mix analysis
+//! ([`super::analyze::Listening`]), over `from..to` of the file's first sound stream, through the
+//! clip's gain (`volume`) or keyed gain (the export's own `gain_envelope_filter`, `at` counted from
+//! `from`), before its effects, fades, track, group and master. It is an
 //! export job ([`Job::measure`]), begun, then finished or cancelled by its id, with progress from
 //! `-progress`; the ones running are kept in [`Loudness`].
 
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex as StdMutex};
 
@@ -14,6 +17,8 @@ use super::analyze::Listening;
 use crate::error::{AppError, AppResult};
 use crate::export::job::Job;
 use crate::export::recipe::Recipe;
+use crate::export::soundfilters::gain_envelope_filter;
+use crate::export::spec::EnvelopePoint;
 use crate::media::proxy::{ffprobe, find_tools};
 use crate::media::server::random_token;
 
@@ -36,6 +41,8 @@ pub async fn begin(
     path: &Path,
     from: u64,
     to: u64,
+    gain: f64,
+    gain_envelope: &[EnvelopePoint],
     on_progress: Channel<f32>,
     loudness: &Loudness,
 ) -> AppResult<Option<String>> {
@@ -49,7 +56,16 @@ pub async fn begin(
     if probe.audio_channels.is_none() {
         return Ok(None);
     }
+    if !gain.is_finite() || gain < 0.0 {
+        return Err(AppError::InvalidInput("The gain is not a level".into()));
+    }
+    let level = if !gain_envelope.is_empty() {
+        gain_envelope_filter(gain_envelope)
+    } else {
+        format!(",volume={gain:.6}")
+    };
     let seconds = |micros: u64| format!("{:.6}", micros as f64 / 1_000_000.0);
+    let filter = format!("aformat=sample_fmts=fltp{level},ebur128=peak=true:metadata=1");
     let args = [
         "-hide_banner",
         "-nostats",
@@ -65,7 +81,7 @@ pub async fn begin(
     .chain(["-i".into(), path.as_os_str().to_owned()])
     .chain(["-vn", "-map", "0:a:0", "-af"].into_iter().map(Into::into))
     // `metadata=1` keeps its per-frame log out of the way; the summary is what is read.
-    .chain(["ebur128=peak=true:metadata=1".into()])
+    .chain([OsString::from(filter)])
     .chain(["-f", "null", "-"].into_iter().map(Into::into))
     .collect();
     let heard = Arc::new(StdMutex::new(Listening::new(to - from, 0.0)));

@@ -97,14 +97,15 @@ export const stripSilence = defineCommand({
 });
 
 /**
- * Brings clips to the same loudness. Each clip is measured as its file plays between its trims
- * (and speed), before its own volume, so the result does not depend on the volume it has now.
+ * Brings clips to the same loudness. Each clip is measured as heard through its own volume (static
+ * or keyed), over the part of its file it plays, before its fades, EQ, track and master; the change
+ * is added to its volume, or to every volume key alike.
  */
 export const matchLevel = defineCommand({
   id: "sound.matchLevel",
   label: "Match level",
   description:
-    "Brings clips with sound to the same loudness (integrated LUFS, BS.1770), as one undo step. Each clip is measured as its file plays between its trims and speed, before its own volume, so the result does not depend on its current volume: a clip with no volume keys gets the volume targetLufs minus its loudness (dB, kept within -60 to 12). A clip whose volume has keys keeps its curve: every key moves by that same dB (kept within the range, so a key that would pass it stops at its edge). targetLufs (-70 to 0) defaults to the loudest clip named, which turns nothing up past it. It never measures: run sound_measure_clips first with the same clipIds (the measurements are kept), or it fails with sound.levels_missing. A picture clip is matched through its linked sound. Clips with no sound of their own (text, images, held frames, a nested composition, a file with no sound stream) and silent clips are skipped and named in skipped. Returns { target, changes: [{ clipId, lufs, deltaDb, volumeDb (null when its keys moved), clamped }], skipped: [{ clipId, reason }] }. Fails with sound.levels_missing, sound.clip_not_found, sound.nothing_to_match (nothing measurable, nothing changes).",
+    "Brings clips with sound to the same loudness (integrated LUFS, BS.1770), as one undo step. Each clip is measured as heard through its own volume (its static volume, or its volume keys), over the part of its file it plays between its trims and speed, before its fades, EQ, track and master. The change is relative, targetLufs minus that loudness in dB: added to its volume (kept within -60 to 12), or to every volume key alike so the curve keeps its shape (a key that would pass the range stops at its edge). Changing a clip's volume afterwards makes its measurement stale (sound.levels_missing). targetLufs (-70 to 0) defaults to the loudest clip named, which turns nothing up past it. It never measures: run sound_measure_clips first with the same clipIds (the measurements are kept), or it fails with sound.levels_missing. A picture clip is matched through its linked sound. Clips with no sound of their own (text, images, held frames, a nested composition, a file with no sound stream) and silent clips are skipped and named in skipped. Returns { target, changes: [{ clipId, lufs, deltaDb, volumeDb (null when its keys moved), clamped }], skipped: [{ clipId, reason }] }. Fails with sound.levels_missing, sound.clip_not_found, sound.nothing_to_match (nothing measurable, nothing changes).",
   undoable: true,
   input: z.object({
     clipIds: z.array(z.string()).min(1),

@@ -12,7 +12,7 @@ import { report } from "../report";
 const db = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)} dB`;
 
 /**
- * Match level: measures the clips' loudness (their file as it plays, before their volume), shows
+ * Match level: measures the clips' loudness (as heard through their own volume), shows
  * each one's loudness and the change it will get, and applies them as one command. Nothing changes
  * until Match is pressed; clips with no sound or silent are listed as left alone.
  */
@@ -75,8 +75,8 @@ export function MatchLevelDialog({ target }: { target: MatchDialog }) {
       }
     >
       <p className="text-sm text-muted-foreground">
-        Brings the clips to the loudness of the loudest one, by their volume. A clip with volume
-        keys keeps its curve and moves every key by the same amount.
+        Brings the clips to the loudness of the loudest one, turning their volume up or down. A clip
+        with volume keys keeps its curve and moves every key by the same amount.
       </p>
       <p aria-live="polite" className="text-sm text-foreground">
         {failed

@@ -23,7 +23,7 @@ import type { SoundApi } from "./sound.types";
 import { beginLoudness, beginSilences, finishLoudness, finishSilences } from "./sound.service";
 import { matchLevel, stripSilence } from "./sound.tools.commands";
 import { createLoudnessMeter } from "./sound.loudness";
-import { audioModule } from "@/modules/audio";
+import { audioModule, setSound } from "@/modules/audio";
 import { keyframeModule } from "@/modules/keyframe";
 
 /** Stands in for the inspector, which audio and keyframe need only for their panels. */
@@ -288,11 +288,20 @@ describe("sound.matchLevel", () => {
     expect(volumes()).toEqual({ a: 0, b: 6 });
   });
 
-  it("sets the volume from the file's loudness, whatever the volume was", async () => {
-    await load([clip({ id: "a", sound: { ...DEFAULT_SOUND, volumeDb: -10 } })]);
-    loudness({ "/a.mp3": -26 });
-    await match({ clipIds: ["a"], targetLufs: -23 });
-    expect(volumes().a).toBe(3);
+  it("adds the change to the volume the clip already has", async () => {
+    await load([clip({ id: "a", sound: { ...DEFAULT_SOUND, volumeDb: 3 } })]);
+    loudness({ "/a.mp3": -23 });
+    await match({ clipIds: ["a"], targetLufs: -20 });
+    expect(volumes().a).toBe(6);
+  });
+
+  it("makes a measurement stale when the clip's volume changes", async () => {
+    await load([clip({ id: "a" })]);
+    loudness({ "/a.mp3": -23 });
+    await kernel.modules.require(soundRef).loudness.measure(["a"]);
+    await kernel.bus.run(setSound, { clipIds: ["a"], patch: { volumeDb: -3 } });
+    const result = await match({ clipIds: ["a"], targetLufs: -20 }, false);
+    expect(result).toMatchObject({ ok: false, error: { code: "sound.levels_missing" } });
   });
 
   it("stops at the volume range and says so", async () => {

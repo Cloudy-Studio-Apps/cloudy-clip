@@ -15,7 +15,7 @@ use super::record::{TakeStarted, TakeWritten, Takes};
 use super::silences::{self, Silences};
 use crate::error::{AppError, AppResult};
 use crate::export::PartialNotes;
-use crate::export::spec::SoundOnlySpec;
+use crate::export::spec::{EnvelopePoint, SoundOnlySpec};
 use crate::media::MediaRegistry;
 use crate::media::denoise::AFFTDN_NF;
 use crate::media::proxy::{command, find_tools};
@@ -213,17 +213,29 @@ pub async fn sound_silences_cancel(job_id: String, silences: State<'_, Silences>
 }
 
 /// Starts measuring the integrated loudness of `from..to` (microseconds of the file) of the file
-/// at `path`, before any clip volume. Reports 0 to 1 to `on_progress`. Returns the id for
+/// at `path`, as heard through the clip's linear `gain` (or `gain_envelope`, points counted from
+/// `from`, which replaces it). Reports 0 to 1 to `on_progress`. Returns the id for
 /// `sound_loudness_finish` and `sound_loudness_cancel`, or null when the file has no sound.
 #[tauri::command]
 pub async fn sound_loudness_begin(
     path: String,
     from: u64,
     to: u64,
+    gain: f64,
+    gain_envelope: Vec<EnvelopePoint>,
     on_progress: Channel<f32>,
     loudness: State<'_, Loudness>,
 ) -> AppResult<Option<String>> {
-    loudness::begin(&PathBuf::from(path), from, to, on_progress, &loudness).await
+    loudness::begin(
+        &PathBuf::from(path),
+        from,
+        to,
+        gain,
+        &gain_envelope,
+        on_progress,
+        &loudness,
+    )
+    .await
 }
 
 /// Waits for a measurement to end: LUFS, or null when it is all below the gate (silence). Fails

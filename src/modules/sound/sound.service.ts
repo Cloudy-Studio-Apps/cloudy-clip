@@ -125,18 +125,28 @@ export function cancelSilences(jobId: string): Promise<void> {
 
 /**
  * Starts measuring the integrated loudness of `from..to` of the file at `path` (file microseconds),
- * before any clip volume. `onProgress` gets 0 to 1. Resolves with the id for `finishLoudness` and
+ * as heard through the clip's own volume: its linear `gain`, or `gainEnvelope` (points, `at` counted
+ * from `from`) when keyed. `onProgress` gets 0 to 1. Resolves with the id for `finishLoudness` and
  * `cancelLoudness`, or null when the file has no sound.
  */
 export function beginLoudness(
   path: string,
   from: Micros,
   to: Micros,
+  gain: number,
+  gainEnvelope: { at: Micros; value: number }[],
   onProgress: (progress: number) => void,
 ): Promise<string | null> {
   const channel = new Channel<number>();
   channel.onmessage = onProgress;
-  return invoke<string | null>("sound_loudness_begin", { path, from, to, onProgress: channel });
+  return invoke<string | null>("sound_loudness_begin", {
+    path,
+    from,
+    to,
+    gain,
+    gainEnvelope,
+    onProgress: channel,
+  });
 }
 
 /** Waits for a measurement: LUFS, or null when it is silent. Rejects with message "Cancelled" when it was stopped. */

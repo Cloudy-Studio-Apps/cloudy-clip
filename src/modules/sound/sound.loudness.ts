@@ -1,5 +1,11 @@
+import type { Micros } from "@/core";
+import { envelope } from "@/modules/export";
 import { mediaHasAudio, type MediaApi } from "@/modules/media";
 import {
+  dbToLinear,
+  keyMoments,
+  soundOf,
+  trackValue,
   followsFileTime,
   partnersOf,
   sourceSpan,
@@ -18,16 +24,24 @@ export function soundCarrier(state: ProjectState, clip: Clip): Clip | undefined 
   );
 }
 
+/** What a clip is measured as: its part of the file, and the volume it plays through. */
+interface LoudPart extends ScanPart {
+  gain: number;
+  gainEnvelope: { at: Micros; value: number }[];
+}
+
 /**
  * Creates the loudness meter of a kernel. It measures the part of the file a clip plays (its
- * trims and speed, through `sourceSpan`), as the file is, before the clip's volume, fades, EQ or
- * track: the same figure however the clip is turned up or down. A clip with no file of its own
+ * trims and speed, through `sourceSpan`) as it is heard through the clip's own volume (its static
+ * volume, or its volume keys sampled by the export's `envelope` over the file's time), before its
+ * fades, EQ, track, group and master. A volume change makes the measurement stale (it is in the key). A clip with no file of its own
  * (text, a held frame, a nested composition) or whose file has no sound is marked `noSound`; a
  * picture clip is measured through its linked sound, and each sound clip once.
  */
 export function createLoudnessMeter(project: () => ProjectState, media: MediaApi): LoudnessMeter {
-  const scanner = createScanner<ScanPart, number | null>({
-    begin: ({ path, from, to }, onDone) => beginLoudness(path, from, to, onDone),
+  const scanner = createScanner<LoudPart, number | null>({
+    begin: ({ path, from, to, gain, gainEnvelope }, onDone) =>
+      beginLoudness(path, from, to, gain, gainEnvelope, onDone),
     finish: finishLoudness,
     cancel: cancelLoudness,
     empty: null,
@@ -36,7 +50,7 @@ export function createLoudnessMeter(project: () => ProjectState, media: MediaApi
   const partsOf = (clipIds: readonly ClipId[]) => {
     const state = project();
     const seen = new Set<ClipId>();
-    const parts: ({ clipId: ClipId } & (ScanPart | { noSound: true }))[] = [];
+    const parts: ({ clipId: ClipId } & (LoudPart | { noSound: true }))[] = [];
     for (const id of clipIds) {
       const named = state.clips[id];
       if (!named) continue;
@@ -55,13 +69,21 @@ export function createLoudnessMeter(project: () => ProjectState, media: MediaApi
       }
       const from = clip.sourceIn;
       const to = from + sourceSpan(clip);
-      parts.push({
-        clipId: clip.id,
-        path: file.path,
-        from,
-        to,
-        key: [file.path, from, to].join("|"),
-      });
+      const keys = clip.animation?.["sound.volumeDb"];
+      const volume = keys?.keys.length ? keys : undefined;
+      const origin = clip.animationOrigin ?? 0;
+      const gain = dbToLinear(soundOf(clip).volumeDb);
+      // Keys sit in content time: the file's `f` is `origin + f` (a ramp or reverse is not followed).
+      const gainEnvelope = volume
+        ? envelope(
+            (t) => dbToLinear(Number(trackValue(volume, t))),
+            origin,
+            origin + (to - from),
+            keyMoments(volume, origin, origin + (to - from)),
+          )
+        : [];
+      const key = [file.path, from, to, gain, JSON.stringify(gainEnvelope)].join("|");
+      parts.push({ clipId: clip.id, path: file.path, from, to, key, gain, gainEnvelope });
     }
     return parts;
   };
@@ -74,7 +96,7 @@ export function createLoudnessMeter(project: () => ProjectState, media: MediaApi
     async measure(clipIds, onProgress) {
       const parts = partsOf(clipIds);
       await scanner.run(
-        parts.filter((p): p is { clipId: ClipId } & ScanPart => "key" in p),
+        parts.filter((p): p is { clipId: ClipId } & LoudPart => "key" in p),
         onProgress,
       );
       return parts.map(loudnessOf);

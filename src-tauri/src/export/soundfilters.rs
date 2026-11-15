@@ -192,7 +192,7 @@ fn envelope_gain(expr: &str) -> String {
 }
 
 /// A level that follows an envelope.
-pub(super) fn gain_envelope_filter(points: &[EnvelopePoint]) -> String {
+pub(crate) fn gain_envelope_filter(points: &[EnvelopePoint]) -> String {
     let expr = envelope_expr(&timed(points, |v| v));
     format!(",{}", envelope_gain(&expr))
 }
