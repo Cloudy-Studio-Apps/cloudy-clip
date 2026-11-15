@@ -20,6 +20,7 @@ import { createPicker } from "./tint.pick";
 import { BUILTIN_LOOKS } from "./tint.looks";
 import { tintLooks } from "./tint.points";
 import { createThumbs } from "./tint.thumb";
+import { followViewerPasses } from "./tint.viewer";
 import { tintBindings } from "./tint.bindings";
 import { tintKeys } from "./tint.keys";
 import { tintMcpTools } from "./tint.mcp";
@@ -48,6 +49,7 @@ export const tintModule = defineModule({
     onDispose(
       followPageLeave(ctx.require(pagesRef).store, TINT_PAGE, () => void bus.run(clearViewing, {})),
     );
+    onDispose(followViewerPasses(view, preview.picture));
     const workspace = ctx.require(workspaceRef);
     const { files: luts, stop } = createLutFiles(
       ctx.require(projectRef),

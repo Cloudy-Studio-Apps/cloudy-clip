@@ -4,6 +4,7 @@ import { previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { holdsTime, landingTime } from "./logic/strip";
 import { tintRef } from "./tint.ref";
+import { setClean } from "./tint.viewer.commands";
 import type { GradeLevel, TintMode, ToolId } from "./tint.types";
 
 const MODES = ["baby", "leader"] as const satisfies readonly TintMode[];
@@ -121,12 +122,12 @@ export const setBypass = defineCommand({
   },
 });
 
-/** Draws grades again: ends bypass, before/after and Show. Run when the user leaves the Tint page, where they show. */
+/** Draws grades again: ends bypass, before/after, Show and the viewer's inspect tools. Run when the user leaves the Tint page, where they show. */
 export const clearViewing = defineCommand({
   id: "tint.clearViewing",
   label: "Show grades again",
   description:
-    "Turns bypass, before/after and Limit's Show off so the live preview draws every grade. The user's view only: not saved, no MCP tool.",
+    "Turns bypass, before/after, Limit's Show and the viewer's inspect tools (false color, clip warning, guides, sample points, side by side, clean viewer) off so the live preview draws every grade. The user's view only: not saved, no MCP tool.",
   undoable: false,
   input: z.object({}),
   run(ctx) {
@@ -134,7 +135,19 @@ export const clearViewing = defineCommand({
     if (picture.view.getState().bypass) picture.setBypass(false);
     if (picture.view.getState().compare !== null) picture.setCompare(null);
     const { view } = ctx.require(tintRef);
-    if (view.getState().showPicked !== null) view.setState({ showPicked: null });
+    const now = view.getState();
+    if (now.showPicked !== null) view.setState({ showPicked: null });
+    // The viewer's inspect tools belong to the page too.
+    if (now.falseColor || now.warning || now.guides || now.samples || now.side || now.clean) {
+      view.setState({
+        falseColor: false,
+        warning: false,
+        guides: false,
+        samples: null,
+        side: null,
+        clean: false,
+      });
+    }
   },
 });
 
@@ -147,4 +160,5 @@ export const tintViewCommands = [
   setLevel,
   setBypass,
   clearViewing,
+  setClean,
 ];

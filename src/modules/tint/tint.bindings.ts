@@ -2,15 +2,17 @@ import { LOCAL_ACTOR, pagesRef, type Keybinding, type ModuleContext } from "@/co
 import { projectRef } from "@/modules/project";
 import { neighbourClip, stripClips } from "./logic/strip";
 import { pinClip, setBypass } from "./tint.view.commands";
+import { setClean } from "./tint.viewer.commands";
 import { TINT_PAGE, tintRef } from "./tint.ref";
 
 /**
  * Up and Down on the Tint page: the clip before or after the current one in the strip, pinned
- * like a click would. Shift+D there flips the grade bypass. Nothing on other pages.
+ * like a click would. Shift+D there flips the grade bypass, Ctrl+F the clean viewer and Esc leaves it. Nothing on other pages.
  */
 export function tintBindings(ctx: ModuleContext): Keybinding[] {
+  const onTint = () => ctx.require(pagesRef).store.getState().active === TINT_PAGE;
   const step = (by: -1 | 1) => () => {
-    if (ctx.require(pagesRef).store.getState().active !== TINT_PAGE) return null;
+    if (!onTint()) return null;
     const project = ctx.require(projectRef);
     const open = project.view.openFor(LOCAL_ACTOR);
     if (open === null) return null;
@@ -22,13 +24,24 @@ export function tintBindings(ctx: ModuleContext): Keybinding[] {
     { id: "tint.previousClip", key: "arrowup", resolve: step(-1) },
     { id: "tint.nextClip", key: "arrowdown", resolve: step(1) },
     {
+      id: "tint.cleanViewer",
+      key: "f",
+      mod: true,
+      resolve: () => (onTint() ? { command: setClean.id, input: {} } : null),
+    },
+    {
+      id: "tint.leaveCleanViewer",
+      key: "escape",
+      resolve: () =>
+        onTint() && ctx.require(tintRef).view.getState().clean
+          ? { command: setClean.id, input: { on: false } }
+          : null,
+    },
+    {
       id: "tint.bypass",
       key: "d",
       shift: true,
-      resolve: () =>
-        ctx.require(pagesRef).store.getState().active === TINT_PAGE
-          ? { command: setBypass.id, input: {} }
-          : null,
+      resolve: () => (onTint() ? { command: setBypass.id, input: {} } : null),
     },
   ];
 }

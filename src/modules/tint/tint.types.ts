@@ -5,6 +5,7 @@ import type {
   BlendMode,
   Clip,
   ClipId,
+  StillId,
   ClipPlacement,
   Correction,
   CompositionId,
@@ -72,6 +73,10 @@ export type CurveShape = "tone" | "flat" | "hue";
 /** What the left panel shows. */
 export type GradeTab = "grade" | "looks";
 
+/** What side by side shows on the left: a saved still, or another clip's frame at a time. */
+export type SideSource =
+  { kind: "still"; stillId: StillId } | { kind: "clip"; clipId: ClipId; time: Micros };
+
 /** The page's view state, per kernel and never in history. */
 export interface TintView {
   mode: TintMode;
@@ -87,10 +92,16 @@ export interface TintView {
   selected: string | null;
   /** Index into the Color mix families. */
   family: number;
+  /** Viewer pass painting luma bands (`tint.falseColor`). */
   falseColor: boolean;
+  /** Viewer pass marking clipped pixels (`tint.warning`). */
   warning: boolean;
+  /** Action and title safe frames over the picture. */
   guides: boolean;
-  samples: boolean;
+  /** Sample points: null is off, else the pinned points (up to three). */
+  samples: FramePoint[] | null;
+  /** What the left half of the viewer shows beside the graded picture, or null. */
+  side: SideSource | null;
   /** The viewer fills the window. */
   clean: boolean;
   /** The viewer waits for one click to pick a color (Curves' Pick hue, Color mix's Pick, Limit's droppers); Escape stops it. */

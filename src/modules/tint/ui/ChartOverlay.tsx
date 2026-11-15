@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
+import { FrameBox } from "./FrameBox";
 import { startCornerDrag } from "./chart.gesture";
 import { paintChart } from "./chart.paint";
 import { useTintView } from "./view.hook";
@@ -19,31 +20,6 @@ export function ChartOverlay({ stage }: { stage: React.RefObject<HTMLElement | n
   const box = useRef<HTMLDivElement>(null);
   const path = useRef<SVGPathElement>(null);
   const handles = useRef<(HTMLButtonElement | null)[]>([]);
-  const shown = corners !== null;
-  useEffect(() => {
-    if (!shown) return;
-    let frame = 0;
-    let last = "";
-    const follow = () => {
-      const canvas = stage.current?.querySelector("canvas");
-      const el = box.current;
-      const parent = el?.offsetParent;
-      if (canvas && el && parent) {
-        const c = canvas.getBoundingClientRect();
-        const p = parent.getBoundingClientRect();
-        const place = [c.left - p.left, c.top - p.top, c.width, c.height];
-        const key = place.join();
-        if (key !== last) {
-          last = key;
-          const [left, top, width, height] = place.map((n) => `${n}px`);
-          Object.assign(el.style, { left, top, width, height });
-        }
-      }
-      frame = requestAnimationFrame(follow);
-    };
-    follow();
-    return () => cancelAnimationFrame(frame);
-  }, [shown, stage]);
   useLayoutEffect(() => {
     if (corners) paintChart(path.current, handles.current, corners);
   }, [corners]);
@@ -63,7 +39,7 @@ export function ChartOverlay({ stage }: { stage: React.RefObject<HTMLElement | n
     });
   };
   return (
-    <div ref={box} className="pointer-events-none absolute z-10">
+    <FrameBox stage={stage} ref={box}>
       <svg
         viewBox="0 0 1 1"
         preserveAspectRatio="none"
@@ -90,6 +66,6 @@ export function ChartOverlay({ stage }: { stage: React.RefObject<HTMLElement | n
           className="pointer-events-auto absolute size-3.5 -translate-1/2 cursor-move rounded-xs border-[1.5px] border-foreground shadow-[0_0_0_1px_black]"
         />
       ))}
-    </div>
+    </FrameBox>
   );
 }

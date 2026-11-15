@@ -31,9 +31,9 @@ export interface GradeSubject {
   grade: ClipGrade | null;
 }
 
-/** A button of the viewer's tool bar: before/after or bypass, both state of the preview's picture. */
+/** A button of the viewer's tool bar: before/after and bypass (the preview's picture state) or an inspect tool (the page's view state). */
 export interface ViewerTool {
-  key: "compare" | "bypass";
+  key: "compare" | "bypass" | "samples" | "falseColor" | "warning" | "guides";
   icon: ComponentType;
   label: string;
 }
