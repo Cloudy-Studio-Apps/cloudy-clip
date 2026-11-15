@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createKernel, type Kernel } from "@/core";
 import { compositionModule } from "@/modules/composition";
 import { inspectorModule } from "@/modules/inspector";
-import { keyTargets, keyframeModule, setKey } from "@/modules/keyframe";
+import { keyframeModule, setKey } from "@/modules/keyframe";
 import { elementModule } from "@/modules/element";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
@@ -16,11 +16,11 @@ import {
   type Correction,
 } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
+import { workspaceModule } from "@/modules/workspace";
 import { resetGrade } from "./tint.commands";
 import { setShotGroup, setVersion } from "./tint.shot.commands";
 import { group, ungroup } from "./tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "./tint.node.commands";
-import { tintKeys } from "./tint.keys";
 import { tintModule } from "./tint.module";
 import { pastePart } from "./logic/paste";
 import { emptyGrade, toStack } from "./logic/stack";
@@ -44,6 +44,9 @@ async function ok<T = unknown>(command: Parameters<Kernel["bus"]["run"]>[0], inp
 }
 
 beforeEach(async () => {
+  // The preview module redraws on a frame; node has none.
+  vi.stubGlobal("requestAnimationFrame", (cb: () => void) => setTimeout(cb, 0));
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => clearTimeout(id));
   kernel = await createKernel();
   const project = seedProject();
   project.media.mv = { id: "mv", name: "a.mp4", path: "/a.mp4", kind: "video", size: 1 };
@@ -56,6 +59,10 @@ beforeEach(async () => {
     createFakeFontsModule(),
     previewModule,
     timelineModule,
+    compositionModule,
+    inspectorModule,
+    keyframeModule,
+    workspaceModule,
     tintModule,
   ]);
   const added = await ok<{ clips: { id: string }[] }>(addClip, { mediaId: "mv", start: 0 });
@@ -76,22 +83,6 @@ describe("grade commands", () => {
   });
 
   it("with at, a keyed value takes a key and the rest a static value, one undo step", async () => {
-    // tint itself isn't loaded here (no workspace), so its key target comes in on its own.
-    await kernel.modules.loadAll([
-      compositionModule,
-      inspectorModule,
-      keyframeModule,
-      defineModule({
-        ref: defineModuleRef<null>("tintKeysOnly"),
-        name: "Tint keys",
-        tier: "feature",
-        requires: ["keyframe"],
-        setup(ctx) {
-          ctx.contribute(keyTargets, tintKeys);
-          return { api: null };
-        },
-      }),
-    ]);
     const { nodeId } = await ok<{ nodeId: string }>(addCorrection, { target });
     const path = `grade.nodes.${nodeId}.values.saturation`;
     await ok(setKey, { clipId, path, at: 0, value: 0.5 });
@@ -377,7 +368,7 @@ describe("grade commands", () => {
 });
 
 describe("paste part", () => {
-  // tintRef is not loaded here (the module needs workspace), so the clipboard commands are tested through their logic.
+  // The clipboard commands are tested through their logic.
   it("pastes only Basics into the matching corrections, adding one when missing", () => {
     const layer = (values: object): Correction => ({
       kind: "correct",
