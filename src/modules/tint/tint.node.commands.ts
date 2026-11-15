@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CommandFailure, createId, defineCommand, type CommandContext } from "@/core";
 import {
   BUILTIN_LUT_PREFIX,
+  correctionOf,
   correctionValuesSchema,
   gradeLimitSchema,
   projectRef,
@@ -9,6 +10,7 @@ import {
   type Correction,
   type ProjectState,
 } from "@/modules/project";
+import { leafAt } from "./logic/keyable";
 import { emptyGrade } from "./logic/stack";
 import {
   insertLayer,
@@ -23,6 +25,7 @@ import {
   readGrade,
   writeGrade,
 } from "./tint.guards";
+import { keyPatch } from "./tint.key.patch";
 import type { GradeTarget, StackPosition } from "./tint.types";
 
 /** Which grade: give exactly one of clipId, groupId (a shot group) or compositionId (the whole timeline). */
@@ -109,17 +112,18 @@ export function refuseUnlessEditable(
   grade: ClipGrade | null,
   id: string,
   fields: readonly string[],
+  same?: (sub: string) => boolean,
 ): void {
   if (existing(grade, id).kind !== "correct") {
     throw new CommandFailure("tint.node_not_found", `Node "${id}" is not a correction`, {
       nodeId: id,
     });
   }
-  const animated = animatedFields(state, target, id, fields);
+  const animated = animatedFields(state, target, id, fields, same);
   if (animated.length > 0) {
     throw new CommandFailure(
       "tint.animated",
-      `${animated.join(", ")} of node "${id}" has keys. Change it at a time with a key, not a static value.`,
+      `${animated.join(", ")} of node "${id}" has keys. Change it at a time with keyframe_set (path grade.nodes.${id}.values.<field>, or grade.nodes.${id}.opacity; keyframe_list_fields lists them), or pass "at" to tint_set_correction; keyframe_clear drops the keys.`,
       { nodeId: id, fields: animated },
     );
   }
@@ -189,10 +193,15 @@ export const setCorrection = defineCommand({
   id: "tint.setCorrection",
   label: "Change correction",
   description:
-    "Changes one correction: patch.values (a partial of the correction's fields, merged over what it has: each given field replaces that field whole), patch.limit (what it touches; null removes the limit; { from: nodeId } shares the pick of another correction, one above it whose limit limits something, instead of its own: its key, its refine and clean up, and inverted again when this limit has invert: true; or names a key join from tint_wire, whose combined key it mixes by), patch.lut ({ id, strength 0 to 1 }: a LUT from tint_import_lut, after Creative; null removes it), patch.opacity (0 to 1), patch.on and patch.name. Fields at their defaults are not stored. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (or the node is not a correction, or limit.from names no node), tint.key_not_limited (limit.from is neither a key join nor a correction with a limit), tint.key_cycle (limit.from is this correction or reads it: below it in the stack), tint.key_not_above (limit.from is not above it: another branch), tint.lut_not_found (patch.lut names a LUT the project hasn't imported), tint.invalid_grade (a value out of range; nothing is written) or tint.animated (a field that has keys needs a key at a time, not a static value).",
+    "Changes one correction: patch.values (a partial of the correction's fields, merged over what it has: each given field replaces that field whole), patch.limit (what it touches; null removes the limit; { from: nodeId } shares the pick of another correction, one above it whose limit limits something, instead of its own: its key, its refine and clean up, and inverted again when this limit has invert: true; or names a key join from tint_wire, whose combined key it mixes by), patch.lut ({ id, strength 0 to 1 }: a LUT from tint_import_lut, after Creative; null removes it), patch.opacity (0 to 1), patch.on and patch.name. Fields at their defaults are not stored. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (or the node is not a correction, or limit.from names no node), tint.key_not_limited (limit.from is neither a key join nor a correction with a limit), tint.key_cycle (limit.from is this correction or reads it: below it in the stack), tint.key_not_above (limit.from is not above it: another branch), tint.lut_not_found (patch.lut names a LUT the project hasn't imported), tint.invalid_grade (a value out of range; nothing is written) or tint.animated (a number that has keys needs a key at a time, not a static value: a patch may hold a keyed number only at its stored value, e.g. a wheel written whole around a keyed component). With at (a timeline time, clip grades only), each keyed number the patch changes from its value at that time gets a key there instead (keyframe_set), in the same undo step; the rest is written as usual.",
   undoable: true,
   input: z.object({
     target: targetSchema,
+    at: z
+      .number()
+      .int()
+      .optional()
+      .describe("Timeline time in microseconds: keyed numbers in the patch get a key here."),
     nodeId,
     patch: z.object({
       values: valuesSchema.optional(),
@@ -203,13 +212,21 @@ export const setCorrection = defineCommand({
       name: z.string().optional(),
     }),
   }),
-  run(ctx, { target, nodeId: id, patch }) {
+  async run(ctx, { target, at, nodeId: id, patch: asked }) {
     const { store } = ctx.require(projectRef);
+    checkLut(store.getState(), asked.lut);
+    const patch =
+      at !== undefined && "clipId" in target
+        ? await keyPatch(ctx, target.clipId, id, asked, at)
+        : asked;
     const state = store.getState();
-    checkLut(state, patch.lut);
     const grade = readGrade(state, target);
     const fields = [...Object.keys(patch.values ?? {}), ...liveFields(patch)];
-    refuseUnlessEditable(state, target, grade, id, fields);
+    const before = grade && Object.hasOwn(grade.nodes, id) ? grade.nodes[id] : undefined;
+    const stored = before?.kind === "correct" ? correctionOf(before) : undefined;
+    const same = (sub: string) =>
+      stored !== undefined && leafAt(patch.values, sub) === leafAt(stored, sub);
+    refuseUnlessEditable(state, target, grade, id, fields, same);
     const next = structuredClone(grade!);
     const node = next.nodes[id] as Correction;
     if (patch.values) node.values = { ...node.values, ...structuredClone(patch.values) };

@@ -7,6 +7,7 @@ import {
   pagesRef,
   topBarItems,
 } from "@/core";
+import { keyTargets } from "@/modules/keyframe";
 import { mediaRef } from "@/modules/media";
 import { frameFilters, pictureFilters, previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
@@ -19,6 +20,7 @@ import { createPicker } from "./tint.pick";
 import { BUILTIN_LOOKS } from "./tint.looks";
 import { tintLooks } from "./tint.points";
 import { createThumbs } from "./tint.thumb";
+import { tintBindings } from "./tint.bindings";
 import { tintKeys } from "./tint.keys";
 import { tintMcpTools } from "./tint.mcp";
 import { TINT_PAGE, tintRef } from "./tint.ref";
@@ -31,7 +33,7 @@ export const tintModule = defineModule({
   ref: tintRef,
   name: "Tint",
   tier: "feature",
-  requires: ["project", "preview", "timeline", "media", "workspace"],
+  requires: ["project", "preview", "timeline", "media", "workspace", "keyframe", "inspector"],
   commands: [...tintCommands, ...tintViewCommands],
   mcpTools: tintMcpTools,
   setup(ctx) {
@@ -81,7 +83,8 @@ export const tintModule = defineModule({
     });
     contribute(topBarItems, { id: "tint.sealSwitch", slot: "right", component: SealSwitch });
     contribute(tintLooks, ...BUILTIN_LOOKS);
-    contribute(keybindings, ...tintKeys(ctx));
+    contribute(keybindings, ...tintBindings(ctx));
+    contribute(keyTargets, tintKeys);
     return {
       api: {
         clipboard: createTintClipboard(),
