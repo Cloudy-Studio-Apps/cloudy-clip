@@ -8,7 +8,7 @@ const captureFrame = defineMcpTool({
   name: "preview_capture_frame",
   readOnly: true,
   description:
-    "Returns a PNG of your open composition, so you can see the result. Pass `time` (microseconds) to look at a specific moment; otherwise your playhead is used. The user's preview doesn't move.",
+    "Returns a PNG of your open composition, so you can see the result. Pass `time` (microseconds) to look at a specific moment; otherwise your playhead is used. Neither your playhead nor the user's preview moves.",
   input: z.object({ time: z.number().int().min(0).optional().describe("Microseconds") }),
   async handler({ time }, ctx) {
     const preview = ctx.require(previewRef);
@@ -19,9 +19,7 @@ const captureFrame = defineMcpTool({
       return errorResult(toAppError(error));
     }
     try {
-      const clock = preview.clockFor(ctx.caller.key);
-      if (time !== undefined) clock.seek(time);
-      const at = clock.getTime();
+      const at = time ?? preview.clockFor(ctx.caller.key).getTime();
       const data = await preview.captureAt(at, compositionId);
       return {
         content: [
