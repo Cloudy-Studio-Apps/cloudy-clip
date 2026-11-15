@@ -426,3 +426,35 @@ the end.
 
 - **Pass:** every row is within one 8-bit step.
 - **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.
+
+### Camera color spaces after fix round 1 (Task 21)
+
+The conversion now keeps light over 1 (only the low end clamps), sRGB matches display light
+(`eotf(v)^(1/2.4)`), and a camera curve reads code values only from a video-range file
+(`codeValue`); a full-range file or an image is read as it is. Same method and sets as above, one
+row per space and range. "Bright" counts pixels whose CPU result has a channel over 1 (kept).
+"From in range" counts misses over 1 step on pixels whose converted source stayed within 0…1.
+
+| Space, range     | Alone: max | Over 1 | Graded: max | Off by 1 | Over 1 | From in range | Bright (alone) |
+| ---------------- | ---------- | ------ | ----------- | -------- | ------ | ------------- | -------------- |
+| sRGB             | 0          | 0      | 1           | 422      | 0      | 0             | 0              |
+| S-Log3, video    | 0          | 0      | 4           | 239      | 2      | 0             | 4 007          |
+| Apple Log, video | 0          | 0      | 1           | 264      | 0      | 0             | 3 263          |
+| C-Log2, video    | 1          | 0      | 1           | 214      | 0      | 0             | 4 176          |
+| C-Log3, video    | 0          | 0      | 1           | 195      | 0      | 0             | 4 236          |
+| V-Log, video     | 0          | 0      | 1           | 270      | 0      | 0             | 4 027          |
+| F-Log, video     | 1          | 0      | 1           | 275      | 0      | 0             | 3 144          |
+| S-Log3, full     | 0          | 0      | 1           | 211      | 0      | 0             | 4 182          |
+| Apple Log, full  | 0          | 0      | 1           | 262      | 0      | 0             | 3 576          |
+| C-Log2, full     | 0          | 0      | 2           | 171      | 2      | 0             | 4 264          |
+| C-Log3, full     | 0          | 0      | 3           | 264      | 11     | 0             | 4 296          |
+| V-Log, full      | 0          | 0      | 2           | 199      | 1      | 0             | 4 140          |
+| F-Log, full      | 1          | 0      | 1           | 274      | 0      | 0             | 3 553          |
+
+- **Alone:** every space and range is within one 8-bit step.
+- **Graded:** 16 of 384 000 values miss by 2 to 4 steps, all on pixels converted far over white
+  (1.8 to 8 after the conversion, saturated) and then pushed hard (contrast up to 1.5, saturation up
+  to 2, hue turns) back into range. The picture between passes is half-float (about 1/2000
+  relative), so a channel of 4 to 14 carries an error of a few thousandths, which those grades
+  bring down into the visible range. With highlights clamped (before this fix) the same rows were
+  within 1. No miss comes from a pixel whose conversion stayed within 0…1.

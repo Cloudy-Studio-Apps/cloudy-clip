@@ -12,6 +12,7 @@ import type {
   GradeLimit,
   GradeNode,
   GradeNodeId,
+  InputColorSpace,
   KeyJoin,
   NodeRef,
 } from "@/modules/project";
@@ -133,6 +134,9 @@ export interface StripClip {
   /** Its place in the strip, `"01"`. */
   no: string;
 }
+
+/** A camera color space: one with a log curve and its own gamut (not Rec.709 or sRGB). */
+export type CameraSpace = Exclude<InputColorSpace, "rec709" | "srgb">;
 
 /** A color, each channel 0 to 1 when in range: display-referred Rec.709. */
 export type Rgb = [number, number, number];

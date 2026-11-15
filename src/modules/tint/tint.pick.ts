@@ -11,6 +11,7 @@ import {
 } from "@/modules/project";
 import { pickAt } from "./logic/pick";
 import { pixelsOf } from "./tint.pixels";
+import { videoRange } from "./tint.range";
 import type { TintApi } from "./tint.types";
 
 /**
@@ -49,7 +50,14 @@ export function createPicker(
               clipTransform(shown),
             )
           : null;
-      return pickAt(frame, point, gradeOf(shown), nodeId, placement);
+      return pickAt(
+        frame,
+        point,
+        gradeOf(shown),
+        nodeId,
+        placement,
+        videoRange(clip, state, media),
+      );
     },
   };
 }

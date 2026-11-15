@@ -1,8 +1,10 @@
 import type { StoreApi } from "zustand";
+import type { MediaApi } from "@/modules/media";
 import type { PictureFilter } from "@/modules/preview";
 import { canGrade, gradeOf } from "@/modules/project";
 import { gradePasses } from "./render/passes";
 import { createGradeTextures } from "./render/textures";
+import { videoRange } from "./tint.range";
 import type { TintLive, TintView } from "./tint.types";
 
 /** Id of the picture filter that draws clip grades. */
@@ -16,16 +18,21 @@ export const TINT_CUT = "tint.cut";
  * Live values are laid over it in the live preview only (`target` `"preview"`): a capture or an
  * export draws the document as saved. A capture that passes `TINT_CUT` (a node id) draws the grade only
  * up to that node, for layer thumbnails; it is that capture's alone. In the live preview only, the
- * correction in `view.showPicked` draws its key instead (Limit's Show). One per kernel, since it
- * reads that kernel's live values and view.
+ * correction in `view.showPicked` draws its key instead (Limit's Show). A camera input reads the
+ * clip's file range from `media` (`videoRange`). One per kernel, since it reads that kernel's live
+ * values and view.
  */
-export function createTintFilter(live: TintLive, view: StoreApi<TintView>): PictureFilter {
+export function createTintFilter(
+  live: TintLive,
+  view: StoreApi<TintView>,
+  media: Pick<MediaApi, "getProbe">,
+): PictureFilter {
   const textures = createGradeTextures();
   return {
     id: TINT_GRADE_FILTER,
     order: 100,
     applies: (clip, project) => gradeOf(clip) !== null && canGrade(clip, project),
-    passes({ clip, target, options, size }) {
+    passes({ clip, project, target, options, size }) {
       const whole = gradeOf(clip);
       if (!whole) return [];
       const cut = target === "capture" ? options?.[TINT_CUT] : undefined;
@@ -33,7 +40,14 @@ export function createTintFilter(live: TintLive, view: StoreApi<TintView>): Pict
       const preview = target === "preview";
       const liveGrade = preview ? live.get(clip.id) : undefined;
       const show = preview ? view.getState().showPicked : null;
-      return gradePasses(grade, liveGrade, textures, size.width / Math.max(size.height, 1), show);
+      return gradePasses(
+        grade,
+        liveGrade,
+        textures,
+        size.width / Math.max(size.height, 1),
+        show,
+        videoRange(clip, project, media),
+      );
     },
   };
 }

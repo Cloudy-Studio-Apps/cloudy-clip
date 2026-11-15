@@ -25,7 +25,7 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
   - Proxies: pro/camera formats (ProRes, APV, 10-bit HEVC, high bitrates, 24-bit PCM, …) and containers
     a media element can't open (`always_converted`: AVI, MPG, MTS, MXF, AIFF, WMA, …) get a light
     H.264 copy made with the system FFmpeg. Progress arrives as `media://proxy` events and is stored
-    in `probe.proxy`, with `hasAudio` once ffprobe has read the streams. Without FFmpeg, files are
+    in `probe.proxy`, with `hasAudio` once ffprobe has read the streams, and `meta` (size, rate, length, and `fullRange: true` for a video stored full range: `color_range` pc or a `yuvj` format; missing means video range). Without FFmpeg, files are
     played directly.
   - Masters: a proxy is capped at 1280, too small to export from, so `prepareMaster(id, onProgress)` makes a full-size H.264 copy of
     a file that has one (`media_prepare_master`, cached with the proxies, one encode at a time), streamed by `masterUrl(id)`

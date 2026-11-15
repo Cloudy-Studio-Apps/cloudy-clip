@@ -86,6 +86,8 @@ export interface ProbeMeta {
   duration: Micros;
   /** How many frames an animated image has. Only animated images have it. */
   frames?: number;
+  /** A video stored full range (ffprobe's `color_range` pc, or a `yuvj` format); missing for video range. */
+  fullRange?: boolean;
 }
 
 /** What a composition takes from a picture. */

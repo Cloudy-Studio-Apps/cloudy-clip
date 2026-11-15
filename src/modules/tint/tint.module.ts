@@ -47,7 +47,7 @@ export const tintModule = defineModule({
     );
     const picker = createPicker(ctx.require(projectRef), preview, ctx.require(mediaRef));
     onDispose(redrawOnShow(view, () => preview.redraw()));
-    contribute(pictureFilters, createTintFilter(live, view));
+    contribute(pictureFilters, createTintFilter(live, view, ctx.require(mediaRef)));
     contribute(appPages, {
       id: TINT_PAGE,
       label: "Tint",

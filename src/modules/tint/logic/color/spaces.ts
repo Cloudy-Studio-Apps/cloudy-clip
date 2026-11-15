@@ -1,21 +1,27 @@
 import type { InputColorSpace } from "@/modules/project";
-import type { Rgb } from "../../tint.types";
+import type { CameraSpace, Rgb } from "../../tint.types";
 import { toDisplay } from "./basics";
 
 // Camera color spaces to Rec.709, the CPU reference. `render/spaces.glsl.ts` is the same math in
 // GLSL and takes every constant below from here. Per pixel:
 //
-// 1. A camera curve reads the 10-bit code value the camera wrote, as a share of 1023. The app
-//    decodes video range to full (`v = (CV - 64) / 876`), so the curve's input is
-//    `x = (876 v + 64) / 1023` (`codeValue`). sRGB is a full-range still and reads `v` as it is.
+// 1. A camera curve reads the code value the camera wrote, as a share of full scale. A video-range
+//    file is decoded to full (`v = (CV - 64) / 876`), so its curve input is `x = (876 v + 64) / 1023`
+//    (`codeValue`); a full-range file (ffprobe's `color_range` pc, or a `yuvj` format) or an image
+//    already holds `x = v`.
 // 2. The curve gives scene-linear light (18% gray at 0.18), each channel on its own.
 // 3. A 3 × 3 matrix takes the camera's gamut to Rec.709 primaries. Every gamut here has a D65 white,
 //    as Rec.709 does, so no white adaptation (Bradford) is needed. The matrices are
 //    `NPM(Rec.709)⁻¹ · NPM(gamut)` from the published primaries (SMPTE RP 177), rounded to 8 places;
 //    each row sums to 1, so white stays white.
-// 4. The Rec.709 transfer (`toDisplay`, the BT.709 OETF the corrections already use), then a clamp
-//    to 0…1. This is the one clamp: out-of-gamut colors (negative after the matrix) and light over
-//    1 (log highlights) are cut here, at the end, and nowhere before.
+// 4. The Rec.709 transfer (`toDisplay`, the BT.709 OETF the corrections already use). Only the low
+//    end is clamped (at 0, after the transfer: colors outside Rec.709 go negative after the
+//    matrix). Light over 1 (log highlights, up to about 38 for S-Log3) is kept, so exposure and
+//    rolloff can bring it back; the output clamps at the end of the whole grade, as it always does.
+//    On 8-bit fallback targets (no half floats) it clips at the first pass anyway.
+//
+// sRGB is display light, not scene light: its EOTF, then the inverse of the gamma 2.4 the output is
+// shown with (BT.1886), `v' = eotf(v)^(1 / 2.4)`, so a still looks on the Rec.709 output as it did.
 //
 // Sources (formulas written from these documents, not fetched):
 // - Sony, "Technical Summary for S-Gamut3.Cine/S-Log3 and S-Gamut3/S-Log3".
@@ -122,35 +128,39 @@ export function codeValue(v: number): number {
   return (876 * v + 64) / 1023;
 }
 
-/** Each camera curve: a decoded value (full range) to scene-linear light. */
-export const CURVES: Record<Exclude<InputColorSpace, "rec709">, (v: number) => number> = {
-  srgb: (v) => (v <= SRGB.cut ? v / SRGB.slope : Math.pow((v + SRGB.a) / (1 + SRGB.a), SRGB.power)),
-  slog3(v) {
-    const cv = codeValue(v) * 1023;
+/** The output's display gamma (BT.1886), which sRGB light is encoded back with. */
+export const DISPLAY_GAMMA = 2.4;
+
+/** sRGB to the Rec.709 gamma 2.4 output, matching display light. */
+export function srgbToDisplay(v: number): number {
+  const light = v <= SRGB.cut ? v / SRGB.slope : Math.pow((v + SRGB.a) / (1 + SRGB.a), SRGB.power);
+  return Math.pow(light, 1 / DISPLAY_GAMMA);
+}
+
+/** Each camera curve: a code value (a share of full scale) to scene-linear light. */
+export const CURVES: Record<CameraSpace, (x: number) => number> = {
+  slog3(x) {
+    const cv = x * 1023;
     return cv >= SLOG3.cut
       ? Math.pow(10, (cv - SLOG3.gray) / SLOG3.step) * 0.19 - 0.01
       : ((cv - SLOG3.black) * SLOG3.toe) / (SLOG3.cut - SLOG3.black);
   },
-  vlog(v) {
-    const x = codeValue(v);
+  vlog(x) {
     return x >= VLOG.cut ? Math.pow(10, (x - VLOG.d) / VLOG.c) - VLOG.b : (x - VLOG.e) / VLOG.f;
   },
-  flog(v) {
-    const x = codeValue(v);
+  flog(x) {
     return x >= FLOG.cut
       ? (Math.pow(10, (x - FLOG.d) / FLOG.c) - FLOG.b) / FLOG.a
       : (x - FLOG.f) / FLOG.e;
   },
-  clog2(v) {
-    const x = codeValue(v);
+  clog2(x) {
     const l =
       x >= CLOG2.cut
         ? (Math.pow(10, (x - CLOG2.cut) / CLOG2.c) - 1) / CLOG2.a
         : -(Math.pow(10, (CLOG2.cut - x) / CLOG2.c) - 1) / CLOG2.a;
     return l * CANON_SCALE;
   },
-  clog3(v) {
-    const x = codeValue(v);
+  clog3(x) {
     const l =
       x < CLOG3.low
         ? -(Math.pow(10, (CLOG3.lowAt - x) / CLOG3.c) - 1) / CLOG3.a
@@ -159,19 +169,14 @@ export const CURVES: Record<Exclude<InputColorSpace, "rec709">, (v: number) => n
           : (Math.pow(10, (x - CLOG3.highAt) / CLOG3.c) - 1) / CLOG3.a;
     return l * CANON_SCALE;
   },
-  appleLog(v) {
-    const x = codeValue(v);
+  appleLog(x) {
     const { r0, c, beta, gamma, delta, cut } = APPLE_LOG;
     return x >= cut ? Math.pow(2, (x - delta) / gamma) - beta : x >= 0 ? Math.sqrt(x / c) + r0 : r0;
   },
 };
 
-/** Each space's gamut to Rec.709 (null: Rec.709 primaries already). */
-export const SPACE_GAMUTS: Record<
-  Exclude<InputColorSpace, "rec709">,
-  (typeof GAMUTS)[keyof typeof GAMUTS] | null
-> = {
-  srgb: null,
+/** Each camera space's gamut to Rec.709. */
+export const SPACE_GAMUTS: Record<CameraSpace, (typeof GAMUTS)[keyof typeof GAMUTS]> = {
   slog3: GAMUTS.sGamut3Cine,
   vlog: GAMUTS.vGamut,
   flog: GAMUTS.rec2020,
@@ -181,16 +186,17 @@ export const SPACE_GAMUTS: Record<
 };
 
 /**
- * A pixel of a source in `space` as display-referred Rec.709: its curve to linear, its gamut to
- * Rec.709, the Rec.709 transfer, clamped to 0…1 (the one clamp). Rec.709 is the pixel as it is.
+ * A pixel of a source in `space` as display-referred Rec.709. A camera space: its curve (on the
+ * code value: `codeValue` when `videoRange`, else the value itself) to linear, its gamut to Rec.709,
+ * the Rec.709 transfer, clamped at 0 only (light over 1 is kept for the grade). sRGB:
+ * `srgbToDisplay`. Rec.709 is the pixel as it is.
  */
-export function toRec709(rgb: Rgb, space: InputColorSpace): Rgb {
+export function toRec709(rgb: Rgb, space: InputColorSpace, videoRange = true): Rgb {
   if (space === "rec709") return rgb;
+  if (space === "srgb") return rgb.map(srgbToDisplay) as Rgb;
   const curve = CURVES[space];
-  const lin = rgb.map(curve) as Rgb;
-  const m = SPACE_GAMUTS[space];
-  const out = m
-    ? (m.map((row) => row[0] * lin[0] + row[1] * lin[1] + row[2] * lin[2]) as Rgb)
-    : lin;
-  return out.map((l) => Math.min(Math.max(toDisplay(l), 0), 1)) as Rgb;
+  const lin = rgb.map((v) => curve(videoRange ? codeValue(v) : v));
+  return SPACE_GAMUTS[space].map((row) =>
+    Math.max(toDisplay(row[0] * lin[0]! + row[1] * lin[1]! + row[2] * lin[2]!), 0),
+  ) as Rgb;
 }

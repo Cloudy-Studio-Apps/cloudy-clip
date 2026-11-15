@@ -5,6 +5,7 @@ import { INPUT_SPACES, type InputColorSpace } from "@/modules/project";
 import { Button, cn, SelectField } from "@/ui";
 import { setInput } from "../../tint.color.commands";
 import { DEMO_LUTS } from "../demo/demo.values";
+import { useCurrentEntry } from "../current.hook";
 import { useEditTarget } from "../edit.target.hook";
 import { settle } from "../settle";
 import { SPACE_NAMES } from "../space.names";
@@ -22,6 +23,8 @@ export function LutTool() {
   const [lut, setLut] = useState<string>(DEMO_LUTS[0].name);
   const { bus } = useKernel();
   const { clipId, grade } = useEditTarget();
+  // A composition's picture is Rec.709 already (`tint.setInput` refuses a camera space there).
+  const nested = useCurrentEntry()?.clip.compositionRef !== undefined;
   const setSpace = (input: string) => {
     if (clipId)
       void settle(bus.run(setInput, { clipIds: [clipId], input: input as InputColorSpace }));
@@ -62,7 +65,7 @@ export function LutTool() {
           label="Camera"
           value={grade?.input ?? "rec709"}
           onChange={setSpace}
-          disabled={!clipId}
+          disabled={!clipId || nested}
           options={INPUT_SPACES.map((s) => ({ value: s, label: SPACE_NAMES[s].name }))}
         />
         <p className="mt-3 text-sm text-muted-foreground">

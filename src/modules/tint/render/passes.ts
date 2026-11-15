@@ -30,8 +30,9 @@ import { inputPass } from "./spaces.glsl";
  * (the filter's, so they are baked again only when they change), keyed by node. `aspect` is the
  * picture's width over its height, for the vignette and the key's blur. With `show` (a
  * correction, on or off), the passes stop there with its key as white on black (Limit's Show).
- * A grade whose `input` is a camera space starts with one pass turning the source into Rec.709
- * (`inputPass`), which every node reads as the source; Rec.709 (the default) adds none.
+ * A grade whose `input` is a camera space or sRGB starts with one pass turning the source into
+ * Rec.709 (`inputPass`; `videoRange` says whether a camera curve reads the source back as video-range
+ * code values), which every node reads as the source; Rec.709 (the default) adds none.
  */
 export function gradePasses(
   grade: ClipGrade,
@@ -39,11 +40,12 @@ export function gradePasses(
   textures: GradeTextures,
   aspect: number,
   show?: GradeNodeId | null,
+  videoRange = true,
 ): GpuPass[] {
   const passes: GpuPass[] = [];
   const push = (pass: GpuPass) => passes.push(pass) - 1;
   const ops: GradeOps<number, number> = {
-    source: grade.input && grade.input !== "rec709" ? push(inputPass(grade.input)) : -1,
+    source: grade.input && grade.input !== "rec709" ? push(inputPass(grade.input, videoRange)) : -1,
     channel: (input, channel) => push(channelPass(input, channel)),
     key(params, input) {
       passes.push(...keyPasses(params, input, passes.length, aspect));

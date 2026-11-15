@@ -157,3 +157,9 @@ export interface GraphActions {
   tidy(): void;
   reset(): void;
 }
+
+/** A space's name in full (the LUT tool) and short (Baby Seal's flow label). */
+export interface SpaceName {
+  name: string;
+  short: string;
+}

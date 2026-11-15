@@ -45,7 +45,8 @@ export function pictureAt(placement: ClipPlacement, x: number, y: number): Pixel
  * through the corrections before `nodeId` with the CPU reference (`evaluatePixel`). `nodeId` null
  * (no correction yet) runs the whole grade, as a new correction goes below the others. With a
  * placement, a point off the clip's picture gives null; without one (size unknown) the point is
- * read where it is and `at` is the frame's own.
+ * read where it is and `at` is the frame's own. `videoRange` is the clip's (`tint.range.ts`), for
+ * the grade's input conversion.
  */
 export function pickAt(
   frame: PickFrame,
@@ -53,6 +54,7 @@ export function pickAt(
   grade: ClipGrade | null,
   nodeId: GradeNodeId | null,
   placement: ClipPlacement | null,
+  videoRange = true,
 ): Rgb | null {
   const x = Math.min(frame.width - 1, Math.max(0, Math.floor(point.u * frame.width)));
   const y = Math.min(frame.height - 1, Math.max(0, Math.floor(point.v * frame.height)));
@@ -62,5 +64,5 @@ export function pickAt(
     if (at.u < 0 || at.u > 1 || at.v < 0 || at.v > 1) return null;
   }
   const source = meanAround(frame, x, y);
-  return grade ? evaluatePixel(grade, source, at, nodeId ?? undefined) : source;
+  return grade ? evaluatePixel(grade, source, at, nodeId ?? undefined, videoRange) : source;
 }
