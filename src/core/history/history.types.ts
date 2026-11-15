@@ -59,6 +59,8 @@ export interface History {
   redo(actor?: ActorId): HistoryEntry | null;
   /** The label `undo(actor)` would revert. */
   undoLabelOf(actor: ActorId): string | null;
+  /** The label `redo(actor)` would reapply. */
+  redoLabelOf(actor: ActorId): string | null;
   /** From here on, `undo()` and the snapshot's labels mean the local actor's steps. */
   scopeUndo(): void;
   /** Hands `from`'s remaining steps to `to` and drops `from`'s redo steps. */

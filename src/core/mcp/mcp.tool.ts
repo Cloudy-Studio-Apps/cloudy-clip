@@ -35,6 +35,7 @@ export function commandTool<I extends z.ZodObject, O>(
     description: options.description ?? command.description,
     input: command.input,
     readOnly: !(command.undoable || options.writes),
+    label: command.label,
     async handler(input, { bus }) {
       const result = await bus.execute(command.id, input);
       return result.ok ? textResult(result.value ?? { ok: true }) : errorResult(result.error);

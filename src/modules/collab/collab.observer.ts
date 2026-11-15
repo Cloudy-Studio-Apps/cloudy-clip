@@ -75,7 +75,7 @@ export function createCollabObserver(
         activity: { label: activityLabel(tool.name, "running"), status: "running" },
         target: toolTarget(tool.name) ?? who.target,
       });
-      return { label: activityLabel(tool.name, "done") };
+      return { label: tool.label ?? activityLabel(tool.name, "done") };
     },
     finished(caller, tool, result) {
       const who = store.getState().collaborators[caller.key];

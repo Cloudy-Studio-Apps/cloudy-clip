@@ -48,6 +48,8 @@ export interface McpToolDefinition<I extends z.ZodObject = z.ZodObject> {
   readonly input: I;
   /** Changes nothing in the project, so it stays open to a view-only agent. Defaults to false. */
   readonly readOnly?: boolean;
+  /** The label of the undo step an agent's call makes: the command's own. Unset: from the tool name. */
+  readonly label?: string;
   handler(input: z.output<I>, ctx: McpToolContext): McpToolResult | Promise<McpToolResult>;
 }
 

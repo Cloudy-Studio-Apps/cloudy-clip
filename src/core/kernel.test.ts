@@ -234,6 +234,21 @@ describe("kernel", () => {
     expect(kernel.modules.require(docRef).store.getState().title).toBe("a");
   });
 
+  it("history_list reports undo state for the caller, not the user", async () => {
+    const kernel = await createKernel();
+    await kernel.modules.load(docModule);
+    kernel.history.scopeUndo();
+    const bridge = bridgeOf(kernel);
+    await bridge.handle({ id: "1", name: "doc_rename", arguments: { title: "b" }, caller: claude });
+    const list = async (caller: typeof claude) => {
+      const res = await bridge.handle({ id: "2", name: "history_list", arguments: {}, caller });
+      return JSON.parse((res.content[0] as { text: string }).text);
+    };
+    expect(await list(claude)).toMatchObject({ canUndo: true, undoLabel: "Rename" });
+    expect(await list({ key: "agent-2", name: "Codex" })).toMatchObject({ canUndo: false });
+    expect(kernel.history.getSnapshot().canUndo).toBe(false);
+  });
+
   it("undoFor reverts another actor's step for the user, and refuses an agent", async () => {
     const kernel = await createKernel();
     await kernel.modules.load(docModule);

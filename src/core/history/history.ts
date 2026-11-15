@@ -183,6 +183,7 @@ export function createHistory(limit = DEFAULT_LIMIT): History {
       return entry;
     },
     undoLabelOf: (actor) => latestOf(actor)?.label ?? null,
+    redoLabelOf: (actor) => nextRedo(actor)?.label ?? null,
     scopeUndo() {
       scoped = true;
       changed();

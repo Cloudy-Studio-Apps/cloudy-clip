@@ -717,7 +717,7 @@ export interface ScopeStats {
   b: ChannelStats;
   clipped: { low: number; high: number };
   histogram: number[];
-  skinDistance: number;
+  skinDistance: number | null;
 }
 
 /**

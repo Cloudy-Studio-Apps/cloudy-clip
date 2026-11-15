@@ -6,7 +6,6 @@ import {
   GRADE_RANGES,
   INPUT_SPACES,
   LIMIT_RANGES,
-  correctionOf,
   projectRef,
 } from "@/modules/project";
 import { KEYABLE_VALUES } from "./logic/keyable";
@@ -38,7 +37,7 @@ const getGrade = defineMcpTool({
   name: "tint_get_grade",
   readOnly: true,
   description:
-    "Returns a grade: layers (the stack top to bottom, closest to the source first; each a layer, a group of branches, or a sealed card of nodes the stack can't show) with each correction's number (\"01\"…) and name, and nodes by id with the correction's values in full (its own over the defaults), limit, opacity and on. Takes the same target as tint_add_correction. An ungraded target returns no layers. Fails with tint.target_not_found or tint.not_gradeable.",
+    "Returns a grade: layers (the stack top to bottom, closest to the source first; each a layer, a group of branches, or a sealed card of nodes the stack can't show) with each correction's number (\"01\"…) and name, and nodes by id with the correction's values: only what differs from the defaults (tint_describe lists them), limit, opacity and on. Takes the same target as tint_add_correction. An ungraded target returns no layers. Fails with tint.target_not_found or tint.not_gradeable.",
   input: z.object({ target: targetSchema }),
   handler({ target }, ctx) {
     const grade = readGrade(ctx.require(projectRef).store.getState(), target);
@@ -46,9 +45,7 @@ const getGrade = defineMcpTool({
     const nodes = Object.fromEntries(
       Object.entries(grade?.nodes ?? {}).map(([id, node]) => [
         id,
-        node.kind === "correct"
-          ? { ...node, number: numbers[id], values: correctionOf(node) }
-          : node,
+        node.kind === "correct" ? { ...node, number: numbers[id] } : node,
       ]),
     );
     return textResult({
@@ -98,7 +95,7 @@ const scopes = defineMcpTool({
   name: "tint_scopes",
   readOnly: true,
   description:
-    "Measures the graded frame of your open composition (or compositionId) at `at` microseconds (default: your playhead, in your open composition; with a compositionId other than the open one, pass `at`): r, g, b each { min, max, mean } as 8-bit values 0 to 255; clipped.low and clipped.high, the shares 0 to 1 of pixels with luma at or under 1% and at or over 99%; histogram, 16 luma buckets from black to white, each a share of the pixels (they sum to 1); skinDistance, the mean angle in degrees (0 to 180, 0 on the line) between each pixel's vectorscope hue and the 123 degree skin line, weighted by saturation. Returns the time measured as `time`. Neither the user's preview nor your playhead moves. Fails with preview.capture_failed.",
+    "Measures the graded frame of your open composition (or compositionId) at `at` microseconds (default: your playhead, in your open composition; with a compositionId other than the open one, pass `at`): r, g, b each { min, max, mean } as 8-bit values 0 to 255; clipped.low and clipped.high, the shares 0 to 1 of pixels with luma at or under 1% and at or over 99%; histogram, 16 luma buckets from black to white, each a share of the pixels (they sum to 1); skinDistance, the mean angle in degrees (0 to 180, 0 on the line) between each pixel's vectorscope hue and the 123 degree skin line, weighted by saturation (null when the picture has almost no color). Returns the time measured as `time`. Neither the user's preview nor your playhead moves. Fails with preview.capture_failed.",
   input: z.object({
     at: z.number().int().min(0).optional().describe("Microseconds"),
     compositionId: z.string().optional(),

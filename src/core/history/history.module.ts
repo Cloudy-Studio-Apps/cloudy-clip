@@ -26,10 +26,20 @@ export function createHistoryModule(history: History): ModuleDefinition {
       defineMcpTool({
         name: "history_list",
         description:
-          "Lists the undoable steps, oldest first, with who made each one (origin: user, agent or plugin; actor: which one).",
+          "Lists the undoable steps, oldest first, with who made each one (origin: user, agent or plugin; actor: which one). canUndo, canRedo, undoLabel and redoLabel are yours (what history_undo and history_redo would act on); past holds every actor's steps.",
         input: z.object({}),
         readOnly: true,
-        handler: (_input, ctx) => textResult(ctx.history.getSnapshot()),
+        handler(_input, { history: h, caller }) {
+          const undoLabel = h.undoLabelOf(caller.key);
+          const redoLabel = h.redoLabelOf(caller.key);
+          return textResult({
+            ...h.getSnapshot(),
+            canUndo: undoLabel !== null,
+            canRedo: redoLabel !== null,
+            undoLabel,
+            redoLabel,
+          });
+        },
       }),
     ],
     setup(ctx) {

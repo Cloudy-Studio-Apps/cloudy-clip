@@ -91,6 +91,9 @@ export function scopeData(frame: ImageData, kind: ScopeBinning): Float32Array {
   return grid;
 }
 
+/** Mean saturation (chroma, 0 to 1, per pixel) under which a picture has no color to measure: skinDistance is null. */
+const MIN_SKIN_WEIGHT = 0.01;
+
 /** The vectorscope's skin line, degrees counter-clockwise from +Cb. */
 export const SKIN_LINE = 123;
 
@@ -100,7 +103,7 @@ export const SKIN_LINE = 123;
  * buckets of luma from black to white, each a share of the pixels (they add up to 1).
  * skinDistance: the mean angle in degrees (0..180) between each pixel's hue on the vectorscope and
  * the 123° skin line, weighted by how saturated the pixel is; 0 is on the line. A frame with no
- * color gives 0.
+ * color (mean chroma under 0.01 of full, about 1 level of 255) gives null.
  */
 export function scopeStats(frame: ImageData): ScopeStats {
   const { data } = frame;
@@ -145,6 +148,6 @@ export function scopeStats(frame: ImageData): ScopeStats {
     b: channel(2),
     clipped: { low: share(low), high: share(high) },
     histogram: buckets.map(share),
-    skinDistance: weight > 0 ? Math.round((angle / weight) * 10) / 10 : 0,
+    skinDistance: weight / count >= MIN_SKIN_WEIGHT ? Math.round((angle / weight) * 10) / 10 : null,
   };
 }
