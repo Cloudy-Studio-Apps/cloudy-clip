@@ -28,6 +28,12 @@ fn check_size(raw: &str, bytes: u64) -> AppResult<()> {
 #[tauri::command]
 pub async fn tint_read_lut(path: String) -> Result<String, AppError> {
     let file = lut_path(&path)?;
+    // Checked before opening too: opening a FIFO or device would block until something writes to it.
+    if let Ok(meta) = tokio::fs::metadata(&file).await
+        && !meta.is_file()
+    {
+        return Err(AppError::InvalidInput(format!("Not a file: {path}")));
+    }
     let opened = match tokio::fs::File::open(&file).await {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             return Err(AppError::NotFound(format!("File not found: {path}")));
