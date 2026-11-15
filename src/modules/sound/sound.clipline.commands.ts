@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import { writeKeySpan } from "@/modules/keyframe";
-import { projectRef, volumeDbSchema } from "@/modules/project";
+import { contentTime, projectRef, volumeDbSchema } from "@/modules/project";
 import { VOLUME_PATH } from "./logic/clipline";
 import { audioTrack } from "./sound.guards";
 
@@ -15,7 +15,7 @@ export const writeClipPass = defineCommand({
   id: "sound.writeClipPass",
   label: "Draw clip volume",
   description:
-    'Replaces the volume keys ("sound.volumeDb") of a clip on an audio track from "from" to "to" (timeline microseconds, both included, inside the clip) with "points" ({at, db}, each inside that span, db -60 to 12), the level running straight from each point to the next. Keys outside the span stay as they were and the clip outside it plays as before: a key just before "from" and just after "to" holds the level the clip had there (its static volume when it had no keys), so the change is a step at the stroke\'s edges. With no points the span is cleared. One stroke of Draw volume over a clip, as one step; the keys move with the clip like any other. Fails with sound.line_range (a point outside the span, a span outside the clip or from after to), sound.clip_not_found and sound.not_audio, changing nothing.',
+    'Replaces the volume keys ("sound.volumeDb") of a clip on an audio track from "from" to "to" (timeline microseconds, both included, inside the clip) with "points" ({at, db}, each inside that span, db -60 to 12), the level running straight from each point to the next. Keys outside the span stay as they were and the clip outside it plays as before: a key just before "from" and just after "to" holds the level the clip had there (its static volume when it had no keys), so the change is a step at the stroke\'s edges. With no points the span is cleared. One stroke of Draw volume over a clip, as one step; the keys move with the clip like any other. Fails with sound.line_range (a point outside the span, a span outside the clip or from after to), sound.clip_not_found and sound.not_audio, changing nothing. Returns { keyIds }, the ids of the keys now in the span.',
   undoable: true,
   input: z.object({
     clipId: z.string(),
@@ -47,6 +47,10 @@ export const writeClipPass = defineCommand({
       to,
       points: points.map((point) => ({ at: point.at, value: point.db })),
     });
+    const after = ctx.require(projectRef).store.getState().clips[clipId]!;
+    const [low, high] = [contentTime(after, from), contentTime(after, to)];
+    const keys = after.animation?.[VOLUME_PATH]?.keys ?? [];
+    return { keyIds: keys.filter((k) => k.t >= low && k.t <= high).map((k) => k.id) };
   },
 });
 

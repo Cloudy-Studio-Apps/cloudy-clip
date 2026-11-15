@@ -90,17 +90,18 @@ function requireKeys(line: KeyTrack, ids: readonly string[]): void {
   if (missing) throw new CommandFailure("sound.key_not_found", `The line has no key "${missing}".`);
 }
 
-/** Runs `next` on the owner's line and writes what it gives, in one step. */
+/** Runs `next` on the owner's line and writes what it gives, in one step. Returns the new line. */
 function editLine(
   ctx: CommandContext,
   who: LineTarget,
   compositionIdInput: CompositionId | undefined,
   next: (owner: LineOwner) => KeyTrack | undefined,
-): void {
+): KeyTrack | undefined {
   const { store } = ctx.require(projectRef);
   const owner = lineOwner(ctx, store.getState(), who, compositionIdInput);
   const line = next(owner);
   ctx.mutate(store, (draft) => owner.write(draft, line));
+  return line;
 }
 
 const WHO =
@@ -110,13 +111,18 @@ const WHO =
 export const setLineKey = defineCommand({
   id: "sound.setLineKey",
   label: "Set volume line point",
-  description: `Writes a point on ${WHO}: at "at" (timeline microseconds) the volume is "db" (-60 to 12). A point on that frame is updated; otherwise one is added, easing like the one before it unless "ease" is given ({kind:"linear"}, {kind:"hold"}, {kind:"bezier",x1,y1,x2,y2} or {kind:"named",name:"bounce"|"elastic"}). The line holds its first level before the first point and its last after the last, and the fader adds to it. Moving or splitting clips never moves it. Fails with sound.not_audio, sound.track_not_found and composition.not_found.`,
+  description: `Writes a point on ${WHO}: at "at" (timeline microseconds) the volume is "db" (-60 to 12). A point on that frame is updated; otherwise one is added, easing like the one before it unless "ease" is given ({kind:"linear"}, {kind:"hold"}, {kind:"bezier",x1,y1,x2,y2} or {kind:"named",name:"bounce"|"elastic"}). The line holds its first level before the first point and its last after the last, and the fader adds to it. Moving or splitting clips never moves it. Fails with sound.not_audio, sound.track_not_found and composition.not_found. Returns { keyId }, the id of the point, for sound_move_line_keys and sound_remove_line_keys.`,
   undoable: true,
   input: z.object({ target, compositionId, at, db: volumeDbSchema, ease: keyEase.optional() }),
   run(ctx, input) {
-    editLine(ctx, input.target, input.compositionId, ({ line, tolerance }) =>
+    const line = editLine(ctx, input.target, input.compositionId, ({ line, tolerance }) =>
       writeKey(line ?? EMPTY_LINE, input.at, input.db, tolerance, input.ease),
     );
+    // The key written is the one nearest "at" (a point on that frame was updated, not added).
+    const key = line?.keys.reduce((a, b) =>
+      Math.abs(b.t - input.at) < Math.abs(a.t - input.at) ? b : a,
+    );
+    return { keyId: key?.id };
   },
 });
 
@@ -182,11 +188,11 @@ const points = z.array(z.object({ at, db: volumeDbSchema }));
 export const writePass = defineCommand({
   id: "sound.writePass",
   label: "Write volume line",
-  description: `Replaces the points of ${WHO} from "from" to "to" (timeline microseconds, both included) with "points" ({at, db}, each inside that span, db -60 to 12); points outside the span stay as they were, and the line outside it plays as before: a point 1 microsecond before "from" and 1 after "to" holds the level it had there (none where a point already sits), so the change is a step at the span's edges. The line runs straight from each written point to the next. With no points the span is cleared. This is one stroke of drawing or of a recorded fader pass. Fails with sound.line_range (a point outside the span or from after to), sound.not_audio and sound.track_not_found (a track), and composition.not_found (the master of a composition that isn't there), changing nothing.`,
+  description: `Replaces the points of ${WHO} from "from" to "to" (timeline microseconds, both included) with "points" ({at, db}, each inside that span, db -60 to 12); points outside the span stay as they were, and the line outside it plays as before: a point 1 microsecond before "from" and 1 after "to" holds the level it had there (none where a point already sits), so the change is a step at the span's edges. The line runs straight from each written point to the next. With no points the span is cleared. This is one stroke of drawing or of a recorded fader pass. Fails with sound.line_range (a point outside the span or from after to), sound.not_audio and sound.track_not_found (a track), and composition.not_found (the master of a composition that isn't there), changing nothing. Returns { keyIds }, the ids of the points now in the span.`,
   undoable: true,
   input: z.object({ target, compositionId, from: at, to: at, points }),
   run(ctx, { target: who, compositionId: comp, from, to, points: written }) {
-    editLine(ctx, who, comp, ({ line }) => {
+    const line = editLine(ctx, who, comp, ({ line }) => {
       if (from > to || written.some((point) => point.at < from || point.at > to)) {
         throw new CommandFailure(
           "sound.line_range",
@@ -196,6 +202,8 @@ export const writePass = defineCommand({
       const keys = written.map((point) => ({ t: point.at, value: point.db }));
       return writeSpan(line ?? EMPTY_LINE, from, to, keys, 0);
     });
+    // The two hold points just outside the span aren't part of the stroke.
+    return { keyIds: (line?.keys ?? []).filter((k) => k.t >= from && k.t <= to).map((k) => k.id) };
   },
 });
 
@@ -205,19 +213,22 @@ const span = z.object({ from: at, to: at, points });
 export const writePasses = defineCommand({
   id: "sound.writePasses",
   label: "Write volume line",
-  description: `Replaces several stretches of ${WHO} in one step, each as sound.writePass does: "spans" is a list of {from, to, points} (timeline microseconds, points {at, db} inside their span, db -60 to 12). Points between the spans stay as they were, ids and eases included. A fader pass that went round a loop or jumped ahead writes this way. Fails like sound.writePass: sound.line_range, sound.not_audio, sound.track_not_found and composition.not_found, changing nothing.`,
+  description: `Replaces several stretches of ${WHO} in one step, each as sound.writePass does: "spans" is a list of {from, to, points} (timeline microseconds, points {at, db} inside their span, db -60 to 12). Points between the spans stay as they were, ids and eases included. A fader pass that went round a loop or jumped ahead writes this way. Fails like sound.writePass: sound.line_range, sound.not_audio, sound.track_not_found and composition.not_found, changing nothing. Returns { keyIds }, the ids of the points now in the spans.`,
   undoable: true,
   input: z.object({ target, compositionId, spans: z.array(span).min(1) }),
   async run(ctx, { target: who, compositionId: comp, spans }) {
+    const keyIds: string[] = [];
     for (const { from, to, points: written } of spans) {
-      await ctx.execute(writePass, {
+      const pass = await ctx.execute(writePass, {
         target: who,
         ...(comp !== undefined && { compositionId: comp }),
         from,
         to,
         points: written,
       });
+      keyIds.push(...pass.keyIds);
     }
+    return { keyIds };
   },
 });
 
