@@ -7,7 +7,7 @@ import type {
   GradeLimit,
   GradeNodeId,
 } from "@/modules/project";
-import type { StackPosition } from "../tint.types";
+import type { StackPosition, WireEntry } from "../tint.types";
 
 /** A button of the viewer's tool bar: before/after or bypass, both state of the preview's picture. */
 export interface ViewerTool {
@@ -119,4 +119,41 @@ export interface LimitEdit {
   commit(limit: GradeLimit): void;
   /** Drops what was previewed. */
   cancel(): void;
+}
+
+/** A drag in the node graph, in graph units from where the press began. */
+export interface GraphDragMove {
+  dx: number;
+  dy: number;
+  /** The pointer, in graph units. */
+  at: readonly [number, number];
+}
+
+/** What starts a drag in the node graph. */
+export interface GraphDragOptions {
+  /** The pointerdown that started it. */
+  event: PointerEvent;
+  svg: SVGSVGElement;
+  /** Called on every move once past the dead zone. Draw to the DOM only. */
+  onMove(move: GraphDragMove): void;
+  /** Once: on release (where it ended), or null on Escape or when the pointer never left the dead zone. */
+  onEnd(move: GraphDragMove | null): void;
+}
+
+/** What the node graph can do to the current clip's grade. Each runs a command and tells the user if it is refused; false when it was. */
+export interface GraphActions {
+  /** Moves nodes (the rest stay where they are drawn): one undo step. */
+  place(moved: Record<string, { x: number; y: number }>): Promise<boolean>;
+  /** Wires: one undo step. */
+  wire(entry: WireEntry): Promise<boolean>;
+  /** Adds a correction before the selected one (else at the bottom), at a place, and selects it. */
+  addCorrection(at: readonly [number, number]): Promise<void>;
+  /** Wraps the selection in a group, as Baby Seal's + Add does. */
+  group(ids: string[], kind: "parallel" | "layer" | "channels"): Promise<void>;
+  /** Adds a key join of the selected correction's key, at a place, and selects it. */
+  sharedKey(at: readonly [number, number]): Promise<void>;
+  remove(nodeId: string): void;
+  /** Every node to its automatic place. */
+  tidy(): void;
+  reset(): void;
 }

@@ -1,7 +1,11 @@
 import { ClipboardPaste, Copy, Images, ListTree, RotateCcw, Workflow } from "lucide-react";
+import { useKernel } from "@/core";
 import { IconButton, SegmentedControl } from "@/ui";
+import { resetGrade } from "../tint.commands";
 import type { GradeTab } from "../tint.types";
 import { CurrentNote } from "./CurrentNote";
+import { useCurrentClip } from "./current.hook";
+import { settle } from "./settle";
 import { HeaderGap } from "./HeaderGap";
 import { LayerList } from "./LayerList";
 import { LooksTab } from "./looks/LooksTab";
@@ -17,6 +21,8 @@ export function GradePanel() {
   const mode = useTintView((v) => v.mode);
   const tab = useTintView((v) => v.leftTab);
   const set = useTintSet();
+  const { bus } = useKernel();
+  const clipId = useCurrentClip();
   const leader = mode === "leader";
   return (
     <TintPanel
@@ -48,7 +54,10 @@ export function GradePanel() {
           <IconButton label="Paste grade (Ctrl+V)" onClick={nothing}>
             <ClipboardPaste />
           </IconButton>
-          <IconButton label="Reset grade: remove every correction from this clip" onClick={nothing}>
+          <IconButton
+            label="Reset grade: remove every correction from this clip"
+            onClick={() => clipId && void settle(bus.run(resetGrade, { target: { clipId } }))}
+          >
             <RotateCcw />
           </IconButton>
         </>

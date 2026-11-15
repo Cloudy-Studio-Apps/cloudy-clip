@@ -322,6 +322,45 @@ export interface GraphPlaced {
   y: number;
 }
 
+/** A wire of the node graph, with where it starts and ends in graph units. */
+export interface GraphWire {
+  /** Where it starts: a node id or `"source"`. */
+  from: string;
+  /** Where it ends: a node id or `"out"`. */
+  to: string;
+  /** `r`, `g`, `b`: a channel; `key`: a key (dashed). */
+  kind: "picture" | "r" | "g" | "b" | "key";
+  a: GraphPoint;
+  b: GraphPoint;
+}
+
+/** A dashed box around the nodes Baby Seal shows as one thing, in graph units. */
+export interface GraphRegion {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Where a wire dropped: a node (and, on a channel join, which channel) or the graph's `out`. */
+export interface WireDrop {
+  nodeId: string;
+  channel?: "r" | "g" | "b";
+}
+
+/** One entry of `tint.wire`'s `set`. */
+export interface WireEntry {
+  nodeId: string;
+  input?: NodeRef;
+  inputs?: NodeRef[];
+  r?: NodeRef;
+  g?: NodeRef;
+  b?: NodeRef;
+  keys?: KeyJoin["keys"];
+}
+
 /** A curve point, x and y in 0..1. */
 export type CurvePoint = readonly [number, number];
 
