@@ -10,8 +10,10 @@ export function clipboardEntry(state: ProjectState, clipIds: readonly ClipId[]):
   const trackKinds = Object.fromEntries(
     clips.map(({ trackId }) => [trackId, state.tracks[trackId]!.kind]),
   );
+  const groups = clips.flatMap(({ gradeGroup }) => state.gradeGroups?.[gradeGroup ?? ""] ?? []);
   return {
     clips: structuredClone(clips),
+    gradeGroups: structuredClone([...new Map(groups.map((group) => [group.id, group])).values()]),
     origin: Math.min(...clips.map((clip) => clip.start)),
     trackKinds,
   };

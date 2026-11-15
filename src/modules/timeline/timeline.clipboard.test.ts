@@ -127,6 +127,7 @@ describe("paste", () => {
         { ...a, start: 0 },
         { ...b, start: 3 * S },
       ],
+      gradeGroups: [],
       origin: 0,
       trackKinds: { [a.trackId]: "audio", v1: "video" },
     });
@@ -138,6 +139,7 @@ describe("paste", () => {
     const a = await sound(0, 2);
     kernel.modules.require(timelineRef).clipboard.set("local", {
       clips: [{ ...a, mediaId: undefined, compositionRef: "c2", trackId: "v1" }] as never,
+      gradeGroups: [],
       origin: 0,
       trackKinds: { [a.trackId]: "audio", v1: "video" },
     });
@@ -149,6 +151,7 @@ describe("paste", () => {
     const a = await sound(0, 2);
     kernel.modules.require(timelineRef).clipboard.set("local", {
       clips: [{ ...a, mediaId: "gone" }],
+      gradeGroups: [],
       origin: 0,
       trackKinds: { [a.trackId]: "audio", v1: "video" },
     });
@@ -180,6 +183,20 @@ describe("the clipboard", () => {
     expect(doc().clips[a.id]).toBeUndefined();
     kernel.history.undo();
     expect(doc().clips[a.id]).toBeDefined();
+  });
+
+  it("cutting every clip of a shot group and pasting brings the group and its grade back", async () => {
+    const a = await sound(0, 2);
+    const grade = { nodes: {}, out: { node: "source" as const }, input: "slog3" as const };
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      gradeGroups: { g1: { id: "g1", name: "Day", grade } },
+      clips: { ...s.clips, [a.id]: { ...s.clips[a.id]!, gradeGroup: "g1" } },
+    }));
+    await run(kernel.bus.run(cutClips, { clipIds: [a.id] }));
+    expect(doc().gradeGroups).toBeUndefined();
+    const { clips } = await run(kernel.bus.run(pasteClips, { time: 5 * S }));
+    expect(clips[0]!.gradeGroup).toBe("g1");
+    expect(doc().gradeGroups?.g1?.grade).toEqual(grade);
   });
 
   it("duplicate lands right after the selection, on its track", async () => {

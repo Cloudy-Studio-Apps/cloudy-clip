@@ -26,7 +26,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     `timeline.move.commands.ts` (move, trim), `timeline.split.commands.ts` (split, delete), `timeline.sound.ts` (`editSoundOnly`, shared by move, trim and delete), shared
     checks in `timeline.guards.ts` (`checkLayout`: the whole layout through `project`'s
     `findLayoutConflict`); `timeline.commands.ts` lists them.
-  - `timeline.ripple.command.ts`, `timeline.link.command.ts`, `timeline.enable.command.ts`, `timeline.clipboard.commands.ts`; pure parts in `logic/ripple.ts` (`rippleDeleteMoves`) and `logic/paste.ts` (`clipboardEntry`, `pastePlan`).
+  - `timeline.ripple.command.ts`, `timeline.link.command.ts`, `timeline.enable.command.ts`, `timeline.clipboard.commands.ts`; pure parts in `logic/ripple.ts` (`rippleDeleteMoves`) and `logic/paste.ts` (`clipboardEntry`, which also copies the shot groups the clips name so a cut that empties one doesn't lose its grade: paste restores any missing group before the clips land; `pastePlan`).
   - `timeline.junctions.ts`: what the clip commands share to keep junctions valid: `moveClips`,
     `followMove`, `rippleTrim`, `fitJunctions`, `junctionsOverlapping`, and `commitState` (writes
     a state worked out with `project`'s pure helpers as one undo step).

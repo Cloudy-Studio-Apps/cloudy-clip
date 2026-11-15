@@ -46,6 +46,8 @@ async function paste(
     clips.push(...placement.clips.map((clip) => ({ ...clip, trackId })));
   }
   ctx.mutate(store, (draft) => {
+    // A cut that emptied a shot group dropped it; bring it back before its clips land.
+    for (const group of entry.gradeGroups) (draft.gradeGroups ??= {})[group.id] ??= group;
     for (const clip of clips) {
       draft.clips[clip.id] = clip;
       const track = draft.tracks[clip.trackId]!;

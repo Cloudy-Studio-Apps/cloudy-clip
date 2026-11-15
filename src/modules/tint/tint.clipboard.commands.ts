@@ -11,7 +11,7 @@ import {
   targetsOf,
   writeGrade,
 } from "./tint.guards";
-import { refuseUnlessEditable, targetSchema } from "./tint.node.commands";
+import { checkNodeLut, refuseUnlessEditable, targetSchema } from "./tint.node.commands";
 import { tintRef } from "./tint.ref";
 import type { GradeTarget } from "./tint.types";
 
@@ -36,7 +36,7 @@ export const pasteGrade = defineCommand({
   id: "tint.paste",
   label: "Paste grade",
   description:
-    "Pastes your clipboard (tint_copy) onto clips (clipIds) or any grades (targets: { clipId }, { groupId } a shot group's, { compositionId } the whole timeline's); give either or both. With no tools, each grade is replaced by the copy (a clip's key tracks go; a clip keeps its own camera color space, input, and a group or composition takes none). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are written, into the corrections at the same place in the stack (the first layer takes from the first, and so on; a field the copy lacks is cleared); a clip with fewer layers gets new ones at the bottom, when the copy's layer has something of those tools. Groups and sealed cards are not matched, and a limit's shared pick (limit.from) is not carried over. To paste to all, give every clip of the composition. Every clip is checked first; all change in one undo step, or none, and a clip left as it was is not written. Returns { pasted }, the number of grades changed. Fails with tint.clipboard_empty, tint.no_target, tint.target_not_found, tint.not_gradeable, tint.animated (a field to change has keys) or tint.invalid_grade / tint.sealed (the result isn't valid, or a layer can't be added).",
+    "Pastes your clipboard (tint_copy) onto clips (clipIds) or any grades (targets: { clipId }, { groupId } a shot group's, { compositionId } the whole timeline's); give either or both. With no tools, each grade is replaced by the copy (a clip's key tracks go; a clip keeps its own camera color space, input, and a group or composition takes none). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are written, into the corrections at the same place in the stack (the first layer takes from the first, and so on; a field the copy lacks is cleared); a clip with fewer layers gets new ones at the bottom, when the copy's layer has something of those tools. Groups and sealed cards are not matched, and a limit's shared pick (limit.from) is not carried over. To paste to all, give every clip of the composition. Every clip is checked first; all change in one undo step, or none, and a clip left as it was is not written. Returns { pasted }, the number of grades changed. Fails with tint.clipboard_empty, tint.no_target, tint.lut_not_found (a LUT the project has not imported), tint.target_not_found, tint.not_gradeable, tint.animated (a field to change has keys) or tint.invalid_grade / tint.sealed (the result isn't valid, or a layer can't be added).",
   undoable: true,
   input: z.object({
     clipIds: z.array(z.string().min(1)).min(1).optional(),
@@ -66,9 +66,11 @@ export const pasteGrade = defineCommand({
           refuseUnlessEditable(state, target, before, id, fields);
         }
         next = part.grade;
+        for (const id of Object.keys(part.changed)) checkNodeLut(state, next.nodes[id]);
       } else {
         // The camera color space belongs to the footage, not the grade: the clip keeps its own.
         next = structuredClone(copied);
+        for (const node of Object.values(next.nodes)) checkNodeLut(state, node);
         if (before?.input) next.input = before.input;
         else delete next.input;
       }

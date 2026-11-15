@@ -10,6 +10,7 @@ import type {
   CompositionId,
   ClipId,
   ClipMove,
+  GradeGroup,
   Junction,
   JunctionId,
   ProjectState,
@@ -244,6 +245,8 @@ export interface ClipTrackMove extends ClipMove {
 export interface ClipboardEntry {
   /** The clips and their partners. */
   clips: Clip[];
+  /** The shot groups (with their grades) those clips are in, so a cut that empties one can bring it back. */
+  gradeGroups: GradeGroup[];
   /** Earliest start among them. */
   origin: Micros;
   /** The kind of the tracks they came from, which may be gone by the paste. */

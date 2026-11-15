@@ -3,6 +3,7 @@ import { CommandFailure, createLogger } from "@/core";
 import {
   gradeSchema,
   MARKER_COLORS,
+  validateGrade,
   type ClipGrade,
   type KeyTrack,
   type ProjectState,
@@ -148,12 +149,13 @@ function usesGrades(document: ProjectState): boolean {
   );
 }
 
-/** `holder.grade` when it passes `gradeSchema`; else it is dropped with a warning. */
+/** `holder.grade` when it passes `gradeSchema` and `validateGrade`; else it is dropped with a warning. */
 function checkGrade(holder: { grade?: ClipGrade }, where: string): void {
   if (holder.grade === undefined) return;
   const result = gradeSchema.safeParse(holder.grade);
-  if (result.success) return;
-  log.warn(`Dropped a broken grade on ${where}.`, result.error.issues[0]);
+  const problem = result.success ? validateGrade(holder.grade) : result.error.issues[0];
+  if (!problem) return;
+  log.warn(`Dropped a broken grade on ${where}.`, problem);
   delete holder.grade;
 }
 
@@ -170,6 +172,9 @@ function withValidGrades(document: ProjectState): ProjectState {
   }
   for (const group of Object.values(document.gradeGroups ?? {})) {
     checkGrade(group, `group ${group.id}`);
+  }
+  for (const still of Object.values(document.stills ?? {})) {
+    checkGrade(still, `still ${still.id}`);
   }
   return document;
 }

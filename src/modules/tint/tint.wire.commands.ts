@@ -12,7 +12,7 @@ import {
 import { sameRef } from "./logic/order";
 import { emptyGrade } from "./logic/stack";
 import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
-import { targetSchema } from "./tint.node.commands";
+import { checkNodeLut, targetSchema } from "./tint.node.commands";
 
 /** What `createId` makes ids of (`node_k3j9x2`), so an id never breaks a `grade.nodes.<id>.` track path. */
 const NODE_ID = /^[A-Za-z0-9_]+$/;
@@ -49,7 +49,7 @@ export const wire = defineCommand({
   id: "tint.wire",
   label: "Wire nodes",
   description:
-    'Leader Seal\'s free wiring, in one undo step: add puts new nodes in the grade first (each { id, node }, id your own: letters, digits and _ only, not taken, not "source" or "out"; node any grade node as tint_get_grade shows them: a correction, a parallel or layer join, a split, a channel join, or a key join { kind: "keyJoin", keys: [{ from, mode }] }), then set rewires nodes: input (a correction or split, or nodeId "out" for the grade\'s result), inputs (a Side by side or Stacked join; a Stacked join\'s blends stay with their refs, new refs normal; never a key join, which has no picture), r, g, b (a channel join) and keys (a key join). Refs are { node, channel? }: "source", a node id, a split\'s r, g or b. A key join combines keys: the first as it is, then each next one x by its mode: add k + x − k·x, subtract k·(1 − x), intersect k·x; a correction takes the joined key with limit.from (tint_set_correction). Any shape is allowed: what Baby Seal can\'t show becomes a sealed card covering only that region. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (a nodeId or ref names no node), tint.bad_id (an added id with other characters), tint.node_exists (an added id is taken), tint.cant_wire (a field that kind of node doesn\'t have), tint.wire_cycle (a node would read itself, through pictures or keys) or tint.invalid_grade (any other rule of a grade; nothing is written).',
+    'Leader Seal\'s free wiring, in one undo step: add puts new nodes in the grade first (each { id, node }, id your own: letters, digits and _ only, not taken, not "source" or "out"; node any grade node as tint_get_grade shows them: a correction, a parallel or layer join, a split, a channel join, or a key join { kind: "keyJoin", keys: [{ from, mode }] }), then set rewires nodes: input (a correction or split, or nodeId "out" for the grade\'s result), inputs (a Side by side or Stacked join; a Stacked join\'s blends stay with their refs, new refs normal; never a key join, which has no picture), r, g, b (a channel join) and keys (a key join). Refs are { node, channel? }: "source", a node id, a split\'s r, g or b. A key join combines keys: the first as it is, then each next one x by its mode: add k + x − k·x, subtract k·(1 − x), intersect k·x; a correction takes the joined key with limit.from (tint_set_correction). Any shape is allowed: what Baby Seal can\'t show becomes a sealed card covering only that region. Fails with tint.target_not_found, tint.not_gradeable, tint.lut_not_found (the LUT of an added correction is not in the project), tint.node_not_found (a nodeId or ref names no node), tint.bad_id (an added id with other characters), tint.node_exists (an added id is taken), tint.cant_wire (a field that kind of node doesn\'t have), tint.wire_cycle (a node would read itself, through pictures or keys) or tint.invalid_grade (any other rule of a grade; nothing is written).',
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -72,6 +72,7 @@ export const wire = defineCommand({
       if (id === "source" || id === "out" || Object.hasOwn(next.nodes, id)) {
         throw new CommandFailure("tint.node_exists", `Node id "${id}" is taken`, { nodeId: id });
       }
+      checkNodeLut(store.getState(), node as GradeNode);
       next.nodes[id] = structuredClone(node as GradeNode);
       touched.add(id);
     }

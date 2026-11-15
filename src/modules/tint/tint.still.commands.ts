@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { gradeOf, projectRef } from "@/modules/project";
+import { animatedClip, gradeOf, projectRef } from "@/modules/project";
 import { shrinkDataUrl } from "@/ui";
 import { clipUnder } from "./logic/strip";
 
@@ -46,7 +46,7 @@ export const grabStill = defineCommand({
     const state = project.store.getState();
     const clip = state.clips[clipId];
     if (!clip) throw new CommandFailure("tint.no_clip", "The clip is gone.");
-    const grade = gradeOf(clip) ?? undefined;
+    const grade = gradeOf(animatedClip(clip, time)) ?? undefined;
     const stillId = createId("still");
     const label = name ?? `Still ${(state.stillOrder?.length ?? 0) + 1}`;
     ctx.mutate(project.store, (draft) => {

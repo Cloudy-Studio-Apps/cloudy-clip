@@ -8,6 +8,7 @@ import {
   projectRef,
   type ClipGrade,
   type Correction,
+  type GradeNode,
   type ProjectState,
 } from "@/modules/project";
 import { leafAt } from "./logic/keyable";
@@ -66,6 +67,11 @@ function checkLut(state: ProjectState, lut: { id: string } | null | undefined): 
   if (lut && !lut.id.startsWith(BUILTIN_LUT_PREFIX) && !state.luts?.[lut.id]) {
     throw new CommandFailure("tint.lut_not_found", `No LUT with id "${lut.id}" in this project`);
   }
+}
+
+/** `checkLut` for a node of a grade being written: only a correction holds a LUT. */
+export function checkNodeLut(state: ProjectState, node: GradeNode | undefined): void {
+  if (node?.kind === "correct") checkLut(state, node.lut);
 }
 
 function placeFailure(grade: ClipGrade, at: StackPosition): CommandFailure {

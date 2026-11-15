@@ -89,13 +89,16 @@ function lutsOf(grade: ClipGrade | null, project: ProjectState): Lut[] {
  * it are left out (Limit's Show; while Show is on below the timeline level, the timeline grade is left out). A camera input reads the clip's file range from `media`
  * (`videoRange`). A correction's LUT comes from `luts`: not `ready` while its file is being read; a
  * missing one is left out in the preview and captures (the preview tells the user once per file),
- * and fails an export with `tint.lut_missing`.
+ * and fails an export with `tint.lut_missing`. An export of a graded picture without WebGL2
+ * (`gpuAvailable()` false) fails with `tint.unavailable`, in `passes`, before the preview engine
+ * would throw its plain `GpuUnavailable`.
  */
 export function createTintFilters(
   live: TintLive,
   view: StoreApi<TintView>,
   media: Pick<MediaApi, "getProbe">,
   luts: LutFiles,
+  gpuAvailable: () => boolean,
 ): { picture: PictureFilter; frame: FrameFilter } {
   const textures = createGradeTextures();
   const warned = new Set<string>();
@@ -120,6 +123,15 @@ export function createTintFilters(
       }
       return null;
     };
+  const needsGpu = (info: Pick<FilterInfo, "target">, passes: readonly GpuPass[]) => {
+    if (info.target === "export" && passes.length > 0 && !gpuAvailable()) {
+      throw new CommandFailure(
+        "tint.unavailable",
+        "A grade needs WebGL2 to export, and it isn't available here.",
+      );
+    }
+    return passes;
+  };
   const ready = (grades: (ClipGrade | null)[], project: ProjectState) =>
     grades.every((grade) =>
       lutsOf(grade, project).every((lut) => luts.file(lut).status !== "loading"),
@@ -183,7 +195,7 @@ export function createTintFilters(
       const asked = askedOf(info, info.path === clip.id);
       const range = videoRange(clip, project, media);
       const own = levelPasses("clip", clip.id, gradeOf(clip), info, range, asked);
-      if (own.stop) return own.passes;
+      if (own.stop) return needsGpu(info, own.passes);
       const group = levelPasses(
         "group",
         clip.gradeGroup ?? "",
@@ -192,7 +204,7 @@ export function createTintFilters(
         range,
         asked,
       );
-      return chainPasses([own.passes, group.passes]);
+      return needsGpu(info, chainPasses([own.passes, group.passes]));
     },
   };
   const frame: FrameFilter = {
@@ -209,8 +221,11 @@ export function createTintFilters(
       const state = info.target === "preview" ? view.getState() : null;
       if (state && state.showPicked !== null && state.level !== "timeline") return [];
       const { composition } = info;
-      return levelPasses("timeline", composition.id, composition.grade ?? null, info, false, asked)
-        .passes;
+      return needsGpu(
+        info,
+        levelPasses("timeline", composition.id, composition.grade ?? null, info, false, asked)
+          .passes,
+      );
     },
   };
   return { picture, frame };

@@ -71,7 +71,9 @@ export const tintModule = defineModule({
     );
     const picker = createPicker(ctx.require(projectRef), preview, ctx.require(mediaRef), luts);
     onDispose(redrawOnShow(view, () => preview.redraw()));
-    const filters = createTintFilters(live, view, ctx.require(mediaRef), luts);
+    const filters = createTintFilters(live, view, ctx.require(mediaRef), luts, () =>
+      preview.gpuAvailable(),
+    );
     contribute(pictureFilters, filters.picture);
     contribute(frameFilters, filters.frame);
     contribute(relinkKinds, { id: "tint.luts", order: 10, component: LutRelinkRows });

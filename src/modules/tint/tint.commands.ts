@@ -25,7 +25,7 @@ export const resetGrade = defineCommand({
   id: "tint.reset",
   label: "Reset grade",
   description:
-    'Resets a grade. With no tools, nodeId or fields, the whole grade goes and the target is ungraded (its key tracks go too). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are cleared (the limit for "limit", the LUT for "luts"), along with their key tracks; the layers stay. With nodeId, only that correction is touched, or with the id of a group every correction inside it, not the opacity, on or blends of the group itself (all tools when none are given); with fields (top-level value names such as "saturation"), those fields are cleared on top of the tools, and given alone they clear only those. Resetting an ungraded target does nothing. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found or tint.invalid_grade (a field that is not a correction field).',
+    'Resets a grade. With no tools, nodeId or fields, the whole grade goes and the target is ungraded (its key tracks go too; a clip keeps its camera color space, input, when it is not rec709, since that belongs to the footage). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are cleared (the limit for "limit", the LUT for "luts"), along with their key tracks; the layers stay. With nodeId, only that correction is touched, or with the id of a group every correction inside it, not the opacity, on or blends of the group itself (all tools when none are given); with fields (top-level value names such as "saturation"), those fields are cleared on top of the tools, and given alone they clear only those. Resetting an ungraded target does nothing. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found or tint.invalid_grade (a field that is not a correction field).',
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -61,8 +61,14 @@ export const resetGrade = defineCommand({
     }
     const tools = given ?? (nodeId || fields ? (fields ? [] : [...TOOL_IDS]) : undefined);
     if (!tools) {
+      // The camera color space belongs to the footage: a whole reset keeps it.
+      const kept =
+        grade.input && grade.input !== "rec709"
+          ? checkedGrade({ nodes: {}, out: { node: "source" }, input: grade.input })
+          : undefined;
+      if (JSON.stringify(kept ?? null) === JSON.stringify(grade)) return;
       ctx.mutate(store, (draft) => {
-        writeGrade(draft, target, undefined);
+        writeGrade(draft, target, kept);
         dropTracks(draft, target, () => true);
       });
       return;
