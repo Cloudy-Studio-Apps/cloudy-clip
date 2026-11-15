@@ -53,9 +53,9 @@ lives here, so every change is undoable and readable by agents.
   Clips on a track overlap only by the `allowedOverlap` of the pair.
 - **Saving:** `workspace` owns the file; `view.reset()` is what opening one calls.
 
-| Command | MCP tool            | Notes                                                                                                                                                |
-| ------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| —       | `project_get_state` | Whole document: each composition with its tracks, clips, `junctions` and whole-timeline `grade` inline, and the shot `gradeGroups` (id, name, grade) |
+| Command | MCP tool            | Notes                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| —       | `project_get_state` | Compact overview: every composition as one line with counts, one composition in full (`compositionId`, else the caller's open one, else Main: settings, mix, `grade`, tracks with clips, `junctions`, `markers`), media as id, name and kind, and `counts`. `include` adds `media`, `bins`, `solids`, `gradeGroups`, `luts` and `stills` in full. Values at their defaults are left out |
 
 **Speed:** `Clip.speed` (`ClipSpeed`: `rate`, `pitchCorrection`, `reversed`) says how a clip plays its file; missing means normally. `Clip.duration` is the length on the timeline and the part of the file played is that at the rate (`sourceSpan`). `logic/speed.ts` holds `DEFAULT_SPEED`, `speedOf`, `sourceTimeAt` (the file's time at a timeline time, the only place a rate meets clip time), `elementTimeAt` (the same for a reversed copy), `canChangeSpeed` and `sameSpeed`. A `rate` of 0 holds one frame. The `speed` module owns the commands.
 

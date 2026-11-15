@@ -1,68 +1,123 @@
 import { z } from "zod";
 import { defineMcpTool, textResult } from "@/core";
 import { orderedJunctions } from "./logic/junctions";
-import { compositionMixOf, trackMixOf } from "./logic/mix";
-import { compositionMarkers, orderedTracks, trackClips } from "./project.selectors";
+import {
+  compositionMarkers,
+  orderedTracks,
+  requireComposition,
+  trackClips,
+} from "./project.selectors";
 import { projectRef } from "./project.ref";
+import type { Composition, ProjectState } from "./project.types";
 
-/** The whole project in an agent-friendly shape: tracks in order with their clips inline. */
+/** Sections left out unless asked for in `include`, each counted in `counts`. */
+const SECTIONS = ["media", "bins", "solids", "gradeGroups", "luts", "stills"] as const;
+
+/** One composition in full: settings, mix and grade as stored, tracks with clips, junctions, markers. */
+function fullComposition(state: ProjectState, composition: Composition) {
+  const { id, name, format, background, duration, extendToFit, mix, grade } = composition;
+  return {
+    id,
+    name,
+    format,
+    background,
+    duration,
+    extendToFit,
+    mix,
+    grade,
+    tracks: orderedTracks(state, id).map((track) => ({
+      id: track.id,
+      kind: track.kind,
+      name: track.name,
+      muted: track.muted || undefined,
+      hidden: track.hidden || undefined,
+      mix: track.mix,
+      clips: trackClips(state, track),
+    })),
+    junctions: orderedJunctions(state, id),
+    markers: compositionMarkers(state, id),
+  };
+}
+
+/** A line per composition: what it is and how much it holds. */
+function compositionSummary(state: ProjectState, composition: Composition) {
+  const tracks = orderedTracks(state, composition.id);
+  return {
+    id: composition.id,
+    name: composition.name,
+    format: composition.format,
+    duration: composition.duration,
+    tracks: tracks.length,
+    clips: tracks.reduce((sum, track) => sum + track.clipIds.length, 0),
+    junctions: orderedJunctions(state, composition.id).length,
+    markers: compositionMarkers(state, composition.id).length,
+  };
+}
+
+/** An optional section in full, by name. */
+function section(state: ProjectState, name: (typeof SECTIONS)[number]): unknown[] {
+  switch (name) {
+    case "media":
+      return state.mediaOrder.map((id) => state.media[id]);
+    case "bins":
+      return state.binOrder.map((id) => state.bins[id]);
+    case "solids":
+      return state.solidOrder.map((id) => state.solids[id]);
+    case "gradeGroups":
+      return Object.values(state.gradeGroups ?? {}).map(({ id, name, grade }) => ({
+        id,
+        name,
+        grade,
+      }));
+    case "luts":
+      return Object.values(state.luts ?? {});
+    case "stills":
+      return (state.stillOrder ?? []).map((id) => state.stills?.[id]);
+  }
+}
+
+/** The project for agents: an overview, with one composition and the sections asked for in full. */
 const getState = defineMcpTool({
   name: "project_get_state",
   readOnly: true,
   description:
-    "Returns the whole project: its description (what it's about, when given), the id of the main composition, the one you have open (`open`), each composition with its settings and mix (master, which of the two mixes is active and the other one), tracks (top to bottom, audio ones with their mix) with their clips in timeline order, junctions (transitions between adjacent clips, ordered by track then time) and markers (bookmarks with a note and a color, by time), each composition's whole-timeline `grade` when it has one, the imported media, bins, solid colors and `gradeGroups` (shot groups: id, name and grade; a clip's `gradeGroup` names one). Times are microseconds. Call this first.",
-  input: z.object({}),
-  handler(_input, ctx) {
+    "Returns the project, compact. Call this first. Always: its `description` (when given), `main` (the main composition's id), `open` (the one you have open), `compositions` (one line each: id, name, format, duration and how many tracks, clips, junctions and markers it holds), `composition` (one in full: the `compositionId` you pass, else your open one, else Main), `media` (id, name, kind; media_list has the metadata) and `counts` (how many items each `include` section has). The full composition has its settings, `mix` (master, groups, the active and other mix), whole-timeline `grade`, tracks top to bottom (audio ones with their `mix`) with their clips in timeline order, `junctions` (transitions between adjacent clips, by track then time) and `markers` (by time). Values at their defaults are left out: a track is shown `muted` or `hidden` only when it is, a missing `mix` means 0 dB, centered, mix A, no groups or effects, and a clip without `transform`, `sound`, `speed`, `grade` or `animation` shows its media as it is. `include` adds sections in full: `media` (path, size, binId, info), `bins`, `solids`, `gradeGroups` (shot groups: id, name, grade; a clip's `gradeGroup` names one), `luts` (imported .cube files) and `stills` (grabbed frames with their grades). Times are microseconds.",
+  input: z.object({
+    compositionId: z
+      .string()
+      .optional()
+      .describe(
+        "The composition to return in full (an id from `compositions`). Default: your open one, else Main",
+      ),
+    include: z
+      .array(z.enum(SECTIONS))
+      .optional()
+      .describe('Sections to add in full, e.g. ["media", "gradeGroups"]'),
+  }),
+  handler(input, ctx) {
     const { store, view } = ctx.require(projectRef);
     const state = store.getState();
+    const open = view.openFor(ctx.caller.key);
+    const fullId = input.compositionId ?? open;
+    const full = fullId === null ? undefined : requireComposition(state, fullId);
+    const included = new Set(input.include);
     return textResult({
       description: state.description,
       main: state.mainCompositionId,
-      open: view.openFor(ctx.caller.key),
+      open,
       compositions: state.compositionOrder.flatMap((id) => {
         const composition = state.compositions[id];
-        if (!composition) return [];
-        const {
-          id: compositionId,
-          name,
-          format,
-          background,
-          duration,
-          extendToFit,
-          grade,
-        } = composition;
-        return [
-          {
-            id: compositionId,
-            name,
-            format,
-            background,
-            duration,
-            extendToFit,
-            grade,
-            mix: compositionMixOf(composition),
-            tracks: orderedTracks(state, id).map((track) => ({
-              id: track.id,
-              kind: track.kind,
-              name: track.name,
-              muted: track.muted,
-              hidden: track.hidden,
-              mix: track.kind === "audio" ? trackMixOf(track) : undefined,
-              clips: trackClips(state, track),
-            })),
-            junctions: orderedJunctions(state, id),
-            markers: compositionMarkers(state, id),
-          },
-        ];
+        return composition ? [compositionSummary(state, composition)] : [];
       }),
-      media: state.mediaOrder.map((id) => state.media[id]),
-      bins: state.binOrder.map((id) => state.bins[id]),
-      solids: state.solidOrder.map((id) => state.solids[id]),
-      gradeGroups: Object.values(state.gradeGroups ?? {}).map(({ id, name, grade }) => ({
-        id,
-        name,
-        grade,
-      })),
+      composition: full && fullComposition(state, full),
+      media: state.mediaOrder.flatMap((id) => {
+        const item = state.media[id];
+        return item ? [{ id, name: item.name, kind: item.kind }] : [];
+      }),
+      counts: Object.fromEntries(SECTIONS.map((name) => [name, section(state, name).length])),
+      ...Object.fromEntries(
+        SECTIONS.filter((name) => included.has(name)).map((name) => [name, section(state, name)]),
+      ),
     });
   },
 });

@@ -10,15 +10,15 @@ export function defineMcpTool<I extends z.ZodObject>(
   return tool;
 }
 
-/** A successful result holding `value` as pretty JSON (or as-is if it is a string). */
+/** A successful result holding `value` as compact JSON (or as-is if it is a string): agents pay for every byte. */
 export function textResult(value: unknown): McpToolResult {
-  const text = typeof value === "string" ? value : JSON.stringify(value ?? null, null, 2);
+  const text = typeof value === "string" ? value : JSON.stringify(value ?? null);
   return { content: [{ type: "text", text }] };
 }
 
 /** A failed result the agent can read and react to. */
 export function errorResult(error: AppError): McpToolResult {
-  return { content: [{ type: "text", text: JSON.stringify(error, null, 2) }], isError: true };
+  return { content: [{ type: "text", text: JSON.stringify(error) }], isError: true };
 }
 
 /**
