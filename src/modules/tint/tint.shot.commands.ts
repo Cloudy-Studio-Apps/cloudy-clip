@@ -34,7 +34,6 @@ export const setShotGroup = defineCommand({
     const groupId = group === null ? undefined : "id" in group ? group.id : createId("shot");
     const result = groupId === undefined ? {} : { groupId };
     if (!made && clipIds.every((id) => state.clips[id]!.gradeGroup === groupId)) return result;
-    const left = new Set(clipIds.flatMap((id) => state.clips[id]!.gradeGroup ?? []));
     ctx.mutate(store, (draft) => {
       if (name !== undefined) {
         draft.gradeGroups = { ...draft.gradeGroups, [groupId!]: { id: groupId!, name } };
@@ -44,12 +43,7 @@ export const setShotGroup = defineCommand({
         if (groupId === undefined) delete clip.gradeGroup;
         else clip.gradeGroup = groupId;
       }
-      // A group nobody is in any more goes: never stored for nothing.
-      const used = new Set(Object.values(draft.clips).map((clip) => clip.gradeGroup));
-      for (const id of left) if (!used.has(id)) delete draft.gradeGroups?.[id];
-      if (draft.gradeGroups && Object.keys(draft.gradeGroups).length === 0) {
-        delete draft.gradeGroups;
-      }
+      // A group nobody is in any more goes with project's settle (`dropDeletedGrades`).
     });
     return result;
   },

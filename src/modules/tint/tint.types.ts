@@ -160,7 +160,8 @@ export interface TintApi {
    * the clip's picture. Rejects as `PreviewApi.captureAt` does. For pickers (Pick hue, Color mix's
    * Pick, Limit's droppers, and later Match). With `level` `"group"`, `nodeId` is a node of the
    * clip's shot group's grade: the clip is captured alone with its own grade whole and read through
-   * the group's corrections before `nodeId`. With `"timeline"`, a node of the open composition's
+   * the group's corrections before `nodeId`. That capture is 8-bit while the GPU hands the group
+   * the clip's result in half floats, so a clip grade pushing past white reads clipped in a group pick. With `"timeline"`, a node of the open composition's
    * whole-timeline grade: the whole frame is captured with every clip and group grade, and the point
    * read through the timeline corrections before `nodeId` (never null then).
    */

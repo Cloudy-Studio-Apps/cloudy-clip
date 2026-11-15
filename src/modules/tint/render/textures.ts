@@ -73,7 +73,15 @@ export function bakeLut(lut: CubeLut, key: string, version: number): GpuTexture 
     : { key, version, kind: "1d", width: size, height: 1, data };
 }
 
-/** Keeps the `KEPT` most recent tables baked, by key; `make` runs only when `source` changed. */
+/**
+ * Keeps the `KEPT` most recent tables baked, by key; `make` runs only when `source` changed. Keys
+ * are per holder and node (`tint.filter.ts` `heldBy`), so 64 covers the clips on screen, their
+ * shot groups and the timeline with room to spare.
+ * shortcut: the runner (`preview/gpu/gpu.textures.ts`) keeps a GPU texture per key until it is
+ * disposed and has no way to drop one, so keys that leave this cache (deleted nodes, clips scrolled
+ * past) hold up to 64 KB each until the engine goes; add a `release(key)` to the runner if long
+ * sessions show it.
+ */
 function createCache(): (
   source: string,
   key: string,

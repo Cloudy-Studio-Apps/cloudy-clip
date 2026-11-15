@@ -23,6 +23,7 @@ import { createGradeTextures } from "./render/textures";
 import { videoRange } from "./tint.range";
 import type {
   GradeLevel,
+  GradeTextures,
   LutFiles,
   LutLookup,
   TintCut,
@@ -42,6 +43,19 @@ export const TINT_CUT = "tint.cut";
 
 /** The capture option that draws a grade in place of one level's (`TintWith`), for look thumbnails. */
 export const TINT_WITH = "tint.with";
+
+/**
+ * `textures` with the curve and warper keys scoped by the grade's holder (clip, shot group or
+ * composition id), so two grades sharing node ids (a pasted grade) keep a table each instead of
+ * baking each other's away every frame. LUT keys stay per LUT: the table is the file's.
+ */
+function heldBy(textures: GradeTextures, holder: string): GradeTextures {
+  return {
+    curves: (values, key) => textures.curves(values, `${holder}:${key}`),
+    warper: (warper, key) => textures.warper(warper, `${holder}:${key}`),
+    lut: textures.lut,
+  };
+}
 
 /** The grade of a clip's shot group, or null (no group, or one with no grade). */
 function groupGrade(clip: Clip, project: ProjectState): ClipGrade | null {
@@ -135,7 +149,7 @@ export function createTintFilters(
       ? gradePasses(
           grade,
           preview ? live.get(id) : undefined,
-          textures,
+          heldBy(textures, id),
           info.size.width / Math.max(info.size.height, 1),
           showing ? show : null,
           range,

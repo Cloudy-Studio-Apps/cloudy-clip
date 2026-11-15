@@ -231,7 +231,10 @@ describe("per-actor undo", () => {
   });
 
   it("redoes a created gradeGroup into a project that had none", async () => {
-    await t.edit(AGENT, (d) => void (d.gradeGroups = { g1: { id: "g1", name: "Look" } }));
+    await t.edit(AGENT, (d) => {
+      d.gradeGroups = { g1: { id: "g1", name: "Look" } };
+      d.clips.a!.gradeGroup = "g1";
+    });
     t.history.undo(AGENT);
     await t.edit(LOCAL_ACTOR, (d) => void (d.clips.a!.start = 5));
     t.history.redo(AGENT);

@@ -180,7 +180,10 @@ function dropDeletedListens(draft: Draft<ProjectState>): void {
   }
 }
 
-/** A deleted shot group or LUT is no longer used: the clips and nodes that named it let go. */
+/**
+ * A deleted shot group or LUT is no longer used: the clips and nodes that named it let go. A shot
+ * group no clip is in any more goes too (with its grade), in the same step that took its last clip.
+ */
 function dropDeletedGrades(draft: Draft<ProjectState>): void {
   const groups = draft.gradeGroups ?? {};
   const unknownLut = (id: string) => !id.startsWith(BUILTIN_LUT_PREFIX) && !draft.luts?.[id];
@@ -195,7 +198,10 @@ function dropDeletedGrades(draft: Draft<ProjectState>): void {
     for (const version of Object.values(clip.gradeVersions ?? {})) prune(version.grade);
   }
   for (const composition of Object.values(draft.compositions)) prune(composition.grade);
-  for (const group of Object.values(groups)) prune(group.grade);
+  const used = new Set(Object.values(draft.clips).map((clip) => clip.gradeGroup));
+  for (const id of Object.keys(groups)) if (!used.has(id)) delete groups[id];
+  if (draft.gradeGroups && Object.keys(draft.gradeGroups).length === 0) delete draft.gradeGroups;
+  for (const group of Object.values(draft.gradeGroups ?? {})) prune(group.grade);
   for (const still of Object.values(draft.stills ?? {})) prune(still.grade);
 }
 

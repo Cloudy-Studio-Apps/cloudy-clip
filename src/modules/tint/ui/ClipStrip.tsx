@@ -88,7 +88,13 @@ export function ClipStrip() {
             <Copy />
           </IconButton>
           <IconButton
-            label="Paste grade onto the selected clips"
+            label={
+              level === "clip"
+                ? "Paste grade onto the selected clips"
+                : level === "group"
+                  ? "Paste grade onto the shot group's grade"
+                  : "Paste grade onto the whole timeline's grade"
+            }
             disabled={targets.length === 0}
             onClick={() => paste(targets)}
           >
