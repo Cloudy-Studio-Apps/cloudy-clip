@@ -34,6 +34,9 @@ pub fn setup(app: &mut App) {
         .app_cache_dir()
         .unwrap_or_else(|_| std::env::temp_dir().join("cloudy-clip"))
         .join("proxies");
+    // What a crash left half written.
+    let swept = cache_dir.clone();
+    tauri::async_runtime::spawn(async move { proxy::sweep_partials(&swept).await });
     app.manage(proxy::ProxyJobs::new(cache_dir));
 
     let handle = app.handle().clone();

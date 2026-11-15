@@ -80,11 +80,15 @@ pub fn run() {
     app.run(|app, event| {
         // The process ends right after this, dropping nothing, so FFmpeg is stopped here.
         if matches!(event, tauri::RunEvent::Exit) {
-            tauri::async_runtime::block_on(async {
-                export::stop(app).await;
-                sound::stop(app).await;
-                media::stop(app).await;
-            });
+            // Capped, so quitting can never hang on a stuck FFmpeg.
+            let _ = tauri::async_runtime::block_on(tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                async {
+                    export::stop(app).await;
+                    sound::stop(app).await;
+                    media::stop(app).await;
+                },
+            ));
         }
     });
 }

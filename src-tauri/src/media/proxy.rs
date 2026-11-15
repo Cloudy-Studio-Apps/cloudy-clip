@@ -718,7 +718,7 @@ pub async fn stop(app: &AppHandle) {
 }
 
 /// Removes what an encoder was writing: `*.partial.*` files and folders in `cache_dir`.
-async fn sweep_partials(cache_dir: &Path) {
+pub(super) async fn sweep_partials(cache_dir: &Path) {
     let Ok(mut entries) = tokio::fs::read_dir(cache_dir).await else {
         return;
     };
