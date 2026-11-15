@@ -11,9 +11,11 @@ export {
   MasterLine,
   RecordingTake,
   SheetNote,
+  SilenceCuts,
   SoloButton,
   PointerLayer,
   ProblemMarks,
   TrackVolumeLine,
 } from "./lanes";
 export { SoundPage } from "./SoundPage";
+export { StripSilenceHost } from "./transport";

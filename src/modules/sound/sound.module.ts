@@ -1,11 +1,12 @@
 import { AudioLines } from "lucide-react";
-import { LOCAL_ACTOR, appPages, defineModule, pagesRef } from "@/core";
+import { LOCAL_ACTOR, appOverlays, appPages, defineModule, pagesRef } from "@/core";
 import { loudnessMatchers } from "@/modules/export";
 import { mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import { settingsSections } from "@/modules/settings";
 import {
   clipActions,
+  timelineRef,
   timelineOverlays,
   timelineSnapTargets,
   timelineTools,
@@ -22,6 +23,9 @@ import { createMatcher } from "./sound.match";
 import { createBeatFinder } from "./sound.beats";
 import { createBeatsStore } from "./sound.beats.store";
 import { soundBeatCommands } from "./sound.beats.commands";
+import { createSilenceFinder } from "./sound.silence";
+import { silenceMenu } from "./sound.menu";
+import { soundToolsCommands } from "./sound.tools.commands";
 import { rememberedBeats } from "./logic/beats";
 import { soundEffectCommands } from "./sound.effects.commands";
 import { soundDeliveryCommands } from "./sound.delivery.commands";
@@ -39,6 +43,7 @@ import { soundRecordCommands } from "./sound.record.commands";
 import { followRecordingEnds } from "./sound.record.follow";
 import { createUserPresets } from "./sound.presets.store";
 import { SOUND_PAGE, soundRef } from "./sound.ref";
+import type { SoundApi } from "./sound.types";
 import { createSoundView, setAutomationMode, setLineInFront } from "./sound.store";
 import {
   ArmButton,
@@ -51,7 +56,9 @@ import {
   PresetsSection,
   RecordingTake,
   SheetNote,
+  SilenceCuts,
   SoloButton,
+  StripSilenceHost,
   SoundPage,
   MasterLine,
   PointerLayer,
@@ -88,6 +95,7 @@ export const soundModule = defineModule({
     ...soundMonitorCommands,
     ...soundRecordCommands,
     ...soundBeatCommands,
+    ...soundToolsCommands,
   ],
   mcpTools: soundMcpTools,
   setup({ bus, contribute, log, onDispose, require }) {
@@ -114,6 +122,10 @@ export const soundModule = defineModule({
       times: (state, compositionId) =>
         beatTimes(state, compositionId, beats.state.getState().files),
     });
+    const silences = createSilenceFinder(project.store.getState);
+    const openSilence: SoundApi["openSilence"] = (target) =>
+      view.setState({ silence: target && { ...target, cuts: [] } });
+    onDispose(silences.forget);
     const media = require(mediaRef);
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());
@@ -164,6 +176,16 @@ export const soundModule = defineModule({
       scopes: ["sound"],
       component: MasterLine,
     });
+    contribute(appOverlays, { id: "sound.stripSilence", component: StripSilenceHost });
+    contribute(timelineOverlays, {
+      id: "sound.silenceCuts",
+      scopes: ["all", "sound"],
+      component: SilenceCuts,
+    });
+    contribute(clipActions, {
+      ...silenceMenu(project, require(timelineRef).view, openSilence),
+      scopes: ["all"],
+    });
     contribute(clipActions, {
       id: "sound.clipLine",
       scopes: ["all", "sound"],
@@ -212,6 +234,8 @@ export const soundModule = defineModule({
         analyzer,
         matcher,
         beats,
+        silences,
+        openSilence,
         setTool: (tool) => view.setState({ tool }),
         setAutomation: (target, mode, compositionId) =>
           setAutomationMode(view, target, mode, compositionId ?? project.view.openFor(LOCAL_ACTOR)),

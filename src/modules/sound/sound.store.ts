@@ -21,6 +21,7 @@ export function createSoundView() {
     lineView: {},
     tool: "select",
     linePoint: null,
+    silence: null,
   }));
 }
 

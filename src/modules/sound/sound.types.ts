@@ -3,6 +3,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { CommandBus, Micros, PagesState } from "@/core";
 import type {
   Clip,
+  ClipId,
   CompositionId,
   CompressorEffect,
   GateEffect,
@@ -46,6 +47,48 @@ export interface SoundViewState {
   tool: SoundTool;
   /** The selected point of a track's volume line, or the master's (`"master"`): Delete removes it. */
   linePoint: { trackId: LineTarget; keyId: string } | null;
+  /** The Strip silence dialog: the clips it is about and the cuts it shows on the lanes; null when closed. */
+  silence: SilenceDialog | null;
+}
+
+/** The open Strip silence dialog. */
+export interface SilenceDialog {
+  /** The clips it is about. */
+  clipIds: ClipId[];
+  /** Cut sound only, leave gaps (the Sound page); otherwise picture and sound, gaps closed. */
+  soundOnly: boolean;
+  /** What it would cut, in timeline time: drawn in the marks row (Sound page) or ruler (Edit). */
+  cuts: Cut[];
+}
+
+/** A stretch of the timeline Strip silence takes out. */
+export interface Cut {
+  start: Micros;
+  end: Micros;
+}
+
+/** The cuts of one clip. */
+export interface ClipCuts {
+  clipId: ClipId;
+  cuts: Cut[];
+}
+
+/** What counts as silence, and what is kept around the sound. */
+export interface SilenceParams {
+  /** Quieter than this (dBFS) is silent. */
+  thresholdDb: number;
+  /** A silence shorter than this (ms) is kept. */
+  minMs: number;
+  /** Quiet kept on each side of a cut (ms). */
+  padMs: number;
+}
+
+/** Finds the cuts of clips outside the bus (a long file outlasts its timeout), remembering what it found. */
+export interface SilenceFinder {
+  /** The cuts of the clips that have sound of their own, in timeline time. Rejects with the native error. */
+  cutsOf(clipIds: readonly ClipId[], params: SilenceParams): Promise<ClipCuts[]>;
+  /** Forgets what was found (a command used it, or the files may have changed). */
+  forget(): void;
 }
 
 /**
@@ -228,6 +271,10 @@ export interface SoundApi {
   matcher: Matcher;
   /** Beats found in files, for ticks and snapping: progress, start and cancel (`sound.findBeats`). */
   beats: BeatFinder;
+  /** Strip silence: finds the cuts of clips, and opens or closes its dialog (`null`). */
+  silences: SilenceFinder;
+  /** Opens the Strip silence dialog on clips, or closes it (null). */
+  openSilence(target: { clipIds: ClipId[]; soundOnly: boolean } | null): void;
 }
 
 /** Beats found per file, and the find under way. View state of the kernel, never in history. */
@@ -573,7 +620,7 @@ export interface ChainDrag {
  * A control of the Sound page that a later stage makes work: one entry of `ui/soon/soon.catalog.ts`.
  * Each stage removes its own ids as it builds them.
  */
-export type SoonId = "transport.stripSilence" | "transport.matchLevel" | "compressor.reduction";
+export type SoonId = "transport.matchLevel" | "compressor.reduction";
 
 /** A placeholder: what it will be and the stage that builds it. */
 export interface SoonEntry {

@@ -21,6 +21,7 @@ import {
 } from "./sound.line.commands";
 import { projectRef } from "@/modules/project";
 import { soundBeatTools } from "./sound.beats.mcp";
+import { soundToolsTools } from "./sound.tools.mcp";
 import { isStale, storedFor } from "./sound.analysis.store";
 import type { Analyzer, StoredAnalysis } from "./sound.delivery.types";
 import { soundRef } from "./sound.ref";
@@ -231,4 +232,5 @@ export const soundMcpTools = [
   listPresets,
   getLevels,
   ...soundBeatTools,
+  ...soundToolsTools,
 ];

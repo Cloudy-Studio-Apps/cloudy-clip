@@ -9,6 +9,7 @@ use tauri::ipc::{Channel, InvokeBody, Request};
 use super::analyses::{self, Analyses};
 use super::analyze::Analysis;
 use super::beats::{self, Beats};
+use super::silences;
 use super::floor::{MEASURE_ARGS, parse_floor, stretch_args};
 use super::record::{TakeStarted, TakeWritten, Takes};
 use crate::error::{AppError, AppResult};
@@ -158,4 +159,25 @@ pub async fn sound_beats(
 pub async fn sound_beats_cancel(job_id: String, beats: State<'_, Beats>) -> AppResult<()> {
     beats::cancel(&job_id, &beats).await;
     Ok(())
+}
+
+/// What `sound_silences` found.
+#[derive(serde::Serialize)]
+pub struct SilencesFound {
+    /// `[start, end]` in microseconds of the file, in order; none when it never falls silent.
+    pub stretches: Vec<(u64, u64)>,
+}
+
+/// The silent stretches of `from..to` (microseconds of the file) of the file at `path`: quieter
+/// than `threshold_db` (dBFS) for at least `min_ms`. Fails when the file has no sound.
+#[tauri::command]
+pub async fn sound_silences(
+    path: String,
+    from: u64,
+    to: u64,
+    threshold_db: f64,
+    min_ms: f64,
+) -> AppResult<SilencesFound> {
+    let stretches = silences::find(&PathBuf::from(path), from, to, threshold_db, min_ms).await?;
+    Ok(SilencesFound { stretches })
 }

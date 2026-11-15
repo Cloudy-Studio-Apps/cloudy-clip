@@ -11,6 +11,7 @@ export { PointerLayer } from "./PointerLayer";
 export { ProblemMarks } from "./ProblemMarks";
 export { RecordingTake } from "./RecordingTake";
 export { SheetNote } from "./SheetNote";
+export { SilenceCuts } from "./SilenceCuts";
 export { SoloButton } from "./SoloButton";
 export { TrackVolumeLine } from "./TrackVolumeLine";
 export { useAutomationFader } from "./automation.hook";

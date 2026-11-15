@@ -54,6 +54,7 @@ pub fn run() {
             sound::commands::sound_measure_floor,
             sound::commands::sound_record_begin,
             sound::commands::sound_record_write,
+            sound::commands::sound_silences,
             workspace::commands::workspace_exists,
             workspace::commands::workspace_read,
             workspace::commands::workspace_recents_read,

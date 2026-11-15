@@ -9,19 +9,34 @@ import {
   type ProjectState,
 } from "@/modules/project";
 
+/** How far into the clip's played part a file time is, in file time (a reversed clip counts from the end). */
+export function playedAt(clip: Clip, file: Micros): Micros {
+  const span = sourceSpan(clip);
+  return speedOf(clip).reversed ? clip.sourceIn + span - file : file - clip.sourceIn;
+}
+
+/**
+ * Where a file time falls on the timeline under a clip, through its trims, speed, ramp and
+ * reverse (`timeOfContent`). Times outside what the clip plays are brought to its ends; a held
+ * frame plays nothing, so every time is its start.
+ */
+export function timelineTimeOf(clip: Clip, file: Micros): Micros {
+  if (speedOf(clip).rate === 0) return clip.start;
+  const played = Math.max(0, Math.min(playedAt(clip, file), sourceSpan(clip)));
+  return timeOfContent(clip, (clip.animationOrigin ?? 0) + played);
+}
+
 /**
  * Where a file's beats (file microseconds) fall on the timeline under one clip: through its trims,
  * speed, ramp and reverse (`timeOfContent`), only those the clip plays. A held frame plays none.
  */
 export function clipBeats(clip: Clip, beats: readonly Micros[]): Micros[] {
-  const { rate, reversed } = speedOf(clip);
-  if (rate === 0) return [];
+  if (speedOf(clip).rate === 0) return [];
   const span = sourceSpan(clip);
-  const origin = clip.animationOrigin ?? 0;
   const times: Micros[] = [];
   for (const beat of beats) {
-    const played = reversed ? clip.sourceIn + span - beat : beat - clip.sourceIn;
-    if (played >= 0 && played < span) times.push(timeOfContent(clip, origin + played));
+    const played = playedAt(clip, beat);
+    if (played >= 0 && played < span) times.push(timelineTimeOf(clip, beat));
   }
   return times;
 }

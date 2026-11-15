@@ -1,6 +1,6 @@
 //! Sound module: what the Sound page asks of FFmpeg itself, and recording. Noise reduction is
 //! rendered by the media module (a derived file, [`crate::media::denoise`]); here its floor is
-//! measured. A file's beats are found for snapping ([`beats`]). A recording is written as a WAV ([`record`]) from the microphone, which the app's own
+//! measured. A file's beats are found for snapping ([`beats`]), its silent stretches for cutting ([`silences`]). A recording is written as a WAV ([`record`]) from the microphone, which the app's own
 //! pages may open ([`microphone`]). A whole mix is measured without playing it ([`analyze`]).
 
 mod analyses;
@@ -10,6 +10,7 @@ pub mod commands;
 mod floor;
 mod microphone;
 mod record;
+mod silences;
 mod stretches;
 
 use tauri::{App, Manager};

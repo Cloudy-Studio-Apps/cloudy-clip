@@ -83,3 +83,25 @@ export async function findFileBeats(
 export function cancelFileBeats(jobId: string): Promise<void> {
   return invoke<void>("sound_beats_cancel", { jobId });
 }
+
+/**
+ * The silent stretches of `from..to` of the file at `path` (file microseconds), found by FFmpeg's
+ * `silencedetect`: quieter than `thresholdDb` for at least `minMs`. Rejects when the file has no
+ * sound or can't be read.
+ */
+export async function findFileSilences(
+  path: string,
+  from: Micros,
+  to: Micros,
+  thresholdDb: number,
+  minMs: number,
+): Promise<[Micros, Micros][]> {
+  const found = await invoke<{ stretches: [Micros, Micros][] }>("sound_silences", {
+    path,
+    from,
+    to,
+    thresholdDb,
+    minMs,
+  });
+  return found.stretches;
+}

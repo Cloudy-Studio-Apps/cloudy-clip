@@ -41,6 +41,12 @@ export {
  * layout check, and shrinking junctions that no longer fit, for modules with their own clip edits.
  */
 export { commitState, fitJunctions, junctionKindOf } from "./timeline.junctions";
+/**
+ * Runs an edit that, with `soundOnly`, leaves pictures alone: it acts on the named clips on audio
+ * tracks only, unlinked first, all one undo step. For a module's own clip edit that the Sound page
+ * runs on sound alone.
+ */
+export { editSoundOnly } from "./timeline.sound";
 /** Layers over the lanes; contribute with `ctx.contribute(timelineOverlays, …)`. */
 export {
   clipActions,
