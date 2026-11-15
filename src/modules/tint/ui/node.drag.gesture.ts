@@ -24,7 +24,11 @@ export function startGraphDrag({ event, svg, onMove, onEnd }: GraphDragOptions):
     };
   };
   let moved = false;
+  // Captured, a drag that leaves the graph (or the window) still ends where the pointer let go.
+  const holder = event.target as Element | null;
+  holder?.setPointerCapture?.(event.pointerId);
   const stop = () => {
+    if (holder?.hasPointerCapture?.(event.pointerId)) holder.releasePointerCapture(event.pointerId);
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
     window.removeEventListener("pointercancel", cancel);

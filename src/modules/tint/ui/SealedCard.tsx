@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useKernel } from "@/core";
 import type { Correction } from "@/modules/project";
 import { cn } from "@/ui";
-import { setCorrection } from "../tint.node.commands";
+import { setCorrections } from "../tint.node.commands";
 import { selectNode, setMode } from "../tint.view.commands";
 import type { StackItem } from "../tint.types";
 import { LayerRow } from "./LayerRow";
@@ -32,12 +32,10 @@ export function SealedCard({ card }: { card: Extract<StackItem, { type: "sealed"
     void bus.run(setMode, { mode: "leader" });
     void bus.run(selectNode, { nodeId: card.nodes[0] ?? null });
   };
-  const toggle = async () => {
-    for (const nodeId of corrections) {
-      const patch = { on: !on };
-      if (!(await settle(bus.run(setCorrection, { target: { clipId }, nodeId, patch }))).ok) break;
-    }
-  };
+  const toggle = () =>
+    void settle(
+      bus.run(setCorrections, { target: { clipId }, nodeIds: corrections, patch: { on: !on } }),
+    );
   return (
     <div
       className={cn(
@@ -52,7 +50,7 @@ export function SealedCard({ card }: { card: Extract<StackItem, { type: "sealed"
         <button
           type="button"
           title={on ? "On: click to turn everything inside off" : "Off: click to turn it on"}
-          onClick={() => void toggle()}
+          onClick={toggle}
           className="grid size-[22px] cursor-pointer place-items-center text-muted-foreground hover:text-foreground"
         >
           {on ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}

@@ -11,6 +11,7 @@ import {
   moveLayer,
   removeNodes,
   setCorrection,
+  setCorrections,
   targetSchema,
 } from "./tint.node.commands";
 import type { ToolId } from "./tint.types";
@@ -101,6 +102,7 @@ export const resetGrade = defineCommand({
 export const tintCommands = [
   addCorrection,
   setCorrection,
+  setCorrections,
   removeNodes,
   moveLayer,
   resetGrade,

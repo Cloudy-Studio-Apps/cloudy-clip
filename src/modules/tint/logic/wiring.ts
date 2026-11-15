@@ -1,20 +1,28 @@
 import type { ClipGrade, NodeRef } from "@/modules/project";
-import type { GraphPlaced as Placed, GraphPoint, WireDrop, WireEntry } from "../tint.types";
+import type {
+  GraphPlaced as Placed,
+  GraphPoint,
+  GraphWire,
+  WireDrop,
+  WireEntry,
+} from "../tint.types";
 import { graphEnds, nodeBox } from "./graph";
 
 /** How far (graph units) past a node's box, or from Out's dot, a wire still lands on it. */
 const REACH = 8;
 const OUT_REACH = 16;
 
-/** What a wire dropped at `point` lands on: Out, or a node (on a channel join, the channel by height), else nothing. */
+/** What a wire dropped at `point` lands on (never `from`, the node it left: a click isn't a cycle): Out, or a node (on a channel join, the channel by height), else nothing. */
 export function dropTarget(
   grade: ClipGrade,
   placed: Record<string, Placed>,
   point: GraphPoint,
+  from: string,
 ): WireDrop | null {
   const out = graphEnds(placed).out;
   if (Math.hypot(point[0] - out[0], point[1] - out[1]) <= OUT_REACH) return { nodeId: "out" };
   for (const [nodeId, node] of Object.entries(placed)) {
+    if (nodeId === from) continue;
     const b = nodeBox(node);
     const inside =
       point[0] >= b.x - REACH &&
@@ -45,4 +53,20 @@ export function wireEntry(grade: ClipGrade, drop: WireDrop, ref: NodeRef): WireE
     default:
       return { nodeId, input: ref };
   }
+}
+
+/**
+ * The `tint.wire` entry that takes `wire` away, for what can lose one input: a side by side or
+ * stacked group's picture or a key join's key. Null for the rest (a correction, a split, a channel
+ * join and Out must read something, so they are rewired, not unwired).
+ */
+export function unwireEntry(grade: ClipGrade, wire: GraphWire): WireEntry | null {
+  const node = grade.nodes[wire.to];
+  if (node?.kind === "parallel" || node?.kind === "layer") {
+    return { nodeId: wire.to, inputs: node.inputs.filter((_, i) => i !== wire.index) };
+  }
+  if (node?.kind === "keyJoin") {
+    return { nodeId: wire.to, keys: node.keys.filter((_, i) => i !== wire.index) };
+  }
+  return null;
 }

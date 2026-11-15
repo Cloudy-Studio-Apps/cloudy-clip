@@ -20,27 +20,30 @@ export function graphWires(grade: ClipGrade, placed: Record<string, Placed>): Gr
         from: ref.node,
         to: id,
         kind: ref.channel ?? slot ?? "picture",
+        index: i,
         a: refPoint(placed, ends, ref),
         b: inPort(at, slot),
       });
     });
-    for (const from of gradeKeys(node)) {
+    gradeKeys(node).forEach((from, index) => {
       const source = placed[from];
       if (source) {
         wires.push({
           from,
           to: id,
           kind: "key",
+          index,
           a: refPoint(placed, ends, { node: from }),
           b: inPort(at),
         });
       }
-    }
+    });
   }
   wires.push({
     from: grade.out.node,
     to: "out",
     kind: grade.out.channel ?? "picture",
+    index: 0,
     a: refPoint(placed, ends, grade.out),
     b: ends.out,
   });

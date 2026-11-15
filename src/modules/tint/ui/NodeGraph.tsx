@@ -1,5 +1,5 @@
 import { Scan } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKernel } from "@/core";
 import { gradeOf, type ClipGrade, type ClipId, type NodeRef } from "@/modules/project";
 import { ContextMenu, IconButton, type MenuPoint } from "@/ui";
@@ -7,7 +7,7 @@ import { fitView, graphEnds, placeAll, refPoint } from "../logic/graph";
 import { groupPick } from "../logic/layers";
 import { regionsOf } from "../logic/regions";
 import { emptyGrade, numberOf, toStack } from "../logic/stack";
-import { dropTarget, wireEntry } from "../logic/wiring";
+import { dropTarget, unwireEntry, wireEntry } from "../logic/wiring";
 import { graphWires, wirePath } from "../logic/wires";
 import { selectNode } from "../tint.view.commands";
 import { useCurrentEntry } from "./current.hook";
@@ -64,17 +64,24 @@ function Graph({ clipId, saved }: { clipId: ClipId; saved: ClipGrade | null }) {
   // The graph opens on the whole grade; Fit goes back to it.
   const [home] = useState(() => fitView(placed));
   const camera = useGraphCamera(wrap, svg, home);
+  // The wires as last drawn, for a drag that ends after the grade changed.
+  const latest = useRef(wires);
+  useEffect(() => {
+    latest.current = wires;
+  }, [wires]);
+  // The wire a right-click landed on, if any.
+  const hit = useRef<number | null>(null);
 
   /** Shows node `id` moved by `dx, dy`, with its wires, straight on the DOM. */
   const paint = (id: string, dx: number, dy: number) => {
     const el = svg.current;
     if (!el) return;
     el.querySelector(`[data-node-id="${id}"]`)?.setAttribute("transform", `translate(${dx} ${dy})`);
-    wires.forEach((w, i) => {
+    latest.current.forEach((w, i) => {
       if (w.from !== id && w.to !== id) return;
       const a: [number, number] = w.from === id ? [w.a[0] + dx, w.a[1] + dy] : [...w.a];
       const b: [number, number] = w.to === id ? [w.b[0] + dx, w.b[1] + dy] : [...w.b];
-      el.querySelector(`[data-wire="${i}"]`)?.setAttribute("d", wirePath(a, b));
+      el.querySelectorAll(`[data-wire="${i}"]`).forEach((p) => p.setAttribute("d", wirePath(a, b)));
     });
   };
 
@@ -87,9 +94,13 @@ function Graph({ clipId, saved }: { clipId: ClipId; saved: ClipGrade | null }) {
       svg: svg.current,
       onMove: ({ dx, dy }) => paint(id, dx, dy),
       async onEnd(end) {
-        if (end) await actions.place({ [id]: { x: at.x + end.dx, y: at.y + end.dy } });
-        // After the render of the new place, or at once when nothing moved or it was refused.
-        requestAnimationFrame(() => paint(id, 0, 0));
+        const placedOk =
+          end !== null && (await actions.place({ [id]: { x: at.x + end.dx, y: at.y + end.dy } }));
+        if (!placedOk) return paint(id, 0, 0);
+        // Placed: React draws the new place and its wires; only the move offset goes.
+        requestAnimationFrame(() =>
+          svg.current?.querySelector(`[data-node-id="${id}"]`)?.removeAttribute("transform"),
+        );
       },
     });
   };
@@ -102,7 +113,7 @@ function Graph({ clipId, saved }: { clipId: ClipId; saved: ClipGrade | null }) {
       line: line.current,
       from: refPoint(placed, ends, from),
       onDrop(at) {
-        const drop = at && dropTarget(grade, placed, at);
+        const drop = at && dropTarget(grade, placed, at, from.node);
         if (drop) void actions.wire(wireEntry(grade, drop, from));
       },
     });
@@ -120,19 +131,23 @@ function Graph({ clipId, saved }: { clipId: ClipId; saved: ClipGrade | null }) {
     ({ clientX, clientY }: MenuPoint) => {
       const ctm = svg.current?.getScreenCTM();
       const point = svg.current?.createSVGPoint();
-      if (!ctm || !point) return nodeMenu(actions, picks, [0, 0]);
+      const wire = hit.current === null ? undefined : wires[hit.current];
+      const entry = wire && unwireEntry(grade, wire);
+      const remove = entry ? () => void actions.wire(entry) : undefined;
+      if (!ctm || !point) return nodeMenu(actions, picks, [0, 0], remove);
       point.x = clientX;
       point.y = clientY;
       const at = point.matrixTransform(ctm.inverse());
-      return nodeMenu(actions, picks, [at.x, at.y]);
+      return nodeMenu(actions, picks, [at.x, at.y], remove);
     },
-    [actions, picks],
+    [actions, picks, grade, wires],
   );
 
   return (
     <ContextMenu items={menu}>
       <div
         ref={wrap}
+        onContextMenuCapture={() => (hit.current = null)}
         className="relative min-h-0 flex-1 cursor-grab touch-none overflow-hidden bg-background bg-[radial-gradient(circle,var(--border)_1px,transparent_1.3px)]"
       >
         <svg ref={svg} preserveAspectRatio="xMidYMid meet" className="absolute inset-0 size-full">
@@ -167,6 +182,18 @@ function Graph({ clipId, saved }: { clipId: ClipId; saved: ClipGrade | null }) {
               stroke={WIRE_COLORS[w.kind]}
               strokeWidth={1.8}
               strokeDasharray={w.kind === "key" ? "5 4" : undefined}
+            />
+          ))}
+          {wires.map((w, i) => (
+            <path
+              key={`hit-${w.from}-${w.to}-${i}`}
+              data-wire={i}
+              d={wirePath(w.a, w.b)}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={12}
+              pointerEvents="stroke"
+              onContextMenu={() => (hit.current = i)}
             />
           ))}
           <path

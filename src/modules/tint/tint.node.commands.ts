@@ -175,6 +175,52 @@ export const setCorrection = defineCommand({
   },
 });
 
+/** Turns several corrections on or off, or fades them, in one step (a sealed card's eye and fade). */
+export const setCorrections = defineCommand({
+  id: "tint.setCorrections",
+  label: "Change corrections",
+  description:
+    "Sets on and/or opacity of several corrections of one grade in a single undo step, all or nothing: if any node fails, nothing is written. Fields at their defaults are not stored. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (a node is missing or not a correction), tint.animated (a field of one of them has keys) or tint.invalid_grade (nothing is written).",
+  undoable: true,
+  input: z.object({
+    target: targetSchema,
+    nodeIds: z.array(nodeId).min(1),
+    patch: z.object({ opacity: z.number().min(0).max(1).optional(), on: z.boolean().optional() }),
+  }),
+  run(ctx, { target, nodeIds, patch }) {
+    const { store } = ctx.require(projectRef);
+    const state = store.getState();
+    const grade = readGrade(state, target);
+    const fields = [
+      ...(patch.opacity !== undefined ? ["opacity"] : []),
+      ...(patch.on !== undefined ? ["on"] : []),
+    ];
+    const next = structuredClone(grade!);
+    for (const id of nodeIds) {
+      const found = existing(grade, id);
+      if (found.kind !== "correct") {
+        throw new CommandFailure("tint.node_not_found", `Node "${id}" is not a correction`, {
+          nodeId: id,
+        });
+      }
+      const animated = animatedFields(state, target, id, fields);
+      if (animated.length > 0) {
+        throw new CommandFailure(
+          "tint.animated",
+          `${animated.join(", ")} of node "${id}" has keys. Change it at a time with a key, not a static value.`,
+          { nodeId: id, fields: animated },
+        );
+      }
+      const node = next.nodes[id] as Correction;
+      if (patch.opacity !== undefined) node.opacity = patch.opacity;
+      if (patch.on !== undefined) node.on = patch.on;
+    }
+    const stored = checkedGrade(next);
+    if (JSON.stringify(stored) === JSON.stringify(grade)) return;
+    ctx.mutate(store, (draft) => writeGrade(draft, target, stored));
+  },
+});
+
 /** Removes nodes from a grade. */
 export const removeNodes = defineCommand({
   id: "tint.removeNodes",

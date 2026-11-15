@@ -330,6 +330,8 @@ export interface GraphWire {
   to: string;
   /** `r`, `g`, `b`: a channel; `key`: a key (dashed). */
   kind: "picture" | "r" | "g" | "b" | "key";
+  /** Its place among what `to` reads: the picture inputs, or (a key wire) the keys. */
+  index: number;
   a: GraphPoint;
   b: GraphPoint;
 }
