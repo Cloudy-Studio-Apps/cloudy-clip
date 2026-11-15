@@ -122,11 +122,14 @@ export const soundModule = defineModule({
       times: (state, compositionId) =>
         beatTimes(state, compositionId, beats.state.getState().files),
     });
-    const silences = createSilenceFinder(project.store.getState);
+    const media = require(mediaRef);
+    const silences = createSilenceFinder(project.store.getState, media);
     const openSilence: SoundApi["openSilence"] = (target) =>
       view.setState({ silence: target && { ...target, cuts: [] } });
-    onDispose(silences.forget);
-    const media = require(mediaRef);
+    onDispose(() => {
+      silences.cancel();
+      silences.forget();
+    });
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());
     onDispose(followRecordingEnds(recorder, pages, playback, project, workspace));
@@ -183,7 +186,7 @@ export const soundModule = defineModule({
       component: SilenceCuts,
     });
     contribute(clipActions, {
-      ...silenceMenu(project, require(timelineRef).view, openSilence),
+      ...silenceMenu(project, media, require(timelineRef).view, openSilence),
       scopes: ["all"],
     });
     contribute(clipActions, {

@@ -19,7 +19,7 @@ export const stripSilence = defineCommand({
   id: "sound.stripSilence",
   label: "Strip silence",
   description:
-    "Cuts the silent stretches out of clips with sound, as one undo step. Silence is FFmpeg's silencedetect over the part of the file each clip plays: quieter than thresholdDb (default -35 dBFS) for at least minMs (default 400); padMs (default 100) of quiet stays on each side of a cut. Read what it would cut first with sound_find_silences. A linked picture and sound are cut together (a jump cut). With soundOnly, only clips on audio tracks are cut (linked ones unlinked first, as sound editing does) and the gaps stay, so the pictures are untouched; closeGaps is refused with it. With closeGaps, what follows each cut on its tracks (and its linked clips) moves earlier by the removed time, and tracks that hold nothing of these clips do not move, so they drift against them: check the tracks first. Clips with no sound file of their own (text, images, held frames) are skipped. Returns { cuts, removed } (microseconds taken out). Fails with sound.no_silence when nothing is found (nothing changes), sound.silence_failed when the file can't be read, sound.clip_not_found, sound.close_gaps_sound_only, timeline.not_sound, junction.split_in_overlap.",
+    "Cuts the silent stretches out of clips with sound, as one undo step. Silence is FFmpeg's silencedetect over the part of the file each clip plays: quieter than thresholdDb (default -35 dBFS) for at least minMs (default 400); padMs (default 100) of quiet stays on each side of a cut. It never scans: run sound_find_silences first with the same clipIds, thresholdDb, minMs and padMs (the scan is kept), or it fails with sound.silences_missing. A linked picture and sound are cut together (a jump cut). With soundOnly, only clips on audio tracks are cut (linked ones unlinked first, as sound editing does) and the gaps stay, so the pictures are untouched; closeGaps is refused with it. With closeGaps, what follows each cut on its tracks (and its linked clips) moves earlier by the removed time, and tracks that hold nothing of these clips do not move, so they drift against them: check the tracks first. Clips with no sound file of their own (text, images, held frames, a video with no sound stream) are skipped. Returns { cuts, removed } (microseconds taken out). Fails with sound.silences_missing, sound.no_silence when nothing is found or the clip has no sound (nothing changes), sound.clip_not_found, sound.close_gaps_sound_only, timeline.not_sound, junction.split_in_overlap.",
   undoable: true,
   input: z.object({
     clipIds: z.array(z.string()).min(1),
@@ -43,60 +43,53 @@ export const stripSilence = defineCommand({
       );
     }
     const { silences } = ctx.require(soundRef);
-    try {
-      return await editSoundOnly(ctx, clipIds, soundOnly, async (ids) => {
-        let found;
-        try {
-          found = await silences.cutsOf(ids, params);
-        } catch (error) {
-          const message =
-            typeof error === "object" && error !== null && "message" in error
-              ? String(error.message)
-              : String(error);
-          throw new CommandFailure(
-            "sound.silence_failed",
-            `Could not look for silence: ${message}`,
-          );
+    return editSoundOnly(ctx, clipIds, soundOnly, async (ids) => {
+      // The scan ran before this command (the dialog, or sound_find_silences): it never waits on FFmpeg.
+      const found = silences.kept(ids, params);
+      if (!found) {
+        throw new CommandFailure(
+          "sound.silences_missing",
+          "These clips haven't been scanned for silence with these values: run sound_find_silences first.",
+        );
+      }
+      // Latest first: a cut never moves what is cut before it, even when it closes its gap.
+      const cuts = found
+        .flatMap(({ clipId, cuts }) => cuts.map((cut) => ({ clipId, ...cut })))
+        .sort((a, b) => b.start - a.start);
+      if (cuts.length === 0) {
+        throw new CommandFailure(
+          "sound.no_silence",
+          found.length > 0 && found.every((f) => f.noSound)
+            ? "No sound in this clip."
+            : "No silence found at this threshold: raise it, or shorten the minimum.",
+        );
+      }
+      let removed = 0;
+      let count = 0;
+      for (const cut of cuts) {
+        const state = project.getState();
+        const clip = state.clips[cut.clipId]!;
+        const least = minClipDuration(formatOf(state, clip));
+        // A cut that leaves less than a frame at an edge takes the edge.
+        const start = cut.start - clip.start < least ? clip.start : cut.start;
+        const end = clipEnd(clip) - cut.end < least ? clipEnd(clip) : cut.end;
+        if (end - start < least) continue;
+        if (end < clipEnd(clip)) await ctx.execute(splitAt, { at: end, clipIds: [clip.id] });
+        let middle = clip.id;
+        if (start > clip.start) {
+          const { created } = await ctx.execute(splitAt, { at: start, clipIds: [clip.id] });
+          const now = project.getState();
+          middle = created.find((id) => now.clips[id]?.trackId === clip.trackId) ?? middle;
         }
-        // Latest first: a cut never moves what is cut before it, even when it closes its gap.
-        const cuts = found
-          .flatMap(({ clipId, cuts }) => cuts.map((cut) => ({ clipId, ...cut })))
-          .sort((a, b) => b.start - a.start);
-        if (cuts.length === 0) {
-          throw new CommandFailure(
-            "sound.no_silence",
-            "No silence found at this threshold: raise it, or shorten the minimum.",
-          );
-        }
-        let removed = 0;
-        let count = 0;
-        for (const cut of cuts) {
-          const state = project.getState();
-          const clip = state.clips[cut.clipId]!;
-          const least = minClipDuration(formatOf(state, clip));
-          // A cut that leaves less than a frame at an edge takes the edge.
-          const start = cut.start - clip.start < least ? clip.start : cut.start;
-          const end = clipEnd(clip) - cut.end < least ? clipEnd(clip) : cut.end;
-          if (end - start < least) continue;
-          if (end < clipEnd(clip)) await ctx.execute(splitAt, { at: end, clipIds: [clip.id] });
-          let middle = clip.id;
-          if (start > clip.start) {
-            const { created } = await ctx.execute(splitAt, { at: start, clipIds: [clip.id] });
-            const now = project.getState();
-            middle = created.find((id) => now.clips[id]?.trackId === clip.trackId) ?? middle;
-          }
-          await ctx.execute(closeGaps ? rippleDelete : deleteClips, { clipIds: [middle] });
-          removed += end - start;
-          count += 1;
-        }
-        if (count === 0) {
-          throw new CommandFailure("sound.no_silence", "The silences found are under a frame.");
-        }
-        return { cuts: count, removed };
-      });
-    } finally {
-      silences.forget();
-    }
+        await ctx.execute(closeGaps ? rippleDelete : deleteClips, { clipIds: [middle] });
+        removed += end - start;
+        count += 1;
+      }
+      if (count === 0) {
+        throw new CommandFailure("sound.no_silence", "The silences found are under a frame.");
+      }
+      return { cuts: count, removed };
+    });
   },
 });
 

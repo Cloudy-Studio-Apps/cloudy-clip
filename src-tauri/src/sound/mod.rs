@@ -22,4 +22,5 @@ pub fn setup(app: &mut App) {
     app.manage(record::Takes::default());
     app.manage(analyses::Analyses::default());
     app.manage(beats::Beats::default());
+    app.manage(silences::Silences::default());
 }

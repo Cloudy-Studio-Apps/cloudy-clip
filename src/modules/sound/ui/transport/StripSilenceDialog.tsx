@@ -29,6 +29,7 @@ export function StripSilenceDialog({ target }: { target: SilenceDialog }) {
     clips?: ClipCuts[];
     failed?: string;
   } | null>(null);
+  const [progress, setProgress] = useState(0);
   const current = result?.params === params ? result : null;
   const found = current?.clips ?? null;
   const failed = current?.failed ?? null;
@@ -37,27 +38,31 @@ export function StripSilenceDialog({ target }: { target: SilenceDialog }) {
     let live = true;
     // Wait for the typing to stop: each look decodes the clips' sound.
     const timer = setTimeout(() => {
-      silences.cutsOf(clipIds, params).then(
-        (clips) => {
-          if (!live) return;
-          setResult({ params, clips });
-          view.setState((s) => ({
-            silence: s.silence && { ...s.silence, cuts: clips.flatMap((c) => c.cuts) },
-          }));
-        },
-        (error: unknown) => {
-          if (live) {
-            setResult({
-              params,
-              failed: error instanceof Error ? error.message : JSON.stringify(error),
-            });
-          }
-        },
-      );
+      silences
+        .scan(clipIds, params, (p) => live && setProgress(p))
+        .then(
+          (clips) => {
+            if (!live) return;
+            setResult({ params, clips });
+            view.setState((s) => ({
+              silence: s.silence && { ...s.silence, cuts: clips.flatMap((c) => c.cuts) },
+            }));
+          },
+          (error: unknown) => {
+            if (live) {
+              setResult({
+                params,
+                failed: error instanceof Error ? error.message : JSON.stringify(error),
+              });
+            }
+          },
+        );
     }, 250);
     return () => {
       live = false;
       clearTimeout(timer);
+      // Values that changed make this scan stale: stop its FFmpeg.
+      silences.cancel();
     };
   }, [clipIds, params, silences, view]);
 
@@ -152,9 +157,11 @@ export function StripSilenceDialog({ target }: { target: SilenceDialog }) {
         {failed
           ? `Could not look for silence: ${failed}`
           : found === null
-            ? "Listening..."
+            ? `Listening... ${Math.round(progress * 100)}%`
             : cuts.length === 0
-              ? "No silence found at this threshold. Raise it, or shorten the shortest silence."
+              ? found.length > 0 && found.every((c) => c.noSound)
+                ? "No sound in this clip."
+                : "No silence found at this threshold. Raise it, or shorten the shortest silence."
               : `${cuts.length} ${cuts.length === 1 ? "cut" : "cuts"}, ${formatTimecode(removed)} taken out. Shown on the timeline.`}
       </p>
       {drifting.length > 0 && (

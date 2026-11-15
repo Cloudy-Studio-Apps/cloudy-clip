@@ -71,6 +71,8 @@ export interface Cut {
 export interface ClipCuts {
   clipId: ClipId;
   cuts: Cut[];
+  /** The file has no sound: nothing was scanned. */
+  noSound?: true;
 }
 
 /** What counts as silence, and what is kept around the sound. */
@@ -83,11 +85,26 @@ export interface SilenceParams {
   padMs: number;
 }
 
-/** Finds the cuts of clips outside the bus (a long file outlasts its timeout), remembering what it found. */
+/**
+ * Scans clips for silence outside the bus (a long file outlasts its timeout), at most two files at
+ * a time, and keeps what it found for the command that strips it.
+ */
 export interface SilenceFinder {
-  /** The cuts of the clips that have sound of their own, in timeline time. Rejects with the native error. */
-  cutsOf(clipIds: readonly ClipId[], params: SilenceParams): Promise<ClipCuts[]>;
-  /** Forgets what was found (a command used it, or the files may have changed). */
+  /**
+   * Scans the clips that have sound of their own (what is kept isn't scanned again) and returns
+   * their cuts in timeline time; `onProgress` gets 0 to 1 over all of them. Rejects with message
+   * "Cancelled" when `cancel` stops it, or with the native error.
+   */
+  scan(
+    clipIds: readonly ClipId[],
+    params: SilenceParams,
+    onProgress?: (progress: number) => void,
+  ): Promise<ClipCuts[]>;
+  /** The cuts of an earlier scan with these clips and values, or null when one is missing. */
+  kept(clipIds: readonly ClipId[], params: SilenceParams): ClipCuts[] | null;
+  /** Stops every scan under way or waiting. */
+  cancel(): void;
+  /** Forgets what was found (the files may have changed). */
   forget(): void;
 }
 

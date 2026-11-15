@@ -9,9 +9,9 @@ use tauri::ipc::{Channel, InvokeBody, Request};
 use super::analyses::{self, Analyses};
 use super::analyze::Analysis;
 use super::beats::{self, Beats};
-use super::silences;
 use super::floor::{MEASURE_ARGS, parse_floor, stretch_args};
 use super::record::{TakeStarted, TakeWritten, Takes};
+use super::silences::{self, Silences};
 use crate::error::{AppError, AppResult};
 use crate::export::PartialNotes;
 use crate::export::spec::SoundOnlySpec;
@@ -161,23 +161,52 @@ pub async fn sound_beats_cancel(job_id: String, beats: State<'_, Beats>) -> AppR
     Ok(())
 }
 
-/// What `sound_silences` found.
+/// What `sound_silences_finish` found.
 #[derive(serde::Serialize)]
 pub struct SilencesFound {
     /// `[start, end]` in microseconds of the file, in order; none when it never falls silent.
     pub stretches: Vec<(u64, u64)>,
 }
 
-/// The silent stretches of `from..to` (microseconds of the file) of the file at `path`: quieter
-/// than `threshold_db` (dBFS) for at least `min_ms`. Fails when the file has no sound.
+/// Starts looking for the silent stretches of `from..to` (microseconds of the file) of the file
+/// at `path`: quieter than `threshold_db` (dBFS) for at least `min_ms`. Reports 0 to 1 to
+/// `on_progress`. Returns the scan's id, for `sound_silences_finish` and `sound_silences_cancel`,
+/// or null when the file has no sound.
 #[tauri::command]
-pub async fn sound_silences(
+pub async fn sound_silences_begin(
     path: String,
     from: u64,
     to: u64,
     threshold_db: f64,
     min_ms: f64,
+    on_progress: Channel<f32>,
+    silences: State<'_, Silences>,
+) -> AppResult<Option<String>> {
+    silences::begin(
+        &PathBuf::from(path),
+        from,
+        to,
+        threshold_db,
+        min_ms,
+        on_progress,
+        &silences,
+    )
+    .await
+}
+
+/// Waits for a scan to end and returns its stretches. Fails with "Cancelled" when it was.
+#[tauri::command]
+pub async fn sound_silences_finish(
+    job_id: String,
+    silences: State<'_, Silences>,
 ) -> AppResult<SilencesFound> {
-    let stretches = silences::find(&PathBuf::from(path), from, to, threshold_db, min_ms).await?;
+    let stretches = silences::finish(&job_id, &silences).await?;
     Ok(SilencesFound { stretches })
+}
+
+/// Stops a scan. One that already ended is left alone.
+#[tauri::command]
+pub async fn sound_silences_cancel(job_id: String, silences: State<'_, Silences>) -> AppResult<()> {
+    silences::cancel(&job_id, &silences).await;
+    Ok(())
 }

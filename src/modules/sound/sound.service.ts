@@ -85,23 +85,40 @@ export function cancelFileBeats(jobId: string): Promise<void> {
 }
 
 /**
- * The silent stretches of `from..to` of the file at `path` (file microseconds), found by FFmpeg's
- * `silencedetect`: quieter than `thresholdDb` for at least `minMs`. Rejects when the file has no
- * sound or can't be read.
+ * Starts looking for the silent stretches of `from..to` of the file at `path` (file microseconds):
+ * FFmpeg's `silencedetect`, quieter than `thresholdDb` for at least `minMs`. `onProgress` gets 0 to
+ * 1. Resolves with the scan's id for `finishSilences` and `cancelSilences`, or null when the file
+ * has no sound.
  */
-export async function findFileSilences(
+export function beginSilences(
   path: string,
   from: Micros,
   to: Micros,
   thresholdDb: number,
   minMs: number,
-): Promise<[Micros, Micros][]> {
-  const found = await invoke<{ stretches: [Micros, Micros][] }>("sound_silences", {
+  onProgress: (progress: number) => void,
+): Promise<string | null> {
+  const channel = new Channel<number>();
+  channel.onmessage = onProgress;
+  return invoke<string | null>("sound_silences_begin", {
     path,
     from,
     to,
     thresholdDb,
     minMs,
+    onProgress: channel,
+  });
+}
+
+/** Waits for a scan to end: its stretches (file microseconds). Rejects with message "Cancelled" when it was stopped. */
+export async function finishSilences(jobId: string): Promise<[Micros, Micros][]> {
+  const found = await invoke<{ stretches: [Micros, Micros][] }>("sound_silences_finish", {
+    jobId,
   });
   return found.stretches;
+}
+
+/** Stops a scan. */
+export function cancelSilences(jobId: string): Promise<void> {
+  return invoke<void>("sound_silences_cancel", { jobId });
 }
