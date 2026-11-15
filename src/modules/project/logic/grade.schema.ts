@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BLEND_MODES } from "../project.types";
-import type { ClipGrade, CorrectionValues } from "../project.types";
+import type { ClipGrade, CorrectionValues, InputColorSpace } from "../project.types";
 
 const pair = z.tuple([z.number(), z.number()]);
 const pos = z.object({ x: z.number(), y: z.number() }).optional();
@@ -65,11 +65,21 @@ export const gradeNodeSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
+/** Every camera color space a grade's `input` can be; `"rec709"` (the default) converts nothing. */
+export const INPUT_SPACES = [
+  "rec709",
+  "srgb",
+  "slog3",
+  "appleLog",
+  "clog2",
+  "clog3",
+  "vlog",
+  "flog",
+] as const satisfies readonly InputColorSpace[];
+
 /** A whole grade. Its graph rules (refs, cycles, ranges) are `validateGrade`'s. */
 export const gradeSchema = z.object({
-  input: z
-    .enum(["rec709", "srgb", "slog3", "appleLog", "clog2", "clog3", "vlog", "flog"])
-    .optional(),
+  input: z.enum(INPUT_SPACES).optional(),
   nodes: z.record(z.string(), gradeNodeSchema),
   out: nodeRefSchema,
 }) as unknown as z.ZodType<ClipGrade>;

@@ -392,3 +392,37 @@ using it reads that pass as its key. On the CPU `evaluatePixel` walks the same g
   side by side (seeds 501, 503, 505, 507) reach 2, 1, 2 and 3 on 2, 0, 4 and 6 values: the later keys
   are read from the half-float picture between passes, the case Task 17's chains describe.
 - **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.
+
+## Stage 5
+
+### Camera color spaces: parity (Task 21)
+
+Each camera color space to Rec.709 against the shader, 2026-11-15. On the GPU a grade whose `input`
+is a camera space starts with one pass (`render/spaces.glsl.ts` `inputPass`, `tint.input.<space>`)
+that every node reads as the source; on the CPU `evaluatePixel` runs `logic/color/spaces.ts`
+`toRec709` on the source first. Curve, gamut matrix to Rec.709, the Rec.709 transfer, one clamp at
+the end.
+
+- **Method:** as Task 19 (temporary dev page on the web build, `pnpm vite --port 1540`, headless
+  Chromium 1243 with SwiftShader WebGL2, half-float targets, CDP; removed before the commit), 256
+  colors on a 16 × 16 canvas, 20 sets per row: the first set the fixed colors of Task 7 (grays,
+  ramps, skin-like tones, seeded random), the other 19 seeded random colors, so each curve is read
+  over its whole range. Reference `evaluatePixel`, each grade checked with `validateGrade`. "Alone" is
+  the conversion with no node (`out` the source); "graded" adds two corrections in a row after it
+  (exposure ±1.2, saturation 0…2, hue ±90, temperature ±60, contrast 0.6…1.5, opacity 0.5…1).
+- **Rec.709 adds no pass:** a one-correction grade gives 1 pass with and without `input: "rec709"`,
+  and `{ input: "rec709", nodes: {} }` gives none.
+- **Results** (15 360 channel values per row):
+
+| Space     | Alone: max | Off by 1 | Over 1 | Graded: max | Off by 1 | Over 1 | Passes (alone, graded) |
+| --------- | ---------- | -------- | ------ | ----------- | -------- | ------ | ---------------------- |
+| sRGB      | 0          | 0        | 0      | 1           | 361      | 0      | 20, 60                 |
+| S-Log3    | 0          | 0        | 0      | 1           | 298      | 0      | 20, 60                 |
+| Apple Log | 0          | 0        | 0      | 1           | 266      | 0      | 20, 60                 |
+| C-Log2    | 1          | 1        | 0      | 1           | 278      | 0      | 20, 60                 |
+| C-Log3    | 0          | 0        | 0      | 1           | 215      | 0      | 20, 60                 |
+| V-Log     | 0          | 0        | 0      | 1           | 206      | 0      | 20, 60                 |
+| F-Log     | 1          | 1        | 0      | 1           | 255      | 0      | 20, 60                 |
+
+- **Pass:** every row is within one 8-bit step.
+- **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.

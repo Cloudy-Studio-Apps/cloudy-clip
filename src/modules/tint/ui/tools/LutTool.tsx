@@ -1,7 +1,13 @@
 import { Upload } from "lucide-react";
 import { useState } from "react";
+import { useKernel } from "@/core";
+import { INPUT_SPACES, type InputColorSpace } from "@/modules/project";
 import { Button, cn, SelectField } from "@/ui";
-import { DEMO_LUTS, DEMO_SPACES } from "../demo/demo.values";
+import { setInput } from "../../tint.color.commands";
+import { DEMO_LUTS } from "../demo/demo.values";
+import { useEditTarget } from "../edit.target.hook";
+import { settle } from "../settle";
+import { SPACE_NAMES } from "../space.names";
 import type { DemoField } from "../demo/demo.types";
 import { DemoSliders } from "./DemoSliders";
 import { ToolColumn } from "./ToolColumn";
@@ -14,7 +20,12 @@ const STRENGTH: readonly DemoField[] = [
 /** LUT and color: a LUT with its strength, and the camera's color space. */
 export function LutTool() {
   const [lut, setLut] = useState<string>(DEMO_LUTS[0].name);
-  const [space, setSpace] = useState<string>(DEMO_SPACES[2]);
+  const { bus } = useKernel();
+  const { clipId, grade } = useEditTarget();
+  const setSpace = (input: string) => {
+    if (clipId)
+      void settle(bus.run(setInput, { clipIds: [clipId], input: input as InputColorSpace }));
+  };
   return (
     <ToolColumns>
       <ToolColumn title="LUT">
@@ -45,13 +56,14 @@ export function LutTool() {
       </ToolColumn>
       <ToolColumn
         title="Color space"
-        info="Set once per clip: the camera's footage is turned into Rec.709 before any correction."
+        info="Set once per clip: the camera's footage is turned into Rec.709 before any correction. Footage is read at 8 bits for now, so log footage can show banding under heavy grades."
       >
         <SelectField
           label="Camera"
-          value={space}
+          value={grade?.input ?? "rec709"}
           onChange={setSpace}
-          options={DEMO_SPACES.map((s) => ({ value: s, label: s }))}
+          disabled={!clipId}
+          options={INPUT_SPACES.map((s) => ({ value: s, label: SPACE_NAMES[s].name }))}
         />
         <p className="mt-3 text-sm text-muted-foreground">
           Grading in Rec.709 · Output Rec.709 gamma 2.4

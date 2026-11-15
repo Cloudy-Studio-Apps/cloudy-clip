@@ -8,23 +8,13 @@ import { AddMenu } from "./AddMenu";
 import { useCurrentEntry } from "./current.hook";
 import { FlowLabel } from "./FlowLabel";
 import { LayersContext } from "./layers.context";
+import { SPACE_NAMES } from "./space.names";
 import { useLayerActions } from "./layers.actions.hook";
 import { startLayerDrag } from "./layer.drag.gesture";
 import { StackItems } from "./StackItems";
 import { useNodeThumbs } from "./thumbs.hook";
 import { useTintView } from "./view.hook";
 import type { LayersEnv } from "./ui.types";
-
-const INPUT_NAMES = {
-  rec709: "Rec.709",
-  srgb: "sRGB",
-  slog3: "S-Log3",
-  appleLog: "Apple Log",
-  clog2: "C-Log2",
-  clog3: "C-Log3",
-  vlog: "V-Log",
-  flog: "F-Log",
-} as const;
 
 /** Baby Seal: the current clip's grade as layers, top (nearest the picture coming in) to bottom. */
 export function LayerList() {
@@ -80,7 +70,7 @@ function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gr
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [clipId, grade, numbers, thumbs, actions],
   );
-  const space = INPUT_NAMES[grade?.input ?? "rec709"];
+  const space = SPACE_NAMES[grade?.input ?? "rec709"].short;
   return (
     <LayersContext.Provider value={env}>
       <div className="flex min-h-0 flex-1 flex-col">
@@ -88,7 +78,9 @@ function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gr
           ref={list}
           className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto px-3 py-2.5"
         >
-          <FlowLabel>Picture in · {space}</FlowLabel>
+          <FlowLabel>
+            Picture in · {space} → Grading in Rec.709 · Output Rec.709 gamma 2.4
+          </FlowLabel>
           {stack.length === 0 ? (
             <p className="px-1 py-3 text-sm text-muted-foreground">
               No corrections yet. Add one to start grading this clip.

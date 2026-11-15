@@ -5,13 +5,15 @@ import { walkGrade } from "../walk";
 import { correctPixel } from "./correct";
 import { channelRgb, joinRgb, keyJoinValue, layerRgb, parallelRgb } from "./joins";
 import { finishKey, rawKey } from "./limit";
+import { toRec709 } from "./spaces";
 
 /**
  * A pixel of `source` through a grade, as the passes draw it (`walkGrade`): each correction mixed
  * over its input by its opacity times its key (its own or a shared one: `rawKey` read from the
  * picking correction's input, then `finishKey`; the refine blur can't be had per pixel, so it is
  * left out), key joins combining their entries' finished keys and groups put back together as
- * `joins.ts` says. With `stopAt` a correction, what
+ * `joins.ts` says. The source is first turned into Rec.709 from the grade's `input` (`toRec709`),
+ * as the passes' first one does. With `stopAt` a correction, what
  * it reads (the pixel before it); anything else gives the whole grade's result.
  */
 export function evaluatePixel(
@@ -21,7 +23,7 @@ export function evaluatePixel(
   stopAt?: GradeNodeId,
 ): Rgb {
   const ops: GradeOps<Rgb, number> = {
-    source,
+    source: toRec709(source, grade.input ?? "rec709"),
     channel: channelRgb,
     key: (params, input) => rawKey(input, params),
     correct(_id, node, input, key) {

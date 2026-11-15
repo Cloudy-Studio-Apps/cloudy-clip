@@ -182,6 +182,7 @@ export {
   gradeLimitSchema,
   gradeNodeSchema,
   gradeSchema,
+  INPUT_SPACES,
   nodeRefSchema,
 } from "./logic/grade.schema";
 

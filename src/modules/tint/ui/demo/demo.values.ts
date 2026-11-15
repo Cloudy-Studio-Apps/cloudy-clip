@@ -33,15 +33,3 @@ export const DEMO_LUTS = [
   { name: "Teal and orange", kind: "Look" },
   { name: "Grade from set.cube", kind: "Imported" },
 ] as const;
-
-/** Camera color spaces. */
-export const DEMO_SPACES = [
-  "Rec.709",
-  "sRGB",
-  "Sony S-Log3 / S-Gamut3.Cine",
-  "Apple Log",
-  "Canon C-Log2",
-  "Canon C-Log3",
-  "Panasonic V-Log",
-  "Fujifilm F-Log",
-] as const;

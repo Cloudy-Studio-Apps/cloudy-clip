@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import { DEFAULT_CORRECTION, projectRef, type Correction } from "@/modules/project";
 import { groupOf } from "./logic/stack.group";
+import { setInput } from "./tint.color.commands";
 import { clearTools, ownedValues } from "./logic/tools";
 import { group, setGroup, ungroup } from "./tint.group.commands";
 import { placeNodes, wire } from "./tint.wire.commands";
@@ -111,4 +112,5 @@ export const tintCommands = [
   setGroup,
   wire,
   placeNodes,
+  setInput,
 ];
