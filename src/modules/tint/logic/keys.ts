@@ -15,7 +15,7 @@ export function sharedKey(grade: ClipGrade, id: GradeNodeId): SharedKey | null {
   let flip = false;
   const seen = new Set<string>();
   for (;;) {
-    const node = grade.nodes[owner];
+    const node = Object.hasOwn(grade.nodes, owner) ? grade.nodes[owner] : undefined;
     if (node?.kind !== "correct" || seen.has(owner)) return null;
     seen.add(owner);
     const from = node.limit?.from;
@@ -54,7 +54,7 @@ export function keyChoices(
   id: GradeNodeId,
   order: readonly GradeNodeId[],
 ): GradeNodeId[] {
-  const node = grade.nodes[id];
+  const node = Object.hasOwn(grade.nodes, id) ? grade.nodes[id] : undefined;
   if (node?.kind !== "correct") return [];
   // The menu offers only picks above it, not off-path ones (Leader Seal's).
   return order.filter(

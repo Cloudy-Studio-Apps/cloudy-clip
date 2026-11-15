@@ -249,7 +249,7 @@ export function validateGrade(grade: ClipGrade): string | null {
       if (problem) return problem;
     }
     for (const from of gradeKeys(node)) {
-      const target = nodes[from];
+      const target = Object.hasOwn(nodes, from) ? nodes[from] : undefined;
       if (!target) return `node "${id}" reads missing node "${from}"`;
       if (target.kind !== "correct" && target.kind !== "keyJoin") {
         return `node "${id}" takes its key from "${from}", which is not a correction or key join`;

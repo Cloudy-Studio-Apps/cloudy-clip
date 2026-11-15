@@ -167,7 +167,8 @@ export const setCorrection = defineCommand({
     if (patch.opacity !== undefined) node.opacity = patch.opacity;
     if (patch.on !== undefined) node.on = patch.on;
     if (patch.name !== undefined) node.name = patch.name;
-    checkSharedKey(next, id);
+    // Only a limit being written is checked: an unrelated edit keeps a stored key as it is.
+    if (patch.limit) checkSharedKey(next, id);
     const stored = checkedGrade(next);
     if (JSON.stringify(stored) === JSON.stringify(grade)) return;
     ctx.mutate(store, (draft) => writeGrade(draft, target, stored));
