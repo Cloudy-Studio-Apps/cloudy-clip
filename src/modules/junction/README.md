@@ -20,7 +20,7 @@ the preview mix are built on it by other modules.
   `clampDuration`, `checkDuration` (the `junction.invalid_duration` failure), `cutNear`, `cutAfter`.
 - **Files:**
   - `junction.types.ts`: `JunctionKindDefinition`, `OverlapRule`, `MixFn`/`MixEnv`,
-    `NormalizeEnv` (`format`, `previous` resolved props, `{}` on add), `JunctionDisplay`, `JunctionApi`.
+    `NormalizeEnv` (`format`, `previous` resolved props, `{}` on add, and `patch`, the values the change gave), `JunctionDisplay`, `JunctionApi`.
   - `logic/define.ts`: `defineJunctionKind`.
   - `logic/limits.ts`: `durationLimits(kind, state, left, right)` → `DurationLimits`
     (`{0,0,0}` when the kind doesn't overlap; default clamped into min..max), `clampDuration`.

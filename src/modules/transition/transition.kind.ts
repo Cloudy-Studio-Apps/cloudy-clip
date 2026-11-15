@@ -8,7 +8,7 @@ import type { TransitionApi } from "./transition.types";
 /**
  * The `transition` junction kind: two clips of a video track overlap while a preset mixes their
  * pictures. `normalize` checks the preset and its options (a changed preset drops the old
- * options); `mix` and `display` look the preset up.
+ * options, unless the same change gives new ones); `mix` and `display` look the preset up.
  */
 export function createTransitionKind(api: TransitionApi) {
   return defineJunctionKind({
@@ -37,7 +37,11 @@ export function createTransitionKind(api: TransitionApi) {
         );
       }
       const before = env.previous.preset;
-      const changed = typeof before === "string" && before !== "" && before !== id;
+      const changed =
+        typeof before === "string" &&
+        before !== "" &&
+        before !== id &&
+        env.patch.options === undefined;
       const parsed = api.optionsSchema(preset).safeParse(changed ? {} : (next.options ?? {}));
       if (!parsed.success) {
         const issue = parsed.error.issues[0]!;

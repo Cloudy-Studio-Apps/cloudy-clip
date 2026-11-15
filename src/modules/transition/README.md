@@ -22,8 +22,8 @@ lists them.
   - `transition.kind.ts`: the kind. Overlap: default 0.5 s, minimum one frame, maximum half the
     shorter clip. Values `{ preset, options }` (stored minimal). `normalize` fails with
     `transition.unknown_preset` for an unregistered preset, parses `options` with the preset's
-    schema (`transition.invalid_options`), and drops the old options when the preset changes (it
-    compares `env.previous.preset` with the new one). `mix` calls the preset with its resolved
+    schema (`transition.invalid_options`), and drops the old options when the preset changes and the same change gives no
+    `options` (it compares `env.previous.preset` with the new one, and checks `env.patch`). `mix` calls the preset with its resolved
     options; the chip shows the preset's name.
   - `transition.options.ts`: the `transition-options` prop type and the API.
   - `transition.apply.command.ts`: `transition.apply`.

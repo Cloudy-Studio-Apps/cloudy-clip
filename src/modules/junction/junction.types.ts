@@ -42,6 +42,8 @@ export interface NormalizeEnv {
   format: ProjectFormat;
   /** Resolved props before this change ({} on add). */
   previous: Record<string, unknown>;
+  /** The values this change gave ({} on add: the whole set is new). */
+  patch: Record<string, unknown>;
 }
 
 /** A kind of junction (a transition, a plugin's): declared once with `defineJunctionKind`. */
