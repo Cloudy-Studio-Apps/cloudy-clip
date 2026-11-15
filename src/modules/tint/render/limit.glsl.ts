@@ -66,15 +66,20 @@ void main() {
   o = vec4(k, k, k, 1.0);
 }`;
 
+/** Clean up and invert by given amounts: `float finishWith(float k, float clean, float invert)`. */
+export const FINISH_WITH_GLSL = `
+float finishWith(float k, float clean, float invert) {
+  if (clean > 0.0) k = clamp((k - clean) / (1.0 - 2.0 * clean), 0.0, 1.0);
+  return invert > 0.0 ? 1.0 - k : k;
+}
+`;
+
 /** Clean up and invert: the uniforms and `float finish(float k)`. */
-export const FINISH_GLSL = `
+export const FINISH_GLSL = `${FINISH_WITH_GLSL}
 uniform float u_clean;
 uniform float u_invert;
 
-float finish(float k) {
-  if (u_clean > 0.0) k = clamp((k - u_clean) / (1.0 - 2.0 * u_clean), 0.0, 1.0);
-  return u_invert > 0.0 ? 1.0 - k : k;
-}
+float finish(float k) { return finishWith(k, u_clean, u_invert); }
 `;
 
 /** The uniforms of `FINISH_GLSL`. */

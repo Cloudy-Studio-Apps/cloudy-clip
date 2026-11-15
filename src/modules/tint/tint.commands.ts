@@ -4,6 +4,7 @@ import { DEFAULT_CORRECTION, projectRef, type Correction } from "@/modules/proje
 import { groupOf } from "./logic/stack.group";
 import { clearTools, ownedValues } from "./logic/tools";
 import { group, setGroup, ungroup } from "./tint.group.commands";
+import { placeNodes, wire } from "./tint.wire.commands";
 import { checkedGrade, dropTracks, readGrade, writeGrade } from "./tint.guards";
 import {
   addCorrection,
@@ -106,4 +107,6 @@ export const tintCommands = [
   group,
   ungroup,
   setGroup,
+  wire,
+  placeNodes,
 ];

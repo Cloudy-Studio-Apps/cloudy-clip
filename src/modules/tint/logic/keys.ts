@@ -1,14 +1,26 @@
 import type { ClipGrade, Correction, GradeNodeId } from "@/modules/project";
 import { gradeReads, keyFromAbove } from "@/modules/project";
-import type { KeyProblem, SharedKey } from "../tint.types";
+import type { KeyProblem, LimitParams, SharedKey } from "../tint.types";
 import { limitActive, prepareLimit } from "./color/limit";
+
+/** How a key join's key is read: already finished (cleaned up and inverted per entry), so as is. */
+export const JOINED_KEY: LimitParams = {
+  hue: null,
+  sat: [0, 1, 0],
+  lum: [0, 1, 0],
+  bright: null,
+  radius: 0,
+  clean: 0,
+  invert: false,
+};
 
 /**
  * The key a correction mixes by, or null when it limits nothing. Its own limit's (`owner` itself)
  * or, with `limit.from`, the pick of the correction it names, followed through further `from`s
  * to the one that picks (`owner`): that one's windows, blur and clean up, inverted once more for
- * each correction along the way that inverts. A key from something else (a key join, Leader
- * Seal's), from a correction whose limit limits nothing, or a loop, is null. Never throws.
+ * each correction along the way that inverts. A chain ending at a key join gives that join as
+ * `owner`, read as `JOINED_KEY` (inverted when the chain inverts). A key from anything else, from a
+ * correction whose limit limits nothing, or a loop, is null. Never throws.
  */
 export function sharedKey(grade: ClipGrade, id: GradeNodeId): SharedKey | null {
   let owner = id;
@@ -16,6 +28,9 @@ export function sharedKey(grade: ClipGrade, id: GradeNodeId): SharedKey | null {
   const seen = new Set<string>();
   for (;;) {
     const node = Object.hasOwn(grade.nodes, owner) ? grade.nodes[owner] : undefined;
+    if (node?.kind === "keyJoin" && owner !== id) {
+      return { owner, params: { ...JOINED_KEY, invert: flip } };
+    }
     if (node?.kind !== "correct" || seen.has(owner)) return null;
     seen.add(owner);
     const from = node.limit?.from;
@@ -30,7 +45,8 @@ export function sharedKey(grade: ClipGrade, id: GradeNodeId): SharedKey | null {
 
 /**
  * What is wrong with correction `id` taking its key from `from`: `missing` (no such node),
- * `not_limited` (not a correction whose limit limits something, by its own pick or a shared one),
+ * `not_limited` (not a key join, nor a correction whose limit limits something, by its own pick
+ * or a shared one),
  * `cycle` (`from` is `id`, or reads it), `not_above` (`from` is on the picture path but not above
  * `id`: a sibling branch; project's `keyFromAbove`, the rule `validateGrade` keeps), or null.
  */
@@ -39,6 +55,7 @@ export function keyProblem(grade: ClipGrade, id: GradeNodeId, from: GradeNodeId)
   if (!source) return "missing";
   if (from === id || gradeReads(grade, from, id)) return "cycle";
   if (!keyFromAbove(grade, id, from)) return "not_above";
+  if (source.kind === "keyJoin") return null;
   if (source.kind !== "correct") return "not_limited";
   if (source.limit?.from === undefined && !limitActive(source.limit)) return "not_limited";
   return null;

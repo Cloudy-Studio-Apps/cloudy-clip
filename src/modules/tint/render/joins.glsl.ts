@@ -1,6 +1,8 @@
 import type { GpuPass, GpuUniform } from "@/modules/preview";
 import { BLEND_GLSL, gpuInt } from "@/modules/preview";
-import { BLEND_MODES, type BlendMode } from "@/modules/project";
+import { BLEND_MODES, type BlendMode, type KeyJoin } from "@/modules/project";
+import type { LimitParams } from "../tint.types";
+import { FINISH_WITH_GLSL } from "./limit.glsl";
 
 // Groups put back together as GLSL, line for line with `logic/color/joins.ts` (formulas there).
 // A join pass reads the picture its branches start from as `u_in0` and each branch after it; the
@@ -51,6 +53,30 @@ void main() {
   vec4 r = texture(u_in0, v_uv);
   o = vec4(r.r, texture(u_in1, v_uv).g, texture(u_in2, v_uv).b, r.a);
 }`;
+
+const keyJoinFragment = (n: number) => `
+${FINISH_WITH_GLSL}
+${Array.from(
+  { length: n },
+  (_, i) => `uniform vec3 u_finish${i};
+uniform int u_mode${i};`,
+).join("\n")}
+
+float entry(float k, vec3 f) { return f.z > 0.0 ? 1.0 : finishWith(k, f.x, f.y); }
+
+void main() {
+  float k = entry(texture(u_in0, v_uv).r, u_finish0);
+  float x;
+${Array.from(
+  { length: n - 1 },
+  (_, j) => `  x = entry(texture(u_in${j + 1}, v_uv).r, u_finish${j + 1});
+  k = u_mode${j + 1} == 0 ? k + x - k * x : u_mode${j + 1} == 1 ? k * (1.0 - x) : k * x;`,
+).join("\n")}
+  o = vec4(k, k, k, 1.0);
+}`;
+
+/** The modes of a key join, as the shader numbers them. */
+const KEY_MODES: KeyJoin["keys"][number]["mode"][] = ["add", "subtract", "intersect"];
 
 const COPY_FRAGMENT = `
 void main() {
@@ -103,6 +129,30 @@ export function channelPass(input: number, channel: "r" | "g" | "b"): GpuPass {
 /** Per channel put back together: red of `r`, green of `g`, blue of `b`, the alpha of `r`. */
 export function joinPass(r: number, g: number, b: number): GpuPass {
   return { key: "tint.join.channels", fragment: JOIN_FRAGMENT, inputs: [r, g, b] };
+}
+
+/**
+ * A key join: each entry's key pass (null: limits nothing, 1) finished by its params, the first as
+ * it is and each next combined by its mode (`logic/color/joins.ts` `keyJoinValue`). Writes the
+ * finished key in every channel.
+ */
+export function keyJoinPass(
+  keys: readonly {
+    key: { key: number; params: LimitParams } | null;
+    mode: KeyJoin["keys"][number]["mode"];
+  }[],
+): GpuPass {
+  const uniforms: Record<string, GpuUniform> = {};
+  keys.forEach(({ key, mode }, i) => {
+    uniforms[`u_finish${i}`] = key ? [key.params.clean, key.params.invert ? 1 : 0, 0] : [0, 0, 1];
+    uniforms[`u_mode${i}`] = gpuInt(KEY_MODES.indexOf(mode));
+  });
+  return {
+    key: `tint.join.keys.${keys.length}`,
+    fragment: keyJoinFragment(keys.length),
+    inputs: keys.map(({ key }) => key?.key ?? -1),
+    uniforms,
+  };
 }
 
 /** `input` as it is, so the result is the last pass. */

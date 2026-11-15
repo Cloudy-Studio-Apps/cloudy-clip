@@ -348,3 +348,47 @@ picks, made once; on the CPU `evaluatePixel` walks the same graph (`logic/walk.t
   `gradePasses` gave the same passes, as JSON, as the one before this task (a temporary test,
   deleted).
 - **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.
+
+## Stage 4
+
+### Key joins: parity (Task 19)
+
+Key joins in each combine mode, and corrections taking their key from one, against the shader,
+2026-11-15. On the GPU a key join is one pass (`render/joins.glsl.ts` `keyJoinPass`) reading each
+entry's key pass, finishing each by its own clean up and invert and combining them; the correction
+using it reads that pass as its key. On the CPU `evaluatePixel` walks the same graph with
+`logic/color/joins.ts` `keyJoinValue`: the first key as it is, then add `k + x − k·x`, subtract
+`k·(1 − x)`, intersect `k·x`.
+
+- **Method:** as Task 18 (temporary dev page on the web build, `pnpm vite --port 1540`, headless
+  Chromium 1243 with SwiftShader WebGL2, half-float targets, CDP; removed before the commit), 256
+  colors on a 16 × 16 canvas (16 grays, six primary and secondary ramps, 32 skin-like tones, the rest
+  seeded random), reference `evaluatePixel`, 20 sets per row, each checked with `validateGrade`.
+  Every correction is random (exposure ±1.2, saturation 0…2, hue ±90, temperature ±60, opacity
+  0.5…1). A pick is a random color window or a brightness range (softness 0…100), clean up 0…60 with
+  odds 0.5, invert with odds 0.5, refine softness 0. One mode: two limited corrections from the
+  source put side by side (opacity 0.3…1), a key join of their keys (`add`, then the row's mode),
+  and a correction after the group using it (`from`, inverted again with odds 0.5). Mixed: three
+  limited corrections side by side, a key join `k2` of two of them, a key join of a correction, `k2`
+  and the third (random modes), and two corrections after the group both using it. "Keyed" counts
+  pixels the key changed (against the same grade with those limits removed, on the CPU).
+- **Results** (15 360 channel values per row):
+
+| Seed | Grade                      | Max | Off by 1 | Over 1 | Changed | Keyed pixels | Key join passes |
+| ---- | -------------------------- | --- | -------- | ------ | ------- | ------------ | --------------- |
+| 511  | add                        | 1   | 298      | 0      | 12 731  | 2 464        | 20              |
+| 512  | add                        | 1   | 288      | 0      | 11 708  | 2 242        | 20              |
+| 513  | subtract                   | 1   | 262      | 0      | 11 525  | 3 459        | 20              |
+| 514  | subtract                   | 1   | 299      | 0      | 12 989  | 2 351        | 20              |
+| 515  | intersect                  | 1   | 290      | 0      | 12 916  | 2 971        | 20              |
+| 516  | intersect                  | 1   | 297      | 0      | 12 507  | 2 829        | 20              |
+| 517  | mixed, nested, two readers | 1   | 430      | 0      | 13 448  | 4 224        | 40              |
+| 518  | mixed, nested, two readers | 1   | 394      | 0      | 13 717  | 4 769        | 40              |
+
+- **Pass:** every row is within one 8-bit step. Each key join is drawn once per set (20, and 40 with
+  the nested one), however many corrections read it: the runner's `lastReaders` keeps its target
+  until the last reader.
+- **Chains** (not part of the rule): the same grades with the limited corrections in a row instead of
+  side by side (seeds 501, 503, 505, 507) reach 2, 1, 2 and 3 on 2, 0, 4 and 6 values: the later keys
+  are read from the half-float picture between passes, the case Task 17's chains describe.
+- **Linux desktop (WebKitGTK) and Windows:** not run; same method as Task 7 if wanted.

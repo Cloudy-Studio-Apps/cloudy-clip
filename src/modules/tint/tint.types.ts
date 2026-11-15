@@ -12,6 +12,7 @@ import type {
   GradeLimit,
   GradeNode,
   GradeNodeId,
+  KeyJoin,
   NodeRef,
 } from "@/modules/project";
 
@@ -503,7 +504,7 @@ export type LimitPick = "pick" | "add" | "cut";
 
 /** The key a correction mixes by (`sharedKey`): whose key pass it reads, and how it is finished. */
 export interface SharedKey {
-  /** The correction whose pick it is: the node itself, or the one its `limit.from` leads to. */
+  /** The correction whose pick it is (the node itself, or the one its `limit.from` leads to), or the key join it leads to. */
   owner: GradeNodeId;
   /** That pick's windows and blur, with clean up and the invert as this correction reads them. */
   params: LimitParams;
@@ -533,6 +534,13 @@ export interface GradeOps<P, K> {
   layer(entry: P, branches: P[], blends: BlendMode[], opacity: number): P;
   /** Red of `r`, green of `g`, blue of `b`. */
   join(r: P, g: P, b: P): P;
+  /**
+   * A key join: each entry's key finished by its params (null: a key that limits nothing, 1),
+   * combined in order by its mode. The result is finished already.
+   */
+  keyJoin(
+    keys: { key: { key: K; params: LimitParams } | null; mode: KeyJoin["keys"][number]["mode"] }[],
+  ): K;
 }
 
 /** A grade being walked: each picture and key worked out once, on demand. */

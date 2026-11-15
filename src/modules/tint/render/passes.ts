@@ -6,7 +6,14 @@ import { withLive } from "../logic/live";
 import { walkGrade } from "../logic/walk";
 import type { GradeOps, GradeTextures, LiveGrade } from "../tint.types";
 import { correctPass } from "./correct.glsl";
-import { channelPass, copyPass, joinPass, layerPass, parallelPass } from "./joins.glsl";
+import {
+  channelPass,
+  copyPass,
+  joinPass,
+  keyJoinPass,
+  layerPass,
+  parallelPass,
+} from "./joins.glsl";
 import { keyPasses, showPass } from "./limit.glsl";
 
 /**
@@ -14,7 +21,8 @@ import { keyPasses, showPass } from "./limit.glsl";
  * them (a chain: source first, each reading the one before): one per correction that is on and
  * shows (opacity above 0); a correction with a key first gets its key passes (`keyPasses`: the
  * key, and two blur passes for refine softness) over the input of the correction that picks it,
- * once however many corrections share it, then mixes by the key. A group is one pass reading the
+ * once however many corrections share it, then mixes by the key; a key join is one pass after its
+ * entries' keys, combining them, made once and read by each correction using it. A group is one pass reading the
  * picture its branches start from and each branch (`joins.glsl.ts`); a branch of a per-channel
  * group starts with a pass taking its channel as gray. No passes for a grade that changes nothing;
  * never throws for a grade's shape. The curve step and the warper are baked through `textures`
@@ -57,6 +65,7 @@ export function gradePasses(
     parallel: (entry, branches, opacity) => push(parallelPass(entry, branches, opacity)),
     layer: (entry, branches, blends, opacity) => push(layerPass(entry, branches, blends, opacity)),
     join: (r, g, b) => push(joinPass(r, g, b)),
+    keyJoin: (keys) => push(keyJoinPass(keys)),
   };
   const shown = withLive(grade, live);
   const walk = walkGrade(shown, ops);

@@ -117,7 +117,7 @@ export function dropTracks(
 
 /**
  * Throws when correction `id` of `grade` takes its key (`limit.from`) from where it can't:
- * `tint.node_not_found` (no such node), `tint.key_not_limited` (not a correction whose limit
+ * `tint.node_not_found` (no such node), `tint.key_not_limited` (not a key join, nor a correction whose limit
  * limits something), `tint.key_cycle` (the key's node reads this one, or is it) or
  * `tint.key_not_above` (this one doesn't read the key's node: a sibling branch).
  */

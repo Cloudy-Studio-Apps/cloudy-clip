@@ -3,14 +3,15 @@ import { correctionOf } from "@/modules/project";
 import type { GradeOps, PixelAt, Rgb } from "../../tint.types";
 import { walkGrade } from "../walk";
 import { correctPixel } from "./correct";
-import { channelRgb, joinRgb, layerRgb, parallelRgb } from "./joins";
+import { channelRgb, joinRgb, keyJoinValue, layerRgb, parallelRgb } from "./joins";
 import { finishKey, rawKey } from "./limit";
 
 /**
  * A pixel of `source` through a grade, as the passes draw it (`walkGrade`): each correction mixed
  * over its input by its opacity times its key (its own or a shared one: `rawKey` read from the
  * picking correction's input, then `finishKey`; the refine blur can't be had per pixel, so it is
- * left out), and groups put back together as `joins.ts` says. With `stopAt` a correction, what
+ * left out), key joins combining their entries' finished keys and groups put back together as
+ * `joins.ts` says. With `stopAt` a correction, what
  * it reads (the pixel before it); anything else gives the whole grade's result.
  */
 export function evaluatePixel(
@@ -35,6 +36,10 @@ export function evaluatePixel(
     parallel: parallelRgb,
     layer: layerRgb,
     join: joinRgb,
+    keyJoin: (keys) =>
+      keyJoinValue(
+        keys.map(({ key, mode }) => ({ k: key ? finishKey(key.key, key.params) : 1, mode })),
+      ),
   };
   const walk = walkGrade(grade, ops);
   const stop = stopAt === undefined ? undefined : grade.nodes[stopAt];

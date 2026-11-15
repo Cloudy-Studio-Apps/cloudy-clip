@@ -11,6 +11,8 @@ import { resetGrade } from "./tint.commands";
 import { group, ungroup } from "./tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "./tint.node.commands";
 import { tintModule } from "./tint.module";
+import { toStack } from "./logic/stack";
+import { wire } from "./tint.wire.commands";
 import type { GradeTarget } from "./tint.types";
 
 const S = 1_000_000;
@@ -244,6 +246,56 @@ describe("grade commands", () => {
     await ok(group, { target, nodeIds: [a, b], kind: "parallel" });
     const sibling = await run(setCorrection, { target, nodeId: a, patch: { limit: { from: b } } });
     expect(sibling).toMatchObject({ ok: false, error: { code: "tint.key_not_above" } });
+  });
+
+  it("wire refuses a cycle", async () => {
+    const a = (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId;
+    const b = (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId;
+    const before = clip().grade;
+    const loop = await run(wire, { target, set: [{ nodeId: a, input: { node: b } }] });
+    expect(loop).toMatchObject({ ok: false, error: { code: "tint.wire_cycle" } });
+    const keyLoop = await run(wire, {
+      target,
+      add: [{ id: "k", node: { kind: "keyJoin", keys: [{ from: b, mode: "add" }] } }],
+      set: [{ nodeId: "k", keys: [{ from: "k", mode: "add" }] }],
+    });
+    expect(keyLoop).toMatchObject({ ok: false, error: { code: "tint.wire_cycle" } });
+    expect(clip().grade).toEqual(before);
+  });
+
+  it("a free rewire seals only the region it touches", async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      ids.push((await ok<{ nodeId: string }>(addCorrection, { target })).nodeId);
+    }
+    const [x, a, b, c, y] = ids as [string, string, string, string, string];
+    const before = clip().grade;
+    // c feeds two joins that rejoin at different points: no shape Baby Seal knows.
+    const parallel = (inputs: string[]) => ({
+      kind: "parallel",
+      inputs: inputs.map((node) => ({ node })),
+      on: true,
+      opacity: 1,
+    });
+    await ok(wire, {
+      target,
+      add: [
+        { id: "p1", node: parallel([b, c]) },
+        { id: "p2", node: parallel(["p1", c]) },
+      ],
+      set: [
+        { nodeId: c, input: { node: a } },
+        { nodeId: y, input: { node: "p2" } },
+      ],
+    });
+    const items = toStack(clip().grade ?? null);
+    expect(items.map((item) => item.type)).toEqual(["layer", "layer", "sealed", "layer"]);
+    expect(items[0]).toMatchObject({ id: x });
+    expect(items[1]).toMatchObject({ id: a });
+    expect(new Set((items[2] as { nodes: string[] }).nodes)).toEqual(new Set([b, c, "p1", "p2"]));
+    expect(items[3]).toMatchObject({ id: y });
+    kernel.history.undo();
+    expect(clip().grade).toEqual(before);
   });
 });
 
