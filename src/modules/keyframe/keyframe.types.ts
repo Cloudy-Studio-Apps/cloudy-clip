@@ -63,6 +63,11 @@ export interface KeyField {
   values?: readonly string[];
   /** False where a track can't loop (speed). */
   loops?: false;
+  /**
+   * A set of fields this one belongs to (a grade correction's): `keyframe_list_fields` folds the
+   * set into one entry until asked for by a path prefix starting with `prefix`.
+   */
+  group?: { prefix: string; label: string };
   /** The value now, with `clip` already at the time wanted. */
   read(clip: Clip): KeyValue;
   /** Makes `value` the static value, for when the last key goes. */

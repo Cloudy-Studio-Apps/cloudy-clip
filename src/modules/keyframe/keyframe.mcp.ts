@@ -56,28 +56,50 @@ const listFields = defineMcpTool({
   name: "keyframe_list_fields",
   readOnly: true,
   description:
-    'Returns every field of a clip that can hold keys, as [{ path, label, blend, min, max, values, loops, animated }]: the element\'s fields and those other modules add, like "sound.volumeDb", "sound.pan" and "speed.rate". Pass "path" to keyframe_set. "blend" is how values move between keys (number, color or step), "values" the allowed values of a step field, "loops" false where keyframe_set_after can\'t loop the track, "animated" whether it has keys.',
-  input: z.object({ clipId: z.string() }),
+    'Returns the fields of a clip that can hold keys, as [{ path, label, blend, min, max, values, loops, animated }]: the element\'s fields and those other modules add, like "sound.volumeDb", "sound.pan" and "speed.rate". Pass "path" to keyframe_set. "blend" is how values move between keys (number, color or step), "values" the allowed values of a step field, "loops": false where keyframe_set_after can\'t loop the track (missing means it can), "animated": true where it has keys (missing means none). Fields that come as a set, like each correction of a graded clip, are folded into one entry { prefix, label, fields (how many), animated (paths with keys) }: pass that prefix to list them. "prefix" keeps the paths that start with it (e.g. "transform.", "grade.nodes.<nodeId>."); "animated": true keeps only the fields with keys, none folded.',
+  input: z.object({
+    clipId: z.string(),
+    prefix: z.string().optional().describe('Only paths starting with this, e.g. "transform."'),
+    animated: z.boolean().optional().describe("true: only the fields that have keys"),
+  }),
   handler(input, ctx) {
     const clip = ctx.require(projectRef).store.getState().clips[input.clipId];
     if (!clip) {
       return errorResult({ code: "keyframe.clip_not_found", message: `No clip "${input.clipId}"` });
     }
-    return textResult(
-      ctx
-        .require(keyframeRef)
-        .fieldsOf(clip)
-        .map(({ path, label, blend, min, max, values, loops }) => ({
-          path,
-          label,
-          blend,
-          ...(min !== undefined && { min }),
-          ...(max !== undefined && { max }),
-          ...(values && { values }),
-          loops: loops ?? true,
-          animated: clip.animation?.[path] !== undefined,
-        })),
-    );
+    const prefix = input.prefix ?? "";
+    const rows: object[] = [];
+    const folds = new Map<
+      string,
+      { prefix: string; label: string; fields: number; animated?: string[] }
+    >();
+    for (const field of ctx.require(keyframeRef).fieldsOf(clip)) {
+      const { path, label, blend, min, max, values, loops, group } = field;
+      const animated = clip.animation?.[path] !== undefined;
+      if (!path.startsWith(prefix) || (input.animated && !animated)) continue;
+      if (group && !input.animated && !prefix.startsWith(group.prefix)) {
+        let fold = folds.get(group.prefix);
+        if (!fold) {
+          fold = { ...group, fields: 0 };
+          folds.set(group.prefix, fold);
+          rows.push(fold);
+        }
+        fold.fields += 1;
+        if (animated) (fold.animated ??= []).push(path);
+        continue;
+      }
+      rows.push({
+        path,
+        label,
+        blend,
+        ...(min !== undefined && { min }),
+        ...(max !== undefined && { max }),
+        ...(values && { values }),
+        ...(loops === false && { loops }),
+        ...(animated && { animated }),
+      });
+    }
+    return textResult(rows);
   },
 });
 

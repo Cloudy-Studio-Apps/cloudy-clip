@@ -33,9 +33,11 @@ export const tintKeys: KeyTarget = {
     return Object.entries(grade.nodes).flatMap(([id, node]): KeyField[] => {
       if (node.kind !== "correct") return [];
       const head = `${numbers[id] ?? ""} ${node.name || "Correction"}`.trim();
+      const group = { prefix: `grade.nodes.${id}.`, label: head };
       const opacity: KeyField = {
         path: `grade.nodes.${id}.opacity`,
         label: `${head} · Opacity`,
+        group,
         blend: "number",
         shared: true,
         min: 0,
@@ -51,6 +53,7 @@ export const tintKeys: KeyTarget = {
       const values = KEYABLE_VALUES.map((sub): KeyField => ({
         path: `grade.nodes.${id}.values.${sub}`,
         label: `${head} · ${fieldLabel(sub)}`,
+        group,
         blend: "number",
         shared: true,
         min: GRADE_RANGES[sub]!.min,
