@@ -58,3 +58,28 @@ export function finishAnalysis(jobId: string): Promise<MixAnalysis> {
 export function cancelAnalysis(jobId: string): Promise<void> {
   return invoke<void>("sound_analyze_cancel", { jobId });
 }
+
+/**
+ * The beats of the file at `path`, in file microseconds (none for a file with no tempo), from the
+ * native cache when the file is unchanged. `jobId` (letters, digits, `-`, `_`) is for
+ * `cancelFileBeats`; `onProgress` gets 0 to 1. Rejects with message "Cancelled" when it was stopped.
+ */
+export async function findFileBeats(
+  path: string,
+  jobId: string,
+  onProgress: (progress: number) => void,
+): Promise<Micros[]> {
+  const channel = new Channel<number>();
+  channel.onmessage = onProgress;
+  const found = await invoke<{ beats: Micros[] }>("sound_beats", {
+    path,
+    jobId,
+    onProgress: channel,
+  });
+  return found.beats;
+}
+
+/** Stops a `findFileBeats` still decoding. */
+export function cancelFileBeats(jobId: string): Promise<void> {
+  return invoke<void>("sound_beats_cancel", { jobId });
+}

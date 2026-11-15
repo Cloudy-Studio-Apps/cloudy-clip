@@ -49,6 +49,8 @@ pub fn run() {
             sound::commands::sound_analyze_begin,
             sound::commands::sound_analyze_cancel,
             sound::commands::sound_analyze_finish,
+            sound::commands::sound_beats,
+            sound::commands::sound_beats_cancel,
             sound::commands::sound_measure_floor,
             sound::commands::sound_record_begin,
             sound::commands::sound_record_write,

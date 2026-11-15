@@ -3,6 +3,7 @@ export { PresetsSection } from "./settings";
 export {
   ArmButton,
   AutomationNote,
+  BeatTicks,
   ClipLineKeys,
   ClipVolumeLine,
   DrawVolumeTool,

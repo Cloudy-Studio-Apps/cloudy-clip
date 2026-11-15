@@ -7,12 +7,6 @@ import type { SoonEntry, SoonId } from "../../sound.types";
  * the `ui/soon/` folder goes.
  */
 export const SOON: Record<SoonId, SoonEntry> = {
-  "transport.findBeats": {
-    id: "transport.findBeats",
-    label: "Find beats",
-    what: "Marks the beats of a music clip under the ruler.",
-    stage: 6,
-  },
   "transport.stripSilence": {
     id: "transport.stripSilence",
     label: "Strip silence",

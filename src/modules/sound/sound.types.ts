@@ -226,6 +226,29 @@ export interface SoundApi {
   analyzer: Analyzer;
   /** Runs Match target outside the bus, and matches an export's mix (see `sound.startMatch`). */
   matcher: Matcher;
+  /** Beats found in files, for ticks and snapping: progress, start and cancel (`sound.findBeats`). */
+  beats: BeatFinder;
+}
+
+/** Beats found per file, and the find under way. View state of the kernel, never in history. */
+export interface BeatsState {
+  /** Beats by file path, in file microseconds; an empty list for a file with no tempo. */
+  files: Record<string, Micros[]>;
+  /** The find running: its progress 0 to 1 over all its files; null when none runs. */
+  running: { progress: number } | null;
+  /** Why the last find failed on a file, or null. */
+  failed: string | null;
+}
+
+/** Finds beats in files one after another, outside the bus (a long file outlasts its timeout). */
+export interface BeatFinder {
+  state: StoreApi<BeatsState>;
+  /** Starts finding the beats of `paths`; false when a find already runs. */
+  find(paths: string[]): boolean;
+  /** Stops the find running; files done so far keep their beats. */
+  cancel(): void;
+  /** Resolves when the find running (or the last one) ends. */
+  settled(): Promise<void>;
 }
 
 /** Where the webview runs, for what has been checked there. */
@@ -550,11 +573,7 @@ export interface ChainDrag {
  * A control of the Sound page that a later stage makes work: one entry of `ui/soon/soon.catalog.ts`.
  * Each stage removes its own ids as it builds them.
  */
-export type SoonId =
-  | "transport.findBeats"
-  | "transport.stripSilence"
-  | "transport.matchLevel"
-  | "compressor.reduction";
+export type SoonId = "transport.stripSilence" | "transport.matchLevel" | "compressor.reduction";
 
 /** A placeholder: what it will be and the stage that builds it. */
 export interface SoonEntry {

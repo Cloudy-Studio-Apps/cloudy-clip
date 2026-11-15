@@ -184,7 +184,10 @@ export function createMatcher({ analyzer, bus, project, log }: MatcherDeps): Mat
     const peak = landed?.result.truePeak ?? null;
     const peakOver =
       peak !== null && peak > delivery.peakDbtp
-        ? { overDb: Math.round((peak - delivery.peakDbtp) * 10) / 10, userLimiter: !limiter.own && limiter.ceilingDb > delivery.peakDbtp }
+        ? {
+            overDb: Math.round((peak - delivery.peakDbtp) * 10) / 10,
+            userLimiter: !limiter.own && limiter.ceilingDb > delivery.peakDbtp,
+          }
         : null;
     return {
       ...applied.value,

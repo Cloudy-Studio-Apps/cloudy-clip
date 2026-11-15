@@ -7,6 +7,7 @@ import { settingsSections } from "@/modules/settings";
 import {
   clipActions,
   timelineOverlays,
+  timelineSnapTargets,
   timelineTools,
   timelineTrackControls,
 } from "@/modules/timeline";
@@ -18,6 +19,10 @@ import { soundClipLineCommands } from "./sound.clipline.commands";
 import { createAnalysisStore } from "./sound.analysis.store";
 import { createAnalyzer } from "./sound.analysis";
 import { createMatcher } from "./sound.match";
+import { createBeatFinder } from "./sound.beats";
+import { createBeatsStore } from "./sound.beats.store";
+import { soundBeatCommands } from "./sound.beats.commands";
+import { compositionBeats } from "./logic/beats";
 import { soundEffectCommands } from "./sound.effects.commands";
 import { soundDeliveryCommands } from "./sound.delivery.commands";
 import { soundDenoiseCommands } from "./sound.denoise.commands";
@@ -38,6 +43,7 @@ import { createSoundView, setAutomationMode, setLineInFront } from "./sound.stor
 import {
   ArmButton,
   AutomationNote,
+  BeatTicks,
   ClipLineKeys,
   ClipVolumeLine,
   DrawVolumeTool,
@@ -81,6 +87,7 @@ export const soundModule = defineModule({
     ...soundPresetCommands,
     ...soundMonitorCommands,
     ...soundRecordCommands,
+    ...soundBeatCommands,
   ],
   mcpTools: soundMcpTools,
   setup({ bus, contribute, log, onDispose, require }) {
@@ -99,6 +106,13 @@ export const soundModule = defineModule({
     onDispose(matcher.dispose);
     onDispose(followCompositionsGone(project.store.api, analyzer, matcher));
     contribute(loudnessMatchers, { id: "sound.match", match: matcher.match });
+    const beats = createBeatFinder(createBeatsStore(), log);
+    onDispose(beats.cancel);
+    contribute(timelineSnapTargets, {
+      id: "sound.beats",
+      times: (state, compositionId) =>
+        compositionBeats(state, compositionId, beats.state.getState().files),
+    });
     const media = require(mediaRef);
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());
@@ -138,6 +152,11 @@ export const soundModule = defineModule({
       id: "sound.problemMarks",
       scopes: ["all", "sound"],
       component: ProblemMarks,
+    });
+    contribute(timelineOverlays, {
+      id: "sound.beatTicks",
+      scopes: ["all", "sound"],
+      component: BeatTicks,
     });
     contribute(timelineOverlays, {
       id: "sound.masterLine",
@@ -191,6 +210,7 @@ export const soundModule = defineModule({
         automation,
         analyzer,
         matcher,
+        beats,
         setTool: (tool) => view.setState({ tool }),
         setAutomation: (target, mode, compositionId) =>
           setAutomationMode(view, target, mode, compositionId ?? project.view.openFor(LOCAL_ACTOR)),

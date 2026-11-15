@@ -3,6 +3,8 @@
  * @module sound
  */
 export type {
+  BeatFinder,
+  BeatsState,
   EffectSpec,
   MixTarget,
   Recorder,
@@ -41,6 +43,9 @@ export { clearListening, setMonitor, setSolo } from "./sound.monitor.commands";
  * itself is the recorder's (`SoundApi.recorder`), with no command or tool: the microphone is the user's.
  */
 export { placeRecording } from "./sound.record.commands";
+
+/** Finding beats in clips' files (for ticks and snapping, never in the document), and stopping it. */
+export { cancelBeats, findBeats } from "./sound.beats.commands";
 
 /** Module definition, loaded by the app shell. */
 export { soundModule } from "./sound.module";

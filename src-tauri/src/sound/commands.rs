@@ -8,6 +8,7 @@ use tauri::ipc::{Channel, InvokeBody, Request};
 
 use super::analyses::{self, Analyses};
 use super::analyze::Analysis;
+use super::beats::{self, Beats};
 use super::floor::{MEASURE_ARGS, parse_floor, stretch_args};
 use super::record::{TakeStarted, TakeWritten, Takes};
 use crate::error::{AppError, AppResult};
@@ -127,5 +128,34 @@ pub async fn sound_analyze_cancel(
     analyses: State<'_, Analyses>,
 ) -> AppResult<()> {
     analyses::cancel(&job_id, &notes, &analyses).await;
+    Ok(())
+}
+
+/// What `sound_beats` found.
+#[derive(serde::Serialize)]
+pub struct BeatsFound {
+    /// Microseconds of the file, in order; none when it has no tempo (speech, a held tone).
+    pub beats: Vec<u64>,
+}
+
+/// The beats of the file at `path`, from the cache when the file is unchanged (path, size,
+/// modified time); otherwise decoded under the caller's `job_id` (for `sound_beats_cancel`),
+/// reporting 0 to 1 to `on_progress`. Fails with "Cancelled" when it was.
+#[tauri::command]
+pub async fn sound_beats(
+    path: String,
+    job_id: String,
+    on_progress: Channel<f32>,
+    notes: State<'_, PartialNotes>,
+    beats: State<'_, Beats>,
+) -> AppResult<BeatsFound> {
+    let found = beats::find(&PathBuf::from(path), job_id, on_progress, &notes, &beats).await?;
+    Ok(BeatsFound { beats: found })
+}
+
+/// Stops a `sound_beats` still decoding. One that already ended is left alone.
+#[tauri::command]
+pub async fn sound_beats_cancel(job_id: String, beats: State<'_, Beats>) -> AppResult<()> {
+    beats::cancel(&job_id, &beats).await;
     Ok(())
 }
