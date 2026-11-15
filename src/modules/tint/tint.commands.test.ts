@@ -14,7 +14,7 @@ import {
 } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
 import { resetGrade } from "./tint.commands";
-import { setShotGroup } from "./tint.shot.commands";
+import { setShotGroup, setVersion } from "./tint.shot.commands";
 import { group, ungroup } from "./tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "./tint.node.commands";
 import { tintModule } from "./tint.module";
@@ -368,6 +368,39 @@ describe("paste part", () => {
     expect(first).not.toHaveProperty("values.gain");
     expect(second).toMatchObject({ values: { saturation: 0.5 } });
     expect(Object.keys(grade.nodes)).toHaveLength(2);
+  });
+});
+
+describe("grade versions", () => {
+  it("switching versions swaps the grade and its key tracks in one undo step", async () => {
+    const a = (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId;
+    const track = (id: string) =>
+      ({ [`grade.nodes.${id}.values.exposure`]: { keys: [] } }) as never;
+    store().api.setState((s) => ({
+      clips: { ...s.clips, [clipId]: { ...s.clips[clipId]!, animation: track(a) } },
+    }));
+    await ok(setVersion, { clipIds: [clipId], action: "create", name: "B" });
+    // Edit the showing version A: drop its node and track, grade a new node with its own track.
+    await ok(removeNodes, { target, nodeIds: [a] });
+    const b = (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId;
+    store().api.setState((s) => ({
+      clips: { ...s.clips, [clipId]: { ...s.clips[clipId]!, animation: track(b) } },
+    }));
+    const before = structuredClone(clip());
+    await ok(setVersion, { clipIds: [clipId], action: "switch", name: "B" });
+    expect(Object.keys(clip().grade!.nodes)).toEqual([a]);
+    expect(Object.keys(clip().animation!)).toEqual([`grade.nodes.${a}.values.exposure`]);
+    expect(clip().gradeVersion).toBe("B");
+    expect(Object.keys(clip().gradeVersions!)).toEqual(["A"]);
+    expect(Object.keys(clip().gradeVersions!.A!.animation!)).toEqual([
+      `grade.nodes.${b}.values.exposure`,
+    ]);
+    kernel.history.undo();
+    expect(clip()).toEqual(before);
+    const dup = await run(setVersion, { clipIds: [clipId], action: "create", name: "B" });
+    expect(dup).toMatchObject({ ok: false, error: { code: "tint.version_exists" } });
+    const gone = await run(setVersion, { clipIds: [clipId], action: "delete", name: "A" });
+    expect(gone).toMatchObject({ ok: false, error: { code: "tint.version_active" } });
   });
 });
 

@@ -732,3 +732,6 @@ export interface StackGroupInfo {
   /** A per-channel group's split. */
   split?: GradeNodeId;
 }
+
+/** What `tint.setVersion` does to a clip's grade versions. */
+export type VersionAction = "create" | "switch" | "rename" | "delete";
