@@ -94,8 +94,8 @@ declaration, and one command changes any element's values.
   the timeline's `CreateTiles` and added with `timeline.addElement`.
 - **Not yet:** saving projects (`version` migrations), lists of groups.
 
-| Command              | MCP tool              | Notes                                                                                                                                           |
-| -------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `element.setProps`   | `element_set_props`   | `clipIds` (one kind), `patch`. `element.clip_not_found`, `mixed_kinds`, `unknown_kind`, `invalid_props`, `read_only`                            |
-| `element.resetProps` | `element_reset_props` | `clipIds`, optional `paths` (fields, groups, or shared group keys); without paths every prop. `invalid_props`, `read_only`                      |
-| —                    | `element_describe`    | every element: name, tracks, source, supports, JSON schema of the patch, defaults for the format, `commands` (panel commands, `layoutCommands`) |
+| Command              | MCP tool              | Notes                                                                                                                                                                                                                                    |
+| -------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `element.setProps`   | `element_set_props`   | `clipIds` (one kind), `patch`. `element.clip_not_found`, `mixed_kinds`, `unknown_kind`, `invalid_props`, `read_only`                                                                                                                     |
+| `element.resetProps` | `element_reset_props` | `clipIds`, optional `paths` (fields, groups, or shared group keys); without paths every prop. `invalid_props`, `read_only`                                                                                                               |
+| —                    | `element_describe`    | every element, or one `kind`: name, tracks, source, supports, JSON schema of the patch, defaults for the format, `commands` (panel commands, `layoutCommands`); a shared group's schema once under `groups` unless an element narrows it |
