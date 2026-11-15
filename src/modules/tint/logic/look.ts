@@ -1,37 +1,51 @@
-import { validateGrade, type ClipGrade, type GradeNodeId, type NodeRef } from "@/modules/project";
+import {
+  gradeInputs,
+  renameGradeKeys,
+  validateGrade,
+  type ClipGrade,
+  type GradeNodeId,
+} from "@/modules/project";
 import type { LookDef } from "../tint.types";
-import { swapRefs } from "./rewire";
+import { insertLayer } from "./stack.edit";
 import { emptyGrade } from "./stack";
 
 /**
- * A look as a grade: its corrections one after another from the source, each named after the look
- * and its own name. `newId` makes node ids.
+ * `base` with a look's corrections added one after another at the bottom of the stack (the layer
+ * insert `tint.addCorrection` uses), each named `<look>: <correction>`. Null when a place is
+ * refused or the result is not a valid grade.
  */
-export function lookGrade(look: LookDef, newId: () => GradeNodeId): ClipGrade {
-  const grade = emptyGrade();
-  for (const { name, values, limit } of look.corrections) {
-    const id = newId();
-    grade.nodes[id] = {
-      kind: "correct",
-      input: { ...grade.out },
-      on: true,
-      opacity: 1,
-      name: `${look.name}: ${name}`,
-      values: structuredClone(values),
-      ...(limit ? { limit: structuredClone(limit) } : {}),
-    };
-    grade.out = { node: id };
+function withLook(
+  base: ClipGrade | null,
+  look: LookDef,
+  newId: () => GradeNodeId,
+): ClipGrade | null {
+  let grade = base ?? emptyGrade();
+  try {
+    for (const { name, values, limit } of look.corrections) {
+      grade = insertLayer(grade, {}, newId(), {
+        kind: "correct",
+        input: { node: "source" },
+        on: true,
+        opacity: 1,
+        name: `${look.name}: ${name}`,
+        values: structuredClone(values),
+        ...(limit ? { limit: structuredClone(limit) } : {}),
+      });
+    }
+  } catch {
+    return null;
   }
-  return grade;
+  return validateGrade(grade) === null ? grade : null;
 }
 
 /**
- * `base` with `extra` added after everything it has: `extra`'s nodes under fresh ids, what read
- * its source reading `base`'s result, and its result the new result. Positions are dropped (they
- * would sit on top of `base`'s), and `base`'s color space is kept. Null when `extra` has no nodes
- * or the result is not a valid grade.
+ * `base` with a whole grade `extra` added after everything it has: `extra`'s nodes under fresh ids
+ * (every ref renamed through `gradeInputs` and `renameGradeKeys`), what read its source reading
+ * `base`'s result, its result the new result. Positions are dropped (they would sit on top of
+ * `base`'s) and `base`'s color space is kept. Null when `extra` has no nodes or the result is not
+ * a valid grade.
  */
-export function appendGrade(
+function withGrade(
   base: ClipGrade | null,
   extra: ClipGrade,
   newId: () => GradeNodeId,
@@ -41,29 +55,40 @@ export function appendGrade(
   const into = base ?? emptyGrade();
   const fresh = new Map(ids.map((id) => [id, newId()]));
   const rename = (id: GradeNodeId) => fresh.get(id) ?? id;
-  const read = (ref: NodeRef): NodeRef =>
-    ref.node === "source" ? { ...into.out } : { ...ref, node: rename(ref.node) };
   const next = structuredClone(into);
+  const point = (ref: { node: string; channel?: "r" | "g" | "b" }) => {
+    if (ref.node === "source") {
+      ref.node = into.out.node;
+      if (into.out.channel) ref.channel = into.out.channel;
+    } else ref.node = rename(ref.node);
+  };
   for (const id of ids) {
     const node = structuredClone(extra.nodes[id]!);
-    swapRefs(node, read);
+    gradeInputs(node).forEach(point);
+    renameGradeKeys(node, rename);
     delete node.pos;
-    if (node.kind === "correct" && node.limit?.from !== undefined) {
-      node.limit.from = rename(node.limit.from);
-    }
-    if (node.kind === "keyJoin") for (const key of node.keys) key.from = rename(key.from);
     next.nodes[rename(id)] = node;
   }
-  next.out = read(extra.out);
+  const out = structuredClone(extra.out);
+  point(out);
+  next.out = out;
   return validateGrade(next) === null ? next : null;
 }
 
+/** `base` with a look or a still's grade added at the bottom. Null as `withLook` / `withGrade`. */
+export function addGrade(
+  base: ClipGrade | null,
+  extra: LookDef | ClipGrade,
+  newId: () => GradeNodeId,
+): ClipGrade | null {
+  return "corrections" in extra ? withLook(base, extra, newId) : withGrade(base, extra, newId);
+}
+
 /**
- * What applying `extra` to `base` would draw, with node ids that depend only on the two grades
- * (so the same pair gives the same grade, and a thumbnail of it can be kept). Null as
- * `appendGrade`.
+ * What adding `extra` to `base` would draw, with node ids that depend only on the two (so the
+ * same pair gives the same grade, and a thumbnail of it can be kept).
  */
-export function previewGrade(base: ClipGrade | null, extra: ClipGrade): ClipGrade | null {
+export function previewGrade(base: ClipGrade | null, extra: LookDef | ClipGrade): ClipGrade | null {
   let n = 0;
-  return appendGrade(base, extra, () => `~look${n++}`);
+  return addGrade(base, extra, () => `~look${n++}`);
 }

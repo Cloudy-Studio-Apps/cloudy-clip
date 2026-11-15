@@ -31,6 +31,14 @@ export function gradeKeys(node: GradeNode): string[] {
   return [];
 }
 
+/** Renames, in place, the nodes a node reads besides pictures (the ids `gradeKeys` lists). */
+export function renameGradeKeys(node: GradeNode, rename: (id: string) => string): void {
+  if (node.kind === "correct" && node.limit?.from !== undefined) {
+    node.limit.from = rename(node.limit.from);
+  }
+  if (node.kind === "keyJoin") for (const key of node.keys) key.from = rename(key.from);
+}
+
 /** Whether node `id` reads `of` through pictures or keys, or is it. Never throws, even on a cycle. */
 export function gradeReads(grade: ClipGrade, id: string, of: string): boolean {
   const seen = new Set<string>();

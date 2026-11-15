@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import { INPUT_SPACES, projectRef, type ClipGrade } from "@/modules/project";
-import { appendGrade, lookGrade } from "./logic/look";
+import { addGrade } from "./logic/look";
 import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
 import { tintRef } from "./tint.ref";
 import { readLut } from "./tint.service";
-import type { LoadedLut } from "./tint.types";
+import type { LoadedLut, LookDef } from "./tint.types";
 
 /** Reads and parses a `.cube` file, every failure a `CommandFailure` naming the file. */
 async function readLutOrFail(path: string): Promise<LoadedLut> {
@@ -130,27 +130,26 @@ export const applyLook = defineCommand({
     }
     const { store } = ctx.require(projectRef);
     const state = store.getState();
-    let extra: ClipGrade | undefined;
+    let extra: LookDef | ClipGrade | undefined;
     if (lookId !== undefined) {
-      const look = ctx.require(tintRef).looks.find(lookId);
-      if (!look) throw new CommandFailure("tint.look_not_found", `No look "${lookId}"`);
-      extra = lookGrade(look, () => createId("node"));
+      extra = ctx.require(tintRef).looks.find(lookId);
+      if (!extra) throw new CommandFailure("tint.look_not_found", `No look "${lookId}"`);
     } else {
       const still = state.stills?.[stillId!];
       if (!still) throw new CommandFailure("tint.still_not_found", `No still "${stillId}"`);
       extra = still.grade;
     }
+    if (!extra) return;
     const writes: [string, ClipGrade | undefined][] = [];
     for (const clipId of new Set(clipIds)) {
-      const grade = readGrade(state, { clipId });
-      const next = extra && appendGrade(grade, extra, () => createId("node"));
-      if (extra && Object.keys(extra.nodes).length > 0 && !next) {
+      const next = addGrade(readGrade(state, { clipId }), extra, () => createId("node"));
+      if (!next) {
         throw new CommandFailure(
           "tint.invalid_grade",
-          `That grade can't be added to clip "${clipId}".`,
+          `That can't be added to the grade of clip "${clipId}".`,
         );
       }
-      if (next) writes.push([clipId, checkedGrade(next)]);
+      writes.push([clipId, checkedGrade(next)]);
     }
     if (writes.length === 0) return;
     ctx.mutate(store, (draft) => {

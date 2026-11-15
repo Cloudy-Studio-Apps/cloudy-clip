@@ -2,9 +2,9 @@ import { useMemo, useState } from "react";
 import { useStore } from "zustand";
 import { useKernel, useModule, usePoint } from "@/core";
 import { timelineRef } from "@/modules/timeline";
-import { gradeOf, projectRef } from "@/modules/project";
+import { projectRef, type ClipGrade } from "@/modules/project";
 import { Button } from "@/ui";
-import { lookGrade } from "../../logic/look";
+import type { LookDef } from "../../tint.types";
 import { applyLook } from "../../tint.color.commands";
 import { tintLooks } from "../../tint.points";
 import { grabStill, removeStill } from "../../tint.still.commands";
@@ -25,21 +25,17 @@ export function LooksTab() {
   const order = useStore(api, (s) => s.stillOrder);
   const looks = usePoint(tintLooks);
   const clip = strip.find((entry) => entry.clip.id === clipId)?.clip;
-  const base = clip ? gradeOf(clip) : null;
   const cards = useMemo(
     () => [
-      ...looks.map((look) => {
-        let n = 0;
-        return {
-          key: look.id,
-          name: look.name,
-          note: look.note ?? "look",
-          grade: lookGrade(look, () => `~${look.id}${n++}`),
-          image: undefined,
-          apply: { lookId: look.id },
-          remove: undefined,
-        };
-      }),
+      ...looks.map((look) => ({
+        key: look.id,
+        name: look.name,
+        note: look.note ?? "look",
+        grade: look as LookDef | ClipGrade | undefined,
+        image: undefined,
+        apply: { lookId: look.id },
+        remove: undefined,
+      })),
       ...(order ?? []).flatMap((id) => {
         const still = stills?.[id];
         return still
@@ -71,8 +67,7 @@ export function LooksTab() {
             key={c.key}
             name={c.name}
             note={c.note}
-            clipId={clipId}
-            base={base}
+            clip={clip}
             grade={c.grade}
             fallback={c.image}
             chosen={c.key === chosen}

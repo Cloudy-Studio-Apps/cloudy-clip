@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type RefObject } from "react";
 import { useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { useOpenComposition, type ClipGrade, type ClipId } from "@/modules/project";
+import { gradeOf, useOpenComposition, type Clip, type ClipGrade } from "@/modules/project";
+import type { LookDef } from "../../tint.types";
 import { previewGrade } from "../../logic/look";
 import { tintRef } from "../../tint.ref";
 
@@ -16,15 +17,18 @@ const SETTLE_MS = 400;
  */
 export function useLookThumb(
   card: RefObject<Element | null>,
-  clipId: ClipId | null,
-  base: ClipGrade | null,
-  extra: ClipGrade | undefined,
+  clip: Clip | undefined,
+  extra: LookDef | ClipGrade | undefined,
 ): string | undefined {
   const tint = useModule(tintRef);
   const { playback } = useModule(previewRef);
   const compositionId = useOpenComposition()?.id;
   const [seen, setSeen] = useState(false);
   const [url, setUrl] = useState<string>();
+  const clipId = clip?.id;
+  const base = clip ? gradeOf(clip) : null;
+  // Everything of the clip but its grade: a trim, move, transform or speed change redraws the card.
+  const signature = useMemo(() => JSON.stringify({ ...clip, grade: undefined }), [clip]);
   const grade = useMemo(() => (extra ? previewGrade(base, extra) : null), [base, extra]);
   useEffect(() => {
     const element = card.current;
@@ -39,7 +43,7 @@ export function useLookThumb(
     let timer: ReturnType<typeof setTimeout> | undefined;
     const draw = () => {
       if (playback.isPlaying()) return;
-      tint.lookThumb(clipId, grade, playback.getTime(), compositionId).then(
+      tint.lookThumb(clipId, signature, grade, playback.getTime(), compositionId).then(
         (picture) => !stale && setUrl(picture),
         () => {},
       );
@@ -58,6 +62,6 @@ export function useLookThumb(
       clearTimeout(timer);
       off.forEach((fn) => fn());
     };
-  }, [tint, playback, seen, clipId, compositionId, grade]);
+  }, [tint, playback, seen, clipId, signature, compositionId, grade]);
   return url;
 }

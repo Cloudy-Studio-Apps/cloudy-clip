@@ -173,6 +173,7 @@ export {
 export {
   gradeInputs,
   gradeKeys,
+  renameGradeKeys,
   gradeReads,
   keyFromAbove,
   validateGrade,

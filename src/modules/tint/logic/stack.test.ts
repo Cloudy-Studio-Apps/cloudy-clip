@@ -4,6 +4,7 @@ import { validateGrade } from "@/modules/project";
 import { sealedRegions } from "./seal";
 import { emptyGrade, numberOf, toStack } from "./stack";
 import { insertLayer, moveLayer, removeNodes } from "./stack.edit";
+import { addGrade } from "./look";
 import { groupLayers, ungroup } from "./stack.group";
 
 function correct(input: string, extra: Partial<Correction> = {}): Correction {
@@ -288,5 +289,33 @@ describe("stack edits", () => {
     results.push(ungroup(side, "j"));
     for (const result of results) if (result) expect(validateGrade(result)).toBeNull();
     expect(results.filter(Boolean).length).toBeGreaterThan(10);
+  });
+
+  it("adds a grade with a shared key, a key join and a group without a clash, every ref resolving", () => {
+    const keyed = { brightness: { on: true, range: [0.7, 1] as [number, number], soft: 10 } };
+    const extra: ClipGrade = {
+      nodes: {
+        a: correct("source", { limit: keyed }),
+        b: correct("a", { limit: { from: "a" } }),
+        kj: { kind: "keyJoin", keys: [{ from: "a", mode: "add" }] },
+        c: correct("b", { limit: { from: "kj" } }),
+        g1: correct("c"),
+        g2: correct("c"),
+        j: { kind: "parallel", inputs: [{ node: "g1" }, { node: "g2" }], on: true, opacity: 1 },
+      },
+      out: { node: "j" },
+    };
+    // Same ids as the base on purpose: the added ones must be renamed.
+    const base = chain("a", "b");
+    let n = 0;
+    const next = addGrade(base, extra, () => `n${n++}`)!;
+    expect(validateGrade(next)).toBeNull();
+    expect(Object.keys(next.nodes)).toHaveLength(9);
+    expect(next.nodes.a).toEqual(base.nodes.a);
+    const added = Object.entries(next.nodes).filter(([id]) => id.startsWith("n"));
+    expect(added).toHaveLength(7);
+    expect(next.nodes.n0).toMatchObject({ input: { node: "b" } });
+    // Only the first added node reads the base; no other ref still names an id of `extra`.
+    expect(JSON.stringify(added.slice(1))).not.toMatch(/"(?:node|from)":"(?:a|b|kj|c|g1|g2|j)"/);
   });
 });

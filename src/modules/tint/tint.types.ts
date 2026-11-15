@@ -131,10 +131,11 @@ export interface TintApi {
   /**
    * A small picture (a JPEG data URL, 160 px wide) of the clip alone at `time` as `grade` draws it
    * instead of its own: what applying a look or still would give. One capture at a time; the same
-   * clip, time and grade are answered from a small cache.
+   * clip (`signature`: the clip's other fields, so an edit refreshes it), time and grade are answered from a small cache.
    */
   lookThumb(
     clipId: ClipId,
+    signature: string,
     grade: ClipGrade,
     time: Micros,
     compositionId: CompositionId,

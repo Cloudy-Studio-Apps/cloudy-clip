@@ -78,7 +78,10 @@ export const removeStill = defineCommand({
     }
     ctx.mutate(store, (draft) => {
       delete draft.stills?.[stillId];
-      if (draft.stillOrder) draft.stillOrder = draft.stillOrder.filter((id) => id !== stillId);
+      if (Object.keys(draft.stills ?? {}).length === 0) delete draft.stills;
+      const order = draft.stillOrder?.filter((id) => id !== stillId) ?? [];
+      if (order.length > 0) draft.stillOrder = order;
+      else delete draft.stillOrder;
     });
   },
 });

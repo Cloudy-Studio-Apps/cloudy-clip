@@ -46,9 +46,6 @@ export const tintModule = defineModule({
     onDispose(
       followPageLeave(ctx.require(pagesRef).store, TINT_PAGE, () => void bus.run(clearViewing, {})),
     );
-    const thumbs = createThumbs((time, compositionId, options) =>
-      preview.captureAt(time, compositionId, options),
-    );
     const workspace = ctx.require(workspaceRef);
     const { files: luts, stop } = createLutFiles(
       ctx.require(projectRef),
@@ -56,6 +53,18 @@ export const tintModule = defineModule({
       () => workspace.ui.setState({ relink: true }),
     );
     onDispose(stop);
+    const project = ctx.require(projectRef);
+    const thumbs = createThumbs(
+      (time, compositionId, options) => preview.captureAt(time, compositionId, options),
+      (grade) =>
+        Object.values(grade.nodes).some((node) => {
+          const lut =
+            node.kind === "correct"
+              ? project.store.getState().luts?.[node.lut?.id ?? ""]
+              : undefined;
+          return lut !== undefined && luts.file(lut).status === "loading";
+        }),
+    );
     const picker = createPicker(ctx.require(projectRef), preview, ctx.require(mediaRef), luts);
     onDispose(redrawOnShow(view, () => preview.redraw()));
     contribute(pictureFilters, createTintFilter(live, view, ctx.require(mediaRef), luts));

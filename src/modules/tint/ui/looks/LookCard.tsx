@@ -1,17 +1,17 @@
 import { X } from "lucide-react";
 import { useRef } from "react";
 import { cn } from "@/ui";
-import type { ClipGrade, ClipId } from "@/modules/project";
+import type { Clip, ClipGrade } from "@/modules/project";
+import type { LookDef } from "../../tint.types";
 import { useLookThumb } from "./look.thumb.hook";
 
 interface LookCardProps {
   name: string;
   /** What the card says under the name. */
   note: string;
-  /** The clip being graded, and its grade: the picture is the clip's frame with `grade` added. */
-  clipId: ClipId | null;
-  base: ClipGrade | null;
-  grade: ClipGrade | undefined;
+  /** The clip being graded: the picture is its frame with `grade` added to its own. */
+  clip: Clip | undefined;
+  grade: LookDef | ClipGrade | undefined;
   /** A picture to show until (or instead of) the clip's own. */
   fallback?: string;
   chosen: boolean;
@@ -24,8 +24,7 @@ interface LookCardProps {
 export function LookCard({
   name,
   note,
-  clipId,
-  base,
+  clip,
   grade,
   fallback,
   chosen,
@@ -33,7 +32,7 @@ export function LookCard({
   onRemove,
 }: LookCardProps) {
   const card = useRef<HTMLDivElement>(null);
-  const picture = useLookThumb(card, clipId, base, grade) ?? fallback;
+  const picture = useLookThumb(card, clip, grade) ?? fallback;
   return (
     <div ref={card} className="relative">
       <button
