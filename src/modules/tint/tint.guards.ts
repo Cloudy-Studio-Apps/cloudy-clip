@@ -106,8 +106,8 @@ function trackPaths(state: ProjectState, target: GradeTarget): string[] {
 /**
  * The fields of `fields` of a node whose value has keys on the clip: a static write to them is
  * refused. A field is a top-level value (`lift`, covering a track at `lift.x`), `opacity` or `on`.
- * `same(sub)` (a keyed path under `values`, `lift.y`) says the write leaves that number as it is
- * stored, so it doesn't count: a wheel can be written whole around a keyed component.
+ * `same(sub)` (a keyed path under `values`, `lift.y`, or `opacity`) says the write leaves that
+ * number as it is stored, so it doesn't count: a wheel can be written whole around a keyed component.
  */
 export function animatedFields(
   state: ProjectState,
@@ -121,7 +121,7 @@ export function animatedFields(
   return fields.filter((field) =>
     paths.some((path) =>
       field === "opacity" || field === "on"
-        ? path === `grade.nodes.${nodeId}.${field}`
+        ? path === `grade.nodes.${nodeId}.${field}` && !(field === "opacity" && same("opacity"))
         : (path === values + field || path.startsWith(`${values}${field}.`)) &&
           !same(path.slice(values.length)),
     ),

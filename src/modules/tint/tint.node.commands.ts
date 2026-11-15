@@ -225,7 +225,9 @@ export const setCorrection = defineCommand({
     const before = grade && Object.hasOwn(grade.nodes, id) ? grade.nodes[id] : undefined;
     const stored = before?.kind === "correct" ? correctionOf(before) : undefined;
     const same = (sub: string) =>
-      stored !== undefined && leafAt(patch.values, sub) === leafAt(stored, sub);
+      sub === "opacity"
+        ? before?.kind === "correct" && patch.opacity === before.opacity
+        : stored !== undefined && leafAt(patch.values, sub) === leafAt(stored, sub);
     refuseUnlessEditable(state, target, grade, id, fields, same);
     const next = structuredClone(grade!);
     const node = next.nodes[id] as Correction;

@@ -1,4 +1,4 @@
-import { GRADE_RANGES } from "@/modules/project";
+import { DEFAULT_CORRECTION, GRADE_RANGES, type CorrectionValues } from "@/modules/project";
 import type { ToolId } from "../tint.types";
 import { TOOL_FIELDS } from "./tools";
 
@@ -19,6 +19,20 @@ export const KEYABLE_VALUES: readonly string[] = Object.keys(GRADE_RANGES).filte
 export function toolKeyPaths(tool: ToolId): string[] {
   const owned: readonly string[] = TOOL_FIELDS[tool].values;
   return KEYABLE_VALUES.filter((path) => owned.includes(path.split(".")[0]!));
+}
+
+/**
+ * What the header's diamond keys of a tool: its keyable paths whose value (`values`, at the
+ * playhead) differs from `DEFAULT_CORRECTION`, and those already keyed (`isKeyed`).
+ */
+export function changedKeyPaths(
+  tool: ToolId,
+  values: CorrectionValues,
+  isKeyed: (sub: string) => boolean,
+): string[] {
+  return toolKeyPaths(tool).filter(
+    (sub) => isKeyed(sub) || leafAt(values, sub) !== leafAt(DEFAULT_CORRECTION, sub),
+  );
 }
 
 /** A field's label from its path: `creative.vignette.amount` → `Creative vignette amount`. */

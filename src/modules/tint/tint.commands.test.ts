@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createKernel, type Kernel } from "@/core";
+import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
+import { compositionModule } from "@/modules/composition";
+import { inspectorModule } from "@/modules/inspector";
+import { keyTargets, keyframeModule, setKey } from "@/modules/keyframe";
 import { elementModule } from "@/modules/element";
 import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
@@ -17,6 +20,7 @@ import { resetGrade } from "./tint.commands";
 import { setShotGroup, setVersion } from "./tint.shot.commands";
 import { group, ungroup } from "./tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "./tint.node.commands";
+import { tintKeys } from "./tint.keys";
 import { tintModule } from "./tint.module";
 import { pastePart } from "./logic/paste";
 import { emptyGrade, toStack } from "./logic/stack";
@@ -69,6 +73,39 @@ describe("grade commands", () => {
     expect(clip().grade?.out).toEqual({ node: nodeId });
     kernel.history.undo();
     expect("grade" in clip()).toBe(false);
+  });
+
+  it("with at, a keyed value takes a key and the rest a static value, one undo step", async () => {
+    // tint itself isn't loaded here (no workspace), so its key target comes in on its own.
+    await kernel.modules.loadAll([
+      compositionModule,
+      inspectorModule,
+      keyframeModule,
+      defineModule({
+        ref: defineModuleRef<null>("tintKeysOnly"),
+        name: "Tint keys",
+        tier: "feature",
+        requires: ["keyframe"],
+        setup(ctx) {
+          ctx.contribute(keyTargets, tintKeys);
+          return { api: null };
+        },
+      }),
+    ]);
+    const { nodeId } = await ok<{ nodeId: string }>(addCorrection, { target });
+    const path = `grade.nodes.${nodeId}.values.saturation`;
+    await ok(setKey, { clipId, path, at: 0, value: 0.5 });
+    const before = structuredClone(clip());
+    await ok(setCorrection, {
+      target,
+      nodeId,
+      at: S,
+      patch: { values: { saturation: 1.5, exposure: 1 } },
+    });
+    expect(clip().animation?.[path]?.keys.map((k) => k.value)).toEqual([0.5, 1.5]);
+    expect((clip().grade?.nodes[nodeId] as Correction).values).toEqual({ exposure: 1 });
+    kernel.history.undo();
+    expect(clip()).toEqual(before);
   });
 
   it("sets values and stores only what differs from the defaults", async () => {
