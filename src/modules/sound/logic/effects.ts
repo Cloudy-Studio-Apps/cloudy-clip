@@ -4,12 +4,14 @@ import {
   compositionMixOf,
   trackMixOf,
   type CompositionId,
+  type MixBus,
   type ProjectState,
   type SoundEffect,
   type SoundEffectKind,
   type TrackId,
 } from "@/modules/project";
-import type { ChainWhere, EffectSpecOf, MixTarget } from "../sound.types";
+import type { ChainWhere, EffectSpecOf, ListenNodes } from "../sound.effects.types";
+import type { MixTarget } from "../sound.line.types";
 
 /** What each kind is called: in full (the Channel tab) and short (a strip's list). */
 export const EFFECT_NAMES: Record<SoundEffectKind, { name: string; short: string }> = {
@@ -22,10 +24,20 @@ export const EFFECT_NAMES: Record<SoundEffectKind, { name: string; short: string
   duck: { name: "Ducking", short: "Ducking" },
 };
 
-/** The kinds `+ Effect` offers on a chain: those not in it yet, and no ducking on the master. */
-export function addableKinds(chain: readonly SoundEffect[], target: MixTarget): SoundEffectKind[] {
+/**
+ * The kinds `+ Effect` offers on a chain: those not in it yet, no ducking on the master and no
+ * noise reduction on a group (`group`: it renders files, and a group has none of its own).
+ */
+export function addableKinds(
+  chain: readonly SoundEffect[],
+  target: MixTarget,
+  group = false,
+): SoundEffectKind[] {
   return SOUND_EFFECT_KINDS.filter(
-    (kind) => !chain.some((e) => e.kind === kind) && !(target === "master" && kind === "duck"),
+    (kind) =>
+      !chain.some((e) => e.kind === kind) &&
+      !(target === "master" && kind === "duck") &&
+      !(group && kind === "denoise"),
   );
 }
 
@@ -33,8 +45,8 @@ export function addableKinds(chain: readonly SoundEffect[], target: MixTarget): 
 const NO_EFFECTS: readonly SoundEffect[] = [];
 
 /**
- * The chain of a track or of a composition's master, as stored (the same array while it doesn't
- * change); empty when it has none or doesn't exist.
+ * The chain of a track, of a composition's master or of one of its groups, as stored (the same
+ * array while it doesn't change); empty when it has none or doesn't exist.
  */
 export function chainOf(
   state: ProjectState,
@@ -45,7 +57,12 @@ export function chainOf(
     const composition = compositionId && state.compositions[compositionId];
     return (composition && composition.mix?.master.effects) || NO_EFFECTS;
   }
-  return state.tracks[target]?.mix?.effects ?? NO_EFFECTS;
+  const track = state.tracks[target];
+  if (track) return track.mix?.effects ?? NO_EFFECTS;
+  const composition = compositionId && state.compositions[compositionId];
+  return (
+    (composition && composition.mix?.buses?.find((b) => b.id === target)?.effects) || NO_EFFECTS
+  );
 }
 
 /**
@@ -65,7 +82,8 @@ export function placesUnheardEffects(state: ProjectState, trackId: TrackId): boo
     const composition = state.compositions[id];
     if (seen.has(id) || !composition) continue;
     seen.add(id);
-    if (compositionMixOf(composition).master.effects?.length) return true;
+    const mix = compositionMixOf(composition);
+    if (mix.master.effects?.length || mix.buses?.some((bus) => bus.effects?.length)) return true;
     for (const inner of composition.trackOrder) {
       const track = state.tracks[inner];
       if (!track) continue;
@@ -114,32 +132,48 @@ export function defaultSpec<K extends SoundEffectKind>(kind: K): EffectSpecOf<K>
   return DEFAULT_SPECS[kind]();
 }
 
-/** Who each track listens to through its ducks, `except` left out (the track being changed). */
+const heardBy = (effects: readonly SoundEffect[] | undefined): string[] =>
+  (effects ?? []).flatMap((e) => (e.kind === "duck" ? e.listensTo : []));
+
+/**
+ * What each track and group depends on, `except` left out (the one being changed): a track on the
+ * tracks and groups its ducks listen to; a group on those too, and on every track sent to it.
+ */
 export function listenGraph(
-  tracks: Record<TrackId, { mix?: { effects?: SoundEffect[] } }>,
-  except: TrackId,
-): Map<TrackId, TrackId[]> {
-  const graph = new Map<TrackId, TrackId[]>();
+  tracks: ListenNodes,
+  except: string,
+  buses: readonly MixBus[] = [],
+): Map<string, string[]> {
+  const graph = new Map<string, string[]>();
   for (const [id, track] of Object.entries(tracks)) {
     if (id === except) continue;
-    const heard = (track.mix?.effects ?? []).flatMap((e) => (e.kind === "duck" ? e.listensTo : []));
+    const heard = heardBy(track.mix?.effects);
     if (heard.length) graph.set(id, heard);
+  }
+  for (const bus of buses) {
+    if (bus.id === except) continue;
+    const members = Object.entries(tracks).flatMap(([id, t]) =>
+      t.mix?.busId === bus.id ? [id] : [],
+    );
+    const heard = [...heardBy(bus.effects), ...members];
+    if (heard.length) graph.set(bus.id, heard);
   }
   return graph;
 }
 
 /**
- * Whether `owner` listening to `listensTo` would close a loop: a listened track is the owner, or
- * hears the owner (through any number of ducks). The owner's own current ducks are not counted,
- * since the new list replaces them.
+ * Whether `owner` (a track or a group) listening to `listensTo` would close a loop: a listened
+ * track or group is the owner, or depends on it (through any number of ducks and group
+ * memberships). The owner's own current ducks are not counted, since the new list replaces them.
  */
 export function closesLoop(
-  tracks: Record<TrackId, { mix?: { effects?: SoundEffect[] } }>,
-  owner: TrackId,
-  listensTo: readonly TrackId[],
+  tracks: ListenNodes,
+  owner: string,
+  listensTo: readonly string[],
+  buses: readonly MixBus[] = [],
 ): boolean {
-  const graph = listenGraph(tracks, owner);
-  const seen = new Set<TrackId>();
+  const graph = listenGraph(tracks, owner, buses);
+  const seen = new Set<string>();
   const stack = [...listensTo];
   while (stack.length) {
     const id = stack.pop()!;
@@ -149,4 +183,9 @@ export function closesLoop(
     stack.push(...(graph.get(id) ?? []));
   }
   return false;
+}
+
+/** The ids a track's own ducks listen to. */
+export function listensOf(track: { mix?: { effects?: SoundEffect[] } }): string[] {
+  return heardBy(track.mix?.effects);
 }

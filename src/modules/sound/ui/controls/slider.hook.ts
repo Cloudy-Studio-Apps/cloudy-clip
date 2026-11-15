@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
-import type { SliderOptions } from "../../sound.types";
+import type { SliderOptions } from "../../sound.meter.types";
 import { startFaderDrag } from "./fader.gesture";
 
 /**
@@ -20,6 +20,8 @@ export function useSliderDrag(options: SliderOptions) {
     onInput,
     onCommit,
     read,
+    onPress,
+    onRelease,
   } = options;
 
   const pending = useRef(0);
@@ -40,6 +42,7 @@ export function useSliderDrag(options: SliderOptions) {
       if (e.button !== 0 || !trackRef.current) return;
       e.stopPropagation();
       pending.current++;
+      onPress?.();
       const from = read();
       startFaderDrag({
         down: e.nativeEvent,
@@ -54,6 +57,7 @@ export function useSliderDrag(options: SliderOptions) {
         },
         onEnd(position) {
           pending.current--;
+          onRelease?.();
           const value = position === null ? from : fromPosition(position);
           finish(value === from ? null : value);
         },

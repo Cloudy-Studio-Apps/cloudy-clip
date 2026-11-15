@@ -1,6 +1,5 @@
 //! Tauri commands of the export module.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -8,11 +7,11 @@ use serde::Serialize;
 use tauri::State;
 
 use super::encoders::{Capabilities, capabilities};
-use super::job::{Job, script_option};
-use super::recipe::{ExportSpec, Format};
+use super::job::{Job, find_mono, script_option};
+use super::spec::{ExportSpec, Format};
 use super::{FrameUrl, Jobs, PartialNotes};
 use crate::error::{AppError, AppResult};
-use crate::media::proxy::{Tools, ffprobe, find_tools};
+use crate::media::proxy::find_tools;
 use crate::media::server::random_token;
 
 /// Where a started export takes its frames.
@@ -42,21 +41,6 @@ async fn card_for(spec: &ExportSpec) -> Option<String> {
     }
 }
 
-/// Marks the sounds of one-channel files.
-async fn find_mono(tools: &Tools, spec: &mut ExportSpec) {
-    let mut known: HashMap<String, bool> = HashMap::new();
-    for segment in &mut spec.sound {
-        if let Some(mono) = known.get(&segment.path) {
-            segment.mono = *mono;
-            continue;
-        }
-        let probe = ffprobe(tools, Path::new(&segment.path), false).await;
-        let mono = probe.is_ok_and(|probe| probe.audio_channels == Some(1));
-        known.insert(segment.path.clone(), mono);
-        segment.mono = mono;
-    }
-}
-
 /// Starts FFmpeg. Frames go to the returned URL, one POST each, then `export_finish`.
 #[tauri::command]
 pub async fn export_begin(
@@ -65,6 +49,7 @@ pub async fn export_begin(
     frame_url: State<'_, FrameUrl>,
     notes: State<'_, PartialNotes>,
 ) -> AppResult<StartedExport> {
+    spec.check().map_err(AppError::Unavailable)?;
     let Some(tools) = find_tools() else {
         return Err(AppError::Unavailable(
             "FFmpeg was not found. Install FFmpeg to export videos.".into(),
@@ -79,14 +64,19 @@ pub async fn export_begin(
     if let Some(folder) = Path::new(&spec.output).parent() {
         tokio::fs::create_dir_all(folder).await?;
     }
-    find_mono(&tools, &mut spec).await;
+    find_mono(&tools, &mut spec.sound).await;
     let card = card_for(&spec).await;
     let option = script_option(&tools.ffmpeg).await;
     let job = Job::start(&tools, &spec, card.as_deref(), option).map_err(AppError::Unavailable)?;
     let job_id = random_token()?;
     tokio::fs::create_dir_all(&notes.0).await?;
-    let partial = job.partial.display().to_string();
-    tokio::fs::write(notes.0.join(&job_id), partial).await?;
+    // One partial file a line: the export's, then its stems'.
+    let partials: Vec<String> = job
+        .partials
+        .iter()
+        .map(|p| p.display().to_string())
+        .collect();
+    tokio::fs::write(notes.0.join(&job_id), partials.join("\n")).await?;
     jobs.add(job_id.clone(), Arc::new(job));
     Ok(StartedExport {
         frame_url: format!("{base}/{job_id}"),

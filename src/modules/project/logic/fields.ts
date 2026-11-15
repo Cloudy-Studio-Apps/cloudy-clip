@@ -156,19 +156,28 @@ function clampFades(draft: Draft<ProjectState>): void {
   }
 }
 
-/** A deleted track no longer lowers anything: it leaves every duck's `listensTo`. */
+/** A deleted track or group no longer lowers anything: it leaves every duck's `listensTo`. */
 function dropDeletedListens(draft: Draft<ProjectState>): void {
+  const known = new Set<string>();
+  for (const composition of Object.values(draft.compositions)) {
+    for (const bus of composition.mix?.buses ?? []) known.add(bus.id);
+    for (const bus of composition.mix?.otherMix?.buses ?? []) known.add(bus.id);
+  }
+  const exists = (id: string) => draft.tracks[id] !== undefined || known.has(id);
   const prune = (mix: { effects?: SoundEffect[] } | undefined) => {
     for (const effect of mix?.effects ?? []) {
       if (effect.kind !== "duck") continue;
-      if (effect.listensTo.some((id) => !draft.tracks[id])) {
-        effect.listensTo = effect.listensTo.filter((id) => draft.tracks[id]);
+      if (effect.listensTo.some((id) => !exists(id))) {
+        effect.listensTo = effect.listensTo.filter(exists);
       }
     }
   };
   for (const track of Object.values(draft.tracks)) prune(track.mix);
   for (const composition of Object.values(draft.compositions)) {
-    for (const mix of Object.values(composition.mix?.otherMix?.tracks ?? {})) prune(mix);
+    for (const bus of composition.mix?.buses ?? []) prune(bus);
+    const other = composition.mix?.otherMix;
+    for (const mix of Object.values(other?.tracks ?? {})) prune(mix);
+    for (const bus of other?.buses ?? []) prune(bus);
   }
 }
 

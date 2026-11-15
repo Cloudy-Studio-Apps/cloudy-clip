@@ -12,6 +12,7 @@ import {
   pitchShift,
   soundOf,
   type ClipComposite,
+  type BusId,
   type ClipId,
   type ClipPlacement,
   type ClipSound,
@@ -19,6 +20,7 @@ import {
   type Composition,
   type MediaAsset,
   type MediaId,
+  type TrackId,
   type ProjectFormat,
   type ProjectState,
   speedOf,
@@ -31,7 +33,7 @@ import {
 import { cappedPassSize } from "../logic/capping";
 import { resolveFrame } from "../logic/frame";
 import { soundGains } from "../logic/junctions";
-import { placeSound } from "../logic/mix";
+import { mutedInPlacement, placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
 import type {
   LiveSound,
@@ -45,6 +47,7 @@ import { PITCH_LEAD_SECONDS } from "./engine.soundchain";
 import { ImageCache } from "./engine.images";
 import { landLayer } from "./engine.composite";
 import { EngineFilters } from "./engine.filters";
+import { createLineLists, NO_LINES } from "./engine.line";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { createSoundMix } from "./engine.soundmix";
@@ -57,6 +60,7 @@ import type {
   Nesting,
   PlacementTarget,
   ResolvedFrame,
+  SoundClock,
   SoundMix,
 } from "./engine.types";
 
@@ -132,6 +136,10 @@ export class HtmlMediaEngine implements PreviewEngine {
   private picture: PictureOptions = PLAIN;
   /** While drawing: whether filters run (not on the plain half of a compare, nor bypassed). */
   private filtering = true;
+  /** The playhead as sound follows it, from the last `render` (one object, set in place). */
+  private readonly clock: SoundClock = { time: 0, playing: false, until: Infinity };
+  /** The volume lines of inner tracks, made once per placement and line. */
+  private readonly lineLists = createLineLists();
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -169,8 +177,13 @@ export class HtmlMediaEngine implements PreviewEngine {
     playing: boolean,
     transforms: ReadonlyMap<ClipId, ClipTransform> = new Map(),
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>> = new Map(),
+    until: Micros = Infinity,
   ): void {
     this.sound.update(project, composition);
+    this.clock.time = time;
+    this.clock.playing = playing;
+    this.clock.until = Math.min(until, composition.duration);
+    this.sound.follow(time, playing, this.clock.until);
     // A scrub slice is heard and metered as playback is, but never reaches the loudness reading.
     this.sound.setPlaying(playing && !this.slicing);
     const frame = resolveFrame(project, composition.id, time, {
@@ -249,6 +262,8 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   setSound = (live: LiveSound): void => this.sound.setSound(live);
   levels = (): MixLevels => this.sound.levels();
+  reduction = (target: TrackId | BusId | "master"): number => this.sound.reduction(target);
+  spectrum = (into: Float32Array<ArrayBuffer>): number => this.sound.spectrum(into);
   loudness = (): LoudnessReading | null => this.sound.loudness();
   resetLoudness = (): void => this.sound.resetLoudness();
 
@@ -296,6 +311,9 @@ export class HtmlMediaEngine implements PreviewEngine {
     const filtering = !this.picture.bypass;
     if (filtering && !this.filters.frameReady(composition, project)) this.settled = false;
     for (const { track, clips } of tracks) {
+      // Inside a placement, an inner group's mute silences its tracks as their own mute does;
+      // top-level, the group's bus does it.
+      const quiet = silenced || (nesting !== null && mutedInPlacement(composition, track));
       // During a junction's overlap both clips are here, each on its own element (one per path),
       // and both frames must be ready before anything is painted.
       for (const { clip, path, inner } of clips) {
@@ -309,14 +327,18 @@ export class HtmlMediaEngine implements PreviewEngine {
           track.kind === "audio"
             ? gain * fadeLevel(sound, clip, time, gains.get(clip.id)) * dbToLinear(sound.volumeDb)
             : gain;
+        // Inside a placement, an inner track's line joins those above, on its composition's clock.
+        const lines = nesting
+          ? this.lineLists.inside(nesting.lines, track.mix?.volumeLine, time - nesting.playhead)
+          : NO_LINES;
         // Inside a placement, the clips get the noise reduction of the track it sits on.
         const trackDenoise = track.kind === "audio" ? heardDenoise(track, composition) : undefined;
         const denoise = nesting ? nesting.denoise : trackDenoise;
         if (inner) {
-          const { bus, gain: through, pan } = placeSound(track, nesting, own, 0);
-          const quiet = silenced || track.muted;
-          const around = { bus, pan, denoise };
-          this.prepare(project, inner, playing, propsOverrides, through, quiet, around);
+          const { bus, gain: through, pan } = placeSound(composition, track, nesting, own, 0);
+          const around = { bus, pan, denoise, lines, playhead: nesting?.playhead ?? time };
+          const within = quiet || track.muted;
+          this.prepare(project, inner, playing, propsOverrides, through, within, around);
           continue;
         }
         if (!hasMedia(clip)) continue; // drawn from the document, no media element
@@ -354,9 +376,10 @@ export class HtmlMediaEngine implements PreviewEngine {
         // The pitch of a ramp follows its rate now, in steps, since each rate keeps its own sound.
         const heardRate = ramped ? Math.round(rate / RAMP_RATE_STEP) * RAMP_RATE_STEP : rate;
         const heard = this.sound.heard(sound, { ...speed, rate: heardRate });
-        const placed = placeSound(track, nesting, own, heard.pan);
-        const voice = { ...placed, silenced, sound: heard, name: media.name };
-        voiceSlot(slot, track, track.kind === "audio" ? voice : null, this.sound.graph);
+        const placed = placeSound(composition, track, nesting, own, heard.pan);
+        const voice = { ...placed, lines, silenced: quiet, sound: heard, name: media.name };
+        const heardVoice = track.kind === "audio" ? voice : null;
+        voiceSlot(slot, track, heardVoice, this.sound.graph, this.clock);
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
         const lead = pitched ? PITCH_LEAD_SECONDS * rate : 0;
         syncSlot(slot, exact + lead, playing && rate > 0, rate, ramped);

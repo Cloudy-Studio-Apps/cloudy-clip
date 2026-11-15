@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import type { HeardFeed } from "../../sound.meter.types";
 import { formatDb, VOLUME_DB_MAX, VOLUME_DB_MIN } from "@/modules/project";
 import { faderDb, faderPosition } from "../../logic/fader";
 import { useSliderDrag } from "../controls";
@@ -14,6 +15,16 @@ interface FaderProps {
   onCommit(db: number): Promise<void>;
   /** The level the document holds now. */
   read(): number;
+  /** The press, before any move. */
+  onPress?(): void;
+  /** The release of a press, before the commit. */
+  onRelease?(): void;
+  /**
+   * The level is an offset on the track's volume line: the readout says so, and a thin mark on the
+   * groove follows the level heard at the playhead (line plus offset), fed by `heard`.
+   */
+  offset?: boolean;
+  heard?: HeardFeed;
   /** The meters, beside the scale. */
   children?: ReactNode;
 }
@@ -21,17 +32,31 @@ interface FaderProps {
 /**
  * A vertical fader from −60 to +12 dB, unity at three quarters, with its scale, the meters beside
  * it and the level under it. A drag moves the handle and the level through the DOM; the level is
- * in `--mark` when it isn't 0 dB. A double-click returns to 0 dB.
+ * in `--mark` when it isn't 0 dB. On a track with a volume line the fader is a trim on the line:
+ * the readout says "trim" and a thin `--on` mark on the groove shows the level heard at the
+ * playhead. A double-click returns to 0 dB.
  */
-export function Fader({ value, label, onInput, onCommit, read, children }: FaderProps) {
+export function Fader({
+  value,
+  label,
+  onInput,
+  onCommit,
+  read,
+  onPress,
+  onRelease,
+  offset = false,
+  heard,
+  children,
+}: FaderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
   const place = (db: number) => {
     if (handleRef.current) handleRef.current.style.bottom = `${faderPosition(db) * 100}%`;
     const readout = readoutRef.current;
     if (!readout) return;
-    readout.textContent = formatDb(db);
+    readout.textContent = offset ? `${formatDb(db)} trim` : formatDb(db);
     readout.classList.toggle("text-mark", db !== 0);
     readout.classList.toggle("border-mark", db !== 0);
   };
@@ -46,6 +71,8 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
     onInput,
     onCommit,
     read,
+    onPress,
+    onRelease,
   });
 
   // From the document, except while a drag or its command is under way: a re-render then (the
@@ -53,6 +80,25 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
   useLayoutEffect(() => {
     if (!drag.busy()) place(value);
   });
+
+  // The level heard, written through the DOM only when it moves (rule 24).
+  useEffect(() => {
+    const ghost = ghostRef.current;
+    if (!heard || !offset || !ghost) return;
+    let shown = -1;
+    const stop = heard((db) => {
+      const position = faderPosition(db);
+      if (position === shown) return;
+      shown = position;
+      ghost.style.bottom = `${position * 100}%`;
+      ghost.title = `Heard: ${formatDb(db)} dB`;
+      ghost.style.visibility = "visible";
+    });
+    return () => {
+      stop();
+      ghost.style.visibility = "hidden";
+    };
+  }, [heard, offset]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-1.5">
@@ -69,6 +115,11 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
           onDoubleClick={drag.onDoubleClick}
         >
           <div
+            ref={ghostRef}
+            aria-hidden
+            className="invisible absolute -left-0.5 h-0.5 w-[22px] translate-y-1/2 bg-on"
+          />
+          <div
             ref={handleRef}
             className="absolute left-0 h-[11px] w-[18px] translate-y-1/2 rounded-xs bg-foreground shadow-[inset_0_-2px_0_var(--subtle-foreground)]"
           />
@@ -81,6 +132,11 @@ export function Fader({ value, label, onInput, onCommit, read, children }: Fader
       </div>
       <div
         ref={readoutRef}
+        title={
+          offset
+            ? "Trim: the fader raises or lowers the track's volume line by this much. The thin mark beside the handle is the level heard at the playhead."
+            : undefined
+        }
         className="border-b border-border-strong text-center font-mono text-sm font-bold"
       />
     </div>

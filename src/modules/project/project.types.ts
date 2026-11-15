@@ -106,22 +106,79 @@ export interface TrackMix {
   volumeDb: number;
   /** -1 (left) to 1 (right). */
   pan: number;
+  /** The group the track sends to; missing means Master. An id the composition lacks (a stale one) is tolerated and sends to Master. */
+  busId?: BusId;
   /** The effects before the pan and the fader, in order. Missing means none; an empty chain is never stored. */
   effects?: SoundEffect[];
+  /**
+   * The track's volume drawn over time, in dB: a `KeyTrack` (`blend` "number", `min` -60, `max` 12)
+   * whose keys' `t` is timeline time, so moving or splitting a clip never moves it. Holds before the
+   * first key and after the last. The fader's `volumeDb` is an offset on top of it. Missing means
+   * none; a line with no keys is never stored.
+   */
+  volumeLine?: KeyTrack;
 }
 
 /** What the master does to the sound of a whole composition. */
 export interface MasterMix {
   /** -60 to 12. */
   volumeDb: number;
+  /**
+   * The master's input trim, -24 to 24 dB, on the sum before the fader (and its line), pan and
+   * effects, after stems are taken: what Match target sets, so the fader stays the user's. Missing
+   * means 0; 0 is never stored.
+   */
+  trimDb?: number;
+  /** -1 (left) to 1 (right): a balance on the stereo mix, with a track pan's law. Missing means centred; 0 is never stored. */
+  pan?: number;
+  /** Silences the whole mix (stems are taken before the master, so they still sound). Missing means false; false is never stored. */
+  muted?: boolean;
   /** The effects after the fader, in order. Missing means none; an empty chain is never stored. */
+  effects?: SoundEffect[];
+  /**
+   * The master's volume drawn over time, in dB, as a track's `volumeLine` is (timeline time; the
+   * fader's `volumeDb` an offset on top). Missing means none; a line with no keys is never stored.
+   */
+  volumeLine?: KeyTrack;
+}
+
+/** Which delivery standard a composition is measured against; `custom` has figures of its own. */
+export type StandardId =
+  "youtube" | "spotify" | "applePodcasts" | "tiktok" | "ebuR128" | "atscA85" | "custom";
+
+/** What a composition is delivered against: a standard and its two figures (a standard's own, or the user's for `custom`). */
+export interface DeliverySettings {
+  standard: StandardId;
+  /** The integrated loudness to reach, in LUFS (-40 to -5). */
+  loudnessLufs: number;
+  /** The true peak the mix may not pass, in dBTP (-20 to 0). */
+  peakDbtp: number;
+}
+
+/** The id of a group track (`MixBus`), from `createId("bus")`. Unique across the project. */
+export type BusId = string;
+
+/**
+ * A group track: audio tracks send to it in their `TrackMix.busId`, and it sends to Master only.
+ * It has a fader and a chain (a duck on it may listen to tracks and groups).
+ */
+export interface MixBus {
+  id: BusId;
+  name: string;
+  /** -60 to 12. */
+  volumeDb: number;
+  /** Silences everything sent to the group. */
+  muted: boolean;
+  /** The effects before the fader, in order. Missing means none; an empty chain is never stored. */
   effects?: SoundEffect[];
 }
 
-/** One of the two mixes of a composition: its audio tracks' mixes (those missing are at the defaults) and its master. */
+/** One of the two mixes of a composition: its audio tracks' mixes (those missing are at the defaults), its groups and its master. */
 export interface MixSnapshot {
   tracks: Record<TrackId, TrackMix>;
   master: MasterMix;
+  /** The groups of this mix; missing means none. */
+  buses?: MixBus[];
 }
 
 /**
@@ -130,8 +187,12 @@ export interface MixSnapshot {
  */
 export interface CompositionMix {
   master: MasterMix;
+  /** The groups of the active mix, in order; missing means none, and an empty list is never stored. */
+  buses?: MixBus[];
   /** Which of the two mixes the live values are. */
   activeMix: "a" | "b";
+  /** The standard and target the mix is delivered against; shared by mixes A and B. Missing means YouTube's. */
+  delivery?: DeliverySettings;
   /** The mix that is not active; missing until the first switch. */
   otherMix?: MixSnapshot;
 }
@@ -236,6 +297,12 @@ export interface Keyframe {
   ease?: KeyEase;
   /** The handles on both sides of this key stay in line. */
   smooth?: true;
+}
+
+/** A value at a time, for `writeSpan`: a point of a drawn stroke or a fader pass, in the keys' time. */
+export interface SpanPoint {
+  t: Micros;
+  value: KeyValue;
 }
 
 /** The keys of one animated value. */

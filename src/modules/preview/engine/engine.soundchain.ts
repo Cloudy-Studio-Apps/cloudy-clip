@@ -1,6 +1,8 @@
-import { createLogger } from "@/core";
+import { createLogger, type Micros } from "@/core";
 import { pitchShift, type ClipSound } from "@/modules/project";
+import { createFaderLevel } from "./engine.line";
 import { createEqFilters, createPanner, createUpmix, glide, setBand } from "./engine.soundnodes";
+import type { LineAt } from "../preview.types";
 import type { PitchNode, SoundChain } from "./engine.types";
 
 const log = createLogger("preview.engine");
@@ -22,25 +24,34 @@ export async function loadPitch(context: AudioContext): Promise<() => PitchNode>
   return () => new SoundTouchNode({ context }) as unknown as PitchNode;
 }
 
-/** The Web Audio chain of one element: pitch, equalizer, pan, then level, into a bus. */
+/**
+ * The Web Audio chain of one element: pitch, equalizer, pan, level, then the volume lines of the
+ * tracks it sits in inside placements (a gain of their own, scheduled, while the level glides each
+ * frame), into a bus.
+ */
 export function createChain(
   context: AudioContext,
   element: HTMLMediaElement,
   pitchNodes: () => Promise<() => PitchNode>,
+  time: Micros,
 ): SoundChain {
   const source = context.createMediaElementSource(element);
   const input = createUpmix(context);
   const filters = createEqFilters(context);
   const panner = createPanner(context);
   const level = context.createGain();
+  const lines = context.createGain();
+  const lineLevel = createFaderLevel(lines.gain, context, time);
   source.connect(input);
-  const nodes: AudioNode[] = [input, ...filters, panner, level];
+  const nodes: AudioNode[] = [input, ...filters, panner, level, lines];
   nodes.slice(1).forEach((node, i) => nodes[i]!.connect(node));
 
   let shown: ClipSound | null = null;
   let shownPan: number | null = null;
   let bus: AudioNode | null = null;
   let pitch: PitchNode | null = null;
+  /** The lines last given, by identity (`LineLists` hands the same list back). */
+  let heardLines: readonly LineAt[] | null = null;
   let wanted = 0;
 
   const route = (node: AudioNode | null) => {
@@ -87,9 +98,16 @@ export function createChain(
     routeTo(next) {
       // The pool hands an element to clips of any track, so its chain follows the slot.
       if (next === bus) return;
-      if (bus) level.disconnect(bus);
-      level.connect(next);
+      if (bus) lines.disconnect(bus);
+      lines.connect(next);
       bus = next;
+    },
+    follow(heard, now, playing, until) {
+      if (heard !== heardLines) {
+        heardLines = heard;
+        lineLevel.set({ lines: heard, offsetDb: 0, muted: false });
+      }
+      lineLevel.follow(now, playing, until);
     },
   };
 }

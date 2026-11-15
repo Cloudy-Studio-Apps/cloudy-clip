@@ -7,7 +7,7 @@ import {
   type MediaId,
   type Track,
 } from "@/modules/project";
-import type { EngineOptions, Slot, SoundGraph, Voice } from "./engine.types";
+import type { EngineOptions, Slot, SoundClock, SoundGraph, Voice } from "./engine.types";
 
 /**
  * The file a clip's element plays. Sound heard through noise reduction plays its rendered file
@@ -58,6 +58,7 @@ export function voiceSlot(
   track: Track,
   voice: Voice | null,
   graph: SoundGraph | null = null,
+  clock: SoundClock = { time: 0, playing: false, until: Infinity },
 ): void {
   const { element } = slot;
   const audio = track.kind === "audio";
@@ -73,6 +74,7 @@ export function voiceSlot(
     element.volume = 1;
     chain.routeTo(bus);
     chain.apply(voice.sound, off ? 0 : voice.gain, voice.pan);
+    chain.follow(voice.lines, clock.time, clock.playing, clock.until);
   } else {
     element.volume = Math.min(1, voice.gain);
   }

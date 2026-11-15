@@ -1,7 +1,7 @@
 //! Export module: FFmpeg processes that turn frames and sound into a finished file.
 //!
 //! Frames are drawn by the webview, so they match the preview, and arrive at [`frames`]. Sound is
-//! mixed by FFmpeg from the original files ([`recipe`]). The system FFmpeg is used, as for proxies.
+//! mixed by FFmpeg from the original files ([`recipe`], its spec in [`spec`]). The system FFmpeg is used, as for proxies.
 
 pub mod commands;
 pub mod encoders;
@@ -10,7 +10,8 @@ pub mod job;
 mod mixeffects;
 mod mixgraph;
 pub mod recipe;
-mod soundfilters;
+pub(crate) mod soundfilters;
+pub mod spec;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -27,18 +28,30 @@ pub struct Jobs {
 }
 
 impl Jobs {
-    fn get(&self, id: &str) -> Option<Arc<Job>> {
+    pub(super) fn get(&self, id: &str) -> Option<Arc<Job>> {
         self.running.read().ok()?.get(id).cloned()
     }
 
-    fn add(&self, id: String, job: Arc<Job>) {
+    pub(super) fn add(&self, id: String, job: Arc<Job>) {
         if let Ok(mut running) = self.running.write() {
             running.insert(id, job);
         }
     }
 
-    fn take(&self, id: &str) -> Option<Arc<Job>> {
+    pub(super) fn take(&self, id: &str) -> Option<Arc<Job>> {
         self.running.write().ok()?.remove(id)
+    }
+
+    /// Stops every export and removes what each wrote, as the app quits.
+    async fn cancel_all(&self) {
+        let all: Vec<Arc<Job>> = self
+            .running
+            .write()
+            .map(|mut running| running.drain().map(|(_, job)| job).collect())
+            .unwrap_or_default();
+        for job in all {
+            job.cancel().await;
+        }
     }
 }
 
@@ -49,15 +62,27 @@ pub struct FrameUrl(RwLock<Option<String>>);
 /// Folder of notes saying which partial files are in progress.
 pub struct PartialNotes(PathBuf);
 
-/// Removes partial files a crash or a quit left behind. Each export leaves a note while it runs.
+impl PartialNotes {
+    /// The folder of the notes; a note is a file named after its job.
+    pub(crate) fn folder(&self) -> &Path {
+        &self.0
+    }
+}
+
+/// Removes partial files a crash or a quit left behind. Each export leaves a note while it runs:
+/// its partial files, one a line, the first the one its filter graph file is named after.
 fn sweep_partials(notes: &Path) {
     let Ok(entries) = std::fs::read_dir(notes) else {
         return;
     };
     for entry in entries.flatten() {
-        if let Ok(partial) = std::fs::read_to_string(entry.path()) {
-            let _ = std::fs::remove_file(recipe::script_of(Path::new(&partial)));
-            let _ = std::fs::remove_file(partial);
+        if let Ok(note) = std::fs::read_to_string(entry.path()) {
+            if let Some(first) = note.lines().next() {
+                let _ = std::fs::remove_file(recipe::script_of(Path::new(first)));
+            }
+            for partial in note.lines() {
+                let _ = std::fs::remove_file(partial);
+            }
         }
         let _ = std::fs::remove_file(entry.path());
     }
@@ -88,4 +113,15 @@ pub fn setup(app: &mut App) {
             Err(e) => eprintln!("[export] could not start the frame route: {e}"),
         }
     });
+}
+
+/// Stops every export and sound measurement FFmpeg is running and removes what they wrote. Runs
+/// as the app quits, before the process ends (nothing is dropped then, so `kill_on_drop` can't).
+pub async fn stop(app: &tauri::AppHandle) {
+    if let Some(jobs) = app.try_state::<Arc<Jobs>>() {
+        jobs.cancel_all().await;
+    }
+    if let Some(notes) = app.try_state::<PartialNotes>() {
+        sweep_partials(&notes.0);
+    }
 }

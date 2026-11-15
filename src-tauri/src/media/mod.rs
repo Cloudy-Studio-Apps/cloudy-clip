@@ -11,11 +11,13 @@ pub mod proxy;
 pub mod registry;
 pub(crate) mod reversed;
 pub mod server;
+mod stopper;
 
 use std::sync::{Arc, RwLock};
 
 use tauri::{App, Manager};
 
+pub use proxy::stop;
 pub use registry::MediaRegistry;
 
 /// Base URL of the media server once it is listening (`None` until then or if it failed).
@@ -33,6 +35,9 @@ pub fn setup(app: &mut App) {
         .app_cache_dir()
         .unwrap_or_else(|_| std::env::temp_dir().join("cloudy-clip"))
         .join("proxies");
+    // What a crash left half written.
+    let swept = cache_dir.clone();
+    tauri::async_runtime::spawn(async move { proxy::sweep_partials(&swept).await });
     app.manage(proxy::ProxyJobs::new(cache_dir));
 
     let handle = app.handle().clone();

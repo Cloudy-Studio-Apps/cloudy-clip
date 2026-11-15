@@ -1,39 +1,38 @@
 import { useStore } from "zustand";
 import { useKernel, useModule } from "@/core";
-import { previewRef } from "@/modules/preview";
 import { compositionMixOf, projectRef, type CompositionId } from "@/modules/project";
 import { cn, LetterToggle } from "@/ui";
 import { chainOf } from "../../logic/effects";
 import { setMaster } from "../../sound.mix.commands";
 import { soundRef } from "../../sound.ref";
 import { EffectChain } from "../effects";
-import { soon } from "../soon";
-import { Fader } from "./Fader";
+import { LineFader } from "./LineFader";
 import { MasterPan } from "./MasterPan";
+import { MasterTrim } from "./MasterTrim";
 import { Meter } from "./Meter";
 import { ReadButton } from "./ReadButton";
 import { SendsTo } from "./SendsTo";
 import { StripLabel } from "./StripLabel";
+import { report } from "../report";
 
 /**
  * The master of the open composition, pinned at the mixer's right edge, in a strip's order: its
- * effects (after the fader), where it goes (`Output 1-2`, the stereo out, the only one), pan,
- * fader and meters, M and Read. Pan, M and Read are coming soon (stage 4). A click marks it and
- * shows its chain in the Channel tab.
+ * effects (after the fader), where it goes (`Output 1-2`, the stereo out, the only one), its
+ * input trim (`MasterTrim`, what Match target sets), pan,
+ * fader and meters, M and Read. The fader is a track's (`LineFader`: Read, Touch and Latch write
+ * the master's volume line); M is `sound.setMaster { muted }`. A click marks it and shows its
+ * chain in the Channel tab.
  */
 export function MasterStrip({ compositionId }: { compositionId: CompositionId | undefined }) {
   const { bus } = useKernel();
   const sound = useModule(soundRef);
   const selected = useStore(sound.view, (s) => s.selected === "master");
-  const preview = useModule(previewRef);
   const project = useModule(projectRef).store;
-  const read = () => {
-    const composition = compositionId && project.getState().compositions[compositionId];
-    return composition ? compositionMixOf(composition).master.volumeDb : 0;
-  };
-  const volumeDb = useStore(project.api, () => read());
+  const muted = useStore(project.api, (s) => {
+    const composition = compositionId && s.compositions[compositionId];
+    return composition ? compositionMixOf(composition).master.muted === true : false;
+  });
   const effects = useStore(project.api, (s) => chainOf(s, "master", compositionId));
-  const mute = soon("master.mute");
 
   return (
     <div
@@ -50,25 +49,28 @@ export function MasterStrip({ compositionId }: { compositionId: CompositionId | 
       <StripLabel>Effects</StripLabel>
       <EffectChain target="master" compositionId={compositionId} effects={effects} />
       <SendsTo to="Output 1-2" />
+      <StripLabel>Trim</StripLabel>
+      <MasterTrim compositionId={compositionId} />
       <StripLabel>Pan</StripLabel>
-      <MasterPan />
-      <Fader
-        value={volumeDb}
-        label="Master level"
-        onInput={(db) => preview.sound.previewMix("master", db === null ? null : { volumeDb: db })}
-        onCommit={async (db) =>
-          void (await bus.run(setMaster, { ...(compositionId && { compositionId }), volumeDb: db }))
-        }
-        read={read}
-      >
+      <MasterPan compositionId={compositionId} />
+      <LineFader target="master" compositionId={compositionId} label="Master level">
         <Meter target="master" side="left" />
         <Meter target="master" side="right" />
-      </Fader>
+      </LineFader>
       <div className="flex justify-center gap-0.5">
-        <LetterToggle on={false} label="Mute master" tone="mark" onToggle={mute.onClick} {...mute}>
+        <LetterToggle
+          on={muted}
+          label={muted ? "Unmute master" : "Mute master"}
+          tone="mark"
+          onToggle={() =>
+            void bus
+              .run(setMaster, { ...(compositionId && { compositionId }), muted: !muted })
+              .then(report)
+          }
+        >
           M
         </LetterToggle>
-        <ReadButton id="master.read" />
+        <ReadButton target="master" />
       </div>
     </div>
   );

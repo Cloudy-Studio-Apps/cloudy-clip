@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { commandTool, defineMcpTool, textResult } from "@/core";
 import { previewRef, type StereoLevel } from "@/modules/preview";
+import type { TrackId } from "@/modules/project";
 import {
   addEffect,
   applyPreset,
@@ -9,8 +10,20 @@ import {
   setEffect,
 } from "./sound.effects.commands";
 import { BUILT_IN_PRESETS } from "./logic/presets";
+import { writeClipPass } from "./sound.clipline.commands";
 import { measureFloor } from "./sound.denoise.commands";
+import {
+  moveLineKeys,
+  removeLineKeys,
+  setLineKey,
+  writePass,
+  writePasses,
+} from "./sound.line.commands";
+import { soundBeatTools } from "./sound.beats.mcp";
+import { soundToolsTools } from "./sound.tools.mcp";
+import { soundDeliveryTools } from "./sound.delivery.mcp";
 import { soundRef } from "./sound.ref";
+import { addBus, removeBus, sendTo, setBus } from "./sound.bus.commands";
 import { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
 
 /** A level for JSON: dBFS to a tenth, null for silence (JSON has no -Infinity). */
@@ -23,7 +36,7 @@ const getLevels = defineMcpTool({
   name: "sound_get_levels",
   readOnly: true,
   description:
-    "Returns what the user hears right now in the preview: the peak of each audio track of their open composition and of the master (dBFS, null for silence), and the loudness of the master over all the playing since the user last pressed Reset (momentary, short term and integrated LUFS, range in LU, true peak in dBTP; null where not measured yet). Readings exist only while the user plays; when nothing plays you get a message and the loudness kept from the last play. Your own playhead plays nothing, so this never measures your edits by itself.",
+    "Returns what the user hears right now in the preview: the peak of each audio track of their open composition and of the master (dBFS, null for silence), the compressor's gain reduction in dB (0 or more; 0 without one or while it does nothing) of each of those and of each group, and the loudness of the master over all the playing since the user last pressed Reset (momentary, short term and integrated LUFS, range in LU, true peak in dBTP, and the stereo correlation of left and right from -1 to 1, where 0 or more is mono safe; null where not measured yet). Readings exist only while the user plays; when nothing plays you get a message and the loudness kept from the last play. Your own playhead plays nothing, so this never measures your edits by itself.",
   input: z.object({}),
   handler(_input, ctx) {
     const preview = ctx.require(previewRef);
@@ -34,6 +47,7 @@ const getLevels = defineMcpTool({
       integrated: level(reading.integrated),
       range: level(reading.range),
       truePeak: level(reading.truePeak),
+      correlation: reading.momentary > -Infinity ? reading.correlation : null,
     };
     if (!preview.playback.isPlaying()) {
       return textResult({
@@ -44,12 +58,17 @@ const getLevels = defineMcpTool({
       });
     }
     const levels = preview.sound.levels();
+    const reduction = (target: TrackId | "master") => level(preview.sound.reduction(target)) ?? 0;
     return textResult({
       playing: true,
+      // The ids of tracks and groups both, as the meters have them.
       tracks: Object.fromEntries(
-        Object.entries(levels.tracks).map(([trackId, side]) => [trackId, stereo(side)]),
+        Object.entries(levels.tracks).map(([trackId, side]) => [
+          trackId,
+          { ...stereo(side), compressorReductionDb: reduction(trackId as TrackId) },
+        ]),
       ),
-      master: stereo(levels.master),
+      master: { ...stereo(levels.master), compressorReductionDb: reduction("master") },
       loudness,
     });
   },
@@ -83,12 +102,25 @@ export const soundMcpTools = [
   commandTool(resetTrackMix, { name: "sound_reset_track_mix" }),
   commandTool(setMaster, { name: "sound_set_master" }),
   commandTool(switchMix, { name: "sound_switch_mix" }),
+  commandTool(addBus, { name: "sound_add_bus" }),
+  commandTool(setBus, { name: "sound_set_bus" }),
+  commandTool(removeBus, { name: "sound_remove_bus" }),
+  commandTool(sendTo, { name: "sound_send_to" }),
+  commandTool(setLineKey, { name: "sound_set_line_key" }),
+  commandTool(moveLineKeys, { name: "sound_move_line_keys" }),
+  commandTool(removeLineKeys, { name: "sound_remove_line_keys" }),
+  commandTool(writePass, { name: "sound_write_pass" }),
+  commandTool(writePasses, { name: "sound_write_passes" }),
+  commandTool(writeClipPass, { name: "sound_write_clip_pass" }),
   commandTool(addEffect, { name: "sound_add_effect" }),
   commandTool(setEffect, { name: "sound_set_effect" }),
   commandTool(removeEffect, { name: "sound_remove_effect" }),
   commandTool(moveEffect, { name: "sound_move_effect" }),
   commandTool(applyPreset, { name: "sound_apply_preset" }),
+  ...soundDeliveryTools,
   commandTool(measureFloor, { name: "sound_measure_floor" }),
   listPresets,
   getLevels,
+  ...soundBeatTools,
+  ...soundToolsTools,
 ];

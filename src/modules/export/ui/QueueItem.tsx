@@ -7,7 +7,7 @@ import { exportRef } from "../export.ref";
 import { revealFile } from "../export.service";
 import { formatSize, statusText } from "../logic/estimate";
 
-const WORKING = ["preparing", "rendering", "finishing"];
+const WORKING = ["preparing", "measuring", "rendering", "finishing"];
 
 /** One export. Progress is written straight to the DOM, so frames don't re-render it. */
 export function QueueItem({ id }: { id: string }) {

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { SoundEffect } from "@/modules/project";
 import { cn, IconButton, Switch } from "@/ui";
 import { EFFECT_NAMES } from "../../logic/effects";
-import type { EffectEdit } from "../../sound.types";
+import type { EffectEdit } from "../../sound.effects.types";
 import { PanelCard } from "../card";
 
 interface EffectSectionProps {

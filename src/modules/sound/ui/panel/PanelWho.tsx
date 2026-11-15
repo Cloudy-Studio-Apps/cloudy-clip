@@ -5,7 +5,8 @@ import { soundRef } from "../../sound.ref";
 
 /**
  * Whose the panel is, at the right of its tabs: the marked strip's code and name (`A1 Voice 1`,
- * its place among the open composition's audio tracks, as the mixer counts), `Master`, or nothing.
+ * its place among the open composition's audio tracks, as the mixer counts; `G1 Dialogue` for a
+ * group), `Master`, or nothing.
  */
 export function PanelWho() {
   const sound = useModule(soundRef);
@@ -15,6 +16,9 @@ export function PanelWho() {
     if (!open) return null;
     if (selected === "master") return "Master";
     if (!selected) return null;
+    const groups = open.mix?.buses ?? [];
+    const group = groups.findIndex((bus) => bus.id === selected);
+    if (group >= 0) return `G${group + 1} ${groups[group]!.name}`;
     const audio = open.trackOrder.filter((id) => s.tracks[id]?.kind === "audio");
     const index = audio.indexOf(selected);
     const track = s.tracks[selected];

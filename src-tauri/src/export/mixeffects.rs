@@ -5,8 +5,8 @@
 
 use serde::Deserialize;
 
-use super::recipe::EqFilter;
 use super::soundfilters::eq_filters;
+use super::spec::EqFilter;
 
 /// One effect that changes the sound. Off effects and noise reduction never reach the export.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -63,12 +63,15 @@ pub struct LimiterSpec {
     pub release_ms: f64,
 }
 
-/// `sidechaincompress` keyed by the sum of other tracks after their faders.
+/// `sidechaincompress` keyed by the sum of other tracks and groups after their faders.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DuckSpec {
     /// Indexes into `SoundMix::tracks`.
     pub listens_to: Vec<usize>,
+    /// Indexes into `SoundMix::buses`.
+    #[serde(default)]
+    pub listens_to_buses: Vec<usize>,
     pub depth_db: f64,
     pub attack_ms: f64,
     pub release_ms: f64,
@@ -102,12 +105,67 @@ pub(super) fn effect_filter(effect: &MixEffect) -> String {
             d.amount,
             deesser_frequency(d.frequency_hz)
         ),
-        MixEffect::Limiter(l) => format!(
-            ",alimiter=limit={}dB:attack={LIMITER_LOOKAHEAD_MS}:release={}:level=disabled",
-            l.ceiling_db, l.release_ms
-        ),
+        MixEffect::Limiter(l) => limiter_filter(l),
         MixEffect::Duck(_) => String::new(),
     }
+}
+
+/// Taps per phase of the 4x interpolator, the preview's `TAPS` (`logic/truepeak.ts`).
+const TRUE_PEAK_TAPS: usize = 32;
+
+/// The modified Bessel function of the first kind, order 0, as the preview's `besselI0`.
+fn bessel_i0(x: f64) -> f64 {
+    let mut sum = 1.0;
+    let mut term = 1.0;
+    for k in 1..=30 {
+        let r = x / (2.0 * f64::from(k));
+        term *= r * r;
+        sum += term;
+    }
+    sum
+}
+
+/// The in-between phase `phase` (1 to 3) of the 4x interpolator, as the preview's `PHASES`:
+/// FFmpeg's resampler filter (Kaiser-windowed sinc, beta 9), summing to 1; a tap `k` reads the
+/// sample `k` back.
+fn true_peak_phase(phase: u32) -> Vec<f64> {
+    let half = (TRUE_PEAK_TAPS / 2) as f64;
+    let taps: Vec<f64> = (0..TRUE_PEAK_TAPS)
+        .map(|k| {
+            let d = half - f64::from(phase) / 4.0 - k as f64;
+            let w = d / half;
+            let x = std::f64::consts::PI * d;
+            x.sin() / x * bessel_i0(9.0 * (1.0 - w * w).max(0.0).sqrt())
+        })
+        .collect();
+    let sum: f64 = taps.iter().sum();
+    taps.iter().map(|tap| tap / sum).collect()
+}
+
+/// `alimiter` listening for true peaks, as the preview's `truePeakLimiterStep`: the two channels
+/// become eight (`pan`); `aiir` (direct form, in doubles) delays the first two by half the
+/// interpolator and turns the others into its three in-between phases; `alimiter` gives all eight
+/// one gain from their largest; the delayed two go on.
+fn limiter_filter(l: &LimiterSpec) -> String {
+    let mut delay = vec!["0"; TRUE_PEAK_TAPS / 2];
+    delay.push("1");
+    let delay = delay.join(" ");
+    let mut zeros = vec![delay.clone(), delay];
+    for phase in 1..=3 {
+        let taps: Vec<String> = true_peak_phase(phase).iter().map(f64::to_string).collect();
+        let taps = taps.join(" ");
+        zeros.push(taps.clone());
+        zeros.push(taps);
+    }
+    // The input is always stereo: recipe.rs makes every segment stereo before any bus.
+    format!(
+        ",pan=7.1|c0=c0|c1=c1|c2=c0|c3=c1|c4=c0|c5=c1|c6=c0|c7=c1,aiir=z={}:p=1:f=tf:r=d:n=0,\
+         alimiter=limit={}dB:attack={LIMITER_LOOKAHEAD_MS}:release={}:level=disabled,\
+         pan=stereo|c0=c0|c1=c1",
+        zeros.join("|"),
+        l.ceiling_db,
+        l.release_ms
+    )
 }
 
 /// `sidechaincompress` for a duck, between its main input and its key.
@@ -133,6 +191,39 @@ fn deesser_frequency(hz: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_limiter_listens_for_true_peaks() {
+        let filter = effect_filter(&MixEffect::Limiter(LimiterSpec {
+            ceiling_db: -1.0,
+            release_ms: 50.0,
+        }));
+        let (head, rest) = filter.split_once(",aiir=z=").unwrap();
+        assert_eq!(
+            head,
+            ",pan=7.1|c0=c0|c1=c1|c2=c0|c3=c1|c4=c0|c5=c1|c6=c0|c7=c1"
+        );
+        let (zeros, tail) = rest.split_once(':').unwrap();
+        assert_eq!(
+            tail,
+            "p=1:f=tf:r=d:n=0,alimiter=limit=-1dB:attack=5:release=50:level=disabled,pan=stereo|c0=c0|c1=c1"
+        );
+        let sets: Vec<Vec<f64>> = zeros
+            .split('|')
+            .map(|set| set.split(' ').map(|n| n.parse().unwrap()).collect())
+            .collect();
+        assert_eq!(sets.len(), 8);
+        assert_eq!(sets[0].len(), 17);
+        assert_eq!(sets[0][16], 1.0);
+        assert_eq!(sets[0].iter().sum::<f64>(), 1.0);
+        assert_eq!(sets[1], sets[0]);
+        // The halfway phase is symmetric, and each phase passes a constant unchanged.
+        assert_eq!(sets[4], sets[4].iter().rev().copied().collect::<Vec<_>>());
+        for set in &sets[2..] {
+            assert_eq!(set.len(), 32);
+            assert!((set.iter().sum::<f64>() - 1.0).abs() < 1e-12, "{set:?}");
+        }
+    }
 
     #[test]
     fn every_kind_reads_as_the_frontend_writes_it() {

@@ -14,7 +14,12 @@ import {
   gateCurve,
   linkedLevel,
 } from "./dynamics";
-import { createLimiter, limiterSettings, limiterStep, resetLimiter } from "./limiter";
+import {
+  createTruePeakLimiter,
+  limiterSettings,
+  resetTruePeakLimiter,
+  truePeakLimiterStep,
+} from "./limiter";
 
 // What the dynamics worklet runs, kept here so it is plain code: one effect of any dynamics kind
 // on a stereo signal, block by block. Type-only imports (worklet).
@@ -41,12 +46,14 @@ function curveOf(command: DynamicsCommand, sampleRate: number): DynamicsCurve | 
 export function createEffectRunner(sampleRate: number): EffectRunner {
   const detector = createDynamicsState();
   const deessers = [createDeesserState(), createDeesserState()] as const;
-  const limiter = createLimiter(sampleRate, 2);
+  const limiter = createTruePeakLimiter(sampleRate, 2);
   const frame = new Float64Array(2);
   let command: DynamicsCommand | null = null;
   let curve: DynamicsCurve | null = null;
   let deesser: DeesserSettings | null = null;
   let limit: LimiterSettings | null = null;
+  /** The lowest gain (makeup left out) since `takeReduction`, linear. */
+  let lowest = 1;
 
   return {
     set(next) {
@@ -54,12 +61,18 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
         detector.envelope = 0;
         resetDeesser(deessers[0]);
         resetDeesser(deessers[1]);
-        resetLimiter(limiter);
+        resetTruePeakLimiter(limiter);
       }
       command = next;
       curve = curveOf(next, sampleRate);
       deesser = next.kind === "deesser" ? deesserSettings(next, sampleRate) : null;
       limit = next.kind === "limiter" ? limiterSettings(next, sampleRate) : null;
+    },
+    takeReduction() {
+      const db =
+        command?.kind === "compressor" && command.on && lowest < 1 ? -20 * Math.log10(lowest) : 0;
+      lowest = 1;
+      return db;
     },
     process(left, right, keyLeft, keyRight, outLeft, outRight) {
       const n = outLeft.length;
@@ -78,6 +91,7 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
           const r = right[i]!;
           const level = ownKey ? linkedLevel(l, r) : linkedLevel(keyLeft[i]!, keyRight[i]!);
           const gain = dynamicsGain(detector, curve, level);
+          lowest = Math.min(lowest, gain / curve.makeup);
           outLeft[i] = l * gain;
           outRight[i] = r * gain;
         }
@@ -90,7 +104,7 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
         for (let i = 0; i < n; i++) {
           frame[0] = left[i]!;
           frame[1] = right[i]!;
-          limiterStep(limiter, limit, frame);
+          truePeakLimiterStep(limiter, limit, frame);
           outLeft[i] = frame[0];
           outRight[i] = frame[1];
         }

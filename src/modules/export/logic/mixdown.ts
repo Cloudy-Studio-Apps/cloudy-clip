@@ -6,6 +6,7 @@ import {
   compositionMixOf,
   dbToLinear,
   heardDenoise,
+  keyMoments,
   pitchShift,
   rampOf,
   soundOf,
@@ -13,8 +14,10 @@ import {
   soundInPlacement,
   speedOf,
   timeOfContent,
+  trackBus,
   trackMixOf,
   trackValue,
+  type BusId,
   type Clip,
   type ClipSound,
   type EqBand,
@@ -26,9 +29,12 @@ import {
   type ProjectState,
   type Track,
   type TrackId,
+  type TrackMix,
 } from "@/modules/project";
-import { envelope, keyMoments } from "./envelope";
+import { envelope } from "./envelope";
+import { withLine } from "./swell";
 import type {
+  BusMixSpec,
   ExportRange,
   EqFilter,
   MixEdges,
@@ -41,14 +47,16 @@ import type {
   SoundFile,
   SoundMix,
   SoundSegment,
+  Swell,
   TempoStep,
+  TrackMixSpec,
 } from "../export.types";
 
 /** Every clip sounds from its own file. */
 const ITS_OWN_FILE: SoundFile = (asset) => asset.path;
 
 /** The mix of a composition without audio tracks: nothing to mix, the master as it is. */
-export const NO_MIX: SoundMix = { tracks: [], master: { gain: 1 } };
+export const NO_MIX: SoundMix = { tracks: [], buses: [], master: { gain: 1 } };
 
 /** Timeline time a tempo step of a ramp covers, short enough that the steps aren't heard. */
 const TEMPO_STEP: Micros = 250_000;
@@ -82,15 +90,22 @@ function soundFields(
   };
 }
 
-/** The envelopes of a clip's keyed volume and pan over the part of it that sounds. */
+/**
+ * The envelopes of a clip's keyed volume and pan over the part of it that sounds. The volume's
+ * also carries the lines of the inner tracks around it (`swell`, on the export's clock, which is
+ * this composition's plus `shift`), so a clip under a line gets one even without keys.
+ */
 function keyedFields(
   clip: Clip,
   place: Place,
   parentGain: number,
   start: Micros,
   stop: Micros,
+  swell: Swell | undefined,
+  shift: Micros,
 ): Pick<SoundSegment, "gainEnvelope" | "panEnvelope"> {
-  const volume = clip.animation?.["sound.volumeDb"];
+  const keyed = clip.animation?.["sound.volumeDb"];
+  const volume = keyed?.keys.length ? keyed : undefined;
   const pan = clip.animation?.["sound.pan"];
   const read = (track: KeyTrack, time: Micros) =>
     Number(trackValue(track, contentTime(clip, time)));
@@ -98,13 +113,19 @@ function keyedFields(
     keyMoments(track, contentTime(clip, start), contentTime(clip, stop)).map((t) =>
       timeOfContent(clip, t),
     );
+  const db = (time: Micros) => (volume ? read(volume, time) : soundOf(clip).volumeDb);
+  const around = (time: Micros) => (swell ? swell.gain(time + shift) : 1);
+  const gainBreaks = [
+    ...(volume ? breaks(volume) : []),
+    ...(swell?.breaks.map((time) => time - shift) ?? []),
+  ];
   return {
-    ...(volume?.keys.length && {
+    ...((volume || swell) && {
       gainEnvelope: envelope(
-        (time) => place(parentGain * dbToLinear(read(volume, time)), 0).gain,
+        (time) => place(parentGain * dbToLinear(db(time)), 0).gain * around(time),
         start,
         stop,
-        breaks(volume),
+        gainBreaks,
       ),
     }),
     ...(pan?.keys.length && {
@@ -210,12 +231,20 @@ function walk(
     if (track?.kind !== "audio") continue;
     audioIndex++;
     if (track.muted) continue;
-    // Top-level, a track's own mix is its bus's, applied once there; inside a placement, the
-    // clips sound through the outer track's bus, with this track's mix folded in as the preview does.
+    const group = trackBus(composition, track);
+    // A muted group silences its tracks as their own mute does, at any depth: they key nothing.
+    if (group?.muted) continue;
+    // Top-level, a track's own mix is its bus's, applied once there (and its group's in the
+    // group's bus); inside a placement, the clips sound through the outer track's bus, with this
+    // track's mix and its group's level folded in as the preview does.
     const index = nesting ? nesting.track : audioIndex;
     const place: Place = (gain, pan) =>
-      nesting ? soundInPlacement(track, nesting.pan, gain, pan) : { gain, pan };
+      nesting ? soundInPlacement(track, nesting.pan, gain, pan, group) : { gain, pan };
     const through = nesting?.gain ?? 1;
+    // Top-level, a track's line is its bus's; inside a placement it joins the lines above.
+    const swell = nesting
+      ? withLine(nesting.swell, track.mix?.volumeLine, shift, from, end)
+      : undefined;
     // Inside a placement, the clips get the noise reduction of the track it sits on.
     const denoise = nesting ? nesting.denoise : heardDenoise(track, composition);
     const clips = track.clipIds.map((id) => project.clips[id]);
@@ -252,7 +281,7 @@ function walk(
           clip.compositionRef,
           inner,
           fades,
-          { track: index, ...placed, denoise },
+          { track: index, ...placed, denoise, swell },
           hasSound,
           soundFile,
           out,
@@ -275,7 +304,7 @@ function walk(
         ...soundFields(
           sound,
           place(level, sound.pan),
-          keyedFields(clip, place, through, start, stop),
+          keyedFields(clip, place, through, start, stop, swell, shift),
         ),
         ...(ramp ? rampFields(clip, ramp, start, stop) : speedFields(speedOf(clip))),
       });
@@ -286,11 +315,13 @@ function walk(
 /**
  * The effects of a chain that change the sound, as the preview runs them: off ones, noise
  * reduction (a rendered file) and an EQ without a working band are left out, and a duck listens
- * to tracks by their index in `tracks` (one that isn't there keys nothing).
+ * to tracks by their index in `tracks` and to groups by their index in `buses` (one that isn't
+ * there keys nothing).
  */
 function mixEffects(
   effects: readonly SoundEffect[] | undefined,
   tracks: readonly TrackId[],
+  buses: readonly BusId[],
 ): MixEffect[] {
   return (effects ?? []).flatMap((effect): MixEffect[] => {
     if (!effect.on) return [];
@@ -313,11 +344,22 @@ function mixEffects(
         return [];
       case "duck": {
         const { depthDb, attackMs, releaseMs } = effect;
-        const listensTo = effect.listensTo.flatMap((id) => {
-          const index = tracks.indexOf(id);
-          return index < 0 ? [] : [index];
-        });
-        return [{ kind: "duck", listensTo, depthDb, attackMs, releaseMs }];
+        const indexes = (ids: readonly string[]) =>
+          effect.listensTo.flatMap((id) => {
+            const index = ids.indexOf(id);
+            return index < 0 ? [] : [index];
+          });
+        const listensToBuses = indexes(buses);
+        return [
+          {
+            kind: "duck",
+            listensTo: indexes(tracks),
+            ...(listensToBuses.length > 0 && { listensToBuses }),
+            depthDb,
+            attackMs,
+            releaseMs,
+          },
+        ];
       }
     }
   });
@@ -327,24 +369,60 @@ function mixEffects(
 const withEffects = (effects: MixEffect[]) => (effects.length > 0 ? { effects } : {});
 
 /**
- * The mix of the composition's audio tracks, in order, and of its master, as linear levels, with
- * the effects that work. Muted tracks keep their place (their clips are left out, so a duck
- * listening to one hears nothing).
+ * A track's (or the master's) level over the export: its volume line with the fader's offset on top, as linear
+ * points counted from the range's start (the same sampling a clip's keyed volume gets), or its
+ * fader alone when it has no line.
  */
-function mixOf(project: ProjectState, compositionId: CompositionId): Mixdown["mix"] {
+function trackLevel(
+  { volumeDb, volumeLine }: Pick<TrackMix, "volumeDb" | "volumeLine">,
+  range: ExportRange,
+): Pick<TrackMixSpec, "gain" | "gainEnvelope"> {
+  if (!volumeLine?.keys.length) return { gain: dbToLinear(volumeDb) };
+  const from = range.start;
+  const to = range.start + range.duration;
+  const level = (time: Micros) => dbToLinear(Number(trackValue(volumeLine, time)) + volumeDb);
+  return { gain: 1, gainEnvelope: envelope(level, from, to, keyMoments(volumeLine, from, to)) };
+}
+
+/**
+ * The mix of the composition's audio tracks, in order, of its groups and of its master, as linear
+ * levels, with the effects that work. Muted tracks keep their place (their clips are left out, so
+ * a duck listening to one hears nothing). A track (or the master) with a volume line follows it
+ * over `range`; a muted master's gain is 0. A
+ * track names its group by index; one naming a group that isn't there sends to the master.
+ */
+function mixOf(
+  project: ProjectState,
+  compositionId: CompositionId,
+  range: ExportRange,
+): Mixdown["mix"] {
   const composition = project.compositions[compositionId];
   if (!composition) return NO_MIX;
   const audio = composition.trackOrder.filter((id) => project.tracks[id]?.kind === "audio");
+  const { master, buses: groups = [] } = compositionMixOf(composition);
+  const busIds = groups.map((bus) => bus.id);
   const tracks = audio.map((id) => {
-    const { volumeDb, pan, effects } = trackMixOf(project.tracks[id]!);
-    return { gain: dbToLinear(volumeDb), pan, ...withEffects(mixEffects(effects, audio)) };
+    const mix = trackMixOf(project.tracks[id]!);
+    const effects = withEffects(mixEffects(mix.effects, audio, busIds));
+    const bus = mix.busId === undefined ? -1 : busIds.indexOf(mix.busId);
+    return { ...trackLevel(mix, range), pan: mix.pan, ...effects, ...(bus >= 0 && { bus }) };
   });
-  const master = compositionMixOf(composition).master;
+  const buses = groups.map((bus): BusMixSpec => ({
+    gain: dbToLinear(bus.volumeDb),
+    ...(bus.muted && { muted: true }),
+    ...withEffects(mixEffects(bus.effects, audio, busIds)),
+  }));
   return {
     tracks,
+    buses,
     master: {
-      gain: dbToLinear(master.volumeDb),
-      ...withEffects(mixEffects(master.effects, audio)),
+      // Muted, the master adds nothing: stems are taken before it and still sound. Its trim is
+      // the same level stage as the fader (and a correction), before its pan and effects.
+      ...(master.muted
+        ? { gain: 0 }
+        : trackLevel({ ...master, volumeDb: master.volumeDb + (master.trimDb ?? 0) }, range)),
+      ...(master.pan !== undefined && master.pan !== 0 && { pan: master.pan }),
+      ...withEffects(mixEffects(master.effects, audio, busIds)),
     },
   };
 }
@@ -368,5 +446,5 @@ export function mixdown(
   const window = { from: range.start, to: range.start + range.duration, shift: -range.start };
   const edges = { fadeIn: 0, fadeOut: 0 };
   walk(project, compositionId, window, edges, null, hasSound, soundFile, segments);
-  return { segments, mix: mixOf(project, compositionId) };
+  return { segments, mix: mixOf(project, compositionId, range) };
 }

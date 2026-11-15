@@ -47,9 +47,20 @@ pub fn run() {
             mcp::commands::mcp_register_tools,
             mcp::commands::mcp_respond,
             mcp::commands::mcp_status,
+            sound::commands::sound_analyze_begin,
+            sound::commands::sound_analyze_cancel,
+            sound::commands::sound_analyze_finish,
+            sound::commands::sound_beats,
+            sound::commands::sound_beats_cancel,
+            sound::commands::sound_loudness_begin,
+            sound::commands::sound_loudness_cancel,
+            sound::commands::sound_loudness_finish,
             sound::commands::sound_measure_floor,
             sound::commands::sound_record_begin,
             sound::commands::sound_record_write,
+            sound::commands::sound_silences_begin,
+            sound::commands::sound_silences_cancel,
+            sound::commands::sound_silences_finish,
             tint::tint_read_lut,
             workspace::commands::workspace_exists,
             workspace::commands::workspace_read,
@@ -59,10 +70,27 @@ pub fn run() {
             workspace::commands::workspace_unique_path,
             workspace::commands::workspace_write,
         ])
-        .run(tauri::generate_context!());
+        .build(tauri::generate_context!());
 
-    if let Err(error) = result {
-        eprintln!("error while running Cloudy Clip: {error}");
-        std::process::exit(1);
-    }
+    let app = match result {
+        Ok(app) => app,
+        Err(error) => {
+            eprintln!("error while running Cloudy Clip: {error}");
+            std::process::exit(1);
+        }
+    };
+    app.run(|app, event| {
+        // The process ends right after this, dropping nothing, so FFmpeg is stopped here.
+        if matches!(event, tauri::RunEvent::Exit) {
+            // Capped, so quitting can never hang on a stuck FFmpeg.
+            let _ = tauri::async_runtime::block_on(tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                async {
+                    export::stop(app).await;
+                    sound::stop(app).await;
+                    media::stop(app).await;
+                },
+            ));
+        }
+    });
 }

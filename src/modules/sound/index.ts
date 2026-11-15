@@ -2,16 +2,11 @@
  * Sound module: the Sound page with its mixer, and the mix of tracks and master.
  * @module sound
  */
-export type {
-  EffectSpec,
-  MixTarget,
-  Recorder,
-  RecorderState,
-  SoundPreset,
-  SoundApi,
-  SoundViewState,
-  UserPresets,
-} from "./sound.types";
+export type { BeatFinder, BeatsState } from "./sound.tools.types";
+export type { EffectSpec, SoundPreset, UserPresets } from "./sound.effects.types";
+export type { MixTarget } from "./sound.line.types";
+export type { Recorder, RecorderState } from "./sound.record.types";
+export type { SoundApi, SoundViewState } from "./sound.types";
 
 /** Mix commands: a track's volume and pan, the master, and switching between mix A and B. */
 export { resetTrackMix, setMaster, setTrackMix, switchMix } from "./sound.mix.commands";
@@ -41,6 +36,9 @@ export { clearListening, setMonitor, setSolo } from "./sound.monitor.commands";
  * itself is the recorder's (`SoundApi.recorder`), with no command or tool: the microphone is the user's.
  */
 export { placeRecording } from "./sound.record.commands";
+
+/** Finding beats in clips' files (for ticks and snapping, never in the document), and stopping it. */
+export { cancelBeats, findBeats } from "./sound.beats.commands";
 
 /** Module definition, loaded by the app shell. */
 export { soundModule } from "./sound.module";

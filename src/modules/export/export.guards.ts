@@ -1,7 +1,7 @@
 import { CommandFailure, type CommandContext } from "@/core";
 import { mediaRef, type MediaApi } from "@/modules/media";
 import { projectRef, type Composition } from "@/modules/project";
-import { joinPath, numberedName } from "./logic/presets";
+import { fileName, joinPath } from "./logic/presets";
 import { usedMedia } from "./logic/sources";
 import { uniquePath } from "./export.service";
 import type { ExportJob, ExportRange, SoundFile } from "./export.types";
@@ -68,27 +68,41 @@ export function checkDenoised(pending: ReadonlySet<string>): void {
   );
 }
 
-/** Where the file goes, as `ifExists` says, keeping clear of what's queued. */
-export async function outputPath(
+/**
+ * Where the files go, as `ifExists` says, keeping clear of what's queued: one per suffix (see
+ * `fileSuffixes`), `<name><suffix>.<ext>` in `folder`. They are numbered together, so an export and
+ * its stems always share a name: `<name> (2) - Mix.wav` beside `<name> (2) - Dialogue.wav`.
+ */
+export async function outputPaths(
   folder: string,
   name: string,
+  suffixes: readonly string[],
   extension: string,
   ifExists: "number" | "replace" | "fail",
   queued: readonly ExportJob[],
-): Promise<string> {
-  const wanted = joinPath(folder, `${name}.${extension}`);
-  const taken = (path: string) =>
-    queued.some(
-      (job) => job.path === path && job.status !== "cancelled" && job.status !== "failed",
+): Promise<string[]> {
+  const files = (n: number) =>
+    suffixes.map((suffix) =>
+      joinPath(folder, `${n === 1 ? name : `${name} (${n})`}${suffix}.${extension}`),
     );
-  const free = await uniquePath(wanted);
-  if (ifExists === "fail" && free !== wanted) {
-    throw new CommandFailure("export.fileExists", `${name}.${extension} already exists`);
+  const busy = queued.filter((job) => job.status !== "cancelled" && job.status !== "failed");
+  const taken = (paths: readonly string[]) =>
+    busy.some((job) => paths.includes(job.path) || job.stems?.some((p) => paths.includes(p)));
+  /** The first of `paths` that's already on disk. */
+  const clash = async (paths: readonly string[]) => {
+    const free = await Promise.all(paths.map(uniquePath));
+    return paths.find((path, i) => free[i] !== path);
+  };
+  const wanted = files(1);
+  if (ifExists === "fail") {
+    const there = await clash(wanted);
+    if (there !== undefined) {
+      throw new CommandFailure("export.fileExists", `${fileName(there)} already exists`);
+    }
   }
   if (ifExists === "replace" && !taken(wanted)) return wanted;
-  if (!taken(free)) return free;
-  for (let n = 2; ; n++) {
-    const next = await uniquePath(joinPath(folder, numberedName(name, extension, n)));
-    if (!taken(next)) return next;
+  for (let n = 1; ; n++) {
+    const next = files(n);
+    if (!taken(next) && (await clash(next)) === undefined) return next;
   }
 }

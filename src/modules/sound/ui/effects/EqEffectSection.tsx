@@ -1,6 +1,6 @@
 import { EqEditor } from "@/modules/audio";
 import type { EqEffect } from "@/modules/project";
-import type { EffectEdit } from "../../sound.types";
+import type { EffectEdit } from "../../sound.effects.types";
 import { EffectSection } from "./EffectSection";
 
 interface EqEffectSectionProps {

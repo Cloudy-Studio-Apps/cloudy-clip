@@ -1,4 +1,4 @@
-import type { PeakHold } from "../sound.types";
+import type { PeakHold } from "../sound.meter.types";
 
 /** The bottom of a meter, in dBFS: anything quieter shows nothing. */
 export const METER_FLOOR_DB = -60;

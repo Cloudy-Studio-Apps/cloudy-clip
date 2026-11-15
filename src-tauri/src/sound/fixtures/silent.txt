@@ -1,0 +1,75 @@
+Input #0, lavfi, from 'anullsrc=r=48000:cl=stereo:d=1':
+  Duration: N/A, start: 0.000000, bitrate: 768 kb/s
+  Stream #0:0: Audio: pcm_u8, 48000 Hz, stereo, u8, 768 kb/s
+Stream mapping:
+  Stream #0:0 (pcm_u8) -> aformat:default
+  ametadata:default -> Stream #0:0 (pcm_f32le)
+Press [q] to stop, [?] for help
+[ametadata@sample @ 0x7fda08005340] frame:0    pts:0       pts_time:0
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:0    pts:0       pts_time:0
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+Output #0, null, to 'pipe:':
+  Metadata:
+    encoder         : Lavf63.1.102
+  Stream #0:0: Audio: pcm_f32le, 192000 Hz, stereo, flt, 12288 kb/s
+    Metadata:
+      encoder         : Lavc63.1.102 pcm_f32le
+[ametadata@sample @ 0x7fda08005340] frame:1    pts:4800    pts_time:0.1
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:1    pts:19136   pts_time:0.0996667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@sample @ 0x7fda08005340] frame:2    pts:9600    pts_time:0.2
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:2    pts:38336   pts_time:0.199667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@sample @ 0x7fda08005340] frame:3    pts:14400   pts_time:0.3
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:3    pts:57536   pts_time:0.299667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@sample @ 0x7fda08005340] frame:4    pts:19200   pts_time:0.4
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:4    pts:76736   pts_time:0.399667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@sample @ 0x7fda08005340] frame:5    pts:24000   pts_time:0.5
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:5    pts:95936   pts_time:0.499667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@sample @ 0x7fda08005340] frame:6    pts:28800   pts_time:0.6
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:6    pts:115136  pts_time:0.599667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@sample @ 0x7fda08005340] frame:7    pts:33600   pts_time:0.7
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:7    pts:134336  pts_time:0.699667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@sample @ 0x7fda08005340] frame:8    pts:38400   pts_time:0.8
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:8    pts:153536  pts_time:0.799667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@sample @ 0x7fda08005340] frame:9    pts:43200   pts_time:0.9
+[ametadata@sample @ 0x7fda08005340] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:9    pts:172736  pts_time:0.899667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[ametadata@true @ 0x7fda08016ac0] frame:10   pts:191936  pts_time:0.999667
+[ametadata@true @ 0x7fda08016ac0] lavfi.astats.Overall.Peak_level=-inf
+[Parsed_astats_6 @ 0x7fda08016840] Overall
+[Parsed_astats_6 @ 0x7fda08016840] Peak level dB: -inf
+[Parsed_astats_3 @ 0x7fda080050c0] Overall
+[Parsed_astats_3 @ 0x7fda080050c0] Peak level dB: -inf
+[Parsed_ebur128_2 @ 0x7fda08004d00] Summary:
+
+  Integrated loudness:
+    I:         -70.0 LUFS
+    Threshold:   0.0 LUFS
+
+  Loudness range:
+    LRA:         0.0 LU
+    Threshold:   0.0 LUFS
+    LRA low:     0.0 LUFS
+    LRA high:    0.0 LUFS
+
+  True peak:
+    Peak:       -inf dBFS
+[out#0/null @ 0x5647caebe480] video:0KiB audio:1500KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+size=N/A time=00:00:01.00 bitrate=N/A speed=  96x elapsed=0:00:00.01    

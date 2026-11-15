@@ -1,6 +1,6 @@
 import { toAppError } from "@/core";
 import type { Track } from "@/modules/project";
-import type { RecordPlatform } from "../sound.types";
+import type { RecordPlatform } from "../sound.record.types";
 
 /**
  * Where recording has been checked to work (`docs/superpowers/specs/2026-11-03-microphone-check.md`).

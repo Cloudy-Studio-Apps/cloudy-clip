@@ -1,4 +1,4 @@
-import { VOLUME_DB_MAX, VOLUME_DB_MIN, panSide } from "@/modules/project";
+import { TRIM_DB_MAX, TRIM_DB_MIN, VOLUME_DB_MAX, VOLUME_DB_MIN, panSide } from "@/modules/project";
 
 /**
  * The fader's taper: positions (0 bottom, 1 top) of some levels in dB, straight lines between.
@@ -11,6 +11,9 @@ const TAPER: readonly (readonly [db: number, position: number])[] = [
   [0, 0.75],
   [VOLUME_DB_MAX, 1],
 ];
+
+/** The levels, in dB, where the taper changes slope: a line drawn in dB kinks there. */
+export const TAPER_DBS: readonly number[] = TAPER.map(([db]) => db);
 
 /** Where a level sits along a fader, 0 to 1. */
 export function faderPosition(db: number): number {
@@ -50,4 +53,21 @@ export function panAt(position: number): number {
 export function formatPan(pan: number): string {
   const side = panSide(pan);
   return side === "C" ? side : `${side} ${Math.round(Math.abs(pan) * 100)}`;
+}
+
+/** Where Master's trim sits along its slider, 0 (-24 dB) to 1 (24 dB), 0 dB in the middle. */
+export function trimPosition(db: number): number {
+  return Math.min(1, Math.max(0, (db - TRIM_DB_MIN) / (TRIM_DB_MAX - TRIM_DB_MIN)));
+}
+
+/** The trim at a position along its slider, to a tenth of a dB. */
+export function trimAt(position: number): number {
+  const db = TRIM_DB_MIN + Math.min(1, Math.max(0, position)) * (TRIM_DB_MAX - TRIM_DB_MIN);
+  return Math.round(db * 10) / 10;
+}
+
+/** A trim for people: "0 dB", "+6.5 dB", "-3 dB". */
+export function formatTrim(db: number): string {
+  const tenth = Math.round(db * 10) / 10;
+  return `${tenth > 0 ? "+" : ""}${tenth} dB`;
 }

@@ -9,7 +9,7 @@ const getQueue = defineMcpTool({
   name: "export_get_queue",
   readOnly: true,
   description:
-    "Lists exports, oldest first: jobId, file, path, status (waiting, preparing, rendering, finishing, done, failed, cancelled), progress 0..1 of that status, and why one failed.",
+    "Lists exports, oldest first: jobId, file, path, status (waiting, preparing, measuring (match target), rendering, finishing, done, failed, cancelled), progress 0..1 of that status, and why one failed.",
   input: z.object({}),
   handler(_input, ctx) {
     const { jobs } = ctx.require(exportRef).queue.getState();

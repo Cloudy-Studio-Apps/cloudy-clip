@@ -46,7 +46,14 @@ export function ExportPage() {
             <SaveToSection name={form.name} folder={values.folder} />
           </FoldSection>
           <FoldSection {...fold("What to export")}>
-            <WhatToExportSection compositions={form.compositions} value={composition.id} />
+            <WhatToExportSection
+              compositions={form.compositions}
+              value={composition.id}
+              stems={values.stems}
+              soundOnly={!info.picture}
+              groups={form.groups}
+              plan={form.plan}
+            />
           </FoldSection>
           <FoldSection {...fold("Kind of export")}>
             <KindTiles value={values.kind} picture={form.picture} sizeAt={form.sizeAt} />
@@ -71,7 +78,12 @@ export function ExportPage() {
             </SettingsSection>
           </FoldSection>
           <FoldSection {...fold("When saving")}>
-            <WhenSavingSection ifExists={values.ifExists} reveal={values.reveal} />
+            <WhenSavingSection
+              ifExists={values.ifExists}
+              reveal={values.reveal}
+              matchTarget={values.matchTarget}
+              sound={info.sound && values.sound}
+            />
           </FoldSection>
         </div>
         <div className="shrink-0 border-t border-border-strong px-3 py-2.5">

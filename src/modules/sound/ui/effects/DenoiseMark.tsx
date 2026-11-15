@@ -1,5 +1,5 @@
 import type { CompositionId, DenoiseEffect } from "@/modules/project";
-import type { MixTarget } from "../../sound.types";
+import type { MixTarget } from "../../sound.line.types";
 import { useDenoiseRendering } from "./denoise.hook";
 
 interface DenoiseMarkProps {

@@ -19,12 +19,18 @@ declare function registerProcessor(
  * `processorOptions.effect`; each message is the effect's new settings (`DynamicsCommand`). Input 0
  * is the sound, input 1 a duck's key. A mono input feeds both sides; a missing one is silence.
  */
+/** How often a compressor's gain reduction is posted: about 30 times a second, not per block. */
+const POST_EVERY = 1 / 30;
+
 /** What a missing input or output reads as, made once so a block allocates nothing. */
 const NONE: Float32Array[] = [];
 
 class DynamicsProcessor extends AudioWorkletProcessor {
   private readonly runner = createEffectRunner(sampleRate);
   private silent = new Float32Array(128);
+  /** Seconds of sound since the last post, and the last value posted. */
+  private since = 0;
+  private posted = 0;
 
   constructor(options: { processorOptions: { effect: DynamicsCommand } }) {
     super();
@@ -43,6 +49,13 @@ class DynamicsProcessor extends AudioWorkletProcessor {
     const left = sound[0] ?? this.silent;
     const keyLeft = key[0] ?? this.silent;
     this.runner.process(left, sound[1] ?? left, keyLeft, key[1] ?? keyLeft, outLeft, outRight);
+    this.since += outLeft.length / sampleRate;
+    if (this.since >= POST_EVERY) {
+      this.since = 0;
+      // The peak reduction of the span; only a compressor reports, others stay at 0 and post nothing.
+      const reduction = this.runner.takeReduction();
+      if (reduction !== this.posted) this.port.postMessage((this.posted = reduction));
+    }
     return true;
   }
 }

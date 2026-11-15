@@ -4,12 +4,20 @@ import { useModule } from "@/core";
 import type { ProjectFormat } from "@/modules/project";
 import { SelectField, Switch } from "@/ui";
 import { exportRef } from "../export.ref";
-import { EXPORT_FORMATS, formatInfo } from "../logic/presets";
+import {
+  EXPORT_BIT_DEPTHS,
+  EXPORT_FORMATS,
+  EXPORT_SAMPLE_RATES,
+  formatInfo,
+  hasBitDepth,
+} from "../logic/presets";
 import type {
   ExportCapabilities,
   ExportEffort,
   ExportFormat,
+  ExportBitDepth,
   ExportFormState,
+  ExportSampleRate,
 } from "../export.types";
 import { ExportRow } from "./ExportRow";
 
@@ -66,6 +74,36 @@ export function SettingsSection({ values, format, capabilities, children }: Sett
         />
       </ExportRow>
       {children}
+      {!info.picture && (
+        <ExportRow label="Sample rate">
+          {values.format === "opus" ? (
+            <Locked>48 kHz</Locked>
+          ) : (
+            <SelectField
+              label="Sample rate"
+              value={String(values.sampleRate)}
+              options={EXPORT_SAMPLE_RATES.map(({ value, label }) => ({
+                value: String(value),
+                label,
+              }))}
+              onChange={(value) => form.setState({ sampleRate: Number(value) as ExportSampleRate })}
+            />
+          )}
+        </ExportRow>
+      )}
+      {hasBitDepth(values.format) && (
+        <ExportRow label="Bit depth">
+          <SelectField
+            label="Bit depth"
+            value={String(values.bitDepth)}
+            options={EXPORT_BIT_DEPTHS.map(({ value, label }) => ({
+              value: String(value),
+              label,
+            }))}
+            onChange={(value) => form.setState({ bitDepth: Number(value) as ExportBitDepth })}
+          />
+        </ExportRow>
+      )}
       {info.picture && values.format !== "prores" && values.format !== "gif" && (
         <ExportRow label="Encoding">
           <SelectField

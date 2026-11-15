@@ -222,7 +222,7 @@ async fn encode_reversed(
     full: bool,
     on_progress: &(dyn Fn(f32) + Sync),
 ) -> Result<(), String> {
-    let folder = target.with_extension("parts");
+    let folder = target.with_extension("partial.parts");
     tokio::fs::create_dir_all(&folder)
         .await
         .map_err(|e| format!("Could not make room for the reversed copy: {e}"))?;

@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { EFFECT_RANGES, type GateEffect, type SoundEffect } from "@/modules/project";
 import { defaultSpec } from "../../logic/effects";
-import type { EffectEdit, TransferGraphHandle } from "../../sound.types";
+import type { EffectEdit, TransferGraphHandle } from "../../sound.effects.types";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 import { TransferGraph } from "./TransferGraph";

@@ -4,6 +4,8 @@ import type {
   ExportKind,
   ExportEffort,
   ExportIfExists,
+  ExportBitDepth,
+  ExportSampleRate,
 } from "../export.types";
 
 /** The kinds on the page. `custom` is whatever the slider says. */
@@ -18,6 +20,7 @@ export const EXPORT_KINDS: readonly { id: ExportKind; label: string; quality: nu
 export const EXPORT_FORMATS: readonly ExportFormatInfo[] = [
   {
     id: "h264",
+    short: "H.264",
     label: "MP4 (H.264), plays everywhere",
     extension: "mp4",
     picture: true,
@@ -28,6 +31,7 @@ export const EXPORT_FORMATS: readonly ExportFormatInfo[] = [
   },
   {
     id: "h265",
+    short: "H.265",
     label: "MP4 (H.265), smaller",
     extension: "mp4",
     picture: true,
@@ -38,6 +42,7 @@ export const EXPORT_FORMATS: readonly ExportFormatInfo[] = [
   },
   {
     id: "webm",
+    short: "VP9",
     label: "WebM (VP9), for websites",
     extension: "webm",
     picture: true,
@@ -48,6 +53,7 @@ export const EXPORT_FORMATS: readonly ExportFormatInfo[] = [
   },
   {
     id: "prores",
+    short: "ProRes",
     label: "MOV (ProRes), for other editors",
     extension: "mov",
     picture: true,
@@ -58,6 +64,7 @@ export const EXPORT_FORMATS: readonly ExportFormatInfo[] = [
   },
   {
     id: "gif",
+    short: "GIF",
     label: "GIF, no sound",
     extension: "gif",
     picture: true,
@@ -68,8 +75,53 @@ export const EXPORT_FORMATS: readonly ExportFormatInfo[] = [
   },
   {
     id: "mp3",
+    short: "MP3",
     label: "MP3, sound only",
     extension: "mp3",
+    picture: false,
+    sound: true,
+    quality: false,
+    sizeFactor: 0,
+    timeFactor: 0.1,
+  },
+  {
+    id: "wav",
+    short: "WAV",
+    label: "WAV, sound only, lossless",
+    extension: "wav",
+    picture: false,
+    sound: true,
+    quality: false,
+    sizeFactor: 0,
+    timeFactor: 0.1,
+  },
+  {
+    id: "flac",
+    short: "FLAC",
+    label: "FLAC, sound only, lossless",
+    extension: "flac",
+    picture: false,
+    sound: true,
+    quality: false,
+    sizeFactor: 0,
+    timeFactor: 0.1,
+  },
+  {
+    id: "aac",
+    short: "AAC",
+    label: "AAC (M4A), sound only",
+    extension: "m4a",
+    picture: false,
+    sound: true,
+    quality: false,
+    sizeFactor: 0,
+    timeFactor: 0.1,
+  },
+  {
+    id: "opus",
+    short: "Opus",
+    label: "Opus, sound only, 48 kHz",
+    extension: "opus",
     picture: false,
     sound: true,
     quality: false,
@@ -81,7 +133,32 @@ export const EXPORT_FORMATS: readonly ExportFormatInfo[] = [
 /** Default settings of the zod schema and of a fresh page. */
 export const DEFAULT_QUALITY = 70;
 export const DEFAULT_EFFORT: ExportEffort = "balanced";
+export const DEFAULT_SAMPLE_RATE: ExportSampleRate = 48000;
+export const DEFAULT_BIT_DEPTH: ExportBitDepth = 16;
 export const DEFAULT_IF_EXISTS: ExportIfExists = "number";
+
+/** The sample rates on offer. */
+export const EXPORT_SAMPLE_RATES: readonly { value: ExportSampleRate; label: string }[] = [
+  { value: 44100, label: "44.1 kHz" },
+  { value: 48000, label: "48 kHz" },
+];
+
+/** The bit depths on offer, for the formats that take one. */
+export const EXPORT_BIT_DEPTHS: readonly { value: ExportBitDepth; label: string }[] = [
+  { value: 16, label: "16 bit" },
+  { value: 24, label: "24 bit" },
+];
+
+/** Whether a format takes a bit depth. */
+export function hasBitDepth(format: ExportFormat): boolean {
+  return format === "wav" || format === "flac";
+}
+
+/** The rate a format's file is at: Opus always is 48000, a format with a picture is too. */
+export function fileRate(format: ExportFormat, chosen: ExportSampleRate): ExportSampleRate {
+  const info = formatInfo(format);
+  return info.picture || format === "opus" ? 48000 : chosen;
+}
 
 /** A format by its id. */
 export function formatInfo(id: ExportFormat): ExportFormatInfo {
@@ -100,7 +177,16 @@ export function encoderValues(
   format: ExportFormat,
   quality: number,
 ): { crf: number; audioKbps: number } {
-  const audioKbps = format === "mp3" ? 256 : quality < 50 ? 128 : quality < 85 ? 192 : 320;
+  const audioKbps =
+    format === "mp3" || format === "aac"
+      ? 256
+      : format === "opus"
+        ? 192
+        : quality < 50
+          ? 128
+          : quality < 85
+            ? 192
+            : 320;
   const h264 = Math.round(36 - quality * 0.2);
   if (format === "h265") return { crf: h264 + 4, audioKbps };
   if (format === "webm") return { crf: Math.round(50 - quality * 0.3), audioKbps };
@@ -122,7 +208,7 @@ export function joinPath(folder: string, file: string): string {
   return `${folder.replace(/[\\/]+$/, "")}${separator}${file}`;
 }
 
-/** `name (n).ext`. */
-export function numberedName(name: string, extension: string, n: number): string {
-  return `${name} (${n}).${extension}`;
+/** The file name at the end of a path, whichever separator it uses. */
+export function fileName(path: string): string {
+  return path.slice(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")) + 1);
 }

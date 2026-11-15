@@ -127,8 +127,12 @@ export type {
   SoundEffectBase,
   SoundEffectKind,
   CrossfadeLevels,
+  BusId,
   CompositionMix,
+  DeliverySettings,
+  StandardId,
   MasterMix,
+  MixBus,
   MixSnapshot,
   TrackMix,
   ClipSpeed,
@@ -138,6 +142,7 @@ export type {
   KeyTrack,
   KeyValue,
   Keyframe,
+  SpanPoint,
   Track,
   TrackId,
   TrackKind,
@@ -207,13 +212,18 @@ export {
   effectSchemas,
   soundEffectSchema,
 } from "./logic/effect.schema";
+/** The schema of a key's ease, shared by every command that sets one. */
+export { keyEase } from "./logic/keys.schema";
 /** The schemas of sound values, shared by every command that sets them. */
 export {
+  TRIM_DB_MAX,
+  TRIM_DB_MIN,
   VOLUME_DB_MAX,
   VOLUME_DB_MIN,
   eqBandSchema,
   eqSchema,
   panSchema,
+  trimDbSchema,
   volumeDbSchema,
 } from "./logic/sound.schema";
 
@@ -225,6 +235,7 @@ export {
   minimizeCompositionMix,
   minimizeTrackMix,
   soundInPlacement,
+  trackBus,
   trackMixOf,
 } from "./logic/mix";
 
@@ -233,10 +244,24 @@ export { denoiseNeeds, heardDenoise } from "./logic/denoise";
 
 /** Key curves: the ease presets and how far along an ease a segment is. */
 export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";
-/** A key track's value at a time, and a clip with every keyed value written in. */
-export { animatedClip, trackValue } from "./logic/animate";
-/** Editing key tracks: writing, moving and removing keys, and mirroring an ease. */
-export { mirrorEase, moveTrackKeys, withoutKeys, withoutTracks, writeKey } from "./logic/keys";
+/**
+ * A key track's value at a time, the times its keys fall on in a stretch (loops included), a
+ * clip with every keyed value written in, and points thinned to those off a straight line
+ * (`simplify`: export envelopes, drawn strokes and fader passes).
+ */
+export { animatedClip, keyMoments, simplify, trackValue } from "./logic/animate";
+/**
+ * Editing key tracks: writing, moving and removing keys, replacing a span with straight points
+ * while the rest plays as before (`writeSpan`), and mirroring an ease.
+ */
+export {
+  mirrorEase,
+  moveTrackKeys,
+  withoutKeys,
+  withoutTracks,
+  writeKey,
+  writeSpan,
+} from "./logic/keys";
 /** A clip's content time (where its keys sit) and timeline time, both ways, and its rate. */
 export { clampToClip, clipHasKeys, contentTime, rateAt, timeOfContent } from "./logic/content";
 /** A speed ramp: the track's path, and the time a clip's content takes through it. */

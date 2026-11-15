@@ -1,11 +1,20 @@
 import type { LimiterEffect } from "@/modules/project";
-import type { LimiterSettings, LimiterState } from "../preview.types";
+import type { LimiterSettings, LimiterState, TruePeakLimiterState } from "../preview.types";
+import { PHASES, TAPS } from "./truepeak";
 
 // A port of FFmpeg's `alimiter` (libavfilter/af_alimiter.c) with `attack=5` (the lookahead),
 // `asc` off, `level=disabled` (no make-up to the limit), `level_in`/`level_out` at 1 and `latency`
 // off: the output is the input `size / channels − 1` frames later, gain already down when a peak
 // arrives, and clipped at the limit. Checked against ffmpeg n9.0.2:
-// docs/superpowers/specs/2026-11-03-sound-dynamics-check.md. Type-only imports (worklet).
+// docs/superpowers/specs/2026-11-03-sound-dynamics-check.md. Type-only imports (worklet), but the
+// true-peak interpolator.
+//
+// `alimiter` limits sample peaks, and a signal limited so can go over its ceiling between samples.
+// The true-peak limiter feeds it a wide frame: each channel delayed by `TAPS / 2` samples, and the
+// three samples the meter's 4x interpolator (`truepeak.ts`) reads between it and the next. The
+// limiter takes the largest of a frame and gives every channel one gain, so it limits the true
+// peak, and only the delayed channels go on. Export builds the same frame from FFmpeg filters
+// (`pan`, `aiir`, `alimiter`, `pan`; `src-tauri/src/export/mixeffects.rs`).
 
 /** The lookahead, FFmpeg's default `attack`, in ms. */
 export const LIMITER_LOOKAHEAD_MS = 5;
@@ -135,4 +144,45 @@ export function limiterStep(s: LimiterState, settings: LimiterSettings, frame: F
   if (s.delta !== 0 && Math.abs(s.delta) < 0.00000000000001) s.delta = 0;
   for (let c = 0; c < channels; c++) frame[c] = Math.min(limit, Math.max(-limit, frame[c]!));
   s.pos = (s.pos + channels) % size;
+}
+
+/** A limiter of true peaks for frames of `channels` samples (see the top of this file). */
+export function createTruePeakLimiter(sampleRate: number, channels: number): TruePeakLimiterState {
+  const wide = channels * (PHASES.length + 1);
+  return {
+    limiter: createLimiter(sampleRate, wide),
+    history: new Float64Array(channels * TAPS),
+    wide: new Float64Array(wide),
+  };
+}
+
+/** Empties a true-peak limiter in place. */
+export function resetTruePeakLimiter(s: TruePeakLimiterState): void {
+  resetLimiter(s.limiter);
+  s.history.fill(0);
+}
+
+/** One frame through the true-peak limiter, in place, as `limiterStep`. */
+export function truePeakLimiterStep(
+  s: TruePeakLimiterState,
+  settings: LimiterSettings,
+  frame: Float64Array,
+): void {
+  const { history, wide } = s;
+  const channels = frame.length;
+  for (let c = 0; c < channels; c++) {
+    const at = c * TAPS;
+    history.copyWithin(at + 1, at, at + TAPS - 1);
+    history[at] = frame[c]!;
+    wide[c] = history[at + TAPS / 2]!;
+    // As `aiir`'s direct form sums: from the newest sample.
+    for (let p = 0; p < PHASES.length; p++) {
+      const taps = PHASES[p]!;
+      let y = 0;
+      for (let k = 0; k < TAPS; k++) y += taps[k]! * history[at + k]!;
+      wide[(p + 1) * channels + c] = y;
+    }
+  }
+  limiterStep(s.limiter, settings, wide);
+  for (let c = 0; c < channels; c++) frame[c] = wide[c]!;
 }

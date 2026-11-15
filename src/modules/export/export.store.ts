@@ -1,5 +1,10 @@
 import { createStore } from "zustand/vanilla";
-import { DEFAULT_EFFORT, DEFAULT_QUALITY } from "./logic/presets";
+import {
+  DEFAULT_BIT_DEPTH,
+  DEFAULT_EFFORT,
+  DEFAULT_QUALITY,
+  DEFAULT_SAMPLE_RATE,
+} from "./logic/presets";
 import type { ExportCapabilities, ExportFormState, ExportQueueState } from "./export.types";
 
 /** Remembers the last folder between sessions. */
@@ -29,11 +34,15 @@ export function createFormStore() {
     kind: "default",
     quality: DEFAULT_QUALITY,
     format: "h264",
+    sampleRate: DEFAULT_SAMPLE_RATE,
+    bitDepth: DEFAULT_BIT_DEPTH,
     whole: true,
     from: 0,
     to: 0,
     effort: DEFAULT_EFFORT,
     sound: true,
+    stems: false,
+    matchTarget: false,
     hardware: true,
     ifExists: "number",
     reveal: true,

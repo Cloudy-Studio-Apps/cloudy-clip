@@ -372,6 +372,55 @@ describe("mixdown", () => {
     expect(mix.master.effects).toEqual([{ kind: "limiter", ceilingDb: -1, releaseMs: 50 }]);
   });
 
+  it("gives the master its pan and line, and a gain of 0 when muted", () => {
+    const state = project([clip("a", "a1")]);
+    const volumeLine: KeyTrack = {
+      blend: "number",
+      min: -60,
+      max: 12,
+      keys: [
+        { id: "l1", t: 0, value: 0 },
+        { id: "l2", t: 2_000_000, value: -20 },
+      ],
+    };
+    state.compositions.c1!.mix = { master: { volumeDb: -6, pan: 0.5, volumeLine }, activeMix: "a" };
+    const { mix } = mixdownWithMix(state, "c1", everything, sounds);
+    expect(mix.master.pan).toBe(0.5);
+    expect(mix.master.gainEnvelope![0]!.value).toBeCloseTo(dbToLinear(-6), 6);
+    expect(mix.master.gainEnvelope!.at(-1)!.value).toBeCloseTo(dbToLinear(-26), 6);
+    state.compositions.c1!.mix.master.muted = true;
+    const muted = mixdownWithMix(state, "c1", everything, sounds).mix.master;
+    expect(muted.gain).toBe(0);
+    expect(muted.gainEnvelope).toBeUndefined();
+  });
+
+  it("gives a track with a volume line a gain envelope from the export range's start", () => {
+    const state = project([clip("a", "a1")]);
+    state.tracks.a1!.mix = {
+      volumeDb: -6,
+      pan: 0,
+      volumeLine: {
+        blend: "number",
+        min: -60,
+        max: 12,
+        keys: [
+          { id: "l1", t: 1_000_000, value: 0 },
+          { id: "l2", t: 3_000_000, value: -20 },
+        ],
+      },
+    };
+    const window = { start: 2_000_000, duration: 2_000_000 };
+    const { mix } = mixdownWithMix(state, "c1", window, sounds);
+    const points = mix.tracks[0]!.gainEnvelope!;
+    // Halfway down the line, plus the fader's -6 dB offset, at the export's first moment.
+    expect(points[0]!.at).toBe(0);
+    expect(points[0]!.value).toBeCloseTo(dbToLinear(-16), 6);
+    // The key at 3 s is 1 s into the export; the line holds after it.
+    expect(points.find((point) => point.at === 1_000_000)!.value).toBeCloseTo(dbToLinear(-26), 6);
+    expect(points.at(-1)).toMatchObject({ at: 2_000_000 });
+    expect(points.at(-1)!.value).toBeCloseTo(dbToLinear(-26), 6);
+  });
+
   it("sounds an inner clip through the outer track, with the inner track's mix folded in", () => {
     const state = withPlacement(project([]), { innerMuted: false });
     state.tracks.a2!.mix = { volumeDb: -6, pan: 0.25 };
@@ -385,6 +434,76 @@ describe("mixdown", () => {
     // The outer track's own mix is the bus's, applied once there.
     expect(mix.tracks).toHaveLength(1);
     expect(mix.tracks[0]!.gain).toBeCloseTo(dbToLinear(-3), 6);
+  });
+
+  it("folds an inner track's volume line into its clips, on the inner composition's clock", () => {
+    const state = withPlacement(project([]), { innerMuted: false });
+    state.tracks.a2!.mix = {
+      volumeDb: -6,
+      pan: 0,
+      volumeLine: {
+        blend: "number",
+        min: -60,
+        max: 12,
+        keys: [
+          { id: "l1", t: 1_000_000, value: 0 },
+          { id: "l2", t: 3_000_000, value: -20 },
+        ],
+      },
+    };
+    const { segments, mix } = mixdownWithMix(state, "c1", everything, sounds);
+    // The placement plays c2 from 1 s at 2 s: the segment covers c2's 1 s to 3 s.
+    const points = segments[0]!.gainEnvelope!;
+    expect(segments[0]).not.toHaveProperty("gain");
+    expect(points[0]).toMatchObject({ at: 0 });
+    expect(points[0]!.value).toBeCloseTo(dbToLinear(-6), 6);
+    expect(points.find((point) => point.at === 1_000_000)!.value).toBeCloseTo(dbToLinear(-16), 6);
+    expect(points.at(-1)).toMatchObject({ at: 2_000_000 });
+    expect(points.at(-1)!.value).toBeCloseTo(dbToLinear(-26), 6);
+    // The outer track has no line: its bus keeps a plain level.
+    expect(mix.tracks[0]).not.toHaveProperty("gainEnvelope");
+  });
+
+  it("sends a track to its group by index, and a muted group's tracks are left out", () => {
+    const state = project([clip("a", "a1"), clip("b", "a3")]);
+    state.tracks.a3 = { ...state.tracks.a1!, id: "a3", name: "A3", clipIds: ["b"] };
+    state.tracks.a1!.clipIds = ["a"];
+    state.tracks.a3.mix = { volumeDb: 0, pan: 0, busId: "dialogue" };
+    state.compositions.c1!.trackOrder = ["a1", "a3"];
+    const music = { id: "music", name: "Music", volumeDb: 0, muted: true };
+    const dialogue = { id: "dialogue", name: "Dialogue", volumeDb: -6, muted: false };
+    state.compositions.c1!.mix = {
+      master: { volumeDb: 0 },
+      buses: [music, dialogue],
+      activeMix: "a",
+    };
+    const heard = mixdownWithMix(state, "c1", everything, sounds);
+    expect(heard.mix.tracks[0]).toEqual({ gain: 1, pan: 0 });
+    expect(heard.mix.tracks[1]).toEqual({ gain: 1, pan: 0, bus: 1 });
+    expect(heard.mix.buses).toHaveLength(2);
+    expect(heard.mix.buses[1]!.gain).toBeCloseTo(dbToLinear(-6), 6);
+    expect(heard.mix.buses[0]).toEqual({ gain: 1, muted: true });
+    // Sent to the muted group, A3 sounds nowhere: its clips are left out.
+    state.tracks.a3.mix = { volumeDb: 0, pan: 0, busId: "music" };
+    const muted = mixdownWithMix(state, "c1", everything, sounds);
+    expect(muted.segments.map((segment) => segment.track)).toEqual([0]);
+  });
+
+  it("folds an inner group's volume and mute into the clips of its tracks", () => {
+    const state = withPlacement(project([]), { innerMuted: false });
+    state.tracks.a2!.mix = { volumeDb: -6, pan: 0, busId: "inner" };
+    const group = { id: "inner", name: "Inner", volumeDb: -6, muted: false };
+    state.compositions.c2!.mix = { master: { volumeDb: 0 }, buses: [group], activeMix: "a" };
+    const { segments, mix } = mixdownWithMix(state, "c1", everything, sounds);
+    expect(segments[0]!.gain).toBeCloseTo(dbToLinear(-12), 6);
+    // The open composition has no groups: the inner one isn't a bus here.
+    expect(mix.buses).toEqual([]);
+    state.compositions.c2!.mix = {
+      master: { volumeDb: 0 },
+      buses: [{ ...group, muted: true }],
+      activeMix: "a",
+    };
+    expect(mixdown(state, "c1", everything, sounds)).toEqual([]);
   });
 
   it("leaves a clip without keys as it was", () => {

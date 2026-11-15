@@ -2,6 +2,7 @@ import { z } from "zod";
 import { defineCommand } from "@/core";
 import {
   animatedClip,
+  keyEase,
   clampToClip,
   contentTime,
   formatOf,
@@ -21,7 +22,6 @@ import {
   checkKeyValue,
   grouped,
   invalidValue,
-  keyEase,
   keyRef,
   keyValue,
   requireClip,
@@ -34,6 +34,19 @@ import type { KeyField } from "./keyframe.types";
 import type { TrackEdit } from "./keyframe.types";
 import { writeTracks } from "./keyframe.write";
 
+/** The field's track on the clip, or an empty one shaped like the field when it has none. */
+export function fieldTrack(clip: Clip, field: KeyField): KeyTrack {
+  return (
+    clip.animation?.[field.path] ?? {
+      blend: field.blend,
+      ...(field.shared && { shared: true as const }),
+      ...(field.min !== undefined && { min: field.min }),
+      ...(field.max !== undefined && { max: field.max }),
+      keys: [],
+    }
+  );
+}
+
 /** The field's track with a key at `at` (a timeline time inside the clip), and that key. */
 function keyedTrack(
   state: ProjectState,
@@ -43,13 +56,7 @@ function keyedTrack(
   value: KeyValue,
   ease?: KeyEase,
 ) {
-  const base: KeyTrack = clip.animation?.[field.path] ?? {
-    blend: field.blend,
-    ...(field.shared && { shared: true as const }),
-    ...(field.min !== undefined && { min: field.min }),
-    ...(field.max !== undefined && { max: field.max }),
-    keys: [],
-  };
+  const base = fieldTrack(clip, field);
   const t = contentTime(clip, at);
   const tolerance = Math.floor(frameDuration(formatOf(state, clip)) / 2);
   const track = writeKey(base, t, value, tolerance, ease);

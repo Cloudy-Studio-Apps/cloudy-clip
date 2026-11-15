@@ -5,17 +5,43 @@
 export { cancel, clearFinished, enqueue, moveUp, remove, start } from "./export.commands";
 export type {
   ExportApi,
+  ExportBitDepth,
   ExportCapabilities,
   ExportEffort,
   ExportFormat,
   ExportFormState,
   ExportJob,
   ExportKind,
+  ExportFormatInfo,
   ExportQueueState,
   ExportRange,
+  ExportSampleRate,
   ExportStatus,
+  LoudnessMatcher,
+  MasterCorrection,
+  MatchRequest,
+  SoundOnlySpec,
   SoundSegment,
+  StemPlan,
 } from "./export.types";
+
+export {
+  EXPORT_BIT_DEPTHS,
+  EXPORT_FORMATS,
+  EXPORT_SAMPLE_RATES,
+  fileRate,
+  hasBitDepth,
+} from "./logic/presets";
+export { MIX_LABEL, stemsOf } from "./logic/stems";
+export { soundOnlySpec } from "./export.mixspec";
+export { withCorrection } from "./logic/correction";
+/**
+ * A value over a stretch as straight-line points, as the export writes a clip's keyed volume
+ * (`envelope(value, from, to, breaks)`; `at` counts from `from`).
+ */
+export { envelope } from "./logic/envelope";
+export { loudnessMatchers } from "./export.points";
+export { useExportComposition } from "./ui/export.composition.hook";
 
 /** Module definition, loaded by the app shell. */
 export { exportModule } from "./export.module";

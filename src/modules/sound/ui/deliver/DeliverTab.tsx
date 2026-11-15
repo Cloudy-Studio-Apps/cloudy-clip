@@ -4,10 +4,9 @@ import { StandardCard } from "./StandardCard";
 import { StemsCard } from "./StemsCard";
 
 /**
- * What the mix is delivered as: the delivery standard, the problems an analysis finds, the audio
- * format and the stems, four cards two rows tall in 216 px columns. All of it comes in stages 4
- * and 5: the cards show the prototype's shape with `—`, an honest empty line and nothing ticked,
- * never example figures (Ruling 1 of the layout plan).
+ * What the mix is delivered as: the delivery standard (with Analyze, Match target and the result),
+ * the problems the analysis finds, the audio format and the stems, four cards two rows tall in
+ * 216 px columns. Format and stems are the Export page's own settings, shown and edited here too.
  */
 export function DeliverTab() {
   return (

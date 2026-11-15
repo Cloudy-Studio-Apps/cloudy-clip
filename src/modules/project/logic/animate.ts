@@ -103,3 +103,51 @@ export function animatedClip(clip: Clip, time: Micros): Clip {
   }
   return { ...result, props } as unknown as Clip;
 }
+
+/**
+ * The times in `from..to` where a track has a key, its loop and ping-pong repeats included: where
+ * its value starts or stops changing, or jumps. Times are the keys' own: content time for a clip's
+ * keys, timeline time for a track's volume line.
+ */
+export function keyMoments(track: KeyTrack, from: Micros, to: Micros): Micros[] {
+  const first = track.keys[0];
+  const last = track.keys[track.keys.length - 1];
+  if (!first || !last) return [];
+  const span = last.t - first.t;
+  const plain = track.keys.map((key) => key.t);
+  if (!track.after || span <= 0) return plain.filter((t) => t >= from && t <= to);
+  const offsets = plain.map((t) => t - first.t);
+  const period = track.after === "loop" ? span : 2 * span;
+  if (track.after === "pingpong") offsets.push(...offsets.map((o) => period - o));
+  const moments: Micros[] = [];
+  const startLap = Math.max(0, Math.floor((from - first.t) / period));
+  for (let lap = startLap; first.t + lap * period <= to; lap++) {
+    for (const offset of offsets) {
+      const t = first.t + lap * period + offset;
+      if (t >= from && t <= to) moments.push(t);
+    }
+  }
+  return moments;
+}
+
+/**
+ * Thins points to draw straight lines between: a point within `tolerance` of the line from the last
+ * kept point to its next neighbour is dropped. The first and last points are always kept, and so is
+ * every corner.
+ */
+export function simplify<P extends { at: Micros; value: number }>(
+  points: readonly P[],
+  tolerance: number,
+): P[] {
+  if (points.length === 0) return [];
+  const kept: P[] = [points[0]!];
+  for (let i = 1; i < points.length - 1; i++) {
+    const a = kept[kept.length - 1]!;
+    const here = points[i]!;
+    const b = points[i + 1]!;
+    const online = a.value + ((b.value - a.value) * (here.at - a.at)) / (b.at - a.at);
+    if (Math.abs(here.value - online) > tolerance) kept.push(here);
+  }
+  if (points.length > 1) kept.push(points[points.length - 1]!);
+  return kept;
+}

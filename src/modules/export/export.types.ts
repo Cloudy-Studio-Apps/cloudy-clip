@@ -66,7 +66,8 @@ export interface SoundSegment {
 /**
  * An effect that works, as the export applies it (mirrors `MixEffect` in Rust): the document's
  * `SoundEffect` without its id and switch, the EQ as the bands that change the sound, and a
- * duck's tracks as indexes into `SoundMix.tracks`. Noise reduction isn't one: it plays a file.
+ * duck's tracks as indexes into `SoundMix.tracks` and its groups as indexes into
+ * `SoundMix.buses` (`listensToBuses`, missing when none). Noise reduction isn't one: it plays a file.
  */
 export type MixEffect =
   | { kind: "eq"; bands: EqFilter[] }
@@ -74,7 +75,10 @@ export type MixEffect =
   | Pick<GateEffect, "kind" | "thresholdDb" | "ratio" | "attackMs" | "releaseMs">
   | Pick<DeesserEffect, "kind" | "frequencyHz" | "amount">
   | Pick<LimiterEffect, "kind" | "ceilingDb" | "releaseMs">
-  | (Pick<DuckEffect, "kind" | "depthDb" | "attackMs" | "releaseMs"> & { listensTo: number[] });
+  | (Pick<DuckEffect, "kind" | "depthDb" | "attackMs" | "releaseMs"> & {
+      listensTo: number[];
+      listensToBuses?: number[];
+    });
 
 /** How a track mixes its clips: effects, a pan and a level on their sum (mirrors `TrackMixSpec` in Rust). */
 export interface TrackMixSpec {
@@ -84,14 +88,88 @@ export interface TrackMixSpec {
   pan: number;
   /** Before the pan and the level, in order. Missing when none works. */
   effects?: MixEffect[];
+  /**
+   * The level over the export when the track has a volume line: the line with the fader's offset
+   * on top, linear, `at` counted from the export's start. Replaces `gain`.
+   */
+  gainEnvelope?: EnvelopePoint[];
+  /** The group it sends to, an index into `SoundMix.buses`; missing means the master. */
+  bus?: number;
 }
 
-/** How the tracks mix, then the master (mirrors `SoundMix` in Rust). Solo is never in it. */
+/**
+ * A group track: the tracks sent to it summed, its effects, then its level, into the master
+ * (mirrors `BusMixSpec` in Rust). A muted one adds nothing and keys no duck.
+ */
+export interface BusMixSpec {
+  /** Linear level. */
+  gain: number;
+  /** Missing is false. */
+  muted?: boolean;
+  /** Before the level, in order. Missing when none works. */
+  effects?: MixEffect[];
+}
+
+/** How the tracks mix, then the groups, then the master (mirrors `SoundMix` in Rust). Solo is never in it. */
 export interface SoundMix {
   /** The composition's audio tracks in order; a segment's `track` indexes this. */
   tracks: TrackMixSpec[];
-  /** Its level, then its effects. */
-  master: { gain: number; effects?: MixEffect[] };
+  /** The composition's groups in order; a track's `bus` indexes this. */
+  buses: BusMixSpec[];
+  /** Its level, its pan, then its effects. */
+  master: MasterMixSpec;
+}
+
+/** The master (mirrors `MasterMixSpec` in Rust): the sum of the tracks and groups, then these, in order. */
+export interface MasterMixSpec {
+  /** Linear level; 0 when the master is muted. */
+  gain: number;
+  /**
+   * The level over the export when the master has a volume line, as a track's (`TrackMixSpec`).
+   * Replaces `gain`; missing when muted.
+   */
+  gainEnvelope?: EnvelopePoint[];
+  /** -1 (left) to 1 (right), a balance with a track pan's law. Missing means centred. */
+  pan?: number;
+  /** After the level and the pan, in order. Missing when none works. */
+  effects?: MixEffect[];
+  /** What matching the delivery target adds for this one export or analysis (see `withCorrection`). */
+  correction?: MasterCorrection;
+}
+
+/**
+ * What matching a delivery target adds to the master of one export or analysis, never written to
+ * the project (mirrors `MasterCorrection` in Rust): a level on top of the master's own (its line,
+ * or its fader), and a limiter after its effects, for a master that has none working.
+ */
+export interface MasterCorrection {
+  /** Added to the master's level, -72 to 72 dB. */
+  gainDb: number;
+  /** Missing when the master has a limiter of its own that works. */
+  limiter?: Pick<LimiterEffect, "ceilingDb" | "releaseMs">;
+}
+
+/** What a loudness matcher is asked: one mix, and the document it comes from. */
+export interface MatchRequest {
+  /** The document the mix was built from (a queued export's own copy). */
+  project: ProjectState;
+  compositionId: CompositionId;
+  /** The mix to match: a Mix export's sound, never its stems. */
+  spec: SoundOnlySpec;
+  /** 0 to 1 over every pass. */
+  onProgress(progress: number): void;
+  /** Aborted when the export is cancelled: the matcher stops and rejects. */
+  signal: AbortSignal;
+}
+
+/**
+ * Measures a mix and works out the correction that brings it to its composition's delivery target
+ * (`sound` contributes the one, to `loudnessMatchers`). Rejects with a message a person can read
+ * when it can't (a silent mix), or when `signal` aborts.
+ */
+export interface LoudnessMatcher {
+  id: string;
+  match(request: MatchRequest): Promise<MasterCorrection>;
 }
 
 /** What sounds in an export: the stretches of files, and how the tracks they sit on mix. */
@@ -110,6 +188,16 @@ export interface MixNesting {
   pan: number;
   /** The noise reduction of that track (or its master), which the clips inside get. */
   denoise: DenoiseEffect | undefined;
+  /** The volume lines of the inner tracks above; none when they have no line. */
+  swell: Swell | undefined;
+}
+
+/** A level that changes over the export: the volume lines of the inner tracks around a clip. */
+export interface Swell {
+  /** The factor at a time on the export's clock. */
+  gain(time: Micros): number;
+  /** Times on the export's clock where it bends: the lines' keys. */
+  breaks: Micros[];
 }
 
 /**
@@ -138,7 +226,14 @@ export interface TempoStep {
 }
 
 /** What a file holds (mirrors `Format` in Rust). */
-export type ExportFormat = "h264" | "h265" | "webm" | "prores" | "gif" | "mp3";
+export type ExportFormat =
+  "h264" | "h265" | "webm" | "prores" | "gif" | "mp3" | "wav" | "flac" | "aac" | "opus";
+
+/** Sample rates a sound-only file is written at (Opus is always 48000). */
+export type ExportSampleRate = 44100 | 48000;
+
+/** Bits per sample of WAV and FLAC. */
+export type ExportBitDepth = 16 | 24;
 
 /** A preset of the quality, or `custom`. */
 export type ExportKind = "default" | "small" | "best" | "custom";
@@ -153,6 +248,8 @@ export type ExportIfExists = "number" | "replace" | "fail";
 export interface ExportFormatInfo {
   id: ExportFormat;
   label: string;
+  /** The name alone, for narrow places. */
+  short: string;
   extension: string;
   /** Whether frames are drawn. */
   picture: boolean;
@@ -184,23 +281,63 @@ export interface ExportSpec {
   duration: Micros;
   crf: number;
   audioKbps: number;
+  /** Rate of a sound-only file; a format with a picture is at 48000. */
+  sampleRate: ExportSampleRate;
+  /** WAV and FLAC only; 16 when not given. */
+  bitDepth?: ExportBitDepth;
   effort: ExportEffort;
   hardware: boolean;
   sound: SoundSegment[];
   mix: SoundMix;
+  /** Files written besides `output` (the mix) by the same FFmpeg; sound-only formats only. */
+  stems?: StemSpec[];
+}
+
+/** The sound of an export without a file: what an analysis measures (mirrors `SoundOnlySpec` in Rust). */
+export interface SoundOnlySpec {
+  duration: Micros;
+  sound: SoundSegment[];
+  mix: SoundMix;
+}
+
+/**
+ * A stem file (mirrors `StemSpec` in Rust): what one group sends to Master, or, without `bus`,
+ * what the tracks sent straight to Master do ("Other"), taken before Master's level and effects.
+ */
+export interface StemSpec {
+  output: string;
+  /** The group, an index into `SoundMix.buses`. */
+  bus?: number;
+}
+
+/** A stem a composition exports (see `stemsOf`). */
+export interface StemPlan {
+  /** What its file is named with: `<name> - <label>.<ext>`. Safe in a file name, and unique. */
+  label: string;
+  /** The group, an index into `SoundMix.buses`; missing for "Other". */
+  bus?: number;
 }
 
 /** Where an export is. */
 export type ExportStatus =
-  "waiting" | "preparing" | "rendering" | "finishing" | "done" | "failed" | "cancelled";
+  | "waiting"
+  | "preparing"
+  | "measuring"
+  | "rendering"
+  | "finishing"
+  | "done"
+  | "failed"
+  | "cancelled";
 
 /** One export in the queue. */
 export interface ExportJob {
   id: string;
   /** File name with its extension. */
   file: string;
-  /** Full path of the file. */
+  /** Full path of the file: the mix, when it has stems. */
   path: string;
+  /** Full paths of its stem files, when it has some. */
+  stems?: string[];
   kindLabel: string;
   compositionId: CompositionId;
   status: ExportStatus;
@@ -216,6 +353,11 @@ export interface ExportJob {
   range: ExportRange;
   /** The document as it was when queued. */
   project: ProjectState;
+  /**
+   * Whether the runner measures the mix first and brings it to the delivery target, in its own
+   * spec only (`MasterMixSpec.correction`); the project is never changed. Missing is false.
+   */
+  matchTarget?: boolean;
 }
 
 /** The queue of one kernel. */
@@ -232,12 +374,20 @@ export interface ExportFormState {
   kind: ExportKind;
   quality: number;
   format: ExportFormat;
+  /** Of a sound-only file. */
+  sampleRate: ExportSampleRate;
+  /** Of a WAV or FLAC file. */
+  bitDepth: ExportBitDepth;
   whole: boolean;
   /** Where "Only a part" starts and ends. */
   from: Micros;
   to: Micros;
   effort: ExportEffort;
   sound: boolean;
+  /** Each group, and Other, as files of their own beside the mix (sound-only formats). */
+  stems: boolean;
+  /** Bring the mix to the delivery target in the file, without changing the project. */
+  matchTarget: boolean;
   hardware: boolean;
   ifExists: ExportIfExists | "ask";
   reveal: boolean;
@@ -266,6 +416,8 @@ export interface EstimateInput {
   sound: boolean;
   effort: ExportEffort;
   hardware: boolean;
+  sampleRate?: ExportSampleRate;
+  bitDepth?: ExportBitDepth;
 }
 
 /** What the runner needs from the rest of the app. */
@@ -277,6 +429,8 @@ export interface RunnerDeps {
     "prepareMaster" | "masterUrl" | "prepareReversed" | "reversedUrl" | "getProbe"
   >;
   log: Logger;
+  /** What matches a mix to its target, when a module contributes one. Read at run time. */
+  matcher(): LoudnessMatcher | undefined;
 }
 
 /** Runs the queue. */
@@ -298,6 +452,8 @@ export interface ExportApi {
   /** What can be exported here; null until known. */
   readonly capabilities: StoreApi<{ value: ExportCapabilities | null }>;
   readonly runner: ExportRunner;
+  /** Whether a module matches mixes to their delivery target (`sound` does): `matchTarget` needs one. */
+  canMatchTarget(): boolean;
 }
 
 /** One band of a clip's equalizer that changes the sound (mirrors `EqFilter` in Rust). */

@@ -5,16 +5,19 @@ import type { FontRequest } from "@/modules/fonts";
 import type { FilterSet } from "./engine/engine.types";
 import type { GpuPass } from "./gpu/gpu.types";
 import type {
+  BusId,
   Clip,
   ClipId,
   ClipTransform,
   Composition,
   CompositionId,
   Junction,
+  KeyTrack,
   MediaId,
   ProjectState,
   SoundEffect,
   TrackId,
+  MasterMix,
   TrackMix,
 } from "@/modules/project";
 
@@ -69,7 +72,9 @@ export interface PlaybackClock {
 export interface PreviewEngine {
   /**
    * Draws (and, while playing, keeps media in sync with) the project at `time`. `transforms`
-   * replaces clips' saved transforms while a gesture is in progress.
+   * replaces clips' saved transforms while a gesture is in progress. `until` is where playback
+   * stops or goes round (a loop's end; the composition's end at most): volume lines aren't
+   * scheduled past it.
    */
   render(
     project: ProjectState,
@@ -78,6 +83,7 @@ export interface PreviewEngine {
     playing: boolean,
     transforms?: ReadonlyMap<ClipId, ClipTransform>,
     propsOverrides?: ReadonlyMap<ClipId, Record<string, unknown>>,
+    until?: Micros,
   ): void;
   /**
    * Plays a short slice of sound at `time` (audio scrub) through the sound graph, so it is mixed
@@ -115,6 +121,14 @@ export interface PreviewEngine {
   setSound(sound: LiveSound): void;
   /** Peaks of each track bus and the master now; silence when nothing went through the graph. */
   levels(): MixLevels;
+  /** The compressors' gain reduction on a strip, dB (`PreviewSound.reduction`). */
+  reduction(target: TrackId | BusId | "master"): number;
+  /**
+   * Fills `into` (`SPECTRUM_BINS` long) with the master's spectrum now, in dB per bin, the louder
+   * of the two sides, `-Infinity` where there is no sound; bin `i` is at `i * rate / (2 * SPECTRUM_BINS)` Hz. Returns that `rate` (the context's sample rate), 0 when nothing can be read. Read it per
+   * frame; it allocates nothing.
+   */
+  spectrum(into: Float32Array<ArrayBuffer>): number;
   /**
    * Loudness of the master, measured while playing, since the last reset; null while it isn't
    * measured. Paused, the last reading stands.
@@ -141,7 +155,7 @@ export interface StereoLevel {
   right: number;
 }
 
-/** Peaks of the open composition's audio tracks and of its master. */
+/** Peaks of the open composition's audio tracks and groups (by id) and of its master. */
 export interface MixLevels {
   tracks: Record<TrackId, StereoLevel>;
   master: StereoLevel;
@@ -228,6 +242,18 @@ export interface LimiterState {
 }
 
 /**
+ * The limiter that listens for true peaks (`logic/limiter.ts`): `alimiter` over a wide frame of each
+ * channel delayed and its three in-between samples, and the last `TAPS` samples of each channel.
+ */
+export interface TruePeakLimiterState {
+  limiter: LimiterState;
+  /** Per channel, the last `TAPS` samples, the newest first. */
+  history: Float64Array;
+  /** The frame the limiter takes: the channels, then each in-between phase of every channel. */
+  wide: Float64Array;
+}
+
+/**
  * What the dynamics worklet is told: run this effect (any kind it knows) with these settings. A
  * new message replaces the settings; the processor keeps its state.
  */
@@ -237,6 +263,11 @@ export type DynamicsCommand = Exclude<SoundEffect, { kind: "eq" } | { kind: "den
 export interface EffectRunner {
   /** New settings (or a first effect); the state carries on. */
   set(command: DynamicsCommand): void;
+  /**
+   * How far a compressor turned the sound down since the last call, in dB (peak, makeup left
+   * out); 0 for any other kind, when off, or when it did nothing. Starts the next span.
+   */
+  takeReduction(): number;
   /**
    * One block: the sound in, the key (a duck's listened tracks; read only by `duck`), and the
    * output, as long as the block.
@@ -263,6 +294,8 @@ export interface LoudnessReading {
   range: number;
   /** dBTP: the largest true peak since the last reset (a maximum, it never falls back). */
   truePeak: number;
+  /** Correlation of left and right over the last 400 ms, -1 (opposite) to 1 (the same); 1 for silence. */
+  correlation: number;
 }
 
 /** A BS.1770 meter for a stereo signal (`createLoudnessMeter`). */
@@ -308,10 +341,13 @@ export interface LoudnessMessage {
   reading: LoudnessReading;
 }
 
+/** A live patch of a track's, a group's or the master's mix; `trimDb` is the master's only. */
+export type LiveMixPatch = Partial<TrackMix> & Pick<Partial<MasterMix>, "trimDb">;
+
 /** What the user hears beside the document: live drag values, solo and the monitor. */
 export interface LiveSound {
-  /** Live values of tracks and the master (`"master"`), drawn over the saved ones. */
-  mix: ReadonlyMap<TrackId | "master", Partial<TrackMix>>;
+  /** Live values of tracks, groups (by id) and the master (`"master"`), drawn over the saved ones. */
+  mix: ReadonlyMap<TrackId | "master", LiveMixPatch>;
   /** Tracks soloed; none means every track sounds. */
   solo: TrackId[];
   monitor: MonitorState;
@@ -320,17 +356,30 @@ export interface LiveSound {
 /** What the user hears in the preview, beside the document. Ephemeral: never in history. */
 export interface PreviewSound {
   /**
-   * Plays a track (or the master) with this live patch of its mix, without changing the project
+   * Plays a track (or a group, or the master) with this live patch of its mix, without changing the project
    * (feedback while a fader or pan is dragged). Pass null to go back to the saved mix. The edit
-   * commits with `sound.setTrackMix` or `sound.setMaster`.
+   * commits with `sound.setTrackMix`, `sound.setBus` or `sound.setMaster`.
    */
-  previewMix(target: TrackId | "master", patch: Partial<TrackMix> | null): void;
+  previewMix(target: TrackId | "master", patch: LiveMixPatch | null): void;
   /** How the user listens: mono, dim and speaker volume. */
   setMonitor(state: MonitorState): void;
   /** Silences every other track's bus; an empty list lets every track sound. */
   setSolo(trackIds: TrackId[]): void;
   /** Peaks now, of each track bus and the master. Read it per frame; it holds no peaks. */
   levels(): MixLevels;
+  /**
+   * How far the compressors on a strip (a track, a group by its id, or the master) turn the sound
+   * down now, in dB, 0 or more; 0 when it has none, they're off, or nothing plays. The worklet
+   * posts it about 30 times a second and this reads the latest, allocating nothing: read it per
+   * frame, never into React state.
+   */
+  reduction(target: TrackId | BusId | "master"): number;
+  /**
+   * Fills `into` (`SPECTRUM_BINS` long) with the master's spectrum now, in dB per bin, the louder
+   * of the two sides, `-Infinity` where there is no sound; bin `i` is at `i * rate / (2 * SPECTRUM_BINS)` Hz. Returns that `rate` (the context's sample rate), 0 when nothing can be read. Read it per
+   * frame; it allocates nothing.
+   */
+  spectrum(into: Float32Array<ArrayBuffer>): number;
   /**
    * Loudness of the master, measured while playing, since the last reset; null while it isn't
    * measured. Paused, the last reading stands.
@@ -795,4 +844,19 @@ export interface PreviewFilters {
   onChange(listener: () => void): () => void;
   /** A filter failed in the live preview: the user is told once per kernel per id. */
   failed(id: string, error: unknown): void;
+}
+
+/** A level a gain reaches at a playhead time, on the way along volume lines. */
+export interface LinePoint {
+  at: Micros;
+  /** Linear: the lines with the fader's offset on top. */
+  gain: number;
+}
+
+/** A track's volume line, and how far its composition's clock is ahead of the playhead. */
+export interface LineAt {
+  /** Keys on its own composition's timeline time. */
+  line: KeyTrack;
+  /** Its composition's time minus the open composition's (0 for the open one's own tracks). */
+  shift: Micros;
 }

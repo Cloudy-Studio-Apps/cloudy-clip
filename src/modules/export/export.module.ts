@@ -4,6 +4,7 @@ import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { exportCommands } from "./export.commands";
 import { exportMcpTools } from "./export.mcp";
+import { loudnessMatchers } from "./export.points";
 import { exportRef } from "./export.ref";
 import { createExportRunner } from "./export.runner";
 import { defaultFolder, readCapabilities } from "./export.service";
@@ -24,7 +25,7 @@ export const exportModule = defineModule({
   requires: ["project", "media", "preview", "workspace"],
   commands: exportCommands,
   mcpTools: exportMcpTools,
-  setup({ bus, contribute, require, onDispose, log }) {
+  setup({ bus, contribute, require, onDispose, log, points }) {
     const queue = createQueueStore();
     const form = createFormStore();
     const capabilities = createCapabilitiesStore();
@@ -33,6 +34,7 @@ export const exportModule = defineModule({
       preview: require(previewRef),
       media: require(mediaRef),
       log,
+      matcher: () => points.get(loudnessMatchers)[0],
     });
     onDispose(runner.dispose);
 
@@ -60,6 +62,7 @@ export const exportModule = defineModule({
       component: ExportPage,
     });
 
-    return { api: { queue, form, capabilities, runner } };
+    const canMatchTarget = () => points.get(loudnessMatchers).length > 0;
+    return { api: { queue, form, capabilities, runner, canMatchTarget } };
   },
 });

@@ -59,7 +59,8 @@ export function cloneComposition(
     name,
     trackOrder: original.trackOrder.map((trackId) => tracks.get(trackId)!),
   };
-  const other = draft.compositions[id]!.mix?.otherMix;
+  const copy = draft.compositions[id]!;
+  const other = copy.mix?.otherMix;
   if (other) {
     other.tracks = Object.fromEntries(
       Object.entries(other.tracks).flatMap(([trackId, mix]) => {
@@ -68,16 +69,34 @@ export function cloneComposition(
       }),
     );
   }
-  // A copied duck listens to the copied tracks, not the original's.
-  const remap = (mix: { effects?: { kind: string; listensTo?: string[] }[] } | undefined) => {
+  // Groups get new ids too; what sends to one, or ducks under one, follows its copy.
+  const buses = new Map<string, string>();
+  for (const bus of [...(copy.mix?.buses ?? []), ...(other?.buses ?? [])]) {
+    if (!buses.has(bus.id)) buses.set(bus.id, createId("bus"));
+  }
+  for (const bus of [...(copy.mix?.buses ?? []), ...(other?.buses ?? [])])
+    bus.id = buses.get(bus.id)!;
+  // A copied duck listens to the copied tracks and groups, not the original's.
+  const remap = (
+    mix: { busId?: string; effects?: { kind: string; listensTo?: string[] }[] } | undefined,
+  ) => {
+    if (mix?.busId !== undefined) {
+      const copied = buses.get(mix.busId);
+      if (copied) mix.busId = copied;
+      else delete mix.busId;
+    }
     for (const effect of mix?.effects ?? []) {
       if (effect.kind === "duck" && effect.listensTo) {
-        effect.listensTo = effect.listensTo.flatMap((trackId) => tracks.get(trackId) ?? []);
+        effect.listensTo = effect.listensTo.flatMap((heard) => {
+          const copied = tracks.get(heard) ?? buses.get(heard);
+          return copied ? [copied] : [];
+        });
       }
     }
   };
   for (const copyId of tracks.values()) remap(draft.tracks[copyId]!.mix);
   for (const mix of Object.values(other?.tracks ?? {})) remap(mix);
+  for (const bus of [...(copy.mix?.buses ?? []), ...(other?.buses ?? [])]) remap(bus);
   draft.compositionOrder.push(id);
   return id;
 }

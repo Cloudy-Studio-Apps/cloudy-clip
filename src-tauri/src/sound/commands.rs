@@ -4,11 +4,18 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use tauri::State;
-use tauri::ipc::{InvokeBody, Request};
+use tauri::ipc::{Channel, InvokeBody, Request};
 
+use super::analyses::{self, Analyses};
+use super::analyze::Analysis;
+use super::beats::{self, Beats};
 use super::floor::{MEASURE_ARGS, parse_floor, stretch_args};
+use super::loudness::{self, Loudness};
 use super::record::{TakeStarted, TakeWritten, Takes};
-use crate::error::AppError;
+use super::silences::{self, Silences};
+use crate::error::{AppError, AppResult};
+use crate::export::PartialNotes;
+use crate::export::spec::{EnvelopePoint, SoundOnlySpec};
 use crate::media::MediaRegistry;
 use crate::media::denoise::AFFTDN_NF;
 use crate::media::proxy::{command, find_tools};
@@ -86,4 +93,164 @@ pub async fn sound_record_write(
     let id = header("id").ok_or_else(|| AppError::InvalidInput("No recording id".into()))?;
     let done = header("done") == Some("1");
     takes.write(id, samples, done).await
+}
+
+/// Starts measuring a whole mix without playing it: `spec` is the sound of a Mix export (never
+/// its stems), `peak_limit` the dBTP over which a stretch is a problem. Reports 0 to 1 to
+/// `on_progress`. Returns the job's id, for `sound_analyze_finish` and `sound_analyze_cancel`.
+/// A mix with no sound is refused.
+#[tauri::command]
+pub async fn sound_analyze_begin(
+    spec: SoundOnlySpec,
+    peak_limit: f64,
+    on_progress: Channel<f32>,
+    notes: State<'_, PartialNotes>,
+    analyses: State<'_, Analyses>,
+) -> AppResult<String> {
+    analyses::begin(spec, peak_limit, on_progress, &notes, &analyses).await
+}
+
+/// Waits for an analysis to end and returns its figures: integrated loudness (LUFS; null when
+/// there is nothing to measure), loudness range (LU), true peak (dBTP; null for silence) and the
+/// problem stretches. Fails with "Cancelled" when it was.
+#[tauri::command]
+pub async fn sound_analyze_finish(
+    job_id: String,
+    notes: State<'_, PartialNotes>,
+    analyses: State<'_, Analyses>,
+) -> AppResult<Analysis> {
+    analyses::finish(&job_id, &notes, &analyses).await
+}
+
+/// Stops an analysis. One that already ended is left alone.
+#[tauri::command]
+pub async fn sound_analyze_cancel(
+    job_id: String,
+    notes: State<'_, PartialNotes>,
+    analyses: State<'_, Analyses>,
+) -> AppResult<()> {
+    analyses::cancel(&job_id, &notes, &analyses).await;
+    Ok(())
+}
+
+/// What `sound_beats` found.
+#[derive(serde::Serialize)]
+pub struct BeatsFound {
+    /// Microseconds of the file, in order; none when it has no tempo (speech, a held tone).
+    pub beats: Vec<u64>,
+}
+
+/// The beats of the file at `path`, from the cache when the file is unchanged (path, size,
+/// modified time); otherwise decoded under the caller's `job_id` (for `sound_beats_cancel`),
+/// reporting 0 to 1 to `on_progress`. Fails with "Cancelled" when it was.
+#[tauri::command]
+pub async fn sound_beats(
+    path: String,
+    job_id: String,
+    on_progress: Channel<f32>,
+    notes: State<'_, PartialNotes>,
+    beats: State<'_, Beats>,
+) -> AppResult<BeatsFound> {
+    let found = beats::find(&PathBuf::from(path), job_id, on_progress, &notes, &beats).await?;
+    Ok(BeatsFound { beats: found })
+}
+
+/// Stops a `sound_beats` still decoding. One that already ended is left alone.
+#[tauri::command]
+pub async fn sound_beats_cancel(job_id: String, beats: State<'_, Beats>) -> AppResult<()> {
+    beats::cancel(&job_id, &beats).await;
+    Ok(())
+}
+
+/// What `sound_silences_finish` found.
+#[derive(serde::Serialize)]
+pub struct SilencesFound {
+    /// `[start, end]` in microseconds of the file, in order; none when it never falls silent.
+    pub stretches: Vec<(u64, u64)>,
+}
+
+/// Starts looking for the silent stretches of `from..to` (microseconds of the file) of the file
+/// at `path`: quieter than `threshold_db` (dBFS) for at least `min_ms`. Reports 0 to 1 to
+/// `on_progress`. Returns the scan's id, for `sound_silences_finish` and `sound_silences_cancel`,
+/// or null when the file has no sound.
+#[tauri::command]
+pub async fn sound_silences_begin(
+    path: String,
+    from: u64,
+    to: u64,
+    threshold_db: f64,
+    min_ms: f64,
+    on_progress: Channel<f32>,
+    silences: State<'_, Silences>,
+) -> AppResult<Option<String>> {
+    silences::begin(
+        &PathBuf::from(path),
+        from,
+        to,
+        threshold_db,
+        min_ms,
+        on_progress,
+        &silences,
+    )
+    .await
+}
+
+/// Waits for a scan to end and returns its stretches. Fails with "Cancelled" when it was.
+#[tauri::command]
+pub async fn sound_silences_finish(
+    job_id: String,
+    silences: State<'_, Silences>,
+) -> AppResult<SilencesFound> {
+    let stretches = silences::finish(&job_id, &silences).await?;
+    Ok(SilencesFound { stretches })
+}
+
+/// Stops a scan. One that already ended is left alone.
+#[tauri::command]
+pub async fn sound_silences_cancel(job_id: String, silences: State<'_, Silences>) -> AppResult<()> {
+    silences::cancel(&job_id, &silences).await;
+    Ok(())
+}
+
+/// Starts measuring the integrated loudness of `from..to` (microseconds of the file) of the file
+/// at `path`, as heard through the clip's linear `gain` (or `gain_envelope`, points counted from
+/// `from`, which replaces it). Reports 0 to 1 to `on_progress`. Returns the id for
+/// `sound_loudness_finish` and `sound_loudness_cancel`, or null when the file has no sound.
+#[tauri::command]
+pub async fn sound_loudness_begin(
+    path: String,
+    from: u64,
+    to: u64,
+    gain: f64,
+    gain_envelope: Vec<EnvelopePoint>,
+    on_progress: Channel<f32>,
+    loudness: State<'_, Loudness>,
+) -> AppResult<Option<String>> {
+    loudness::begin(
+        &PathBuf::from(path),
+        from,
+        to,
+        gain,
+        &gain_envelope,
+        on_progress,
+        &loudness,
+    )
+    .await
+}
+
+/// Waits for a measurement to end: LUFS, or null when it is all below the gate (silence). Fails
+/// with "Cancelled" when it was stopped.
+#[tauri::command]
+pub async fn sound_loudness_finish(
+    job_id: String,
+    loudness: State<'_, Loudness>,
+) -> AppResult<Option<f64>> {
+    loudness::finish(&job_id, &loudness).await
+}
+
+/// Stops a measurement. One that already ended is left alone.
+#[tauri::command]
+pub async fn sound_loudness_cancel(job_id: String, loudness: State<'_, Loudness>) -> AppResult<()> {
+    loudness::cancel(&job_id, &loudness).await;
+    Ok(())
 }

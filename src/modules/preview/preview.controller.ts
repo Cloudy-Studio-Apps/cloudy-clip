@@ -62,8 +62,12 @@ export function createPreviewController(deps: PreviewControllerDeps): PreviewCon
     if (scrub.drawSlice()) return;
     const project = deps.getProject();
     const time = clock.getTime();
+    // A loop the playhead is before goes round at its end; otherwise playback stops at the end.
+    const loop = clock.getLoop();
+    const until = loop && time < loop.to ? loop.to : composition.duration;
     try {
-      engine.render(project, composition, time, clock.isPlaying(), transforms, propsOverrides);
+      const playing = clock.isPlaying();
+      engine.render(project, composition, time, playing, transforms, propsOverrides, until);
     } catch (error) {
       log.error("Render failed", error);
     }

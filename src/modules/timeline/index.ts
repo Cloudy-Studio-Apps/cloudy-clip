@@ -41,6 +41,12 @@ export {
  * layout check, and shrinking junctions that no longer fit, for modules with their own clip edits.
  */
 export { commitState, fitJunctions, junctionKindOf } from "./timeline.junctions";
+/**
+ * Runs an edit that, with `soundOnly`, leaves pictures alone: it acts on the named clips on audio
+ * tracks only, unlinked first, all one undo step. For a module's own clip edit that the Sound page
+ * runs on sound alone.
+ */
+export { editSoundOnly } from "./timeline.sound";
 /** Layers over the lanes; contribute with `ctx.contribute(timelineOverlays, …)`. */
 export {
   clipActions,
@@ -65,6 +71,11 @@ export { timelineTrackControls } from "./timeline.points";
 export { HEADER_WIDTH, RULER_HEIGHT, SNAP_PX } from "./timeline.layout";
 /** The height of a track's lane by kind, in px, for an overlay that draws a lane of its own. */
 export { trackHeight } from "./timeline.layout";
+/**
+ * Selectors of the timeline's scrolling element and of the content in it, for an overlay that
+ * measures or queries them: `element.closest(TIMELINE_CONTENT)`.
+ */
+export { TIMELINE_CONTENT, TIMELINE_SCROLLER } from "./timeline.layout";
 /**
  * Height of the rows above the first lane in px, by scope: the ruler, plus the marks row on
  * `"sound"`. The one answer to where the lanes start, for an overlay that measures from there.
@@ -103,6 +114,12 @@ export { playheadSplit } from "./logic/split";
 export { nextTrackName } from "./logic/naming";
 /** Snaps a time to the closest candidate within a threshold. */
 export { snapTime } from "./logic/placement";
+/**
+ * Starts a scrub drag from a `pointerdown`, as the ruler does: the playhead follows the pointer
+ * (snapping unless Ctrl/Cmd), a slice of sound plays at each move, nothing is written. The
+ * target's left edge is time 0.
+ */
+export { useScrubDrag } from "./ui/scrub.hook";
 /** What drags snap to (clip edges, cuts, the playhead and `timelineSnapTargets`), as a hook. */
 export { useSnapCandidates } from "./ui/snap.hook";
 /** The `timeline.overlap` failure for a spot taken by another clip, with where it is. */

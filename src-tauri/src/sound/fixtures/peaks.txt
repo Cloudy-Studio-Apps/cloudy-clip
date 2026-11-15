@@ -1,0 +1,115 @@
+Input #0, lavfi, from 'aevalsrc='(0.1+0.85*between(t,0.5,0.799)+1.2*between(t,1.2,1.399))*sin(2*PI*997*t)|(0.1+0.85*between(t,0.5,0.799)+1.2*between(t,1.2,1.399))*sin(2*PI*997*t)':s=48000:d=2':
+  Duration: N/A, start: 0.000000, bitrate: 6144 kb/s
+  Stream #0:0: Audio: pcm_f64le, 48000 Hz, stereo, dbl, 6144 kb/s
+Stream mapping:
+  Stream #0:0 (pcm_f64le) -> aformat:default
+  ametadata:default -> Stream #0:0 (pcm_f32le)
+Press [q] to stop, [?] for help
+[ametadata@sample @ 0x7fc2d4005340] frame:0    pts:0       pts_time:0
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000001
+[ametadata@true @ 0x7fc2d4016ac0] frame:0    pts:0       pts_time:0
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+Output #0, null, to 'pipe:':
+  Metadata:
+    encoder         : Lavf63.1.102
+  Stream #0:0: Audio: pcm_f32le, 192000 Hz, stereo, flt, 12288 kb/s
+    Metadata:
+      encoder         : Lavc63.1.102 pcm_f32le
+[ametadata@sample @ 0x7fc2d4005340] frame:1    pts:4800    pts_time:0.1
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000000
+[ametadata@true @ 0x7fc2d4016ac0] frame:1    pts:19136   pts_time:0.0996667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:2    pts:9600    pts_time:0.2
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000000
+[ametadata@true @ 0x7fc2d4016ac0] frame:2    pts:38336   pts_time:0.199667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:3    pts:14400   pts_time:0.3
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000000
+[ametadata@true @ 0x7fc2d4016ac0] frame:3    pts:57536   pts_time:0.299667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:4    pts:19200   pts_time:0.4
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000001
+[ametadata@true @ 0x7fc2d4016ac0] frame:4    pts:76736   pts_time:0.399667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:5    pts:24000   pts_time:0.5
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-0.445528
+[ametadata@true @ 0x7fc2d4016ac0] frame:5    pts:95936   pts_time:0.499667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-0.445473
+[ametadata@sample @ 0x7fc2d4005340] frame:6    pts:28800   pts_time:0.6
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-0.445528
+[ametadata@true @ 0x7fc2d4016ac0] frame:6    pts:115136  pts_time:0.599667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-0.445472
+[ametadata@sample @ 0x7fc2d4005340] frame:7    pts:33600   pts_time:0.7
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-0.445528
+[ametadata@true @ 0x7fc2d4016ac0] frame:7    pts:134336  pts_time:0.699667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-0.445472
+[ametadata@sample @ 0x7fc2d4005340] frame:8    pts:38400   pts_time:0.8
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000000
+[ametadata@true @ 0x7fc2d4016ac0] frame:8    pts:153536  pts_time:0.799667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:9    pts:43200   pts_time:0.9
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000001
+[ametadata@true @ 0x7fc2d4016ac0] frame:9    pts:172736  pts_time:0.899667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:10   pts:48000   pts_time:1
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000001
+[ametadata@true @ 0x7fc2d4016ac0] frame:10   pts:191936  pts_time:0.999667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:11   pts:52800   pts_time:1.1
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000000
+[ametadata@true @ 0x7fc2d4016ac0] frame:11   pts:211136  pts_time:1.099667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:12   pts:57600   pts_time:1.2
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=2.278867
+[ametadata@true @ 0x7fc2d4016ac0] frame:12   pts:230336  pts_time:1.199667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=2.278922
+[ametadata@sample @ 0x7fc2d4005340] frame:13   pts:62400   pts_time:1.3
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=2.278867
+[ametadata@true @ 0x7fc2d4016ac0] frame:13   pts:249536  pts_time:1.299667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=2.926755
+[ametadata@sample @ 0x7fc2d4005340] frame:14   pts:67200   pts_time:1.4
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000001
+[ametadata@true @ 0x7fc2d4016ac0] frame:14   pts:268736  pts_time:1.399667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:15   pts:72000   pts_time:1.5
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000001
+[ametadata@true @ 0x7fc2d4016ac0] frame:15   pts:287936  pts_time:1.499667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:16   pts:76800   pts_time:1.6
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000000
+[ametadata@true @ 0x7fc2d4016ac0] frame:16   pts:307136  pts_time:1.599667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:17   pts:81600   pts_time:1.7
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000000
+[ametadata@true @ 0x7fc2d4016ac0] frame:17   pts:326336  pts_time:1.699667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:18   pts:86400   pts_time:1.8
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000000
+[ametadata@true @ 0x7fc2d4016ac0] frame:18   pts:345536  pts_time:1.799667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@sample @ 0x7fc2d4005340] frame:19   pts:91200   pts_time:1.9
+[ametadata@sample @ 0x7fc2d4005340] lavfi.astats.Overall.Peak_level=-20.000001
+[ametadata@true @ 0x7fc2d4016ac0] frame:19   pts:364736  pts_time:1.899667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-19.999944
+[ametadata@true @ 0x7fc2d4016ac0] frame:20   pts:383936  pts_time:1.999667
+[ametadata@true @ 0x7fc2d4016ac0] lavfi.astats.Overall.Peak_level=-20.000096
+[Parsed_astats_6 @ 0x7fc2d4016840] Overall
+[Parsed_astats_6 @ 0x7fc2d4016840] Peak level dB: -20.000096
+[Parsed_astats_3 @ 0x7fc2d40050c0] Overall
+[Parsed_astats_3 @ 0x7fc2d40050c0] Peak level dB: -20.000001
+[Parsed_ebur128_2 @ 0x7fc2d4004d00] Summary:
+
+  Integrated loudness:
+    I:          -2.5 LUFS
+    Threshold: -14.4 LUFS
+
+  Loudness range:
+    LRA:         0.0 LU
+    Threshold:   0.0 LUFS
+    LRA low:     0.0 LUFS
+    LRA high:    0.0 LUFS
+
+  True peak:
+    Peak:        2.9 dBFS
+[out#0/null @ 0x55a401497d00] video:0KiB audio:3000KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+size=N/A time=00:00:02.00 bitrate=N/A speed=92.1x elapsed=0:00:00.02    

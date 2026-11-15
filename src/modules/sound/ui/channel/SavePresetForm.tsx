@@ -4,7 +4,7 @@ import type { CompositionId } from "@/modules/project";
 import { Button } from "@/ui";
 import { chainWhere } from "../../logic/effects";
 import { savePreset } from "../../sound.presets.commands";
-import type { MixTarget } from "../../sound.types";
+import type { MixTarget } from "../../sound.line.types";
 
 interface SavePresetFormProps {
   target: MixTarget;

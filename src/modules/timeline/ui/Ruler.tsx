@@ -1,14 +1,11 @@
 import { memo } from "react";
-import { formatTimecode, MICROS_PER_SECOND, type Micros, useModule } from "@/core";
-import { projectRef, useOpenComposition } from "@/modules/project";
-import { previewRef } from "@/modules/preview";
-import { pxToTime, rulerStep, timeToPx } from "../logic/geometry";
-import { snapTime } from "../logic/placement";
-import { RULER_HEIGHT, SNAP_PX } from "../timeline.layout";
+import { formatTimecode, MICROS_PER_SECOND, type Micros } from "@/core";
+import { rulerStep, timeToPx } from "../logic/geometry";
+import { RULER_HEIGHT } from "../timeline.layout";
 import { useHeaderWidth } from "./header.width.hook";
 import { LoopBand } from "./LoopBand";
 import { PlayheadHead } from "./Playhead";
-import { useSnapCandidates } from "./snap.hook";
+import { useScrubDrag } from "./scrub.hook";
 
 /** Minor ticks drawn between two labelled ones. */
 const MINOR_PER_STEP = 5;
@@ -30,11 +27,7 @@ interface RulerProps {
  * while scrolling.
  */
 export const Ruler = memo(function Ruler({ pxPerSecond, loop, from, to, width }: RulerProps) {
-  const preview = useModule(previewRef);
-  const { playback } = preview;
-  const project = useModule(projectRef).store;
-  const compositionId = useOpenComposition()?.id;
-  const snapCandidates = useSnapCandidates();
+  const scrub = useScrubDrag();
   const headerWidth = useHeaderWidth();
   const stepMicros = rulerStep(pxPerSecond) * MICROS_PER_SECOND;
   const minorMicros = stepMicros / MINOR_PER_STEP;
@@ -42,16 +35,6 @@ export const Ruler = memo(function Ruler({ pxPerSecond, loop, from, to, width }:
   for (let t = Math.floor(from / stepMicros) * stepMicros; t <= to; t += minorMicros) {
     ticks.push(Math.round(t));
   }
-
-  const scrubTo = (target: HTMLElement, event: PointerEvent, candidates: readonly Micros[]) => {
-    const time = Math.max(
-      0,
-      pxToTime(event.clientX - target.getBoundingClientRect().left, pxPerSecond),
-    );
-    const free = event.ctrlKey || event.metaKey;
-    playback.seek(free ? time : snapTime(time, candidates, pxToTime(SNAP_PX, pxPerSecond)));
-    preview.scrub(playback.getTime());
-  };
 
   return (
     <div className="sticky top-0 z-30 flex" style={{ height: RULER_HEIGHT }}>
@@ -63,23 +46,7 @@ export const Ruler = memo(function Ruler({ pxPerSecond, loop, from, to, width }:
         className="relative cursor-col-resize border-b-[1.5px] border-subtle-foreground bg-surface"
         style={{ width }}
         onPointerDown={(e) => {
-          if (e.button !== 0) return;
-          const target = e.currentTarget;
-          target.setPointerCapture(e.pointerId);
-          // The playhead is what moves, so it is no target: 0 stands in for it (already one).
-          const candidates = compositionId
-            ? snapCandidates(project.getState(), compositionId, 0)
-            : [];
-          scrubTo(target, e.nativeEvent, candidates);
-          const move = (ev: PointerEvent) => scrubTo(target, ev, candidates);
-          const up = () => {
-            target.removeEventListener("pointermove", move);
-            target.removeEventListener("pointerup", up);
-            target.removeEventListener("pointercancel", up);
-          };
-          target.addEventListener("pointermove", move);
-          target.addEventListener("pointerup", up);
-          target.addEventListener("pointercancel", up);
+          if (e.button === 0) scrub(e.nativeEvent, e.currentTarget);
         }}
       >
         {ticks.map((t, i) => {

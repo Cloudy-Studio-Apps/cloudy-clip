@@ -4,7 +4,7 @@ import { cn } from "@/ui";
 import { chainSlot } from "../../logic/chain";
 import { chainWhere, EFFECT_NAMES } from "../../logic/effects";
 import { moveEffect } from "../../sound.effects.commands";
-import type { MixTarget } from "../../sound.types";
+import type { MixTarget } from "../../sound.line.types";
 import { AddEffectMenu } from "./AddEffectMenu";
 import { startChainDrag } from "./chain.gesture";
 import { DenoiseMark } from "./DenoiseMark";

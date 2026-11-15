@@ -5,6 +5,7 @@ import {
   contentTime,
   formatOf,
   frameDuration,
+  keyEase,
   mirrorEase,
   moveTrackKeys,
   projectRef,
@@ -13,7 +14,7 @@ import {
   type KeyEase,
   type KeyTrack,
 } from "@/modules/project";
-import { grouped, invalidValue, keyEase, keyRef, requireClip, requireKey } from "./keyframe.guards";
+import { grouped, invalidValue, keyRef, requireClip, requireKey } from "./keyframe.guards";
 import { keyframeRef } from "./keyframe.ref";
 import type { TrackEdit } from "./keyframe.types";
 import { writeTracks } from "./keyframe.write";

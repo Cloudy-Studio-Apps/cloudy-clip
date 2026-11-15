@@ -3,7 +3,7 @@
 //! Each builds a piece of a segment's chain; `recipe` assembles the segments and `mixgraph` mixes
 //! them.
 
-use super::recipe::{EnvelopePoint, EqFilter, EqKind, SAMPLE_RATE, SoundSegment};
+use super::spec::{EnvelopePoint, EqFilter, EqKind, SAMPLE_RATE, SoundSegment};
 
 /// Timeline time each tempo step reads ahead of its end. `atempo` gives a few milliseconds more
 /// or less than its input over its tempo, so each step reads ahead and is cut to its exact length:
@@ -179,10 +179,22 @@ fn timed(points: &[EnvelopePoint], value: impl Fn(f64) -> f64) -> Vec<(f64, f64)
         .collect()
 }
 
+/// The filter that multiplies every channel by an envelope's expression. `aeval` reads `t` for
+/// each sample, so the level follows the line as the preview's ramps do; `volume=eval=frame`
+/// would hold it for a whole decoded frame (1024 to 4096 samples) and move in steps of up to
+/// 18 dB on a steep fade. A constant needs no expression.
+fn envelope_gain(expr: &str) -> String {
+    if expr.parse::<f64>().is_ok() {
+        format!("volume={expr}")
+    } else {
+        format!("aeval='val(ch)*({expr})':c=same")
+    }
+}
+
 /// A level that follows an envelope.
-pub(super) fn gain_envelope_filter(points: &[EnvelopePoint]) -> String {
+pub(crate) fn gain_envelope_filter(points: &[EnvelopePoint]) -> String {
     let expr = envelope_expr(&timed(points, |v| v));
-    format!(",volume=eval=frame:volume='{expr}'")
+    format!(",{}", envelope_gain(&expr))
 }
 
 /// A pan that follows an envelope. The sound is split in two channels, each goes to both sides
@@ -195,7 +207,7 @@ pub(super) fn pan_envelope_filter(n: usize, points: &[EnvelopePoint]) -> String 
     let (ll, rl) = (gain(|g| g.0), gain(|g| g.1));
     let (lr, rr) = (gain(|g| g.2), gain(|g| g.3));
     let volume = |from: &str, expr: String, to: &str| {
-        format!("[{from}{n}]volume=eval=frame:volume='{expr}'[{to}{n}];")
+        format!("[{from}{n}]{}[{to}{n}];", envelope_gain(&expr))
     };
     let mut text = format!(",channelsplit=channel_layout=stereo[pl{n}][pr{n}];");
     text.push_str(&format!("[pl{n}]asplit[pll{n}][plr{n}];"));
@@ -258,7 +270,7 @@ pub(super) fn effects(n: usize, segment: &SoundSegment) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::export::recipe::segment;
+    use crate::export::spec::segment;
 
     fn band(kind: EqKind, hz: f64, db: f64) -> EqFilter {
         EqFilter {

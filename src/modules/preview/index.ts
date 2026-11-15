@@ -36,6 +36,8 @@ export { DEFAULT_MONITOR } from "./logic/mix";
  * and gain the preview runs: for drawing a transfer graph that can't disagree with the sound.
  */
 export { dynamicsTransfer } from "./logic/dynamics";
+/** How many bins `PreviewSound.spectrum` fills. */
+export { SPECTRUM_BINS } from "./logic/spectrum";
 /** A linear peak in dBFS (full scale is 0), `-Infinity` for silence, as the meters read it. */
 export { peakToDb } from "./logic/db";
 export type {
@@ -46,6 +48,7 @@ export type {
   FrameFilterInfo,
   FrameRenderer,
   FrameRendererOptions,
+  LiveMixPatch,
   LiveSound,
   LoopRange,
   LoudnessReading,
