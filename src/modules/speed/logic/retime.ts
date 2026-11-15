@@ -50,6 +50,24 @@ export function writeRamp(clip: Clip, track: KeyTrack | undefined): void {
   else delete clip.animation;
 }
 
+/**
+ * The part of the file a ramped clip was given, which its length only bounds: the length is the
+ * longest that stays within the span, so the span lies from what the clip plays to what one more
+ * microsecond would play. The roundest value in that gap is the one that was asked for.
+ * shortcut: a span that wasn't round comes back within the gap (at most the ramp's top rate in
+ * microseconds), not exactly; storing the span on the clip would make it exact.
+ */
+export function rampedSpan(clip: Clip): Micros {
+  const low = sourceSpan(clip);
+  if (!rampOf(clip)) return low;
+  const high = sourceSpan({ ...clip, duration: clip.duration + 1 }) - 1;
+  for (let step = 1_000_000; step >= 10; step /= 10) {
+    const round = Math.floor(high / step) * step;
+    if (round >= low) return round;
+  }
+  return low;
+}
+
 /** Fails when a change asks of a ramped clip what its keys decide; drops the ramp if told to. */
 export function settleRamp(
   state: ProjectState,
@@ -60,7 +78,7 @@ export function settleRamp(
   const clipId = group[0]!.id;
   if (input.dropRamp) {
     return produce(state, (draft) => {
-      for (const clip of group) flattenRamp(draft.clips[clip.id]!, sourceSpan(clip));
+      for (const clip of group) flattenRamp(draft.clips[clip.id]!, rampedSpan(clip));
     });
   }
   if (input.rate) {
