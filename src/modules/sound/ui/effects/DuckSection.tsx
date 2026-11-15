@@ -5,7 +5,7 @@ import { FieldRow } from "@/modules/inspector";
 import { EFFECT_RANGES, projectRef, type DuckEffect } from "@/modules/project";
 import { cn } from "@/ui";
 import { defaultSpec } from "../../logic/effects";
-import type { DuckOwner, EffectEdit } from "../../sound.types";
+import type { DuckOwner, EffectEdit } from "../../sound.effects.types";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 

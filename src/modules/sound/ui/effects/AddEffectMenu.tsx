@@ -5,7 +5,7 @@ import { projectRef, type CompositionId, type SoundEffect } from "@/modules/proj
 import { MenuList, Popover } from "@/ui";
 import { addableKinds, chainWhere, EFFECT_NAMES } from "../../logic/effects";
 import { addEffect } from "../../sound.effects.commands";
-import type { MixTarget } from "../../sound.types";
+import type { MixTarget } from "../../sound.line.types";
 import { report } from "../report";
 
 interface AddEffectMenuProps {

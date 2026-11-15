@@ -10,7 +10,7 @@ import { levelTop, movedLine, polylineOf } from "../../logic/clipline";
 import { trackLineKeys, trackLinePoints } from "../../logic/trackline";
 import { moveLineKeys, setLineKey } from "../../sound.line.commands";
 import { soundRef } from "../../sound.ref";
-import type { LineKey, LinePoint, LineTarget } from "../../sound.types";
+import type { LineKey, LinePoint, LineTarget } from "../../sound.line.types";
 import { startLineGesture } from "./clipline.gesture";
 import { TrackLineStroke } from "./TrackLineStroke";
 

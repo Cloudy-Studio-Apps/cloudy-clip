@@ -1,5 +1,5 @@
 import { platformOf, RECORDING_CHECKED } from "./logic/record";
-import type { Capture, RecordCommand } from "./sound.types";
+import type { Capture, RecordCommand } from "./sound.record.types";
 import workletUrl from "./sound.record.worklet.ts?worker&url";
 
 /**

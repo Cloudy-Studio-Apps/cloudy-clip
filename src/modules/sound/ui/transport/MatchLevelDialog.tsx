@@ -6,7 +6,7 @@ import { Button, Dialog } from "@/ui";
 import { levelPlan } from "../../logic/level";
 import { soundRef } from "../../sound.ref";
 import { matchLevel } from "../../sound.tools.commands";
-import type { ClipLoudness, MatchDialog } from "../../sound.types";
+import type { ClipLoudness, MatchDialog } from "../../sound.tools.types";
 import { report } from "../report";
 
 const db = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)} dB`;
@@ -28,8 +28,10 @@ export function MatchLevelDialog({ target }: { target: MatchDialog }) {
 
   useEffect(() => {
     let live = true;
+    // Its own run: closing stops it, never an agent's measurement of the same clips.
+    const run = new AbortController();
     loudness
-      .measure(clipIds, (p) => live && setProgress(p))
+      .measure(clipIds, (p) => live && setProgress(p), run.signal)
       .then(
         (clips) => live && setMeasured(clips),
         (error: unknown) => {
@@ -38,7 +40,7 @@ export function MatchLevelDialog({ target }: { target: MatchDialog }) {
       );
     return () => {
       live = false;
-      loudness.cancel();
+      run.abort();
     };
   }, [clipIds, loudness]);
 
@@ -94,7 +96,7 @@ export function MatchLevelDialog({ target }: { target: MatchDialog }) {
               <span className="truncate text-foreground">{nameOf(c.clipId)}</span>
               <span className="shrink-0 text-muted-foreground">
                 {c.lufs.toFixed(1)} LUFS, {db(c.deltaDb)}
-                {c.volumeDb === null ? " (keys)" : ""}
+                {c.volumeDb === null ? " (keys)" : ` → ${c.volumeDb.toFixed(1)} dB`}
                 {c.clamped ? " (limit)" : ""}
               </span>
             </li>

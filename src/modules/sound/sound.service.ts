@@ -2,7 +2,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import type { Micros } from "@/core";
 import type { SoundOnlySpec } from "@/modules/export";
 import type { MediaId } from "@/modules/project";
-import type { TakeStarted, TakeWritten } from "./sound.types";
+import type { TakeStarted, TakeWritten } from "./sound.record.types";
 import type { MixAnalysis } from "./sound.delivery.types";
 
 /**

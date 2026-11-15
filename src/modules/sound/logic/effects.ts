@@ -10,7 +10,8 @@ import {
   type SoundEffectKind,
   type TrackId,
 } from "@/modules/project";
-import type { ChainWhere, EffectSpecOf, ListenNodes, MixTarget } from "../sound.types";
+import type { ChainWhere, EffectSpecOf, ListenNodes } from "../sound.effects.types";
+import type { MixTarget } from "../sound.line.types";
 
 /** What each kind is called: in full (the Channel tab) and short (a strip's list). */
 export const EFFECT_NAMES: Record<SoundEffectKind, { name: string; short: string }> = {

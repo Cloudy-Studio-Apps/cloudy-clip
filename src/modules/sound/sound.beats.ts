@@ -1,7 +1,8 @@
 import type { StoreApi } from "zustand";
 import { createId, notify, type Logger } from "@/core";
+import { rememberedBeats } from "./logic/beats";
 import { cancelFileBeats, findFileBeats } from "./sound.service";
-import type { BeatFinder, BeatsState } from "./sound.types";
+import type { BeatFinder, BeatsState } from "./sound.tools.types";
 
 /** The message of a rejection from the native side (`{ code, message }`) or an `Error`. */
 function messageOf(error: unknown): string {
@@ -18,6 +19,7 @@ export function createBeatFinder(state: StoreApi<BeatsState>, log: Logger): Beat
   let jobId: string | null = null;
   let cancelled = false;
   let done = Promise.resolve();
+  const remembered = rememberedBeats();
 
   const run = async (paths: string[]) => {
     for (const [index, path] of paths.entries()) {
@@ -60,5 +62,6 @@ export function createBeatFinder(state: StoreApi<BeatsState>, log: Logger): Beat
     },
     cancel,
     settled: () => done,
+    times: (project, compositionId) => remembered(project, compositionId, state.getState().files),
   };
 }

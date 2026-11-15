@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { METER_HOT_DB, METER_LOUD_DB, meterHeight } from "../../logic/meter";
-import type { MeterTarget } from "../../sound.types";
+import type { MeterTarget } from "../../sound.meter.types";
 import { useMeters } from "./meters.context";
 
 const loud = meterHeight(METER_LOUD_DB) * 100;

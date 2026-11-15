@@ -1,5 +1,5 @@
 import type { Ref } from "react";
-import type { PhaseMeterHandle } from "../../sound.types";
+import type { PhaseMeterHandle } from "../../sound.meter.types";
 import { PanelCard } from "../card";
 import { PhaseMeter } from "./PhaseMeter";
 

@@ -4,7 +4,7 @@ import type { PlaybackClock } from "@/modules/preview";
 import { frameDuration, type ProjectApi } from "@/modules/project";
 import type { WorkspaceApi } from "@/modules/workspace";
 import { followCompositionSwitch, followSoundPageLeave } from "./sound.leave";
-import type { Recorder } from "./sound.types";
+import type { Recorder } from "./sound.record.types";
 
 /** How far ahead of the time passed the playhead may be before it counts as a jump (µs). */
 const FORWARD_SLACK_US = 250_000;

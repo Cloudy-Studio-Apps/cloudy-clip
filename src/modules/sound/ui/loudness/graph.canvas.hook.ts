@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
-import type { GraphColours } from "../../sound.types";
+import type { GraphColours } from "../../sound.meter.types";
 
 /** The theme's colours for a graph, read from the canvas's tokens. */
 function readColours(canvas: HTMLCanvasElement): GraphColours {

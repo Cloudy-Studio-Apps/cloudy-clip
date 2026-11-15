@@ -1,4 +1,4 @@
-import type { StrokeDrag, StrokePoint } from "../../sound.types";
+import type { StrokeDrag, StrokePoint } from "../../sound.line.types";
 
 /** How far the pointer must travel, in px, before a press becomes a stroke. */
 const DRAG_PX = 3;

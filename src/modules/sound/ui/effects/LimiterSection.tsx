@@ -1,6 +1,6 @@
 import { EFFECT_RANGES, type LimiterEffect } from "@/modules/project";
 import { defaultSpec } from "../../logic/effects";
-import type { EffectEdit } from "../../sound.types";
+import type { EffectEdit } from "../../sound.effects.types";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 

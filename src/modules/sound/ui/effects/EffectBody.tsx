@@ -1,5 +1,5 @@
 import type { SoundEffect } from "@/modules/project";
-import type { DuckOwner, EffectEdit } from "../../sound.types";
+import type { DuckOwner, EffectEdit } from "../../sound.effects.types";
 import { CompressorSection } from "./CompressorSection";
 import { DeesserSection } from "./DeesserSection";
 import { DenoiseSection } from "./DenoiseSection";

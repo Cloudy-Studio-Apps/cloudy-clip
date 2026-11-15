@@ -9,15 +9,9 @@ import {
   type ProjectState,
 } from "@/modules/project";
 import { cutsFor } from "./logic/silence";
-import { createScanner, type ScanPart } from "./sound.scan";
+import { createScanner } from "./sound.scan";
 import { beginSilences, cancelSilences, finishSilences } from "./sound.service";
-import type { ClipCuts, SilenceFinder, SilenceParams } from "./sound.types";
-
-/** What one clip is scanned for: its file and the part of it the clip plays. */
-interface Part extends ScanPart {
-  clip: Clip;
-  params: SilenceParams;
-}
+import type { ClipCuts, SilenceFinder, SilenceParams, SilencePart } from "./sound.tools.types";
 
 /**
  * Creates the silence finder of a kernel. The native side scans the part of the file a clip plays
@@ -26,7 +20,7 @@ interface Part extends ScanPart {
  * whose file has no sound is marked `noSound`, and a linked pair is cut once, from the first one named.
  */
 export function createSilenceFinder(project: () => ProjectState, media: MediaApi): SilenceFinder {
-  const scanner = createScanner<Part, [Micros, Micros][]>({
+  const scanner = createScanner<SilencePart, [Micros, Micros][]>({
     begin: ({ path, from, to, params }, onDone) =>
       beginSilences(path, from, to, params.thresholdDb, params.minMs, onDone),
     finish: finishSilences,
@@ -37,7 +31,7 @@ export function createSilenceFinder(project: () => ProjectState, media: MediaApi
   const partsOf = (clipIds: readonly ClipId[], params: SilenceParams) => {
     const state = project();
     const seen = new Set<ClipId>();
-    const parts: (Part | { clip: Clip; noSound: true })[] = [];
+    const parts: (SilencePart | { clip: Clip; noSound: true })[] = [];
     for (const id of clipIds) {
       const clip = state.clips[id];
       const file = clip?.mediaId === undefined ? undefined : state.media[clip.mediaId];
@@ -54,7 +48,10 @@ export function createSilenceFinder(project: () => ProjectState, media: MediaApi
     }
     return parts;
   };
-  const cutsOf = (part: Part | { clip: Clip; noSound: true }, params: SilenceParams): ClipCuts =>
+  const cutsOf = (
+    part: SilencePart | { clip: Clip; noSound: true },
+    params: SilenceParams,
+  ): ClipCuts =>
     "noSound" in part
       ? { clipId: part.clip.id, cuts: [], noSound: true }
       : {
@@ -63,11 +60,12 @@ export function createSilenceFinder(project: () => ProjectState, media: MediaApi
         };
 
   return {
-    async scan(clipIds, params, onProgress) {
+    async scan(clipIds, params, onProgress, signal) {
       const parts = partsOf(clipIds, params);
       await scanner.run(
-        parts.filter((p): p is Part => "key" in p),
+        parts.filter((p): p is SilencePart => "key" in p),
         onProgress,
+        signal,
       );
       return parts.map((part) => cutsOf(part, params));
     },
@@ -76,7 +74,7 @@ export function createSilenceFinder(project: () => ProjectState, media: MediaApi
       if (parts.some((p) => "key" in p && !scanner.has(p.key))) return null;
       return parts.map((part) => cutsOf(part, params));
     },
-    cancel: scanner.cancel,
+    cancelAll: scanner.cancelAll,
     forget: scanner.forget,
   };
 }

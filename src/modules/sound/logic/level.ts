@@ -1,5 +1,5 @@
 import { VOLUME_DB_MAX, VOLUME_DB_MIN, soundOf, type ProjectState } from "@/modules/project";
-import type { ClipLoudness, LevelPlan } from "../sound.types";
+import type { ClipLoudness, LevelPlan } from "../sound.tools.types";
 
 /** The path of a clip's volume keys. */
 export const VOLUME_KEYS = "sound.volumeDb";
@@ -27,7 +27,7 @@ export function levelPlan(
   const changes = loud.map(({ clipId, lufs }) => {
     const deltaDb = target! - lufs;
     const keys = state.clips[clipId]?.animation?.[VOLUME_KEYS];
-    if (keys) {
+    if (keys?.keys.length) {
       const min = keys.min ?? VOLUME_DB_MIN;
       const max = keys.max ?? VOLUME_DB_MAX;
       const clamped = keys.keys.some(

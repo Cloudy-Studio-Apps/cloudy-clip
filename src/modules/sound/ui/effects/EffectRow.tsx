@@ -1,6 +1,6 @@
 import { SoundRow } from "@/modules/audio";
 import type { SoundEffect } from "@/modules/project";
-import type { EffectEdit } from "../../sound.types";
+import type { EffectEdit } from "../../sound.effects.types";
 
 interface EffectRowProps {
   label: string;

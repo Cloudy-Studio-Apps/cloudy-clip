@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useModule } from "@/core";
 import { previewRef, SPECTRUM_BINS } from "@/modules/preview";
 import { frequencyX, spectrumHeights } from "../../logic/spectrum";
-import type { GraphColours } from "../../sound.types";
+import type { GraphColours } from "../../sound.meter.types";
 import { useGraphCanvas } from "./graph.canvas.hook";
 
 /** Where the vertical lines fall, Hz. */

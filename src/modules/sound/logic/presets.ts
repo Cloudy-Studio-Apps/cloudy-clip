@@ -1,5 +1,5 @@
 import { DEFAULT_SOUND, type EqBand } from "@/modules/project";
-import type { EffectSpec, SoundPreset } from "../sound.types";
+import type { EffectSpec, SoundPreset } from "../sound.effects.types";
 
 /** The six bands of a clip's EQ with some replaced (by position: lowCut, lowShelf, then four more). */
 function bands(changes: Partial<Record<number, Partial<EqBand>>>): EqBand[] {

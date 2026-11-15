@@ -19,7 +19,7 @@ import { targetComposition, writeComposition, writeTrack } from "./sound.mix.wri
 import { closesLoop, defaultSpec } from "./logic/effects";
 import { BUILT_IN_PRESETS } from "./logic/presets";
 import { soundRef } from "./sound.ref";
-import type { DuckOwner } from "./sound.types";
+import type { DuckOwner } from "./sound.effects.types";
 
 const target = z
   .string()

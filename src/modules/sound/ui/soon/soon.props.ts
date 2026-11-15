@@ -1,4 +1,4 @@
-import type { SoonId, SoonProps } from "../../sound.types";
+import type { SoonId, SoonProps } from "../../sound.meter.types";
 import { SOON } from "./soon.catalog";
 
 /** A click on a placeholder does nothing: no command, no store, no fake data. */

@@ -1,4 +1,4 @@
-import type { FaderDrag } from "../../sound.types";
+import type { FaderDrag } from "../../sound.meter.types";
 
 /** How far the pointer must travel, in px, before a press becomes a drag. */
 const DRAG_PX = 3;

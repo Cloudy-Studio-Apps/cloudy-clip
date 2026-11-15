@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useKernel, useModule } from "@/core";
 import { projectRef } from "@/modules/project";
 import { TIMELINE_CONTENT } from "@/modules/timeline";
-import type { LineTarget, StrokePoint } from "../../sound.types";
+import type { LineTarget, StrokePoint } from "../../sound.line.types";
 import { startStroke } from "./trackline.gesture";
 import { sendStroke } from "./trackline.stroke";
 

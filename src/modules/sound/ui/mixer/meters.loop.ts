@@ -1,6 +1,6 @@
 import type { PreviewSound } from "@/modules/preview";
 import { holdPeak, meterHeight } from "../../logic/meter";
-import type { MeterEntry, MeterLoop } from "../../sound.types";
+import type { MeterEntry, MeterLoop } from "../../sound.meter.types";
 
 /** Writes a level to a meter side, touching the DOM only where something changed. */
 function write(entry: MeterEntry, db: number, now: number): void {

@@ -1,6 +1,6 @@
 import type { Ref } from "react";
 import { cn } from "@/ui";
-import type { SoonId } from "../../sound.types";
+import type { SoonId } from "../../sound.meter.types";
 import { soon as soonProps } from "../soon";
 import { PanelRow } from "./PanelRow";
 

@@ -5,7 +5,7 @@ import { audioTrack } from "./sound.guards";
 import { targetComposition } from "./sound.mix.write";
 import { chainOf } from "./logic/effects";
 import { soundRef } from "./sound.ref";
-import type { EffectSpec } from "./sound.types";
+import type { EffectSpec } from "./sound.effects.types";
 
 const name = z.string().trim().min(1).max(60).describe("The preset's name, 1 to 60 characters.");
 

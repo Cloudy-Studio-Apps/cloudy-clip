@@ -3,7 +3,8 @@ import { DEFAULT_MONITOR } from "@/modules/preview";
 import type { StoreApi } from "zustand";
 import type { CompositionId, TrackId } from "@/modules/project";
 import { automationKey } from "./logic/automation";
-import type { AutomationMode, LineTarget, SoundViewState } from "./sound.types";
+import type { AutomationMode, LineTarget } from "./sound.line.types";
+import type { SoundViewState } from "./sound.types";
 
 /**
  * Creates the Sound page's view state of one kernel: no track marked, no solo, the default monitor,

@@ -3,7 +3,7 @@ import { useModule } from "@/core";
 import { projectRef, useOpenComposition } from "@/modules/project";
 import { automationKey, modeName, nextMode } from "../../logic/automation";
 import { soundRef } from "../../sound.ref";
-import type { LineTarget } from "../../sound.types";
+import type { LineTarget } from "../../sound.line.types";
 import { cn } from "@/ui";
 
 /**

@@ -3,7 +3,7 @@ import { thinLevels } from "../../logic/automation";
 import { strokeLevels } from "../../logic/trackline";
 import { writeClipPass } from "../../sound.clipline.commands";
 import { writePass } from "../../sound.line.commands";
-import type { StrokePoint, StrokeTarget } from "../../sound.types";
+import type { StrokePoint, StrokeTarget } from "../../sound.line.types";
 
 /**
  * Sends a stroke of Draw volume as one command, thinned to within 0.5 dB: `sound.writePass` on the

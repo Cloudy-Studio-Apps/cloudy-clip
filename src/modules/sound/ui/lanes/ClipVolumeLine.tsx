@@ -14,7 +14,7 @@ import {
   VOLUME_PATH,
 } from "../../logic/clipline";
 import { soundRef } from "../../sound.ref";
-import type { LineKey, LinePoint } from "../../sound.types";
+import type { LineKey, LinePoint } from "../../sound.line.types";
 import { startLineGesture } from "./clipline.gesture";
 
 /**

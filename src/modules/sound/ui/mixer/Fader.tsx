@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
-import type { HeardFeed } from "../../sound.types";
+import type { HeardFeed } from "../../sound.meter.types";
 import { formatDb, VOLUME_DB_MAX, VOLUME_DB_MIN } from "@/modules/project";
 import { faderDb, faderPosition } from "../../logic/fader";
 import { useSliderDrag } from "../controls";

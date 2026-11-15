@@ -19,7 +19,7 @@ import {
 } from "@/modules/project";
 import { audioTrack } from "./sound.guards";
 import { targetComposition, writeComposition, writeTrack } from "./sound.mix.write";
-import type { LineOwner, LineTarget } from "./sound.types";
+import type { LineOwner, LineTarget } from "./sound.line.types";
 
 const at = z.number().int().min(0).describe("Timeline time in microseconds");
 const target = z

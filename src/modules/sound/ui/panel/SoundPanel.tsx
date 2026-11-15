@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ClipTabSections } from "@/modules/inspector";
 import { cn, EmptyState, SegmentedControl, type SegmentedOption } from "@/ui";
-import type { SoundPanelTab } from "../../sound.types";
+import type { SoundPanelTab } from "../../sound.meter.types";
 import { ChannelTab } from "../channel";
 import { DeliverTab } from "../deliver";
 import { LoudnessTab } from "../loudness";

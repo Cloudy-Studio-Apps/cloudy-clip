@@ -9,7 +9,8 @@ import {
   type DenoiseEffect,
 } from "@/modules/project";
 import { denoiseRequests } from "../../logic/denoise";
-import type { DenoiseRendering, MixTarget } from "../../sound.types";
+import type { DenoiseRendering } from "../../sound.effects.types";
+import type { MixTarget } from "../../sound.line.types";
 
 /**
  * How far the files heard through a chain's noise reduction `effect` are rendered (`denoiseNeeds`,

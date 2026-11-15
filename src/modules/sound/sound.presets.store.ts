@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createSavedStore } from "@/core";
 import { effectSchemas } from "@/modules/project";
-import type { UserPresets } from "./sound.types";
+import type { UserPresets } from "./sound.effects.types";
 
 const PRESETS_KEY = "cloudy-clip.sound-presets";
 

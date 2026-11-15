@@ -1,7 +1,7 @@
 import { notify } from "@/core";
 import { splitAt } from "@/modules/timeline";
 import { bladeTargets } from "../../logic/blade";
-import type { BladeCut } from "../../sound.types";
+import type { BladeCut } from "../../sound.line.types";
 
 /**
  * Cuts with the blade: one `timeline.splitAt` (the command the toolbar's Split and S send), on the

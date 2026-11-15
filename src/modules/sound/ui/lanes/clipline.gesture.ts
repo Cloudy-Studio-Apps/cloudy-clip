@@ -1,4 +1,4 @@
-import type { LineDrag } from "../../sound.types";
+import type { LineDrag } from "../../sound.line.types";
 import { draggedPoint } from "../../logic/clipline";
 
 /** How far the pointer must travel, in px, before a press becomes a drag. */

@@ -1,6 +1,6 @@
 import { useImperativeHandle, useRef, type Ref } from "react";
 import { correlationX, formatCorrelation, monoSafe } from "../../logic/phase";
-import type { PhaseMeterHandle } from "../../sound.types";
+import type { PhaseMeterHandle } from "../../sound.meter.types";
 import { PanelRow } from "../card";
 
 /**

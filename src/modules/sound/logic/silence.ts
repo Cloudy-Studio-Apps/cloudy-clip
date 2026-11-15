@@ -8,7 +8,7 @@ import {
   type ProjectState,
   type Track,
 } from "@/modules/project";
-import type { Cut, SilenceParams } from "../sound.types";
+import type { Cut, SilenceParams } from "../sound.tools.types";
 import { timelineTimeOf } from "./beats";
 
 /** What Strip silence starts from: quieter than -35 dB for 0.4 s is silence, 0.1 s of quiet is kept each side. */

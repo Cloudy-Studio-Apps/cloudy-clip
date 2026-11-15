@@ -3,9 +3,10 @@ import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { projectRef, useOpenComposition } from "@/modules/project";
 import { timeToPx, useFlagRow } from "@/modules/timeline";
-import { compositionBeats } from "../../logic/beats";
 import { soundRef } from "../../sound.ref";
 import { useLanePage } from "./lane.page.hook";
+
+const NO_BEATS: number[] = [];
 
 /**
  * Thin ticks in the ruler (the marks row on the Sound page) at each beat found under the open
@@ -19,12 +20,12 @@ export function BeatTicks() {
   const compositionId = useOpenComposition()?.id;
   const { root, headerWidth, pxPerSecond, from, to } = useLanePage();
   const row = useFlagRow();
-  const files = useStore(beats.state, (s) => s.files);
+  // Subscribed so a new find redraws; `beats.times` reads the files itself.
+  useStore(beats.state, (s) => s.files);
   const state = useStore(project, (s) => s);
-  const times = useMemo(
-    () => (compositionId ? compositionBeats(state, compositionId, files) : []),
-    [state, compositionId, files],
-  );
+  // The finder's remembered beats (the same list while nothing changed): the snap target asks
+  // the same, so an edit scans once.
+  const times = compositionId ? beats.times(state, compositionId) : NO_BEATS;
   // Only the ticks in the viewport and one either side are DOM nodes (rule 26).
   const seen = useMemo(
     () =>

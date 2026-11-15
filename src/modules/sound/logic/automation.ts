@@ -10,7 +10,7 @@ import {
   type KeyTrack,
   type ProjectState,
 } from "@/modules/project";
-import type { AutomationMode, LevelAt, LineTarget, PassSpan } from "../sound.types";
+import type { AutomationMode, LevelAt, LineTarget, PassSpan } from "../sound.line.types";
 
 /** How far, in dB, a written point may sit off the straight line and still be dropped. */
 export const THIN_DB = 0.5;

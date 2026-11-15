@@ -4,7 +4,7 @@ import { useOpenComposition } from "@/modules/project";
 import { LetterToggle } from "@/ui";
 import { automationKey, modeName, nextMode } from "../../logic/automation";
 import { soundRef } from "../../sound.ref";
-import type { LineTarget } from "../../sound.types";
+import type { LineTarget } from "../../sound.line.types";
 
 /**
  * Under a strip's fader: the automation mode of a track or the master, named (Read, Touch,

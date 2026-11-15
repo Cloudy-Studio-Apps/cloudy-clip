@@ -1,4 +1,4 @@
-import type { SoonEntry, SoonId } from "../../sound.types";
+import type { SoonEntry, SoonId } from "../../sound.meter.types";
 
 /**
  * Every control of the Sound page that is drawn now and works later (Ruling 1 of

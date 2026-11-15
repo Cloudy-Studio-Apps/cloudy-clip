@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
-import type { SliderOptions } from "../../sound.types";
+import type { SliderOptions } from "../../sound.meter.types";
 import { startFaderDrag } from "./fader.gesture";
 
 /**

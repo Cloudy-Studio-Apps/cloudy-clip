@@ -3,7 +3,7 @@ import { useKernel } from "@/core";
 import { IconButton } from "@/ui";
 import { EFFECT_NAMES } from "../../logic/effects";
 import { removePreset, renamePreset } from "../../sound.presets.commands";
-import type { SoundPreset } from "../../sound.types";
+import type { SoundPreset } from "../../sound.effects.types";
 
 /** One of the user's presets in Settings: its name (edited in place), its effects, and Remove. */
 export function PresetRow({ preset }: { preset: SoundPreset }) {

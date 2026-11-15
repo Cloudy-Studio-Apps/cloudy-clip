@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { MeterLoop } from "../../sound.types";
+import type { MeterLoop } from "../../sound.meter.types";
 
 const MeterLoopContext = createContext<MeterLoop | null>(null);
 

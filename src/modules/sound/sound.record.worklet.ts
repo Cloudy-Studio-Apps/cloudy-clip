@@ -1,4 +1,4 @@
-import type { RecordCommand } from "./sound.types";
+import type { RecordCommand } from "./sound.record.types";
 
 /** The worklet scope has no DOM types; this is the little of it the processor uses. */
 declare class AudioWorkletProcessor {

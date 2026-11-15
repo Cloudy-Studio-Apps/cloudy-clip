@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { soundRef } from "../../sound.ref";
-import type { MeterLoop } from "../../sound.types";
+import type { MeterLoop } from "../../sound.meter.types";
 import { createMeterLoop } from "./meters.loop";
 
 /**

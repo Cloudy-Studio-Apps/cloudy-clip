@@ -5,7 +5,7 @@ import { projectRef, type CompositionId } from "@/modules/project";
 import { lineFader } from "../../logic/automation";
 import { setMaster, setTrackMix } from "../../sound.mix.commands";
 import { soundRef } from "../../sound.ref";
-import type { LineTarget } from "../../sound.types";
+import type { LineTarget } from "../../sound.line.types";
 import { report } from "../report";
 
 /**

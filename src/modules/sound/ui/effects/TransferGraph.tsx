@@ -1,7 +1,7 @@
 import { useImperativeHandle, useLayoutEffect, useRef, type Ref } from "react";
 import { dynamicsTransfer } from "@/modules/preview";
 import { EFFECT_RANGES } from "@/modules/project";
-import type { TransferEffect, TransferGraphHandle } from "../../sound.types";
+import type { TransferEffect, TransferGraphHandle } from "../../sound.effects.types";
 
 const SIZE = 100;
 /** The quietest level drawn, dBFS (the lowest threshold a gate takes); the loudest is 0. */

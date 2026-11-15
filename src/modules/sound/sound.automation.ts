@@ -17,7 +17,7 @@ import type {
   AutomationState,
   AutomationWriter,
   LineTarget,
-} from "./sound.types";
+} from "./sound.line.types";
 
 /** A playhead this far past the last written frame has jumped: the next lap starts there (µs). */
 const JUMP: Micros = 500_000;

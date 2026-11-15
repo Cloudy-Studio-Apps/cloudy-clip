@@ -158,6 +158,13 @@ describe("sound.stripSilence", () => {
     ]);
   });
 
+  it("flips a reversed clip's silence: the file's end plays first", async () => {
+    await load([clip({ id: "a", speed: { rate: 1, pitchCorrection: true, reversed: true } })]);
+    found([[8 * S, 12 * S]]);
+    await run({ clipIds: ["a"], padMs: 0 });
+    expect(spans("a1")).toEqual([[2 * S, 10 * S]]);
+  });
+
   it("closes the gaps: what follows moves left by the time removed", async () => {
     await load([
       clip({ id: "a", duration: 4 * S }),

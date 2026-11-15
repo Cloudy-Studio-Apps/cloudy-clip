@@ -10,7 +10,7 @@ import {
   type KeyTrack,
 } from "@/modules/project";
 import { pxToTime, timeToPx } from "@/modules/timeline";
-import type { LineKey, LinePoint } from "../sound.types";
+import type { LineKey, LinePoint } from "../sound.line.types";
 import { faderDb, faderPosition, TAPER_DBS } from "./fader";
 
 /** The path of the value the clip's line shows. */

@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { PanelRow } from "../card";
-import type { SoundPreset } from "../../sound.types";
+import type { SoundPreset } from "../../sound.effects.types";
 
 interface PresetOthersProps {
   /** The built-in presets that fit the strip. */

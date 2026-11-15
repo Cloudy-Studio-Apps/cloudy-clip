@@ -4,7 +4,8 @@ import { previewRef } from "@/modules/preview";
 import { projectRef, type CompositionId } from "@/modules/project";
 import { chainOf, chainWhere } from "../../logic/effects";
 import { removeEffect, setEffect } from "../../sound.effects.commands";
-import type { EffectEdit, MixTarget } from "../../sound.types";
+import type { EffectEdit } from "../../sound.effects.types";
+import type { MixTarget } from "../../sound.line.types";
 
 /**
  * Changes to the chain of a track or a composition's master. A drag step plays the chain with the

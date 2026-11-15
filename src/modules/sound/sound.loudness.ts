@@ -9,13 +9,14 @@ import {
   followsFileTime,
   partnersOf,
   sourceSpan,
+  speedOf,
   type Clip,
   type ClipId,
   type ProjectState,
 } from "@/modules/project";
-import { createScanner, type ScanPart } from "./sound.scan";
+import { createScanner } from "./sound.scan";
 import { beginLoudness, cancelLoudness, finishLoudness } from "./sound.service";
-import type { ClipLoudness, LoudnessMeter } from "./sound.types";
+import type { ClipLoudness, LoudPart, LoudnessMeter } from "./sound.tools.types";
 
 /** The clip that carries the sound of `clip`: itself on an audio track, or its linked sound clip. */
 export function soundCarrier(state: ProjectState, clip: Clip): Clip | undefined {
@@ -24,17 +25,12 @@ export function soundCarrier(state: ProjectState, clip: Clip): Clip | undefined 
   );
 }
 
-/** What a clip is measured as: its part of the file, and the volume it plays through. */
-interface LoudPart extends ScanPart {
-  gain: number;
-  gainEnvelope: { at: Micros; value: number }[];
-}
-
 /**
  * Creates the loudness meter of a kernel. It measures the part of the file a clip plays (its
  * trims and speed, through `sourceSpan`) as it is heard through the clip's own volume (its static
- * volume, or its volume keys sampled by the export's `envelope` over the file's time), before its
- * fades, EQ, track, group and master. A volume change makes the measurement stale (it is in the key). A clip with no file of its own
+ * volume, or its volume keys sampled by the export's `envelope` over the file's time, mirrored on a
+ * reversed clip), before its fades, EQ, track, group and master. A volume change makes the
+ * measurement stale (it is in the key). A clip with no file of its own
  * (text, a held frame, a nested composition) or whose file has no sound is marked `noSound`; a
  * picture clip is measured through its linked sound, and each sound clip once.
  */
@@ -72,14 +68,19 @@ export function createLoudnessMeter(project: () => ProjectState, media: MediaApi
       const keys = clip.animation?.["sound.volumeDb"];
       const volume = keys?.keys.length ? keys : undefined;
       const origin = clip.animationOrigin ?? 0;
+      const span = to - from;
       const gain = dbToLinear(soundOf(clip).volumeDb);
-      // Keys sit in content time: the file's `f` is `origin + f` (a ramp or reverse is not followed).
+      // Keys sit in content time, which counts the file played (`contentTime`), so `x` into the
+      // part is `origin + x`, or `origin + span - x` on a reversed clip, which plays it backwards.
+      // A ramp's keys land where they should; its stretch of the sound itself isn't measured.
+      const reversed = speedOf(clip).reversed;
+      const fileAt = (c: Micros) => (reversed ? origin + span - c : c - origin);
       const gainEnvelope = volume
         ? envelope(
-            (t) => dbToLinear(Number(trackValue(volume, t))),
-            origin,
-            origin + (to - from),
-            keyMoments(volume, origin, origin + (to - from)),
+            (x) => dbToLinear(Number(trackValue(volume, origin + (reversed ? span - x : x)))),
+            0,
+            span,
+            keyMoments(volume, origin, origin + span).map(fileAt),
           )
         : [];
       const key = [file.path, from, to, gain, JSON.stringify(gainEnvelope)].join("|");
@@ -93,11 +94,12 @@ export function createLoudnessMeter(project: () => ProjectState, media: MediaApi
       : { clipId: part.clipId, lufs: scanner.get(part.key) ?? null };
 
   return {
-    async measure(clipIds, onProgress) {
+    async measure(clipIds, onProgress, signal) {
       const parts = partsOf(clipIds);
       await scanner.run(
         parts.filter((p): p is { clipId: ClipId } & LoudPart => "key" in p),
         onProgress,
+        signal,
       );
       return parts.map(loudnessOf);
     },
@@ -106,7 +108,7 @@ export function createLoudnessMeter(project: () => ProjectState, media: MediaApi
       if (parts.some((p) => "key" in p && !scanner.has(p.key))) return null;
       return parts.map(loudnessOf);
     },
-    cancel: scanner.cancel,
+    cancelAll: scanner.cancelAll,
     forget: scanner.forget,
   };
 }

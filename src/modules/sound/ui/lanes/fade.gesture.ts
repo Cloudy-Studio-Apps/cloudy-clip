@@ -3,7 +3,7 @@ import { setSound, startFadeGesture } from "@/modules/audio";
 import { soundOf } from "@/modules/project";
 import { timeToPx } from "@/modules/timeline";
 import { fadeEdgeAt } from "../../logic/blade";
-import type { FadeDrag } from "../../sound.types";
+import type { FadeDrag } from "../../sound.line.types";
 
 /**
  * Drags a fade from a clip's nearer edge with the Fade tool: audio's own fade gesture (the clip's

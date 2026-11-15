@@ -4,7 +4,7 @@ import { EFFECT_RANGES, useOpenComposition, type DenoiseEffect } from "@/modules
 import { Button, ProgressBar } from "@/ui";
 import { defaultSpec } from "../../logic/effects";
 import { measureFloor } from "../../sound.denoise.commands";
-import type { DuckOwner, EffectEdit } from "../../sound.types";
+import type { DuckOwner, EffectEdit } from "../../sound.effects.types";
 import { useDenoiseRendering } from "./denoise.hook";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";

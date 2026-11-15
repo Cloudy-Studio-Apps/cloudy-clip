@@ -4,7 +4,7 @@ import { useModule } from "@/core";
 import { previewRef, type LoudnessReading } from "@/modules/preview";
 import { formatDb } from "@/modules/project";
 import { Button } from "@/ui";
-import type { LoudnessHistoryHandle, PhaseMeterHandle } from "../../sound.types";
+import type { LoudnessHistoryHandle, PhaseMeterHandle } from "../../sound.meter.types";
 import { PanelCard, PanelValue } from "../card";
 import { LoudnessHistory } from "./LoudnessHistory";
 import { useDeliveryTarget } from "../deliver";

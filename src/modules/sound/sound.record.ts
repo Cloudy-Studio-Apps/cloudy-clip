@@ -6,7 +6,7 @@ import { canArm, folderOf, joinChunks, startFailure, takeStem, toPcm16 } from ".
 import { openCapture } from "./sound.record.capture";
 import { placeRecording } from "./sound.record.commands";
 import { beginTake, writeTake } from "./sound.service";
-import type { LiveTake, Recorder, RecorderDeps, RecorderState } from "./sound.types";
+import type { LiveTake, Recorder, RecorderDeps, RecorderState } from "./sound.record.types";
 
 const log = createLogger("sound.record");
 

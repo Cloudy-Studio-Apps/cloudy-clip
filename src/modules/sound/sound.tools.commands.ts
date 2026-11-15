@@ -156,5 +156,18 @@ export const matchLevel = defineCommand({
   },
 });
 
+/** Stops the silence scans and loudness measurements its caller started; others' go on. */
+export const cancelScans = defineCommand({
+  id: "sound.cancelScans",
+  label: "Cancel scans",
+  description:
+    "Stops the silence scans (sound_find_silences) and loudness measurements (sound_measure_clips) you started and that still run; the user's and other agents' go on. What finished stays kept.",
+  undoable: false,
+  input: z.object({}),
+  run(ctx) {
+    ctx.require(soundRef).scans.cancel(ctx.actor);
+  },
+});
+
 /** The tools commands, for the module. */
-export const soundToolsCommands = [stripSilence, matchLevel];
+export const soundToolsCommands = [stripSilence, matchLevel, cancelScans];

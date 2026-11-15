@@ -7,7 +7,7 @@ import { Button, Dialog, NumberField, Switch } from "@/ui";
 import { SILENCE_DEFAULTS, driftingTracks } from "../../logic/silence";
 import { soundRef } from "../../sound.ref";
 import { stripSilence } from "../../sound.tools.commands";
-import type { ClipCuts, SilenceDialog, SilenceParams } from "../../sound.types";
+import type { ClipCuts, SilenceDialog, SilenceParams } from "../../sound.tools.types";
 import { report } from "../report";
 
 /**
@@ -36,10 +36,12 @@ export function StripSilenceDialog({ target }: { target: SilenceDialog }) {
 
   useEffect(() => {
     let live = true;
+    // Its own run: changed values or a close stop it, never an agent's scan of the same clips.
+    const run = new AbortController();
     // Wait for the typing to stop: each look decodes the clips' sound.
     const timer = setTimeout(() => {
       silences
-        .scan(clipIds, params, (p) => live && setProgress(p))
+        .scan(clipIds, params, (p) => live && setProgress(p), run.signal)
         .then(
           (clips) => {
             if (!live) return;
@@ -61,8 +63,8 @@ export function StripSilenceDialog({ target }: { target: SilenceDialog }) {
     return () => {
       live = false;
       clearTimeout(timer);
-      // Values that changed make this scan stale: stop its FFmpeg.
-      silences.cancel();
+      // Values that changed make this scan stale: stop its FFmpeg (unless another run waits for it).
+      run.abort();
     };
   }, [clipIds, params, silences, view]);
 

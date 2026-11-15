@@ -1,7 +1,7 @@
 import { useImperativeHandle, useRef, type Ref } from "react";
 import { formatDb } from "@/modules/project";
 import { meterHeight } from "../../logic/meter";
-import type { GraphColours, LoudnessHistoryHandle } from "../../sound.types";
+import type { GraphColours, LoudnessHistoryHandle } from "../../sound.meter.types";
 import { useGraphCanvas } from "./graph.canvas.hook";
 import { LOUDNESS_INTERVAL_MS } from "./loudness.hook";
 

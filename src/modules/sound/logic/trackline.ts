@@ -1,7 +1,7 @@
 import type { Micros } from "@/core";
 import type { KeyTrack } from "@/modules/project";
 import { pxToTime, timeToPx } from "@/modules/timeline";
-import type { LevelAt, LineKey, LinePoint, StrokePoint } from "../sound.types";
+import type { LevelAt, LineKey, LinePoint, StrokePoint } from "../sound.line.types";
 import { clampDb, lineDb } from "./automation";
 import { lineXs } from "./clipline";
 import { faderDb } from "./fader";
