@@ -54,8 +54,8 @@ contribute(
 The inspector shows an axis once it has two options, in the contextual Sticker tab (with a note when a sticker has none). If the plugin goes, clips using its option
 fall back to the default. Animated art is Lottie JSON with `type: "lottie"` and a `thumbnail`.
 
-| Command       | MCP tool             | Notes                                                                                                                                   |
-| ------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `sticker.add` | `sticker_add`        | `pack`, `sticker`, optional `variation`, `start`, `duration`, `trackId`. `sticker.unknown_pack`, `unknown_sticker`, `invalid_variation` |
-| —             | `sticker_list_packs` | packs with counts and credits, topics                                                                                                   |
-| —             | `sticker_search`     | `text`, `topic`, `pack`, `limit` (50): stickers, whether animated, their variations                                                     |
+| Command       | MCP tool             | Notes                                                                                                                                                   |
+| ------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sticker.add` | `sticker_add`        | `pack`, `sticker`, optional `variation`, `start`, `duration`, `trackId`. `sticker.unknown_pack`, `unknown_sticker`, `invalid_variation`                 |
+| —             | `sticker_list_packs` | packs with counts and credits, topics                                                                                                                   |
+| —             | `sticker_search`     | `text`, `topic`, `pack`, `limit` (50): `sticker.unknown_pack` / `sticker.unknown_topic` for an unknown id; stickers, whether animated, their variations |
