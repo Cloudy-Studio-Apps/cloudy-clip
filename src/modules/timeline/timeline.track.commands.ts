@@ -123,11 +123,18 @@ export const setTrackMuted = defineCommand({
 export const setTrackHidden = defineCommand({
   id: "timeline.setTrackHidden",
   label: "Hide track",
-  description: "Hides or shows the picture of a video track in the preview.",
+  description:
+    "Hides or shows the picture of a video track in the preview. Audio tracks have no picture, so hiding one fails with timeline.kind_mismatch (use timeline_set_track_muted).",
   undoable: true,
   input: z.object({ trackId: z.string(), hidden: z.boolean() }),
   run(ctx, { trackId, hidden }) {
-    requireTrack(ctx.require(projectRef).store.getState(), trackId);
+    const track = requireTrack(ctx.require(projectRef).store.getState(), trackId);
+    if (track.kind !== "video") {
+      throw new CommandFailure(
+        "timeline.kind_mismatch",
+        "Audio tracks have no picture; mute the audio track instead.",
+      );
+    }
     ctx.mutate(ctx.require(projectRef).store, (draft) => {
       draft.tracks[trackId]!.hidden = hidden;
     });

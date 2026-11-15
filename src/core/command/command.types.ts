@@ -55,6 +55,8 @@ export interface CommandDefinition<I extends z.ZodType = z.ZodType, O = unknown>
   readonly id: string;
   /** Short label for menus and the undo history, e.g. "Split clip". */
   readonly label: string;
+  /** The label for one input when it differs from `label` (e.g. "Enable clip"); it names the undo step. */
+  labelFor?(input: z.output<I>): string;
   /** What it does, written for humans and agents. */
   readonly description: string;
   /** Whether the change is recorded in the undo history. */

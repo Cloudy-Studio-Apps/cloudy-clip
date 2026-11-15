@@ -7,6 +7,7 @@ import { requireClip } from "./timeline.guards";
 export const setClipsDisabled = defineCommand({
   id: "timeline.setClipsDisabled",
   label: "Disable clip",
+  labelFor: ({ disabled }) => (disabled ? "Disable clip" : "Enable clip"),
   description:
     "Turns clips off (disabled: true) or back on (disabled: false). An off clip stays on the timeline, keeping its place and its junctions, but isn't seen or heard in preview or export; a transition next to it doesn't play. Linked clips change together.",
   undoable: true,
