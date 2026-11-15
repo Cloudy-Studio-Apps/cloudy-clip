@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { CommandFailure, createId, defineCommand } from "@/core";
+import { CommandFailure, createId, defineCommand, type CommandContext } from "@/core";
 import {
   correctionValuesSchema,
   gradeLimitSchema,
   projectRef,
   type ClipGrade,
   type Correction,
+  type ProjectState,
 } from "@/modules/project";
 import { emptyGrade } from "./logic/stack";
 import {
@@ -21,7 +22,7 @@ import {
   readGrade,
   writeGrade,
 } from "./tint.guards";
-import type { StackPosition } from "./tint.types";
+import type { GradeTarget, StackPosition } from "./tint.types";
 
 /** Which grade: give exactly one of clipId, groupId (a shot group) or compositionId (the whole timeline). */
 export const targetSchema = z
@@ -73,6 +74,54 @@ function existing(grade: ClipGrade | null, id: string) {
     });
   }
   return node;
+}
+
+/** The fields of a patch that have keys in their way. */
+const liveFields = (patch: { opacity?: number; on?: boolean }) => [
+  ...(patch.opacity !== undefined ? ["opacity"] : []),
+  ...(patch.on !== undefined ? ["on"] : []),
+];
+
+/** Sets a correction's opacity and on from a patch. */
+function setLive(node: Correction, patch: { opacity?: number; on?: boolean }): void {
+  if (patch.opacity !== undefined) node.opacity = patch.opacity;
+  if (patch.on !== undefined) node.on = patch.on;
+}
+
+/** Refuses unless `id` is a correction of `grade` and none of `fields` has keys (a static write would fight them). */
+function refuseUnlessEditable(
+  state: ProjectState,
+  target: GradeTarget,
+  grade: ClipGrade | null,
+  id: string,
+  fields: readonly string[],
+): void {
+  if (existing(grade, id).kind !== "correct") {
+    throw new CommandFailure("tint.node_not_found", `Node "${id}" is not a correction`, {
+      nodeId: id,
+    });
+  }
+  const animated = animatedFields(state, target, id, fields);
+  if (animated.length > 0) {
+    throw new CommandFailure(
+      "tint.animated",
+      `${animated.join(", ")} of node "${id}" has keys. Change it at a time with a key, not a static value.`,
+      { nodeId: id, fields: animated },
+    );
+  }
+}
+
+/** Checks and writes `next` over `before`, writing nothing when it comes out the same. */
+function writeChanged(
+  ctx: CommandContext,
+  target: GradeTarget,
+  before: ClipGrade | null,
+  next: ClipGrade,
+): void {
+  const stored = checkedGrade(next);
+  if (JSON.stringify(stored) === JSON.stringify(before)) return;
+  const { store } = ctx.require(projectRef);
+  ctx.mutate(store, (draft) => writeGrade(draft, target, stored));
 }
 
 /** Adds a correction layer to a grade. */
@@ -140,38 +189,18 @@ export const setCorrection = defineCommand({
     const { store } = ctx.require(projectRef);
     const state = store.getState();
     const grade = readGrade(state, target);
-    const found = existing(grade, id);
-    if (found.kind !== "correct") {
-      throw new CommandFailure("tint.node_not_found", `Node "${id}" is not a correction`, {
-        nodeId: id,
-      });
-    }
-    const fields = [
-      ...Object.keys(patch.values ?? {}),
-      ...(patch.opacity !== undefined ? ["opacity"] : []),
-      ...(patch.on !== undefined ? ["on"] : []),
-    ];
-    const animated = animatedFields(state, target, id, fields);
-    if (animated.length > 0) {
-      throw new CommandFailure(
-        "tint.animated",
-        `${animated.join(", ")} of node "${id}" has keys. Change it at a time with a key, not a static value.`,
-        { nodeId: id, fields: animated },
-      );
-    }
+    const fields = [...Object.keys(patch.values ?? {}), ...liveFields(patch)];
+    refuseUnlessEditable(state, target, grade, id, fields);
     const next = structuredClone(grade!);
     const node = next.nodes[id] as Correction;
     if (patch.values) node.values = { ...node.values, ...structuredClone(patch.values) };
     if (patch.limit === null) delete node.limit;
     else if (patch.limit) node.limit = patch.limit;
-    if (patch.opacity !== undefined) node.opacity = patch.opacity;
-    if (patch.on !== undefined) node.on = patch.on;
+    setLive(node, patch);
     if (patch.name !== undefined) node.name = patch.name;
     // Only a limit being written is checked: an unrelated edit keeps a stored key as it is.
     if (patch.limit) checkSharedKey(next, id);
-    const stored = checkedGrade(next);
-    if (JSON.stringify(stored) === JSON.stringify(grade)) return;
-    ctx.mutate(store, (draft) => writeGrade(draft, target, stored));
+    writeChanged(ctx, target, grade, next);
   },
 });
 
@@ -191,33 +220,13 @@ export const setCorrections = defineCommand({
     const { store } = ctx.require(projectRef);
     const state = store.getState();
     const grade = readGrade(state, target);
-    const fields = [
-      ...(patch.opacity !== undefined ? ["opacity"] : []),
-      ...(patch.on !== undefined ? ["on"] : []),
-    ];
+    const fields = liveFields(patch);
     const next = structuredClone(grade!);
     for (const id of nodeIds) {
-      const found = existing(grade, id);
-      if (found.kind !== "correct") {
-        throw new CommandFailure("tint.node_not_found", `Node "${id}" is not a correction`, {
-          nodeId: id,
-        });
-      }
-      const animated = animatedFields(state, target, id, fields);
-      if (animated.length > 0) {
-        throw new CommandFailure(
-          "tint.animated",
-          `${animated.join(", ")} of node "${id}" has keys. Change it at a time with a key, not a static value.`,
-          { nodeId: id, fields: animated },
-        );
-      }
-      const node = next.nodes[id] as Correction;
-      if (patch.opacity !== undefined) node.opacity = patch.opacity;
-      if (patch.on !== undefined) node.on = patch.on;
+      refuseUnlessEditable(state, target, grade, id, fields);
+      setLive(next.nodes[id] as Correction, patch);
     }
-    const stored = checkedGrade(next);
-    if (JSON.stringify(stored) === JSON.stringify(grade)) return;
-    ctx.mutate(store, (draft) => writeGrade(draft, target, stored));
+    writeChanged(ctx, target, grade, next);
   },
 });
 
