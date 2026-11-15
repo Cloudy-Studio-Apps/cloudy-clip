@@ -147,7 +147,7 @@ export const chartTargets = (): Rgb[] => CHART_REFERENCE.map((c) => c.map(srgbTo
 /** The mixer's range: a fitted cell outside it means the patches didn't pin the matrix down. */
 const MIXER_LIMIT = 2;
 /** Largest root-mean-square miss of the fit over the patches: past it, the corners aren't on a chart. */
-const CHART_MISS = 0.08;
+const CHART_MISS = 0.1;
 
 /**
  * The values of a fresh "Chart" correction from the measured patches (each the mean of its reads,
