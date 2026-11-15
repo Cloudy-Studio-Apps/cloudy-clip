@@ -23,9 +23,11 @@ export function levelPlan(
     else if (lufs === null) skipped.push({ clipId, reason: "It is silent." });
     else loud.push({ clipId, lufs });
   }
-  const target = targetLufs ?? (loud.length > 0 ? Math.max(...loud.map((c) => c.lufs)) : null);
-  const changes = loud.map(({ clipId, lufs }) => {
-    const deltaDb = target! - lufs;
+  const exact = targetLufs ?? (loud.length > 0 ? Math.max(...loud.map((c) => c.lufs)) : null);
+  const target = exact === null ? null : round(exact);
+  const changes = loud.map(({ clipId, lufs: measuredLufs }) => {
+    const lufs = round(measuredLufs);
+    const deltaDb = round(exact! - measuredLufs);
     const keys = state.clips[clipId]?.animation?.[VOLUME_KEYS];
     if (keys?.keys.length) {
       const min = keys.min ?? VOLUME_DB_MIN;
@@ -36,9 +38,14 @@ export function levelPlan(
       );
       return { clipId, lufs, deltaDb, volumeDb: null, clamped };
     }
-    const wanted = soundOf(state.clips[clipId]!).volumeDb + deltaDb;
+    const wanted = round(soundOf(state.clips[clipId]!).volumeDb + deltaDb);
     const volumeDb = Math.min(VOLUME_DB_MAX, Math.max(VOLUME_DB_MIN, wanted));
     return { clipId, lufs, deltaDb, volumeDb, clamped: volumeDb !== wanted };
   });
   return { target, changes, skipped };
+}
+
+/** To 0.01 dB, so what is reported is what is applied, free of float noise. */
+function round(db: number): number {
+  return Math.round(db * 100) / 100;
 }

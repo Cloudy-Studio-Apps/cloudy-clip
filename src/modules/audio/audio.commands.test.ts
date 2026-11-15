@@ -86,6 +86,42 @@ describe("clip sound", () => {
     expect(soundOf(doc().clips[audio.id]!).fadeIn).toBe(S);
   });
 
+  it("stored fades never outlast the clip after trim or split, on both linked clips", async () => {
+    const { video, audio } = await pair();
+    await kernel.bus.run(setSound, {
+      clipIds: [audio.id],
+      patch: { fadeIn: 700_000, fadeOut: 700_000 },
+    });
+    await kernel.bus.run(trimClip, { clipId: audio.id, edge: "end", time: 500_000 });
+    const stored = () =>
+      [video.id, audio.id].map((id) => doc().clips[id]!).map((c) => [c, c.sound] as const);
+    for (const [clip, sound] of stored()) {
+      expect(Math.max(sound?.fadeIn ?? 0, sound?.fadeOut ?? 0)).toBeLessThanOrEqual(clip.duration);
+    }
+    const split = await kernel.bus.run(splitAt, { at: 300_000, clipIds: [audio.id] });
+    expect(split.ok).toBe(true);
+    for (const clip of Object.values(doc().clips)) {
+      const sound = clip.sound;
+      expect(sound?.fadeIn ?? 0).toBeLessThanOrEqual(clip.duration);
+      expect(sound?.fadeOut ?? 0).toBeLessThanOrEqual(clip.duration);
+    }
+    expect(doc().clips[audio.id]!.sound?.fadeIn).toBe(300_000);
+  });
+
+  it("stored fades are clamped when the picture clip or the start edge is trimmed", async () => {
+    const { video, audio } = await pair();
+    await kernel.bus.run(setSound, {
+      clipIds: [audio.id],
+      patch: { fadeIn: 700_000, fadeOut: 700_000 },
+    });
+    await kernel.bus.run(trimClip, { clipId: video.id, edge: "start", time: 9 * S });
+    const a = doc().clips[audio.id]!;
+    expect(a.duration).toBe(S);
+    await kernel.bus.run(trimClip, { clipId: video.id, edge: "end", time: 9 * S + 400_000 });
+    const b = doc().clips[audio.id]!;
+    expect([b.sound?.fadeIn, b.sound?.fadeOut]).toEqual([400_000, 400_000]);
+  });
+
   it("undo restores in one step, and a default value isn't stored", async () => {
     const { audio } = await pair();
     await kernel.bus.run(setSound, { clipIds: [audio.id], patch: { pan: 0.5, volumeDb: 3 } });

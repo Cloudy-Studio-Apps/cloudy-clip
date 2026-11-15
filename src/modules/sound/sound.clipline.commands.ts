@@ -15,7 +15,7 @@ export const writeClipPass = defineCommand({
   id: "sound.writeClipPass",
   label: "Draw clip volume",
   description:
-    'Replaces the volume keys ("sound.volumeDb") of a clip on an audio track from "from" to "to" (timeline microseconds, both included, inside the clip) with "points" ({at, db}, each inside that span, db -60 to 12), the level running straight from each point to the next. Keys outside the span stay as they were and the clip outside it plays as before: a key just before "from" and just after "to" holds the level the clip had there (its static volume when it had no keys), so the change is a step at the stroke\'s edges. With no points the span is cleared. One stroke of Draw volume over a clip, as one step; the keys move with the clip like any other. Fails with sound.line_range (a point outside the span, a span outside the clip or from after to), sound.clip_not_found and sound.not_audio, changing nothing. Returns { keyIds }, the ids of the keys now in the span.',
+    'Replaces the volume keys ("sound.volumeDb") of a clip on an audio track from "from" to "to" (timeline microseconds, both included, inside the clip) with "points" ({at, db}, each inside that span, db -60 to 12), the level running straight from each point to the next. Keys outside the span stay as they were and the clip outside it plays as before: a key just before "from" and just after "to" holds the level the clip had there (its static volume when it had no keys), so the change is a step at the stroke\'s edges. With no points the span is cleared. One stroke of Draw volume over a clip, as one step; the keys move with the clip like any other. Fails with sound.line_range (a point outside the span, a span outside the clip or from after to), sound.clip_not_found and sound.not_audio, changing nothing. Returns { keyIds, edgeKeyIds }: the ids of the keys now in the span, and of the hold keys this write added just outside it, so a caller can remove everything it wrote.',
   undoable: true,
   input: z.object({
     clipId: z.string(),
@@ -40,6 +40,7 @@ export const writeClipPass = defineCommand({
         `Every point must sit between from (${from}) and to (${to}), inside the clip (${clip.start} to ${end}), and from must not be after to.`,
       );
     }
+    const before = new Set((clip.animation?.[VOLUME_PATH]?.keys ?? []).map((k) => k.id));
     await ctx.execute(writeKeySpan, {
       clipId,
       path: VOLUME_PATH,
@@ -50,7 +51,11 @@ export const writeClipPass = defineCommand({
     const after = ctx.require(projectRef).store.getState().clips[clipId]!;
     const [low, high] = [contentTime(after, from), contentTime(after, to)];
     const keys = after.animation?.[VOLUME_PATH]?.keys ?? [];
-    return { keyIds: keys.filter((k) => k.t >= low && k.t <= high).map((k) => k.id) };
+    const inside = (t: number) => t >= low && t <= high;
+    return {
+      keyIds: keys.filter((k) => inside(k.t)).map((k) => k.id),
+      edgeKeyIds: keys.filter((k) => !inside(k.t) && !before.has(k.id)).map((k) => k.id),
+    };
   },
 });
 
