@@ -430,7 +430,10 @@ fn parse_probe(json: &Value) -> Probe {
                     probe.video_codec = codec;
                     probe.pix_fmt = stream["pix_fmt"].as_str().map(str::to_owned);
                     probe.full_range = stream["color_range"].as_str() == Some("pc")
-                        || probe.pix_fmt.as_deref().is_some_and(|f| f.starts_with("yuvj"));
+                        || probe
+                            .pix_fmt
+                            .as_deref()
+                            .is_some_and(|f| f.starts_with("yuvj"));
                     probe.width = stream["width"].as_u64().unwrap_or(0);
                     probe.height = stream["height"].as_u64().unwrap_or(0);
                     probe.fps = ["avg_frame_rate", "r_frame_rate"]
