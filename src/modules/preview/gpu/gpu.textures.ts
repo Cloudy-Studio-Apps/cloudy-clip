@@ -62,19 +62,32 @@ function writeData(gl: WebGL2RenderingContext, data: GpuTexture): void {
   }
 }
 
-/** Data textures of passes, kept by key and uploaded again only when their version changes. */
+/**
+ * The most data textures a context keeps. Every key a run binds is touched, so the cap only has to
+ * hold one frame's keys (visible clips × corrections × curve, warper and LUT tables) to never upload
+ * twice per frame; 256 is many times that, about 16 MB of curve tables at most.
+ */
+const KEPT = 256;
+
+/**
+ * Data textures of passes, kept by key and uploaded again only when their version changes. The
+ * least recently bound are deleted past `KEPT`, only by `trim` between runs, so a texture bound in a
+ * run is never deleted during it; an evicted key comes back with no entry and is uploaded again.
+ */
 export function createDataTextures(gl: WebGL2RenderingContext): GpuDataTextures {
   const held = new Map<string, { texture: WebGLTexture; version: number; target: GLenum }>();
   return {
     bind(data) {
       const target = data.kind === "3d" ? gl.TEXTURE_3D : gl.TEXTURE_2D;
       let entry = held.get(data.key);
+      // Moved to the end of the map: the map's order is the least recently bound first.
+      held.delete(data.key);
       if (entry && entry.target !== target) {
         gl.deleteTexture(entry.texture);
-        held.delete(data.key);
         entry = undefined;
       }
       if (entry && entry.version === data.version) {
+        held.set(data.key, entry);
         gl.bindTexture(target, entry.texture);
         return;
       }
@@ -85,6 +98,13 @@ export function createDataTextures(gl: WebGL2RenderingContext): GpuDataTextures 
       gl.bindTexture(target, texture);
       writeData(gl, data);
       kept.version = data.version;
+    },
+    trim() {
+      for (const [key, { texture }] of held) {
+        if (held.size <= KEPT) return;
+        gl.deleteTexture(texture);
+        held.delete(key);
+      }
     },
     dispose() {
       for (const { texture } of held.values()) gl.deleteTexture(texture);

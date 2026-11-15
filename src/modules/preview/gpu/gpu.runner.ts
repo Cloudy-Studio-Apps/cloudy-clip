@@ -131,6 +131,7 @@ function runPasses(
     // A pass that threw leaves its targets free for the next run, and none still bound on a unit.
     unbindUnits(gl, used);
     outputs.forEach((output) => targets.release(output));
+    data.trim();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.activeTexture(gl.TEXTURE0);
   }

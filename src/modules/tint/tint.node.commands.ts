@@ -199,7 +199,7 @@ export const setCorrection = defineCommand({
   id: "tint.setCorrection",
   label: "Change correction",
   description:
-    "Changes one correction: patch.values (a partial of the correction's fields, merged over what it has: each given field replaces that field whole), patch.limit (what it touches; null removes the limit; { from: nodeId } shares the pick of another correction, one above it whose limit limits something, instead of its own: its key, its refine and clean up, and inverted again when this limit has invert: true; or names a key join from tint_wire, whose combined key it mixes by), patch.lut ({ id, strength 0 to 1 }: a LUT from tint_import_lut, after Creative; null removes it), patch.opacity (0 to 1), patch.on and patch.name. Fields at their defaults are not stored. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (or the node is not a correction, or limit.from names no node), tint.key_not_limited (limit.from is neither a key join nor a correction with a limit), tint.key_cycle (limit.from is this correction or reads it: below it in the stack), tint.key_not_above (limit.from is not above it: another branch), tint.lut_not_found (patch.lut names a LUT the project hasn't imported), tint.invalid_grade (a value out of range; nothing is written) or tint.animated (a number that has keys needs a key at a time, not a static value: a patch may hold a keyed number only at its stored value, e.g. a wheel written whole around a keyed component). With at (a timeline time, clip grades only), each keyed number the patch changes from its value at that time gets a key there instead (keyframe_set), in the same undo step; the rest is written as usual.",
+    "Changes one correction: patch.values (a partial of the correction's fields, merged over what it has: each given field replaces that field whole), patch.limit (what it touches; null removes the limit; { from: nodeId } shares the pick of another correction, one above it whose limit limits something, instead of its own: its key, its refine and clean up, and inverted again when this limit has invert: true; or names a key join from tint_wire, whose combined key it mixes by), patch.lut ({ id, strength 0 to 1 }: a LUT from tint_import_lut, after Creative; null removes it), patch.opacity (0 to 1), patch.on and patch.name. Fields at their defaults are not stored. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (or the node is not a correction, or limit.from names no node), tint.key_not_limited (limit.from is neither a key join nor a correction with a limit), tint.key_cycle (limit.from is this correction or reads it: below it in the stack), tint.key_not_above (limit.from is not above it: another branch); these three are checked only when patch.limit changes limit.from, so other limit edits of a correction whose owner stopped limiting still succeed (it is then unlimited), tint.lut_not_found (patch.lut names a LUT the project hasn't imported), tint.invalid_grade (a value out of range; nothing is written) or tint.animated (a number that has keys needs a key at a time, not a static value: a patch may hold a keyed number only at its stored value, e.g. a wheel written whole around a keyed component). With at (a timeline time, clip grades only), each keyed number the patch changes from its value at that time gets a key there instead (keyframe_set), in the same undo step; the rest is written as usual.",
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -244,8 +244,9 @@ export const setCorrection = defineCommand({
     else if (patch.lut) node.lut = patch.lut;
     setLive(node, patch);
     if (patch.name !== undefined) node.name = patch.name;
-    // Only a limit being written is checked: an unrelated edit keeps a stored key as it is.
-    if (patch.limit) checkSharedKey(next, id);
+    // Only a pick being chosen is checked: other edits keep a stored key as validateGrade allows it.
+    const was = before?.kind === "correct" ? before.limit?.from : undefined;
+    if (patch.limit && patch.limit.from !== was) checkSharedKey(next, id);
     writeChanged(ctx, target, grade, next);
   },
 });

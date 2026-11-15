@@ -277,6 +277,9 @@ describe("grade commands", () => {
     await ok(setCorrection, { target, nodeId: a, patch: { limit: { color } } });
     await ok(setCorrection, { target, nodeId: b, patch: { limit: { from: a } } });
     expect(clip().grade?.nodes[b]).toMatchObject({ limit: { from: a } });
+    await ok(setCorrection, { target, nodeId: a, patch: { limit: null } });
+    await ok(setCorrection, { target, nodeId: b, patch: { limit: { from: a, invert: true } } });
+    await ok(setCorrection, { target, nodeId: a, patch: { limit: { color } } });
     const shared = await run(group, { target, nodeIds: [a, b], kind: "parallel" });
     expect(shared).toMatchObject({ ok: false, error: { code: "tint.cant_group" } });
     await ok(setCorrection, { target, nodeId: b, patch: { limit: { color } } });

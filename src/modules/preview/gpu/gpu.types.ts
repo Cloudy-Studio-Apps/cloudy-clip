@@ -98,6 +98,8 @@ export interface GpuPrograms {
 export interface GpuDataTextures {
   /** The texture for `data`, current. Binds it on the active unit. */
   bind(data: GpuTexture): void;
+  /** Deletes the least recently bound textures past the cap; called between runs only. */
+  trim(): void;
   dispose(): void;
 }
 
