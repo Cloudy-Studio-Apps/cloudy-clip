@@ -24,19 +24,23 @@ export function gradeInputs(node: GradeNode): NodeRef[] {
   }
 }
 
+/** The one list of the places a node names another node besides its pictures (the objects, not copies). */
+function keyHolders(node: GradeNode): { from: string }[] {
+  if (node.kind === "correct") {
+    return node.limit?.from === undefined ? [] : [node.limit as { from: string }];
+  }
+  if (node.kind === "keyJoin") return node.keys;
+  return [];
+}
+
 /** The nodes a node reads besides pictures: a correction's shared key, a key join's keys. */
 export function gradeKeys(node: GradeNode): string[] {
-  if (node.kind === "correct") return node.limit?.from === undefined ? [] : [node.limit.from];
-  if (node.kind === "keyJoin") return node.keys.map((key) => key.from);
-  return [];
+  return keyHolders(node).map((holder) => holder.from);
 }
 
 /** Renames, in place, the nodes a node reads besides pictures (the ids `gradeKeys` lists). */
 export function renameGradeKeys(node: GradeNode, rename: (id: string) => string): void {
-  if (node.kind === "correct" && node.limit?.from !== undefined) {
-    node.limit.from = rename(node.limit.from);
-  }
-  if (node.kind === "keyJoin") for (const key of node.keys) key.from = rename(key.from);
+  for (const holder of keyHolders(node)) holder.from = rename(holder.from);
 }
 
 /** Whether node `id` reads `of` through pictures or keys, or is it. Never throws, even on a cycle. */
