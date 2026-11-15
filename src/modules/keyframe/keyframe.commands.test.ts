@@ -219,6 +219,11 @@ describe("keyframe.move", () => {
     expect(keyTime(refB)).toBe(oldB);
   });
 
+  it("stops a key at the clip's edge", async () => {
+    await run(bus().run(moveKeys, { keys: [refA], delta: 100 * S }));
+    expect(keyTime(refA)).toBe(6 * S - 1);
+  });
+
   it("writes nothing when any key is gone", async () => {
     const old = keyTime(refA);
     const failed = await code(

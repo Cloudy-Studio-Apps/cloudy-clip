@@ -1,13 +1,10 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import { gradientSchema } from "@/modules/element";
-import { projectRef, type ProjectState } from "@/modules/project";
+import { hexColor, projectRef, type ProjectState } from "@/modules/project";
 
 const name = z.string().trim().min(1).max(200);
-const color = z
-  .string()
-  .toLowerCase()
-  .regex(/^#[0-9a-f]{6}$/, "A colour is #rrggbb.");
+const color = hexColor;
 const side = z.number().int().min(1).max(16384);
 const fill = {
   fillType: z.enum(["color", "gradient"]).optional(),

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Gradient, GradientStop } from "@/modules/project";
+import { hexColor, type Gradient, type GradientStop } from "@/modules/project";
 
 const unit = z.number().min(0).max(1);
 
@@ -11,10 +11,7 @@ export const gradientSchema = z.strictObject({
     .array(
       z.strictObject({
         at: unit,
-        color: z
-          .string()
-          .toLowerCase()
-          .regex(/^#[0-9a-f]{6}$/, "Use #rrggbb"),
+        color: hexColor,
         opacity: unit,
       }),
     )

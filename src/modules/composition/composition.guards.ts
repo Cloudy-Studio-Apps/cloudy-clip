@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, type Micros } from "@/core";
-import { frameDuration, type ProjectFormat } from "@/modules/project";
+import { frameDuration, hexColor, type ProjectFormat } from "@/modules/project";
 
 /** Smallest and largest side of a composition, in pixels. */
 const MIN_SIDE = 2;
@@ -40,7 +40,7 @@ export const compositionId = z.string().describe("A composition's id, from proje
 export const settings = {
   name: z.string().min(1).max(120).optional(),
   format: formatInput.optional(),
-  background: z.string().min(1).max(40).optional().describe("CSS colour, #000000 by default"),
+  background: hexColor.optional().describe("Colour as #rrggbb, #000000 by default"),
   duration: duration.optional(),
   extendToFit: z.boolean().optional().describe("The length follows the end of the last clip"),
 };

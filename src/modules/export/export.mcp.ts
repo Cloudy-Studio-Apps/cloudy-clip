@@ -9,15 +9,16 @@ const getQueue = defineMcpTool({
   name: "export_get_queue",
   readOnly: true,
   description:
-    "Lists exports, oldest first: jobId, file, path, status (waiting, preparing, measuring (match target), rendering, finishing, done, failed, cancelled), progress 0..1 of that status, and why one failed.",
+    "Lists exports, oldest first: jobId, file, path (the Mix when the job has stems), stems (the paths of the stem files, when it has some), status (waiting, preparing, measuring (match target), rendering, finishing, done, failed, cancelled), progress 0..1 of that status, and why one failed.",
   input: z.object({}),
   handler(_input, ctx) {
     const { jobs } = ctx.require(exportRef).queue.getState();
     return textResult(
-      jobs.map(({ id, file, path, status, progress, message, estimatedBytes }) => ({
+      jobs.map(({ id, file, path, stems, status, progress, message, estimatedBytes }) => ({
         jobId: id,
         file,
         path,
+        ...(stems && { stems }),
         status,
         progress,
         message,

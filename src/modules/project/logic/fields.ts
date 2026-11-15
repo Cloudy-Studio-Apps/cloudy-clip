@@ -146,13 +146,23 @@ function binProblem(state: ProjectState): string | null {
   return null;
 }
 
-/** A fade never outlasts its clip, whatever trimmed it. */
+/**
+ * A fade never outlasts its clip, whatever trimmed it. A clip a command just wrote whole is a
+ * frozen value, not a draft, so a clip that needs it is replaced instead of edited.
+ */
 function clampFades(draft: Draft<ProjectState>): void {
-  for (const clip of Object.values(draft.clips)) {
+  for (const [id, clip] of Object.entries(draft.clips)) {
     const sound = clip.sound;
     if (!sound) continue;
-    if (sound.fadeIn > clip.duration) sound.fadeIn = clip.duration;
-    if (sound.fadeOut > clip.duration) sound.fadeOut = clip.duration;
+    if (sound.fadeIn <= clip.duration && sound.fadeOut <= clip.duration) continue;
+    draft.clips[id] = {
+      ...clip,
+      sound: {
+        ...sound,
+        fadeIn: Math.min(sound.fadeIn, clip.duration),
+        fadeOut: Math.min(sound.fadeOut, clip.duration),
+      },
+    };
   }
 }
 

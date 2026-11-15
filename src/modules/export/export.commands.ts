@@ -267,7 +267,8 @@ export const remove = defineCommand({
 export const moveUp = defineCommand({
   id: "export.moveUp",
   label: "Move export up",
-  description: "Moves a waiting export one place earlier, ahead of the waiting one before it.",
+  description:
+    "Moves a waiting export one place earlier, ahead of the waiting one before it. Fails with export.noJob for an id not in the queue.",
   undoable: false,
   input: JOB_ID,
   run(ctx, { jobId }) {
@@ -275,7 +276,8 @@ export const moveUp = defineCommand({
     const jobs = [...queue.getState().jobs];
     const index = jobs.findIndex((job) => job.id === jobId);
     const [before, job] = [jobs[index - 1], jobs[index]];
-    if (!job || !before || job.status !== "waiting" || before.status !== "waiting") return;
+    if (!job) throw new CommandFailure("export.noJob", "That export isn't in the queue.");
+    if (!before || job.status !== "waiting" || before.status !== "waiting") return;
     jobs[index - 1] = job;
     jobs[index] = before;
     queue.setState({ jobs });

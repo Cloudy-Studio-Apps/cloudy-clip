@@ -73,6 +73,19 @@ describe("clip sound", () => {
     expect(soundOf(doc().clips[audio.id]!).fadeOut).toBe(doc().clips[audio.id]!.duration);
   });
 
+  it("trim and split shorter than a fade clamp it instead of failing", async () => {
+    const { audio } = await pair();
+    await kernel.bus.run(setSound, {
+      clipIds: [audio.id],
+      patch: { fadeIn: 7 * S, fadeOut: 7 * S },
+    });
+    const split = await kernel.bus.run(splitAt, { at: 3 * S, clipIds: [audio.id] });
+    expect(split.ok).toBe(true);
+    const trim = await kernel.bus.run(trimClip, { clipId: audio.id, edge: "end", time: S });
+    expect(trim.ok).toBe(true);
+    expect(soundOf(doc().clips[audio.id]!).fadeIn).toBe(S);
+  });
+
   it("undo restores in one step, and a default value isn't stored", async () => {
     const { audio } = await pair();
     await kernel.bus.run(setSound, { clipIds: [audio.id], patch: { pan: 0.5, volumeDb: 3 } });

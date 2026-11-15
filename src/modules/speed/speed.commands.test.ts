@@ -512,6 +512,13 @@ describe("speed ramps", () => {
     expect(clipOf("B").start).toBe(4 * S);
   });
 
+  it("speed.reset after a ramp over the whole clip gives back its exact length", async () => {
+    await run(key("A", 0, 1));
+    await run(key("A", 4 * S, 4));
+    await run(kernel.bus.run(resetSpeed, { clipIds: ["A"] }));
+    expect(clipOf("A").duration).toBe(4 * S);
+  });
+
   it("splits without a jump in the file", async () => {
     await ramp();
     const at = clipOf("A").start + 500_000;

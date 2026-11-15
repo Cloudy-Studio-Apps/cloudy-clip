@@ -40,7 +40,7 @@ export async function editSoundOnly<T>(
     if (error instanceof CommandFailure && error.code === "timeline.unlink_joined") {
       throw new CommandFailure(
         error.code,
-        "This sound overlaps another under a transition between their pictures, so it can't be edited alone. Remove the transition on the Edit page first.",
+        "This sound overlaps another under a transition between their pictures, so it can't be edited alone. Remove the transition first (junction_remove, or the Edit page).",
         error.details,
       );
     }

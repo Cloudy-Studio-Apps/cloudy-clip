@@ -52,9 +52,9 @@ Native side: `src-tauri/src/media/facts.rs` (`media_file_facts`: ffprobe on the 
 
 | Command           | MCP tool            | Notes                                                                                     |
 | ----------------- | ------------------- | ----------------------------------------------------------------------------------------- |
-| `media.import`    | `media_import`      | Tool waits until metadata is read                                                         |
+| `media.import`    | `media_import`      | Tool waits until metadata is read; `media.relative_path`                                  |
 | `media.remove`    | `media_remove`      | Refuses while clips use the media                                                         |
-| `media.relink`    | `media_relink`      | Keeps its clips. `media.wrong_kind`                                                       |
+| `media.relink`    | `media_relink`      | Keeps its clips and a name set by rename. `media.wrong_kind`, `media.relative_path`       |
 | `media.setInfo`   | `media_set_info`    | Metadata of the file; `null` clears a field                                               |
 | `media.rename`    | `media_rename`      | The name in the library, not on disk                                                      |
 | `media.createBin` | `media_create_bin`  | In Master or inside `parentId`. `media.no_bin`                                            |

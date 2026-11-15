@@ -151,7 +151,7 @@ export const moveKeys = defineCommand({
   id: "keyframe.move",
   label: "Move keyframes",
   description:
-    'Moves keys by "delta" microseconds of timeline time, all together, each with an optional new "value". A moved key replaces an unmoved one it lands on. Fails with keyframe.not_found or keyframe.invalid_value, changing nothing. Returns { moved }.',
+    'Moves keys by "delta" microseconds of timeline time, all together, each with an optional new "value". A key moved past the edge of the clip stops at the edge (brought into the clip, as keyframe_set does). A moved key replaces an unmoved one it lands on. Fails with keyframe.not_found or keyframe.invalid_value, changing nothing. Returns { moved }.',
   undoable: true,
   input: z.object({
     keys: z.array(keyRef.extend({ value: keyValue.optional() })).min(1),
@@ -171,7 +171,7 @@ export const moveKeys = defineCommand({
         const values = new Map<string, KeyValue>();
         for (const ref of refs) {
           const { key } = requireKey(state, ref);
-          const t = contentTime(clip, timeOfContent(clip, key.t) + input.delta);
+          const t = contentTime(clip, clampToClip(clip, timeOfContent(clip, key.t) + input.delta));
           moves.set(key.id, t);
           if (ref.value !== undefined) {
             values.set(key.id, checkKeyValue(requireField(api, clip, path).field, ref.value));

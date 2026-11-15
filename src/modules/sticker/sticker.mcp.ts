@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { commandTool, defineMcpTool, textResult } from "@/core";
+import { commandTool, defineMcpTool, errorResult, textResult } from "@/core";
 import { addSticker } from "./sticker.commands";
 import { stickerRef } from "./sticker.ref";
 
@@ -29,7 +29,7 @@ const search = defineMcpTool({
   name: "sticker_search",
   readOnly: true,
   description:
-    "Finds stickers across every pack by text (labels and keywords), topic or pack. Returns pack, sticker, label, whether it is animated, and its variations (each axis with its options and default). Pass them to sticker_add. Returns 50 at most unless limit says otherwise.",
+    "Finds stickers across every pack by text (labels and keywords), topic or pack. Returns pack, sticker, label, whether it is animated, and its variations (each axis with its options and default). Pass them to sticker_add. Returns 50 at most unless limit says otherwise. Fails with sticker.unknown_pack or sticker.unknown_topic for an id that doesn't exist (sticker_list_packs lists them).",
   input: z.object({
     text: z.string().optional(),
     topic: z.string().optional(),
@@ -38,6 +38,18 @@ const search = defineMcpTool({
   }),
   async handler({ limit = 50, ...query }, ctx) {
     const stickers = ctx.require(stickerRef);
+    if (query.pack !== undefined && !stickers.packs().some((p) => p.id === query.pack)) {
+      return errorResult({
+        code: "sticker.unknown_pack",
+        message: `No sticker pack "${query.pack}".`,
+      });
+    }
+    if (query.topic !== undefined && !stickers.topics().some((t) => t.id === query.topic)) {
+      return errorResult({
+        code: "sticker.unknown_topic",
+        message: `No sticker topic "${query.topic}".`,
+      });
+    }
     const hits = await stickers.search({ ...query, limit });
     return textResult(
       hits.map(({ pack, sticker }) => ({

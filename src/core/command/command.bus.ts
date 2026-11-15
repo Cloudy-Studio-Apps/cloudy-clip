@@ -152,7 +152,7 @@ export function createCommandBus({
         if (command.undoable) {
           history.push({
             commandId: command.id,
-            label: label ?? command.label,
+            label: command.labelFor?.(parsed.value) ?? label ?? command.label,
             origin: tx.origin,
             actor: tx.actor,
             changes: tx.changes,
