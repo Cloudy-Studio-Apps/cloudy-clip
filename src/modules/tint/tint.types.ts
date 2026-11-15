@@ -7,6 +7,7 @@ import type {
   ClipId,
   Correction,
   CompositionId,
+  ClipGrade,
   CorrectionValues,
   GradeGroupId,
   GradeLimit,
@@ -19,6 +20,19 @@ import type {
   KeyJoin,
   NodeRef,
 } from "@/modules/project";
+
+/**
+ * A look: a short chain of corrections that gives a mood. Applying it adds the corrections, in
+ * order, at the bottom of a grade. Contribute to `tintLooks`.
+ */
+export interface LookDef {
+  /** Unique id, `<module>.<name>` for a plugin's. */
+  id: string;
+  name: string;
+  /** One line for the card's tooltip. */
+  note?: string;
+  corrections: { name: string; values: Partial<CorrectionValues>; limit?: GradeLimit }[];
+}
 
 /** How the grade is shown: as layers (Baby Seal) or as nodes (Leader Seal). */
 export type TintMode = "baby" | "leader";
@@ -109,6 +123,19 @@ export interface TintApi {
   thumb(
     clipId: ClipId,
     nodeId: GradeNodeId,
+    time: Micros,
+    compositionId: CompositionId,
+  ): Promise<string>;
+  /** The looks: the `tintLooks` point of this kernel. */
+  readonly looks: { find(id: string): LookDef | undefined; list(): readonly LookDef[] };
+  /**
+   * A small picture (a JPEG data URL, 160 px wide) of the clip alone at `time` as `grade` draws it
+   * instead of its own: what applying a look or still would give. One capture at a time; the same
+   * clip, time and grade are answered from a small cache.
+   */
+  lookThumb(
+    clipId: ClipId,
+    grade: ClipGrade,
     time: Micros,
     compositionId: CompositionId,
   ): Promise<string>;

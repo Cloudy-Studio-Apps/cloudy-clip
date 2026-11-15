@@ -12,6 +12,7 @@ export type {
   LiveGrade,
   LiveNode,
   LoadedLut,
+  LookDef,
   LutFile,
   LutFiles,
   LutLookup,
@@ -28,3 +29,6 @@ export type {
 export { tintModule } from "./tint.module";
 /** Handle for `require(tintRef)` / `useModule(tintRef)`, and the page's id. */
 export { TINT_PAGE, tintRef } from "./tint.ref";
+
+/** The looks (`LookDef`): contribute one to add it to the Looks tab and `tint.applyLook`. */
+export { tintLooks } from "./tint.points";

@@ -658,8 +658,11 @@ export interface PictureFilter {
   id: string;
   /** Lower runs first. */
   order: number;
-  /** Whether it filters this clip; asked at every frame, so keep it cheap. */
-  applies(clip: Clip, project: ProjectState): boolean;
+  /**
+   * Whether it filters this clip; asked at every frame, so keep it cheap. `options` are the
+   * capture's `CaptureOptions.filters` (none in the live preview and in export).
+   */
+  applies(clip: Clip, project: ProjectState, options?: Readonly<Record<string, unknown>>): boolean;
   /**
    * False while something it needs is loading: the frame is held, like an undecoded video. Asking
    * may start the loading; ask the preview to redraw once it's there.

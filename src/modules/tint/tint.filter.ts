@@ -7,6 +7,7 @@ import {
   canGrade,
   gradeOf,
   type Clip,
+  type ClipGrade,
   type ProjectState,
 } from "@/modules/project";
 import { gradePasses } from "./render/passes";
@@ -20,11 +21,14 @@ export const TINT_GRADE_FILTER = "tint.grade";
 /** The capture option (`CaptureOptions.filters`) that draws a grade only up to a node (its id). */
 export const TINT_CUT = "tint.cut";
 
+/** The capture option that draws a whole `ClipGrade` in place of the clip's own, for look thumbnails. */
+export const TINT_WITH = "tint.with";
+
 /**
  * Draws each graded clip's grade (`clip.grade` as keyed now) in the preview, captures and export.
  * Live values are laid over it in the live preview only (`target` `"preview"`): a capture or an
  * export draws the document as saved. A capture that passes `TINT_CUT` (a node id) draws the grade only
- * up to that node, for layer thumbnails; it is that capture's alone. In the live preview only, the
+ * up to that node, for layer thumbnails; one that passes `TINT_WITH` (a grade) draws that grade instead, even on a clip with none, for look thumbnails; both are that capture's alone. In the live preview only, the
  * correction in `view.showPicked` draws its key instead (Limit's Show). A camera input reads the
  * clip's file range from `media` (`videoRange`). A correction's LUT comes from `luts`: not `ready`
  * while its file is being read; a missing one is left out in the preview and captures (the preview
@@ -70,11 +74,13 @@ export function createTintFilter(
   return {
     id: TINT_GRADE_FILTER,
     order: 100,
-    applies: (clip, project) => gradeOf(clip) !== null && canGrade(clip, project),
+    applies: (clip, project, options) =>
+      (gradeOf(clip) !== null || options?.[TINT_WITH] !== undefined) && canGrade(clip, project),
     ready: (clip, project) =>
       lutsOf(clip, project).every((lut) => luts.file(lut).status !== "loading"),
     passes({ clip, project, target, options, size }) {
-      const whole = gradeOf(clip);
+      const given = target === "capture" ? options?.[TINT_WITH] : undefined;
+      const whole = (given as ClipGrade | undefined) ?? gradeOf(clip);
       if (!whole) return [];
       const cut = target === "capture" ? options?.[TINT_CUT] : undefined;
       const grade = typeof cut === "string" ? { ...whole, out: { node: cut } } : whole;

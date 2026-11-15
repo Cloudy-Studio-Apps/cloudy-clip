@@ -1,4 +1,4 @@
-import { Columns3, Folder, Layers, Plus } from "lucide-react";
+import { Columns3, Folder, Images, Layers, Plus } from "lucide-react";
 import { useState } from "react";
 import { Button, MenuList, Popover, type MenuItem } from "@/ui";
 
@@ -7,6 +7,8 @@ type GroupKind = "parallel" | "layer" | "channels";
 interface AddMenuProps {
   onCorrection(): void;
   onGroup(kind: GroupKind): void;
+  /** Shows the Looks tab, to choose a look to add. */
+  onLook(): void;
   /** Which groups can be made around the selected layer. */
   canGroup: Record<GroupKind, boolean>;
 }
@@ -14,9 +16,9 @@ interface AddMenuProps {
 /**
  * + Add: a correction above the selected layer (else at the bottom), or a group around the
  * selected layer: side by side or stacked with the layer after it, per channel with it alone in
- * the red branch. Looks join the menu later.
+ * the red branch; Look… goes to the Looks tab.
  */
-export function AddMenu({ onCorrection, onGroup, canGroup }: AddMenuProps) {
+export function AddMenu({ onCorrection, onGroup, onLook, canGroup }: AddMenuProps) {
   const items: readonly MenuItem[] = [
     { label: "Correction", icon: Plus, onSelect: onCorrection },
     {
@@ -40,6 +42,7 @@ export function AddMenu({ onCorrection, onGroup, canGroup }: AddMenuProps) {
       disabled: !canGroup.channels,
       onSelect: () => onGroup("channels"),
     },
+    { label: "Look…", icon: Images, group: "looks", onSelect: onLook },
   ];
   const [open, setOpen] = useState(false);
   return (

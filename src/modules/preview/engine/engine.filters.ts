@@ -71,7 +71,7 @@ export class EngineFilters {
       options: this.captureOptions,
     };
     return this.collect(
-      this.set.picture.filter((filter) => filter.applies(clip, project)),
+      this.set.picture.filter((filter) => filter.applies(clip, project, this.captureOptions)),
       (filter) => filter.passes(info),
     );
   }

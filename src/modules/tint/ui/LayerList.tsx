@@ -106,6 +106,7 @@ function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gr
               const ids = picks[kind];
               if (ids) void actions.group(ids, kind);
             }}
+            onLook={() => tint.view.setState({ leftTab: "looks" })}
             canGroup={{
               parallel: picks.parallel !== null,
               layer: picks.layer !== null,

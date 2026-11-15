@@ -16,6 +16,8 @@ import { tintCommands } from "./tint.commands";
 import { createTintFilter, redrawOnShow } from "./tint.filter";
 import { createLutFiles } from "./tint.luts";
 import { createPicker } from "./tint.pick";
+import { BUILTIN_LOOKS } from "./tint.looks";
+import { tintLooks } from "./tint.points";
 import { createThumbs } from "./tint.thumb";
 import { tintKeys } from "./tint.keys";
 import { tintMcpTools } from "./tint.mcp";
@@ -33,7 +35,7 @@ export const tintModule = defineModule({
   commands: [...tintCommands, ...tintViewCommands],
   mcpTools: tintMcpTools,
   setup(ctx) {
-    const { bus, contribute, onDispose } = ctx;
+    const { bus, contribute, onDispose, points } = ctx;
     const preview = ctx.require(previewRef);
     const view = createTintView();
     const live = createTintLive(() => preview.redraw());
@@ -67,6 +69,7 @@ export const tintModule = defineModule({
       keepsPlayback: true,
     });
     contribute(topBarItems, { id: "tint.sealSwitch", slot: "right", component: SealSwitch });
+    contribute(tintLooks, ...BUILTIN_LOOKS);
     contribute(keybindings, ...tintKeys(ctx));
     return {
       api: {
@@ -79,7 +82,12 @@ export const tintModule = defineModule({
         current: holder.current,
         onCurrent: holder.onCurrent,
         viewedAt: holder.viewedAt,
+        looks: {
+          find: (id) => points.find(tintLooks, id),
+          list: () => points.get(tintLooks),
+        },
         thumb: thumbs.thumb,
+        lookThumb: thumbs.lookThumb,
         pickColor: picker.pickColor,
       },
     };

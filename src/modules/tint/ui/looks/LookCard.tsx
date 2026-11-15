@@ -1,27 +1,72 @@
+import { X } from "lucide-react";
+import { useRef } from "react";
 import { cn } from "@/ui";
-import { DEMO_FRAME } from "../demo/demo.images";
-import type { DemoLook } from "../demo/demo.types";
+import type { ClipGrade, ClipId } from "@/modules/project";
+import { useLookThumb } from "./look.thumb.hook";
+
+interface LookCardProps {
+  name: string;
+  /** What the card says under the name. */
+  note: string;
+  /** The clip being graded, and its grade: the picture is the clip's frame with `grade` added. */
+  clipId: ClipId | null;
+  base: ClipGrade | null;
+  grade: ClipGrade | undefined;
+  /** A picture to show until (or instead of) the clip's own. */
+  fallback?: string;
+  chosen: boolean;
+  onChoose(): void;
+  /** Present for a still: removes it. */
+  onRemove?(): void;
+}
 
 /** A look or still: the current frame through it, its name, and where it came from. */
-export function LookCard({ look, chosen }: { look: DemoLook; chosen: boolean }) {
+export function LookCard({
+  name,
+  note,
+  clipId,
+  base,
+  grade,
+  fallback,
+  chosen,
+  onChoose,
+  onRemove,
+}: LookCardProps) {
+  const card = useRef<HTMLDivElement>(null);
+  const picture = useLookThumb(card, clipId, base, grade) ?? fallback;
   return (
-    <button
-      type="button"
-      title={`Apply ${look.name}`}
-      className="flex cursor-pointer flex-col gap-1 text-left font-hand text-sm font-bold text-muted-foreground"
-    >
-      <img
-        src={DEMO_FRAME}
-        alt=""
-        draggable={false}
-        className={cn(
-          "aspect-video w-full rounded-sm object-cover",
-          chosen ? "shadow-[0_0_0_1.5px_var(--mark)]" : "shadow-[0_0_0_1px_var(--border)]",
-        )}
-        style={{ filter: look.look }}
-      />
-      {look.name}
-      <span className="font-mono text-2xs font-normal text-subtle-foreground">{look.note}</span>
-    </button>
+    <div ref={card} className="relative">
+      <button
+        type="button"
+        title={`Choose ${name}`}
+        aria-pressed={chosen}
+        onClick={onChoose}
+        className="flex w-full cursor-pointer flex-col gap-1 text-left font-hand text-sm font-bold text-muted-foreground"
+      >
+        <span
+          className={cn(
+            "block aspect-video w-full overflow-hidden rounded-sm bg-stage",
+            chosen ? "shadow-[0_0_0_1.5px_var(--mark)]" : "shadow-[0_0_0_1px_var(--border)]",
+          )}
+        >
+          {picture && (
+            <img src={picture} alt="" draggable={false} className="size-full object-cover" />
+          )}
+        </span>
+        {name}
+        <span className="font-mono text-2xs font-normal text-subtle-foreground">{note}</span>
+      </button>
+      {onRemove && (
+        <button
+          type="button"
+          title={`Remove ${name}`}
+          aria-label={`Remove ${name}`}
+          onClick={onRemove}
+          className="absolute top-1 right-1 flex size-4 cursor-pointer items-center justify-center rounded-xs bg-surface text-muted-foreground hover:text-foreground"
+        >
+          <X className="size-3" />
+        </button>
+      )}
+    </div>
   );
 }

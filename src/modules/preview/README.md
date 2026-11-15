@@ -16,7 +16,7 @@ viewer (zoom and pan around the frame) and the preview panel with its transport 
   wrapper ignores the pointer (`pointer-events-none`); an overlay turns it back on for the parts
   that take input, so overlays stacked later never block the ones below.
   `pictureFilters` and `frameFilters` (`preview.points.ts`, keyed by `id`): GPU passes a feature
-  contributes (`tint`'s grades). A `PictureFilter` (`{ id, order, applies(clip, project),
+  contributes (`tint`'s grades). A `PictureFilter` (`{ id, order, applies(clip, project, options?),
 ready?(clip, project), passes(info) }`) changes a clip's own picture before it lands, so a grade
   scales, blends and fades with it: a video frame after its levels pass, a cached image, a
   placement's canvas. Clips that draw themselves (text, solids, stickers) are not filtered. A

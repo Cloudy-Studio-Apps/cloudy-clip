@@ -1,0 +1,63 @@
+import { useEffect, useMemo, useState, type RefObject } from "react";
+import { useModule } from "@/core";
+import { previewRef } from "@/modules/preview";
+import { useOpenComposition, type ClipGrade, type ClipId } from "@/modules/project";
+import { previewGrade } from "../../logic/look";
+import { tintRef } from "../../tint.ref";
+
+/** How long after the playhead stops a card is drawn. */
+const SETTLE_MS = 400;
+
+/**
+ * The current frame of a clip as `extra` would leave it added to its grade `base` (a data URL), for
+ * a look card. Drawn only once the card is on screen, 400 ms after the playhead settles and never
+ * while playing; the kernel keeps what it drew, so a card seen again costs nothing. Undefined until
+ * drawn (or when it can't be: the card then shows its fallback).
+ */
+export function useLookThumb(
+  card: RefObject<Element | null>,
+  clipId: ClipId | null,
+  base: ClipGrade | null,
+  extra: ClipGrade | undefined,
+): string | undefined {
+  const tint = useModule(tintRef);
+  const { playback } = useModule(previewRef);
+  const compositionId = useOpenComposition()?.id;
+  const [seen, setSeen] = useState(false);
+  const [url, setUrl] = useState<string>();
+  const grade = useMemo(() => (extra ? previewGrade(base, extra) : null), [base, extra]);
+  useEffect(() => {
+    const element = card.current;
+    if (!element) return;
+    const watch = new IntersectionObserver(([entry]) => setSeen(entry?.isIntersecting ?? false));
+    watch.observe(element);
+    return () => watch.disconnect();
+  }, [card]);
+  useEffect(() => {
+    if (!seen || !clipId || !compositionId || !grade) return;
+    let stale = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const draw = () => {
+      if (playback.isPlaying()) return;
+      tint.lookThumb(clipId, grade, playback.getTime(), compositionId).then(
+        (picture) => !stale && setUrl(picture),
+        () => {},
+      );
+    };
+    const schedule = () => {
+      clearTimeout(timer);
+      timer = setTimeout(draw, SETTLE_MS);
+    };
+    schedule();
+    const off = [
+      playback.onTime(() => !playback.isPlaying() && schedule()),
+      playback.onPlayingChange(schedule),
+    ];
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+      off.forEach((fn) => fn());
+    };
+  }, [tint, playback, seen, clipId, compositionId, grade]);
+  return url;
+}

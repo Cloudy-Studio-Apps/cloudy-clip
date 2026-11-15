@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import { INPUT_SPACES, projectRef, type ClipGrade } from "@/modules/project";
+import { appendGrade, lookGrade } from "./logic/look";
 import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
 import { tintRef } from "./tint.ref";
 import { readLut } from "./tint.service";
@@ -99,6 +100,57 @@ export const setInput = defineCommand({
       }
       if ((grade?.input ?? "rec709") === input) continue;
       writes.push([clipId, checkedGrade({ nodes: {}, out: { node: "source" }, ...grade, input })]);
+    }
+    if (writes.length === 0) return;
+    ctx.mutate(store, (draft) => {
+      for (const [clipId, grade] of writes) writeGrade(draft, { clipId }, grade);
+    });
+  },
+});
+
+/**
+ * Adds a look's corrections, or a still's grade, at the bottom of clips' grades: after everything
+ * they have, so it runs last. Every clip is checked before anything is written; one undo step for
+ * all.
+ */
+export const applyLook = defineCommand({
+  id: "tint.applyLook",
+  label: "Apply look",
+  description:
+    "Adds a look (lookId, from tint_describe's looks) or a still's grade (stillId, from tint_describe's stills) to the grade of clips, after everything they already have, so it runs last. A look adds its corrections one after another, each named after the look; a still adds its stored grade as it is. Give exactly one of lookId and stillId. Nothing is replaced and no clip's camera color space changes; a still with no grade changes nothing. All clips change in one undo step, or none: fails with tint.look_choice (not exactly one id), tint.look_not_found, tint.still_not_found, tint.target_not_found, tint.not_gradeable or tint.invalid_grade.",
+  undoable: true,
+  input: z.object({
+    clipIds: z.array(z.string().min(1)).min(1),
+    lookId: z.string().min(1).optional(),
+    stillId: z.string().min(1).optional(),
+  }),
+  run(ctx, { clipIds, lookId, stillId }) {
+    if ((lookId === undefined) === (stillId === undefined)) {
+      throw new CommandFailure("tint.look_choice", "Give exactly one of lookId and stillId.");
+    }
+    const { store } = ctx.require(projectRef);
+    const state = store.getState();
+    let extra: ClipGrade | undefined;
+    if (lookId !== undefined) {
+      const look = ctx.require(tintRef).looks.find(lookId);
+      if (!look) throw new CommandFailure("tint.look_not_found", `No look "${lookId}"`);
+      extra = lookGrade(look, () => createId("node"));
+    } else {
+      const still = state.stills?.[stillId!];
+      if (!still) throw new CommandFailure("tint.still_not_found", `No still "${stillId}"`);
+      extra = still.grade;
+    }
+    const writes: [string, ClipGrade | undefined][] = [];
+    for (const clipId of new Set(clipIds)) {
+      const grade = readGrade(state, { clipId });
+      const next = extra && appendGrade(grade, extra, () => createId("node"));
+      if (extra && Object.keys(extra.nodes).length > 0 && !next) {
+        throw new CommandFailure(
+          "tint.invalid_grade",
+          `That grade can't be added to clip "${clipId}".`,
+        );
+      }
+      if (next) writes.push([clipId, checkedGrade(next)]);
     }
     if (writes.length === 0) return;
     ctx.mutate(store, (draft) => {
