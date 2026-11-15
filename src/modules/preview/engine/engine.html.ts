@@ -653,8 +653,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     const place = clipPlacement(format, size, transform);
     const passSize = this.options.capPasses ? cappedPassSize(size, place, kx, ky) : size;
     const groups = this.filtering ? this.filters.forClip(subject, passSize) : [];
-    const rows = this.options.videoMatrix?.(clip.mediaId, element.src) ?? null;
-    land(target, this.filters.video(element, size, passSize, groups, rows), place, kx, ky);
+    land(target, this.filters.video(element, size, passSize, groups), place, kx, ky);
   }
 
   /** Draws an element that paints itself (text, a plugin's), at its placement. */

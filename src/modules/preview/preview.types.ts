@@ -2,7 +2,6 @@ import type { ActorId, Micros } from "@/core";
 import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { FontRequest } from "@/modules/fonts";
-import type { VideoMatrix } from "@/modules/media";
 import type { FilterSet } from "./engine/engine.types";
 import type { GpuPass } from "./gpu/gpu.types";
 import type {
@@ -444,27 +443,10 @@ export interface VideoLevels {
   white: number;
 }
 
-/** A 3×3 matrix on RGB, as its three rows. */
-export type ColorRows = readonly [readonly number[], readonly number[], readonly number[]];
-
-/** A pixel's red, green and blue (0–255). */
-export type Rgb = readonly [number, number, number];
-
-/**
- * Which matrix this webview decoded HD video with, measured on `media`'s matrix clips: untagged,
- * and tagged BT.709. Null where it couldn't be told.
- */
-export interface DecoderMatrices {
-  untagged: VideoMatrix | null;
-  tagged: VideoMatrix | null;
-}
-
 /** How this webview draws video levels, measured once per kernel on `media`'s levels clip. */
 export interface VideoLevelsMeter {
   /** The levels to correct, once measured; null before, when no correcting is needed, or failed. */
   current(): VideoLevels | null;
-  /** Which matrix HD video is decoded with, once measured (with the levels); both null before. */
-  matrices(): DecoderMatrices;
   /**
    * Measures (once; later calls share it). Null when video draws right. Rejects when it couldn't
    * be measured, and asking again tries again.

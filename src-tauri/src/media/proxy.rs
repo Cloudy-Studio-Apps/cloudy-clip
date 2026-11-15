@@ -94,13 +94,6 @@ pub struct ProbeMeta {
     /// A video stored full range (`color_range` pc, or a `yuvj` format); only sent when true.
     #[serde(rename = "fullRange", skip_serializing_if = "std::ops::Not::not")]
     pub full_range: bool,
-    /// The matrix a video is meant to be decoded with, `bt709` or `bt601` ([`Probe::matrix`]);
-    /// missing for other matrices and for images.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub matrix: Option<&'static str>,
-    /// Whether the file states that matrix; only sent when true.
-    #[serde(rename = "matrixTagged", skip_serializing_if = "std::ops::Not::not")]
-    pub matrix_tagged: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -235,18 +228,7 @@ impl ProxyJobs {
             report(ProxyState::Encoding, Some(0.0), Some(reason.clone()));
 
             let on_progress = |p: f32| report(ProxyState::Encoding, Some(p), None);
-            let tag = matrix_tag(&probe);
-            match encode(
-                &tools,
-                &path,
-                &target,
-                kind,
-                tag,
-                probe.duration_us,
-                on_progress,
-            )
-            .await
-            {
+            match encode(&tools, &path, &target, kind, probe.duration_us, on_progress).await {
                 Ok(()) => {
                     registry.set_proxy(&id, generation, target);
                     report(ProxyState::Ready, Some(1.0), Some(reason));
@@ -279,17 +261,8 @@ impl ProxyJobs {
                 .map_err(|_| "Encoder unavailable".to_owned())?;
             // Another export may have made it while this one waited.
             if !tokio::fs::try_exists(&target).await.unwrap_or(false) {
-                let probe = ffprobe(&tools, &source, false).await?;
-                let tag = matrix_tag(&probe);
-                encode_master(
-                    &tools,
-                    &source,
-                    &target,
-                    tag,
-                    probe.duration_us,
-                    on_progress,
-                )
-                .await?;
+                let duration = ffprobe(&tools, &source, false).await?.duration_us;
+                encode_master(&tools, &source, &target, duration, on_progress).await?;
             }
         }
         registry.set_master(id, generation, target);
@@ -318,8 +291,6 @@ pub(crate) struct Probe {
     rotation: i64,
     /// Whether the picture is stored full range rather than video range.
     full_range: bool,
-    /// ffprobe's `color_space`, the matrix the file states.
-    color_space: Option<String>,
 }
 
 impl Probe {
@@ -329,20 +300,6 @@ impl Probe {
             (self.height, self.width)
         } else {
             (self.width, self.height)
-        }
-    }
-
-    /// The matrix the picture is meant to be decoded with, `bt709` or `bt601`, and whether the
-    /// file states it. Untagged, it is BT.709 from a height of 720 and BT.601 below, as players
-    /// and browsers take it. `None` for other matrices (BT.2020, ...).
-    pub(super) fn matrix(&self) -> Option<(&'static str, bool)> {
-        match self.color_space.as_deref() {
-            Some("bt709") => Some(("bt709", true)),
-            Some("bt470bg" | "smpte170m") => Some(("bt601", true)),
-            None | Some("unknown" | "") => {
-                Some((if self.height >= 720 { "bt709" } else { "bt601" }, false))
-            }
-            Some(_) => None,
         }
     }
 
@@ -359,8 +316,6 @@ impl Probe {
             duration: self.duration_us?,
             frames: None,
             full_range: self.full_range,
-            matrix: self.matrix().map(|(matrix, _)| matrix),
-            matrix_tagged: self.matrix().is_some_and(|(_, tagged)| tagged),
         })
     }
 }
@@ -479,7 +434,6 @@ fn parse_probe(json: &Value) -> Probe {
                             .pix_fmt
                             .as_deref()
                             .is_some_and(|f| f.starts_with("yuvj"));
-                    probe.color_space = stream["color_space"].as_str().map(str::to_owned);
                     probe.width = stream["width"].as_u64().unwrap_or(0);
                     probe.height = stream["height"].as_u64().unwrap_or(0);
                     probe.fps = ["avg_frame_rate", "r_frame_rate"]
@@ -579,23 +533,8 @@ fn pretty(codec: &str) -> String {
     }
 }
 
-/// The start of a copy's filter chain that tags an untagged file with the matrix it was meant for
-/// ([`Probe::matrix`]), so every copy decodes the same way whatever its size (a scale would
-/// otherwise tag it BT.601); empty for a tagged file, whose tags carry over.
-pub(super) fn matrix_tag(probe: &Probe) -> &'static str {
-    match probe.matrix() {
-        Some(("bt709", false)) => {
-            "setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709,"
-        }
-        Some((_, false)) => {
-            "setparams=colorspace=smpte170m:color_primaries=smpte170m:color_trc=smpte170m,"
-        }
-        _ => "",
-    }
-}
-
 /// Bump when the proxy recipe changes, so proxies made by an older recipe are not reused.
-const PROXY_RECIPE: u32 = 3;
+const PROXY_RECIPE: u32 = 2;
 
 /// Stable cache name for a source file version (FNV-1a over recipe, path, size, mtime).
 pub(super) async fn cache_path(
@@ -640,7 +579,6 @@ async fn encode(
     source: &Path,
     target: &Path,
     kind: MediaKind,
-    tag: &str,
     duration_us: Option<u64>,
     on_progress: impl Fn(f32),
 ) -> Result<(), String> {
@@ -658,7 +596,7 @@ async fn encode(
         .args(["-map_metadata", "-1", "-map_chapters", "-1", "-dn", "-sn"]);
     if kind == MediaKind::Video {
         let scale = format!(
-            "{tag}scale=w='min({PROXY_LONG_SIDE},iw)':h='min({PROXY_LONG_SIDE},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2"
+            "scale=w='min({PROXY_LONG_SIDE},iw)':h='min({PROXY_LONG_SIDE},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2"
         );
         cmd.args(["-map", "0:v:0", "-vf", &scale])
             .args(["-c:v", "libx264", "-preset", "veryfast", "-crf", "21"])
@@ -688,7 +626,6 @@ async fn encode_master(
     tools: &Tools,
     source: &Path,
     target: &Path,
-    tag: &str,
     duration_us: Option<u64>,
     on_progress: impl Fn(f32),
 ) -> Result<(), String> {
@@ -705,8 +642,7 @@ async fn encode_master(
             "-sn",
             "-an",
         ])
-        .args(["-map", "0:v:0", "-vf"])
-        .arg(format!("{tag}scale=trunc(iw/2)*2:trunc(ih/2)*2"))
+        .args(["-map", "0:v:0", "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2"])
         .args(["-c:v", "libx264", "-preset", "veryfast", "-crf", "14"])
         .args(["-pix_fmt", "yuv420p", "-profile:v", "high"])
         .args(["-g", "15", "-keyint_min", "15", "-sc_threshold", "0"])

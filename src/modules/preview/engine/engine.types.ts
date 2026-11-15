@@ -17,7 +17,6 @@ import type {
   MonitorState,
   StereoLevel,
   VideoLevels,
-  ColorRows,
 } from "../preview.types";
 import type {
   BusId,
@@ -389,12 +388,6 @@ export interface EngineOptions {
    * asked at each video frame. A video frame then goes through `gpu`'s levels pass.
    */
   videoLevels?(): VideoLevels | null;
-  /**
-   * The rows that give a frame of the video at `url` (one of `id`'s) its intended matrix, when
-   * this webview decodes it with the other, asked at each video frame; null when it doesn't. Run
-   * in the levels pass.
-   */
-  videoMatrix?(id: MediaId, url: string): ColorRows | null;
   /** The engine's own GPU runner: made with the engine, disposed with it. */
   gpu?: GpuRunner;
   /**

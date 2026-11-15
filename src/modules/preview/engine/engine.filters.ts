@@ -5,13 +5,7 @@ import { levelsPass } from "../gpu/gpu.levels";
 import type { GpuPass } from "../gpu/gpu.types";
 import { chainPasses } from "../logic/chain";
 import { filtersReady } from "../logic/readiness";
-import type {
-  ColorRows,
-  FilterInfo,
-  FilterPasses,
-  FilterTarget,
-  VideoLevels,
-} from "../preview.types";
+import type { FilterInfo, FilterPasses, FilterTarget, VideoLevels } from "../preview.types";
 import { ShrinkCanvas } from "./engine.shrink";
 import type { EngineOptions, FilterSet, FilterSubject } from "./engine.types";
 
@@ -31,8 +25,8 @@ function asError(error: unknown): Error {
  * picture without what failed; a capture or an export throws, so its frame fails with the message.
  */
 export class EngineFilters {
-  /** The levels pass of each matrix correction, for the last levels asked for. */
-  private corrections = new Map<ColorRows | null, { from: VideoLevels | null; pass: GpuPass }>();
+  /** The levels pass of the last levels asked for, made again only when they change. */
+  private correction: { from: VideoLevels; pass: GpuPass } | null = null;
   /** The levels pass failed: told once. */
   private levelsWarned = false;
   /** No WebGL2 for good: nothing runs on the GPU any more. */
@@ -106,26 +100,19 @@ export class EngineFilters {
   }
 
   /**
-   * A video frame through its levels pass (when this webview squeezes levels, or `rows` corrects
-   * its matrix) and `groups`, at `passSize`; the element itself when nothing runs.
+   * A video frame through its levels pass (when this webview squeezes them) and `groups`, at
+   * `passSize`; the element itself when nothing runs.
    */
   video(
     element: HTMLVideoElement,
     size: PictureSize,
     passSize: PictureSize,
     groups: readonly FilterPasses[],
-    rows: ColorRows | null,
   ): CanvasImageSource {
     const levels = this.options.videoLevels?.() ?? null;
-    let pass: GpuPass | null = null;
-    if (levels || rows) {
-      let kept = this.corrections.get(rows);
-      if (kept?.from !== levels) {
-        kept = { from: levels, pass: levelsPass(levels, rows) };
-        this.corrections.set(rows, kept);
-      }
-      pass = kept.pass;
-    }
+    if (levels && this.correction?.from !== levels)
+      this.correction = { from: levels, pass: levelsPass(levels) };
+    const pass = levels ? this.correction!.pass : null;
     return this.run(element, size, passSize, this.opaque, pass, groups);
   }
 

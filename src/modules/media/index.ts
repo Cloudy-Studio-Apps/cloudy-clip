@@ -26,7 +26,6 @@ export type {
   DenoiseSettings,
   DiskInfo,
   FileFacts,
-  FileMatrix,
   ImageAnimation,
   ImportResult,
   MediaApi,
@@ -41,7 +40,6 @@ export type {
   ProbeStatus,
   ProxyInfo,
   ProxyState,
-  VideoMatrix,
 } from "./media.types";
 
 /** Module definition, loaded by the app shell. */

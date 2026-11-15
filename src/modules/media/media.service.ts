@@ -38,10 +38,6 @@ export function revealFile(path: string): Promise<void> {
   return revealItemInDir(path);
 }
 
-const PROXY = /[?&]proxy=1(&|$)/;
-const MASTER = /[?&]master=1(&|$)/;
-const REVERSED = /[?&]reversed=1(&|$)/;
-
 /** Creates the media server connection, writing proxy progress into `state`. */
 export function createMediaService(state: MediaState): MediaService {
   let baseUrl: string | null = null;
@@ -100,16 +96,6 @@ export function createMediaService(state: MediaState): MediaService {
     reversedFileUrl: (id, full) => fileUrl(id, { reversed: "1", ...(full && { master: "1" }) }),
     masterUrl: (id) => fileUrl(id, { master: "1" }),
     levelsClip: () => invoke<string>("media_levels_clip"),
-    matrixClip: (tagged) => invoke<string>("media_matrix_clip", { tagged }),
-    videoMatrix(id, url) {
-      const proxy = state.getProbe(id)?.proxy;
-      const intended = proxy?.meta?.matrix;
-      if (!intended) return null;
-      // A master URL streams the original when there's no master, made only for a proxied file.
-      const copy =
-        PROXY.test(url) || REVERSED.test(url) || (MASTER.test(url) && proxy.state === "ready");
-      return { intended, tagged: proxy.meta?.matrixTagged === true || copy };
-    },
     frameUrl: (id, index) => fileUrl(id, {}, `/frames/${index}`),
     mediaUrl(id) {
       const ready = state.getProbe(id)?.proxy?.state === "ready";

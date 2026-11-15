@@ -88,22 +88,6 @@ export interface ProbeMeta {
   frames?: number;
   /** A video stored full range (ffprobe's `color_range` pc, or a `yuvj` format); missing for video range. */
   fullRange?: boolean;
-  /**
-   * The matrix a video is meant to be decoded with: the one it states (ffprobe's `color_space`),
-   * else BT.709 from a coded height of 720 and BT.601 below. Missing for other matrices (BT.2020…).
-   */
-  matrix?: VideoMatrix;
-  /** Whether the file states `matrix`; missing when it doesn't. */
-  matrixTagged?: boolean;
-}
-
-/** A YCbCr matrix: BT.709 (HD) or BT.601 (SD). */
-export type VideoMatrix = "bt709" | "bt601";
-
-/** The matrix a video file played by the webview is meant for, and whether that file states it. */
-export interface FileMatrix {
-  intended: VideoMatrix;
-  tagged: boolean;
 }
 
 /** What a composition takes from a picture. */
@@ -246,19 +230,6 @@ export interface MediaApi {
    */
   levelsClip(): Promise<MediaId>;
   /**
-   * Id of a tiny 1280×720 clip of 75% yellow stored with the BT.709 matrix, untagged or with
-   * `tagged` its BT.709 tags, made and registered like `levelsClip`: for measuring which matrix
-   * the webview decodes HD video with. Rejects without FFmpeg.
-   */
-  matrixClip(tagged: boolean): Promise<MediaId>;
-  /**
-   * The matrix the file at `url` (one of `id`'s URLs) is meant to be decoded with, and whether it
-   * states it: the original states it when ffprobe found a tag; every copy (proxy, master,
-   * reversed) states it, since the copies are tagged when made. Null for images, unprobed files
-   * and other matrices.
-   */
-  videoMatrix(id: MediaId, url: string): FileMatrix | null;
-  /**
    * Makes the copy of a file that runs backwards, reporting 0..1: for preview, or for export with
    * `full`. Rejects if it can't be made. Asking again while it's being made joins that job.
    */
@@ -329,8 +300,6 @@ export interface MediaState extends Omit<
   | "prepareMaster"
   | "masterUrl"
   | "levelsClip"
-  | "matrixClip"
-  | "videoMatrix"
   | "prepareReversed"
   | "reversedUrl"
   | "denoised"
@@ -367,8 +336,6 @@ export interface MediaService {
   prepareMaster: MediaApi["prepareMaster"];
   masterUrl: MediaApi["masterUrl"];
   levelsClip: MediaApi["levelsClip"];
-  matrixClip: MediaApi["matrixClip"];
-  videoMatrix: MediaApi["videoMatrix"];
   /** Makes a reversed copy, reporting 0..1. */
   prepareReversed(
     id: MediaId,
