@@ -11,7 +11,7 @@
 //! - One encode at a time, so the machine stays responsive.
 //! - Proxies are cached by path + size + modification time; re-importing is instant.
 //! - Written to a temporary file and renamed when complete, so a crash never leaves a broken
-//!   proxy behind. Encoders are killed when the app exits.
+//!   proxy behind. Quitting stops the encoders and removes their partial files ([`stop`]).
 //! - Progress is reported to the webview through [`PROXY_EVENT`].
 //! - A proxy is too small to export from, so a file that has one gets a *master* on its first
 //!   export: the same safe recipe at full size, cached beside the proxies.
@@ -23,13 +23,14 @@ use std::time::{Duration, Instant, UNIX_EPOCH};
 
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, Emitter};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tauri::{AppHandle, Emitter, Manager};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Semaphore;
 
 use super::image;
 use super::registry::{MediaKind, MediaRegistry, always_converted};
+use super::stopper::ENCODERS;
 
 /// Event carrying [`ProxyEvent`] payloads.
 pub const PROXY_EVENT: &str = "media://proxy";
@@ -656,36 +657,80 @@ pub(super) async fn run_encoder(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
+    // Counted before FFmpeg starts, so quitting never misses one that is about to.
+    let Some(_running) = ENCODERS.enter() else {
+        return Err("Cancelled".to_owned());
+    };
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Could not start ffmpeg: {e}"))?;
 
-    if let (Some(stdout), Some(total)) = (child.stdout.take(), duration_us.filter(|d| *d > 0)) {
-        let mut lines = BufReader::new(stdout).lines();
-        let mut last = Instant::now();
-        while let Ok(Some(line)) = lines.next_line().await {
-            let Some(value) = line.strip_prefix("out_time_us=") else {
-                continue;
-            };
-            if last.elapsed() < PROGRESS_INTERVAL {
-                continue;
-            }
-            if let Ok(done) = value.trim().parse::<u64>() {
-                last = Instant::now();
-                on_progress((done as f32 / total as f32).clamp(0.0, 0.99));
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+    let errors = tauri::async_runtime::spawn(async move {
+        let mut text = String::new();
+        if let Some(mut stderr) = stderr {
+            let _ = stderr.read_to_string(&mut text).await;
+        }
+        text
+    });
+
+    let finished = async {
+        if let (Some(stdout), Some(total)) = (stdout, duration_us.filter(|d| *d > 0)) {
+            let mut lines = BufReader::new(stdout).lines();
+            let mut last = Instant::now();
+            while let Ok(Some(line)) = lines.next_line().await {
+                let Some(value) = line.strip_prefix("out_time_us=") else {
+                    continue;
+                };
+                if last.elapsed() < PROGRESS_INTERVAL {
+                    continue;
+                }
+                if let Ok(done) = value.trim().parse::<u64>() {
+                    last = Instant::now();
+                    on_progress((done as f32 / total as f32).clamp(0.0, 0.99));
+                }
             }
         }
-    }
-
-    let output = child
-        .wait_with_output()
-        .await
-        .map_err(|e| format!("ffmpeg failed: {e}"))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
+        child.wait().await
+    };
+    let status = tokio::select! {
+        status = finished => status.map_err(|e| format!("ffmpeg failed: {e}"))?,
+        () = ENCODERS.stopping() => {
+            let _ = child.kill().await;
+            return Err("Cancelled".to_owned());
+        }
+    };
+    if !status.success() {
+        let stderr = errors.await.unwrap_or_default();
         return Err(stderr.lines().last().unwrap_or("unknown error").to_owned());
     }
     Ok(())
+}
+
+/// Stops every encoder running (proxies, masters, derived files, image frames) and removes their
+/// partial files, as the app quits.
+pub async fn stop(app: &AppHandle) {
+    ENCODERS.stop().await;
+    if let Some(jobs) = app.try_state::<ProxyJobs>() {
+        sweep_partials(jobs.cache_dir()).await;
+    }
+}
+
+/// Removes what an encoder was writing: `*.partial.*` files and folders in `cache_dir`.
+async fn sweep_partials(cache_dir: &Path) {
+    let Ok(mut entries) = tokio::fs::read_dir(cache_dir).await else {
+        return;
+    };
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        if !entry.file_name().to_string_lossy().contains(".partial.") {
+            continue;
+        }
+        let path = entry.path();
+        if tokio::fs::remove_file(&path).await.is_err() {
+            let _ = tokio::fs::remove_dir_all(&path).await;
+        }
+    }
 }
 
 #[cfg(test)]

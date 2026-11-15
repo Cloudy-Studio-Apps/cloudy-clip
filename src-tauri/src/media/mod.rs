@@ -10,11 +10,13 @@ pub mod proxy;
 pub mod registry;
 pub(crate) mod reversed;
 pub mod server;
+mod stopper;
 
 use std::sync::{Arc, RwLock};
 
 use tauri::{App, Manager};
 
+pub use proxy::stop;
 pub use registry::MediaRegistry;
 
 /// Base URL of the media server once it is listening (`None` until then or if it failed).

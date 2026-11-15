@@ -319,6 +319,13 @@ pub struct Beats {
     running: Measures<()>,
 }
 
+impl Beats {
+    /// Stops every find running, as the app quits.
+    pub async fn cancel_all(&self) {
+        self.running.cancel_all().await;
+    }
+}
+
 /// The beats of the file at `path` in microseconds of the file, from the cache when the file
 /// hasn't changed; otherwise decoded under `job_id` (for [`cancel`]), reporting 0 to 1 to
 /// `on_progress`. Fails with "Cancelled" when it was.

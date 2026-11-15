@@ -84,6 +84,27 @@ impl<H: Clone> Measures<H> {
             job.cancel().await;
         }
     }
+
+    /// Stops every job, as the app quits. Reserved ones are marked so they never start.
+    pub async fn cancel_all(&self) {
+        let jobs: Vec<Arc<Job>> = self.0.lock().map_or_else(
+            |_| Vec::new(),
+            |mut all| {
+                all.values_mut()
+                    .filter_map(|slot| match slot {
+                        Slot::Running(job, _) => Some(job.clone()),
+                        slot => {
+                            *slot = Slot::Cancelled;
+                            None
+                        }
+                    })
+                    .collect()
+            },
+        );
+        for job in jobs {
+            job.cancel().await;
+        }
+    }
 }
 
 /// FFmpeg's arguments that decode `from..to` (microseconds) of the first sound stream of the file

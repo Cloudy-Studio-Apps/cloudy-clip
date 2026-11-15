@@ -68,10 +68,23 @@ pub fn run() {
             workspace::commands::workspace_unique_path,
             workspace::commands::workspace_write,
         ])
-        .run(tauri::generate_context!());
+        .build(tauri::generate_context!());
 
-    if let Err(error) = result {
-        eprintln!("error while running Cloudy Clip: {error}");
-        std::process::exit(1);
-    }
+    let app = match result {
+        Ok(app) => app,
+        Err(error) => {
+            eprintln!("error while running Cloudy Clip: {error}");
+            std::process::exit(1);
+        }
+    };
+    app.run(|app, event| {
+        // The process ends right after this, dropping nothing, so FFmpeg is stopped here.
+        if matches!(event, tauri::RunEvent::Exit) {
+            tauri::async_runtime::block_on(async {
+                export::stop(app).await;
+                sound::stop(app).await;
+                media::stop(app).await;
+            });
+        }
+    });
 }

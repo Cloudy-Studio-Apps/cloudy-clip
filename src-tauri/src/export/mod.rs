@@ -41,6 +41,18 @@ impl Jobs {
     pub(super) fn take(&self, id: &str) -> Option<Arc<Job>> {
         self.running.write().ok()?.remove(id)
     }
+
+    /// Stops every export and removes what each wrote, as the app quits.
+    async fn cancel_all(&self) {
+        let all: Vec<Arc<Job>> = self
+            .running
+            .write()
+            .map(|mut running| running.drain().map(|(_, job)| job).collect())
+            .unwrap_or_default();
+        for job in all {
+            job.cancel().await;
+        }
+    }
 }
 
 /// Base URL of the frame route once it is listening.
@@ -101,4 +113,15 @@ pub fn setup(app: &mut App) {
             Err(e) => eprintln!("[export] could not start the frame route: {e}"),
         }
     });
+}
+
+/// Stops every export and sound measurement FFmpeg is running and removes what they wrote. Runs
+/// as the app quits, before the process ends (nothing is dropped then, so `kill_on_drop` can't).
+pub async fn stop(app: &tauri::AppHandle) {
+    if let Some(jobs) = app.try_state::<Arc<Jobs>>() {
+        jobs.cancel_all().await;
+    }
+    if let Some(notes) = app.try_state::<PartialNotes>() {
+        sweep_partials(&notes.0);
+    }
 }

@@ -28,3 +28,19 @@ pub fn setup(app: &mut App) {
     app.manage(silences::Silences::default());
     app.manage(loudness::Loudness::default());
 }
+
+/// Stops the analyses, scans and beat finds FFmpeg is running, as the app quits.
+pub async fn stop(app: &tauri::AppHandle) {
+    if let Some(analyses) = app.try_state::<analyses::Analyses>() {
+        analyses.cancel_all().await;
+    }
+    if let Some(beats) = app.try_state::<beats::Beats>() {
+        beats.cancel_all().await;
+    }
+    if let Some(silences) = app.try_state::<silences::Silences>() {
+        silences.cancel_all().await;
+    }
+    if let Some(loudness) = app.try_state::<loudness::Loudness>() {
+        loudness.cancel_all().await;
+    }
+}
