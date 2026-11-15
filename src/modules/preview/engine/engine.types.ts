@@ -384,10 +384,11 @@ export interface EngineOptions {
   /** Only pictures matter (offscreen capture): sound clips get no element at all. */
   pictureOnly?: boolean;
   /**
-   * How this webview draws video, when it needs correcting (null until known or when it doesn't),
-   * asked at each video frame. A video frame then goes through `gpu`'s levels pass.
+   * How this webview draws the video of file `mediaId`, when it needs correcting (null until
+   * known or when it doesn't), asked at each video frame. A video frame then goes through `gpu`'s
+   * levels pass.
    */
-  videoLevels?(): VideoLevels | null;
+  videoLevels?(mediaId: MediaId): VideoLevels | null;
   /** The engine's own GPU runner: made with the engine, disposed with it. */
   gpu?: GpuRunner;
   /**

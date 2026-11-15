@@ -25,12 +25,12 @@ source: "media" }`, labelled with the file name, a filmstrip on video tracks and
   - Proxies: pro/camera formats (ProRes, APV, 10-bit HEVC, high bitrates, 24-bit PCM, …) and containers
     a media element can't open (`always_converted`: AVI, MPG, MTS, MXF, AIFF, WMA, …) get a light
     H.264 copy made with the system FFmpeg. Progress arrives as `media://proxy` events and is stored
-    in `probe.proxy`, with `hasAudio` once ffprobe has read the streams, and `meta` (size, rate, length, and `fullRange: true` for a video stored full range: `color_range` pc or a `yuvj` format; missing means video range). Without FFmpeg, files are
+    in `probe.proxy`, with `hasAudio` once ffprobe has read the streams, and `meta` (size, rate, length, and `fullRange: true` for a video stored full range: `color_range` pc or a `yuvj` format; missing means video range; `colorTags` for a video: ffprobe's `range/matrix/primaries/transfer`, `unknown` where missing, e.g. `tv/bt709/unknown/unknown`; proxies and masters keep the tags of their source). Without FFmpeg, files are
     played directly.
   - Masters: a proxy is capped at 1280, too small to export from, so `prepareMaster(id, onProgress)` makes a full-size H.264 copy of
     a file that has one (`media_prepare_master`, cached with the proxies, one encode at a time), streamed by `masterUrl(id)`
     (`?master=1`), which serves the original for a file with no proxy. Only export uses it; it has no sound, which export mixes from the originals.
-  - Levels clip: `levelsClip()` (`media_levels_clip`, `src-tauri/src/media/levels.rs`) makes, once, a 64×64-per-half clip of video black and video white (BT.709, TV range, `levels.mp4` in the app's cache folder) and registers it as `media-levels`, streamed by `masterUrl`. `preview` measures on it how the webview draws video levels.
+  - Levels clips: `levelsClip(tags)` (`media_levels_clip`, `src-tauri/src/media/levels.rs`) makes, once per kind of color tags (`ProbeMeta.colorTags`), a 128×64 clip of video black on the left and video white on the right (16 and 235, or 0 and 255 for range `pc`) stating exactly those tags, set on the frames with `setparams` (a tag that is `unknown` stays unstated; FFmpeg's `-colorspace` output options don't reach the file), as `levels-<tags with _>.mp4` in the app's cache folder, written as `.partial.mp4` and renamed, stopped on quit; it registers it as `media-levels-<tags with _>`, streamed by `masterUrl`. Tags that aren't four plain lowercase names are refused (they go into the filter graph). `preview` measures on it how the webview draws video levels of that kind.
   - `media.service.ts`: the native calls and the proxy listener.
   - Images (`src-tauri/src/media/image.rs`): in the proxy pipeline, under its encoder and cache. PNG, JPG, WebP, BMP, SVG and GIF
     are served as they are up to 3840 on the long side; the rest (HEIC, TIFF, PSD, AVIF, …) and larger ones become one PNG. A file

@@ -80,7 +80,7 @@ pub struct ProxyEvent {
 }
 
 /// A picture's size (as shown, after rotation), frame rate and length.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ProbeMeta {
     pub width: u64,
     pub height: u64,
@@ -94,6 +94,10 @@ pub struct ProbeMeta {
     /// A video stored full range (`color_range` pc, or a `yuvj` format); only sent when true.
     #[serde(rename = "fullRange", skip_serializing_if = "std::ops::Not::not")]
     pub full_range: bool,
+    /// The color tags a video states, as ffprobe names them: `range/matrix/primaries/transfer`,
+    /// `unknown` where missing (e.g. `tv/bt709/unknown/unknown`). Missing for images.
+    #[serde(rename = "colorTags", skip_serializing_if = "Option::is_none")]
+    pub color_tags: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -195,7 +199,8 @@ impl ProxyJobs {
             // From here on every event says whether the file has sound.
             let has_audio = Some(probe.audio_codec.is_some());
             let meta = probe.meta();
-            let report = |state, progress, message| emit(state, progress, message, has_audio, meta);
+            let report =
+                |state, progress, message| emit(state, progress, message, has_audio, meta.clone());
             let Some(reason) = container_reason(&path).or_else(|| proxy_reason(&probe, kind))
             else {
                 report(ProxyState::Skipped, None, None);
@@ -291,6 +296,8 @@ pub(crate) struct Probe {
     rotation: i64,
     /// Whether the picture is stored full range rather than video range.
     full_range: bool,
+    /// [`ProbeMeta::color_tags`].
+    color_tags: Option<String>,
 }
 
 impl Probe {
@@ -316,6 +323,7 @@ impl Probe {
             duration: self.duration_us?,
             frames: None,
             full_range: self.full_range,
+            color_tags: self.color_tags.clone(),
         })
     }
 }
@@ -434,6 +442,17 @@ fn parse_probe(json: &Value) -> Probe {
                             .pix_fmt
                             .as_deref()
                             .is_some_and(|f| f.starts_with("yuvj"));
+                    let tag = |key: &str| stream[key].as_str().unwrap_or("unknown").to_owned();
+                    probe.color_tags = Some(
+                        [
+                            "color_range",
+                            "color_space",
+                            "color_primaries",
+                            "color_transfer",
+                        ]
+                        .map(tag)
+                        .join("/"),
+                    );
                     probe.width = stream["width"].as_u64().unwrap_or(0);
                     probe.height = stream["height"].as_u64().unwrap_or(0);
                     probe.fps = ["avg_frame_rate", "r_frame_rate"]

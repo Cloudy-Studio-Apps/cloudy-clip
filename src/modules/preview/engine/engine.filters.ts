@@ -1,5 +1,5 @@
 import { createLogger, notify } from "@/core";
-import type { Composition, PictureSize, ProjectState } from "@/modules/project";
+import type { Composition, MediaId, PictureSize, ProjectState } from "@/modules/project";
 import { GpuUnavailable } from "../gpu/gpu.errors";
 import { levelsPass } from "../gpu/gpu.levels";
 import type { GpuPass } from "../gpu/gpu.types";
@@ -25,8 +25,8 @@ function asError(error: unknown): Error {
  * picture without what failed; a capture or an export throws, so its frame fails with the message.
  */
 export class EngineFilters {
-  /** The levels pass of the last levels asked for, made again only when they change. */
-  private correction: { from: VideoLevels; pass: GpuPass } | null = null;
+  /** The levels pass of each levels asked for (one per kind of video), made once. */
+  private readonly corrections = new WeakMap<VideoLevels, GpuPass>();
   /** The levels pass failed: told once. */
   private levelsWarned = false;
   /** No WebGL2 for good: nothing runs on the GPU any more. */
@@ -100,19 +100,22 @@ export class EngineFilters {
   }
 
   /**
-   * A video frame through its levels pass (when this webview squeezes them) and `groups`, at
-   * `passSize`; the element itself when nothing runs.
+   * A video frame of file `mediaId` through its levels pass (when this webview squeezes that kind
+   * of video) and `groups`, at `passSize`; the element itself when nothing runs.
    */
   video(
     element: HTMLVideoElement,
+    mediaId: MediaId,
     size: PictureSize,
     passSize: PictureSize,
     groups: readonly FilterPasses[],
   ): CanvasImageSource {
-    const levels = this.options.videoLevels?.() ?? null;
-    if (levels && this.correction?.from !== levels)
-      this.correction = { from: levels, pass: levelsPass(levels) };
-    const pass = levels ? this.correction!.pass : null;
+    const levels = this.options.videoLevels?.(mediaId) ?? null;
+    let pass: GpuPass | null = null;
+    if (levels) {
+      pass = this.corrections.get(levels) ?? levelsPass(levels);
+      this.corrections.set(levels, pass);
+    }
     return this.run(element, size, passSize, this.opaque, pass, groups);
   }
 

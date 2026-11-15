@@ -12,7 +12,7 @@ import { elementRef } from "@/modules/element";
 import { fontsRef } from "@/modules/fonts";
 import { junctionRef } from "@/modules/junction";
 import { mediaRef } from "@/modules/media";
-import { frameDuration, projectRef } from "@/modules/project";
+import { frameDuration, projectRef, type MediaId } from "@/modules/project";
 import { HtmlMediaEngine } from "./engine/engine.html";
 import { createGpuRunner } from "./gpu/gpu.runner";
 import { rememberPlayheads } from "./logic/playheads";
@@ -53,8 +53,18 @@ export const previewModule = defineModule({
         return open ? frameDuration(open.format) : 0;
       },
     );
-    // Measured once per kernel; every engine asks for the result at each video frame.
-    const levels = createVideoLevelsMeter(media, ctx.log);
+    // Measured once per kind of video per kernel; every engine asks at each video frame.
+    // The live preview shows a kind's levels as soon as they are known.
+    let live = true;
+    ctx.onDispose(() => {
+      live = false;
+    });
+    const levels = createVideoLevelsMeter(media, ctx.log, () => live && controller.redraw());
+    const tagsOf = (id: MediaId) => media.getProbe(id)?.proxy?.meta?.colorTags;
+    const importedTags = () =>
+      Object.values(media.probes.getState().probes).flatMap(
+        (probe) => probe.proxy?.meta?.colorTags ?? [],
+      );
     // Picture and frame filters, read by every engine at each frame.
     const filters = createFilters(ctx.points, ctx.log);
     const engineOptions = {
@@ -67,14 +77,14 @@ export const previewModule = defineModule({
       imageFrames: media.imageFrames,
       elements,
       junctions,
-      videoLevels: levels.current,
+      videoLevels: (id: MediaId) => levels.current(tagsOf(id)),
       filters: filters.current,
     };
     const captureDeps: PreviewCaptureDeps = {
       getProject: () => project.getState(),
       getComposition: (id) => project.getState().compositions[id] ?? null,
       ensureFont: (request) => fonts.ensure(request),
-      levelsSettled: levels.settled,
+      levelsSettled: () => levels.settled(importedTags()),
       createEngine: (canvas, ensureFont, target, options) =>
         new HtmlMediaEngine(canvas, {
           ...engineOptions,
@@ -124,19 +134,11 @@ export const previewModule = defineModule({
       requestFrame: (callback) => void requestAnimationFrame(callback),
       capture: createCapture(captureDeps),
       createRenderer: (options) => createFrameRenderer(captureDeps, options),
-      videoLevels: () => levels.measure(),
+      videoLevels: async () => {
+        await Promise.all([...new Set(importedTags())].map((tags) => levels.measure(tags)));
+      },
       gpuAvailable: () => gpuAvailable(),
     });
-    // The live preview shows the file's levels as soon as they are known.
-    let live = true;
-    ctx.onDispose(() => {
-      live = false;
-    });
-    void levels.measure().then(
-      (found) => live && found && controller.redraw(),
-      (error: unknown) => ctx.log.warn("Could not measure video levels", error),
-    );
-    void levels.settled();
     // Each composition keeps its playhead and loop: a switch stops playback and goes where this
     // one was.
     const playheads = rememberPlayheads();

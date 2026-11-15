@@ -56,42 +56,64 @@ export async function measureVideoLevels(url: string): Promise<VideoLevels> {
 }
 
 /**
- * Measures this webview's video levels once, on `media`'s levels clip, for every engine of the
- * kernel. A failed measure is forgotten, so the next ask tries again.
+ * Measures how this webview draws video levels, once per kind of color tags
+ * (`ProbeMeta.colorTags`), on `media`'s levels clip for that kind, for every engine of the
+ * kernel. WebKitGTK draws some kinds right and squeezes others, so one measure can't speak for
+ * all. A failed measure is forgotten, so the next `measure` tries again. `onFound` is told when a
+ * kind turns out to need correcting.
  */
 export function createVideoLevelsMeter(
   media: Pick<MediaApi, "levelsClip" | "masterUrl">,
   log: Logger,
+  onFound: () => void,
 ): VideoLevelsMeter {
-  let known: VideoLevels | null = null;
-  let measuring: Promise<VideoLevels | null> | null = null;
-  let first: Promise<void> | null = null;
-  const meter: VideoLevelsMeter = {
-    current: () => known,
-    settled() {
-      first ??= meter.measure().then(
-        () => undefined,
-        () => undefined,
+  const known = new Map<string, VideoLevels | null>();
+  const measuring = new Map<string, Promise<VideoLevels | null>>();
+  const first = new Map<string, Promise<void>>();
+  const settle = (tags: string) => {
+    let done = first.get(tags);
+    if (!done) {
+      done = meter.measure(tags).then(
+        (found) => {
+          if (found) onFound();
+        },
+        (error: unknown) => log.warn(`Could not measure video levels of ${tags}`, error),
       );
-      return first;
+      first.set(tags, done);
+    }
+    return done;
+  };
+  const meter: VideoLevelsMeter = {
+    current(tags) {
+      // A kind not measured (or not measurable) draws as it is: expanding a picture that is
+      // already right crushes its blacks and whites for good, a squeezed one only looks flat.
+      if (tags === undefined) return null;
+      void settle(tags);
+      return known.get(tags) ?? null;
     },
-    measure() {
-      measuring ??= media
-        .levelsClip()
-        .then((id) => measureVideoLevels(media.masterUrl(id)))
-        .then(({ black, white }) => {
-          log.info(`Video draws from ${black} to ${white}`);
-          // A frame that wasn't decoded reads as nonsense, which would wreck every video layer.
-          if (black > 64 || white < 192) throw new Error(`Unlikely levels: ${black} to ${white}`);
-          const right = black <= LEVELS_TOLERANCE && white >= 255 - LEVELS_TOLERANCE;
-          known = right ? null : { black, white };
-          return known;
-        })
-        .catch((error: unknown) => {
-          measuring = null;
-          throw error;
-        });
-      return measuring;
+    settled: (tags) => Promise.all([...new Set(tags)].map(settle)).then(() => undefined),
+    measure(tags) {
+      let measure = measuring.get(tags);
+      if (!measure) {
+        measure = media
+          .levelsClip(tags)
+          .then((id) => measureVideoLevels(media.masterUrl(id)))
+          .then(({ black, white }) => {
+            log.info(`Video tagged ${tags} draws from ${black} to ${white}`);
+            // A frame that wasn't decoded reads as nonsense, which would wreck every video layer.
+            if (black > 64 || white < 192) throw new Error(`Unlikely levels: ${black} to ${white}`);
+            const right = black <= LEVELS_TOLERANCE && white >= 255 - LEVELS_TOLERANCE;
+            const levels = right ? null : { black, white };
+            known.set(tags, levels);
+            return levels;
+          })
+          .catch((error: unknown) => {
+            measuring.delete(tags);
+            throw error;
+          });
+        measuring.set(tags, measure);
+      }
+      return measure;
     },
   };
   return meter;

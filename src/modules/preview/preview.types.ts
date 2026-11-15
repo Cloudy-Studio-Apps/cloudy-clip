@@ -411,8 +411,8 @@ export interface PreviewControllerDeps {
   requestFrame(callback: () => void): void;
   capture: PreviewCapture;
   createRenderer(options: FrameRendererOptions): FrameRenderer;
-  /** This webview's video levels, measured once per kernel (`PreviewApi.videoLevels`). */
-  videoLevels(): Promise<VideoLevels | null>;
+  /** Measures the video levels of every kind of file imported (`PreviewApi.videoLevels`). */
+  videoLevels(): Promise<void>;
   /** Whether the GPU can be used (`PreviewApi.gpuAvailable`). */
   gpuAvailable(): boolean;
 }
@@ -423,7 +423,7 @@ export interface PreviewCaptureDeps {
   getComposition(id: CompositionId): Composition | null;
   /** Whether a font can be drawn now; when not, it starts loading. */
   ensureFont(request: FontRequest): boolean;
-  /** Resolves once the first measure of video levels has ended, either way (no retry). */
+  /** Resolves once the first measure of video levels of every kind imported has ended, either way (no retry). */
   levelsSettled(): Promise<void>;
   /**
    * A picture-only engine that asks `ensureFont` about fonts. `target` is what filters are told
@@ -443,20 +443,28 @@ export interface VideoLevels {
   white: number;
 }
 
-/** How this webview draws video levels, measured once per kernel on `media`'s levels clip. */
+/**
+ * How this webview draws video levels, measured once per kind of color tags
+ * (`ProbeMeta.colorTags`) on `media`'s levels clip for that kind.
+ */
 export interface VideoLevelsMeter {
-  /** The levels to correct, once measured; null before, when no correcting is needed, or failed. */
-  current(): VideoLevels | null;
   /**
-   * Measures (once; later calls share it). Null when video draws right. Rejects when it couldn't
-   * be measured, and asking again tries again.
+   * The levels to correct for video stating `tags`, once measured; null before, when no
+   * correcting is needed, when the measure failed, and for unknown tags (a file not probed). Asking
+   * starts that kind's first measure.
    */
-  measure(): Promise<VideoLevels | null>;
+  current(tags: string | undefined): VideoLevels | null;
   /**
-   * Resolves once the first measure has ended, either way (starting it if none has), and never
-   * measures again: what a frame waits for, so a failing measure isn't retried at every frame.
+   * Measures one kind (once; later calls share it). Null when it draws right. Rejects when it
+   * couldn't be measured, and asking again tries again.
    */
-  settled(): Promise<void>;
+  measure(tags: string): Promise<VideoLevels | null>;
+  /**
+   * Resolves once the first measure of every kind in `tags` has ended, either way (starting those
+   * not started), and never measures again: what a frame waits for, so a failing measure isn't
+   * retried at every frame.
+   */
+  settled(tags: Iterable<string>): Promise<void>;
 }
 
 /** What a hidden renderer draws. */
@@ -563,12 +571,13 @@ export interface PreviewApi {
    */
   createRenderer(options: FrameRendererOptions): FrameRenderer;
   /**
-   * How this webview draws video to a canvas, measured once per kernel on a clip whose left half
-   * is video black and right half video white. Some webviews squeeze the range (WebKitGTK: black at
-   * 16); the preview, captures and renderers then correct every video layer on the GPU. Null when
-   * video draws right. Rejects when it couldn't be measured; asking again tries again.
+   * Measures how this webview draws video to a canvas, for every kind of color tags among the
+   * files imported (`ProbeMeta.colorTags`), each once per kernel on a clip of that kind whose left
+   * half is video black and right half video white. WebKitGTK squeezes the range of some kinds
+   * (black at 16) and not others; the preview, captures and renderers correct each video layer of
+   * a squeezed kind on the GPU. Rejects when a kind couldn't be measured; asking again tries again.
    */
-  videoLevels(): Promise<VideoLevels | null>;
+  videoLevels(): Promise<void>;
   /**
    * Whether this system can draw on the GPU (WebGL2), asked once per kernel. Pictures are graded
    * on the GPU, so the Tint page needs it.

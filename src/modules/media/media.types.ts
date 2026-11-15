@@ -88,6 +88,12 @@ export interface ProbeMeta {
   frames?: number;
   /** A video stored full range (ffprobe's `color_range` pc, or a `yuvj` format); missing for video range. */
   fullRange?: boolean;
+  /**
+   * The color tags a video states, as ffprobe names them: `range/matrix/primaries/transfer`, with
+   * `unknown` where missing (e.g. `tv/bt709/unknown/unknown`). Missing for images. Proxies and
+   * masters keep them. The webview draws the levels of some kinds of tags differently.
+   */
+  colorTags?: string;
 }
 
 /** What a composition takes from a picture. */
@@ -224,11 +230,12 @@ export interface MediaApi {
   /** URL of the sharpest picture the webview can decode: the master, otherwise the original. */
   masterUrl(id: MediaId): string;
   /**
-   * Id of a tiny clip, video black on its left half and video white on its right (BT.709, TV
-   * range), made once with FFmpeg and registered like media: `masterUrl` streams it. For measuring
-   * how the webview draws video levels. Rejects without FFmpeg.
+   * Id of a tiny clip, video black on its left half and video white on its right, stating the
+   * color tags `tags` (`ProbeMeta.colorTags`), made once per kind with FFmpeg and registered like
+   * media: `masterUrl` streams it. For measuring how the webview draws video levels of that kind.
+   * Rejects without FFmpeg or for tags that aren't four plain names.
    */
-  levelsClip(): Promise<MediaId>;
+  levelsClip(tags: string): Promise<MediaId>;
   /**
    * Makes the copy of a file that runs backwards, reporting 0..1: for preview, or for export with
    * `full`. Rejects if it can't be made. Asking again while it's being made joins that job.
