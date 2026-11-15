@@ -126,20 +126,24 @@ export interface TintApi {
   viewedAt(clipId: ClipId): Micros | undefined;
   /**
    * A small picture (a data URL) of the clip alone, at `time`, as its grade leaves `nodeId`.
-   * Captures are taken one at a time. Rejects as `PreviewApi.captureAt` does.
+   * With `level` (default `"clip"`), `nodeId` is a node of that level's grade (the clip's shot
+   * group's, or the whole timeline's): the levels before it are drawn whole, the ones after not at
+   * all (`TintCut`). Captures are taken one at a time. Rejects as `PreviewApi.captureAt` does.
    */
   thumb(
     clipId: ClipId,
     nodeId: GradeNodeId,
     time: Micros,
     compositionId: CompositionId,
+    level?: GradeLevel,
   ): Promise<string>;
   /** The looks: the `tintLooks` point of this kernel. */
   readonly looks: { find(id: string): LookDef | undefined; list(): readonly LookDef[] };
   /**
    * A small picture (a JPEG data URL, 160 px wide) of the clip alone at `time` as `grade` draws it
-   * instead of its own: what applying a look or still would give. One capture at a time; the same
-   * clip (`signature`: the clip's other fields, so an edit refreshes it), time and grade are answered from a small cache.
+   * instead of the one at `level` (default `"clip"`; the other levels drawn as saved): what applying
+   * a look or still there would give. One capture at a time; the same clip (`signature`: the
+   * clip's other fields, so an edit refreshes it), time, level and grade are answered from a small cache.
    */
   lookThumb(
     clipId: ClipId,
@@ -147,15 +151,25 @@ export interface TintApi {
     grade: ClipGrade,
     time: Micros,
     compositionId: CompositionId,
+    level?: GradeLevel,
   ): Promise<string>;
   /**
    * The color the correction `nodeId` reads at a point of the viewer's frame (0…1): the clip
    * captured alone and ungraded at the playhead, run through the corrections before that node
    * with the CPU reference (`nodeId` null: through the whole grade). Null when the point is off
    * the clip's picture. Rejects as `PreviewApi.captureAt` does. For pickers (Pick hue, Color mix's
-   * Pick, Limit's droppers, and later Match).
+   * Pick, Limit's droppers, and later Match). With `level` `"group"`, `nodeId` is a node of the
+   * clip's shot group's grade: the clip is captured alone with its own grade whole and read through
+   * the group's corrections before `nodeId`. With `"timeline"`, a node of the open composition's
+   * whole-timeline grade: the whole frame is captured with every clip and group grade, and the point
+   * read through the timeline corrections before `nodeId` (never null then).
    */
-  pickColor(clipId: ClipId, nodeId: GradeNodeId | null, point: FramePoint): Promise<Rgb | null>;
+  pickColor(
+    clipId: ClipId,
+    nodeId: GradeNodeId | null,
+    point: FramePoint,
+    level?: GradeLevel,
+  ): Promise<Rgb | null>;
 }
 
 /** The current clip and where each clip was last viewed (`followCurrent` writes, `TintApi` reads). */
@@ -227,10 +241,10 @@ export interface LiveGrade {
 
 /** Live values of every clip being edited, per kernel. */
 export interface TintLive {
-  /** The clip's live values, if any. */
-  get(clipId: ClipId): LiveGrade | undefined;
-  /** Sets a clip's live values, or clears them with null, and asks the preview to redraw. */
-  set(clipId: ClipId, live: LiveGrade | null): void;
+  /** The live values of the grade of a clip, shot group or composition (by its id), if any. */
+  get(id: string): LiveGrade | undefined;
+  /** Sets a grade's live values (by its holder's id), or clears them with null, and asks the preview to redraw. */
+  set(id: string, live: LiveGrade | null): void;
   /** Calls `fn` after each change. Returns the unsubscribe. */
   subscribe(fn: () => void): () => void;
 }
@@ -580,6 +594,22 @@ export interface StackPair {
 /** Which grade a command edits: a clip's, a shot group's, or a composition's whole-frame one. */
 export type GradeTarget =
   { clipId: ClipId } | { groupId: GradeGroupId } | { compositionId: CompositionId };
+
+/**
+ * The `TINT_CUT` capture option: the grades before `level` drawn whole, the one at `level` only up
+ * to `node` (null: none of it, the picture coming into that level), and the levels after it not at
+ * all. Only on the captured clip (and on the top-level frame), never inside a placement.
+ */
+export interface TintCut {
+  level: GradeLevel;
+  node: GradeNodeId | null;
+}
+
+/** The `TINT_WITH` capture option: `grade` drawn in place of the one at `level`; every level drawn. */
+export interface TintWith {
+  level: GradeLevel;
+  grade: ClipGrade;
+}
 
 /** What a layer's chip says it changes: the whole picture, picked colors, or a LUT. */
 export interface LayerChipInfo {

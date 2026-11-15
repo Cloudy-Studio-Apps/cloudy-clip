@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import type { ClipId } from "@/modules/project";
 import { useLiveEdit } from "./live.edit.hook";
+import type { GradeSubject } from "./ui.types";
 
 interface OpacityScrubProps {
-  clipId: ClipId;
+  subject: GradeSubject;
   nodeId: string;
   /** Saved opacity, 0 to 1. */
   opacity: number;
@@ -15,8 +15,8 @@ interface OpacityScrubProps {
  * The opacity of a layer or a group: drag sideways to change it (one percent per pixel). While dragging, the
  * number and the picture follow through the live values; the command goes once, on release.
  */
-export function OpacityScrub({ clipId, nodeId, opacity, group = false }: OpacityScrubProps) {
-  const edit = useLiveEdit(clipId, nodeId, group);
+export function OpacityScrub({ subject, nodeId, opacity, group = false }: OpacityScrubProps) {
+  const edit = useLiveEdit(subject, nodeId, group);
   const label = useRef<HTMLSpanElement>(null);
   const drag = useRef<{ x: number; start: number; last: number; off(): void } | null>(null);
   const show = (value: number) => {

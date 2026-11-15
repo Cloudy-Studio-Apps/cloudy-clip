@@ -494,3 +494,40 @@ between two per channel for 1D).
 
 - **Pass:** every row is within one 8-bit step.
 - **Linux desktop (WebKitGTK) and Windows:** not run.
+
+## Stage 6
+
+### Shot group and whole-timeline grades: parity (Task 25)
+
+The three levels chained, 2026-11-15. A clip's picture runs its own grade then its shot group's in one
+run (`tint.grade`: the two lists of passes put together by `chainPasses`); the picture lands on the
+composition's 8-bit canvas; the whole-timeline grade (`tint.timeline`, a frame filter) then runs over
+that frame. The CPU side is `evaluatePixel` of the clip grade, then of the group grade, rounded to 8 bits
+(the composed canvas), then of the timeline grade.
+
+- **Method:** as Task 21 (temporary dev page, `pnpm vite --port 1540`, headless Chromium 1243 with
+  SwiftShader WebGL2, half-float targets, CDP; removed before the commit), going through the real
+  filters (`createTintFilters` with stub live values, view, media and LUTs; `target` `"export"`). 256
+  colors × 20 sets, the first set Task 7's fixed colors, the rest seeded random; each set draws three
+  new grades of two corrections each (exposure ±0.8, saturation 0.3…1.6, hue ±60, temperature ±40,
+  contrast 0.7…1.3, a vignette ±60, opacity 0.5…1). "In range" means every value of the clip, group
+  and timeline results is within 0…1.
+- **Identity skips:** clip and group grades give 4 passes, the clip grade alone 2 (no group grade adds
+  none); a composition with no grade isn't filtered (`applies` false), and neither is a clip with no
+  grade and no group.
+- **Results** (15 360 channel values):
+
+| Stage                                                      | Max in range |
+| ---------------------------------------------------------- | ------------ |
+| Clip grade then group grade, one run, against the CPU      | 1            |
+| Timeline grade on the 8-bit frame the GPU composed         | 1            |
+| All three end to end (CPU rounding its own composed frame) | 2            |
+
+- End to end, 650 values are off by one and 22 by more (10 of them in range, at most 2). Every one
+  comes from a one-step difference in the composed 8-bit frame that the timeline grade then stretches
+  (contrast up to 1.3, saturation up to 1.6); with the frame the GPU actually composed as its input,
+  the timeline grade is within one step everywhere in range. The app's own pickers read the composed
+  frame the same way (`pickColor` at the timeline level reads a capture), so they agree with what is
+  drawn.
+- **Pass:** each level is within one 8-bit step.
+- **Linux desktop (WebKitGTK) and Windows:** not run.

@@ -10,7 +10,8 @@ const LEVELS: readonly { level: GradeLevel; icon: ComponentType; label: string }
   {
     level: "group",
     icon: Folder,
-    label: "Shot group: one grade shared by every Plaza shot, after each clip's own",
+    label:
+      "Shot group: one grade shared by every clip of the current clip's group, after each clip's own",
   },
   {
     level: "timeline",
@@ -36,7 +37,7 @@ export function LevelSwitch() {
             key={item.level}
             label={item.label}
             active={level === item.level}
-            onClick={() => set({ level: item.level })}
+            onClick={() => set({ level: item.level, selected: null, showPicked: null })}
             className="size-6"
           >
             <Icon />

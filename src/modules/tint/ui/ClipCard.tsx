@@ -1,5 +1,4 @@
 import type { MouseEvent } from "react";
-import { gradeOf } from "@/modules/project";
 import { cn } from "@/ui";
 import { shortTime } from "../logic/strip";
 import type { StripClip } from "../tint.types";
@@ -11,14 +10,17 @@ interface ClipCardProps {
   current: boolean;
   /** In the timeline's selection (shared with Edit). */
   selected: boolean;
+  /** Has a grade at the level the switch shows. */
+  graded: boolean;
+  /** The name of its shot group, if it is in one. */
+  group?: string;
   onPick(event: MouseEvent): void;
 }
 
-/** One clip in the strip: picture, number, track, graded mark, name, start, codec and rate. */
-export function ClipCard({ entry, current, selected, onPick }: ClipCardProps) {
+/** One clip in the strip: picture, number, track, graded mark, shot group, name, start, codec and rate. */
+export function ClipCard({ entry, current, selected, graded, group, onPick }: ClipCardProps) {
   const { clip, track, no } = entry;
   const info = useClipInfo(clip);
-  const graded = gradeOf(clip) !== null;
   return (
     <button
       type="button"
@@ -46,6 +48,11 @@ export function ClipCard({ entry, current, selected, onPick }: ClipCardProps) {
         {graded && (
           <span className="absolute top-1 right-1 rounded-xs bg-surface-sunken/75 px-1 font-mono text-2xs font-bold text-primary">
             ● graded
+          </span>
+        )}
+        {group && (
+          <span className="absolute bottom-1 left-1 max-w-[calc(100%-8px)] truncate rounded-xs bg-surface-sunken/75 px-1 font-mono text-2xs">
+            {group}
           </span>
         )}
       </span>

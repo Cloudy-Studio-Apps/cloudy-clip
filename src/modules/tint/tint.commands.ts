@@ -6,6 +6,7 @@ import { TOOL_IDS, clearTools, ownedValues } from "./logic/tools";
 import { applyLook, importLut, relinkLut, setInput } from "./tint.color.commands";
 import { copyGrade, pasteGrade } from "./tint.clipboard.commands";
 import { grabStill, removeStill } from "./tint.still.commands";
+import { setShotGroup } from "./tint.shot.commands";
 import { group, setGroup, ungroup } from "./tint.group.commands";
 import { placeNodes, wire } from "./tint.wire.commands";
 import { checkedGrade, dropTracks, readGrade, writeGrade } from "./tint.guards";
@@ -108,4 +109,5 @@ export const tintCommands = [
   pasteGrade,
   grabStill,
   removeStill,
+  setShotGroup,
 ];

@@ -25,8 +25,8 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
   filters. `info` (`FilterInfo`): the clip as drawn (keyed values now; a filter merges its own live
   values), the project, the `path`, the `size` the passes run at, the composition's `time` and
   `target` (`"preview"`, `"capture"`, `"export"`); a frame filter gets `composition` instead of
-  `clip` and `path` `""` at the top. Filters run in `order`; each one's input -1 is the picture so
-  far and n its own pass n (`logic/chain.ts` `chainPasses` renumbers them), and a picture's levels
+  `clip` and `path` `""` at the top; both are asked `applies` with the capture's options. Filters run in `order`; each one's input -1 is the picture so
+  far and n its own pass n (`logic/chain.ts` `chainPasses` renumbers them; exported, so a filter can run several grades in a row), and a picture's levels
   and every filter run in one `run`, one upload. `ready` false holds the frame like an undecoded
   video (`logic/readiness.ts` `filtersReady`: every applying filter is asked). **Errors:** a filter
   whose `passes` throws, or whose passes the GPU fails on (or no WebGL2): in the live preview the

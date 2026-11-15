@@ -21,6 +21,11 @@ export { gpuInt } from "./gpu/gpu.programs";
  * it, `mode` being the index in `BLEND_MODES` (pass it with `gpuInt`). For a filter's own fragment.
  */
 export { BLEND_GLSL } from "./gpu/gpu.blend";
+/**
+ * Puts lists of passes one after another as one list (input -1 of each list reads the one before
+ * it), for a filter that runs several grades in a row.
+ */
+export { chainPasses } from "./logic/chain";
 /** A pass of the GPU runner (fragment, inputs, uniforms, data textures) and its data texture. */
 export type { GpuPass, GpuTexture, GpuUniform } from "./gpu/gpu.types";
 export { MAX_ZOOM, MIN_ZOOM } from "./preview.viewport";

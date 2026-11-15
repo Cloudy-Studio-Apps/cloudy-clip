@@ -1,15 +1,14 @@
 import { useMemo, useRef, useState } from "react";
 import { useKernel, useModule } from "@/core";
-import type { ClipId } from "@/modules/project";
 import { setGroup } from "../tint.group.commands";
 import { addCorrection, setCorrection } from "../tint.node.commands";
 import { tintRef } from "../tint.ref";
 import type { LiveNode } from "../tint.types";
 import { settle } from "./settle";
-import type { EditPatch, LiveEdit } from "./ui.types";
+import type { EditPatch, GradeSubject, LiveEdit } from "./ui.types";
 
 /**
- * Edits one correction of a clip's own grade the way every drag on the page does: `preview` lays
+ * Edits one correction of a grade (`subject`: a clip's, a shot group's or the whole timeline's) the way every drag on the page does: `preview` lays
  * the values over the picture without touching the document, and `commit` sends one
  * `tint.setCorrection` (one undo step), then drops the live values. With no correction yet
  * (`nodeId` null) the first commit adds one with those values (`tint.addCorrection`), and nothing
@@ -17,21 +16,26 @@ import type { EditPatch, LiveEdit } from "./ui.types";
  * `rev`, so a control keyed by it shows the saved values again. With `group`, `nodeId` is a
  * side-by-side or stacked group's join, and `commit` sends `tint.setGroup` (opacity, on, blends).
  */
-export function useLiveEdit(clipId: ClipId | null, nodeId: string | null, group = false): LiveEdit {
+export function useLiveEdit(
+  subject: GradeSubject | null,
+  nodeId: string | null,
+  group = false,
+): LiveEdit {
   const { bus } = useKernel();
   const tint = useModule(tintRef);
   const [rev, setRev] = useState(0);
   const live = useRef<LiveNode>({});
   return useMemo(() => {
+    const id = subject?.id;
     const clear = () => {
       live.current = {};
-      if (clipId) tint.live.set(clipId, null);
+      if (id) tint.live.set(id, null);
     };
     return {
-      enabled: clipId !== null,
+      enabled: subject !== null,
       rev,
       preview(patch) {
-        if (!clipId || !nodeId) return;
+        if (!id || !nodeId) return;
         live.current = {
           ...live.current,
           ...patch.values,
@@ -41,11 +45,11 @@ export function useLiveEdit(clipId: ClipId | null, nodeId: string | null, group 
           ...(patch.lut !== undefined ? { lut: patch.lut } : {}),
           ...(patch.blends !== undefined ? { blends: patch.blends } : {}),
         };
-        tint.live.set(clipId, { nodes: { [nodeId]: live.current } });
+        tint.live.set(id, { nodes: { [nodeId]: live.current } });
       },
       async commit(patch: EditPatch) {
-        if (!clipId) return;
-        const target = { clipId };
+        if (!subject) return;
+        const { target } = subject;
         if (nodeId && group) {
           const { opacity, on, blends } = patch;
           const result = await settle(
@@ -74,5 +78,5 @@ export function useLiveEdit(clipId: ClipId | null, nodeId: string | null, group 
       },
       cancel: clear,
     } satisfies LiveEdit;
-  }, [bus, tint, clipId, nodeId, group, rev]);
+  }, [bus, tint, subject, nodeId, group, rev]);
 }

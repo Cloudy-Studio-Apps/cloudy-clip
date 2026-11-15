@@ -8,7 +8,22 @@ import type {
   GradeLimit,
   GradeNodeId,
 } from "@/modules/project";
-import type { StackPosition, WireEntry } from "../tint.types";
+import type { GradeLevel, GradeTarget, StackPosition, WireEntry } from "../tint.types";
+
+/**
+ * The grade the page edits: the current clip's own, its shot group's or the open composition's
+ * whole-timeline one, by the level switch (`view.level`).
+ */
+export interface GradeSubject {
+  level: GradeLevel;
+  /** What commands are sent to. */
+  target: GradeTarget;
+  /** The id of the grade's holder (clip, group or composition): its live values' key. */
+  id: string;
+  /** The current clip: the picture thumbnails and pickers read. */
+  clipId: ClipId;
+  grade: ClipGrade | null;
+}
 
 /** A button of the viewer's tool bar: before/after or bypass, both state of the preview's picture. */
 export interface ViewerTool {
@@ -56,7 +71,7 @@ export interface LayerActions {
 
 /** What the rows of the layer list read: the clip's grade, the numbers, the thumbnails and the actions. */
 export interface LayersEnv {
-  clipId: ClipId;
+  subject: GradeSubject;
   grade: ClipGrade;
   numbers: Record<GradeNodeId, string>;
   /** Object URLs of the picture after each layer, as far as they are drawn. */
@@ -92,8 +107,8 @@ export interface LiveEdit {
 
 /** The correction the tools edit: the selected layer, else the first one, else none yet. */
 export interface EditTarget {
-  /** The current clip, or null when there is nothing to grade. */
-  clipId: ClipId | null;
+  /** The grade being edited, or null when there is nothing to grade at this level. */
+  subject: GradeSubject | null;
   grade: ClipGrade | null;
   /** The correction being edited; null before the clip has one (the first edit makes it). */
   nodeId: GradeNodeId | null;

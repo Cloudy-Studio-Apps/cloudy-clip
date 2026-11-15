@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
 import { useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
-import {
-  useOpenComposition,
-  type ClipGrade,
-  type ClipId,
-  type GradeNodeId,
-} from "@/modules/project";
+import { useOpenComposition, type ClipGrade, type GradeNodeId } from "@/modules/project";
 import { tintRef } from "../tint.ref";
+import type { GradeSubject } from "./ui.types";
 
 const NONE: Record<GradeNodeId, string> = {};
 const WIDTH = 96;
@@ -28,12 +24,13 @@ async function shrink(dataUrl: string): Promise<string> {
 }
 
 /**
- * Small pictures (object URLs, 96 by 54) of the clip as each node leaves it, drawn 400 ms after the
+ * Small pictures (object URLs, 96 by 54) of the current clip as each node of the subject's grade
+ * leaves it (the levels before drawn whole, the ones after not at all: `TintApi.thumb`), drawn 400 ms after the
  * last change to the grade, the live values or the playhead, and never while playing. A node whose
  * picture can't be drawn has none (the row shows the plain frame); nothing is reported.
  */
 export function useNodeThumbs(
-  clipId: ClipId,
+  subject: Pick<GradeSubject, "clipId" | "level">,
   grade: ClipGrade | null,
   nodeIds: readonly GradeNodeId[],
 ): Record<GradeNodeId, string> {
@@ -42,6 +39,7 @@ export function useNodeThumbs(
   const compositionId = useOpenComposition()?.id;
   const [thumbs, setThumbs] = useState<Record<GradeNodeId, string>>({});
   const key = nodeIds.join(" ");
+  const { clipId, level } = subject;
   useEffect(() => {
     if (!grade || !compositionId || nodeIds.length === 0) {
       return;
@@ -58,7 +56,7 @@ export function useNodeThumbs(
       for (const id of nodeIds) {
         if (stale || mine !== round || playback.isPlaying()) break;
         try {
-          const url = await shrink(await tint.thumb(clipId, id, time, compositionId));
+          const url = await shrink(await tint.thumb(clipId, id, time, compositionId, level));
           made[id] = url;
           fresh.push(url);
         } catch {
@@ -91,6 +89,6 @@ export function useNodeThumbs(
       urls.forEach((url) => URL.revokeObjectURL(url));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for nodeIds.
-  }, [tint, playback, clipId, grade, compositionId, key]);
+  }, [tint, playback, clipId, level, grade, compositionId, key]);
   return nodeIds.length > 0 ? thumbs : NONE;
 }

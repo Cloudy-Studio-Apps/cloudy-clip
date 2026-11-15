@@ -14,6 +14,7 @@ import {
 } from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
 import { resetGrade } from "./tint.commands";
+import { setShotGroup } from "./tint.shot.commands";
 import { group, ungroup } from "./tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "./tint.node.commands";
 import { tintModule } from "./tint.module";
@@ -304,6 +305,37 @@ describe("grade commands", () => {
     expect(items[3]).toMatchObject({ id: y });
     kernel.history.undo();
     expect(clip().grade).toEqual(before);
+  });
+
+  it("makes, grades, moves and leaves a shot group, deleting it once nobody is in it", async () => {
+    const other = (await ok<{ clips: { id: string }[] }>(addClip, { mediaId: "mv", start: 20 * S }))
+      .clips[0]!.id;
+    const { groupId: g1 } = await ok<{ groupId: string }>(setShotGroup, {
+      clipIds: [clipId, other],
+      group: { name: "Plaza" },
+    });
+    expect(doc().gradeGroups?.[g1]).toEqual({ id: g1, name: "Plaza" });
+    expect(clip().gradeGroup).toBe(g1);
+    const { nodeId } = await ok<{ nodeId: string }>(addCorrection, { target: { groupId: g1 } });
+    expect(doc().gradeGroups?.[g1]?.grade?.out).toEqual({ node: nodeId });
+    expect("grade" in clip()).toBe(false);
+    const { groupId: g2 } = await ok<{ groupId: string }>(setShotGroup, {
+      clipIds: [clipId],
+      group: { name: "Wide" },
+    });
+    expect(doc().gradeGroups?.[g1]).toBeDefined();
+    const moved = await run(setShotGroup, { clipIds: [other], group: { id: g2 } });
+    expect(moved.ok).toBe(true);
+    expect(doc().gradeGroups?.[g1]).toBeUndefined();
+    await ok(setShotGroup, { clipIds: [clipId, other], group: null });
+    expect(doc().gradeGroups).toBeUndefined();
+    expect("gradeGroup" in clip()).toBe(false);
+    const missing = await run(setShotGroup, { clipIds: [clipId], group: { id: g1 } });
+    expect(!missing.ok && missing.error.code).toBe("tint.target_not_found");
+    kernel.history.undo();
+    kernel.history.undo();
+    expect(doc().gradeGroups?.[g1]?.grade?.out).toEqual({ node: nodeId });
+    expect(doc().clips[other]?.gradeGroup).toBe(g1);
   });
 });
 

@@ -687,7 +687,12 @@ export interface FrameFilter {
   id: string;
   /** Lower runs first. */
   order: number;
-  applies(composition: Composition, project: ProjectState): boolean;
+  /** Whether it filters this frame; `options` as for `PictureFilter.applies`. */
+  applies(
+    composition: Composition,
+    project: ProjectState,
+    options?: Readonly<Record<string, unknown>>,
+  ): boolean;
   ready?(composition: Composition, project: ProjectState): boolean;
   passes(info: FrameFilterInfo): readonly GpuPass[];
 }

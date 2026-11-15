@@ -8,12 +8,12 @@ import {
   topBarItems,
 } from "@/core";
 import { mediaRef } from "@/modules/media";
-import { pictureFilters, previewRef } from "@/modules/preview";
+import { frameFilters, pictureFilters, previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { relinkKinds, workspaceRef } from "@/modules/workspace";
 import { followCurrent, createCurrent } from "./tint.current";
 import { tintCommands } from "./tint.commands";
-import { createTintFilter, redrawOnShow } from "./tint.filter";
+import { createTintFilters, redrawOnShow } from "./tint.filter";
 import { createLutFiles } from "./tint.luts";
 import { createPicker } from "./tint.pick";
 import { BUILTIN_LOOKS } from "./tint.looks";
@@ -67,7 +67,9 @@ export const tintModule = defineModule({
     );
     const picker = createPicker(ctx.require(projectRef), preview, ctx.require(mediaRef), luts);
     onDispose(redrawOnShow(view, () => preview.redraw()));
-    contribute(pictureFilters, createTintFilter(live, view, ctx.require(mediaRef), luts));
+    const filters = createTintFilters(live, view, ctx.require(mediaRef), luts);
+    contribute(pictureFilters, filters.picture);
+    contribute(frameFilters, filters.frame);
     contribute(relinkKinds, { id: "tint.luts", order: 10, component: LutRelinkRows });
     contribute(appPages, {
       id: TINT_PAGE,

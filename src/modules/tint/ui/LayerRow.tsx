@@ -11,7 +11,7 @@ import { useTintSet } from "./view.set.hook";
 
 /** One correction in the layer list: grip, on/off, picture, number and name, what it changes, opacity. */
 export function LayerRow({ id, nested = false }: { id: string; nested?: boolean }) {
-  const { clipId, grade, numbers, thumbs, actions, drag } = useLayers();
+  const { subject, grade, numbers, thumbs, actions, drag } = useLayers();
   const node = grade.nodes[id];
   const selected = useTintView((v) => v.selected === id);
   const set = useTintSet();
@@ -94,7 +94,7 @@ export function LayerRow({ id, nested = false }: { id: string; nested?: boolean 
           <LayerChip chip={layerChip(node, numbers)} />
         </span>
       </span>
-      <OpacityScrub clipId={clipId} nodeId={id} opacity={node.opacity} />
+      <OpacityScrub subject={subject} nodeId={id} opacity={node.opacity} />
     </div>
   );
 }

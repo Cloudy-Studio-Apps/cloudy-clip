@@ -17,7 +17,7 @@ const GROUP_NAMES = { parallel: "side by side", layer: "stacked", channels: "per
 export function ToolHeader({ id, name }: { id: ToolId; name: string }) {
   const { bus } = useKernel();
   const leader = useTintView((v) => v.mode === "leader");
-  const { clipId, nodeId, title, group } = useEditTarget();
+  const { subject, nodeId, title, group } = useEditTarget();
   const page = PAGE_RESET[id];
   // A selected group's reset covers every correction inside it.
   const resetId = group?.id ?? nodeId;
@@ -36,10 +36,10 @@ export function ToolHeader({ id, name }: { id: ToolId; name: string }) {
       )}
       <IconButton
         label={`Reset ${name}${id === "wheels" ? " (every mode)" : ""}${on ? ` on ${on}` : ""}: back to neutral, the ${group ? "layers stay" : "layer stays"}`}
-        disabled={!clipId || !resetId || !page}
+        disabled={!subject || !resetId || !page}
         onClick={() => {
-          if (clipId && resetId && page) {
-            void settle(bus.run(resetGrade, { target: { clipId }, nodeId: resetId, ...page }));
+          if (subject && resetId && page) {
+            void settle(bus.run(resetGrade, { target: subject.target, nodeId: resetId, ...page }));
           }
         }}
       >

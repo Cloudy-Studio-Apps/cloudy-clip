@@ -48,6 +48,29 @@ export function readGrade(state: ProjectState, target: GradeTarget): ClipGrade |
 }
 
 /**
+ * The targets a command names, as `clipIds` and `targets` together, each once. Throws
+ * `tint.no_target` when there are none.
+ */
+export function targetsOf(clipIds: readonly string[] = [], targets: readonly GradeTarget[] = []) {
+  const all = new Map<string, GradeTarget>();
+  for (const target of [...clipIds.map((clipId) => ({ clipId })), ...targets]) {
+    all.set(JSON.stringify(target), target);
+  }
+  if (all.size === 0) {
+    throw new CommandFailure("tint.no_target", "Give clipIds or targets: whose grade to change.");
+  }
+  return [...all.values()];
+}
+
+/** How a target is named in a message: `clip "c1"`, `shot group "g1"` or `composition "m1"`. */
+export const targetName = (target: GradeTarget): string =>
+  "clipId" in target
+    ? `clip "${target.clipId}"`
+    : "groupId" in target
+      ? `shot group "${target.groupId}"`
+      : `composition "${target.compositionId}"`;
+
+/**
  * The grade ready to store: defaults dropped, graph rules checked. Undefined for a grade that is
  * just source to out. Throws `tint.invalid_grade`.
  */

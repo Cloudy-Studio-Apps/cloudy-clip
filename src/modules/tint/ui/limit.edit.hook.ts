@@ -10,8 +10,8 @@ import type { LimitEdit } from "./ui.types";
  * commit, none when the limit comes out as saved. A limit left empty is removed.
  */
 export function useLimitEdit(): LimitEdit {
-  const { clipId, nodeId, grade } = useEditTarget();
-  const edit = useLiveEdit(clipId, nodeId);
+  const { subject, nodeId, grade } = useEditTarget();
+  const edit = useLiveEdit(subject, nodeId);
   const node = nodeId ? grade?.nodes[nodeId] : undefined;
   const limit = node?.kind === "correct" ? node.limit : undefined;
   return useMemo(

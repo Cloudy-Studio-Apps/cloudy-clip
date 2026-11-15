@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useKernel, useModule } from "@/core";
-import type { ClipId } from "@/modules/project";
 import { setCorrections } from "../tint.node.commands";
 import { tintRef } from "../tint.ref";
 import { settle } from "./settle";
+import type { GradeSubject } from "./ui.types";
 
 interface SealedOpacityProps {
-  clipId: ClipId;
+  subject: GradeSubject;
   /** The corrections inside the card. */
   ids: readonly string[];
   /** Saved opacity of the first one, 0 to 1. */
@@ -17,7 +17,7 @@ interface SealedOpacityProps {
  * The opacity of a sealed card: drag sideways to fade every correction inside (one percent per
  * pixel). The picture follows through the live values; the command goes on release (one undo step).
  */
-export function SealedOpacity({ clipId, ids, opacity }: SealedOpacityProps) {
+export function SealedOpacity({ subject, ids, opacity }: SealedOpacityProps) {
   const { bus } = useKernel();
   const tint = useModule(tintRef);
   const label = useRef<HTMLSpanElement>(null);
@@ -31,10 +31,10 @@ export function SealedOpacity({ clipId, ids, opacity }: SealedOpacityProps) {
     drag.current = null;
     if (!at) return;
     at.off();
-    tint.live.set(clipId, null);
+    tint.live.set(subject.id, null);
     if (!save || at.last === opacity) return show(opacity);
     const patch = { opacity: at.last };
-    void settle(bus.run(setCorrections, { target: { clipId }, nodeIds: [...ids], patch }));
+    void settle(bus.run(setCorrections, { target: subject.target, nodeIds: [...ids], patch }));
   };
   return (
     <span
@@ -59,7 +59,7 @@ export function SealedOpacity({ clipId, ids, opacity }: SealedOpacityProps) {
           Math.max(0, Math.round((opacity + (event.clientX - at.x) / 100) * 100) / 100),
         );
         show(at.last);
-        tint.live.set(clipId, {
+        tint.live.set(subject.id, {
           nodes: Object.fromEntries(ids.map((id) => [id, { opacity: at.last }])),
         });
       }}

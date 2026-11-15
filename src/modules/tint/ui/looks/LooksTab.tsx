@@ -8,16 +8,22 @@ import type { LookDef } from "../../tint.types";
 import { applyLook } from "../../tint.color.commands";
 import { tintLooks } from "../../tint.points";
 import { grabStill, removeStill } from "../../tint.still.commands";
+import type { GradeTarget } from "../../tint.types";
 import { useCurrentClip } from "../current.hook";
 import { settle } from "../settle";
 import { useStrip } from "../strip.hook";
+import { useGradeSubject } from "../subject.hook";
 import { LookCard } from "./LookCard";
 
-/** Looks: built-in looks and grabbed stills, chosen with a click and applied to the selected clips. */
+/**
+ * Looks: built-in looks and grabbed stills, chosen with a click and applied to the selected clips
+ * (at the shot group or whole-timeline level, to that grade).
+ */
 export function LooksTab() {
   const { bus } = useKernel();
   const timeline = useModule(timelineRef);
   const clipId = useCurrentClip();
+  const subject = useGradeSubject();
   const strip = useStrip();
   const selection = useStore(timeline.view, (s) => s.selection);
   const { api } = useModule(projectRef).store;
@@ -59,6 +65,12 @@ export function LooksTab() {
   const card = cards.find((c) => c.key === chosen);
   const targets = strip.map((e) => e.clip.id).filter((id) => selection.includes(id));
   const clipIds = targets.length > 0 ? targets : clipId ? [clipId] : [];
+  const to: GradeTarget[] =
+    subject?.level === "clip"
+      ? clipIds.map((id) => ({ clipId: id }))
+      : subject
+        ? [subject.target]
+        : [];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(96px,1fr))] content-start gap-2.5 overflow-auto p-3">
@@ -68,6 +80,7 @@ export function LooksTab() {
             name={c.name}
             note={c.note}
             clip={clip}
+            subject={subject}
             grade={c.grade}
             fallback={c.image}
             chosen={c.key === chosen}
@@ -90,9 +103,9 @@ export function LooksTab() {
         </Button>
         <Button
           size="sm"
-          disabled={!card || clipIds.length === 0}
-          title="Apply the chosen look to every selected clip (else the clip being graded)"
-          onClick={() => card && void settle(bus.run(applyLook, { clipIds, ...card.apply }))}
+          disabled={!card || to.length === 0}
+          title="Apply the chosen look to every selected clip (else the clip being graded), or to the shot group's or whole timeline's grade at those levels"
+          onClick={() => card && void settle(bus.run(applyLook, { targets: to, ...card.apply }))}
         >
           Apply to selected
         </Button>

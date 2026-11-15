@@ -1,41 +1,45 @@
 import { useMemo, useRef } from "react";
 import { useModule } from "@/core";
-import { gradeOf } from "@/modules/project";
 import { numberOf, toStack } from "../logic/stack";
 import { groupPick, layerIds } from "../logic/layers";
 import { tintRef } from "../tint.ref";
 import { AddMenu } from "./AddMenu";
-import { useCurrentEntry } from "./current.hook";
 import { FlowLabel } from "./FlowLabel";
 import { LayersContext } from "./layers.context";
 import { SPACE_NAMES } from "./space.names";
 import { useLayerActions } from "./layers.actions.hook";
+import { NoSubject } from "./NoSubject";
 import { startLayerDrag } from "./layer.drag.gesture";
 import { StackItems } from "./StackItems";
 import { useNodeThumbs } from "./thumbs.hook";
 import { useTintView } from "./view.hook";
-import type { LayersEnv } from "./ui.types";
+import { useGradeSubject } from "./subject.hook";
+import type { GradeSubject, LayersEnv } from "./ui.types";
 
-/** Baby Seal: the current clip's grade as layers, top (nearest the picture coming in) to bottom. */
+/**
+ * Baby Seal: the grade of the current level (the clip's, its shot group's or the whole
+ * timeline's) as layers, top (nearest the picture coming in) to bottom.
+ */
 export function LayerList() {
-  const entry = useCurrentEntry();
-  if (!entry) {
-    return (
-      <div className="px-3 py-4 text-sm text-muted-foreground">
-        Pick a clip with a picture to grade it.
-      </div>
-    );
-  }
-  return <Layers key={entry.clip.id} clipId={entry.clip.id} grade={gradeOf(entry.clip)} />;
+  const subject = useGradeSubject();
+  if (!subject) return <NoSubject />;
+  return <Layers key={subject.id} subject={subject} />;
 }
 
-function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gradeOf> }) {
+/** Where each level's picture comes from, for the flow label. */
+const INTO = {
+  group: "Picture in · after the clip's own grade",
+  timeline: "Frame in · every clip with its grades",
+};
+
+function Layers({ subject }: { subject: GradeSubject }) {
+  const { grade } = subject;
   const tint = useModule(tintRef);
-  const actions = useLayerActions(clipId);
+  const actions = useLayerActions(subject.target);
   const stack = useMemo(() => toStack(grade), [grade]);
   const numbers = useMemo(() => numberOf(grade), [grade]);
   const ids = useMemo(() => layerIds(stack), [stack]);
-  const thumbs = useNodeThumbs(clipId, grade, ids);
+  const thumbs = useNodeThumbs(subject, grade, ids);
   const selected = useTintView((v) => v.selected);
   const picks = useMemo(
     () => ({
@@ -50,7 +54,7 @@ function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gr
   const shown = grade ?? { nodes: {}, out: { node: "source" as const } };
   const env = useMemo<LayersEnv>(
     () => ({
-      clipId,
+      subject,
       grade: shown,
       numbers,
       thumbs,
@@ -68,7 +72,7 @@ function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gr
     }),
     // `shown` follows `grade`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [clipId, grade, numbers, thumbs, actions],
+    [subject, grade, numbers, thumbs, actions],
   );
   const space = SPACE_NAMES[grade?.input ?? "rec709"].short;
   return (
@@ -79,16 +83,29 @@ function Layers({ clipId, grade }: { clipId: string; grade: ReturnType<typeof gr
           className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto px-3 py-2.5"
         >
           <FlowLabel>
-            Picture in · {space} → Grading in Rec.709 · Output Rec.709 gamma 2.4
+            {subject.level === "clip" ? `Picture in · ${space}` : INTO[subject.level]} → Grading in
+            Rec.709 · Output Rec.709 gamma 2.4
           </FlowLabel>
           {stack.length === 0 ? (
             <p className="px-1 py-3 text-sm text-muted-foreground">
-              No corrections yet. Add one to start grading this clip.
+              No corrections yet. Add one to start grading{" "}
+              {subject.level === "clip"
+                ? "this clip"
+                : subject.level === "group"
+                  ? "every clip of the shot group"
+                  : "the whole timeline"}
+              .
             </p>
           ) : (
             <StackItems items={stack} />
           )}
-          <FlowLabel>Out to the timeline</FlowLabel>
+          <FlowLabel>
+            {subject.level === "clip"
+              ? "Out to the shot group and the timeline"
+              : subject.level === "group"
+                ? "Out to the timeline"
+                : "Out to the export"}
+          </FlowLabel>
           <div
             ref={line}
             className="pointer-events-none absolute right-3 left-3 hidden h-0.5 bg-mark"

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useKernel } from "@/core";
 import { Button, IconButton, Popover, Switch } from "@/ui";
 import { pasteGrade } from "../tint.clipboard.commands";
-import type { ToolId } from "../tint.types";
+import type { GradeTarget, ToolId } from "../tint.types";
 import { settle } from "./settle";
 
 const PARTS: { label: string; tools: ToolId[] }[] = [
@@ -16,8 +16,8 @@ const PARTS: { label: string; tools: ToolId[] }[] = [
   { label: "LUT", tools: ["luts"] },
 ];
 
-/** Paste only some tools of the copied grade onto the given clips. */
-export function PastePartMenu({ clipIds }: { clipIds: string[] }) {
+/** Paste only some tools of the copied grade onto the given grades. */
+export function PastePartMenu({ targets }: { targets: GradeTarget[] }) {
   const { bus } = useKernel();
   const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set(["Basics", "Wheels"]));
@@ -29,7 +29,7 @@ export function PastePartMenu({ clipIds }: { clipIds: string[] }) {
   const tools = PARTS.filter((part) => chosen.has(part.label)).flatMap((part) => part.tools);
   const paste = () => {
     setOpen(false);
-    void settle(bus.run(pasteGrade, { clipIds, tools }));
+    void settle(bus.run(pasteGrade, { targets, tools }));
   };
   return (
     <Popover
@@ -38,7 +38,7 @@ export function PastePartMenu({ clipIds }: { clipIds: string[] }) {
       trigger={
         <IconButton
           label="Paste part of a grade: only the balance, only the wheels, only the LUT…"
-          disabled={clipIds.length === 0}
+          disabled={targets.length === 0}
         >
           <ClipboardList />
         </IconButton>

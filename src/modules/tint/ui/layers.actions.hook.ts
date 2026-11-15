@@ -1,18 +1,17 @@
 import { useMemo } from "react";
 import { useKernel, useModule } from "@/core";
-import type { ClipId } from "@/modules/project";
 import { group, setGroup, ungroup } from "../tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "../tint.node.commands";
 import { tintRef } from "../tint.ref";
 import { settle } from "./settle";
+import type { GradeTarget } from "../tint.types";
 import type { LayerActions } from "./ui.types";
 
-/** The layer list's actions on a clip's grade, through the command bus. A refusal is shown to the user. */
-export function useLayerActions(clipId: ClipId): LayerActions {
+/** The layer list's actions on a grade, through the command bus. A refusal is shown to the user. */
+export function useLayerActions(target: GradeTarget): LayerActions {
   const { bus } = useKernel();
   const tint = useModule(tintRef);
   return useMemo(() => {
-    const target = { clipId };
     return {
       async add(at) {
         const result = await settle(bus.run(addCorrection, { target, at }));
@@ -30,5 +29,5 @@ export function useLayerActions(clipId: ClipId): LayerActions {
       remove: (nodeId) => void settle(bus.run(removeNodes, { target, nodeIds: [nodeId] })),
       move: (nodeId, to) => void settle(bus.run(moveLayer, { target, nodeId, to })),
     };
-  }, [bus, tint, clipId]);
+  }, [bus, tint, target]);
 }

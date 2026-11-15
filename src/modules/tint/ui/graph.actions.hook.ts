@@ -1,26 +1,25 @@
 import { useMemo } from "react";
 import { createId, notify, useKernel, useModule } from "@/core";
-import type { ClipGrade, ClipId } from "@/modules/project";
+import type { ClipGrade } from "@/modules/project";
 import { tidyLayout } from "../logic/graph";
 import { group } from "../tint.group.commands";
 import { resetGrade } from "../tint.commands";
 import { addCorrection, removeNodes } from "../tint.node.commands";
 import { tintRef } from "../tint.ref";
 import { placeNodes, wire } from "../tint.wire.commands";
-import type { GraphPlaced as Placed } from "../tint.types";
+import type { GradeTarget, GraphPlaced as Placed } from "../tint.types";
 import { settle } from "./settle";
 import type { GraphActions } from "./ui.types";
 
-/** The node graph's actions on a clip's grade, through the command bus. A refusal is shown to the user. */
+/** The node graph's actions on a grade, through the command bus. A refusal is shown to the user. */
 export function useGraphActions(
-  clipId: ClipId,
+  target: GradeTarget,
   grade: ClipGrade,
   placed: Record<string, Placed>,
 ): GraphActions {
   const { bus } = useKernel();
   const tint = useModule(tintRef);
   return useMemo(() => {
-    const target = { clipId };
     const select = (id: string) => tint.view.setState({ selected: id });
     const place = async (pos: Record<string, { x: number; y: number }>) =>
       (await settle(bus.run(placeNodes, { target, pos }))).ok;
@@ -86,5 +85,5 @@ export function useGraphActions(
       tidy: () => void settle(bus.run(placeNodes, { target, pos: tidyLayout(grade) })),
       reset: () => void settle(bus.run(resetGrade, { target })),
     } satisfies GraphActions;
-  }, [bus, tint, clipId, grade, placed]);
+  }, [bus, tint, target, grade, placed]);
 }

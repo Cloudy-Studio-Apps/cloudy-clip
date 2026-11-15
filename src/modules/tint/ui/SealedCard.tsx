@@ -20,7 +20,7 @@ const CHANNELS = ["#e0545a", "#4fbf6a", "#4d8fe0"] as const;
  * (expand it); its wiring changes only in Leader Seal.
  */
 export function SealedCard({ card }: { card: Extract<StackItem, { type: "sealed" }> }) {
-  const { clipId, grade } = useLayers();
+  const { subject, grade } = useLayers();
   const { bus } = useKernel();
   const corrections = card.nodes.filter((id) => grade.nodes[id]?.kind === "correct");
   const first = grade.nodes[corrections[0] ?? ""] as Correction | undefined;
@@ -34,7 +34,11 @@ export function SealedCard({ card }: { card: Extract<StackItem, { type: "sealed"
   };
   const toggle = () =>
     void settle(
-      bus.run(setCorrections, { target: { clipId }, nodeIds: corrections, patch: { on: !on } }),
+      bus.run(setCorrections, {
+        target: subject.target,
+        nodeIds: corrections,
+        patch: { on: !on },
+      }),
     );
   return (
     <div
@@ -74,7 +78,7 @@ export function SealedCard({ card }: { card: Extract<StackItem, { type: "sealed"
           </button>
         </div>
         <span className="flex items-center gap-1.5">
-          {first && <SealedOpacity clipId={clipId} ids={corrections} opacity={first.opacity} />}
+          {first && <SealedOpacity subject={subject} ids={corrections} opacity={first.opacity} />}
           <button
             type="button"
             aria-label={open ? "Hide its corrections" : "Show its corrections"}

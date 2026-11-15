@@ -2,10 +2,11 @@ import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import { INPUT_SPACES, projectRef, type ClipGrade } from "@/modules/project";
 import { addGrade } from "./logic/look";
-import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
+import { checkedGrade, readGrade, targetName, targetsOf, writeGrade } from "./tint.guards";
+import { targetSchema } from "./tint.node.commands";
 import { tintRef } from "./tint.ref";
 import { readLut } from "./tint.service";
-import type { LoadedLut, LookDef } from "./tint.types";
+import type { GradeTarget, LoadedLut, LookDef } from "./tint.types";
 
 /** Reads and parses a `.cube` file, every failure a `CommandFailure` naming the file. */
 async function readLutOrFail(path: string): Promise<LoadedLut> {
@@ -109,22 +110,23 @@ export const setInput = defineCommand({
 });
 
 /**
- * Adds a look's corrections, or a still's grade, at the bottom of clips' grades: after everything
- * they have, so it runs last. Every clip is checked before anything is written; one undo step for
- * all.
+ * Adds a look's corrections, or a still's grade, at the bottom of grades (clips', shot groups' or
+ * compositions'): after everything they have, so it runs last. Every target is checked before
+ * anything is written; one undo step for all.
  */
 export const applyLook = defineCommand({
   id: "tint.applyLook",
   label: "Apply look",
   description:
-    "Adds a look (lookId, from tint_describe's looks) or a still's grade (stillId, from tint_describe's stills) to the grade of clips, after everything they already have, so it runs last. A look adds its corrections one after another, each named after the look; a still adds its stored grade as it is. Give exactly one of lookId and stillId. Nothing is replaced and no clip's camera color space changes; a still with no grade changes nothing. All clips change in one undo step, or none: fails with tint.look_choice (not exactly one id), tint.look_not_found, tint.still_not_found, tint.target_not_found, tint.not_gradeable or tint.invalid_grade.",
+    "Adds a look (lookId, from tint_describe's looks) or a still's grade (stillId, from tint_describe's stills) to the grade of clips (clipIds) or of any grades (targets: { clipId }, { groupId } a shot group's, { compositionId } the whole timeline's; give either or both), after everything they already have, so it runs last. A look adds its corrections one after another, each named after the look; a still adds its stored grade as it is. Give exactly one of lookId and stillId. Nothing is replaced and no clip's camera color space changes; a still with no grade changes nothing. All change in one undo step, or none: fails with tint.no_target, tint.look_choice (not exactly one id), tint.look_not_found, tint.still_not_found, tint.target_not_found, tint.not_gradeable or tint.invalid_grade.",
   undoable: true,
   input: z.object({
-    clipIds: z.array(z.string().min(1)).min(1),
+    clipIds: z.array(z.string().min(1)).min(1).optional(),
+    targets: z.array(targetSchema).min(1).optional(),
     lookId: z.string().min(1).optional(),
     stillId: z.string().min(1).optional(),
   }),
-  run(ctx, { clipIds, lookId, stillId }) {
+  run(ctx, { clipIds, targets, lookId, stillId }) {
     if ((lookId === undefined) === (stillId === undefined)) {
       throw new CommandFailure("tint.look_choice", "Give exactly one of lookId and stillId.");
     }
@@ -140,20 +142,20 @@ export const applyLook = defineCommand({
       extra = still.grade;
     }
     if (!extra) return;
-    const writes: [string, ClipGrade | undefined][] = [];
-    for (const clipId of new Set(clipIds)) {
-      const next = addGrade(readGrade(state, { clipId }), extra, () => createId("node"));
+    const writes: [GradeTarget, ClipGrade | undefined][] = [];
+    for (const target of targetsOf(clipIds, targets)) {
+      const next = addGrade(readGrade(state, target), extra, () => createId("node"));
       if (!next) {
         throw new CommandFailure(
           "tint.invalid_grade",
-          `That can't be added to the grade of clip "${clipId}".`,
+          `That can't be added to the grade of ${targetName(target)}.`,
         );
       }
-      writes.push([clipId, checkedGrade(next)]);
+      writes.push([target, checkedGrade(next)]);
     }
     if (writes.length === 0) return;
     ctx.mutate(store, (draft) => {
-      for (const [clipId, grade] of writes) writeGrade(draft, { clipId }, grade);
+      for (const [target, grade] of writes) writeGrade(draft, target, grade);
     });
   },
 });

@@ -94,7 +94,7 @@ export class EngineFilters {
       options: this.captureOptions,
     };
     return this.collect(
-      this.set.frame.filter((filter) => filter.applies(composition, project)),
+      this.set.frame.filter((filter) => filter.applies(composition, project, this.captureOptions)),
       (filter) => filter.passes(info),
     );
   }

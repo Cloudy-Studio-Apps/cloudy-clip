@@ -4,12 +4,12 @@ import { IconButton, SegmentedControl } from "@/ui";
 import { resetGrade } from "../tint.commands";
 import type { GradeTab } from "../tint.types";
 import { CurrentNote } from "./CurrentNote";
-import { useCurrentClip } from "./current.hook";
 import { settle } from "./settle";
 import { HeaderGap } from "./HeaderGap";
 import { LayerList } from "./LayerList";
 import { LooksTab } from "./looks/LooksTab";
 import { NodeGraph } from "./NodeGraph";
+import { useGradeSubject } from "./subject.hook";
 import { TintPanel } from "./TintPanel";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
@@ -22,7 +22,7 @@ export function GradePanel() {
   const tab = useTintView((v) => v.leftTab);
   const set = useTintSet();
   const { bus } = useKernel();
-  const clipId = useCurrentClip();
+  const subject = useGradeSubject();
   const leader = mode === "leader";
   return (
     <TintPanel
@@ -55,8 +55,9 @@ export function GradePanel() {
             <ClipboardPaste />
           </IconButton>
           <IconButton
-            label="Reset grade: remove every correction from this clip"
-            onClick={() => clipId && void settle(bus.run(resetGrade, { target: { clipId } }))}
+            label="Reset grade: remove every correction from this grade"
+            disabled={!subject}
+            onClick={() => subject && void settle(bus.run(resetGrade, { target: subject.target }))}
           >
             <RotateCcw />
           </IconButton>

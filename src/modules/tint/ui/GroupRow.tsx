@@ -34,7 +34,7 @@ const BLEND_OPTIONS = BLEND_MODES.map((mode) => ({ value: mode, label: blendName
  * branch's blend (stacked), its branches indented with an add at the bottom of each, and ungroup.
  */
 export function GroupRow({ group }: { group: Group }) {
-  const { clipId, grade, actions } = useLayers();
+  const { subject, grade, actions } = useLayers();
   const join = grade.nodes[group.id];
   const mixes = join?.kind === "parallel" || join?.kind === "layer";
   const on = mixes ? join.on : true;
@@ -67,7 +67,7 @@ export function GroupRow({ group }: { group: Group }) {
         </button>
         {mixes && (
           <>
-            <OpacityScrub clipId={clipId} nodeId={group.id} opacity={join.opacity} group />
+            <OpacityScrub subject={subject} nodeId={group.id} opacity={join.opacity} group />
             <IconButton
               label={on ? "On: click to turn the group off" : "Off: click to turn the group on"}
               onClick={() => void actions.changeGroup(group.id, { on: !on })}

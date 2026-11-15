@@ -20,8 +20,10 @@ export function LutTool() {
   const { bus } = useKernel();
   const { store } = useModule(projectRef);
   const { luts: files } = useModule(tintRef);
-  const { clipId, grade, nodeId } = useEditTarget();
-  const edit = useLiveEdit(clipId, nodeId);
+  const { subject, grade, nodeId } = useEditTarget();
+  const edit = useLiveEdit(subject, nodeId);
+  // The camera's color space belongs to a clip's footage: a group or timeline grade has none.
+  const clipId = subject?.level === "clip" ? subject.clipId : null;
   const { pick, locate } = usePickLut();
   const all = useStore(store.api, (s) => s.luts);
   const status = useStore(files.store);

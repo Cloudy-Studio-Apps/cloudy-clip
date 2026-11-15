@@ -3,14 +3,17 @@ import { useRef } from "react";
 import { cn } from "@/ui";
 import type { Clip, ClipGrade } from "@/modules/project";
 import type { LookDef } from "../../tint.types";
+import type { GradeSubject } from "../ui.types";
 import { useLookThumb } from "./look.thumb.hook";
 
 interface LookCardProps {
   name: string;
   /** What the card says under the name. */
   note: string;
-  /** The clip being graded: the picture is its frame with `grade` added to its own. */
+  /** The clip being graded: the picture is its frame with `grade` added to the one edited. */
   clip: Clip | undefined;
+  /** The grade being edited (the clip's, its group's or the timeline's). */
+  subject: GradeSubject | null;
   grade: LookDef | ClipGrade | undefined;
   /** A picture to show until (or instead of) the clip's own. */
   fallback?: string;
@@ -25,6 +28,7 @@ export function LookCard({
   name,
   note,
   clip,
+  subject,
   grade,
   fallback,
   chosen,
@@ -32,7 +36,7 @@ export function LookCard({
   onRemove,
 }: LookCardProps) {
   const card = useRef<HTMLDivElement>(null);
-  const picture = useLookThumb(card, clip, grade) ?? fallback;
+  const picture = useLookThumb(card, clip, grade, subject) ?? fallback;
   return (
     <div ref={card} className="relative">
       <button

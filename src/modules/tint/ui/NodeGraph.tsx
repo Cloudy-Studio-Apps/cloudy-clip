@@ -1,7 +1,7 @@
 import { Scan } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKernel } from "@/core";
-import { gradeOf, type ClipGrade, type ClipId, type NodeRef } from "@/modules/project";
+import type { NodeRef } from "@/modules/project";
 import { ContextMenu, IconButton, type MenuPoint } from "@/ui";
 import { fitView, graphEnds, placeAll, refPoint } from "../logic/graph";
 import { groupPick } from "../logic/layers";
@@ -10,13 +10,15 @@ import { emptyGrade, numberOf, toStack } from "../logic/stack";
 import { dropTarget, unwireEntry, wireEntry } from "../logic/wiring";
 import { graphWires, wirePath } from "../logic/wires";
 import { selectNode } from "../tint.view.commands";
-import { useCurrentEntry } from "./current.hook";
 import { useGraphActions } from "./graph.actions.hook";
 import { useGraphCamera } from "./graph.camera.hook";
 import { NodeBox } from "./NodeBox";
+import { NoSubject } from "./NoSubject";
 import { startGraphDrag } from "./node.drag.gesture";
 import { nodeMenu } from "./node.menu";
+import { useGradeSubject } from "./subject.hook";
 import { useNodeThumbs } from "./thumbs.hook";
+import type { GradeSubject } from "./ui.types";
 import { useTintView } from "./view.hook";
 import { startWireDrag } from "./wire.gesture";
 
@@ -29,20 +31,18 @@ const WIRE_COLORS = {
   key: "#4d8fe0",
 } as const;
 
-/** Leader Seal: the current clip's grade as nodes and wires, with the groups Baby Seal knows boxed. */
+/**
+ * Leader Seal: the grade of the current level (the clip's, its shot group's or the whole
+ * timeline's) as nodes and wires, with the groups Baby Seal knows boxed.
+ */
 export function NodeGraph() {
-  const entry = useCurrentEntry();
-  if (!entry) {
-    return (
-      <div className="px-3 py-4 text-sm text-muted-foreground">
-        Pick a clip with a picture to grade it.
-      </div>
-    );
-  }
-  return <Graph key={entry.clip.id} clipId={entry.clip.id} saved={gradeOf(entry.clip)} />;
+  const subject = useGradeSubject();
+  if (!subject) return <NoSubject />;
+  return <Graph key={subject.id} subject={subject} />;
 }
 
-function Graph({ clipId, saved }: { clipId: ClipId; saved: ClipGrade | null }) {
+function Graph({ subject }: { subject: GradeSubject }) {
+  const saved = subject.grade;
   const { bus } = useKernel();
   const grade = useMemo(() => saved ?? emptyGrade(), [saved]);
   const placed = useMemo(() => placeAll(grade), [grade]);
@@ -55,9 +55,9 @@ function Graph({ clipId, saved }: { clipId: ClipId; saved: ClipGrade | null }) {
     () => Object.keys(grade.nodes).filter((id) => grade.nodes[id]?.kind === "correct"),
     [grade],
   );
-  const thumbs = useNodeThumbs(clipId, saved, corrections);
+  const thumbs = useNodeThumbs(subject, saved, corrections);
   const selected = useTintView((v) => v.selected);
-  const actions = useGraphActions(clipId, grade, placed);
+  const actions = useGraphActions(subject.target, grade, placed);
   const wrap = useRef<HTMLDivElement>(null);
   const svg = useRef<SVGSVGElement>(null);
   const line = useRef<SVGPathElement>(null);
