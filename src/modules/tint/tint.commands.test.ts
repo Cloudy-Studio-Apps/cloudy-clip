@@ -375,7 +375,10 @@ describe("grade versions", () => {
   it("switching versions swaps the grade and its key tracks in one undo step", async () => {
     const a = (await ok<{ nodeId: string }>(addCorrection, { target })).nodeId;
     const track = (id: string) =>
-      ({ [`grade.nodes.${id}.values.exposure`]: { keys: [] } }) as never;
+      ({
+        [`grade.nodes.${id}.values.exposure`]: { keys: [] },
+        "transform.x": { keys: [] },
+      }) as never;
     store().api.setState((s) => ({
       clips: { ...s.clips, [clipId]: { ...s.clips[clipId]!, animation: track(a) } },
     }));
@@ -389,7 +392,9 @@ describe("grade versions", () => {
     const before = structuredClone(clip());
     await ok(setVersion, { clipIds: [clipId], action: "switch", name: "B" });
     expect(Object.keys(clip().grade!.nodes)).toEqual([a]);
-    expect(Object.keys(clip().animation!)).toEqual([`grade.nodes.${a}.values.exposure`]);
+    expect(Object.keys(clip().animation!).sort()).toEqual(
+      ["transform.x", `grade.nodes.${a}.values.exposure`].sort(),
+    );
     expect(clip().gradeVersion).toBe("B");
     expect(Object.keys(clip().gradeVersions!)).toEqual(["A"]);
     expect(Object.keys(clip().gradeVersions!.A!.animation!)).toEqual([

@@ -63,7 +63,8 @@ export const setVersion = defineCommand({
     name: z.string().trim().min(1).max(80),
     to: z.string().trim().min(1).max(80).optional().describe("The new name, for rename."),
   }),
-  run(ctx, { clipIds, action, name, to }) {
+  run(ctx, { clipIds: given, action, name, to }) {
+    const clipIds = [...new Set(given)];
     const { store } = ctx.require(projectRef);
     const state = store.getState();
     if (action === "rename" && to === undefined) {

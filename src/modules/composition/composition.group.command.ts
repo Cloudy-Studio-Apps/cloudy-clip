@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import {
+  clipHasKeys,
   contentTime,
   filePlayed,
   projectRef,
@@ -24,7 +25,7 @@ function trimToSpan(clip: Clip, { start, end }: GroupSpan): void {
     const cut = end - clip.start;
     const played = filePlayed(clip, cut);
     const follows = clip.mediaId !== undefined || clip.compositionRef !== undefined;
-    if (clip.animation) clip.animationOrigin = contentTime(clip, end);
+    if (clipHasKeys(clip)) clip.animationOrigin = contentTime(clip, end);
     clip.start = end;
     clip.duration -= cut;
     if (follows && !speedOf(clip).reversed) clip.sourceIn += played;

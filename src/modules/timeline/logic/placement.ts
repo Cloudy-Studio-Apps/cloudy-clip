@@ -15,6 +15,7 @@ import {
   type ProjectState,
   type TrackId,
   type TrackKind,
+  clipHasKeys,
   contentTime,
   filePlayed,
   rampOf,
@@ -157,7 +158,10 @@ function rampRoom(ramp: KeyTrack, from: Micros, to: Micros): Micros {
  * a clip with keys, the `animationOrigin` that keeps them on the picture they were set on.
  */
 export function clampTrim(
-  clip: Pick<Clip, "start" | "sourceIn" | "duration" | "speed" | "animation" | "animationOrigin">,
+  clip: Pick<
+    Clip,
+    "start" | "sourceIn" | "duration" | "speed" | "animation" | "gradeVersions" | "animationOrigin"
+  >,
   edge: "start" | "end",
   time: Micros,
   limits: TrimLimits,
@@ -185,7 +189,7 @@ export function clampTrim(
       start,
       sourceIn,
       duration: clip.duration - delta,
-      ...(clip.animation && { animationOrigin: contentTime(clip, start) }),
+      ...(clipHasKeys(clip) && { animationOrigin: contentTime(clip, start) }),
     };
   }
   const reach = ramp ? rampRoom(ramp, last, last + roomAfter) : Math.floor(roomAfter / rate);

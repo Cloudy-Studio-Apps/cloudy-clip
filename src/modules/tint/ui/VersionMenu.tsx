@@ -6,6 +6,7 @@ import { MenuList, Popover, type MenuItem } from "@/ui";
 import { projectRef } from "@/modules/project";
 import { activeVersion, versionNames } from "../logic/versions";
 import { setVersion } from "../tint.shot.commands";
+import type { VersionAction } from "../tint.types";
 import { useCurrentClip } from "./current.hook";
 import { settle } from "./settle";
 import { useTintView } from "./view.hook";
@@ -17,6 +18,7 @@ import { useTintView } from "./view.hook";
 export function VersionMenu() {
   const { bus } = useKernel();
   const [open, setOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const level = useTintView((v) => v.level);
   const clipId = useCurrentClip();
   const clip = useStore(useModule(projectRef).store.api, (s) =>
@@ -25,11 +27,8 @@ export function VersionMenu() {
   if (level !== "clip" || !clip) return null;
   const active = activeVersion(clip);
   const names = versionNames(clip);
-  const run = (input: {
-    action: "create" | "switch" | "rename" | "delete";
-    name: string;
-    to?: string;
-  }) => void settle(bus.run(setVersion, { clipIds: [clip.id], ...input }));
+  const run = (input: { action: VersionAction; name: string; to?: string }) =>
+    void settle(bus.run(setVersion, { clipIds: [clip.id], ...input }));
   const free = (from: number) => {
     let n = from;
     while (names.includes(String.fromCharCode(64 + n))) n++;
@@ -50,8 +49,8 @@ export function VersionMenu() {
     {
       label: "Rename…",
       onSelect: () => {
-        const to = window.prompt(`Rename version "${active}" to`, active)?.trim();
-        if (to) run({ action: "rename", name: active, to });
+        setOpen(false);
+        setRenaming(true);
       },
       group: "edit",
     },
@@ -64,6 +63,27 @@ export function VersionMenu() {
         destructive: true,
       })),
   ];
+  const rename = (value: string) => {
+    setRenaming(false);
+    const to = value.trim();
+    if (to && to !== active) run({ action: "rename", name: active, to });
+  };
+  if (renaming) {
+    return (
+      <input
+        autoFocus
+        defaultValue={active}
+        aria-label="Version name"
+        onBlur={(event) => rename(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          if (event.key === "Enter") rename(event.currentTarget.value);
+          if (event.key === "Escape") setRenaming(false);
+        }}
+        className="ml-1.5 h-6 w-20 rounded-xs bg-surface px-1 font-mono text-xs outline-none"
+      />
+    );
+  }
   return (
     <Popover
       open={open}

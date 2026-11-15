@@ -189,7 +189,15 @@ export const freezeFrame = defineCommand({
       ...(baked.composite && { composite: { ...clipComposite(baked) } }),
       // Keyed grade values are already written into `baked.grade`, so the hold is a still grade.
       ...(baked.grade && { grade: structuredClone(baked.grade) }),
-      ...(clip.gradeVersions && { gradeVersions: structuredClone(clip.gradeVersions) }),
+      // Like its own keys, a version's keys are dropped: the hold is a still.
+      ...(clip.gradeVersions && {
+        gradeVersions: Object.fromEntries(
+          Object.entries(clip.gradeVersions).map(([name, { grade }]) => [
+            name,
+            grade ? { grade: structuredClone(grade) } : {},
+          ]),
+        ),
+      }),
       ...(clip.gradeVersion !== undefined && { gradeVersion: clip.gradeVersion }),
       ...(clip.gradeGroup !== undefined && { gradeGroup: clip.gradeGroup }),
     };

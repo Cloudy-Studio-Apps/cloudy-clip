@@ -238,7 +238,7 @@ export { animatedClip, trackValue } from "./logic/animate";
 /** Editing key tracks: writing, moving and removing keys, and mirroring an ease. */
 export { mirrorEase, moveTrackKeys, withoutKeys, withoutTracks, writeKey } from "./logic/keys";
 /** A clip's content time (where its keys sit) and timeline time, both ways, and its rate. */
-export { clampToClip, contentTime, rateAt, timeOfContent } from "./logic/content";
+export { clampToClip, clipHasKeys, contentTime, rateAt, timeOfContent } from "./logic/content";
 /** A speed ramp: the track's path, and the time a clip's content takes through it. */
 export { RAMP_PATH, rampContentAt, rampOf, rampTimeAt } from "./logic/ramp";
 

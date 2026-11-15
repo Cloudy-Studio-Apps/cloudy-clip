@@ -3,6 +3,14 @@ import type { Clip, Timed } from "../project.types";
 import { rampOf, rampRate, rampTimeAt } from "./ramp";
 import { filePlayed, speedOf } from "./speed";
 
+/** Whether a clip has key tracks, on the showing grade or parked in a stored grade version: then `animationOrigin` must be kept. */
+export function clipHasKeys(clip: Pick<Clip, "animation" | "gradeVersions">): boolean {
+  return (
+    clip.animation !== undefined ||
+    Object.values(clip.gradeVersions ?? {}).some((version) => version.animation !== undefined)
+  );
+}
+
 /**
  * A clip's own time at a timeline time: how long its picture has played since its first frame,
  * from `animationOrigin`. It runs forward on a reversed clip, keeps running on a held frame and

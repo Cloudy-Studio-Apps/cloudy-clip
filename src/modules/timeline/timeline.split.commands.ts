@@ -14,6 +14,7 @@ import {
   type JunctionId,
   type ProjectState,
   compositionClips,
+  clipHasKeys,
   contentTime,
   followsFileTime,
   formatOf,
@@ -65,10 +66,9 @@ export function splitClips(
         ...(left.gradeVersion !== undefined && { gradeVersion: left.gradeVersion }),
         ...(left.gradeGroup !== undefined && { gradeGroup: left.gradeGroup }),
         // Both halves keep the curve, and the right one starts where the cut is on the picture.
-        ...(target.animation && {
-          animation: structuredClone(target.animation),
-          animationOrigin: contentTime(target, at),
-        }),
+        ...(target.animation && { animation: structuredClone(target.animation) }),
+        // A key track parked in a grade version keeps its time too.
+        ...(clipHasKeys(target) && { animationOrigin: contentTime(target, at) }),
         ...(left.disabled && { disabled: true as const }),
         // A fade stays on the outer edge of its piece.
         ...(left.sound && { sound: { ...structuredClone(target.sound!), fadeIn: 0 } }),
