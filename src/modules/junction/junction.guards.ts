@@ -146,7 +146,13 @@ export function nextProps(
   }
   const defaults = definition.defaults(format);
   const merged = resolveProps(mergeProps(stored, parsed.data as Record<string, unknown>), defaults);
-  const next = definition.normalize ? definition.normalize(merged, { format, previous, patch: parsed.data as Record<string, unknown> }) : merged;
+  const next = definition.normalize
+    ? definition.normalize(merged, {
+        format,
+        previous,
+        patch: parsed.data as Record<string, unknown>,
+      })
+    : merged;
   return minimizeProps(next, defaults);
 }
 

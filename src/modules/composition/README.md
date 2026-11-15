@@ -18,14 +18,14 @@ What a timeline is. A composition is a size, a frame rate, a background, a lengt
 - **Grouping and keys:** `composition.group` cuts a neighbour left beside the placement (`trimToSpan`); when that cuts its start, the clip's `animationOrigin` moves with it so its keys stay on the picture, and its `sourceIn` moves by the file time the cut part played (`filePlayed`), so a sped-up or ramped clip stays in sync (a reversed one keeps its `sourceIn`, as a trim does).
 - **Placements:** a clip with `compositionRef`, in a linked picture and sound pair (both always: placements are live). Trim is limited by the composition's length. `project`'s `settle` shortens placements when the original shrinks.
 
-| Command                       | MCP tool                        | Notes                                                                                   |
-| ----------------------------- | ------------------------------- | --------------------------------------------------------------------------------------- |
-| `composition.create`          | `composition_create`            | Creates the two tracks; the first composition becomes Main; opens it                    |
-| `composition.createFromMedia` | `composition_create_from_media` | One undo step. Refuses `media.not_ready`, `composition.no_picture`                      |
+| Command                       | MCP tool                        | Notes                                                                                                                   |
+| ----------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `composition.create`          | `composition_create`            | Creates the two tracks; the first composition becomes Main; opens it                                                    |
+| `composition.createFromMedia` | `composition_create_from_media` | One undo step. Refuses `media.not_ready`, `composition.no_picture`                                                      |
 | `composition.setSettings`     | `composition_set_settings`      | `background` must be `#rrggbb`; a `duration` alone turns Extend to fit off; `resize: "scale"` keeps clips in proportion |
-| `composition.setMain`         | `composition_set_main`          |                                                                                         |
-| `composition.duplicate`       | `composition_duplicate`         | Copies markers too. Compositions placed inside stay shared                              |
-| `composition.delete`          | `composition_delete`            | Deletes its markers too. Refuses `composition.in_use`, `composition.main`               |
-| `composition.extendToFit`     | `composition_extend_to_fit`     | One-time fit                                                                            |
-| `composition.open`            | `composition_open`              | Not undoable. Sets the caller's own open composition, never the user's                  |
-| `composition.closeTab`        | —                               | Not undoable. The user's tabs                                                           |
+| `composition.setMain`         | `composition_set_main`          |                                                                                                                         |
+| `composition.duplicate`       | `composition_duplicate`         | Copies markers too. Compositions placed inside stay shared                                                              |
+| `composition.delete`          | `composition_delete`            | Deletes its markers too. Refuses `composition.in_use`, `composition.main`                                               |
+| `composition.extendToFit`     | `composition_extend_to_fit`     | One-time fit                                                                                                            |
+| `composition.open`            | `composition_open`              | Not undoable. Sets the caller's own open composition, never the user's                                                  |
+| `composition.closeTab`        | —                               | Not undoable. The user's tabs                                                                                           |
