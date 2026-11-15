@@ -1,7 +1,5 @@
 import type { Ref } from "react";
 import { cn } from "@/ui";
-import type { SoonId } from "../../sound.meter.types";
-import { soon as soonProps } from "../soon";
 import { PanelRow } from "./PanelRow";
 
 interface PanelValueProps {
@@ -16,16 +14,12 @@ interface PanelValueProps {
   tone?: "mark" | "on";
   /** The value's own text, for a caller that writes it through the DOM each frame (rule 24). */
   valueRef?: Ref<HTMLSpanElement>;
-  /** A placeholder: its value says it's coming (`soon`). Leave `value` unset, so it shows `—`. */
-  soon?: SoonId;
 }
 
 /**
- * A row of a panel card: the label at the left, the value at the right in mono over a rule. A
- * placeholder's value is a button that does nothing (`soon`): focusable, announced as dimmed, and
- * its tooltip says what's coming.
+ * A row of a panel card: the label at the left, the value at the right in mono over a rule.
  */
-export function PanelValue({ label, value, unit, pick, tone, valueRef, soon }: PanelValueProps) {
+export function PanelValue({ label, value, unit, pick, tone, valueRef }: PanelValueProps) {
   const valueClass = cn(
     "min-w-[58px] whitespace-nowrap border-b py-px text-right font-mono text-base font-bold",
     tone === "mark" ? "border-mark text-mark" : "border-border-strong",
@@ -40,18 +34,7 @@ export function PanelValue({ label, value, unit, pick, tone, valueRef, soon }: P
   );
   return (
     <PanelRow label={label}>
-      {soon ? (
-        <button
-          type="button"
-          aria-label={label}
-          {...soonProps(soon)}
-          className={cn(valueClass, "cursor-default")}
-        >
-          {content}
-        </button>
-      ) : (
-        <span className={valueClass}>{content}</span>
-      )}
+      <span className={valueClass}>{content}</span>
     </PanelRow>
   );
 }

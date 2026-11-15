@@ -47,6 +47,8 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
   let curve: DynamicsCurve | null = null;
   let deesser: DeesserSettings | null = null;
   let limit: LimiterSettings | null = null;
+  /** The lowest gain (makeup left out) since `takeReduction`, linear. */
+  let lowest = 1;
 
   return {
     set(next) {
@@ -60,6 +62,11 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
       curve = curveOf(next, sampleRate);
       deesser = next.kind === "deesser" ? deesserSettings(next, sampleRate) : null;
       limit = next.kind === "limiter" ? limiterSettings(next, sampleRate) : null;
+    },
+    takeReduction() {
+      const db = command?.kind === "compressor" && lowest < 1 ? -20 * Math.log10(lowest) : 0;
+      lowest = 1;
+      return db;
     },
     process(left, right, keyLeft, keyRight, outLeft, outRight) {
       const n = outLeft.length;
@@ -78,6 +85,7 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
           const r = right[i]!;
           const level = ownKey ? linkedLevel(l, r) : linkedLevel(keyLeft[i]!, keyRight[i]!);
           const gain = dynamicsGain(detector, curve, level);
+          lowest = Math.min(lowest, gain / curve.makeup);
           outLeft[i] = l * gain;
           outRight[i] = r * gain;
         }

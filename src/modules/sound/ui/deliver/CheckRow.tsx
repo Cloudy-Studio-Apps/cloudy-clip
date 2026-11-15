@@ -9,8 +9,7 @@ interface CheckRowProps extends Omit<ComponentProps<"button">, "children" | "rol
 
 /**
  * A ticked or unticked line of a panel card: a 13 px box, filled `--on` with a check when ticked,
- * outlined when not, then the label. Extra props go on the button after its own, so a placeholder
- * spreads `soon(…)` onto it.
+ * outlined when not, then the label. Extra props go on the button after its own.
  */
 export function CheckRow({ label, checked, className, ...props }: CheckRowProps) {
   return (

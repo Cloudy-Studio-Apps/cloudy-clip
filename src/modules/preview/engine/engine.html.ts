@@ -12,6 +12,7 @@ import {
   pitchShift,
   soundOf,
   type ClipComposite,
+  type BusId,
   type ClipId,
   type ClipPlacement,
   type ClipSound,
@@ -19,6 +20,7 @@ import {
   type Composition,
   type MediaAsset,
   type MediaId,
+  type TrackId,
   type ProjectFormat,
   type ProjectState,
   speedOf,
@@ -240,6 +242,7 @@ export class HtmlMediaEngine implements PreviewEngine {
 
   setSound = (live: LiveSound): void => this.sound.setSound(live);
   levels = (): MixLevels => this.sound.levels();
+  reduction = (target: TrackId | BusId | "master"): number => this.sound.reduction(target);
   spectrum = (into: Float32Array<ArrayBuffer>): number => this.sound.spectrum(into);
   loudness = (): LoudnessReading | null => this.sound.loudness();
   resetLoudness = (): void => this.sound.resetLoudness();

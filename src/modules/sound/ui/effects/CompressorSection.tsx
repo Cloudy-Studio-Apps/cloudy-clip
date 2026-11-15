@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   EFFECT_RANGES,
   type CompressorEffect,
@@ -6,8 +6,9 @@ import {
   type SoundEffect,
 } from "@/modules/project";
 import { defaultSpec } from "../../logic/effects";
-import type { EffectEdit, TransferGraphHandle } from "../../sound.effects.types";
+import type { DuckOwner, EffectEdit, TransferGraphHandle } from "../../sound.effects.types";
 import { PanelValue } from "../card";
+import { useMeters } from "../mixer";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 import { TransferGraph } from "./TransferGraph";
@@ -16,15 +17,31 @@ const REST = defaultSpec("compressor").params;
 
 interface CompressorSectionProps {
   effect: CompressorEffect;
+  /** The track or group the chain is on; undefined for the master. */
+  owner: DuckOwner | undefined;
   edit: EffectEdit;
 }
 
 /**
  * The compressor: its transfer graph, six values, and Reduction, how far it turns the sound down
- * as it plays: `—` and coming soon (`soon("compressor.reduction")`, a stage 2 follow-up).
+ * as it plays, in dB: the page's meter loop writes it through the DOM each frame (rule 24), `—`
+ * while nothing plays.
  */
-export function CompressorSection({ effect, edit }: CompressorSectionProps) {
+export function CompressorSection({ effect, owner, edit }: CompressorSectionProps) {
   const graph = useRef<TransferGraphHandle>(null);
+  const reduction = useRef<HTMLSpanElement>(null);
+  const loop = useMeters();
+  const target = owner?.id ?? "master";
+  useEffect(
+    () =>
+      loop?.watchReduction(target, (db) => {
+        const text = db === null ? "—" : db.toFixed(1);
+        if (reduction.current && reduction.current.textContent !== text) {
+          reduction.current.textContent = text;
+        }
+      }),
+    [loop, target],
+  );
   const row = (
     key: keyof CompressorParams,
     label: string,
@@ -54,7 +71,7 @@ export function CompressorSection({ effect, edit }: CompressorSectionProps) {
       {row("attackMs", "Attack", { step: 0.01, unit: "ms", scale: "log" })}
       {row("releaseMs", "Release", { step: 0.01, unit: "ms", scale: "log" })}
       {row("makeupDb", "Makeup", { step: 0.5, unit: "dB" })}
-      <PanelValue label="Reduction" unit="dB" soon="compressor.reduction" />
+      <PanelValue label="Reduction" unit="dB" valueRef={reduction} />
     </EffectSection>
   );
 }

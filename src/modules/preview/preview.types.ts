@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { FontRequest } from "@/modules/fonts";
 import type {
+  BusId,
   ClipId,
   ClipTransform,
   Composition,
@@ -112,6 +113,8 @@ export interface PreviewEngine {
   setSound(sound: LiveSound): void;
   /** Peaks of each track bus and the master now; silence when nothing went through the graph. */
   levels(): MixLevels;
+  /** The compressors' gain reduction on a strip, dB (`PreviewSound.reduction`). */
+  reduction(target: TrackId | BusId | "master"): number;
   /**
    * Fills `into` (`SPECTRUM_BINS` long) with the master's spectrum now, in dB per bin, the louder
    * of the two sides, `-Infinity` where there is no sound; bin `i` is at `i * rate / (2 * SPECTRUM_BINS)` Hz. Returns that `rate` (the context's sample rate), 0 when nothing can be read. Read it per
@@ -241,6 +244,11 @@ export interface EffectRunner {
   /** New settings (or a first effect); the state carries on. */
   set(command: DynamicsCommand): void;
   /**
+   * How far a compressor turned the sound down since the last call, in dB (peak, makeup left
+   * out); 0 for any other kind, when off, or when it did nothing. Starts the next span.
+   */
+  takeReduction(): number;
+  /**
    * One block: the sound in, the key (a duck's listened tracks; read only by `duck`), and the
    * output, as long as the block.
    */
@@ -339,6 +347,13 @@ export interface PreviewSound {
   setSolo(trackIds: TrackId[]): void;
   /** Peaks now, of each track bus and the master. Read it per frame; it holds no peaks. */
   levels(): MixLevels;
+  /**
+   * How far the compressors on a strip (a track, a group by its id, or the master) turn the sound
+   * down now, in dB, 0 or more; 0 when it has none, they're off, or nothing plays. The worklet
+   * posts it about 30 times a second and this reads the latest, allocating nothing: read it per
+   * frame, never into React state.
+   */
+  reduction(target: TrackId | BusId | "master"): number;
   /**
    * Fills `into` (`SPECTRUM_BINS` long) with the master's spectrum now, in dB per bin, the louder
    * of the two sides, `-Infinity` where there is no sound; bin `i` is at `i * rate / (2 * SPECTRUM_BINS)` Hz. Returns that `rate` (the context's sample rate), 0 when nothing can be read. Read it per

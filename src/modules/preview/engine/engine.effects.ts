@@ -20,6 +20,7 @@ function eqStage(context: BaseAudioContext): EffectStage {
   return {
     input: filters[0]!,
     output: filters[filters.length - 1]!,
+    reduction: () => 0,
     update(effect) {
       if (effect.kind !== "eq" || effect === shown) return;
       shown = effect;
@@ -37,9 +38,13 @@ function dynamicsStage(context: BaseAudioContext, node: AudioWorkletNode): Effec
   let shown: SoundEffect | null = null;
   let key: GainNode | null = null;
   let listened: AudioNode[] = [];
+  // The worklet posts its reduction a few times a second; keeping the latest allocates nothing.
+  let reduction = 0;
+  node.port.onmessage = ({ data }: MessageEvent<number>) => (reduction = data);
   return {
     input: node,
     output: node,
+    reduction: () => reduction,
     update(effect, keyOf) {
       if (effect !== shown) {
         shown = effect;
@@ -60,6 +65,7 @@ function dynamicsStage(context: BaseAudioContext, node: AudioWorkletNode): Effec
       if (key) for (const source of listened) unplug(source, key);
       key?.disconnect();
       node.onprocessorerror = null;
+      node.port.onmessage = null;
       node.disconnect();
     },
   };
@@ -112,6 +118,11 @@ export function createEffectChain(
         const effect = effects.find((candidate) => candidate.id === id);
         if (effect) stage.update(effect, keyOf);
       }
+    },
+    reduction() {
+      let db = 0;
+      for (const { stage } of stages) db += stage.reduction();
+      return db;
     },
     dispose() {
       for (const { stage } of stages) stage.dispose();

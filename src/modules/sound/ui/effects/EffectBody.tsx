@@ -21,7 +21,7 @@ export function EffectBody({ effect, owner, edit }: EffectBodyProps) {
     case "eq":
       return <EqEffectSection effect={effect} edit={edit} />;
     case "compressor":
-      return <CompressorSection effect={effect} edit={edit} />;
+      return <CompressorSection effect={effect} owner={owner} edit={edit} />;
     case "gate":
       return <GateSection effect={effect} edit={edit} />;
     case "deesser":

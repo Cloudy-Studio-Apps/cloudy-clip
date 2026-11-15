@@ -1,5 +1,6 @@
 import type { PreviewSound } from "@/modules/preview";
 import { holdPeak, meterHeight } from "../../logic/meter";
+import type { MixTarget } from "../../sound.line.types";
 import type { MeterEntry, MeterLoop } from "../../sound.meter.types";
 
 /** Writes a level to a meter side, touching the DOM only where something changed. */
@@ -21,10 +22,12 @@ function write(entry: MeterEntry, db: number, now: number): void {
 /**
  * The meters' loop: while started, one `requestAnimationFrame` reads `levels()` and `input()` (the
  * microphone while recording, both sides) once and writes every registered meter side through the
- * DOM, with its peak hold. No React (rule 24).
+ * DOM, with its peak hold; it also feeds each watched strip's compressor reduction. No React
+ * (rule 24).
  */
 export function createMeterLoop(sound: PreviewSound, input: () => number): MeterLoop {
   const entries = new Set<MeterEntry>();
+  const reductions = new Set<{ target: MixTarget; show: (db: number | null) => void }>();
   let frame = 0;
 
   const tick = (now: number) => {
@@ -38,6 +41,7 @@ export function createMeterLoop(sound: PreviewSound, input: () => number): Meter
       const level = entry.target === "master" ? levels.master : levels.tracks[entry.target];
       write(entry, level?.[entry.side] ?? -Infinity, now);
     }
+    for (const { target, show } of reductions) show(sound.reduction(target));
     frame = requestAnimationFrame(tick);
   };
 
@@ -48,12 +52,19 @@ export function createMeterLoop(sound: PreviewSound, input: () => number): Meter
       entries.add(entry);
       return () => void entries.delete(entry);
     },
+    watchReduction(target, show) {
+      const watch = { target, show };
+      show(null);
+      reductions.add(watch);
+      return () => void reductions.delete(watch);
+    },
     start() {
       if (frame === 0) frame = requestAnimationFrame(tick);
     },
     stop() {
       cancelAnimationFrame(frame);
       frame = 0;
+      for (const { show } of reductions) show(null);
       const now = performance.now();
       for (const entry of entries) {
         entry.peak = null;

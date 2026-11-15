@@ -24,6 +24,7 @@ export function createPreviewSound(engine: () => PreviewEngine | null) {
     setMonitor: (monitor) => change({ monitor }),
     setSolo: (solo) => change({ solo: [...solo] }),
     levels: () => engine()?.levels() ?? NO_LEVELS,
+    reduction: (target) => engine()?.reduction(target) ?? 0,
     spectrum: (into) => engine()?.spectrum(into) ?? 0,
     // Measured by the loudness worklet on the master; null until it has, and without an engine.
     loudness: () => engine()?.loudness() ?? null,

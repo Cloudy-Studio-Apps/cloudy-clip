@@ -40,6 +40,12 @@ export interface MeterEntry extends MeterSide {
 export interface MeterLoop {
   /** Starts feeding a meter side. Returns what stops it. */
   register(meter: MeterSide): () => void;
+  /**
+   * Feeds `show` the compressors' gain reduction (dB) of a strip on every frame the loop runs, and
+   * `null` when it starts being watched and when the loop stops (nothing plays). Returns what
+   * stops it.
+   */
+  watchReduction(target: MixTarget, show: (db: number | null) => void): () => void;
   /** Reads the levels on every frame. */
   start(): void;
   /** Stops reading and empties every meter. */
@@ -120,29 +126,4 @@ export interface DeliveryVerdict {
   loudnessDiff: number | null;
   /** Peak limit minus the true peak, dB: negative when over; null for digital silence. */
   peakMargin: number | null;
-}
-
-/**
- * A control of the Sound page that a later stage makes work: one entry of `ui/soon/soon.catalog.ts`.
- * Each stage removes its own ids as it builds them.
- */
-export type SoonId = "compressor.reduction";
-
-/** A placeholder: what it will be and the stage that builds it. */
-export interface SoonEntry {
-  id: SoonId;
-  /** Its name, as the tooltip starts. */
-  label: string;
-  /** What it will do, one sentence. */
-  what: string;
-  /** The stage plan that builds it: `docs/superpowers/plans/2026-11-03-sound-<stage>-*.md`. */
-  stage: "2-followup";
-}
-
-/** The props a placeholder spreads: dimmed for screen readers, its tooltip, an arrow pointer, a click that does nothing. */
-export interface SoonProps {
-  "aria-disabled": true;
-  title: string;
-  className: string;
-  onClick(): void;
 }

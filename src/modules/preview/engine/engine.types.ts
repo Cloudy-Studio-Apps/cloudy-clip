@@ -122,6 +122,8 @@ export interface SoundGraph {
   follow(time: Micros, playing: boolean, until: Micros): void;
   /** Peaks now; silence before any sound went through. */
   levels(): MixLevels;
+  /** The compressors' gain reduction on a strip, dB (`PreviewSound.reduction`). */
+  reduction(target: TrackId | BusId | "master"): number;
   /** Fills `into` with the master's spectrum now and returns the sample rate (`PreviewSound.spectrum`). */
   spectrum(into: Float32Array<ArrayBuffer>): number;
   /** Loudness of the master since the last reset, measured while playing; null until measured. */
@@ -184,6 +186,8 @@ export interface SoundMix {
   /** New live sound from the controller, applied at once. */
   setSound(live: LiveSound): void;
   levels(): MixLevels;
+  /** The compressors' gain reduction on a strip, dB (`PreviewSound.reduction`). */
+  reduction(target: TrackId | BusId | "master"): number;
   /** Fills `into` with the master's spectrum now and returns the sample rate (`PreviewSound.spectrum`). */
   spectrum(into: Float32Array<ArrayBuffer>): number;
   loudness(): LoudnessReading | null;
@@ -284,6 +288,8 @@ export interface EffectChain {
    * tracks after their faders); a track with no bus gives nothing.
    */
   set(effects: readonly SoundEffect[], keyOf: KeyOf): void;
+  /** How far its compressors turn the sound down now, dB (the sum of their latest posts). */
+  reduction(): number;
   dispose(): void;
 }
 
@@ -303,6 +309,8 @@ export interface EffectStage {
   input: AudioNode;
   output: AudioNode;
   update(effect: SoundEffect, keyOf: KeyOf): void;
+  /** Its gain reduction now, dB; 0 for a stage with none. */
+  reduction(): number;
   dispose(): void;
 }
 
@@ -316,6 +324,8 @@ export interface MixBus {
   readonly master: AudioNode;
   mix(update: MixUpdate): void;
   levels(): MixLevels;
+  /** The compressors' gain reduction on a strip, dB (`PreviewSound.reduction`). */
+  reduction(target: TrackId | BusId | "master"): number;
   /** Fills `into` with the master's spectrum now and returns the sample rate (`PreviewSound.spectrum`). */
   spectrum(into: Float32Array<ArrayBuffer>): number;
   dispose(): void;
