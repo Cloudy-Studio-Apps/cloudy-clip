@@ -40,3 +40,20 @@ export function compositionBeats(
   }
   return times.sort((a, b) => a - b);
 }
+
+/**
+ * `compositionBeats` that answers again from its last result while the document, the composition
+ * and the beats found are the same objects, so a drag asking per move doesn't scan and sort again.
+ */
+export function rememberedBeats(): typeof compositionBeats {
+  let last: { args: Parameters<typeof compositionBeats>; times: Micros[] } | undefined;
+  return (state, compositionId, files) => {
+    if (last?.args[0] !== state || last.args[1] !== compositionId || last.args[2] !== files) {
+      last = {
+        args: [state, compositionId, files],
+        times: compositionBeats(state, compositionId, files),
+      };
+    }
+    return last.times;
+  };
+}

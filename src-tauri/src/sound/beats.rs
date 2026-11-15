@@ -4,12 +4,16 @@
 //!
 //! 1. **Onsets:** spectral flux, the sum of each bin's rise in log magnitude from one
 //!    [`WINDOW`]-sample frame to the next, every [`HOP`] samples (about 5.8 ms).
-//! 2. **Tempo:** the autocorrelation of that envelope between [`SLOWEST_BPM`] and [`FASTEST_BPM`],
-//!    leaning towards 120 BPM so half and double tempos lose. When the envelope barely repeats at
-//!    any tempo ([`PERIODIC`]: speech, a held tone, silence), the file has no beats.
-//! 3. **Beats:** the chain of onsets one period apart that scores best (dynamic programming, as
-//!    Ellis's beat tracker), so strays off the beat are never picked; a beat where the envelope
-//!    has no onset (a break) is dropped.
+//! 2. **Tempo,** per [`SPAN_SECONDS`] window half a window apart: the autocorrelation of that
+//!    envelope between [`SLOWEST_BPM`] and [`FASTEST_BPM`], leaning towards 120 BPM so half and
+//!    double tempos lose. When it barely repeats at any tempo ([`PERIODIC`]: speech, a held tone,
+//!    silence), the window has no beats.
+//! 3. **Beats** of each window: the chains of onsets one period apart that score best (dynamic
+//!    programming, as Ellis's beat tracker), so strays off the beat are never picked; a chain
+//!    starts again after a gap, and a beat with no onset under it is dropped. Each window keeps
+//!    the beats nearer its middle than another's.
+//!
+//! The thresholds were tuned on synthetic sound (clicks, a generated kick pattern, bursts).
 //!
 //! Results are kept per file by path, size and modified time ([`Beats`]), for the app's
 //! lifetime: never in the project.
@@ -50,6 +54,12 @@ const TIGHTNESS: f32 = 100.0;
 /// [`NEAR`] frames, or it is a beat in a break and dropped.
 const KEEP: f32 = 1.0;
 const NEAR: usize = 3;
+/// Seconds of envelope one tempo is found over; windows overlap by half.
+const SPAN_SECONDS: f32 = 10.0;
+/// The share of a find's progress that is FFmpeg decoding; the rest is the spectra and tempo.
+const DECODING: f32 = 0.8;
+/// The share of the spectra (reading the decoded file) in what follows decoding.
+const READING: f32 = 0.75;
 /// Bytes read from the decoded file at a time.
 const CHUNK: usize = 64 * 1024;
 
@@ -57,6 +67,7 @@ const CHUNK: usize = 64 * 1024;
 pub(crate) struct Onsets {
     pending: Vec<f32>,
     hann: Vec<f32>,
+    twiddles: Vec<(f32, f32)>,
     previous: Vec<f32>,
     envelope: Vec<f32>,
 }
@@ -70,6 +81,7 @@ impl Onsets {
             // Silence before the start, so an onset in the first samples is placed too.
             pending: vec![0.0; WINDOW],
             hann,
+            twiddles: twiddles(),
             previous: vec![0.0; WINDOW / 2],
             envelope: Vec::new(),
         }
@@ -86,7 +98,7 @@ impl Onsets {
                 re[i] = sample * self.hann[i];
                 im[i] = 0.0;
             }
-            fft(&mut re, &mut im);
+            fft(&mut re, &mut im, &self.twiddles);
             let mut flux = 0.0;
             for (bin, previous) in self.previous.iter_mut().enumerate() {
                 let magnitude = (10.0 * re[bin].hypot(im[bin])).ln_1p();
@@ -99,9 +111,10 @@ impl Onsets {
         self.pending.drain(..start);
     }
 
-    /// The beats heard, in microseconds from the sound's start.
-    pub(crate) fn beats(self) -> Vec<u64> {
-        beat_frames(&self.envelope)
+    /// The beats heard, in microseconds from the sound's start. `progress` gets 0 to 1 over
+    /// the tempo windows.
+    pub(crate) fn beats(self, progress: impl FnMut(f32)) -> Vec<u64> {
+        beat_frames(&self.envelope, progress)
             .into_iter()
             .map(|frame| {
                 let at = (frame * HOP + ONSET_AT).saturating_sub(WINDOW);
@@ -111,8 +124,18 @@ impl Onsets {
     }
 }
 
-/// In-place radix-2 FFT; `re.len()` is a power of two.
-fn fft(re: &mut [f32], im: &mut [f32]) {
+/// `e^(-iτk/WINDOW)` for each `k` under `WINDOW / 2`, as (cos, sin).
+fn twiddles() -> Vec<(f32, f32)> {
+    (0..WINDOW / 2)
+        .map(|k| {
+            let (sin, cos) = (-std::f32::consts::TAU * k as f32 / WINDOW as f32).sin_cos();
+            (cos, sin)
+        })
+        .collect()
+}
+
+/// In-place radix-2 FFT of [`WINDOW`] points, with its [`twiddles`].
+fn fft(re: &mut [f32], im: &mut [f32], twiddles: &[(f32, f32)]) {
     let n = re.len();
     let mut j = 0;
     for i in 1..n {
@@ -129,10 +152,10 @@ fn fft(re: &mut [f32], im: &mut [f32]) {
     }
     let mut len = 2;
     while len <= n {
-        let angle = -std::f32::consts::TAU / len as f32;
+        let stride = n / len;
         for start in (0..n).step_by(len) {
             for k in 0..len / 2 {
-                let (sin, cos) = (angle * k as f32).sin_cos();
+                let (cos, sin) = twiddles[k * stride];
                 let (a, b) = (start + k, start + k + len / 2);
                 let tr = re[b] * cos - im[b] * sin;
                 let ti = re[b] * sin + im[b] * cos;
@@ -146,11 +169,65 @@ fn fft(re: &mut [f32], im: &mut [f32]) {
     }
 }
 
-/// The frames of the envelope that are beats; none when it doesn't repeat at a tempo.
-fn beat_frames(envelope: &[f32]) -> Vec<usize> {
-    let frames_per_second = RATE as f32 / HOP as f32;
-    let shortest = (frames_per_second * 60.0 / FASTEST_BPM).floor() as usize;
-    let longest = (frames_per_second * 60.0 / SLOWEST_BPM).ceil() as usize;
+/// The frames of the envelope that are beats. Tempo is found per [`SPAN_SECONDS`] window, half
+/// a window apart, so a song that changes tempo has beats in each part and a part with none
+/// (speech, a held tone, silence) has none; each window keeps the beats nearer its own middle
+/// than another's.
+fn beat_frames(envelope: &[f32], mut progress: impl FnMut(f32)) -> Vec<usize> {
+    let n = envelope.len();
+    let span = (frames_per_second() * SPAN_SECONDS) as usize;
+    let step = span / 2;
+    let mut starts = vec![0];
+    while starts.last().is_some_and(|&s| s + span < n) {
+        starts.push(starts.last().map_or(0, |s| s + step));
+    }
+    let middle = |s: usize| (s + (s + span).min(n)) / 2;
+    let shortest = shortest_period();
+    let mut beats: Vec<usize> = Vec::new();
+    for (index, &start) in starts.iter().enumerate() {
+        let end = (start + span).min(n);
+        // The last window is a whole one where the file allows, ending with it.
+        let from = if index > 0 {
+            end.saturating_sub(span)
+        } else {
+            start
+        };
+        let mine = |f: usize| {
+            let nearest = starts
+                .iter()
+                .enumerate()
+                .min_by_key(|(_, s)| middle(**s).abs_diff(f));
+            nearest.is_some_and(|(i, _)| i == index)
+        };
+        for frame in window_beats(&envelope[from..end]) {
+            let frame = from + frame;
+            let apart = beats
+                .last()
+                .is_none_or(|&last| frame >= last + shortest / 2);
+            if mine(frame) && apart {
+                beats.push(frame);
+            }
+        }
+        progress((index + 1) as f32 / starts.len() as f32);
+    }
+    beats
+}
+
+fn frames_per_second() -> f32 {
+    RATE as f32 / HOP as f32
+}
+
+/// The period of the fastest tempo, in frames.
+fn shortest_period() -> usize {
+    (frames_per_second() * 60.0 / FASTEST_BPM).floor() as usize
+}
+
+/// The beats of one window of the envelope (frames within it); none when it doesn't repeat at a
+/// tempo. After a gap the chain starts again, so the beats before a break are kept.
+fn window_beats(envelope: &[f32]) -> Vec<usize> {
+    let fps = frames_per_second();
+    let shortest = shortest_period();
+    let longest = (fps * 60.0 / SLOWEST_BPM).ceil() as usize;
     let n = envelope.len();
     if n < longest * 3 {
         return Vec::new();
@@ -169,7 +246,7 @@ fn beat_frames(envelope: &[f32]) -> Vec<usize> {
             .sum();
         sum / (n - lag) as f32 / energy
     };
-    let likely = frames_per_second * 60.0 / LIKELY_BPM;
+    let likely = fps * 60.0 / LIKELY_BPM;
     let lean = |lag: usize| {
         let octaves = (lag as f32 / likely).log2() / LEAN_OCTAVES;
         (-0.5 * octaves * octaves).exp()
@@ -206,22 +283,26 @@ fn beat_frames(envelope: &[f32]) -> Vec<usize> {
             from[t] = best.1;
         }
     }
-    let Some(mut at) = (n.saturating_sub(period)..n).max_by(|a, b| total[*a].total_cmp(&total[*b]))
-    else {
-        return Vec::new();
+    let best_in = |range: std::ops::Range<usize>| {
+        range.max_by(|a: &usize, b: &usize| total[*a].total_cmp(&total[*b]))
     };
     let mut beats = Vec::new();
-    loop {
-        let around = at.saturating_sub(NEAR)..(at + NEAR + 1).min(n);
-        if let Some(peak) = around.max_by(|a, b| score[*a].total_cmp(&score[*b]))
-            && score[peak] - mean / deviation >= KEEP
-        {
-            beats.push(peak);
+    let mut next = best_in(n.saturating_sub(period)..n);
+    while let Some(mut at) = next {
+        loop {
+            let around = at.saturating_sub(NEAR)..(at + NEAR + 1).min(n);
+            if let Some(peak) = around.max_by(|a, b| score[*a].total_cmp(&score[*b]))
+                && score[peak] - mean / deviation >= KEEP
+            {
+                beats.push(peak);
+            }
+            if from[at] == usize::MAX {
+                break;
+            }
+            at = from[at];
         }
-        if from[at] == usize::MAX {
-            break;
-        }
-        at = from[at];
+        // The chain began here: an earlier one ends where the running score is highest before.
+        next = best_in(0..at.saturating_sub(period / 2)).filter(|&end| total[end] > 0.0);
     }
     beats.reverse();
     beats
@@ -335,9 +416,11 @@ async fn decode(
     )
     .chain([scratch.as_os_str().to_owned()])
     .collect();
+    let decoding = on_progress.clone();
     let listen = move |line: &str| {
         if let Some(Ok(done)) = line.strip_prefix("out_time_us=").map(str::parse::<u64>) {
-            let _ = on_progress.send((done as f32 / duration as f32).clamp(0.0, 0.99));
+            let part = (done as f32 / duration as f32).clamp(0.0, 1.0);
+            let _ = decoding.send(part * DECODING);
         }
     };
     let recipe = Recipe { args, script: None };
@@ -353,14 +436,20 @@ async fn decode(
     }
     outcome.map_err(AppError::Unavailable)?;
     let scratch = scratch.to_owned();
-    tauri::async_runtime::spawn_blocking(move || read_beats(&scratch))
+    let report = move |part: f32| {
+        let _ = on_progress.send(DECODING + part * (1.0 - DECODING));
+    };
+    tauri::async_runtime::spawn_blocking(move || read_beats(&scratch, report))
         .await
         .map_err(|e| AppError::Unavailable(format!("Finding beats stopped: {e}")))?
 }
 
-/// The beats of a file of mono `f32le` samples at [`RATE`], read a piece at a time.
-fn read_beats(file: &Path) -> AppResult<Vec<u64>> {
+/// The beats of a file of mono `f32le` samples at [`RATE`], read a piece at a time. `progress`
+/// gets 0 to 1: reading the spectra, then the tempo windows.
+fn read_beats(file: &Path, progress: impl Fn(f32)) -> AppResult<Vec<u64>> {
     let mut reader = std::fs::File::open(file)?;
+    let size = reader.metadata()?.len().max(1) as f32;
+    let mut done = 0usize;
     let mut onsets = Onsets::new();
     let mut bytes = vec![0u8; CHUNK];
     let mut kept = 0;
@@ -378,10 +467,12 @@ fn read_beats(file: &Path) -> AppResult<Vec<u64>> {
                 .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]])),
         );
         onsets.push(&samples);
+        done += read;
+        progress(done as f32 / size * READING);
         bytes.copy_within(whole..kept + read, 0);
         kept = kept + read - whole;
     }
-    Ok(onsets.beats())
+    Ok(onsets.beats(|part| progress(READING + part * (1.0 - READING))))
 }
 
 /// Stops the find `job_id`. One that already ended is left alone.
@@ -409,7 +500,7 @@ mod tests {
         for piece in samples.chunks(1000) {
             onsets.push(piece);
         }
-        onsets.beats()
+        onsets.beats(|_| ())
     }
 
     /// Deterministic noise in -1..1.
@@ -474,8 +565,51 @@ mod tests {
         assert!(beats.is_empty(), "{beats:?}");
     }
 
+    /// The gaps (µs) between beats that fall within `from..to` seconds.
+    fn gaps_within(beats: &[u64], from: f32, to: f32) -> Vec<u64> {
+        let inside: Vec<u64> = beats
+            .iter()
+            .copied()
+            .filter(|&b| b as f32 / 1e6 >= from && (b as f32) / 1e6 < to)
+            .collect();
+        inside.windows(2).map(|pair| pair[1] - pair[0]).collect()
+    }
+
     #[test]
-    fn silence_has_no_beats() {
-        assert!(beats_of(5.0, |_| 0.0).is_empty());
+    fn a_tempo_change_has_beats_at_each_tempo() {
+        // 100 BPM for 15 s, then 140 BPM for 15 s.
+        let mut times: Vec<f32> = (0..25).map(|k| 0.25 + k as f32 * 0.6).collect();
+        let switch = times.last().copied().unwrap_or(0.0) + 0.6;
+        times.extend((0..35).map(|k| switch + k as f32 * 60.0 / 140.0));
+        let beats = beats_of(30.5, |t| clicks(&times, t));
+        let slow = gaps_within(&beats, 0.0, 11.0);
+        let fast = gaps_within(&beats, 19.0, 30.5);
+        assert!(slow.len() >= 15 && fast.len() >= 20, "{beats:?}");
+        assert!(
+            slow.iter().all(|g| g.abs_diff(600_000) <= 10_000),
+            "{slow:?}"
+        );
+        assert!(
+            fast.iter().all(|g| g.abs_diff(428_571) <= 10_000),
+            "{fast:?}"
+        );
+    }
+
+    #[test]
+    fn a_long_break_keeps_the_beats_on_both_sides() {
+        // 120 BPM for 6 s, 8 s of silence, 120 BPM for 6 s.
+        let mut times: Vec<f32> = (0..12).map(|k| 0.25 + k as f32 * 0.5).collect();
+        times.extend((0..12).map(|k| 14.25 + k as f32 * 0.5));
+        let beats = beats_of(20.5, |t| clicks(&times, t));
+        let before = gaps_within(&beats, 0.0, 6.0);
+        let after = gaps_within(&beats, 14.0, 20.5);
+        assert!(before.len() >= 9 && after.len() >= 9, "{beats:?}");
+        for gap in before.iter().chain(&after) {
+            assert!(gap.abs_diff(500_000) <= 10_000, "{gap} µs apart");
+        }
+        assert!(
+            !beats.iter().any(|&b| (7_000_000..13_500_000).contains(&b)),
+            "{beats:?}"
+        );
     }
 }

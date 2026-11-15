@@ -22,7 +22,7 @@ import { createMatcher } from "./sound.match";
 import { createBeatFinder } from "./sound.beats";
 import { createBeatsStore } from "./sound.beats.store";
 import { soundBeatCommands } from "./sound.beats.commands";
-import { compositionBeats } from "./logic/beats";
+import { rememberedBeats } from "./logic/beats";
 import { soundEffectCommands } from "./sound.effects.commands";
 import { soundDeliveryCommands } from "./sound.delivery.commands";
 import { soundDenoiseCommands } from "./sound.denoise.commands";
@@ -108,10 +108,11 @@ export const soundModule = defineModule({
     contribute(loudnessMatchers, { id: "sound.match", match: matcher.match });
     const beats = createBeatFinder(createBeatsStore(), log);
     onDispose(beats.cancel);
+    const beatTimes = rememberedBeats();
     contribute(timelineSnapTargets, {
       id: "sound.beats",
       times: (state, compositionId) =>
-        compositionBeats(state, compositionId, beats.state.getState().files),
+        beatTimes(state, compositionId, beats.state.getState().files),
     });
     const media = require(mediaRef);
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });

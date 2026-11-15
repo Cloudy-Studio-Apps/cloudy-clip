@@ -9,7 +9,7 @@ export const findBeats = defineCommand({
   id: "sound.findBeats",
   label: "Find beats",
   description:
-    "Finds the beats in the files of clipIds (clips on audio tracks; others are skipped), or of every clip on an audio track of your open composition (or compositionId) when clipIds is missing. It runs in the background and returns at once ({ started: true, files }); { started: false, running: true } when a find already runs. Beats are kept per file outside the document (not undoable, nothing is placed): the timeline draws them as ticks in the ruler and drags snap to them; sound_get_beats reads them. A file with no tempo (speech, a held tone) has none. Fails with sound.clip_not_found, sound.no_sound_clips, composition.not_found.",
+    "Finds the beats in the files of clipIds (clips on audio tracks; others are skipped), or of every clip on an audio track of your open composition (or compositionId) when clipIds is missing. It runs in the background and returns at once ({ started: true, files }); { started: false, running: true } when a find already runs. Beats are kept per file outside the document (not undoable, nothing is placed): the timeline draws them as ticks in the ruler and drags snap to them; sound_get_beats reads them. Tempo is found per 10 s window, so a song that changes tempo has beats in each part; a part with no tempo (speech, a held tone) has none. Clips inside a nested composition are not scanned. The thresholds were tuned on synthetic sound only. Fails with sound.clip_not_found, sound.no_sound_clips, composition.not_found.",
   undoable: false,
   input: z.object({
     clipIds: z.array(z.string()).optional(),
