@@ -28,7 +28,7 @@ export const pasteGrade = defineCommand({
   id: "tint.paste",
   label: "Paste grade",
   description:
-    "Pastes your clipboard (tint_copy) onto clips. With no tools, each clip's grade is replaced by the copy (its key tracks go; a composition clip keeps its camera color space). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are written, into the corrections at the same place in the stack (the first layer takes from the first, and so on; a field the copy lacks is cleared); a clip with fewer layers gets new ones at the bottom, when the copy's layer has something of those tools. Groups and sealed cards are not matched, and a limit's shared pick (limit.from) is not carried over. To paste to all, give every clip of the composition. Every clip is checked first; all change in one undo step, or none, and a clip left as it was is not written. Returns { pasted }, the number of clips changed. Fails with tint.clipboard_empty, tint.target_not_found, tint.not_gradeable, tint.animated (a field to change has keys) or tint.invalid_grade / tint.sealed (the result isn't valid, or a layer can't be added).",
+    "Pastes your clipboard (tint_copy) onto clips. With no tools, each clip's grade is replaced by the copy (its key tracks go; the clip keeps its own camera color space, input). With tools (basics, wheels, curves, cmix, warper, creative, limit, luts, match, mixer), only the fields those tools own are written, into the corrections at the same place in the stack (the first layer takes from the first, and so on; a field the copy lacks is cleared); a clip with fewer layers gets new ones at the bottom, when the copy's layer has something of those tools. Groups and sealed cards are not matched, and a limit's shared pick (limit.from) is not carried over. To paste to all, give every clip of the composition. Every clip is checked first; all change in one undo step, or none, and a clip left as it was is not written. Returns { pasted }, the number of clips changed. Fails with tint.clipboard_empty, tint.target_not_found, tint.not_gradeable, tint.animated (a field to change has keys) or tint.invalid_grade / tint.sealed (the result isn't valid, or a layer can't be added).",
   undoable: true,
   input: z.object({
     clipIds: z.array(z.string().min(1)).min(1),
@@ -48,18 +48,21 @@ export const pasteGrade = defineCommand({
         let part;
         try {
           part = pastePart(before, copied, tools, () => createId("node"));
-        } catch {
-          throw new CommandFailure("tint.sealed", `A layer can't be added to clip "${clipId}".`);
+        } catch (error) {
+          throw new CommandFailure(
+            "tint.sealed",
+            `A layer can't be added to clip "${clipId}": ${error instanceof Error ? error.message : error}`,
+          );
         }
         for (const [id, fields] of Object.entries(part.changed)) {
           refuseUnlessEditable(state, target, before, id, fields);
         }
         next = part.grade;
       } else {
-        // A composition's picture is Rec.709 already: it keeps its own input.
-        const own = state.clips[clipId]?.compositionRef !== undefined;
+        // The camera color space belongs to the footage, not the grade: the clip keeps its own.
         next = structuredClone(copied);
-        if (own) next.input = before?.input;
+        if (before?.input) next.input = before.input;
+        else delete next.input;
       }
       const stored = checkedGrade(next);
       if (JSON.stringify(stored ?? null) !== JSON.stringify(before)) writes.push([clipId, stored]);

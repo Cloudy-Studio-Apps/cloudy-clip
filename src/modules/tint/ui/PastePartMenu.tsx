@@ -13,7 +13,7 @@ const PARTS: { label: string; tools: ToolId[] }[] = [
   { label: "Color mix", tools: ["cmix"] },
   { label: "Creative", tools: ["creative"] },
   { label: "Limit", tools: ["limit"] },
-  { label: "LUT and color", tools: ["luts"] },
+  { label: "LUT", tools: ["luts"] },
 ];
 
 /** Paste only some tools of the copied grade onto the given clips. */
