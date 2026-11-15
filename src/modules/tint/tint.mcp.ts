@@ -14,6 +14,7 @@ import { scopeStats } from "./logic/scopes";
 import { TOOL_FIELDS } from "./logic/tools";
 import { readGrade } from "./tint.guards";
 import { tintRef } from "./tint.ref";
+import { GUIDE_TOPICS, TINT_GUIDE } from "./tint.guide";
 import { pixelsOf } from "./tint.pixels";
 import { applyLook, importLut, relinkLut, setInput } from "./tint.color.commands";
 import { copyGrade, pasteGrade } from "./tint.clipboard.commands";
@@ -31,6 +32,19 @@ import {
   setCorrections,
 } from "./tint.node.commands";
 import { targetSchema } from "./tint.node.guards";
+
+/** The data `tint_describe` can return, each by name. */
+const DESCRIBE_SECTIONS = [
+  "fields",
+  "ranges",
+  "limitRanges",
+  "tools",
+  "keyable",
+  "spaces",
+  "looks",
+  "stills",
+  "luts",
+] as const;
 
 /** Reads a grade as layers with their numbers and names, and every node with its full values. */
 const getGrade = defineMcpTool({
@@ -58,33 +72,51 @@ const getGrade = defineMcpTool({
   },
 });
 
-/** What a grade can hold: fields, ranges, tools, color spaces, looks and LUTs. */
+/** What a grade can hold: fields, ranges, tools, color spaces, looks and LUTs, and the guide. */
 const describe = defineMcpTool({
   name: "tint_describe",
   readOnly: true,
   description:
-    "Lists what a correction holds and where grades live: every value field with its default, the range of each number by dotted path (min and max), keyable (the numbers that can hold keys on a clip's own grade, by dotted path under values: key one with keyframe_set at path grade.nodes.<nodeId>.values.<path>, or grade.nodes.<nodeId>.opacity; Color mix, the warper, the mixer, curves and the shot group and timeline grades are never keyed; a keyed number can't be set statically, pass at to tint_set_correction to key it), the tools and the fields each owns (what tint_reset with tools clears; nodeId limits it to one correction, and fields names top-level value fields to clear alone or beside the tools), the camera color spaces a grade's input can be, the looks (id, name, note, corrections; apply one with tint_apply_look lookId), copy and paste (tint_copy puts a grade on your own clipboard; tint_paste with clipIds or targets replaces their grades by it, or with tools writes only the fields those tools own into the corrections at the same place in the stack, adding corrections when a clip has fewer; groups and sealed cards are not matched), the stills (grabbed frames with their grades: id, name, hasGrade, from; apply with tint_apply_look stillId) and the LUTs (imported ones: id, name, path, size, status ready, loading or missing; a missing one is left out of the preview and fails an export, fix it with tint_relink_lut; built-in looks have ids starting with builtin:). Wheels are { x, y, m } in -1 to 1; curves are point lists [x, y] in 0 to 1, at least 2, x increasing from 0 to 1. The custom curves (curves.rgb.y, then r, g, b per channel) map brightness in to out (neutral [[0,0],[1,1]]). hueHue, hueSat and hueLum read the hue as x (0 red, about 0.2 yellow, 0.35 green, 0.5 cyan, 0.7 blue, 0.85 magenta; the point at x 1 is the one at x 0 again) and lumSat reads brightness; each is neutral at y 0.5: hueHue turns the hue by (y - 0.5) of a full turn, hueSat and lumSat scale saturation by 2y, hueLum scales brightness of saturated colors by 2y. Color mix (mix) has eight families, each { hue, sat, lum } in -100 to 100, at the hue-curve hues reds 0, oranges 0.099, yellows 0.2, greens 0.352, aquas 0.5, blues 0.654, purples 0.783, magentas 0.883: hue ±100 turns that family by ±30 degrees, sat ±100 scales its saturation from 0 to 2, lum ±100 scales the brightness of its saturated colors from 0.5 to 1.5; range 0 to 100 is how far a family reaches (0: half way to its neighbours, 100: to their centers). Color mix is applied with the hue curves, on the same input. The warper (warper) moves colors on a disc of hue and strength after the curves: points are keyed by grid index 0 to 35, index = ring * 12 + spoke, spoke k at hue k/12 (same hue as the curves, red 0), ring 0, 1, 2 at strength 1/3, 2/3, 1 (strength 1 = chroma 0.5; the center never moves); each point { dh, ds } moves that grid point by dh degrees of hue (-180 to 180) and ds of strength (-1 to 1). Points not stored follow the stored ones by smoothing (0 to 100: 0 none, 100 widest), except pinned indices, which never follow. Colors between grid points move by the blend of their neighbours. Color mix and the hue curves share one capped row each: Hue vs Hue (hueHue plus every family's hue) totals at most ±180 degrees, Hue vs Saturation (hueSat times every family's sat) at most ×2, Hue vs Brightness at most ×0 to ×2; past that they clip. Order inside a correction: exposure and white balance, the primary wheels, the log and zone wheels, contrast and pivot, highlights/shadows/whites/blacks, rolloff, curves with Color mix, the warper, saturation/vibrance/hue (protectSkin keeps skin hues out of them), skinPull, the mixer, creative, then its LUT. A LUT (tint_import_lut a .cube file, then tint_set_correction patch.lut { id, strength 0 to 1 }; null removes it) maps the color from its DOMAIN_MIN..DOMAIN_MAX (default 0..1, clamped there) through the table, trilinear for a 3D LUT, per channel for a 1D one, and mixes toward that by strength. The log wheels (log.shadow, midtone, highlight) each add like offset over a band of brightness: shadow fades out by lowRange, highlight starts at highRange, midtone in between. Zone wheels z0 to z5 each add over a narrow band (±0.18 of brightness) around their `at` (0 to 1). rolloff 0 to 100 eases values above 1 - rolloff/200 toward 1. skinPull 0 to 100 turns hues near the 123 degree skin line toward it (up to 75% of the way). mixer.matrix: rows are output r, g, b, columns input r, g, b (-2 to 2); keepBrightness keeps the brightness of grays (the matrix is scaled by 1 / the brightness of its row sums, only when that is at least 0.05; below it, or negative, the matrix is used unscaled, so it never blows out or inverts the picture); mono puts the brightness of the mixed color in all three. creative.shadowTint and highlightTint are wheel pucks { x, y } in -1 to 1 (red at the top, clockwise, y down) tinting the darks and the brights; balance -100 to 100 (+ gives the highlight tint more); fade 0 to 100 lifts the blacks and mutes colors; vignette { amount -100 (darker edges) to 100 (lighter), midpoint 0 to 100 (how far out it starts), roundness -100 (rectangle) to 100 (circle; 0 fits the picture), feather 0 to 100 (softness) }, drawn over the clip's own picture. A limit (patch.limit of tint_set_correction; ranges by path under limitRanges) keeps a correction to some of the picture: the corrected picture is mixed over the correction's input by key times opacity, the key read from that input. color { on, hue [a, b] in degrees 0 to 360 on the hue curves' circle (red 0, yellow about 72, green 127, cyan 180, blue 252, magenta 307; a > b wraps through red, [0, 360] is every hue), sat [a, b] 0 to 1 of full chroma, lum [a, b] 0 to 1 of brightness, soft 0 to 100 (edges fall off outward over up to 30 degrees and 0.25) } keeps the colors inside all three (a gray passes the hue window). brightness { on, range [a, b] 0 to 1, soft 0 to 100 (edges up to 0.25) } keeps a band of brightness (darks [0, 0.3], mids [0.3, 0.7], brights [0.7, 1]). Both on: what both keep. refine { soft 0 to 100 (blurs the key by up to 3% of the picture's height), clean 0 to 100 (pulls the key toward 0 and 1, so specks go) }; invert: true changes everything but what is kept. A limit with neither color nor brightness on limits nothing. limit.from (a correction id above this one, whose limit limits something, or a key join's id) uses that correction's pick (or the key join's combined key) instead: its key with its refine and clean up; invert: true here inverts it again. Groups (tint_group, tint_ungroup, tint_set_group; in tint_get_grade a layer item of type group with its branches, and its join node): Side by side (a parallel join: out = in + opacity · Σ (branch − in), in being the picture above the group), Stacked (a layer join: from the picture above, each branch in order lands over the picture so far by its blend mode, the last on top; normal is the branch itself, other modes blend the two clamped to 0 to 1; then mixed over the picture above by opacity), Per channel (a split and a join: the red, green and blue branches each grade one channel of the picture above as gray, and the join takes red from the red branch, green from the green one and blue from the blue one). A group that is off, or at opacity 0, passes the picture above unchanged. Leader Seal (tint_wire) wires any valid graph: nodes read pictures by ref (never a key join: it has a key, not a picture), and tint_place_nodes sets where nodes sit (graph units; nodes without a place are laid out automatically). A key join (kind keyJoin, keys [{ from, mode }]) combines the keys of corrections (each as that correction mixes by it) or other key joins: the first as it is, then each next one x by its mode, add k + x − k·x, subtract k·(1 − x), intersect k·x; a correction uses it with limit.from set to the key join's id (invert: true inverts it). A key join that limits nothing (no keys) leaves its readers unlimited, and an entry from a correction without a limit counts as 1. What the stack can't show is a sealed card in layers. tint_set_corrections turns several corrections on or off or sets their opacity in one undo step (all or nothing). A clip's input (spaces; tint_set_input, tint_get_grade shows it) is the camera color space its picture was shot in: rec709 (default, no conversion), srgb, slog3 (Sony S-Log3 / S-Gamut3.Cine), appleLog, clog2 and clog3 (Canon, Cinema Gamut), vlog (Panasonic V-Log / V-Gamut), flog (Fujifilm F-Log / F-Gamut); the picture is converted to Rec.709 before the first correction (colors outside Rec.709 clip at black; light past white is kept, so exposure and rolloff can bring highlights back, and the output clips at the end; a video file is read as video range unless ffprobe found it full range, an image as full range; srgb matches display light for the gamma 2.4 output; a composition clip takes only rec709), grading happens in Rec.709 and output is Rec.709 gamma 2.4. Sources are decoded at 8 bits, so heavy grades on log footage can band. Three levels of grade draw on a picture, in this order: the clip's own (target { clipId }, after its input conversion), then its shot group's (target { groupId }: clips in a group share it, after each clip's own; tint_set_shot_group makes, joins and leaves groups; the groups are project_get_state's gradeGroups and a clip's gradeGroup), then the whole timeline's (target { compositionId }: on the composition's composed frame, after every clip, and on its picture wherever the composition is placed in another). Every node tool takes any of the three targets; only a clip's grade has an input (tint_set_input) and key tracks, and the vignette of a whole-timeline grade is drawn over the whole frame. A level with no grade changes nothing. A clip can keep several named versions of its own grade (tint_set_version: create a copy of the showing grade, switch, rename, delete; the key tracks go with each; versions are per clip, not for shot groups or the timeline; the showing one is the clip's gradeVersion, \"A\" when missing, the others are its gradeVersions). tint_match reads a clip's own ungraded picture through its grade and writes values for you, on clips' own grades only: kind auto (the darkest half percent of each channel to black by offset, the mean neutral by temperature and tint), white (the color at point neutral: temperature and tint first, then offset's color) and gray (the same, offset's color first) write temperature, tint and offset of nodeId, else the first correction of the stack, else a new one; shot adds \"Match nn\" at the bottom (per channel mean and spread of a log-ish encoding matched to clip from, as gain and offset, and saturation by the ratio of mean chroma); chart adds \"Chart\" at the top from a filmed 24-patch chart's four corners (least-squares 3 x 3 matrix in the mixer, keepBrightness off, and its offsets in the offset wheel, against BabelColor's sRGB averages). skinPull and protectSkin are plain Basics fields.",
-  input: z.object({}),
-  handler(_input, ctx) {
+    "Lists what a grade can hold. `sections` picks the data returned (default: all of it, unless only `guide` is given): fields (every value field of a correction with its default), ranges (min and max of each number by dotted path), limitRanges (the numbers of a limit), tools (each tool and the fields it owns: what tint_reset with tools clears; nodeId limits it to one correction, and fields names top-level value fields to clear alone or beside the tools), keyable (the numbers that can hold keys on a clip's own grade, by dotted path under values: key one with keyframe_set at path grade.nodes.<nodeId>.values.<path>, or grade.nodes.<nodeId>.opacity; Color mix, the warper, the mixer, curves and the shot group and timeline grades are never keyed; a keyed number can't be set statically, pass at to tint_set_correction to key it), spaces (the camera color spaces a grade's input can be), looks (id, name, note, corrections; apply one with tint_apply_look lookId), stills (grabbed frames with their grades: id, name, hasGrade, from; apply with tint_apply_look stillId) and luts (imported ones: id, name, path, size, status ready, loading or missing; a missing one is left out of the preview and fails an export, fix it with tint_relink_lut; built-in looks have ids starting with builtin:). `guide` adds how grading works as text, by topic: values (wheels, the order inside a correction, LUTs, log and zone wheels, rolloff, skinPull, the mixer, creative), curves (custom and hue curves, Color mix, the warper), limit (keeping a correction to part of the picture), groups (side by side, stacked, per channel, Leader Seal wiring, key joins), input (camera color spaces), levels (clip, shot group and timeline grades, and versions), match (tint_match) and copy (tint_copy, tint_paste). Read the topics you need before grading.",
+  input: z.object({
+    sections: z
+      .array(z.enum(DESCRIBE_SECTIONS))
+      .optional()
+      .describe("Data to return. Default: all"),
+    guide: z
+      .array(z.enum(GUIDE_TOPICS))
+      .optional()
+      .describe('Topics of the guide to return as text, e.g. ["values", "limit"]'),
+  }),
+  handler(input, ctx) {
     const state = ctx.require(projectRef).store.getState();
     const files = ctx.require(tintRef).luts.store;
+    const data: Record<(typeof DESCRIBE_SECTIONS)[number], () => unknown> = {
+      fields: () => DEFAULT_CORRECTION,
+      ranges: () => GRADE_RANGES,
+      limitRanges: () => LIMIT_RANGES,
+      tools: () => TOOL_FIELDS,
+      keyable: () => KEYABLE_VALUES,
+      spaces: () => INPUT_SPACES,
+      looks: () => ctx.require(tintRef).looks.list(),
+      stills: () =>
+        (state.stillOrder ?? []).flatMap((id) => {
+          const still = state.stills?.[id];
+          return still
+            ? [{ id, name: still.name, hasGrade: still.grade !== undefined, from: still.from }]
+            : [];
+        }),
+      luts: () =>
+        Object.values(state.luts ?? {}).map(({ id, name, path, size }) => {
+          const file = files.getState()[path];
+          return { id, name, path, size, status: file?.status ?? "loading" };
+        }),
+    };
+    const sections = input.sections ?? (input.guide ? [] : DESCRIBE_SECTIONS);
     return textResult({
-      fields: DEFAULT_CORRECTION,
-      ranges: GRADE_RANGES,
-      limitRanges: LIMIT_RANGES,
-      tools: TOOL_FIELDS,
-      keyable: KEYABLE_VALUES,
-      spaces: INPUT_SPACES,
-      looks: ctx.require(tintRef).looks.list(),
-      stills: (state.stillOrder ?? []).flatMap((id) => {
-        const still = state.stills?.[id];
-        return still
-          ? [{ id, name: still.name, hasGrade: still.grade !== undefined, from: still.from }]
-          : [];
-      }),
-      luts: Object.values(state.luts ?? {}).map(({ id, name, path, size }) => {
-        const file = files.getState()[path];
-        return { id, name, path, size, status: file?.status ?? "loading" };
+      ...Object.fromEntries(sections.map((name) => [name, data[name]()])),
+      ...(input.guide && {
+        guide: Object.fromEntries(input.guide.map((topic) => [topic, TINT_GUIDE[topic]])),
       }),
     });
   },
