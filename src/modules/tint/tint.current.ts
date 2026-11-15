@@ -1,9 +1,7 @@
 import { LOCAL_ACTOR, type Micros } from "@/core";
-import type { PlaybackClock } from "@/modules/preview";
-import type { ClipId, ProjectApi } from "@/modules/project";
-import type { StoreApi } from "zustand";
+import type { ClipId } from "@/modules/project";
 import { clipUnder, holdsTime } from "./logic/strip";
-import type { CurrentClip, TintView } from "./tint.types";
+import type { CurrentClip, FollowDeps } from "./tint.types";
 
 /** The current clip's holder: what `TintApi.current`, `onCurrent` and `viewedAt` read. */
 export function createCurrent(): CurrentClip {
@@ -24,14 +22,6 @@ export function createCurrent(): CurrentClip {
     },
     remember: (clipId, time) => void viewed.set(clipId, time),
   };
-}
-
-/** What `followCurrent` reads. */
-export interface FollowDeps {
-  project: ProjectApi;
-  clock: PlaybackClock;
-  view: StoreApi<TintView>;
-  holder: CurrentClip;
 }
 
 /**

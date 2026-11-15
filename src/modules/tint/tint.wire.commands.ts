@@ -12,7 +12,7 @@ import {
 import { sameRef } from "./logic/order";
 import { emptyGrade } from "./logic/stack";
 import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
-import { checkNodeLut, targetSchema } from "./tint.node.commands";
+import { checkNodeLut, targetSchema } from "./tint.node.guards";
 
 /** What `createId` makes ids of (`node_k3j9x2`), so an id never breaks a `grade.nodes.<id>.` track path. */
 const NODE_ID = /^[A-Za-z0-9_]+$/;

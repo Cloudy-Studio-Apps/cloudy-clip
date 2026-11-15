@@ -6,6 +6,7 @@ import { group } from "../tint.group.commands";
 import { resetGrade } from "../tint.commands";
 import { addCorrection, removeNodes } from "../tint.node.commands";
 import { tintRef } from "../tint.ref";
+import { selectNode } from "../tint.view.commands";
 import { placeNodes, wire } from "../tint.wire.commands";
 import type { GradeTarget, GraphPlaced as Placed } from "../tint.types";
 import { settle } from "./settle";
@@ -20,7 +21,7 @@ export function useGraphActions(
   const { bus } = useKernel();
   const tint = useModule(tintRef);
   return useMemo(() => {
-    const select = (id: string) => tint.view.setState({ selected: id });
+    const select = (id: string) => void bus.run(selectNode, { nodeId: id });
     const place = async (pos: Record<string, { x: number; y: number }>) =>
       (await settle(bus.run(placeNodes, { target, pos }))).ok;
     return {

@@ -4,13 +4,7 @@ import { useModule } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
 import type { Clip } from "@/modules/project";
-
-/** What a card shows about a clip beyond its place: a name, a poster, and codec and rate. */
-export interface ClipInfo {
-  name: string;
-  poster: string | undefined;
-  meta: string;
-}
+import type { ClipInfo } from "./ui.types";
 
 /** Name without its extension, for the strip. */
 function bare(name: string): string {

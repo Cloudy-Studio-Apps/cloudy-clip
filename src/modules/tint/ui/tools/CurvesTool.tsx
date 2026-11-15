@@ -1,17 +1,16 @@
 import { Pipette } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { CorrectionValues } from "@/modules/project";
 import { Button, cn } from "@/ui";
 import { notify } from "@/core";
 import { hueOf } from "../../logic/color/curves.apply";
 import { pickHuePoints } from "../../logic/color/curves.edit";
-import type { CurveKind, CurvePoint, CurveShape } from "../../tint.types";
+import type { CurveKind, CurvePoint, Curves, CurveShape } from "../../tint.types";
 import { useToolEdit } from "../tool.edit.hook";
 import { useTintView } from "../view.hook";
 import { useTintSet } from "../view.set.hook";
 import { CHANNEL_COLORS } from "./channel.colors";
 import { CurveEditor } from "./CurveEditor";
-import type { CurveEdit } from "./tools.types";
+import type { CurveChannel, CurveEdit } from "./tools.types";
 
 const KINDS: readonly { kind: CurveKind; name: string }[] = [
   { kind: "custom", name: "Custom" },
@@ -21,10 +20,9 @@ const KINDS: readonly { kind: CurveKind; name: string }[] = [
   { kind: "lumSat", name: "Brightness vs Saturation" },
 ];
 
-const CHANNELS = ["y", "r", "g", "b"] as const;
-type Channel = (typeof CHANNELS)[number];
+const CHANNELS = ["y", "r", "g", "b"] as const satisfies readonly CurveChannel[];
 
-const STROKES: Record<Channel, string> = {
+const STROKES: Record<CurveChannel, string> = {
   y: "var(--foreground)",
   r: CHANNEL_COLORS[0],
   g: CHANNEL_COLORS[1],
@@ -34,13 +32,11 @@ const STROKES: Record<Channel, string> = {
 const shapeOf = (kind: CurveKind): CurveShape =>
   kind === "custom" ? "tone" : kind === "lumSat" ? "flat" : "hue";
 
-type Curves = CorrectionValues["curves"];
-
 /** The curves with the open one replaced by `points`. */
 function withCurve(
   curves: Curves,
   kind: CurveKind,
-  channel: Channel,
+  channel: CurveChannel,
   points: readonly CurvePoint[],
 ): Curves {
   const next = points.map(([x, y]): [number, number] => [x, y]);
@@ -56,7 +52,7 @@ export function CurvesTool() {
   const picked = useTintView((v) => v.picked);
   const set = useTintSet();
   const { values, edit } = useToolEdit();
-  const [channel, setChannel] = useState<Channel>("y");
+  const [channel, setChannel] = useState<CurveChannel>("y");
   const shape = shapeOf(kind);
   const points = kind === "custom" ? values.curves.rgb[channel] : values.curves[kind];
 

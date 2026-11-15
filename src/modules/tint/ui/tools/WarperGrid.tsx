@@ -1,18 +1,17 @@
 import { useLayoutEffect, useRef } from "react";
-import { WARPER_POINTS, type CorrectionValues } from "@/modules/project";
+import { WARPER_POINTS } from "@/modules/project";
 import { WARP_HUES, WARP_RINGS } from "../../logic/color/warper";
 import { togglePin } from "../../logic/color/warper.edit";
 import { HUE_STOPS } from "./hue.stops";
 import type { WarperEdit, WarpShapes } from "./tools.types";
 import { startWarpDrag } from "./warper.gesture";
 import { WARP_VIEW, paintWarp } from "./warper.paint";
+import type { Warper } from "../../tint.types";
 
 /** The hue circle under the grid (data colors), neutral in the middle, hues where the warper reads them. */
 const DISC = `radial-gradient(circle, #d9dde0 0, rgb(217 221 224 / 0) 72%), conic-gradient(from 90deg, ${HUE_STOPS})`;
 
 const HALF = WARP_VIEW.size / 2;
-
-type Warper = CorrectionValues["warper"];
 
 const same = (a: Warper, b: Warper) => JSON.stringify(a) === JSON.stringify(b);
 

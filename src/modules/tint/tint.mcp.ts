@@ -30,8 +30,8 @@ import {
   removeNodes,
   setCorrection,
   setCorrections,
-  targetSchema,
 } from "./tint.node.commands";
+import { targetSchema } from "./tint.node.guards";
 
 /** Reads a grade as layers with their numbers and names, and every node with its full values. */
 const getGrade = defineMcpTool({

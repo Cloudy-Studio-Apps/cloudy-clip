@@ -12,6 +12,7 @@ import { graphWires, wirePath } from "../logic/wires";
 import { selectNode } from "../tint.view.commands";
 import { useGraphActions } from "./graph.actions.hook";
 import { useGraphCamera } from "./graph.camera.hook";
+import { GraphWires } from "./GraphWires";
 import { NodeBox } from "./NodeBox";
 import { NoSubject } from "./NoSubject";
 import { startGraphDrag } from "./node.drag.gesture";
@@ -21,15 +22,6 @@ import { useNodeThumbs } from "./thumbs.hook";
 import type { GradeSubject } from "./ui.types";
 import { useTintView } from "./view.hook";
 import { startWireDrag } from "./wire.gesture";
-
-/** Data colors of the channel wires. */
-const WIRE_COLORS = {
-  picture: "var(--subtle-foreground)",
-  r: "#e0545a",
-  g: "#4fbf6a",
-  b: "#4d8fe0",
-  key: "#4d8fe0",
-} as const;
 
 /**
  * Leader Seal: the grade of the current level (the clip's, its shot group's or the whole
@@ -173,29 +165,7 @@ function Graph({ subject }: { subject: GradeSubject }) {
               </text>
             </g>
           ))}
-          {wires.map((w, i) => (
-            <path
-              key={`${w.from}-${w.to}-${i}`}
-              data-wire={i}
-              d={wirePath(w.a, w.b)}
-              fill="none"
-              stroke={WIRE_COLORS[w.kind]}
-              strokeWidth={1.8}
-              strokeDasharray={w.kind === "key" ? "5 4" : undefined}
-            />
-          ))}
-          {wires.map((w, i) => (
-            <path
-              key={`hit-${w.from}-${w.to}-${i}`}
-              data-wire={i}
-              d={wirePath(w.a, w.b)}
-              fill="none"
-              stroke="transparent"
-              strokeWidth={12}
-              pointerEvents="stroke"
-              onContextMenu={() => (hit.current = i)}
-            />
-          ))}
+          <GraphWires wires={wires} onHit={(i) => (hit.current = i)} />
           <path
             ref={line}
             display="none"

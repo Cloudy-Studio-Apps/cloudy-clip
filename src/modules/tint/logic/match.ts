@@ -1,5 +1,5 @@
 import type { ClipGrade, CorrectionValues, GradeNodeId } from "@/modules/project";
-import type { NodeSample, Rgb } from "../tint.types";
+import type { Balance, NodeSample, Rgb } from "../tint.types";
 import { logish, toYcc, unlogish } from "./color/basics";
 import { applyCorrection, prepareCorrection } from "./color/correct";
 import { WHEEL_REACH, wheelChannels, wheelFor } from "./color/wheels";
@@ -9,9 +9,6 @@ import { toStack } from "./stack";
 // The solvers of `tint.match`, on the CPU reference as the forward model (`applyCorrection`): they
 // look for values whose result is right, rather than undoing the math by hand, so whatever else
 // the correction holds is taken into account. Every value comes out inside `GRADE_RANGES`.
-
-/** What balance writes: the correction's temperature, tint and offset. */
-type Balance = Pick<CorrectionValues, "temperature" | "tint" | "offset">;
 
 /** How much of the darkest end auto balance puts at black, per channel. */
 const BLACK_SHARE = 0.005;

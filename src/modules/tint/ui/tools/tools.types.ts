@@ -143,3 +143,6 @@ export interface RangeDragOptions {
   /** Fires once: the window on release, or null when it never moved or was cancelled (Escape). */
   onEnd(window: RangeWindow | null): void;
 }
+
+/** A curve's channel in the Curves tool: the Y (luma) curve or red, green and blue. */
+export type CurveChannel = "y" | "r" | "g" | "b";

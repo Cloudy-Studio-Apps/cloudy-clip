@@ -3,7 +3,7 @@ import { CommandFailure, createId, defineCommand } from "@/core";
 import { BLEND_MODES, projectRef, type ClipGrade } from "@/modules/project";
 import { groupLayers, groupOf, ungroup as ungroupInGrade } from "./logic/stack.group";
 import { animatedFields, checkedGrade, dropTracks, readGrade, writeGrade } from "./tint.guards";
-import { targetSchema } from "./tint.node.commands";
+import { targetSchema } from "./tint.node.guards";
 
 const nodeId = z.string().min(1).describe("A node id, from tint_get_grade.");
 

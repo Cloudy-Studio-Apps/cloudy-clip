@@ -11,9 +11,7 @@ import { useLayers } from "./layers.context";
 import { SealedOpacity } from "./SealedOpacity";
 import { settle } from "./settle";
 import { useTintView } from "./view.hook";
-
-/** Red, green and blue as data colors: the channels the card splits into. */
-const CHANNELS = ["#e0545a", "#4fbf6a", "#4d8fe0"] as const;
+import { CHANNEL_COLORS } from "./tools/channel.colors";
 
 /**
  * Part of the grade wired in Leader Seal that has no layer shape. Its values stay editable
@@ -60,7 +58,7 @@ export function SealedCard({ card }: { card: Extract<StackItem, { type: "sealed"
           {on ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
         </button>
         <span className="flex h-9 items-center justify-center gap-1">
-          {CHANNELS.map((color) => (
+          {CHANNEL_COLORS.map((color) => (
             <i key={color} className="block h-5 w-2.5 rounded-xs" style={{ background: color }} />
           ))}
         </span>

@@ -1,16 +1,6 @@
 import { dropAt } from "../logic/drop";
-import type { DropRow, StackPosition } from "../tint.types";
-
-interface LayerDragOptions {
-  /** The pointerdown that started it, on the row's grip. */
-  event: PointerEvent;
-  id: string;
-  /** The list the rows sit in (positioned), and the line drawn inside it. */
-  list: HTMLElement;
-  line: HTMLElement;
-  /** Fires once on release, if the layer would land somewhere else. */
-  onDrop(id: string, to: StackPosition): void;
-}
+import type { DropRow } from "../tint.types";
+import type { LayerDragOptions } from "./ui.types";
 
 /**
  * Drags a layer row up and down. It writes DOM feedback only (the row follows the pointer, a line

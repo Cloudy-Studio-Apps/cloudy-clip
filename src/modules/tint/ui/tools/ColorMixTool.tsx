@@ -1,6 +1,6 @@
 import { Pipette } from "lucide-react";
 import { useEffect } from "react";
-import { MIX_FAMILIES, type CorrectionValues, type MixFamilyName } from "@/modules/project";
+import { MIX_FAMILIES, type MixFamilyName } from "@/modules/project";
 import { Button, cn } from "@/ui";
 import { notify } from "@/core";
 import { hueOf } from "../../logic/color/curves.apply";
@@ -11,6 +11,7 @@ import { useTintSet } from "../view.set.hook";
 import { GradeSlider } from "./GradeSlider";
 import { ToolColumn } from "./ToolColumn";
 import { ToolColumns } from "./ToolColumns";
+import type { Mix } from "../../tint.types";
 
 /** A family's dot and bar (data colors). */
 const swatch = (name: MixFamilyName) => `hsl(${FAMILY_DEGREES[name]} 70% 55%)`;
@@ -22,8 +23,6 @@ const FIELDS = [
   { field: "sat", label: "Saturation" },
   { field: "lum", label: "Brightness" },
 ] as const;
-
-type Mix = CorrectionValues["mix"];
 
 /** Color mix: pick a color family and change its hue, saturation and brightness, on the selected correction. */
 export function ColorMixTool() {

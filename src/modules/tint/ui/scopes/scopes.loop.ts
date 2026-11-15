@@ -1,16 +1,10 @@
 import type { PreviewApi } from "@/modules/preview";
+import type { ScopesLoop } from "./scopes.types";
 
 /** The widest frame the scopes read from the preview. */
 const READ_WIDTH = 256;
 /** While playing the scopes read at most this often (about 15 Hz), in milliseconds. */
 const PLAYING_GAP = 66;
-
-/** A running scopes loop. */
-export interface ScopesLoop {
-  /** Paints again (a size, scope or theme change) from the last frame read, without reading. */
-  invalidate(): void;
-  stop(): void;
-}
 
 /**
  * One animation-frame loop for the scopes panel. It reads the preview's drawn frame at most 15 Hz

@@ -7,7 +7,7 @@ import {
   WAVE_COLUMNS,
   scopeData,
 } from "../../logic/scopes";
-import type { DrawnScope } from "./scopes.types";
+import type { ScopePainter } from "./scopes.types";
 
 /** Trace colors (data, not theme): red, green and blue, then luma and the vectorscope's trace. */
 const CHANNELS = [
@@ -19,16 +19,6 @@ const LUMA = [180, 230, 190] as const;
 const CHROMA = [200, 240, 210] as const;
 const FILLS = ["rgba(255,80,70,.45)", "rgba(80,230,110,.45)", "rgba(80,140,255,.5)"] as const;
 const SKIN = "rgba(232,184,107,.6)";
-
-/** Paints one scope: `(ctx, kind, frame, width, height, grid)`; `frame` null draws the graticule only. */
-export type ScopePainter = (
-  ctx: CanvasRenderingContext2D,
-  kind: DrawnScope,
-  frame: ImageData | null,
-  width: number,
-  height: number,
-  grid: string,
-) => void;
 
 /** A painter with a scratch canvas of its own for the binned traces. */
 export function createScopePainter(): ScopePainter {

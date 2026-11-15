@@ -1,5 +1,4 @@
-import type { CorrectionValues } from "@/modules/project";
-import type { Rgb, WarpOffset, WarpPlace } from "../../tint.types";
+import type { Rgb, Warper, WarpOffset, WarpPlace } from "../../tint.types";
 import { CB, CHROMA_FULL, CR, LUMA, NO_HUE, luma } from "./basics";
 import { cbcrHue, half } from "./curves.apply";
 
@@ -29,8 +28,6 @@ export const WARP_HUES = 12;
 export const WARP_RINGS = 3;
 /** Size of the warp table: hues by strengths. */
 export const WARP_TABLE = { width: 180, height: 32 } as const;
-
-type Warper = CorrectionValues["warper"];
 
 const NONE: WarpOffset = { dh: 0, ds: 0 };
 

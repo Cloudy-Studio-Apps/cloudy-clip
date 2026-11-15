@@ -1,12 +1,5 @@
-import type { Correction, CorrectionValues } from "@/modules/project";
-import type { ToolId } from "../tint.types";
-
-/** What a tool owns on a correction: value fields, and the `limit` or `lut` of the node itself. */
-export interface ToolFields {
-  values: (keyof CorrectionValues)[];
-  limit?: true;
-  lut?: true;
-}
+import type { Correction } from "@/modules/project";
+import type { ToolFields, ToolId } from "../tint.types";
 
 /** The fields of a correction each tool owns, also those not built yet. `match` owns none: it writes into the others. */
 export const TOOL_FIELDS: Record<ToolId, ToolFields> = {

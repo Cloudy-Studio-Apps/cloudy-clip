@@ -11,7 +11,7 @@ import {
   targetsOf,
   writeGrade,
 } from "./tint.guards";
-import { checkNodeLut, refuseUnlessEditable, targetSchema } from "./tint.node.commands";
+import { checkNodeLut, refuseUnlessEditable, targetSchema } from "./tint.node.guards";
 import { tintRef } from "./tint.ref";
 import type { GradeTarget } from "./tint.types";
 

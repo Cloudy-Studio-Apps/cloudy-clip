@@ -17,8 +17,8 @@ import {
   removeNodes,
   setCorrection,
   setCorrections,
-  targetSchema,
 } from "./tint.node.commands";
+import { targetSchema } from "./tint.node.guards";
 
 /** Puts a grade back as the file is, or only what some tools own. */
 export const resetGrade = defineCommand({

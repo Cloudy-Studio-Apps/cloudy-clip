@@ -1,6 +1,6 @@
 import type { StoreApi } from "zustand";
 import type { ActorId, Micros } from "@/core";
-import type { GpuTexture } from "@/modules/preview";
+import type { GpuTexture, PlaybackClock } from "@/modules/preview";
 import type {
   BlendMode,
   Clip,
@@ -21,6 +21,7 @@ import type {
   InputColorSpace,
   KeyJoin,
   NodeRef,
+  ProjectApi,
 } from "@/modules/project";
 
 /**
@@ -807,3 +808,36 @@ export interface StackGroupInfo {
 
 /** What `tint.setVersion` does to a clip's grade versions. */
 export type VersionAction = "create" | "switch" | "rename" | "delete";
+
+/** What paste part gives: the grade, and for each existing correction the value fields it changes. */
+export interface PartPaste {
+  grade: ClipGrade;
+  changed: Record<GradeNodeId, string[]>;
+}
+
+/** What a tool owns on a correction: value fields, and the `limit` or `lut` of the node itself. */
+export interface ToolFields {
+  values: (keyof CorrectionValues)[];
+  limit?: true;
+  lut?: true;
+}
+
+/** What `followCurrent` reads. */
+export interface FollowDeps {
+  project: ProjectApi;
+  clock: PlaybackClock;
+  view: StoreApi<TintView>;
+  holder: CurrentClip;
+}
+
+/** What balance writes: the correction's temperature, tint and offset. */
+export type Balance = Pick<CorrectionValues, "temperature" | "tint" | "offset">;
+
+/** A correction's warper values. */
+export type Warper = CorrectionValues["warper"];
+
+/** A correction's color mix values. */
+export type Mix = CorrectionValues["mix"];
+
+/** A correction's curves. */
+export type Curves = CorrectionValues["curves"];

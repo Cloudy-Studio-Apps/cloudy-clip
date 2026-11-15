@@ -1,5 +1,5 @@
 import { MIX_FAMILIES, type CorrectionValues, type MixFamilyName } from "@/modules/project";
-import type { CurvePoint, MixCurves, Rgb } from "../../tint.types";
+import type { CurvePoint, Mix, MixCurves, Rgb } from "../../tint.types";
 import { curvesActive, hueOf, sampleCurves } from "./curves.apply";
 
 // Color mix, as hue curves. It has no step of its own: its families become points on Hue vs Hue,
@@ -45,8 +45,6 @@ export const FAMILY_HUES: readonly number[] = MIX_FAMILIES.map(
 
 /** How far Hue ±100 turns a family, in turns. */
 const HUE_REACH = 1 / 12;
-
-type Mix = CorrectionValues["mix"];
 
 /** Whether Color mix changes anything. */
 export function mixActive(mix: Mix): boolean {

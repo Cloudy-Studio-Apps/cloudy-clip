@@ -1,5 +1,5 @@
 import type { ClipGrade, Correction, GradeNodeId } from "@/modules/project";
-import type { ToolId } from "../tint.types";
+import type { PartPaste, ToolId } from "../tint.types";
 import { emptyGrade, toStack } from "./stack";
 import { insertLayer } from "./stack.edit";
 import { TOOL_FIELDS, clearTools } from "./tools";
@@ -35,12 +35,6 @@ function take(into: Correction, from: Correction, tools: readonly ToolId[]): Cor
 function changedFields(a: Correction, b: Correction, tools: readonly ToolId[]): string[] {
   const keys = tools.flatMap((tool) => TOOL_FIELDS[tool].values);
   return keys.filter((k) => JSON.stringify(a.values?.[k]) !== JSON.stringify(b.values?.[k]));
-}
-
-/** What paste part gives: the grade, and for each existing correction the value fields it changes. */
-export interface PartPaste {
-  grade: ClipGrade;
-  changed: Record<GradeNodeId, string[]>;
 }
 
 /**

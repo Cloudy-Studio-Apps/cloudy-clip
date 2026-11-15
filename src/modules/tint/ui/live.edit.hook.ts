@@ -4,6 +4,7 @@ import { previewRef } from "@/modules/preview";
 import { setGroup } from "../tint.group.commands";
 import { addCorrection, setCorrection } from "../tint.node.commands";
 import { tintRef } from "../tint.ref";
+import { selectNode } from "../tint.view.commands";
 import type { LiveNode } from "../tint.types";
 import { settle } from "./settle";
 import type { EditPatch, GradeSubject, LiveEdit } from "./ui.types";
@@ -77,7 +78,7 @@ export function useLiveEdit(
             }),
           );
           clear();
-          if (result.ok) tint.view.setState({ selected: result.value.nodeId });
+          if (result.ok) void bus.run(selectNode, { nodeId: result.value.nodeId });
           else setRev((n) => n + 1);
         }
       },

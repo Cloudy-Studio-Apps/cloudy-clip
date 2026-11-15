@@ -15,7 +15,7 @@ import { balanceValues, currentCorrection, nextMatchName, shotValues } from "./l
 import { frameSamples, sourceAt } from "./logic/pick";
 import { emptyGrade, toStack } from "./logic/stack";
 import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
-import { refuseUnlessEditable } from "./tint.node.commands";
+import { refuseUnlessEditable } from "./tint.node.guards";
 import { tintRef } from "./tint.ref";
 import { fail, nodeSamples, patchMean, shownAt, through, timeIn, withNew } from "./tint.match.read";
 import type { MatchKind, MatchRead } from "./tint.types";

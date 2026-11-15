@@ -1,8 +1,7 @@
 import { Columns3, Folder, Images, Layers, Plus } from "lucide-react";
 import { useState } from "react";
 import { Button, MenuList, Popover, type MenuItem } from "@/ui";
-
-type GroupKind = "parallel" | "layer" | "channels";
+import type { GroupKind } from "./ui.types";
 
 interface AddMenuProps {
   onCorrection(): void;

@@ -12,6 +12,8 @@ import type {
   ChartCorners,
   GradeLevel,
   GradeTarget,
+  GraphPoint,
+  StackItem,
   StackPosition,
   WireEntry,
 } from "../tint.types";
@@ -200,4 +202,37 @@ export interface CornerDragOptions {
   onMove(corners: ChartCorners): void;
   /** Fires once: the corners on release, or null on Escape, a cancel, or a click that never moved. */
   onEnd(corners: ChartCorners | null): void;
+}
+
+/** The kinds of group the Add menus and the node menu make around a selection. */
+export type GroupKind = "parallel" | "layer" | "channels";
+
+/** A group row's item: a folder of branches, one of the stack's items. */
+export type Group = Extract<StackItem, { type: "group" }>;
+
+/** What a card shows about a clip beyond its place: a name, a poster, and codec and rate. */
+export interface ClipInfo {
+  name: string;
+  poster: string | undefined;
+  meta: string;
+}
+
+export interface LayerDragOptions {
+  /** The pointerdown that started it, on the row's grip. */
+  event: PointerEvent;
+  id: string;
+  /** The list the rows sit in (positioned), and the line drawn inside it. */
+  list: HTMLElement;
+  line: HTMLElement;
+  /** Fires once on release, if the layer would land somewhere else. */
+  onDrop(id: string, to: StackPosition): void;
+}
+
+export interface WireDragOptions extends Pick<GraphDragOptions, "event" | "svg"> {
+  /** The port the wire leaves, in graph units. */
+  from: GraphPoint;
+  /** The wire being drawn, an SVG path. */
+  line: SVGPathElement;
+  /** Where it was dropped (graph units), or null when cancelled. */
+  onDrop(at: GraphPoint | null): void;
 }

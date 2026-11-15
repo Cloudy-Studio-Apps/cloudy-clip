@@ -2,15 +2,13 @@ import { Eye, EyeOff, Folder, Plus, Ungroup } from "lucide-react";
 import { BLEND_MODES, type BlendMode } from "@/modules/project";
 import { IconButton, SelectField, cn } from "@/ui";
 import { blendName } from "../logic/layers";
-import type { StackItem } from "../tint.types";
 import { useLayers } from "./layers.context";
 import { OpacityScrub } from "./OpacityScrub";
 import { StackItems } from "./StackItems";
 import { CHANNEL_COLORS } from "./tools/channel.colors";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
-
-type Group = Extract<StackItem, { type: "group" }>;
+import type { Group } from "./ui.types";
 
 const KIND_NAMES: Record<Group["kind"], string> = {
   parallel: "Side by side",

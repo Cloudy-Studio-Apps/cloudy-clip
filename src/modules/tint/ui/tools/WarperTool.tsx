@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
-import { DEFAULT_CORRECTION, type CorrectionValues } from "@/modules/project";
+import { DEFAULT_CORRECTION } from "@/modules/project";
 import { Button } from "@/ui";
 import { useToolEdit } from "../tool.edit.hook";
 import { GradeSlider } from "./GradeSlider";
 import { ToolColumn } from "./ToolColumn";
 import type { WarperEdit } from "./tools.types";
 import { WarperGrid } from "./WarperGrid";
-
-type Warper = CorrectionValues["warper"];
+import type { Warper } from "../../tint.types";
 
 /** Warper: a grid of points over hue and strength on the selected correction; drag one to bend that color. */
 export function WarperTool() {

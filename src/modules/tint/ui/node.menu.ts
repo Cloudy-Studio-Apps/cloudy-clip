@@ -1,8 +1,6 @@
 import { Folder, Key, Layers, LayoutGrid, Plus, RotateCcw, Rows3, Unlink } from "lucide-react";
 import type { MenuItem } from "@/ui";
-import type { GraphActions } from "./ui.types";
-
-type GroupKind = "parallel" | "layer" | "channels";
+import type { GraphActions, GroupKind } from "./ui.types";
 
 /**
  * The node view's right-click menu: Correction, Side by side, Stacked, Shared key and Per channel

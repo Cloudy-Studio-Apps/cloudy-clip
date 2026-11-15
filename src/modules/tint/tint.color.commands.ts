@@ -3,7 +3,7 @@ import { CommandFailure, createId, defineCommand } from "@/core";
 import { INPUT_SPACES, projectRef, type ClipGrade } from "@/modules/project";
 import { addGrade } from "./logic/look";
 import { checkedGrade, readGrade, targetName, targetsOf, writeGrade } from "./tint.guards";
-import { targetSchema } from "./tint.node.commands";
+import { targetSchema } from "./tint.node.guards";
 import { tintRef } from "./tint.ref";
 import { readLut } from "./tint.service";
 import type { GradeTarget, LoadedLut, LookDef } from "./tint.types";

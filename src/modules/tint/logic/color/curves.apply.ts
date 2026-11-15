@@ -1,5 +1,5 @@
-import { DEFAULT_CORRECTION, type CorrectionValues } from "@/modules/project";
-import type { MixCurves, Rgb } from "../../tint.types";
+import { DEFAULT_CORRECTION } from "@/modules/project";
+import type { Curves, MixCurves, Rgb } from "../../tint.types";
 import { CB, CHROMA_FULL, CR, HUE_ZERO, LUMA, NO_HUE, luma } from "./basics";
 import { monotoneCurve, periodicCurve } from "./curves";
 
@@ -26,8 +26,6 @@ export const CURVE_ROWS = ["y", "r", "g", "b", "hueHue", "hueSat", "hueLum", "lu
 
 /** Where each curve sits in the table. */
 export const ROW = { y: 0, r: 1, g: 2, b: 3, hueHue: 4, hueSat: 5, hueLum: 6, lumSat: 7 } as const;
-
-type Curves = CorrectionValues["curves"];
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 

@@ -1,9 +1,8 @@
 import type { PointerEvent } from "react";
 import type { GradeNode, NodeRef } from "@/modules/project";
 import { inPort, nodeBox, outPort } from "../logic/graph";
+import { CHANNEL_COLORS } from "./tools/channel.colors";
 
-/** Data colors of the channels. */
-const CHANNEL_COLORS = { r: "#e0545a", g: "#4fbf6a", b: "#4d8fe0" } as const;
 const CHANNELS = ["r", "g", "b"] as const;
 
 const GLYPHS = { parallel: "∥", layer: "≡", split: "⑃", join: "⑂", keyJoin: "⚷" } as const;
@@ -149,7 +148,7 @@ export function NodeBox({
             cx={x}
             cy={y}
             r={4}
-            fill={channel ? CHANNEL_COLORS[channel] : "var(--subtle-foreground)"}
+            fill={channel ? CHANNEL_COLORS[CHANNELS.indexOf(channel)] : "var(--subtle-foreground)"}
           />
         );
       })}
@@ -163,7 +162,9 @@ export function NodeBox({
             cy={y}
             r={5}
             fill="var(--surface)"
-            stroke={channel ? CHANNEL_COLORS[channel] : "var(--subtle-foreground)"}
+            stroke={
+              channel ? CHANNEL_COLORS[CHANNELS.indexOf(channel)] : "var(--subtle-foreground)"
+            }
             strokeWidth={1.5}
             className="cursor-crosshair"
             onPointerDown={(event) => {

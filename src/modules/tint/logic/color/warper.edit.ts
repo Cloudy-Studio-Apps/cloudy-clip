@@ -1,11 +1,9 @@
-import { GRADE_RANGES, type CorrectionValues } from "@/modules/project";
-import type { WarpPlace } from "../../tint.types";
+import { GRADE_RANGES } from "@/modules/project";
+import type { Warper, WarpPlace } from "../../tint.types";
 import { warpNode, warpNodes } from "./warper";
 
 // What the Warper's grid does to the values, and where its points sit on screen. The disc is drawn
 // with hue 0 (red) to the right, turning clockwise on screen (y down), and strength 1 at `radius`.
-
-type Warper = CorrectionValues["warper"];
 
 /** Offsets smaller than these are no move at all, and the point is dropped from `points`. */
 const STILL = { dh: 0.05, ds: 0.0005 };
