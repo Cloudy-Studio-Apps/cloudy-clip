@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
-import { projectRef, type MediaInfo, type ProjectState } from "@/modules/project";
+import { hexColor, projectRef, type MediaInfo, type ProjectState } from "@/modules/project";
 
 const text = z.string().max(2000).nullable().optional();
 
@@ -26,11 +26,7 @@ export const setInfo = defineCommand({
       shot: text,
       take: text,
       tag: z.enum(["good", "rejected"]).nullable().optional(),
-      color: z
-        .string()
-        .regex(/^#[0-9a-f]{6}$/i)
-        .nullable()
-        .optional(),
+      color: hexColor.nullable().optional(),
       comments: text,
     }),
   }),

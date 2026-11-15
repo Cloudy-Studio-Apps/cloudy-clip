@@ -212,6 +212,8 @@ export {
   effectSchemas,
   soundEffectSchema,
 } from "./logic/effect.schema";
+/** The schema of a `#rrggbb` colour: case-insensitive, stored lowercase. */
+export { hexColor } from "./logic/color.schema";
 /** The schema of a key's ease, shared by every command that sets one. */
 export { keyEase } from "./logic/keys.schema";
 /** The schemas of sound values, shared by every command that sets them. */

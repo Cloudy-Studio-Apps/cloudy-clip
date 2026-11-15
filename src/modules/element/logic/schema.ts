@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hexColor } from "@/modules/project";
 import type { PropertyTree, PropSpec, SchemaEnv } from "../element.types";
 import { gradientSchema } from "./gradient";
 
@@ -26,10 +27,7 @@ function valueSchema(spec: PropSpec, env: SchemaEnv): z.ZodType {
     case "boolean":
       return z.boolean();
     case "color":
-      return z
-        .string()
-        .regex(/^#[0-9a-f]{6}$/i, "Use #rrggbb")
-        .transform((value) => value.toLowerCase());
+      return hexColor;
     case "gradient":
       return gradientSchema;
     case "enum":

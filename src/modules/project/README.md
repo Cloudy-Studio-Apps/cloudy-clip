@@ -33,6 +33,7 @@ lives here, so every change is undoable and readable by agents.
     `clipTransform(clip, live?)` (the saved transform or the identity, with a live patch merged
     over it), `IDENTITY_TRANSFORM`, `clipComposite(clip, live?)` and `IDENTITY_COMPOSITE` (a blend mode and opacity, missing means Normal at 100%; both fill partial values from the identity), `normalizeRotation`. The fit (`contain` for media,
     `none` for text at its natural size) comes from the clip's element.
+  - `logic/color.schema.ts`: `hexColor`, the one `#rrggbb` schema (both cases accepted, stored lowercase) that solid, media info, composition and element colours and gradient stops share.
   - `logic/links.ts`: `partnersOf`, `withPartners` (linked clips, moved here from the timeline).
   - `logic/junctions.ts`: junction data rules. `junctionBetween`, `junctionsOfClip`,
     `allowedOverlap(state, left, right)` (the junction's duration, also for the linked sound pair on
