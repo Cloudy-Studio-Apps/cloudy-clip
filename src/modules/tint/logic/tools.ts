@@ -77,3 +77,17 @@ export const PAGE_RESET: Partial<Record<ToolId, { tools: ToolId[]; fields?: stri
   limit: { tools: ["limit"] },
   mixer: { tools: ["mixer"] },
 };
+
+/** Every tool id, for a command's input. */
+export const TOOL_IDS = [
+  "basics",
+  "wheels",
+  "curves",
+  "cmix",
+  "warper",
+  "creative",
+  "limit",
+  "luts",
+  "match",
+  "mixer",
+] as const satisfies readonly ToolId[];

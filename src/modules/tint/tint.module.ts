@@ -22,7 +22,7 @@ import { createThumbs } from "./tint.thumb";
 import { tintKeys } from "./tint.keys";
 import { tintMcpTools } from "./tint.mcp";
 import { TINT_PAGE, tintRef } from "./tint.ref";
-import { createTintLive, createTintView } from "./tint.store";
+import { createTintClipboard, createTintLive, createTintView } from "./tint.store";
 import { clearViewing, tintViewCommands } from "./tint.view.commands";
 import { LutRelinkRows, SealSwitch, TintPage } from "./ui";
 
@@ -82,6 +82,7 @@ export const tintModule = defineModule({
     contribute(keybindings, ...tintKeys(ctx));
     return {
       api: {
+        clipboard: createTintClipboard(),
         view,
         live,
         luts,

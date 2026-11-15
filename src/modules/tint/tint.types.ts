@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand";
-import type { Micros } from "@/core";
+import type { ActorId, Micros } from "@/core";
 import type { GpuTexture } from "@/modules/preview";
 import type {
   BlendMode,
@@ -100,8 +100,16 @@ export interface TintView {
   showPicked: GradeNodeId | null;
 }
 
+/** The grade each actor copied: the user and each agent have their own. */
+export interface TintClipboard {
+  get(actor: ActorId): ClipGrade | undefined;
+  set(actor: ActorId, grade: ClipGrade): void;
+}
+
 /** The tint module's API for one kernel. */
 export interface TintApi {
+  /** Copied grades, one per actor. */
+  readonly clipboard: TintClipboard;
   /** The page's view state. Read with `useStore(api.view, selector)`. */
   readonly view: StoreApi<TintView>;
   /** Values being dragged, drawn over the saved grade until cleared (never in history). */

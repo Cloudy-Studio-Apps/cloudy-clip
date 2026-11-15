@@ -1,6 +1,7 @@
 import { createStore } from "zustand/vanilla";
-import type { ClipId } from "@/modules/project";
-import type { LiveGrade, TintLive, TintView } from "./tint.types";
+import type { ActorId } from "@/core";
+import type { ClipGrade, ClipId } from "@/modules/project";
+import type { LiveGrade, TintClipboard, TintLive, TintView } from "./tint.types";
 
 /** The page's view state for one kernel: Baby Seal on Basics, no layer selected. */
 export function createTintView() {
@@ -45,5 +46,14 @@ export function createTintLive(redraw: () => void): TintLive {
       listeners.add(fn);
       return () => listeners.delete(fn);
     },
+  };
+}
+
+/** What each actor copied (a grade), per kernel. Never in history. */
+export function createTintClipboard(): TintClipboard {
+  const copied = new Map<ActorId, ClipGrade>();
+  return {
+    get: (actor) => copied.get(actor),
+    set: (actor, grade) => void copied.set(actor, grade),
   };
 }

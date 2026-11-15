@@ -1,19 +1,24 @@
 import { ClipboardList } from "lucide-react";
 import { useState } from "react";
+import { useKernel } from "@/core";
 import { Button, IconButton, Popover, Switch } from "@/ui";
+import { pasteGrade } from "../tint.clipboard.commands";
+import type { ToolId } from "../tint.types";
+import { settle } from "./settle";
 
-const PARTS = [
-  "Basics",
-  "Wheels",
-  "Curves",
-  "Color mix",
-  "Creative",
-  "Limit",
-  "LUT and color",
-] as const;
+const PARTS: { label: string; tools: ToolId[] }[] = [
+  { label: "Basics", tools: ["basics"] },
+  { label: "Wheels", tools: ["wheels"] },
+  { label: "Curves", tools: ["curves"] },
+  { label: "Color mix", tools: ["cmix"] },
+  { label: "Creative", tools: ["creative"] },
+  { label: "Limit", tools: ["limit"] },
+  { label: "LUT and color", tools: ["luts"] },
+];
 
-/** Paste only some tools of the copied grade onto the selected clips. */
-export function PastePartMenu() {
+/** Paste only some tools of the copied grade onto the given clips. */
+export function PastePartMenu({ clipIds }: { clipIds: string[] }) {
+  const { bus } = useKernel();
   const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set(["Basics", "Wheels"]));
   const flip = (part: string) => {
@@ -21,12 +26,20 @@ export function PastePartMenu() {
     if (!next.delete(part)) next.add(part);
     setChosen(next);
   };
+  const tools = PARTS.filter((part) => chosen.has(part.label)).flatMap((part) => part.tools);
+  const paste = () => {
+    setOpen(false);
+    void settle(bus.run(pasteGrade, { clipIds, tools }));
+  };
   return (
     <Popover
       open={open}
       onOpenChange={setOpen}
       trigger={
-        <IconButton label="Paste part of a grade: only the balance, only the wheels, only the LUT…">
+        <IconButton
+          label="Paste part of a grade: only the balance, only the wheels, only the LUT…"
+          disabled={clipIds.length === 0}
+        >
           <ClipboardList />
         </IconButton>
       }
@@ -35,13 +48,19 @@ export function PastePartMenu() {
         <span className="px-1 font-mono text-2xs font-bold tracking-wide text-subtle-foreground uppercase">
           Paste only
         </span>
-        {PARTS.map((part) => (
-          <label key={part} className="flex items-center justify-between gap-2 px-1 text-base">
-            {part}
-            <Switch label={part} checked={chosen.has(part)} onChange={() => flip(part)} />
+        {PARTS.map(({ label }) => (
+          <label key={label} className="flex items-center justify-between gap-2 px-1 text-base">
+            {label}
+            <Switch label={label} checked={chosen.has(label)} onChange={() => flip(label)} />
           </label>
         ))}
-        <Button size="sm" variant="primary" className="mt-1" onClick={() => setOpen(false)}>
+        <Button
+          size="sm"
+          variant="primary"
+          className="mt-1"
+          disabled={tools.length === 0}
+          onClick={paste}
+        >
           Paste onto selected clips
         </Button>
       </div>

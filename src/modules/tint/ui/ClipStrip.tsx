@@ -5,6 +5,7 @@ import { useKernel, useModule } from "@/core";
 import { gradeOf, useOpenComposition } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { EmptyState, IconButton } from "@/ui";
+import { copyGrade, pasteGrade } from "../tint.clipboard.commands";
 import { pinClip } from "../tint.view.commands";
 import { ClipCard } from "./ClipCard";
 import { useCurrentClip } from "./current.hook";
@@ -12,6 +13,7 @@ import { useStrip } from "./strip.hook";
 import { HeaderGap } from "./HeaderGap";
 import { HeaderRule } from "./HeaderRule";
 import { LevelSwitch } from "./LevelSwitch";
+import { settle } from "./settle";
 import { PanelNote } from "./PanelNote";
 import { PastePartMenu } from "./PastePartMenu";
 import { TimelineOverview } from "./TimelineOverview";
@@ -29,6 +31,11 @@ export function ClipStrip() {
   const selection = useStore(timeline.view, (s) => s.selection);
   const name = useOpenComposition()?.name ?? "";
   const graded = strip.filter((entry) => gradeOf(entry.clip) !== null).length;
+  const all = strip.map((entry) => entry.clip.id);
+  // Paste goes to the selected clips of the strip, else the one being graded.
+  const picked = all.filter((id) => selection.includes(id));
+  const targets = picked.length > 0 ? picked : current ? [current] : [];
+  const paste = (clipIds: string[]) => void settle(bus.run(pasteGrade, { clipIds }));
   // Ctrl or Shift selects (shared with Edit); a plain click grades the clip and goes there.
   const pick = (id: string, event: MouseEvent) =>
     event.ctrlKey || event.metaKey || event.shiftKey
@@ -46,14 +53,28 @@ export function ClipStrip() {
           <LevelSwitch />
           <VersionMenu />
           <HeaderRule />
-          <IconButton label="Copy grade (Ctrl+C)" onClick={nothing}>
+          <IconButton
+            label="Copy grade"
+            disabled={!current}
+            onClick={() =>
+              current && void settle(bus.run(copyGrade, { target: { clipId: current } }))
+            }
+          >
             <Copy />
           </IconButton>
-          <IconButton label="Paste grade onto the selected clips (Ctrl+V)" onClick={nothing}>
+          <IconButton
+            label="Paste grade onto the selected clips"
+            disabled={targets.length === 0}
+            onClick={() => paste(targets)}
+          >
             <ClipboardPaste />
           </IconButton>
-          <PastePartMenu />
-          <IconButton label="Paste to all: onto every clip in the strip" onClick={nothing}>
+          <PastePartMenu clipIds={targets} />
+          <IconButton
+            label="Paste to all: onto every clip in the strip"
+            disabled={all.length === 0}
+            onClick={() => paste(all)}
+          >
             <CopyCheck />
           </IconButton>
           <IconButton

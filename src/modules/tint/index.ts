@@ -18,6 +18,7 @@ export type {
   LutLookup,
   ScopeKind,
   TintApi,
+  TintClipboard,
   TintLive,
   TintMode,
   TintView,

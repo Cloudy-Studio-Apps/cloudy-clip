@@ -5,13 +5,21 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
-import { createProjectModule, projectRef, seedProject } from "@/modules/project";
+import {
+  createProjectModule,
+  projectRef,
+  seedProject,
+  type ClipGrade,
+  type Correction,
+} from "@/modules/project";
 import { addClip, timelineModule } from "@/modules/timeline";
 import { resetGrade } from "./tint.commands";
 import { group, ungroup } from "./tint.group.commands";
 import { addCorrection, moveLayer, removeNodes, setCorrection } from "./tint.node.commands";
 import { tintModule } from "./tint.module";
-import { toStack } from "./logic/stack";
+import { pastePart } from "./logic/paste";
+import { emptyGrade, toStack } from "./logic/stack";
+import { insertLayer } from "./logic/stack.edit";
 import { wire } from "./tint.wire.commands";
 import type { GradeTarget } from "./tint.types";
 
@@ -296,6 +304,38 @@ describe("grade commands", () => {
     expect(items[3]).toMatchObject({ id: y });
     kernel.history.undo();
     expect(clip().grade).toEqual(before);
+  });
+});
+
+describe("paste part", () => {
+  // tintRef is not loaded here (the module needs workspace), so the clipboard commands are tested through their logic.
+  it("pastes only Basics into the matching corrections, adding one when missing", () => {
+    const layer = (values: object): Correction => ({
+      kind: "correct",
+      input: { node: "source" },
+      on: true,
+      opacity: 1,
+      values,
+    });
+    const build = (all: object[]) =>
+      all.reduce<ClipGrade>(
+        (grade, values, i) => insertLayer(grade, {}, `n${i}`, layer(values)),
+        emptyGrade(),
+      );
+    const source = build([{ exposure: 1, gain: { x: 0.2, y: 0, m: 0 } }, { saturation: 0.5 }]);
+    let n = 0;
+    const { grade } = pastePart(
+      build([{ contrast: 1.2, exposure: -1 }]),
+      source,
+      ["basics"],
+      () => `new${n++}`,
+    );
+    const [first, second] = toStack(grade).map((item) => grade.nodes[item.id]);
+    expect(first).toMatchObject({ values: { exposure: 1 } });
+    expect(first).not.toHaveProperty("values.contrast");
+    expect(first).not.toHaveProperty("values.gain");
+    expect(second).toMatchObject({ values: { saturation: 0.5 } });
+    expect(Object.keys(grade.nodes)).toHaveLength(2);
   });
 });
 

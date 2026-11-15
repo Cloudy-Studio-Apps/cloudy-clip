@@ -103,7 +103,7 @@ function setLive(node: Correction, patch: { opacity?: number; on?: boolean }): v
 }
 
 /** Refuses unless `id` is a correction of `grade` and none of `fields` has keys (a static write would fight them). */
-function refuseUnlessEditable(
+export function refuseUnlessEditable(
   state: ProjectState,
   target: GradeTarget,
   grade: ClipGrade | null,

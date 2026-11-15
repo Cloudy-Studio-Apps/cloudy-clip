@@ -2,8 +2,9 @@ import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
 import { DEFAULT_CORRECTION, projectRef, type Correction } from "@/modules/project";
 import { groupOf } from "./logic/stack.group";
-import { clearTools, ownedValues } from "./logic/tools";
+import { TOOL_IDS, clearTools, ownedValues } from "./logic/tools";
 import { applyLook, importLut, relinkLut, setInput } from "./tint.color.commands";
+import { copyGrade, pasteGrade } from "./tint.clipboard.commands";
 import { grabStill, removeStill } from "./tint.still.commands";
 import { group, setGroup, ungroup } from "./tint.group.commands";
 import { placeNodes, wire } from "./tint.wire.commands";
@@ -16,20 +17,6 @@ import {
   setCorrections,
   targetSchema,
 } from "./tint.node.commands";
-import type { ToolId } from "./tint.types";
-
-const TOOL_IDS = [
-  "basics",
-  "wheels",
-  "curves",
-  "cmix",
-  "warper",
-  "creative",
-  "limit",
-  "luts",
-  "match",
-  "mixer",
-] as const satisfies readonly ToolId[];
 
 /** Puts a grade back as the file is, or only what some tools own. */
 export const resetGrade = defineCommand({
@@ -117,6 +104,8 @@ export const tintCommands = [
   importLut,
   relinkLut,
   applyLook,
+  copyGrade,
+  pasteGrade,
   grabStill,
   removeStill,
 ];
