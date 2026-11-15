@@ -6,14 +6,13 @@
 //! export job ([`Job::measure`]), begun, then finished or cancelled by its id, with progress from
 //! `-progress`; the ones running are kept in [`Loudness`].
 
-use std::collections::HashMap;
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex as StdMutex};
 
 use tauri::ipc::Channel;
 
 use super::analyze::Listening;
+use super::measures::{Measures, part_args, progress_listener};
 use crate::error::{AppError, AppResult};
 use crate::export::job::Job;
 use crate::export::recipe::Recipe;
@@ -22,17 +21,8 @@ use crate::export::spec::EnvelopePoint;
 use crate::media::proxy::{ffprobe, find_tools};
 use crate::media::server::random_token;
 
-/// A measurement under way: its FFmpeg and what it has heard.
-#[derive(Clone)]
-struct Running {
-    job: Arc<Job>,
-    heard: Arc<StdMutex<Listening>>,
-}
-
-/// The measurements running now, by job id. One ends when its `finish` takes it, also after a
-/// cancel (which only stops the job, so `finish` can say "Cancelled").
-#[derive(Default)]
-pub struct Loudness(StdMutex<HashMap<String, Running>>);
+/// The measurements running now, by job id, each with what it has heard.
+pub type Loudness = Measures<Arc<StdMutex<Listening>>>;
 
 /// Starts measuring `from..to` (microseconds) of the file at `path`. Reports 0 to 1 to
 /// `on_progress`. Returns the job's id, for [`finish`] and [`cancel`]; `None` when the file has
@@ -59,41 +49,30 @@ pub async fn begin(
     if !gain.is_finite() || gain < 0.0 {
         return Err(AppError::InvalidInput("The gain is not a level".into()));
     }
+    if gain_envelope
+        .iter()
+        .any(|p| !p.value.is_finite() || p.value < 0.0)
+    {
+        return Err(AppError::InvalidInput(
+            "The gain envelope has a point that is not a level".into(),
+        ));
+    }
     let level = if !gain_envelope.is_empty() {
         gain_envelope_filter(gain_envelope)
     } else {
         format!(",volume={gain:.6}")
     };
-    let seconds = |micros: u64| format!("{:.6}", micros as f64 / 1_000_000.0);
+    // `metadata=1` keeps its per-frame log out of the way; the summary is what is read. The
+    // envelope runs on the frames' own times, so a late sound stream needs no shift.
     let filter = format!("aformat=sample_fmts=fltp{level},ebur128=peak=true:metadata=1");
-    let args = [
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "info",
-        "-progress",
-        "pipe:2",
-        "-ss",
-    ]
-    .into_iter()
-    .map(Into::into)
-    .chain([seconds(from).into(), "-t".into(), seconds(to - from).into()])
-    .chain(["-i".into(), path.as_os_str().to_owned()])
-    .chain(["-vn", "-map", "0:a:0", "-af"].into_iter().map(Into::into))
-    // `metadata=1` keeps its per-frame log out of the way; the summary is what is read.
-    .chain([OsString::from(filter)])
-    .chain(["-f", "null", "-"].into_iter().map(Into::into))
-    .collect();
     let heard = Arc::new(StdMutex::new(Listening::new(to - from, 0.0)));
     let listener = heard.clone();
-    let length = (to - from) as f32;
-    let listen = move |line: &str| {
-        if let Some(Ok(done)) = line.strip_prefix("out_time_us=").map(str::parse::<u64>) {
-            let _ = on_progress.send((done as f32 / length).clamp(0.0, 1.0));
-        } else if let Ok(mut heard) = listener.lock() {
+    let listen = progress_listener(to - from, on_progress, move |line| {
+        if let Ok(mut heard) = listener.lock() {
             heard.hear(line);
         }
-    };
+    });
+    let args = part_args(path, from, to, filter);
     let job = Job::measure(
         &tools,
         Recipe { args, script: None },
@@ -102,34 +81,20 @@ pub async fn begin(
     )
     .map_err(AppError::Unavailable)?;
     let id = random_token()?;
-    if let Ok(mut all) = loudness.0.lock() {
-        all.insert(
-            id.clone(),
-            Running {
-                job: Arc::new(job),
-                heard,
-            },
-        );
-    }
+    loudness.add(&id, Arc::new(job), heard);
     Ok(Some(id))
 }
 
 /// Waits for the measurement `id` to end and returns the integrated loudness (LUFS), `None` when
 /// nothing is above the gate (silence). Fails with "Cancelled" when it was.
 pub async fn finish(id: &str, loudness: &Loudness) -> AppResult<Option<f64>> {
-    let running = loudness
-        .0
-        .lock()
-        .ok()
-        .and_then(|all| all.get(id).cloned())
+    let (job, heard) = loudness
+        .get(id)
         .ok_or_else(|| AppError::NotFound("That measurement is not running".into()))?;
-    let outcome = running.job.measured().await;
-    if let Ok(mut all) = loudness.0.lock() {
-        all.remove(id);
-    }
+    let outcome = job.measured().await;
+    loudness.take(id);
     outcome.map_err(AppError::Unavailable)?;
-    let mut heard = running
-        .heard
+    let mut heard = heard
         .lock()
         .map_err(|_| AppError::Unavailable("The measurement was lost".into()))?;
     Ok(heard.result().map_err(AppError::Unavailable)?.integrated)
@@ -137,12 +102,5 @@ pub async fn finish(id: &str, loudness: &Loudness) -> AppResult<Option<f64>> {
 
 /// Stops the measurement `id`. One that already ended is left alone.
 pub async fn cancel(id: &str, loudness: &Loudness) {
-    let job = loudness
-        .0
-        .lock()
-        .ok()
-        .and_then(|all| all.get(id).map(|r| r.job.clone()));
-    if let Some(job) = job {
-        job.cancel().await;
-    }
+    loudness.cancel(id).await;
 }

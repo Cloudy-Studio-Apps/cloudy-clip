@@ -26,6 +26,7 @@ use std::time::SystemTime;
 
 use tauri::ipc::Channel;
 
+use super::measures::Measures;
 use crate::error::{AppError, AppResult};
 use crate::export::PartialNotes;
 use crate::export::job::Job;
@@ -315,7 +316,7 @@ type Found = (u64, Option<SystemTime>, Arc<Vec<u64>>);
 #[derive(Default)]
 pub struct Beats {
     found: StdMutex<HashMap<PathBuf, Found>>,
-    running: StdMutex<HashMap<String, Arc<Job>>>,
+    running: Measures<()>,
 }
 
 /// The beats of the file at `path` in microseconds of the file, from the cache when the file
@@ -346,6 +347,28 @@ pub async fn find(
     }) {
         return Ok(known.to_vec());
     }
+    // Reserved before probing, so a cancel that comes while it probes is kept.
+    beats.running.reserve(&job_id);
+    let found = probe_and_decode(path, &job_id, on_progress, notes, beats).await;
+    beats.running.take(&job_id);
+    let found = found?;
+    if let Ok(mut known) = beats.found.lock() {
+        known.insert(
+            path.to_owned(),
+            (version.0, version.1, Arc::new(found.clone())),
+        );
+    }
+    Ok(found)
+}
+
+/// Probes the file at `path` and finds its beats under `job_id` (reserved).
+async fn probe_and_decode(
+    path: &Path,
+    job_id: &str,
+    on_progress: Channel<f32>,
+    notes: &PartialNotes,
+    beats: &Beats,
+) -> AppResult<Vec<u64>> {
     let tools = find_tools().ok_or_else(|| AppError::Unavailable("FFmpeg was not found".into()))?;
     let probe = ffprobe(&tools, path, false)
         .await
@@ -360,21 +383,14 @@ pub async fn find(
     tokio::fs::create_dir_all(notes.folder()).await?;
     let note = notes.folder().join(format!("beats-{job_id}"));
     tokio::fs::write(&note, scratch.display().to_string()).await?;
-    let found = decode(path, &scratch, &job_id, duration, on_progress, beats).await;
+    let found = decode(path, &scratch, job_id, duration, on_progress, beats).await;
     let _ = tokio::fs::remove_file(&scratch).await;
     let _ = tokio::fs::remove_file(&note).await;
     // A sound stream that starts after the file does is that much later in the file.
-    let found: Vec<u64> = found?
+    Ok(found?
         .into_iter()
         .map(|t| t + probe.audio_delay_us)
-        .collect();
-    if let Ok(mut known) = beats.found.lock() {
-        known.insert(
-            path.to_owned(),
-            (version.0, version.1, Arc::new(found.clone())),
-        );
-    }
-    Ok(found)
+        .collect())
 }
 
 /// Decodes `path` into `scratch` under `job_id` and finds its beats.
@@ -427,14 +443,10 @@ async fn decode(
     let job = Job::measure(&tools, recipe, scratch.with_extension("graph"), listen)
         .map(Arc::new)
         .map_err(AppError::Unavailable)?;
-    if let Ok(mut running) = beats.running.lock() {
-        running.insert(job_id.to_owned(), job.clone());
+    if !beats.running.add(job_id, job.clone(), ()) {
+        job.cancel().await;
     }
-    let outcome = job.measured().await;
-    if let Ok(mut running) = beats.running.lock() {
-        running.remove(job_id);
-    }
-    outcome.map_err(AppError::Unavailable)?;
+    job.measured().await.map_err(AppError::Unavailable)?;
     let scratch = scratch.to_owned();
     let report = move |part: f32| {
         let _ = on_progress.send(DECODING + part * (1.0 - DECODING));
@@ -475,16 +487,10 @@ fn read_beats(file: &Path, progress: impl Fn(f32)) -> AppResult<Vec<u64>> {
     Ok(onsets.beats(|part| progress(READING + part * (1.0 - READING))))
 }
 
-/// Stops the find `job_id`. One that already ended is left alone.
+/// Stops the find `job_id`, also while it is still probing. One that already ended is left
+/// alone.
 pub async fn cancel(job_id: &str, beats: &Beats) {
-    let job = beats
-        .running
-        .lock()
-        .ok()
-        .and_then(|running| running.get(job_id).cloned());
-    if let Some(job) = job {
-        job.cancel().await;
-    }
+    beats.running.cancel(job_id).await;
 }
 
 #[cfg(test)]

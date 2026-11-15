@@ -2,13 +2,13 @@
 //! ([`super::analyze`]) and what it has heard. They have their own registry, so an export command
 //! can't reach one.
 
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex as StdMutex};
 
 use tauri::ipc::Channel;
 
 use super::analyze::{Analysis, Listening, MEASURE};
+use super::measures::Measures;
 use crate::error::{AppError, AppResult};
 use crate::export::PartialNotes;
 use crate::export::job::{Job, find_mono, script_option};
@@ -17,33 +17,8 @@ use crate::export::spec::SoundOnlySpec;
 use crate::media::proxy::find_tools;
 use crate::media::server::random_token;
 
-/// An analysis under way: its FFmpeg and what it has heard.
-#[derive(Clone)]
-struct Running {
-    job: Arc<Job>,
-    heard: Arc<StdMutex<Listening>>,
-}
-
-/// Analyses running now, by job id. One ends when its `finish` takes it, also after a cancel
-/// (which only stops the job, so `finish` can say "Cancelled").
-#[derive(Default)]
-pub struct Analyses(StdMutex<HashMap<String, Running>>);
-
-impl Analyses {
-    fn add(&self, id: String, running: Running) {
-        if let Ok(mut all) = self.0.lock() {
-            all.insert(id, running);
-        }
-    }
-
-    fn get(&self, id: &str) -> Option<Running> {
-        self.0.lock().ok()?.get(id).cloned()
-    }
-
-    fn take(&self, id: &str) -> Option<Running> {
-        self.0.lock().ok()?.remove(id)
-    }
-}
+/// Analyses running now, by job id, each with what it has heard.
+pub type Analyses = Measures<Arc<StdMutex<Listening>>>;
 
 /// Where an analysis's long filter graph goes (`script_of` this), noted like an export's partial
 /// files so a crash leaves nothing behind.
@@ -100,27 +75,20 @@ pub async fn begin(
             return Err(AppError::Unavailable(e));
         }
     };
-    analyses.add(
-        id.clone(),
-        Running {
-            job: Arc::new(job),
-            heard,
-        },
-    );
+    analyses.add(&id, Arc::new(job), heard);
     Ok(id)
 }
 
 /// Waits for the analysis `id` to end and returns its figures.
 pub async fn finish(id: &str, notes: &PartialNotes, analyses: &Analyses) -> AppResult<Analysis> {
-    let running = analyses
+    let (job, heard) = analyses
         .get(id)
         .ok_or_else(|| AppError::NotFound("That analysis is not running".into()))?;
-    let outcome = running.job.measured().await;
+    let outcome = job.measured().await;
     analyses.take(id);
     let _ = tokio::fs::remove_file(notes.folder().join(id)).await;
     outcome.map_err(AppError::Unavailable)?;
-    let mut heard = running
-        .heard
+    let mut heard = heard
         .lock()
         .map_err(|_| AppError::Unavailable("The analysis was lost".into()))?;
     heard.result().map_err(AppError::Unavailable)
@@ -128,8 +96,6 @@ pub async fn finish(id: &str, notes: &PartialNotes, analyses: &Analyses) -> AppR
 
 /// Stops the analysis `id`. One that already ended is left alone.
 pub async fn cancel(id: &str, notes: &PartialNotes, analyses: &Analyses) {
-    if let Some(running) = analyses.get(id) {
-        running.job.cancel().await;
-    }
+    analyses.cancel(id).await;
     let _ = tokio::fs::remove_file(notes.folder().join(id)).await;
 }
