@@ -1,5 +1,5 @@
 import type { ClipGrade, CorrectionValues, GradeNodeId } from "@/modules/project";
-import type { Rgb, SourceSample } from "../tint.types";
+import type { NodeSample, Rgb } from "../tint.types";
 import { logish, toYcc, unlogish } from "./color/basics";
 import { applyCorrection, prepareCorrection } from "./color/correct";
 import { WHEEL_REACH, wheelChannels, wheelFor } from "./color/wheels";
@@ -18,12 +18,12 @@ const BLACK_SHARE = 0.005;
 
 const round = (v: number, places = 4) => Math.round(v * 10 ** places) / 10 ** places;
 
-/** The mean of samples through a correction's values. */
-function meanOut(values: CorrectionValues, samples: readonly SourceSample[]): Rgb {
+/** The mean of samples through a correction with these values, as it draws (its LUT, opacity and key included: `mix`). */
+function meanOut(values: CorrectionValues, samples: readonly NodeSample[]): Rgb {
   const p = prepareCorrection(values);
   const sum: Rgb = [0, 0, 0];
-  for (const { rgb, at } of samples) {
-    const out = applyCorrection(rgb, p, at);
+  for (const { rgb, at, mix } of samples) {
+    const out = mix(applyCorrection(rgb, p, at));
     sum[0] += out[0];
     sum[1] += out[1];
     sum[2] += out[2];
@@ -80,7 +80,7 @@ export function solve2(
 }
 
 /** Temperature and tint that make the samples' mean neutral, the rest kept. */
-function byGains(values: CorrectionValues, samples: readonly SourceSample[]): CorrectionValues {
+function byGains(values: CorrectionValues, samples: readonly NodeSample[]): CorrectionValues {
   const at = (p: [number, number]) => ({ ...values, temperature: p[0], tint: p[1] });
   const [temperature, tint] = solve2(
     (p) => chromaOf(meanOut(at(p), samples)),
@@ -92,7 +92,7 @@ function byGains(values: CorrectionValues, samples: readonly SourceSample[]): Co
 }
 
 /** Offset's color that makes the samples' mean neutral, its master ring kept. */
-function byOffset(values: CorrectionValues, samples: readonly SourceSample[]): CorrectionValues {
+function byOffset(values: CorrectionValues, samples: readonly NodeSample[]): CorrectionValues {
   const at = (p: [number, number]) => ({
     ...values,
     offset: { ...values.offset, x: p[0], y: p[1] },
@@ -107,9 +107,9 @@ function byOffset(values: CorrectionValues, samples: readonly SourceSample[]): C
 }
 
 /** Offset that puts the darkest `BLACK_SHARE` of each channel at 0. */
-function blackPoint(values: CorrectionValues, samples: readonly SourceSample[]): CorrectionValues {
+function blackPoint(values: CorrectionValues, samples: readonly NodeSample[]): CorrectionValues {
   const p = prepareCorrection(values);
-  const outs = samples.map(({ rgb, at }) => applyCorrection(rgb, p, at));
+  const outs = samples.map(({ rgb, at, mix }) => mix(applyCorrection(rgb, p, at)));
   const low = [0, 1, 2].map((c) => {
     const sorted = outs.map((o) => o[c as 0 | 1 | 2]).sort((a, b) => a - b);
     return sorted[Math.floor(sorted.length * BLACK_SHARE)] ?? 0;
@@ -131,11 +131,12 @@ function blackPoint(values: CorrectionValues, samples: readonly SourceSample[]):
  * - `auto` (the whole picture): offset puts the darkest half percent of each channel at 0 (neutral
  *   blacks, the spread used), and temperature and tint make the mean neutral (gray world); three
  *   rounds, as each moves the other a little.
- * The correction's other values stay and are part of the model. Null without samples.
+ * The correction's other values stay and are part of the model, and so do its LUT, opacity and key
+ * (each sample's `mix`), so the result is neutral as the grade draws. Null without samples.
  */
 export function balanceValues(
   values: CorrectionValues,
-  samples: readonly SourceSample[],
+  samples: readonly NodeSample[],
   kind: "auto" | "white" | "gray",
 ): Balance | null {
   if (samples.length === 0) return null;

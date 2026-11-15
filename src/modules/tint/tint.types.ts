@@ -236,6 +236,21 @@ export type MatchKind = "auto" | "white" | "gray" | "shot" | "chart";
  */
 export type ChartCorners = [FramePoint, FramePoint, FramePoint, FramePoint];
 
+/** The key a correction mixes by at one pixel, as the walk hands it: the raw key and its limit's params. */
+export interface PixelKey {
+  key: number;
+  params: LimitParams;
+}
+
+/**
+ * One pixel as a correction gets it (`tint.match`'s balance): its input, where it is, and `mix`,
+ * which takes the correction's values' result there to what the correction draws (its LUT, then
+ * opacity times key over the input: `finishCorrection`).
+ */
+export interface NodeSample extends SourceSample {
+  mix(corrected: Rgb): Rgb;
+}
+
 /** One pixel of a clip's ungraded picture: its color and where it is in the picture. */
 export interface SourceSample {
   rgb: Rgb;

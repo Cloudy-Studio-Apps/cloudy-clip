@@ -4,9 +4,9 @@ import { WHEEL_REACH, wheelFor } from "./color/wheels";
 import { srgbToDisplay } from "./color/spaces";
 
 /**
- * The 24 patches of the classic color chart (X-Rite ColorChecker Classic), in reading order (six
- * across, four down, dark skin first, black last), as 8-bit sRGB: BabelColor's averages of
- * measured charts, D65 (Danny Pascale, "The ColorChecker, page 2", BabelColor, the sRGB table).
+ * The patches of the classic 24-patch chart, in reading order (six across, four down, dark skin
+ * first, black last), as 8-bit sRGB: BabelColor's averages of measured charts, D65 (Danny Pascale,
+ * BabelColor, the chart's sRGB table).
  */
 const CHART_SRGB: readonly (readonly [number, number, number])[] = [
   [115, 82, 68], // dark skin
@@ -144,24 +144,37 @@ export function fitChart(
 /** The chart's targets in the grade's space: sRGB display light, for the Rec.709 gamma 2.4 output. */
 export const chartTargets = (): Rgb[] => CHART_REFERENCE.map((c) => c.map(srgbToDisplay) as Rgb);
 
+/** The mixer's range: a fitted cell outside it means the patches didn't pin the matrix down. */
+const MIXER_LIMIT = 2;
+/** Largest root-mean-square miss of the fit over the patches: past it, the corners aren't on a chart. */
+const CHART_MISS = 0.08;
+
 /**
  * The values of a fresh "Chart" correction from the measured patches (each the mean of its reads,
- * through what comes before the correction): the RGB mixer holds the fitted matrix (each cell
- * clamped to -2…2, keep brightness off, so it is used as it is). The mixer has no offsets, so they
- * go into the same correction's offset wheel, which runs before the mixer: `M (x + o) = M x + b`
- * gives `o = M⁻¹ b`. Null when the fit or `M` can't be solved.
+ * through what comes before the correction): the RGB mixer holds the fitted matrix (keep
+ * brightness off, so it is used as it is). The mixer has no offsets, so they go into the same
+ * correction's offset wheel, which runs before the mixer: `M (x + o) = M x + b` gives
+ * `o = M⁻¹ b`. Null (refused, never clamped cell by cell) when the fit can't be solved, a cell
+ * falls outside the mixer's -2…2 (patches too alike, as a gray card, pin nothing down) or the fit
+ * misses the patches by more than `CHART_MISS` (root mean square).
  */
 export function chartValues(
   measured: readonly Rgb[],
 ): Pick<CorrectionValues, "mixer" | "offset"> | null {
-  const fit = fitChart(measured, chartTargets());
-  if (!fit) return null;
+  const targets = chartTargets();
+  const fit = fitChart(measured, targets);
+  if (!fit || fit.matrix.flat().some((v) => Math.abs(v) > MIXER_LIMIT)) return null;
+  let miss = 0;
+  measured.forEach((m, i) => {
+    for (const c of [0, 1, 2] as const) {
+      const row = fit.matrix[c]!;
+      const out = row[0] * m[0] + row[1] * m[1] + row[2] * m[2] + fit.bias[c];
+      miss += (out - targets[i]![c]) ** 2;
+    }
+  });
+  if (Math.sqrt(miss / (measured.length * 3)) > CHART_MISS) return null;
   const round = (v: number) => Math.round(v * 1e4) / 1e4;
-  const matrix = fit.matrix.map((row) => row.map((v) => round(Math.min(Math.max(v, -2), 2)))) as [
-    number,
-    number,
-    number,
-  ][];
+  const matrix = fit.matrix.map((row) => row.map(round)) as [number, number, number][];
   const o = solveLinear(matrix, [...fit.bias]);
   if (!o) return null;
   const offset = wheelFor(o as Rgb, WHEEL_REACH.offset);

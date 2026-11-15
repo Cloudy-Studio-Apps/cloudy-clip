@@ -32,7 +32,11 @@ export function startCornerDrag({
     return next;
   };
   let last = corners;
+  // The corner keeps the pointer until release, wherever it goes.
+  const holder = event.target instanceof Element ? event.target : null;
+  holder?.setPointerCapture(event.pointerId);
   const stop = () => {
+    if (holder?.hasPointerCapture(event.pointerId)) holder.releasePointerCapture(event.pointerId);
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
     window.removeEventListener("pointercancel", cancel);
@@ -52,7 +56,7 @@ export function startCornerDrag({
   };
   const key = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
-    e.stopPropagation();
+    e.stopImmediatePropagation();
     cancel();
   };
   window.addEventListener("pointermove", move);

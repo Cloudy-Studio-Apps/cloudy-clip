@@ -12,12 +12,12 @@ import {
 import { CHART_REFERENCE, chartValues, patchPoints, quadArea } from "./logic/chart";
 import { luma } from "./logic/color/basics";
 import { balanceValues, currentCorrection, nextMatchName, shotValues } from "./logic/match";
-import { sourceAt } from "./logic/pick";
+import { frameSamples, sourceAt } from "./logic/pick";
 import { emptyGrade, toStack } from "./logic/stack";
 import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
 import { refuseUnlessEditable } from "./tint.node.commands";
 import { tintRef } from "./tint.ref";
-import { fail, patchMean, shownAt, through, timeIn, withNew } from "./tint.match.read";
+import { fail, nodeSamples, patchMean, shownAt, through, timeIn, withNew } from "./tint.match.read";
 import type { MatchKind, MatchRead } from "./tint.types";
 
 const KINDS = ["auto", "white", "gray", "shot", "chart"] as const satisfies readonly MatchKind[];
@@ -40,7 +40,7 @@ export const match = defineCommand({
   id: "tint.match",
   label: "Match",
   description:
-    "Balances or matches the own grade of clips (clipIds; clip level only, not shot group or timeline grades), reading each clip's ungraded picture at `at` microseconds (default: your playhead; a clip that doesn't hold that time is read at its middle) through its grade. kind auto: the darkest half percent of each channel goes to black (offset) and the mean of the picture comes out neutral (temperature and tint). kind white: the color at `point` comes out neutral, by temperature and tint first, then offset's color for what their ranges can't reach. kind gray: the same at `point`, offset's color first, then temperature and tint. auto, white and gray write temperature, tint and offset of one correction: nodeId (one clip only), else the first correction of the stack (the one the Tint tools edit with nothing selected), else a new one; that correction's other values stay and count. kind shot: makes each clip look like clip `from` (read at its middle): per channel the mean and spread of a log-ish encoding are matched, fitted as gain and offset, plus a saturation ratio, in a new correction \"Match nn\" at the bottom of the stack. kind chart: `corners` are a filmed 24-patch color chart's corners in the frame (top left at dark skin, top right, bottom right at black, bottom left at white); each patch's centre is read and a least-squares 3 x 3 matrix and offsets bring the patches to the published values (BabelColor sRGB averages), in a new correction \"Chart\" at the top of the stack (the matrix in the RGB mixer, keep brightness off; the offsets in the same correction's offset wheel). Every value is kept in its range. Returns { nodeIds } by clip id. One undo step for all clips, or nothing: fails with tint.match_input (a missing point, from or corners, or nodeId with several clips), tint.target_not_found, tint.not_gradeable, tint.match_self (from is one of clipIds), tint.no_picture (point or chart off the clip's picture, or nothing of the clip in the frame), tint.chart_too_dark, tint.chart_degenerate (corners too close, or patches too alike to solve), tint.node_not_found, tint.animated (temperature, tint or offset has keys), tint.sealed, tint.invalid_grade or preview.capture_failed.",
+    "Balances or matches the own grade of clips (clipIds; clip level only, not shot group or timeline grades), reading each clip's ungraded picture at `at` microseconds (default: your playhead; a clip that doesn't hold that time is read at its middle) through its grade. kind auto: the darkest half percent of each channel goes to black (offset) and the mean of the picture comes out neutral (temperature and tint). kind white: the color at `point` comes out neutral, by temperature and tint first, then offset's color for what their ranges can't reach. kind gray: the same at `point`, offset's color first, then temperature and tint. auto, white and gray write temperature, tint and offset of one correction: nodeId (one clip only), else the first correction of the stack (the one the Tint tools edit with nothing selected), else a new one; that correction's other values stay and count. kind shot: makes each clip look like clip `from` (read at its middle): per channel the mean and spread of a log-ish encoding are matched, fitted as gain and offset, plus a saturation ratio, in a new correction \"Match nn\" at the bottom of the stack. kind chart: `corners` are a filmed 24-patch color chart's corners in the frame (top left at dark skin, top right, bottom right at black, bottom left at white); each patch's centre is read and a least-squares 3 x 3 matrix and offsets bring the patches to the published values (BabelColor sRGB averages), in a new correction \"Chart\" at the top of the stack (the matrix in the RGB mixer, keep brightness off; the offsets in the same correction's offset wheel). Every value is kept in its range. Returns { nodeIds } by clip id, for the clips that changed: a clip whose grade would come out the same (or a new correction that would hold only defaults) is not written. One undo step for all clips, or nothing: fails with tint.match_input (a missing point, from or corners, or nodeId with several clips), tint.target_not_found, tint.not_gradeable, tint.match_self (from is one of clipIds), tint.no_picture (point or chart off the clip's picture, or nothing of the clip in the frame), tint.chart_too_dark, tint.chart_degenerate (corners too close, or patches too alike to solve), tint.node_not_found, tint.animated (temperature, tint or offset has keys), tint.sealed, tint.invalid_grade or preview.capture_failed.",
   undoable: true,
   input: z.object({
     clipIds: z.array(z.string().min(1)).min(1),
@@ -75,6 +75,8 @@ export const match = defineCommand({
       try {
         return { clipId, time, frame: await tint.clipFrame(clipId, time) };
       } catch (error) {
+        // A clip deleted while it was being read is gone, not a failed capture.
+        readGrade(project.store.getState(), { clipId });
         throw new CommandFailure(
           "preview.capture_failed",
           String((error as Error).message ?? error),
@@ -93,6 +95,9 @@ export const match = defineCommand({
     const refColors = reference
       ? through(reference, shownAt(state, reference) ?? emptyGrade()).map((s) => s.rgb)
       : [];
+    if (from && refColors.length === 0) {
+      throw fail("no_picture", `Nothing of clip "${from}" (the one to match to) is in the frame.`);
+    }
     const writes: [string, ClipGrade | undefined][] = [];
     const nodeIds: Record<string, GradeNodeId> = {};
     for (const read of reads) {
@@ -118,7 +123,7 @@ export const match = defineCommand({
         const one = kind === "auto" ? null : sourceAt(frame, spot!, placement);
         if (kind !== "auto" && !one)
           throw fail("no_picture", "That point is off the clip's picture.");
-        const inputs = through(read, view, one ? [one] : undefined, id);
+        const inputs = nodeSamples(read, view, id, one ? [one] : frameSamples(frame, placement));
         values = balanceValues(correctionOf(view.nodes[id] as Correction), inputs, kind);
       } else if (kind === "shot") {
         id = createId("node");
@@ -147,16 +152,22 @@ export const match = defineCommand({
         if (!values) {
           throw fail(
             "chart_degenerate",
-            "The patches are too alike to solve: check the corners sit on the chart.",
+            "The patches don't fit a chart: check the corners sit on it (a gray card or a flat picture can't be calibrated).",
           );
         }
       }
       if (!values) throw fail("no_picture", `Nothing of clip "${read.clipId}" is in the frame.`);
       const node = next.nodes[id] as Correction;
       node.values = { ...node.values, ...values };
-      writes.push([read.clipId, checkedGrade(next)]);
+      const checked = checkedGrade(next);
+      // Nothing to write: the grade comes out as stored, or a new correction would hold only defaults.
+      const added = !stored?.nodes[id];
+      if (added && checked && !(checked.nodes[id] as Correction | undefined)?.values) continue;
+      if (JSON.stringify(checked) === JSON.stringify(stored ?? undefined)) continue;
+      writes.push([read.clipId, checked]);
       nodeIds[read.clipId] = id;
     }
+    if (writes.length === 0) return { nodeIds };
     ctx.mutate(project.store, (draft) => {
       for (const [clipId, grade] of writes) writeGrade(draft, { clipId }, grade);
     });

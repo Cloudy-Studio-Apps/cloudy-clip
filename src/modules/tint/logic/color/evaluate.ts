@@ -1,6 +1,6 @@
-import type { ClipGrade, GradeNodeId } from "@/modules/project";
+import type { ClipGrade, Correction, GradeNodeId } from "@/modules/project";
 import { correctionOf } from "@/modules/project";
-import type { GradeOps, LutLookup, PixelAt, Rgb } from "../../tint.types";
+import type { GradeOps, LutLookup, PixelAt, PixelKey, Rgb } from "../../tint.types";
 import { applyCube } from "../cube";
 import { walkGrade } from "../walk";
 import { correctPixel } from "./correct";
@@ -26,20 +26,72 @@ export function evaluatePixel(
   videoRange = true,
   lutOf: LutLookup = () => null,
 ): Rgb {
-  const ops: GradeOps<Rgb, number> = {
+  const walk = walkGrade(grade, pixelOps(grade, source, at, videoRange, lutOf));
+  const stop = stopAt === undefined ? undefined : grade.nodes[stopAt];
+  return walk.picture(stop?.kind === "correct" ? stop.input : grade.out);
+}
+
+/**
+ * What correction `nodeId` gets at a pixel when the grade draws: its input and its key (as
+ * `evaluatePixel` walks it). Null when it doesn't draw there: off, at opacity 0, or off the
+ * picture's path. With `finishCorrection`, a candidate value of that correction can be tried
+ * without walking the grade again.
+ */
+export function correctionInput(
+  grade: ClipGrade,
+  source: Rgb,
+  at: PixelAt,
+  nodeId: GradeNodeId,
+  videoRange = true,
+  lutOf: LutLookup = () => null,
+): { input: Rgb; key: PixelKey | null } | null {
+  let seen: { input: Rgb; key: PixelKey | null } | null = null;
+  const ops = pixelOps(grade, source, at, videoRange, lutOf, (id, input, key) => {
+    if (id === nodeId) seen = { input, key };
+  });
+  walkGrade(grade, ops).picture(grade.out);
+  return seen;
+}
+
+/**
+ * A correction's result over its input, as the passes draw it: its LUT (found with `lutOf`) after
+ * its values' result `corrected` (`applyCube`, by strength), then mixed over `input` by its opacity
+ * times its key (`finishKey`). The one place this mix is written.
+ */
+export function finishCorrection(
+  node: Correction,
+  input: Rgb,
+  corrected: Rgb,
+  key: PixelKey | null,
+  lutOf: LutLookup,
+): Rgb {
+  let out = corrected;
+  const lut = node.lut && node.lut.strength > 0 ? lutOf(node.lut.id) : null;
+  if (lut) out = applyCube(out, lut.table, Math.min(node.lut!.strength, 1));
+  const a = node.opacity * (key ? finishKey(key.key, key.params) : 1);
+  return [
+    input[0] + (out[0] - input[0]) * a,
+    input[1] + (out[1] - input[1]) * a,
+    input[2] + (out[2] - input[2]) * a,
+  ];
+}
+
+/** The walk's operations on one pixel; `seen` hears each correction that draws, with its input and key. */
+function pixelOps(
+  grade: ClipGrade,
+  source: Rgb,
+  at: PixelAt,
+  videoRange: boolean,
+  lutOf: LutLookup,
+  seen?: (id: GradeNodeId, input: Rgb, key: PixelKey | null) => void,
+): GradeOps<Rgb, number> {
+  return {
     source: toRec709(source, grade.input ?? "rec709", videoRange),
     channel: channelRgb,
     key: (params, input) => rawKey(input, params),
-    correct(_id, node, input, key) {
-      let out = correctPixel(input, correctionOf(node), at);
-      const lut = node.lut && node.lut.strength > 0 ? lutOf(node.lut.id) : null;
-      if (lut) out = applyCube(out, lut.table, Math.min(node.lut!.strength, 1));
-      const a = node.opacity * (key ? finishKey(key.key, key.params) : 1);
-      return [
-        input[0] + (out[0] - input[0]) * a,
-        input[1] + (out[1] - input[1]) * a,
-        input[2] + (out[2] - input[2]) * a,
-      ];
+    correct(id, node, input, key) {
+      seen?.(id, input, key);
+      return finishCorrection(node, input, correctPixel(input, correctionOf(node), at), key, lutOf);
     },
     parallel: parallelRgb,
     layer: layerRgb,
@@ -49,7 +101,4 @@ export function evaluatePixel(
         keys.map(({ key, mode }) => ({ k: key ? finishKey(key.key, key.params) : 1, mode })),
       ),
   };
-  const walk = walkGrade(grade, ops);
-  const stop = stopAt === undefined ? undefined : grade.nodes[stopAt];
-  return walk.picture(stop?.kind === "correct" ? stop.input : grade.out);
 }

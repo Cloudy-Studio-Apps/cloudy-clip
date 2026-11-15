@@ -9,11 +9,18 @@ import {
   type GradeNodeId,
   type ProjectState,
 } from "@/modules/project";
-import { evaluatePixel } from "./logic/color/evaluate";
+import { correctionInput, evaluatePixel, finishCorrection } from "./logic/color/evaluate";
 import { frameSamples, sourceAt } from "./logic/pick";
 import { emptyGrade } from "./logic/stack";
 import { insertLayer } from "./logic/stack.edit";
-import type { FramePoint, MatchRead, Rgb, StackPosition } from "./tint.types";
+import type {
+  FramePoint,
+  MatchRead,
+  NodeSample,
+  Rgb,
+  SourceSample,
+  StackPosition,
+} from "./tint.types";
 
 // What `tint.match` reads from the frames it captured: the samples through a grade, the shown
 // grade at the read's time, and where a new correction goes.
@@ -63,6 +70,33 @@ export function through(
     rgb: evaluatePixel(grade, s.rgb, s.at, stopAt, videoRange, lutOf),
     at: s.at,
   }));
+}
+
+/**
+ * Samples as correction `id` of `grade` gets them (`correctionInput`: its input and key), each with
+ * the mix that takes a candidate result to what the correction draws (`finishCorrection`: its LUT,
+ * opacity and key). Where it doesn't draw (off, opacity 0), the mix is the input as it is.
+ */
+export function nodeSamples(
+  read: MatchRead,
+  grade: ClipGrade,
+  id: GradeNodeId,
+  samples: readonly SourceSample[],
+): NodeSample[] {
+  const { videoRange, lutOf } = read.frame;
+  const node = grade.nodes[id] as Correction;
+  return samples.map(({ rgb, at }) => {
+    const seen = correctionInput(grade, rgb, at, id, videoRange, lutOf);
+    if (!seen) {
+      const input = evaluatePixel(grade, rgb, at, id, videoRange, lutOf);
+      return { rgb: input, at, mix: () => input };
+    }
+    return {
+      rgb: seen.input,
+      at,
+      mix: (corrected) => finishCorrection(node, seen.input, corrected, seen.key, lutOf),
+    };
+  });
 }
 
 /** The clip's grade as shown at the read's time (keyed values there), from the fresh state. */
