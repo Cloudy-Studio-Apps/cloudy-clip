@@ -11,20 +11,23 @@ const EVERY = 100;
  * Writes what each pinned point reads into its row (`textContent`, no React state) once now and
  * after the frames the preview draws, at most every 100 ms: the last frame of a burst is always
  * read, so a paused picture is never stale.
+ * With a `note` (a viewer pass is painting the canvas, so its pixels aren't the picture's) the
+ * rows say that instead of reading.
  */
 export function useSampleReadouts(
   pins: readonly FramePoint[],
   rows: RefObject<(HTMLElement | null)[]>,
+  note: string | null,
 ): void {
   const { picture } = useModule(previewRef);
   useEffect(() => {
     let timer = 0;
     let last = 0;
     const refresh = () => {
-      const frame = picture.readFrame(READ_WIDTH);
+      const frame = note ? null : picture.readFrame(READ_WIDTH);
       pins.forEach((pin, i) => {
         const row = rows.current[i];
-        if (row) row.textContent = frame ? sampleText(frame, pin) : "";
+        if (row) row.textContent = frame ? sampleText(frame, pin) : (note ?? "");
       });
     };
     refresh();
@@ -43,5 +46,5 @@ export function useSampleReadouts(
       off();
       window.clearTimeout(timer);
     };
-  }, [picture, pins, rows]);
+  }, [picture, pins, rows, note]);
 }

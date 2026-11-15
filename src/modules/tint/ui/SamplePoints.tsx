@@ -4,6 +4,7 @@ import { previewRef } from "@/modules/preview";
 import { sampleText } from "../logic/sample";
 import type { FramePoint } from "../tint.types";
 import { useSampleReadouts } from "./sample.readout.hook";
+import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
 
 /** Pins at most this many. */
@@ -17,7 +18,7 @@ const HOVER_EVERY = 50;
  * Sample points, inside a `FrameBox`: hover shows what the picture reads under the pointer,
  * a click pins a point (up to three, kept in `view.samples`; a click on a pin takes it off), and
  * each pin's readout follows the frames. Reads are `readFrame(512)` of the live canvas, so they
- * are what the viewer shows (false color included); all text is written to the DOM, never state.
+ * are the live picture: under false color or the clip warning they say so instead, and under side by side a point on the left half still reads the live picture; all text is written to the DOM, never state.
  */
 export function SamplePoints({ pins }: { pins: FramePoint[] }) {
   const { picture } = useModule(previewRef);
@@ -26,7 +27,14 @@ export function SamplePoints({ pins }: { pins: FramePoint[] }) {
   const hover = useRef<HTMLSpanElement>(null);
   const rows = useRef<(HTMLElement | null)[]>([]);
   const lastHover = useRef(0);
-  useSampleReadouts(pins, rows);
+  const note = useTintView((v) =>
+    v.falseColor
+      ? "Off while false color is on"
+      : v.warning
+        ? "Off while the clip warning is on"
+        : null,
+  );
+  useSampleReadouts(pins, rows, note);
 
   const where = (event: React.PointerEvent): FramePoint | null => {
     const rect = layer.current?.getBoundingClientRect();
@@ -40,8 +48,8 @@ export function SamplePoints({ pins }: { pins: FramePoint[] }) {
     const at = where(event);
     if (!at || !hover.current || performance.now() - lastHover.current < HOVER_EVERY) return;
     lastHover.current = performance.now();
-    const frame = picture.readFrame(512);
-    hover.current.textContent = frame ? sampleText(frame, at) : "";
+    const frame = note ? null : picture.readFrame(512);
+    hover.current.textContent = frame ? sampleText(frame, at) : (note ?? "");
   };
   const click = (event: React.PointerEvent) => {
     const at = where(event);

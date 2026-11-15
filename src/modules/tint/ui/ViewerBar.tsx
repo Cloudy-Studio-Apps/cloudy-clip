@@ -8,14 +8,17 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { useStore } from "zustand";
-import { useModule } from "@/core";
+import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { IconButton } from "@/ui";
 import { HeaderRule } from "./HeaderRule";
+import { SpaceChip } from "./SpaceChip";
+import { ZoomChip } from "./ZoomChip";
 import { SideMenu } from "./SideMenu";
 import type { ViewerTool } from "./ui.types";
 import { useTintView } from "./view.hook";
 import { useTintSet } from "./view.set.hook";
+import { setClean } from "../tint.viewer.commands";
 
 /** The viewer's live tools: the first two are the preview's own picture state, the rest the page's view. */
 const TOOLS: readonly ViewerTool[] = [
@@ -53,7 +56,8 @@ function ToolButton({ tool }: { tool: ViewerTool }) {
   const mine = useTintView((v) =>
     key === "compare" || key === "bypass" ? false : key === "samples" ? v.samples !== null : v[key],
   );
-  const on = preview || mine;
+  const overridden = useTintView((v) => key === "warning" && v.falseColor);
+  const on = (preview || mine) && !overridden;
   const Icon = tool.icon;
   const toggle = () => {
     if (key === "compare") picture.setCompare(on ? null : 0.5);
@@ -62,7 +66,15 @@ function ToolButton({ tool }: { tool: ViewerTool }) {
     else set({ [key]: !on });
   };
   return (
-    <IconButton label={tool.label} active={on} onClick={toggle}>
+    <IconButton
+      label={
+        overridden
+          ? `${tool.label}. Off while false color is on: its last band marks clipping`
+          : tool.label
+      }
+      active={on}
+      onClick={toggle}
+    >
       <Icon />
     </IconButton>
   );
@@ -70,7 +82,7 @@ function ToolButton({ tool }: { tool: ViewerTool }) {
 
 /** The viewer header's tool buttons, the color space and the zoom. */
 export function ViewerBar() {
-  const set = useTintSet();
+  const { bus } = useKernel();
   const clean = useTintView((v) => v.clean);
   return (
     <>
@@ -79,18 +91,8 @@ export function ViewerBar() {
       ))}
       <SideMenu />
       <HeaderRule />
-      <span
-        title="Camera S-Log3, shown as Rec.709"
-        className="rounded-xs bg-surface-sunken px-1.5 py-0.5 font-mono text-xs font-normal text-muted-foreground"
-      >
-        S-Log3 → 709
-      </span>
-      <span
-        title="Fit to the viewer (Shift+Z)"
-        className="ml-1 rounded-xs bg-surface-sunken px-1.5 py-0.5 font-mono text-xs font-normal text-muted-foreground"
-      >
-        44%
-      </span>
+      <SpaceChip />
+      <ZoomChip />
       <HeaderRule />
       <IconButton
         label={
@@ -99,7 +101,7 @@ export function ViewerBar() {
             : "Clean viewer: only the picture, full screen (Ctrl+F)"
         }
         active={clean}
-        onClick={() => set({ clean: !clean })}
+        onClick={() => void bus.run(setClean, {})}
       >
         <Maximize2 />
       </IconButton>

@@ -12,8 +12,8 @@ import { useTintView } from "./view.hook";
 
 /**
  * The Tint page in layout D: the grade and the viewer on top, the clips in the middle, the tools
- * and the scopes at the bottom. The viewer, the strip and playback are real; the grade, the tools
- * and the scopes are still demo data. Without a GPU it says so instead.
+ * and the scopes at the bottom. The viewer, the strip, the grade, the tools, the scopes and
+ * playback are real. Without a GPU it says so instead.
  */
 export function TintPage() {
   const { available } = useModule(tintRef);

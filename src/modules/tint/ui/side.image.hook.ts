@@ -8,9 +8,8 @@ import { useTintSet } from "./view.set.hook";
 
 /**
  * The picture side by side shows on the left: a still's saved image, or another clip's frame
- * captured (`captureAt` with `only`, graded as it is) once for the clip and time chosen. It is
- * kept until the choice changes, never captured per frame, so a later grade edit of that clip
- * shows when it is chosen again. Null while it is being made. A failed capture tells the user and
+ * captured (`captureAt` with `only`, graded as it is) for the clip and time chosen, again
+ * only when that clip's grade changes (never per frame); the old picture stays up meanwhile. Null until the first one lands. A failed capture tells the user and
  * ends side by side.
  */
 export function useSideImage(source: SideSource): string | null {
@@ -21,6 +20,7 @@ export function useSideImage(source: SideSource): string | null {
   const clipId = source.kind === "clip" ? source.clipId : null;
   const time = source.kind === "clip" ? source.time : 0;
   const still = useStore(project.store.api, (s) => (stillId ? s.stills?.[stillId]?.image : null));
+  const grade = useStore(project.store.api, (s) => (clipId ? s.clips[clipId]?.grade : undefined));
   const [made, setMade] = useState<{ key: string; src: string } | null>(null);
   const key = `${clipId}@${time}`;
   useEffect(() => {
@@ -44,6 +44,7 @@ export function useSideImage(source: SideSource): string | null {
     return () => {
       live = false;
     };
-  }, [project, preview, set, clipId, time, key]);
-  return stillId ? (still ?? null) : made?.key === key ? made.src : null;
+  }, [project, preview, set, clipId, time, key, grade]);
+  // The previous picture stays until the new one lands (no blank flash).
+  return stillId ? (still ?? null) : (made?.src ?? null);
 }
