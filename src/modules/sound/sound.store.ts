@@ -22,6 +22,7 @@ export function createSoundView() {
     tool: "select",
     linePoint: null,
     silence: null,
+    match: null,
   }));
 }
 

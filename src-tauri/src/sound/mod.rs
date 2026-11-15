@@ -1,6 +1,6 @@
 //! Sound module: what the Sound page asks of FFmpeg itself, and recording. Noise reduction is
 //! rendered by the media module (a derived file, [`crate::media::denoise`]); here its floor is
-//! measured. A file's beats are found for snapping ([`beats`]), its silent stretches for cutting ([`silences`]). A recording is written as a WAV ([`record`]) from the microphone, which the app's own
+//! measured. A file's beats are found for snapping ([`beats`]), its silent stretches for cutting ([`silences`]), a clip's loudness for matching ([`loudness`]). A recording is written as a WAV ([`record`]) from the microphone, which the app's own
 //! pages may open ([`microphone`]). A whole mix is measured without playing it ([`analyze`]).
 
 mod analyses;
@@ -8,6 +8,7 @@ mod analyze;
 mod beats;
 pub mod commands;
 mod floor;
+mod loudness;
 mod microphone;
 mod record;
 mod silences;
@@ -23,4 +24,5 @@ pub fn setup(app: &mut App) {
     app.manage(analyses::Analyses::default());
     app.manage(beats::Beats::default());
     app.manage(silences::Silences::default());
+    app.manage(loudness::Loudness::default());
 }

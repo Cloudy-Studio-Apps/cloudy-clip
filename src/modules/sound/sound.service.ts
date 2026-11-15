@@ -122,3 +122,29 @@ export async function finishSilences(jobId: string): Promise<[Micros, Micros][]>
 export function cancelSilences(jobId: string): Promise<void> {
   return invoke<void>("sound_silences_cancel", { jobId });
 }
+
+/**
+ * Starts measuring the integrated loudness of `from..to` of the file at `path` (file microseconds),
+ * before any clip volume. `onProgress` gets 0 to 1. Resolves with the id for `finishLoudness` and
+ * `cancelLoudness`, or null when the file has no sound.
+ */
+export function beginLoudness(
+  path: string,
+  from: Micros,
+  to: Micros,
+  onProgress: (progress: number) => void,
+): Promise<string | null> {
+  const channel = new Channel<number>();
+  channel.onmessage = onProgress;
+  return invoke<string | null>("sound_loudness_begin", { path, from, to, onProgress: channel });
+}
+
+/** Waits for a measurement: LUFS, or null when it is silent. Rejects with message "Cancelled" when it was stopped. */
+export function finishLoudness(jobId: string): Promise<number | null> {
+  return invoke<number | null>("sound_loudness_finish", { jobId });
+}
+
+/** Stops a measurement. */
+export function cancelLoudness(jobId: string): Promise<void> {
+  return invoke<void>("sound_loudness_cancel", { jobId });
+}

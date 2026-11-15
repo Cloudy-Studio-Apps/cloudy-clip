@@ -10,6 +10,7 @@ use super::analyses::{self, Analyses};
 use super::analyze::Analysis;
 use super::beats::{self, Beats};
 use super::floor::{MEASURE_ARGS, parse_floor, stretch_args};
+use super::loudness::{self, Loudness};
 use super::record::{TakeStarted, TakeWritten, Takes};
 use super::silences::{self, Silences};
 use crate::error::{AppError, AppResult};
@@ -208,5 +209,36 @@ pub async fn sound_silences_finish(
 #[tauri::command]
 pub async fn sound_silences_cancel(job_id: String, silences: State<'_, Silences>) -> AppResult<()> {
     silences::cancel(&job_id, &silences).await;
+    Ok(())
+}
+
+/// Starts measuring the integrated loudness of `from..to` (microseconds of the file) of the file
+/// at `path`, before any clip volume. Reports 0 to 1 to `on_progress`. Returns the id for
+/// `sound_loudness_finish` and `sound_loudness_cancel`, or null when the file has no sound.
+#[tauri::command]
+pub async fn sound_loudness_begin(
+    path: String,
+    from: u64,
+    to: u64,
+    on_progress: Channel<f32>,
+    loudness: State<'_, Loudness>,
+) -> AppResult<Option<String>> {
+    loudness::begin(&PathBuf::from(path), from, to, on_progress, &loudness).await
+}
+
+/// Waits for a measurement to end: LUFS, or null when it is all below the gate (silence). Fails
+/// with "Cancelled" when it was stopped.
+#[tauri::command]
+pub async fn sound_loudness_finish(
+    job_id: String,
+    loudness: State<'_, Loudness>,
+) -> AppResult<Option<f64>> {
+    loudness::finish(&job_id, &loudness).await
+}
+
+/// Stops a measurement. One that already ended is left alone.
+#[tauri::command]
+pub async fn sound_loudness_cancel(job_id: String, loudness: State<'_, Loudness>) -> AppResult<()> {
+    loudness::cancel(&job_id, &loudness).await;
     Ok(())
 }

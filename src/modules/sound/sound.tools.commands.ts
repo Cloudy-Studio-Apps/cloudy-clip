@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand } from "@/core";
-import { clipEnd, formatOf, projectRef } from "@/modules/project";
+import { setSound } from "@/modules/audio";
+import { setKeyValues } from "@/modules/keyframe";
+import { clipEnd, formatOf, projectRef, soundOf } from "@/modules/project";
 import {
   deleteClips,
   editSoundOnly,
@@ -8,6 +10,7 @@ import {
   rippleDelete,
   splitAt,
 } from "@/modules/timeline";
+import { VOLUME_KEYS, levelPlan } from "./logic/level";
 import { SILENCE_DEFAULTS } from "./logic/silence";
 import { soundRef } from "./sound.ref";
 
@@ -93,5 +96,64 @@ export const stripSilence = defineCommand({
   },
 });
 
+/**
+ * Brings clips to the same loudness. Each clip is measured as its file plays between its trims
+ * (and speed), before its own volume, so the result does not depend on the volume it has now.
+ */
+export const matchLevel = defineCommand({
+  id: "sound.matchLevel",
+  label: "Match level",
+  description:
+    "Brings clips with sound to the same loudness (integrated LUFS, BS.1770), as one undo step. Each clip is measured as its file plays between its trims and speed, before its own volume, so the result does not depend on its current volume: a clip with no volume keys gets the volume targetLufs minus its loudness (dB, kept within -60 to 12). A clip whose volume has keys keeps its curve: every key moves by that same dB (kept within the range, so a key that would pass it stops at its edge). targetLufs (-70 to 0) defaults to the loudest clip named, which turns nothing up past it. It never measures: run sound_measure_clips first with the same clipIds (the measurements are kept), or it fails with sound.levels_missing. A picture clip is matched through its linked sound. Clips with no sound of their own (text, images, held frames, a nested composition, a file with no sound stream) and silent clips are skipped and named in skipped. Returns { target, changes: [{ clipId, lufs, deltaDb, volumeDb (null when its keys moved), clamped }], skipped: [{ clipId, reason }] }. Fails with sound.levels_missing, sound.clip_not_found, sound.nothing_to_match (nothing measurable, nothing changes).",
+  undoable: true,
+  input: z.object({
+    clipIds: z.array(z.string()).min(1),
+    targetLufs: z.number().min(-70).max(0).optional(),
+  }),
+  async run(ctx, { clipIds, targetLufs }) {
+    const project = ctx.require(projectRef).store;
+    for (const id of clipIds) {
+      if (!project.getState().clips[id]) {
+        throw new CommandFailure("sound.clip_not_found", `No clip ${id}.`);
+      }
+    }
+    // The measuring ran before this command (the dialog, or sound_measure_clips): it never waits on FFmpeg.
+    const measured = ctx.require(soundRef).loudness.kept(clipIds);
+    if (!measured) {
+      throw new CommandFailure(
+        "sound.levels_missing",
+        "These clips haven't been measured: run sound_measure_clips first.",
+      );
+    }
+    const state = project.getState();
+    const plan = levelPlan(state, measured, targetLufs);
+    if (plan.changes.length === 0) {
+      throw new CommandFailure(
+        "sound.nothing_to_match",
+        `No clip with sound to match. ${plan.skipped.map((s) => s.reason).join(" ")}`.trim(),
+      );
+    }
+    for (const change of plan.changes) {
+      if (change.volumeDb === null) {
+        const keys = state.clips[change.clipId]!.animation![VOLUME_KEYS]!.keys;
+        await ctx.execute(setKeyValues, {
+          keys: keys.map((key) => ({
+            clipId: change.clipId,
+            path: VOLUME_KEYS,
+            keyId: key.id,
+            offset: change.deltaDb,
+          })),
+        });
+      } else if (change.volumeDb !== soundOf(state.clips[change.clipId]!).volumeDb) {
+        await ctx.execute(setSound, {
+          clipIds: [change.clipId],
+          patch: { volumeDb: change.volumeDb },
+        });
+      }
+    }
+    return plan;
+  },
+});
+
 /** The tools commands, for the module. */
-export const soundToolsCommands = [stripSilence];
+export const soundToolsCommands = [stripSilence, matchLevel];

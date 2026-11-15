@@ -3,7 +3,7 @@ import { commandTool, defineMcpTool, errorResult, textResult } from "@/core";
 import { projectRef } from "@/modules/project";
 import { SILENCE_DEFAULTS } from "./logic/silence";
 import { soundRef } from "./sound.ref";
-import { stripSilence } from "./sound.tools.commands";
+import { matchLevel, stripSilence } from "./sound.tools.commands";
 
 /** What sound_strip_silence would cut, without cutting. */
 const findSilences = defineMcpTool({
@@ -35,8 +35,31 @@ const findSilences = defineMcpTool({
   },
 });
 
-/** The quick-tool tools: strip silence, and read what it would cut. */
+/** What sound_match_level would work from. */
+const measureClips = defineMcpTool({
+  name: "sound_measure_clips",
+  readOnly: true,
+  description:
+    "Measures the integrated loudness (LUFS, BS.1770) of clipIds as { clips: [{ clipId, lufs, noSound? }] }, nothing changed. Each clip is measured as its file plays between its trims and speed, before its own volume. A picture clip is measured through its linked sound (listed under the sound clip). lufs is null for a silent clip; noSound: true for a clip with no sound of its own (text, an image, a held frame, a nested composition, a file with no sound stream). It measures (a long file takes a while, two at a time) and keeps the result: sound_match_level only works from a measurement of the same clipIds. Fails with sound.clip_not_found, sound.measure_failed (also when cancelled).",
+  input: z.object({ clipIds: z.array(z.string()).min(1) }),
+  async handler({ clipIds }, ctx) {
+    const state = ctx.require(projectRef).store.getState();
+    const missing = clipIds.find((id) => !state.clips[id]);
+    if (missing)
+      return errorResult({ code: "sound.clip_not_found", message: `No clip ${missing}.` });
+    try {
+      return textResult({ clips: await ctx.require(soundRef).loudness.measure(clipIds) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : JSON.stringify(error);
+      return errorResult({ code: "sound.measure_failed", message });
+    }
+  },
+});
+
+/** The quick-tool tools: strip silence and match level, and the reads that go before them. */
 export const soundToolsTools = [
   commandTool(stripSilence, { name: "sound_strip_silence" }),
   findSilences,
+  commandTool(matchLevel, { name: "sound_match_level" }),
+  measureClips,
 ];

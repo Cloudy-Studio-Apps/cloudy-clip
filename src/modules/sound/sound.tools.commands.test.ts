@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createKernel, defineModule, type Kernel } from "@/core";
+import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
 import { mediaRef } from "@/modules/media";
 import { elementModule } from "@/modules/element";
 import { junctionModule } from "@/modules/junction";
@@ -10,7 +10,9 @@ import {
   createProjectModule,
   projectRef,
   seedProject,
+  DEFAULT_SOUND,
   type Clip,
+  type KeyTrack,
   type ProjectState,
 } from "@/modules/project";
 import { timelineModule } from "@/modules/timeline";
@@ -18,17 +20,31 @@ import { SILENCE_DEFAULTS } from "./logic/silence";
 import { createSilenceFinder } from "./sound.silence";
 import { soundRef } from "./sound.ref";
 import type { SoundApi } from "./sound.types";
-import { beginSilences, finishSilences } from "./sound.service";
-import { stripSilence } from "./sound.tools.commands";
+import { beginLoudness, beginSilences, finishLoudness, finishSilences } from "./sound.service";
+import { matchLevel, stripSilence } from "./sound.tools.commands";
+import { createLoudnessMeter } from "./sound.loudness";
+import { audioModule } from "@/modules/audio";
+import { keyframeModule } from "@/modules/keyframe";
+
+/** Stands in for the inspector, which audio and keyframe need only for their panels. */
+const inspector = defineModule({
+  ref: defineModuleRef<Record<string, never>>("inspector"),
+  name: "inspector",
+  tier: "feature",
+  commands: [],
+  mcpTools: [],
+  setup: () => ({ api: {} }),
+});
 
 // The sound module needs the whole app to set up; this command needs only its silence finder.
 const sound = defineModule({
   ref: soundRef,
   name: "Sound",
-  commands: [stripSilence],
+  commands: [stripSilence, matchLevel],
   setup({ require }) {
     const silences = createSilenceFinder(require(projectRef).store.getState, require(mediaRef));
-    return { api: { silences } as SoundApi };
+    const loudness = createLoudnessMeter(require(projectRef).store.getState, require(mediaRef));
+    return { api: { silences, loudness } as SoundApi };
   },
 });
 
@@ -36,6 +52,8 @@ vi.mock("./sound.service", async (original) => ({
   ...(await original<Record<string, unknown>>()),
   beginSilences: vi.fn(async () => "scan"),
   finishSilences: vi.fn(),
+  beginLoudness: vi.fn(async () => "measure"),
+  finishLoudness: vi.fn(),
 }));
 
 const S = 1_000_000;
@@ -94,6 +112,9 @@ async function load(clips: Clip[], junctions: ProjectState["junctions"] = {}) {
     createFakeFontsModule(),
     previewModule,
     timelineModule,
+    inspector,
+    audioModule,
+    keyframeModule,
     sound,
   ]);
 }
@@ -243,5 +264,89 @@ describe("sound.stripSilence", () => {
       expect(result).toMatchObject({ ok: false, error: { code: "junction.split_in_overlap" } });
       expect(state()).toEqual(before);
     });
+  });
+});
+
+describe("sound.matchLevel", () => {
+  /** Measures as the dialog does (each file's loudness by its path), then matches. */
+  async function match(input: { clipIds: string[]; targetLufs?: number }, measure = true) {
+    if (measure) await kernel.modules.require(soundRef).loudness.measure(input.clipIds);
+    return kernel.bus.run(matchLevel, input);
+  }
+  const loudness = (byPath: Record<string, number | null>) => {
+    vi.mocked(beginLoudness).mockImplementation(async (path) => `m:${path}`);
+    vi.mocked(finishLoudness).mockImplementation(async (id) => byPath[id.slice(2)] ?? null);
+  };
+  const volumes = () =>
+    Object.fromEntries(Object.values(state().clips).map((c) => [c.id, c.sound?.volumeDb ?? 0]));
+
+  it("brings two clips to the loudest, a volume that differs by their difference", async () => {
+    await load([clip({ id: "a" }), clip({ id: "b", mediaId: "mv", start: 10 * S })]);
+    loudness({ "/a.mp3": -20, "/a.mp4": -26 });
+    const result = await match({ clipIds: ["a", "b"] });
+    expect(result).toMatchObject({ ok: true, value: { target: -20 } });
+    expect(volumes()).toEqual({ a: 0, b: 6 });
+  });
+
+  it("sets the volume from the file's loudness, whatever the volume was", async () => {
+    await load([clip({ id: "a", sound: { ...DEFAULT_SOUND, volumeDb: -10 } })]);
+    loudness({ "/a.mp3": -26 });
+    await match({ clipIds: ["a"], targetLufs: -23 });
+    expect(volumes().a).toBe(3);
+  });
+
+  it("stops at the volume range and says so", async () => {
+    await load([clip({ id: "a" }), clip({ id: "b", mediaId: "mv", start: 10 * S })]);
+    loudness({ "/a.mp3": -10, "/a.mp4": -40 });
+    const result = await match({ clipIds: ["a", "b"] });
+    expect(volumes().b).toBe(12);
+    expect(result).toMatchObject({ value: { changes: [{}, { clamped: true }] } });
+  });
+
+  it("moves every volume key by the same dB, as one undo step", async () => {
+    const keys: KeyTrack = {
+      blend: "number",
+      min: -60,
+      max: 12,
+      keys: [
+        { id: "k1", t: 0, value: 0, ease: { kind: "linear" } },
+        { id: "k2", t: 5 * S, value: -12, ease: { kind: "linear" } },
+      ],
+    };
+    await load([
+      clip({ id: "a", animation: { "sound.volumeDb": keys } }),
+      clip({ id: "b", mediaId: "mv", start: 10 * S }),
+    ]);
+    loudness({ "/a.mp3": -26, "/a.mp4": -20 });
+    const before = state();
+    await match({ clipIds: ["a", "b"] });
+    expect(state().clips.a!.animation!["sound.volumeDb"]!.keys.map((k) => k.value)).toEqual([
+      6, -6,
+    ]);
+    kernel.history.undo();
+    expect(state()).toEqual(before);
+  });
+
+  it("refuses without a measurement, and never measures itself", async () => {
+    await load([clip({ id: "a" })]);
+    vi.mocked(beginLoudness).mockClear();
+    const result = await match({ clipIds: ["a"] }, false);
+    expect(result).toMatchObject({ ok: false, error: { code: "sound.levels_missing" } });
+    expect(beginLoudness).not.toHaveBeenCalled();
+  });
+
+  it("leaves silent clips and clips with no sound alone, and names them", async () => {
+    await load([
+      clip({ id: "a" }),
+      clip({ id: "b", mediaId: "mv", start: 10 * S }),
+      clip({ id: "t", kind: "text", mediaId: undefined, trackId: "v1", start: 20 * S }),
+    ]);
+    loudness({ "/a.mp3": -20, "/a.mp4": null });
+    const result = await match({ clipIds: ["a", "b", "t"], targetLufs: -23 });
+    expect(result).toMatchObject({
+      ok: true,
+      value: { changes: [{ clipId: "a" }], skipped: [{ clipId: "b" }, { clipId: "t" }] },
+    });
+    expect(volumes().a).toBe(-3);
   });
 });

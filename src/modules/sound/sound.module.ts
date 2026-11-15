@@ -23,6 +23,7 @@ import { createMatcher } from "./sound.match";
 import { createBeatFinder } from "./sound.beats";
 import { createBeatsStore } from "./sound.beats.store";
 import { soundBeatCommands } from "./sound.beats.commands";
+import { createLoudnessMeter } from "./sound.loudness";
 import { createSilenceFinder } from "./sound.silence";
 import { silenceMenu } from "./sound.menu";
 import { soundToolsCommands } from "./sound.tools.commands";
@@ -59,6 +60,7 @@ import {
   SilenceCuts,
   SoloButton,
   StripSilenceHost,
+  MatchLevelHost,
   SoundPage,
   MasterLine,
   PointerLayer,
@@ -130,6 +132,12 @@ export const soundModule = defineModule({
       silences.cancel();
       silences.forget();
     });
+    const loudness = createLoudnessMeter(project.store.getState, media);
+    const openMatch: SoundApi["openMatch"] = (target) => view.setState({ match: target });
+    onDispose(() => {
+      loudness.cancel();
+      loudness.forget();
+    });
     const recorder = createRecorder({ bus, preview, project, media, workspace, view });
     onDispose(() => void recorder.stop());
     onDispose(followRecordingEnds(recorder, pages, playback, project, workspace));
@@ -180,6 +188,7 @@ export const soundModule = defineModule({
       component: MasterLine,
     });
     contribute(appOverlays, { id: "sound.stripSilence", component: StripSilenceHost });
+    contribute(appOverlays, { id: "sound.matchLevel", component: MatchLevelHost });
     contribute(timelineOverlays, {
       id: "sound.silenceCuts",
       scopes: ["all", "sound"],
@@ -239,6 +248,8 @@ export const soundModule = defineModule({
         beats,
         silences,
         openSilence,
+        loudness,
+        openMatch,
         setTool: (tool) => view.setState({ tool }),
         setAutomation: (target, mode, compositionId) =>
           setAutomationMode(view, target, mode, compositionId ?? project.view.openFor(LOCAL_ACTOR)),

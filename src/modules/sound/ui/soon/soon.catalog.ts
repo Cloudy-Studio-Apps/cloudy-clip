@@ -7,12 +7,6 @@ import type { SoonEntry, SoonId } from "../../sound.types";
  * the `ui/soon/` folder goes.
  */
 export const SOON: Record<SoonId, SoonEntry> = {
-  "transport.matchLevel": {
-    id: "transport.matchLevel",
-    label: "Match level",
-    what: "Brings the selected clips to the same loudness.",
-    stage: 6,
-  },
   "compressor.reduction": {
     id: "compressor.reduction",
     label: "Reduction",

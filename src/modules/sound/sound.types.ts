@@ -49,6 +49,8 @@ export interface SoundViewState {
   linePoint: { trackId: LineTarget; keyId: string } | null;
   /** The Strip silence dialog: the clips it is about and the cuts it shows on the lanes; null when closed. */
   silence: SilenceDialog | null;
+  /** The Match level dialog: the clips it is about; null when closed. */
+  match: MatchDialog | null;
 }
 
 /** The open Strip silence dialog. */
@@ -106,6 +108,58 @@ export interface SilenceFinder {
   cancel(): void;
   /** Forgets what was found (the files may have changed). */
   forget(): void;
+}
+
+/** What was measured of one clip's sound. */
+export interface ClipLoudness {
+  /** The clip that carries the sound (a picture clip is measured through its linked sound). */
+  clipId: ClipId;
+  /** Integrated loudness (LUFS) of the part of its file the clip plays, before its own volume; null when silent. */
+  lufs: number | null;
+  /** The clip has no sound of its own to measure (no sound stream, text, a held frame, a nested composition). */
+  noSound?: true;
+}
+
+/** Measures the loudness of clips outside the bus, two files at a time, and keeps it for Match level. */
+export interface LoudnessMeter {
+  /** Measures the clips' sound (what is kept isn't measured again); `onProgress` gets 0 to 1. Rejects with "Cancelled" or the native error. */
+  measure(
+    clipIds: readonly ClipId[],
+    onProgress?: (progress: number) => void,
+  ): Promise<ClipLoudness[]>;
+  /** The loudness of an earlier measurement of these clips, or null when one is missing. */
+  kept(clipIds: readonly ClipId[]): ClipLoudness[] | null;
+  /** Stops every measurement under way or waiting. */
+  cancel(): void;
+  /** Forgets what was measured (the files may have changed). */
+  forget(): void;
+}
+
+/** What Match level will do to one clip. */
+export interface LevelChange {
+  clipId: ClipId;
+  /** Its measured loudness (LUFS). */
+  lufs: number;
+  /** The change (dB): the target minus its loudness. */
+  deltaDb: number;
+  /** Its new volume (dB) when it has none keyed; null when its volume keys shift instead. */
+  volumeDb: number | null;
+  /** The new value (or a key's) would pass the volume range and stops at its edge. */
+  clamped: boolean;
+}
+
+/** What Match level would do: shown before it is applied. */
+export interface LevelPlan {
+  /** The loudness every clip is brought to (LUFS). */
+  target: number | null;
+  changes: LevelChange[];
+  /** Clips left alone, and why. */
+  skipped: { clipId: ClipId; reason: string }[];
+}
+
+/** The open Match level dialog: the clips it is about; null when closed. */
+export interface MatchDialog {
+  clipIds: ClipId[];
 }
 
 /**
@@ -292,6 +346,10 @@ export interface SoundApi {
   silences: SilenceFinder;
   /** Opens the Strip silence dialog on clips, or closes it (null). */
   openSilence(target: { clipIds: ClipId[]; soundOnly: boolean } | null): void;
+  /** Match level: measures clips' loudness for the command that matches it. */
+  loudness: LoudnessMeter;
+  /** Opens the Match level dialog on clips, or closes it (null). */
+  openMatch(target: MatchDialog | null): void;
 }
 
 /** Beats found per file, and the find under way. View state of the kernel, never in history. */
@@ -637,7 +695,7 @@ export interface ChainDrag {
  * A control of the Sound page that a later stage makes work: one entry of `ui/soon/soon.catalog.ts`.
  * Each stage removes its own ids as it builds them.
  */
-export type SoonId = "transport.matchLevel" | "compressor.reduction";
+export type SoonId = "compressor.reduction";
 
 /** A placeholder: what it will be and the stage that builds it. */
 export interface SoonEntry {
@@ -647,7 +705,7 @@ export interface SoonEntry {
   /** What it will do, one sentence. */
   what: string;
   /** The stage plan that builds it: `docs/superpowers/plans/2026-11-03-sound-<stage>-*.md`. */
-  stage: "2-followup" | 3 | 6;
+  stage: "2-followup";
 }
 
 /** The props a placeholder spreads: dimmed for screen readers, its tooltip, an arrow pointer, a click that does nothing. */

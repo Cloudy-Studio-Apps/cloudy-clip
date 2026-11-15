@@ -18,4 +18,4 @@ export {
   TrackVolumeLine,
 } from "./lanes";
 export { SoundPage } from "./SoundPage";
-export { StripSilenceHost } from "./transport";
+export { MatchLevelHost, StripSilenceHost } from "./transport";
