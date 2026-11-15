@@ -29,10 +29,10 @@ cd src-tauri && cargo clippy --all-targets -- -D warnings && cargo test
 
 ## Release builds
 
-| Command              | Builds                          | Output                             |
-| -------------------- | ------------------------------- | ---------------------------------- |
-| `pnpm release:linux` | The `.deb`, `.rpm` and AppImage | `src-tauri/target/release/bundle/` |
-| `pnpm release:arch` | A pacman package with the desktop entry | `packaging/arch/` |
+| Command              | Builds                                  | Output                             |
+| -------------------- | --------------------------------------- | ---------------------------------- |
+| `pnpm release:linux` | The `.deb`, `.rpm` and AppImage         | `src-tauri/target/release/bundle/` |
+| `pnpm release:arch`  | A pacman package with the desktop entry | `packaging/arch/`                  |
 
 ### Publishing a release
 
