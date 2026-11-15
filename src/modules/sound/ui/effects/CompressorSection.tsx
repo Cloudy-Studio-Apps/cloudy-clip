@@ -8,7 +8,7 @@ import {
 import { defaultSpec } from "../../logic/effects";
 import type { DuckOwner, EffectEdit, TransferGraphHandle } from "../../sound.effects.types";
 import { PanelValue } from "../card";
-import { useMeters } from "../mixer";
+import { useMeters } from "../meters";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
 import { TransferGraph } from "./TransferGraph";

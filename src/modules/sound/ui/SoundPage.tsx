@@ -5,7 +5,8 @@ import { PreviewStage } from "@/modules/preview";
 import { TimelinePanel, type TrackFocus } from "@/modules/timeline";
 import { cn } from "@/ui";
 import { soundRef } from "../sound.ref";
-import { MeterLoopProvider, MixerPanel, useMeterLoop } from "./mixer";
+import { MeterLoopProvider } from "./meters";
+import { MixerPanel, useMeterLoop } from "./mixer";
 import { SoundPanel } from "./panel";
 import { SoundTransport } from "./transport";
 

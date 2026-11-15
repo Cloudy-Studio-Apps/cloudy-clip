@@ -64,7 +64,8 @@ export function createEffectRunner(sampleRate: number): EffectRunner {
       limit = next.kind === "limiter" ? limiterSettings(next, sampleRate) : null;
     },
     takeReduction() {
-      const db = command?.kind === "compressor" && lowest < 1 ? -20 * Math.log10(lowest) : 0;
+      const db =
+        command?.kind === "compressor" && command.on && lowest < 1 ? -20 * Math.log10(lowest) : 0;
       lowest = 1;
       return db;
     },
