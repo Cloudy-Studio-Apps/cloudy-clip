@@ -42,6 +42,8 @@ export interface RelinkKind {
   id: string;
   /** Lower comes first. */
   order: number;
+  /** Said under the dialog's text while this kind has missing files (how its Locate works). */
+  note?: string;
   component: ComponentType<RelinkRowsProps>;
 }
 

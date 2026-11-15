@@ -28,6 +28,9 @@ export type {
 /** Kinds of file kept by path that the relink dialog lists (media is the workspace's own). */
 export { relinkKinds } from "./workspace.points";
 
+/** One missing file in the relink dialog (name, Locate…), for a `RelinkKind`'s rows. */
+export { RelinkRow } from "./ui";
+
 /** Module definition, loaded by the app shell. */
 export { workspaceModule } from "./workspace.module";
 /** Handle for `require(workspaceRef)` / `useModule(workspaceRef)`. */

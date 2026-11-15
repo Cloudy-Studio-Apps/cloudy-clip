@@ -2,8 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { projectRef } from "@/modules/project";
-import type { RelinkRowsProps } from "@/modules/workspace";
-import { Button } from "@/ui";
+import { RelinkRow, type RelinkRowsProps } from "@/modules/workspace";
 import { tintRef } from "../tint.ref";
 import { usePickLut } from "./lut.pick.hook";
 
@@ -20,13 +19,12 @@ export function LutRelinkRows({ onCount }: RelinkRowsProps) {
   );
   useEffect(() => onCount(missing.length), [missing.length, onCount]);
   return missing.map((lut) => (
-    <div key={lut.id} className="flex items-center gap-2">
-      <span className="min-w-0 flex-1 truncate text-sm" title={lut.path}>
-        {lut.name} <span className="text-muted-foreground">(LUT)</span>
-      </span>
-      <Button size="sm" onClick={() => void locate(lut)}>
-        Locate…
-      </Button>
-    </div>
+    <RelinkRow
+      key={lut.id}
+      name={lut.name}
+      path={lut.path}
+      tag="LUT"
+      onLocate={() => void locate(lut)}
+    />
   ));
 }

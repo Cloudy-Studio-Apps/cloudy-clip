@@ -25,16 +25,20 @@ const nameOf = (path: string) => (path.split(/[\\/]/).pop() ?? path).replace(/\.
 /**
  * Adds a `.cube` LUT file to the project by path, kept by path like media (`ProjectState.luts`).
  * The file is read and parsed first; one undo step. Returns `{ lutId }`; a correction uses it
- * through `tint.setCorrection`'s `patch.lut`.
+ * through `tint.setCorrection`'s `patch.lut`. A path already imported gives that LUT's id and
+ * changes nothing.
  */
 export const importLut = defineCommand({
   id: "tint.importLut",
   label: "Import LUT",
   description:
-    "Adds a .cube LUT file to the project, by absolute path: a 3D LUT (LUT_3D_SIZE 2 to 65) or a 1D one (LUT_1D_SIZE 2 to 4096), with DOMAIN_MIN / DOMAIN_MAX honoured, at most 8 MB. The file is kept by path like media (relink it with tint_relink_lut if it moves); it is not copied. Returns { lutId }. Apply it to a correction with tint_set_correction patch.lut { id: lutId, strength 0 to 1 }; it runs after Creative, mixed toward by strength. Fails with tint.lut_not_found (no file there) or tint.bad_lut (not an absolute .cube path, too large, or not a valid .cube; the message says why).",
+    "Adds a .cube LUT file to the project, by absolute path: a 3D LUT (LUT_3D_SIZE 2 to 65) or a 1D one (LUT_1D_SIZE 2 to 4096), with DOMAIN_MIN / DOMAIN_MAX honoured, at most 8 MB. The file is kept by path like media (relink it with tint_relink_lut if it moves); it is not copied. Returns { lutId }; a path already imported returns that LUT's id and adds nothing. Apply it to a correction with tint_set_correction patch.lut { id: lutId, strength 0 to 1 }; it runs after Creative, mixed toward by strength. Fails with tint.lut_not_found (no file there) or tint.bad_lut (not an absolute .cube path, too large, or not a valid .cube; the message says why).",
   undoable: true,
   input: z.object({ path: z.string().min(1) }),
   async run(ctx, { path }) {
+    const known = Object.values(ctx.require(projectRef).store.getState().luts ?? {});
+    const same = known.find((lut) => lut.path === path);
+    if (same) return { lutId: same.id };
     const lut = await readLutOrFail(path);
     const lutId = createId("lut");
     ctx.require(tintRef).luts.put(path, lut);

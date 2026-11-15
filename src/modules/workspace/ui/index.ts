@@ -2,4 +2,5 @@
 export { MediaRelinkRows } from "./MediaRelinkRows";
 export { ProjectTitle } from "./ProjectTitle";
 export { RelinkHost } from "./RelinkHost";
+export { RelinkRow } from "./RelinkRow";
 export { StartDialogHost } from "./StartDialogHost";

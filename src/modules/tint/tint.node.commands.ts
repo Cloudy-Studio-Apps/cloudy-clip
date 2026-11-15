@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand, type CommandContext } from "@/core";
 import {
+  BUILTIN_LUT_PREFIX,
   correctionValuesSchema,
   gradeLimitSchema,
   projectRef,
@@ -57,9 +58,9 @@ const lutSchema = z
     "A LUT for the correction: id from tint_import_lut (or tint_describe's luts) and strength 0 to 1 (0 changes nothing, 1 is the LUT in full). It runs after Creative.",
   );
 
-/** Refuses a LUT the project hasn't imported. */
+/** Refuses a LUT the project hasn't imported (a built-in look's id is taken as it is). */
 function checkLut(state: ProjectState, lut: { id: string } | null | undefined): void {
-  if (lut && !state.luts?.[lut.id]) {
+  if (lut && !lut.id.startsWith(BUILTIN_LUT_PREFIX) && !state.luts?.[lut.id]) {
     throw new CommandFailure("tint.lut_not_found", `No LUT with id "${lut.id}" in this project`);
   }
 }

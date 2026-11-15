@@ -1,5 +1,7 @@
 //! Tint module: reading `.cube` LUT files. Parsing them and everything else lives in TypeScript.
 
+use tokio::io::AsyncReadExt;
+
 use crate::error::{AppError, AppResult};
 use crate::workspace::file_path;
 
@@ -21,21 +23,25 @@ fn check_size(raw: &str, bytes: u64) -> AppResult<()> {
     Ok(())
 }
 
-/// The text of a `.cube` file at an absolute path, at most 8 MB, UTF-8.
+/// The text of a `.cube` file at an absolute path, at most 8 MB, UTF-8. The file is opened once and
+/// read through a cap, so one that grows after the size check is still refused.
 #[tauri::command]
 pub async fn tint_read_lut(path: String) -> Result<String, AppError> {
     let file = lut_path(&path)?;
-    let meta = match tokio::fs::metadata(&file).await {
+    let opened = match tokio::fs::File::open(&file).await {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             return Err(AppError::NotFound(format!("File not found: {path}")));
         }
         result => result?,
     };
+    let meta = opened.metadata().await?;
     if !meta.is_file() {
         return Err(AppError::InvalidInput(format!("Not a file: {path}")));
     }
     check_size(&path, meta.len())?;
-    let bytes = tokio::fs::read(&file).await?;
+    let mut bytes = Vec::with_capacity(meta.len() as usize);
+    opened.take(MAX_BYTES + 1).read_to_end(&mut bytes).await?;
+    check_size(&path, bytes.len() as u64)?;
     String::from_utf8(bytes)
         .map_err(|_| AppError::InvalidInput(format!("{path} is not a text file (UTF-8)")))
 }

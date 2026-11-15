@@ -2,7 +2,13 @@ import type { StoreApi } from "zustand";
 import { CommandFailure, notify } from "@/core";
 import type { MediaApi } from "@/modules/media";
 import type { FilterTarget, PictureFilter } from "@/modules/preview";
-import { canGrade, gradeOf, type Clip, type ProjectState } from "@/modules/project";
+import {
+  BUILTIN_LUT_PREFIX,
+  canGrade,
+  gradeOf,
+  type Clip,
+  type ProjectState,
+} from "@/modules/project";
 import { gradePasses } from "./render/passes";
 import { createGradeTextures } from "./render/textures";
 import { videoRange } from "./tint.range";
@@ -35,13 +41,15 @@ export function createTintFilter(
   const warned = new Set<string>();
   const lutsOf = (clip: Clip, project: ProjectState) =>
     Object.values(gradeOf(clip)?.nodes ?? {}).flatMap((node) => {
-      const lut = node.kind === "correct" && node.lut ? project.luts?.[node.lut.id] : undefined;
+      const id = node.kind === "correct" ? node.lut?.id : undefined;
+      // A built-in look has no file to wait for.
+      const lut = id && !id.startsWith(BUILTIN_LUT_PREFIX) ? project.luts?.[id] : undefined;
       return lut ? [lut] : [];
     });
   const lookup =
     (project: ProjectState, target: FilterTarget): LutLookup =>
     (id) => {
-      const lut = project.luts?.[id];
+      const lut = id.startsWith(BUILTIN_LUT_PREFIX) ? undefined : project.luts?.[id];
       if (!lut) return null;
       const file = luts.file(lut);
       if (file.status === "ready") return file.lut;

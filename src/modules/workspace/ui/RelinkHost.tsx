@@ -21,6 +21,7 @@ function RelinkDialog() {
 
   const reported = kinds.every(({ id }) => counts[id] !== undefined);
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+  const notes = kinds.flatMap(({ id, note }) => (note && counts[id] ? [note] : []));
   useEffect(() => {
     if (reported && total === 0) ui.setState({ relink: false });
   }, [reported, total, ui]);
@@ -31,9 +32,12 @@ function RelinkDialog() {
       onClose={close}
       footer={<Button onClick={close}>Skip</Button>}
     >
-      <p className="text-sm text-muted-foreground">
-        Locate them and what uses them comes back. Files in the same folder are found together.
-      </p>
+      <p className="text-sm text-muted-foreground">Locate them and what uses them comes back.</p>
+      {notes.map((note) => (
+        <p key={note} className="text-sm text-muted-foreground">
+          {note}
+        </p>
+      ))}
       {[...kinds]
         .sort((a, b) => a.order - b.order)
         .map((kind) => (

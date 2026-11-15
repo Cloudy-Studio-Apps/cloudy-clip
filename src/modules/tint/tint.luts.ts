@@ -40,7 +40,7 @@ export function createLutFiles(
       set(path, { status: "ready", lut });
     },
     ready: (state) => (id) => {
-      const lut = state.luts?.[id];
+      const lut = id.startsWith(BUILTIN_LUT_PREFIX) ? undefined : state.luts?.[id];
       const file = lut ? files.file(lut) : null;
       return file?.status === "ready" ? file.lut : null;
     },

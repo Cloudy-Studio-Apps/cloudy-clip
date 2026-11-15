@@ -3,8 +3,8 @@ import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { mediaRef, useLocateMedia } from "@/modules/media";
 import { projectRef } from "@/modules/project";
-import { Button } from "@/ui";
 import type { RelinkRowsProps } from "../workspace.types";
+import { RelinkRow } from "./RelinkRow";
 
 /** The media an opened project couldn't find, each with Locate. */
 export function MediaRelinkRows({ onCount }: RelinkRowsProps) {
@@ -19,13 +19,11 @@ export function MediaRelinkRows({ onCount }: RelinkRowsProps) {
   );
   useEffect(() => onCount(missing.length), [missing.length, onCount]);
   return missing.map((asset) => (
-    <div key={asset.id} className="flex items-center gap-2">
-      <span className="min-w-0 flex-1 truncate text-sm" title={asset.path}>
-        {asset.name}
-      </span>
-      <Button size="sm" onClick={() => void locate(asset)}>
-        Locate…
-      </Button>
-    </div>
+    <RelinkRow
+      key={asset.id}
+      name={asset.name}
+      path={asset.path}
+      onLocate={() => void locate(asset)}
+    />
   ));
 }

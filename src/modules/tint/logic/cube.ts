@@ -22,7 +22,9 @@ function triple(parts: readonly string[]): Rgb | null {
 /**
  * Reads a `.cube` file: `LUT_3D_SIZE` (2 to 65) or `LUT_1D_SIZE` (2 to 4096), `DOMAIN_MIN` /
  * `DOMAIN_MAX` (or `LUT_3D_INPUT_RANGE` / `LUT_1D_INPUT_RANGE`, the same for all three channels),
- * `TITLE` and `#` comments, then one `r g b` line per entry. Throws an `Error` saying what is wrong.
+ * `TITLE`, `#` comments (whole lines or after a value), then one `r g b` line per entry. Other
+ * uppercase keywords (`LUT_IN_VIDEO_RANGE`, …) are skipped. A file with both a 1D shaper and a 3D
+ * table (Resolve's combined form) is refused. Throws an `Error` saying what is wrong.
  */
 export function parseCube(text: string): CubeLut {
   let kind: CubeLut["kind"] | null = null;
@@ -34,13 +36,17 @@ export function parseCube(text: string): CubeLut {
   const values: number[] = [];
   const lines = text.split(/\r?\n/);
   for (let n = 0; n < lines.length; n++) {
-    const line = lines[n]!.trim();
-    if (line === "" || line.startsWith("#")) continue;
+    const line = lines[n]!.replace(/#.*/, "").trim();
+    if (line === "") continue;
     const [word, ...rest] = line.split(/\s+/);
     const where = `line ${n + 1}`;
     if (word === "TITLE") continue;
     if (word === "LUT_3D_SIZE" || word === "LUT_1D_SIZE") {
-      if (kind) throw new Error(`A second table size at ${where}: one table per file`);
+      if (kind) {
+        throw new Error(
+          `The file has both a 1D shaper and a 3D table (${where}), which isn't supported: export it as a single 3D LUT`,
+        );
+      }
       kind = word === "LUT_3D_SIZE" ? "3d" : "1d";
       size = Number(rest[0]);
       const max = kind === "3d" ? MAX_CUBE_3D : MAX_CUBE_1D;
@@ -64,6 +70,7 @@ export function parseCube(text: string): CubeLut {
       domain[1] = [hi!, hi!, hi!];
       continue;
     }
+    if (/^[A-Z][A-Z0-9_]*$/.test(word!)) continue;
     const rgb = triple([word!, ...rest]);
     if (!rgb) throw new Error(`Not a LUT entry or keyword at ${where}: "${line.slice(0, 40)}"`);
     if (!kind) throw new Error(`An entry before LUT_3D_SIZE or LUT_1D_SIZE (${where})`);

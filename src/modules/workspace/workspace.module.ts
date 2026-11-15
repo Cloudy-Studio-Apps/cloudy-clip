@@ -61,7 +61,12 @@ export const workspaceModule = defineModule({
       { id: "workspace.start", component: StartDialogHost },
       { id: "workspace.relink", component: RelinkHost },
     );
-    contribute(relinkKinds, { id: "workspace.media", order: 0, component: MediaRelinkRows });
+    contribute(relinkKinds, {
+      id: "workspace.media",
+      order: 0,
+      note: "Media files in the same folder are found together.",
+      component: MediaRelinkRows,
+    });
     contribute(topBarItems, { id: "workspace.title", slot: "left", component: ProjectTitle });
     const key = (id: string, keyName: string, command: string, shift = false) => ({
       id: `workspace.${id}`,
