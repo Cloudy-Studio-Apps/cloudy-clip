@@ -1,29 +1,27 @@
 import { useEffect, useRef } from "react";
-
-/** Marks the viewer's frame so the zoom chip can find the picture. */
-export const VIEWER_FRAME_ATTR = "data-viewer-frame";
+import { useOpenFormat } from "@/modules/project";
 
 /**
- * How big the picture is drawn, as a share of its own pixels. The viewer's stage always fits the
- * picture (the preview's zoom doesn't apply to it), so this is measured off the canvas; the text
- * is written to the DOM only when the rounded percent changes.
+ * How big the picture is drawn: its width on screen in CSS pixels over the project's width, so
+ * 100% is one picture pixel per CSS pixel (the screen's pixel ratio isn't counted, as in the
+ * editor's own zoom). The viewer's stage always fits the picture, so this is measured off the
+ * canvas of the frame marked `data-viewer-frame`; a ResizeObserver writes the text, and only when
+ * the rounded percent changes.
  */
 export function ZoomChip() {
   const chip = useRef<HTMLSpanElement>(null);
+  const { width } = useOpenFormat();
   useEffect(() => {
-    let frame = 0;
+    const canvas = document.querySelector("[data-viewer-frame] canvas");
+    if (!canvas) return;
     let last = "";
-    const follow = () => {
-      const canvas = document.querySelector<HTMLCanvasElement>(`[${VIEWER_FRAME_ATTR}] canvas`);
-      if (canvas && chip.current && canvas.width > 0) {
-        const text = `${Math.round((canvas.getBoundingClientRect().width / canvas.width) * 100)}%`;
-        if (text !== last) chip.current.textContent = last = text;
-      }
-      frame = requestAnimationFrame(follow);
-    };
-    follow();
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    const observer = new ResizeObserver(() => {
+      const text = `${Math.round((canvas.getBoundingClientRect().width / width) * 100)}%`;
+      if (chip.current && text !== last) chip.current.textContent = last = text;
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [width]);
   return (
     <span
       ref={chip}

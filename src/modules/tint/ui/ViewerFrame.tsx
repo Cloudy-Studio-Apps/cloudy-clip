@@ -9,7 +9,6 @@ import { FrameTag } from "./FrameTag";
 import { GuidesOverlay } from "./GuidesOverlay";
 import { SamplePoints } from "./SamplePoints";
 import { SideBySide } from "./SideBySide";
-import { VIEWER_FRAME_ATTR } from "./ZoomChip";
 import { ViewerPicker } from "./ViewerPicker";
 import { useTintView } from "./view.hook";
 
@@ -33,10 +32,7 @@ export function ViewerFrame() {
   const side = useTintView((v) => v.side);
   const stage = useRef<HTMLDivElement>(null);
   return (
-    <div
-      {...{ [VIEWER_FRAME_ATTR]: "" }}
-      className="relative flex min-h-0 flex-1 flex-col bg-stage"
-    >
+    <div data-viewer-frame="" className="relative flex min-h-0 flex-1 flex-col bg-stage">
       <div ref={stage} className="flex min-h-0 flex-1 flex-col">
         <PreviewStage bare />
       </div>

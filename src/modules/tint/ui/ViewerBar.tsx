@@ -60,6 +60,7 @@ function ToolButton({ tool }: { tool: ViewerTool }) {
   const on = (preview || mine) && !overridden;
   const Icon = tool.icon;
   const toggle = () => {
+    if (overridden) return;
     if (key === "compare") picture.setCompare(on ? null : 0.5);
     else if (key === "bypass") picture.setBypass(!on);
     else if (key === "samples") set({ samples: on ? null : [] });

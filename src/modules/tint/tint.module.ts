@@ -29,7 +29,7 @@ import { createTintClipboard, createTintLive, createTintView } from "./tint.stor
 import { clearViewing, tintViewCommands } from "./tint.view.commands";
 import { LutRelinkRows, SealSwitch, TintPage } from "./ui";
 
-/** The Tint page (its frame is real; the grade panels are still demo data) and the filter that draws clip grades. */
+/** The Tint page (the viewer, grade panels, tools and scopes read the project) and the filter that draws clip grades. */
 export const tintModule = defineModule({
   ref: tintRef,
   name: "Tint",
