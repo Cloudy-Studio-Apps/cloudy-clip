@@ -4,7 +4,7 @@ import { correctionOf } from "@/modules/project";
 import { prepareCorrection } from "../logic/color/correct";
 import { withLive } from "../logic/live";
 import { walkGrade } from "../logic/walk";
-import type { GradeOps, GradeTextures, LiveGrade } from "../tint.types";
+import type { GradeOps, GradeTextures, LiveGrade, LutLookup, PassLut } from "../tint.types";
 import { correctPass } from "./correct.glsl";
 import {
   channelPass,
@@ -32,7 +32,9 @@ import { inputPass } from "./spaces.glsl";
  * correction, on or off), the passes stop there with its key as white on black (Limit's Show).
  * A grade whose `input` is a camera space or sRGB starts with one pass turning the source into
  * Rec.709 (`inputPass`; `videoRange` says whether a camera curve reads the source back as video-range
- * code values), which every node reads as the source; Rec.709 (the default) adds none.
+ * code values), which every node reads as the source; Rec.709 (the default) adds none. A correction's
+ * LUT is found with `lutOf` and baked through `textures` (keyed `tint.lut:<id>`); one at strength 0,
+ * or one `lutOf` has no table for, adds nothing.
  */
 export function gradePasses(
   grade: ClipGrade,
@@ -41,6 +43,7 @@ export function gradePasses(
   aspect: number,
   show?: GradeNodeId | null,
   videoRange = true,
+  lutOf: LutLookup = () => null,
 ): GpuPass[] {
   const passes: GpuPass[] = [];
   const push = (pass: GpuPass) => passes.push(pass) - 1;
@@ -56,13 +59,22 @@ export function gradePasses(
       const curves = textures.curves(values, `tint.curves:${id}`);
       const warper = textures.warper(values.warper, `tint.warper:${id}`);
       const params = prepareCorrection(values, curves?.table ?? null, warper?.table ?? null);
+      const found = node.lut && node.lut.strength > 0 ? lutOf(node.lut.id) : null;
+      const lut: PassLut | undefined =
+        found && node.lut
+          ? {
+              texture: textures.lut(found, `tint.lut:${node.lut.id}`),
+              table: found.table,
+              strength: Math.min(node.lut.strength, 1),
+            }
+          : undefined;
       return push(
         correctPass(
           params,
           Math.min(node.opacity, 1),
           input,
           aspect,
-          { curves: curves?.texture, warper: warper?.texture },
+          { curves: curves?.texture, warper: warper?.texture, lut },
           key ?? undefined,
         ),
       );

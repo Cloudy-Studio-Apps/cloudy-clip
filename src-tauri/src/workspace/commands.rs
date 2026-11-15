@@ -12,14 +12,7 @@ const RECENTS_FILE: &str = "recent.json";
 
 /// Project commands take paths from the webview and from agents, so they only touch project files.
 fn project_path(raw: &str) -> AppResult<PathBuf> {
-    let path = PathBuf::from(raw);
-    let is_project = path.extension().is_some_and(|e| e == EXTENSION);
-    if !path.is_absolute() || !is_project {
-        return Err(AppError::InvalidInput(format!(
-            "Not an absolute path to a .{EXTENSION} file: {raw}"
-        )));
-    }
-    Ok(path)
+    super::file_path(raw, EXTENSION)
 }
 
 /// Writes next to the target and renames over it, so a crash never leaves half a file.

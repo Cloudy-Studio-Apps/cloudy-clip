@@ -1,5 +1,5 @@
 import type { ClipGrade, ClipPlacement, GradeNodeId } from "@/modules/project";
-import type { FramePoint, PickFrame, PixelAt, Rgb } from "../tint.types";
+import type { FramePoint, LutLookup, PickFrame, PixelAt, Rgb } from "../tint.types";
 import { evaluatePixel } from "./color/evaluate";
 
 /** The color around pixel `(x, y)` of a frame: the mean of up to 3 × 3 pixels, 0…1. */
@@ -46,7 +46,7 @@ export function pictureAt(placement: ClipPlacement, x: number, y: number): Pixel
  * (no correction yet) runs the whole grade, as a new correction goes below the others. With a
  * placement, a point off the clip's picture gives null; without one (size unknown) the point is
  * read where it is and `at` is the frame's own. `videoRange` is the clip's (`tint.range.ts`), for
- * the grade's input conversion.
+ * the grade's input conversion; `lutOf` finds the corrections' LUTs.
  */
 export function pickAt(
   frame: PickFrame,
@@ -55,6 +55,7 @@ export function pickAt(
   nodeId: GradeNodeId | null,
   placement: ClipPlacement | null,
   videoRange = true,
+  lutOf?: LutLookup,
 ): Rgb | null {
   const x = Math.min(frame.width - 1, Math.max(0, Math.floor(point.u * frame.width)));
   const y = Math.min(frame.height - 1, Math.max(0, Math.floor(point.v * frame.height)));
@@ -64,5 +65,5 @@ export function pickAt(
     if (at.u < 0 || at.u > 1 || at.v < 0 || at.v > 1) return null;
   }
   const source = meanAround(frame, x, y);
-  return grade ? evaluatePixel(grade, source, at, nodeId ?? undefined, videoRange) : source;
+  return grade ? evaluatePixel(grade, source, at, nodeId ?? undefined, videoRange, lutOf) : source;
 }

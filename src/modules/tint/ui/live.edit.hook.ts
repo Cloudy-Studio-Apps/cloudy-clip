@@ -38,6 +38,7 @@ export function useLiveEdit(clipId: ClipId | null, nodeId: string | null, group 
           ...(patch.opacity !== undefined ? { opacity: patch.opacity } : {}),
           ...(patch.on !== undefined ? { on: patch.on } : {}),
           ...(patch.limit !== undefined ? { limit: patch.limit } : {}),
+          ...(patch.lut !== undefined ? { lut: patch.lut } : {}),
           ...(patch.blends !== undefined ? { blends: patch.blends } : {}),
         };
         tint.live.set(clipId, { nodes: { [nodeId]: live.current } });
@@ -56,10 +57,15 @@ export function useLiveEdit(clipId: ClipId | null, nodeId: string | null, group 
           const result = await settle(bus.run(setCorrection, { target, nodeId, patch }));
           clear();
           if (!result.ok) setRev((n) => n + 1);
-        } else if (patch.values || patch.limit) {
-          const { values, limit } = patch;
+        } else if (patch.values || patch.limit || patch.lut) {
+          const { values, limit, lut } = patch;
           const result = await settle(
-            bus.run(addCorrection, { target, values, limit: limit ?? undefined }),
+            bus.run(addCorrection, {
+              target,
+              values,
+              limit: limit ?? undefined,
+              lut: lut ?? undefined,
+            }),
           );
           clear();
           if (result.ok) tint.view.setState({ selected: result.value.nodeId });

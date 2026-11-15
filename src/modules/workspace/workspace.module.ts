@@ -12,11 +12,12 @@ import {
   workspaceCommands,
 } from "./workspace.commands";
 import { workspaceMcpTools } from "./workspace.mcp";
+import { relinkKinds } from "./workspace.points";
 import { workspaceRef } from "./workspace.ref";
 import { onWindowClose } from "./workspace.service";
 import { createWorkspace } from "./workspace.session";
 import type { WorkspaceApi } from "./workspace.types";
-import { ProjectTitle, RelinkHost, StartDialogHost } from "./ui";
+import { MediaRelinkRows, ProjectTitle, RelinkHost, StartDialogHost } from "./ui";
 
 /** The open project: the start dialog, saving, opening, the recent list. */
 export const workspaceModule = defineModule({
@@ -60,6 +61,7 @@ export const workspaceModule = defineModule({
       { id: "workspace.start", component: StartDialogHost },
       { id: "workspace.relink", component: RelinkHost },
     );
+    contribute(relinkKinds, { id: "workspace.media", order: 0, component: MediaRelinkRows });
     contribute(topBarItems, { id: "workspace.title", slot: "left", component: ProjectTitle });
     const key = (id: string, keyName: string, command: string, shift = false) => ({
       id: `workspace.${id}`,

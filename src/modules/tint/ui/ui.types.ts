@@ -3,6 +3,7 @@ import type {
   BlendMode,
   ClipGrade,
   ClipId,
+  Correction,
   CorrectionValues,
   GradeLimit,
   GradeNodeId,
@@ -71,6 +72,7 @@ export interface EditPatch {
   opacity?: number;
   on?: boolean;
   limit?: GradeLimit | null;
+  lut?: Correction["lut"] | null;
   blends?: BlendMode[];
 }
 

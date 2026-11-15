@@ -1,7 +1,71 @@
 import { z } from "zod";
-import { CommandFailure, defineCommand } from "@/core";
+import { CommandFailure, createId, defineCommand } from "@/core";
 import { INPUT_SPACES, projectRef, type ClipGrade } from "@/modules/project";
 import { checkedGrade, readGrade, writeGrade } from "./tint.guards";
+import { tintRef } from "./tint.ref";
+import { readLut } from "./tint.service";
+import type { LoadedLut } from "./tint.types";
+
+/** Reads and parses a `.cube` file, every failure a `CommandFailure` naming the file. */
+async function readLutOrFail(path: string): Promise<LoadedLut> {
+  try {
+    return await readLut(path);
+  } catch (error) {
+    const { code, message } = error as { code?: string; message?: string };
+    if (code === "not_found") {
+      throw new CommandFailure("tint.lut_not_found", `No file at ${path}`);
+    }
+    throw new CommandFailure("tint.bad_lut", `${path} can't be used as a LUT: ${message ?? error}`);
+  }
+}
+
+/** A file's name without its folder or extension. */
+const nameOf = (path: string) => (path.split(/[\\/]/).pop() ?? path).replace(/\.[^.]*$/, "");
+
+/**
+ * Adds a `.cube` LUT file to the project by path, kept by path like media (`ProjectState.luts`).
+ * The file is read and parsed first; one undo step. Returns `{ lutId }`; a correction uses it
+ * through `tint.setCorrection`'s `patch.lut`.
+ */
+export const importLut = defineCommand({
+  id: "tint.importLut",
+  label: "Import LUT",
+  description:
+    "Adds a .cube LUT file to the project, by absolute path: a 3D LUT (LUT_3D_SIZE 2 to 65) or a 1D one (LUT_1D_SIZE 2 to 4096), with DOMAIN_MIN / DOMAIN_MAX honoured, at most 8 MB. The file is kept by path like media (relink it with tint_relink_lut if it moves); it is not copied. Returns { lutId }. Apply it to a correction with tint_set_correction patch.lut { id: lutId, strength 0 to 1 }; it runs after Creative, mixed toward by strength. Fails with tint.lut_not_found (no file there) or tint.bad_lut (not an absolute .cube path, too large, or not a valid .cube; the message says why).",
+  undoable: true,
+  input: z.object({ path: z.string().min(1) }),
+  async run(ctx, { path }) {
+    const lut = await readLutOrFail(path);
+    const lutId = createId("lut");
+    ctx.require(tintRef).luts.put(path, lut);
+    ctx.mutate(ctx.require(projectRef).store, (draft) => {
+      (draft.luts ??= {})[lutId] = { id: lutId, name: nameOf(path), path, size: lut.table.size };
+    });
+    return { lutId };
+  },
+});
+
+/** Points an imported LUT at another file: for one that moved. Its corrections keep it. */
+export const relinkLut = defineCommand({
+  id: "tint.relinkLut",
+  label: "Locate LUT",
+  description:
+    "Points an imported LUT (from tint_describe's luts) at the .cube file at an absolute path, keeping the corrections that use it: for a LUT whose file is missing. The file is read and parsed first; one undo step. Fails with tint.lut_not_found (no such LUT, or no file there) or tint.bad_lut (the file can't be used; the message says why).",
+  undoable: true,
+  input: z.object({ lutId: z.string().min(1), path: z.string().min(1) }),
+  async run(ctx, { lutId, path }) {
+    const { store } = ctx.require(projectRef);
+    if (!store.getState().luts?.[lutId]) {
+      throw new CommandFailure("tint.lut_not_found", `No LUT with id "${lutId}"`);
+    }
+    const lut = await readLutOrFail(path);
+    ctx.require(tintRef).luts.put(path, lut);
+    ctx.mutate(store, (draft) => {
+      const target = draft.luts?.[lutId];
+      if (target) Object.assign(target, { path, size: lut.table.size });
+    });
+  },
+});
 
 /**
  * Sets the camera color space of clips: their source is turned into Rec.709 from it before the

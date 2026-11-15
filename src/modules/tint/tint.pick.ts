@@ -12,7 +12,7 @@ import {
 import { pickAt } from "./logic/pick";
 import { pixelsOf } from "./tint.pixels";
 import { videoRange } from "./tint.range";
-import type { TintApi } from "./tint.types";
+import type { LutFiles, TintApi } from "./tint.types";
 
 /**
  * The pickers' one way to read a color (`TintApi.pickColor`): captures the clip alone and ungraded
@@ -21,12 +21,14 @@ import type { TintApi } from "./tint.types";
  * the clip where the viewer shows it, so the clicked point is read as it is; the clip's
  * placement (`clipPlacement` with its keyed transform and, for a file, the probed picture size)
  * tells whether the point is on the picture and where (`at`). Clips whose size isn't known here
- * (a composition placed in another) are read without that test. One per kernel.
+ * (a composition placed in another) are read without that test. LUTs that are read apply; one
+ * still loading or missing is left out, as the preview does. One per kernel.
  */
 export function createPicker(
   project: ProjectApi,
   preview: PreviewApi,
   media: MediaApi,
+  luts: LutFiles,
 ): Pick<TintApi, "pickColor"> {
   return {
     async pickColor(clipId, nodeId, point) {
@@ -57,6 +59,7 @@ export function createPicker(
         nodeId,
         placement,
         videoRange(clip, state, media),
+        luts.ready(state),
       );
     },
   };

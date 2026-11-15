@@ -2,13 +2,13 @@ import type { GpuTexture } from "@/modules/preview";
 import { CURVE_ROWS, CURVE_SAMPLES } from "../logic/color/curves.apply";
 import { curveStepActive, sampleCurveStep } from "../logic/color/mix";
 import { WARP_TABLE, sampleWarper, warperActive } from "../logic/color/warper";
-import type { BakedTable, GradeTextures } from "../tint.types";
+import type { BakedTable, CubeLut, GradeTextures } from "../tint.types";
 
 /** How many corrections' tables of each kind one filter keeps baked; the oldest goes first. */
 const KEPT = 64;
 
 /** A 53-bit hash of a text (cyrb53): the version of a table baked from it. */
-function hash(text: string): number {
+export function hash(text: string): number {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;
   for (let i = 0; i < text.length; i++) {
@@ -53,6 +53,26 @@ export function bakeWarper(table: Float32Array, key: string, version: number): G
   return { key, version, kind: "2d", width, height, data };
 }
 
+/**
+ * A LUT as the texture the shader samples, half-float RGBA: a 3D one as a `size`³ `"3d"` texture
+ * (red along x, green along y, blue along z, as `.cube` orders it), a 1D one as a `"1d"` texture
+ * `size` wide, each channel's curve in its own channel.
+ */
+export function bakeLut(lut: CubeLut, key: string, version: number): GpuTexture {
+  const count = lut.data.length / 3;
+  const data = new Float32Array(count * 4);
+  for (let i = 0; i < count; i++) {
+    data[i * 4] = lut.data[i * 3]!;
+    data[i * 4 + 1] = lut.data[i * 3 + 1]!;
+    data[i * 4 + 2] = lut.data[i * 3 + 2]!;
+    data[i * 4 + 3] = 1;
+  }
+  const { size } = lut;
+  return lut.kind === "3d"
+    ? { key, version, kind: "3d", width: size, height: size, depth: size, data }
+    : { key, version, kind: "1d", width: size, height: 1, data };
+}
+
 /** Keeps the `KEPT` most recent tables baked, by key; `make` runs only when `source` changed. */
 function createCache(): (
   source: string,
@@ -73,13 +93,15 @@ function createCache(): (
 
 /**
  * The lookup tables of one picture filter (one per kernel, like the filter): each correction's curve
- * step (curves and Color mix) and warper are sampled and baked again only when they change. The
- * `version` is a hash of what they are made of, so it changes with them whichever filter baked them
- * (renderers share runners' keys by node). What changes nothing bakes to null.
+ * step (curves and Color mix) and warper are sampled and baked again only when they change, and each
+ * LUT only when its file does. The `version` is a hash of what they are made of, so it changes with
+ * them whichever filter baked them (renderers share runners' keys by node). What changes nothing
+ * bakes to null.
  */
 export function createGradeTextures(): GradeTextures {
   const curves = createCache();
   const warpers = createCache();
+  const luts = createCache();
   return {
     curves(values, key) {
       const active = curveStepActive(values);
@@ -95,6 +117,13 @@ export function createGradeTextures(): GradeTextures {
         const table = sampleWarper(warper);
         return { table, texture: bakeWarper(table, key, version) };
       });
+    },
+    lut({ table, version }, key) {
+      // The file's own hash is the source: the table is never turned into text again.
+      return luts(String(version), key, (v) => ({
+        table: table.data,
+        texture: bakeLut(table, key, v),
+      })).texture;
     },
   };
 }

@@ -10,6 +10,9 @@ import type {
   CorrectionValues,
   GradeGroupId,
   GradeLimit,
+  Lut,
+  LutId,
+  ProjectState,
   GradeNode,
   GradeNodeId,
   InputColorSpace,
@@ -91,6 +94,8 @@ export interface TintApi {
   readonly live: TintLive;
   /** Whether the GPU can draw grades here (`PreviewApi.gpuAvailable`); the page says so when not. */
   readonly available: boolean;
+  /** The project's LUT files as read in this kernel: loading, ready or missing. */
+  readonly luts: LutFiles;
   /** The clip being graded: the pinned one, else the gradeable clip under the playhead. */
   current(): ClipId | null;
   /** Calls `fn` when the current clip changes. Returns the unsubscribe. Compatible with `useSyncExternalStore`. */
@@ -173,6 +178,8 @@ export type LiveNode = Partial<CorrectionValues> & {
   opacity?: number;
   on?: boolean;
   limit?: GradeLimit | null;
+  /** The correction's LUT and its strength (null: none). */
+  lut?: Correction["lut"] | null;
   /** A stacked group's blends, one per branch. */
   blends?: BlendMode[];
 };
@@ -295,6 +302,61 @@ export interface GradeTextures {
   curves(values: CorrectionValues, key: string): BakedTable | null;
   /** The warper of the correction `key`, or null when it moves nothing. */
   warper(warper: CorrectionValues["warper"], key: string): BakedTable | null;
+  /** A LUT's table as a texture (`"3d"`, or `"1d"` one row high), baked again only when its file changes. */
+  lut(lut: LoadedLut, key: string): GpuTexture;
+}
+
+/**
+ * A `.cube` LUT, parsed (`logic/cube.ts`): `"3d"` holds `size`³ RGB triples, red fastest, then
+ * green, then blue; `"1d"` holds `size` triples, one curve per channel. `domain` is the input range
+ * (`DOMAIN_MIN`, `DOMAIN_MAX`), mapped onto the table's first and last entry.
+ */
+export interface CubeLut {
+  kind: "1d" | "3d";
+  size: number;
+  domain: [Rgb, Rgb];
+  data: Float32Array;
+}
+
+/** Which LUT step a correction's program has. */
+export type LutKind = "none" | CubeLut["kind"];
+
+/** A correction's LUT as its pass takes it: the baked texture, the table (domain, size) and strength. */
+export interface PassLut {
+  texture: GpuTexture;
+  table: CubeLut;
+  /** Above 0 and at most 1. */
+  strength: number;
+}
+
+/** A LUT file read and parsed; `version` is a hash of its text, so its texture follows the file. */
+export interface LoadedLut {
+  table: CubeLut;
+  version: number;
+}
+
+/** A LUT file in this kernel: being read, read, or not readable at its path (`message` says why). */
+export type LutFile =
+  | { status: "loading" }
+  | { status: "ready"; lut: LoadedLut }
+  | { status: "missing"; message: string };
+
+/** A correction's LUT by id: its table, or null when there is none to draw (missing, loading, a look). */
+export type LutLookup = (id: LutId) => LoadedLut | null;
+
+/**
+ * The project's LUT files, read once per path in this kernel (`tint.luts.ts`). Every LUT in the
+ * document is read as soon as it is there; a relinked one, at its new path.
+ */
+export interface LutFiles {
+  /** Each file by path. Read with `useStore(files.store, selector)`. */
+  readonly store: StoreApi<Record<string, LutFile>>;
+  /** Where `lut`'s file stands, reading it first when it hasn't been. */
+  file(lut: Lut): LutFile;
+  /** Keeps a file already read (an import), so it isn't read twice. */
+  put(path: string, lut: LoadedLut): void;
+  /** Finds the LUTs of `project` that are read: the others (loading, missing) give null. */
+  ready(project: ProjectState): LutLookup;
 }
 
 /** Color mix as hue curves (`mixToHueCurves`), folded into the correction's own when sampled. */

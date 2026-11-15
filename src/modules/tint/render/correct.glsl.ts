@@ -18,7 +18,7 @@ import {
 } from "../logic/color/basics";
 import { CURVE_ROWS, CURVE_SAMPLES, ROW } from "../logic/color/curves.apply";
 import { WARP_TABLE } from "../logic/color/warper";
-import type { CorrectionParams, LimitParams } from "../tint.types";
+import type { CorrectionParams, LimitParams, LutKind, PassLut } from "../tint.types";
 import { TAIL_GLSL, tailUniforms } from "./correct.tail.glsl";
 import { WHEELS_GLSL, wheelsUniforms } from "./correct.wheels.glsl";
 import { glslFloat as f, glslVec3 as vec3 } from "./glsl.literals";
@@ -206,42 +206,100 @@ vec3 correct(vec3 c) {
 }
 `;
 
-const FRAGMENT = `${BODY}
-void main() {
-  vec4 src = texture(u_in0, v_uv);
-  o = vec4(mix(src.rgb, correct(src.rgb), u_opacity), src.a);
-}`;
-
-/** A limited correction: its key (`u_in1`, raw, from `keyPasses`) finished, times opacity. */
-const KEYED_FRAGMENT = `${BODY}
-${FINISH_GLSL}
-void main() {
-  vec4 src = texture(u_in0, v_uv);
-  float k = finish(texture(u_in1, v_uv).r);
-  o = vec4(mix(src.rgb, correct(src.rgb), k * u_opacity), src.a);
-}`;
-
 /** Program key of a correction pass. */
 export const CORRECT_KEY = "tint.correct";
 /** Program key of a limited correction pass. */
 export const CORRECT_KEYED_KEY = "tint.correct.keyed";
+
+const LUT_COMMON = `
+uniform vec3 u_lutMin;
+uniform vec3 u_lutScale;
+uniform float u_lutSize;
+uniform float u_lutStrength;
+
+vec3 lutAt(vec3 c) {
+  vec3 t = clamp((c - u_lutMin) * u_lutScale, 0.0, 1.0);
+  return (t * (u_lutSize - 1.0) + 0.5) / u_lutSize;
+}`;
+
+/** The uniforms of the LUT step. */
+function lutUniforms({ table, strength }: PassLut): Record<string, GpuUniform> {
+  const [lo, hi] = table.domain;
+  return {
+    u_lutMin: lo,
+    u_lutScale: [0, 1, 2].map((c) => 1 / (hi[c]! - lo[c]!)),
+    u_lutSize: table.size,
+    u_lutStrength: strength,
+  };
+}
+
+/**
+ * The LUT step after Creative (`logic/cube.ts` `applyCube`): the color mapped from the domain onto
+ * 0…1 and clamped, read at the texel centers `(t · (N − 1) + 0.5) / N` (trilinear in a 3D table, per
+ * channel in a 1D one), mixed toward by strength. Without a LUT the step is left out of the program,
+ * so no sampler of another type sits on a unit an input uses.
+ */
+const LUT_GLSL: Record<LutKind, string> = {
+  none: "vec3 lut(vec3 c) { return c; }",
+  "3d": `
+uniform highp sampler3D u_lut;
+${LUT_COMMON}
+vec3 lut(vec3 c) { return mix(c, texture(u_lut, lutAt(c)).rgb, u_lutStrength); }`,
+  "1d": `
+uniform highp sampler2D u_lut;
+${LUT_COMMON}
+vec3 lut(vec3 c) {
+  vec3 u = lutAt(c);
+  vec3 t = vec3(
+    texture(u_lut, vec2(u.r, 0.5)).r,
+    texture(u_lut, vec2(u.g, 0.5)).g,
+    texture(u_lut, vec2(u.b, 0.5)).b
+  );
+  return mix(c, t, u_lutStrength);
+}`,
+};
+
+/** A correction's program: plain or limited (its key as `u_in1`), with or without a LUT. */
+function fragment(keyed: boolean, lutKind: LutKind): string {
+  const mixBy = keyed ? "finish(texture(u_in1, v_uv).r) * u_opacity" : "u_opacity";
+  return `${BODY}
+${keyed ? FINISH_GLSL : ""}
+${LUT_GLSL[lutKind]}
+void main() {
+  vec4 src = texture(u_in0, v_uv);
+  o = vec4(mix(src.rgb, lut(correct(src.rgb)), ${mixBy}), src.a);
+}`;
+}
+
+/** Every correction program by key: `.keyed` when limited, `.lut3d` / `.lut1d` with a LUT. */
+const PROGRAMS = new Map(
+  [false, true].flatMap((keyed) =>
+    (["none", "3d", "1d"] as const).map((lutKind) => {
+      const base = keyed ? CORRECT_KEYED_KEY : CORRECT_KEY;
+      const key = lutKind === "none" ? base : `${base}.lut${lutKind}`;
+      return [`${keyed}:${lutKind}`, { key, fragment: fragment(keyed, lutKind) }] as const;
+    }),
+  ),
+);
 
 /**
  * A correction's pass over `input` (-1 the picture so far, n pass n), mixed over it by `opacity`.
  * `aspect` is the picture's width over its height (the vignette's shape). `tables.curves` is its
  * baked curve step (curves and Color mix) and `tables.warper` its warper, each left out when it
  * changes nothing (the shader then skips that step). With `limit`, the mix is also times the key
- * of pass `limit.key` (`keyPasses`), cleaned up and inverted by `limit.params`.
+ * of pass `limit.key` (`keyPasses`), cleaned up and inverted by `limit.params`. `tables.lut` is its
+ * LUT (`"3d"` or `"1d"` texture, its table's domain and size) with its strength, left out when there
+ * is none or the strength is 0: the program then has no LUT step.
  */
 export function correctPass(
   params: CorrectionParams,
   opacity: number,
   input: number,
   aspect: number,
-  tables: { curves?: GpuTexture; warper?: GpuTexture } = {},
+  tables: { curves?: GpuTexture; warper?: GpuTexture; lut?: PassLut } = {},
   limit?: { key: number; params: LimitParams },
 ): GpuPass {
-  const { curves, warper } = tables;
+  const { curves, warper, lut } = tables;
   const uniforms: Record<string, GpuUniform> = {
     u_linear: params.linear,
     u_lift: params.lift,
@@ -262,12 +320,17 @@ export function correctPass(
     ...wheelsUniforms(params),
     ...tailUniforms(params, aspect),
     ...(limit && finishUniforms(limit.params)),
+    ...(lut && lutUniforms(lut)),
   };
   const textures: Record<string, GpuTexture> = {};
   if (curves) textures.u_curves = curves;
   if (warper) textures.u_warp = warper;
-  const pass: GpuPass = limit
-    ? { key: CORRECT_KEYED_KEY, fragment: KEYED_FRAGMENT, inputs: [input, limit.key], uniforms }
-    : { key: CORRECT_KEY, fragment: FRAGMENT, inputs: [input], uniforms };
-  return curves || warper ? { ...pass, textures } : pass;
+  if (lut) textures.u_lut = lut.texture;
+  const program = PROGRAMS.get(`${limit !== undefined}:${lut ? lut.table.kind : "none"}`)!;
+  const pass: GpuPass = {
+    ...program,
+    inputs: limit ? [input, limit.key] : [input],
+    uniforms,
+  };
+  return Object.keys(textures).length > 0 ? { ...pass, textures } : pass;
 }

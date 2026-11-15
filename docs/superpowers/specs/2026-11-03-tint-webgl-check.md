@@ -458,3 +458,39 @@ row per space and range. "Bright" counts pixels whose CPU result has a channel o
   relative), so a channel of 4 to 14 carries an error of a few thousandths, which those grades
   bring down into the visible range. With highlights clamped (before this fix) the same rows were
   within 1. No miss comes from a pixel whose conversion stayed within 0…1.
+
+### LUT files: parity (Task 22)
+
+A correction's LUT against the shader, 2026-11-15. On the GPU the LUT is a step at the end of the
+correction's program (`tint.correct.lut3d` / `.lut1d`, and the `.keyed` ones), after Creative and
+before the opacity and key mix: the color mapped from `DOMAIN_MIN`…`DOMAIN_MAX` onto 0…1 and
+clamped, read at the texel centers `(t · (N − 1) + 0.5) / N` of a half-float `sampler3D` (3D) or a
+one-row `sampler2D` (1D, per channel), mixed toward by strength. On the CPU `evaluatePixel` runs
+`logic/cube.ts` `applyCube` (trilinear between the eight nearest entries at `t · (N − 1)`, linear
+between two per channel for 1D).
+
+- **Method:** as Task 21 (temporary dev page, `pnpm vite --port 1540`, headless Chromium 1243 with
+  SwiftShader WebGL2, half-float targets, CDP; removed before the commit), 256 colors × 20 sets per
+  row, the first set Task 7's fixed colors, the rest seeded random. The `.cube` files are made in the
+  page (a look with crossed channels, power curves and a sine wobble, so the interpolation shows)
+  and read with `parseCube`. "Alone" is one correction holding only the LUT; "graded" is two random
+  corrections (exposure ±1.2, saturation 0…2, hue ±90, temperature ±60, contrast 0.6…1.5, opacity
+  0.5…1), the LUT on the second, so light over 1 reaches the LUT's clamp ("over 1 in" counts the
+  pixels with a channel over 1 going into that correction).
+- **Identity skip:** at strength 0 the passes are the same as with no LUT (`tint.correct`, no
+  texture).
+- **Results** (15 360 channel values per row):
+
+| LUT                            | Alone: max | Off by 1 | Over 1 | Graded: max | Off by 1 | Over 1 | Over 1 in |
+| ------------------------------ | ---------- | -------- | ------ | ----------- | -------- | ------ | --------- |
+| 3D 17                          | 1          | 208      | 0      | 1           | 327      | 0      | 932       |
+| 3D 33                          | 1          | 205      | 0      | 1           | 309      | 0      | 1 106     |
+| 3D 65                          | 1          | 211      | 0      | 1           | 291      | 0      | 1 075     |
+| 1D 1024                        | 1          | 220      | 0      | 1           | 325      | 0      | 1 211     |
+| 1D 17                          | 1          | 304      | 0      | 1           | 308      | 0      | 899       |
+| 3D 33, domain −0.1…1.2/1.1/1.4 | 1          | 198      | 0      | 1           | 318      | 0      | 1 428     |
+| 3D 33, strength 0.5            | 1          | 112      | 0      | 1           | 283      | 0      | 1 443     |
+| 1D 1024, strength 0.5          | 1          | 136      | 0      | 1           | 281      | 0      | 1 560     |
+
+- **Pass:** every row is within one 8-bit step.
+- **Linux desktop (WebKitGTK) and Windows:** not run.

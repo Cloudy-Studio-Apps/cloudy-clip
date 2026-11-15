@@ -28,8 +28,8 @@ import { logWheels, primaryChannel, primaryWheels, toneWheels, zoneWheels } from
 // zones), contrast and pivot, highlights / shadows / whites / blacks, rolloff, curves and Color mix,
 // the warper, saturation / vibrance / hue (with protect skin), skin pull, the RGB mixer, Creative
 // (split toning, faded film, vignette). Color mix is folded into the hue curves (`mix.ts`), so it
-// runs in the curve step; the warper follows it. LUTs come in a later task, after Creative. The
-// limit then mixes the result over the correction's input (`limit.ts`, by the caller). Every
+// runs in the curve step; the warper follows it. A LUT runs after Creative (`logic/cube.ts`, by the
+// caller: `evaluatePixel`). The limit then mixes the result over the correction's input (`limit.ts`, by the caller). Every
 // step that is at its defaults is skipped (null or 0 in the params). `prepareCorrection` works out once what the shader gets as
 // uniforms; `applyCorrection` is the per-pixel math, the CPU reference of `render/correct.glsl.ts`.
 

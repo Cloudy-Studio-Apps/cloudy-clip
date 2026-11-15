@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ActorId, Micros, PatchableStore } from "@/core";
 import type { MediaApi } from "@/modules/media";
@@ -24,6 +25,24 @@ export interface WorkspaceUi {
   start: StartView;
   /** Whether the list of missing files is open. */
   relink: boolean;
+}
+
+/** What a relink kind's rows are given. */
+export interface RelinkRowsProps {
+  /** Reports how many of its files are missing now (0 when none); called whenever that changes. */
+  onCount(count: number): void;
+}
+
+/**
+ * A kind of file a project keeps by path (media, LUTs), contributed to `relinkKinds`. Its
+ * `component` draws a row with a Locate button for each of its missing files, and reports their
+ * count, so the dialog closes once every kind has none.
+ */
+export interface RelinkKind {
+  id: string;
+  /** Lower comes first. */
+  order: number;
+  component: ComponentType<RelinkRowsProps>;
 }
 
 /** A project in the recent list, with what its row shows. */

@@ -17,11 +17,16 @@ export {
 export type {
   LeaveTask,
   RecentProject,
+  RelinkKind,
+  RelinkRowsProps,
   SaveStatus,
   StartView,
   WorkspaceApi,
   WorkspaceSession,
 } from "./workspace.types";
+
+/** Kinds of file kept by path that the relink dialog lists (media is the workspace's own). */
+export { relinkKinds } from "./workspace.points";
 
 /** Module definition, loaded by the app shell. */
 export { workspaceModule } from "./workspace.module";

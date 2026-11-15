@@ -25,11 +25,3 @@ export const DEMO_CHART = [
   "#555555",
   "#343434",
 ] as const;
-
-/** LUTs in the LUT tab. */
-export const DEMO_LUTS = [
-  { name: "Golden hour", kind: "Look" },
-  { name: "Soft film", kind: "Look" },
-  { name: "Teal and orange", kind: "Look" },
-  { name: "Grade from set.cube", kind: "Imported" },
-] as const;

@@ -6,6 +6,7 @@ mod fonts;
 mod mcp;
 mod media;
 mod sound;
+mod tint;
 mod webview;
 mod workspace;
 
@@ -49,6 +50,7 @@ pub fn run() {
             sound::commands::sound_measure_floor,
             sound::commands::sound_record_begin,
             sound::commands::sound_record_write,
+            tint::tint_read_lut,
             workspace::commands::workspace_exists,
             workspace::commands::workspace_read,
             workspace::commands::workspace_recents_read,

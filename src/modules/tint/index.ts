@@ -4,12 +4,17 @@
  * @module tint
  */
 export type {
+  CubeLut,
   CurveKind,
   GradeTarget,
   GradeLevel,
   GradeTab,
   LiveGrade,
   LiveNode,
+  LoadedLut,
+  LutFile,
+  LutFiles,
+  LutLookup,
   ScopeKind,
   TintApi,
   TintLive,

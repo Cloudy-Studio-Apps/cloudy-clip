@@ -51,6 +51,19 @@ const valuesSchema = correctionValuesSchema.describe(
   "Correction values to set, a partial of the fields tint_describe lists, each in its range (units there). A wheel or a group (lift, creative, …) is written whole.",
 );
 
+const lutSchema = z
+  .object({ id: z.string().min(1), strength: z.number().min(0).max(1) })
+  .describe(
+    "A LUT for the correction: id from tint_import_lut (or tint_describe's luts) and strength 0 to 1 (0 changes nothing, 1 is the LUT in full). It runs after Creative.",
+  );
+
+/** Refuses a LUT the project hasn't imported. */
+function checkLut(state: ProjectState, lut: { id: string } | null | undefined): void {
+  if (lut && !state.luts?.[lut.id]) {
+    throw new CommandFailure("tint.lut_not_found", `No LUT with id "${lut.id}" in this project`);
+  }
+}
+
 function placeFailure(grade: ClipGrade, at: StackPosition): CommandFailure {
   const missing = [at.before, at.after, at.branch?.group].find(
     (id) => id !== undefined && !grade.nodes[id],
@@ -129,7 +142,7 @@ export const addCorrection = defineCommand({
   id: "tint.addCorrection",
   label: "Add correction",
   description:
-    "Adds a correction (one grade step) to a clip's, shot group's or composition's grade, at a place in the stack (default: the bottom, last to run) with optional values, limit and name. Returns { nodeId }. Values are stored only where they differ from the defaults. limit.from (a correction id, or a key join's) shares that correction's pick (or the joined key) instead of one of its own. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (the place, or limit.from, names a missing node), tint.sealed (the place is inside a sealed card), tint.key_not_limited / tint.key_cycle / tint.key_not_above (see tint_set_correction) or tint.invalid_grade (a value out of range; nothing is written).",
+    "Adds a correction (one grade step) to a clip's, shot group's or composition's grade, at a place in the stack (default: the bottom, last to run) with optional values, limit, lut and name. Returns { nodeId }. Values are stored only where they differ from the defaults. limit.from (a correction id, or a key join's) shares that correction's pick (or the joined key) instead of one of its own. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (the place, or limit.from, names a missing node), tint.sealed (the place is inside a sealed card), tint.key_not_limited / tint.key_cycle / tint.key_not_above (see tint_set_correction), tint.lut_not_found or tint.invalid_grade (a value out of range; nothing is written).",
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -138,10 +151,12 @@ export const addCorrection = defineCommand({
     limit: gradeLimitSchema
       .optional()
       .describe("What the correction touches; whole frame when missing."),
+    lut: lutSchema.optional(),
     name: z.string().optional(),
   }),
-  run(ctx, { target, at, values, limit, name }) {
+  run(ctx, { target, at, values, limit, lut, name }) {
     const { store } = ctx.require(projectRef);
+    checkLut(store.getState(), lut);
     const grade = readGrade(store.getState(), target) ?? emptyGrade();
     const place = at ?? {};
     const id = createId("node");
@@ -153,6 +168,7 @@ export const addCorrection = defineCommand({
       ...(name !== undefined ? { name } : {}),
       ...(values ? { values } : {}),
       ...(limit ? { limit } : {}),
+      ...(lut ? { lut } : {}),
     };
     let next: ClipGrade;
     try {
@@ -172,7 +188,7 @@ export const setCorrection = defineCommand({
   id: "tint.setCorrection",
   label: "Change correction",
   description:
-    "Changes one correction: patch.values (a partial of the correction's fields, merged over what it has: each given field replaces that field whole), patch.limit (what it touches; null removes the limit; { from: nodeId } shares the pick of another correction, one above it whose limit limits something, instead of its own: its key, its refine and clean up, and inverted again when this limit has invert: true; or names a key join from tint_wire, whose combined key it mixes by), patch.opacity (0 to 1), patch.on and patch.name. Fields at their defaults are not stored. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (or the node is not a correction, or limit.from names no node), tint.key_not_limited (limit.from is neither a key join nor a correction with a limit), tint.key_cycle (limit.from is this correction or reads it: below it in the stack), tint.key_not_above (limit.from is not above it: another branch), tint.invalid_grade (a value out of range; nothing is written) or tint.animated (a field that has keys needs a key at a time, not a static value).",
+    "Changes one correction: patch.values (a partial of the correction's fields, merged over what it has: each given field replaces that field whole), patch.limit (what it touches; null removes the limit; { from: nodeId } shares the pick of another correction, one above it whose limit limits something, instead of its own: its key, its refine and clean up, and inverted again when this limit has invert: true; or names a key join from tint_wire, whose combined key it mixes by), patch.lut ({ id, strength 0 to 1 }: a LUT from tint_import_lut, after Creative; null removes it), patch.opacity (0 to 1), patch.on and patch.name. Fields at their defaults are not stored. Fails with tint.target_not_found, tint.not_gradeable, tint.node_not_found (or the node is not a correction, or limit.from names no node), tint.key_not_limited (limit.from is neither a key join nor a correction with a limit), tint.key_cycle (limit.from is this correction or reads it: below it in the stack), tint.key_not_above (limit.from is not above it: another branch), tint.lut_not_found (patch.lut names a LUT the project hasn't imported), tint.invalid_grade (a value out of range; nothing is written) or tint.animated (a field that has keys needs a key at a time, not a static value).",
   undoable: true,
   input: z.object({
     target: targetSchema,
@@ -180,6 +196,7 @@ export const setCorrection = defineCommand({
     patch: z.object({
       values: valuesSchema.optional(),
       limit: gradeLimitSchema.nullable().optional(),
+      lut: lutSchema.nullable().optional(),
       opacity: z.number().min(0).max(1).optional(),
       on: z.boolean().optional(),
       name: z.string().optional(),
@@ -188,6 +205,7 @@ export const setCorrection = defineCommand({
   run(ctx, { target, nodeId: id, patch }) {
     const { store } = ctx.require(projectRef);
     const state = store.getState();
+    checkLut(state, patch.lut);
     const grade = readGrade(state, target);
     const fields = [...Object.keys(patch.values ?? {}), ...liveFields(patch)];
     refuseUnlessEditable(state, target, grade, id, fields);
@@ -196,6 +214,8 @@ export const setCorrection = defineCommand({
     if (patch.values) node.values = { ...node.values, ...structuredClone(patch.values) };
     if (patch.limit === null) delete node.limit;
     else if (patch.limit) node.limit = patch.limit;
+    if (patch.lut === null) delete node.lut;
+    else if (patch.lut) node.lut = patch.lut;
     setLive(node, patch);
     if (patch.name !== undefined) node.name = patch.name;
     // Only a limit being written is checked: an unrelated edit keeps a stored key as it is.

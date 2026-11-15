@@ -3,7 +3,7 @@ import { CommandFailure, defineCommand } from "@/core";
 import { DEFAULT_CORRECTION, projectRef, type Correction } from "@/modules/project";
 import { groupOf } from "./logic/stack.group";
 import { clearTools, ownedValues } from "./logic/tools";
-import { setInput } from "./tint.color.commands";
+import { importLut, relinkLut, setInput } from "./tint.color.commands";
 import { group, setGroup, ungroup } from "./tint.group.commands";
 import { placeNodes, wire } from "./tint.wire.commands";
 import { checkedGrade, dropTracks, readGrade, writeGrade } from "./tint.guards";
@@ -113,4 +113,6 @@ export const tintCommands = [
   wire,
   placeNodes,
   setInput,
+  importLut,
+  relinkLut,
 ];

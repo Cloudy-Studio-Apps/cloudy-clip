@@ -1,12 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useStore } from "zustand";
-import { useModule } from "@/core";
-import { mediaRef, useLocateMedia } from "@/modules/media";
-import { projectRef } from "@/modules/project";
+import { useModule, usePoint } from "@/core";
 import { Button, Dialog } from "@/ui";
+import { relinkKinds } from "../workspace.points";
 import { workspaceRef } from "../workspace.ref";
+import type { RelinkKind } from "../workspace.types";
 
-/** The files an opened project couldn't find. Closes once they're all back. */
+/** The files an opened project couldn't find, of every kind in `relinkKinds`. Closes once they're all back. */
 export function RelinkHost() {
   const { ui } = useModule(workspaceRef);
   const open = useStore(ui, (s) => s.relink);
@@ -15,21 +15,15 @@ export function RelinkHost() {
 
 function RelinkDialog() {
   const { ui } = useModule(workspaceRef);
-  const media = useModule(mediaRef);
-  const { store } = useModule(projectRef);
-  const probes = useStore(media.probes, (s) => s.probes);
-  const assets = useStore(store.api, (s) => s.media);
-  const locate = useLocateMedia();
-
-  const missing = useMemo(
-    () => Object.values(assets).filter(({ id }) => probes[id]?.status === "missing"),
-    [assets, probes],
-  );
+  const kinds = usePoint(relinkKinds);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const close = () => ui.setState({ relink: false });
 
+  const reported = kinds.every(({ id }) => counts[id] !== undefined);
+  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
   useEffect(() => {
-    if (missing.length === 0) ui.setState({ relink: false });
-  }, [missing.length, ui]);
+    if (reported && total === 0) ui.setState({ relink: false });
+  }, [reported, total, ui]);
 
   return (
     <Dialog
@@ -38,18 +32,28 @@ function RelinkDialog() {
       footer={<Button onClick={close}>Skip</Button>}
     >
       <p className="text-sm text-muted-foreground">
-        Locate them and their clips come back. Files in the same folder are found together.
+        Locate them and what uses them comes back. Files in the same folder are found together.
       </p>
-      {missing.map((asset) => (
-        <div key={asset.id} className="flex items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-sm" title={asset.path}>
-            {asset.name}
-          </span>
-          <Button size="sm" onClick={() => void locate(asset)}>
-            Locate…
-          </Button>
-        </div>
-      ))}
+      {[...kinds]
+        .sort((a, b) => a.order - b.order)
+        .map((kind) => (
+          <KindRows key={kind.id} kind={kind} setCounts={setCounts} />
+        ))}
     </Dialog>
   );
+}
+
+function KindRows({
+  kind,
+  setCounts,
+}: {
+  kind: RelinkKind;
+  setCounts: (update: (counts: Record<string, number>) => Record<string, number>) => void;
+}) {
+  const onCount = useCallback(
+    (count: number) => setCounts((counts) => ({ ...counts, [kind.id]: count })),
+    [kind.id, setCounts],
+  );
+  const Rows = kind.component;
+  return <Rows onCount={onCount} />;
 }
