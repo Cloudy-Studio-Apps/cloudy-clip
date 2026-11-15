@@ -157,6 +157,7 @@ fn limiter_filter(l: &LimiterSpec) -> String {
         zeros.push(taps.clone());
         zeros.push(taps);
     }
+    // The input is always stereo: recipe.rs makes every segment stereo before any bus.
     format!(
         ",pan=7.1|c0=c0|c1=c1|c2=c0|c3=c1|c4=c0|c5=c1|c6=c0|c7=c1,aiir=z={}:p=1:f=tf:r=d:n=0,\
          alimiter=limit={}dB:attack={LIMITER_LOOKAHEAD_MS}:release={}:level=disabled,\

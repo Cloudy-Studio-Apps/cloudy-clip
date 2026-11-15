@@ -21,7 +21,7 @@ function besselI0(x: number): number {
 
 /**
  * The three in-between phases, aligned so a tap `k` reads sample `m - k`: they fall between
- * samples `m - TAPS / 2` and `m - TAPS / 2 + 1`. The same numbers as `true_peak_tap` in
+ * samples `m - TAPS / 2` and `m - TAPS / 2 + 1`. The same numbers as `true_peak_phase` in
  * `src-tauri/src/export/mixeffects.rs`.
  */
 export const PHASES = [1, 2, 3].map((phase) => {
