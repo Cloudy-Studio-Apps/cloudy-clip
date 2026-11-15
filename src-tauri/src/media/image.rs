@@ -183,6 +183,8 @@ async fn prepare_animation(
         duration: (frames as f64 / rate * 1_000_000.0).round() as u64,
         frames: Some(frames),
         full_range: false,
+        matrix: None,
+        matrix_tagged: false,
     };
     let message = animation_message(frames, rate);
     report(ProxyState::Ready, Some(1.0), Some(message), Some(meta));

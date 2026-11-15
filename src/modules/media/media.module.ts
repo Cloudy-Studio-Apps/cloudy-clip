@@ -110,6 +110,8 @@ export const mediaModule = defineModule({
         prepareMaster: service.prepareMaster,
         masterUrl: service.masterUrl,
         levelsClip: service.levelsClip,
+        matrixClip: service.matrixClip,
+        videoMatrix: service.videoMatrix,
         ...createDerivedFiles(service, (id) => getProbe(id)?.revision),
         animation: state.animation,
         imageFrames(id, elapsed, ahead) {

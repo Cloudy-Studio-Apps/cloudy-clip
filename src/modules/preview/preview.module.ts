@@ -21,6 +21,7 @@ import { createPlaybackClock } from "./preview.clock";
 import { createPreviewController } from "./preview.controller";
 import { createFilters } from "./preview.filters";
 import { createVideoLevelsMeter } from "./preview.levels";
+import { frameCorrection } from "./logic/matrix";
 import { previewCommands, seek, togglePlay } from "./preview.commands";
 import { previewMcpTools } from "./preview.mcp";
 import { previewRef } from "./preview.ref";
@@ -68,6 +69,8 @@ export const previewModule = defineModule({
       elements,
       junctions,
       videoLevels: levels.current,
+      videoMatrix: (id: string, url: string) =>
+        frameCorrection(media.videoMatrix(id, url), levels.matrices()),
       filters: filters.current,
     };
     const captureDeps: PreviewCaptureDeps = {
@@ -127,13 +130,13 @@ export const previewModule = defineModule({
       videoLevels: () => levels.measure(),
       gpuAvailable: () => gpuAvailable(),
     });
-    // The live preview shows the file's levels as soon as they are known.
+    // The live preview shows the file's levels and matrix as soon as they are known.
     let live = true;
     ctx.onDispose(() => {
       live = false;
     });
     void levels.measure().then(
-      (found) => live && found && controller.redraw(),
+      () => live && controller.redraw(),
       (error: unknown) => ctx.log.warn("Could not measure video levels", error),
     );
     void levels.settled();

@@ -13,7 +13,7 @@ use std::future::Future;
 use std::path::{Path, PathBuf};
 
 use super::derived::{DerivedKind, quiet, write_whole};
-use super::proxy::{Probe, Tools, ffprobe, run_encoder};
+use super::proxy::{Probe, Tools, ffprobe, matrix_tag, run_encoder};
 use super::registry::MediaRegistry;
 
 /// Length of a piece, a size whose frames fit in memory at any resolution we expect.
@@ -40,9 +40,10 @@ fn joined_list(parts: &[PathBuf]) -> String {
 }
 
 /// What FFmpeg does to one piece of picture, after its input.
-fn picture_args(full: bool) -> Vec<&'static str> {
+fn picture_args(full: bool, tag: &str) -> Vec<String> {
     let quality = if full { "14" } else { "23" };
-    vec![
+    let filter = format!("{tag}reverse,scale=trunc(iw/2)*2:trunc(ih/2)*2");
+    [
         "-map_metadata",
         "-1",
         "-map_chapters",
@@ -53,7 +54,7 @@ fn picture_args(full: bool) -> Vec<&'static str> {
         "-map",
         "0:v:0",
         "-vf",
-        "reverse,scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        &filter,
         "-c:v",
         "libx264",
         "-preset",
@@ -75,6 +76,9 @@ fn picture_args(full: bool) -> Vec<&'static str> {
         "-f",
         "mp4",
     ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect()
 }
 
 /// How the whole sound is cut: plain samples in one pass, so no piece gains or loses any. Seeking
@@ -111,6 +115,7 @@ async fn reverse_picture(
     folder: &Path,
     duration_us: u64,
     full: bool,
+    tag: &str,
     on_progress: &(dyn Fn(f32) + Sync),
 ) -> Result<Vec<PathBuf>, String> {
     let pieces = segments(duration_us);
@@ -120,7 +125,7 @@ async fn reverse_picture(
         let mut cmd = quiet(tools);
         cmd.args(["-ss", &seconds(start), "-t", &seconds(end - start), "-i"])
             .arg(source)
-            .args(picture_args(full))
+            .args(picture_args(full, tag))
             .arg(&part);
         let done = index as f32 / pieces.len() as f32;
         let step = 1.0 / pieces.len() as f32;
@@ -193,7 +198,8 @@ async fn make_reversed(
         .ok_or("This file doesn't say how long it is")?;
     let (picture, sound) = (probe.video_codec.is_some(), probe.audio_codec.is_some());
     let frames = if picture {
-        reverse_picture(tools, source, folder, duration_us, full, on_progress).await?
+        let tag = matrix_tag(probe);
+        reverse_picture(tools, source, folder, duration_us, full, tag, on_progress).await?
     } else {
         Vec::new()
     };
@@ -304,9 +310,9 @@ mod tests {
 
     #[test]
     fn a_picture_piece_has_one_video_stream_and_no_timecode() {
-        let args = picture_args(false);
+        let args = picture_args(false, "");
         for needed in ["0:v:0", "-an", "-dn", "-write_tmcd", "-map_metadata"] {
-            assert!(args.contains(&needed), "{needed}");
+            assert!(args.iter().any(|arg| arg == needed), "{needed}");
         }
     }
 
