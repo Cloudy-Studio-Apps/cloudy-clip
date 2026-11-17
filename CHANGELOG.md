@@ -6,9 +6,22 @@ All notable changes to Cloudy Clip are listed here. The format follows
 
 Leer en [español](CHANGELOG.es.md).
 
-## [Unreleased]
+## [0.1.0] - 2026-11-17
 
 ### Added
+
+**The Tint page (color grading)**
+
+- A new Tint tab between Edit and Sound, with the viewer, scopes, the clips strip and the tools side by side.
+- Grades as layers (Baby Seal) or as nodes (Leader Seal): two views of the same grade, switched with the seal switch. Layers can be grouped side by side, stacked or per channel, with wires and key joins in the node view.
+- Tools: Basics, wheels (Primary, Log, Bars and Zones), curves, Color mix, Warper, Creative, the RGB mixer, and limits by color and brightness with shared keys.
+- Camera color spaces, LUT files (.cube), looks and stills.
+- Copy and paste grades, versions, shot groups and a whole-timeline grade.
+- Match a shot to another, white balance, color charts and skin tones.
+- Grade values take keyframes, so a grade can change over a shot.
+- Scopes, bypass and before/after, and viewer tools.
+- Grades draw on the GPU, the same in the preview, captures and the export.
+- Agents can grade through new MCP tools.
 
 **Volume lines and automation (Sound page)**
 
@@ -51,11 +64,20 @@ Leer en [español](CHANGELOG.es.md).
 - The loudness meter reads true peaks the way FFmpeg's measurement does.
 - Agent tools that wait on a long job answer within about 25 seconds and report progress; asking again joins the same job.
 - Volume-line tools take a `target` (a track or `"master"`) instead of `trackId`.
+- `project_get_state` returns a compact overview: every composition in one line, one composition in full (`compositionId`, else the open one), and media, bins, solids, grade groups, LUTs and stills only when asked for through `include`.
+- Line and pass tools return the ids of the keys they wrote.
 
 ### Fixed
 
 - FFmpeg jobs no longer keep running after the app quits, and their half-written files are removed. Leftovers from a crash are cleaned up at the next launch.
 - The Sound page no longer grows wider than the window, so the mixer and the small preview are always visible.
+- Video is drawn with the right brightness range for each kind of file. Some files had their blacks and whites stretched a second time, which crushed shadows and clipped highlights.
+- Trimming or splitting a clip clamps its fades to the new length, and the trim tool returns the clip as stored.
+- Every sound-only output has exactly the requested length.
+- Beat finding keeps the full tempo when the kicks have alternating gaps.
+- A moved keyframe stops at the clip's edge.
+- `speed_reset` after a ramp restores a round original length.
+- Fixes to many MCP tools found in a full test pass: clearer refusals for unknown packs, topics, jobs and colours, relink keeps a chosen name, `preview_capture_frame` leaves the agent's playhead alone, `junction_set` keeps the options given with a new preset, and hiding an audio track is refused.
 
 ## [0.0.1] - 2026-11-09
 

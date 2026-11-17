@@ -6,9 +6,22 @@ Aquí se recogen los cambios importantes de Cloudy Clip. El formato sigue
 
 Read in [English](CHANGELOG.md).
 
-## [Sin publicar]
+## [0.1.0] - 2026-11-17
 
 ### Añadido
+
+**La página Tinte (etalonaje de color)**
+
+- Una nueva pestaña Tinte entre Editar y Sonido, con el visor, los scopes, la tira de clips y las herramientas uno junto a otro.
+- Etalonajes como capas (Baby Seal) o como nodos (Leader Seal): dos vistas del mismo etalonaje, que se cambian con el interruptor de la foca. Las capas se pueden agrupar en paralelo, apiladas o por canal, con cables y uniones de llave en la vista de nodos.
+- Herramientas: Básicos, ruedas (Primarias, Log, Barras y Zonas), curvas, Mezcla de color, Warper, Creativo, el mezclador RGB y límites por color y brillo con llaves compartidas.
+- Espacios de color de cámara, archivos LUT (.cube), looks y fotogramas fijos.
+- Copiar y pegar etalonajes, versiones, grupos de planos y un etalonaje de toda la línea de tiempo.
+- Igualar un plano con otro, balance de blancos, cartas de color y tonos de piel.
+- Los valores del etalonaje admiten fotogramas clave, así que un etalonaje puede cambiar a lo largo de un plano.
+- Scopes, desactivar y antes/después, y herramientas del visor.
+- Los etalonajes se dibujan en la GPU, igual en la vista previa, las capturas y la exportación.
+- Los agentes pueden etalonar con nuevas herramientas MCP.
 
 **Líneas de volumen y automatización (página Sonido)**
 
@@ -51,11 +64,20 @@ Read in [English](CHANGELOG.md).
 - El medidor de sonoridad lee los picos reales igual que la medición de FFmpeg.
 - Las herramientas de agente que esperan un trabajo largo responden en unos 25 segundos e informan del progreso; volver a pedirlo se une al mismo trabajo.
 - Las herramientas de líneas de volumen reciben un `target` (una pista o `"master"`) en lugar de `trackId`.
+- `project_get_state` devuelve un resumen compacto: cada composición en una línea, una composición completa (`compositionId`, o la abierta) y los medios, carpetas, sólidos, grupos de etalonaje, LUT y fotogramas fijos solo cuando se piden con `include`.
+- Las herramientas de líneas y pasadas devuelven los ids de los fotogramas clave que escribieron.
 
 ### Corregido
 
 - Los trabajos de FFmpeg ya no siguen en marcha después de cerrar la aplicación, y se borran sus archivos a medio escribir. Lo que quede de un cierre inesperado se limpia en el siguiente arranque.
 - La página Sonido ya no se hace más ancha que la ventana, así que el mezclador y la vista previa pequeña siempre se ven.
+- El vídeo se dibuja con el rango de brillo correcto para cada tipo de archivo. En algunos archivos los negros y blancos se estiraban dos veces, lo que aplastaba las sombras y quemaba las luces.
+- Recortar o cortar un clip ajusta sus fundidos a la nueva duración, y la herramienta de recorte devuelve el clip tal como queda guardado.
+- Cada salida de solo sonido tiene exactamente la duración pedida.
+- Buscar tiempos mantiene el tempo completo cuando los bombos tienen huecos alternos.
+- Un fotograma clave movido se detiene en el borde del clip.
+- `speed_reset` tras una rampa recupera una duración original redonda.
+- Arreglos en muchas herramientas MCP encontrados en una prueba completa: rechazos más claros para packs, temas, trabajos y colores desconocidos, al volver a vincular se conserva el nombre elegido, `preview_capture_frame` no mueve el cursor del agente, `junction_set` conserva las opciones dadas con un preset nuevo, y se rechaza ocultar una pista de audio.
 
 ## [0.0.1] - 2026-11-09
 
