@@ -85,11 +85,12 @@ export const setPoints = defineCommand({
           [nextId, "inX", 2] as const,
           [nextId, "inY", 2] as const,
         ];
+        // Exact times: a tolerance would merge keys 1 µs apart (the edges keyframe.writeSpan leaves).
         for (const time of pathKeyTimes(clip, maskId)) {
           const split = insertPoint(pointsAt(clip, maskId, kept, time), i, insertAt.t);
           for (const [pid, c, offset] of keys) {
             const point = split[(i + offset) % split.length]!;
-            keyInto(animation, pointPath(maskId, pid, c), time, point[c], tolerance);
+            keyInto(animation, pointPath(maskId, pid, c), time, point[c], 0);
           }
         }
         for (const [pid, c] of keys) exempt.add(`${pid}.${c}`);

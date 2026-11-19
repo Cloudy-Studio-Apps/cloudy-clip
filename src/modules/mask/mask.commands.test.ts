@@ -193,6 +193,12 @@ beforeEach(async () => {
   };
   state.tracks.v1!.clipIds.push("t", "q");
   state.clips.t = { ...keyedPathClip("t", 3), start: 4 * S };
+  // A step 1 µs after the first key, as keyframe.writeSpan leaves at a span's edge.
+  state.clips.t.animation!["masks.m.shape.points.p1.x"]!.keys.splice(1, 0, {
+    id: "kc",
+    t: 1,
+    value: 500,
+  });
   state.clips.q = { ...keyedPathClip("q", 4), start: 6 * S };
   state.clips.s = { ...pictureClip("s", "a1"), kind: "test.picture" };
   await kernel.modules.loadAll([
@@ -294,7 +300,7 @@ describe("masks", () => {
       }),
     );
     const after = doc().clips.t!;
-    for (const time of [4 * S, 5 * S]) {
+    for (const time of [4 * S, 4 * S + 1, 5 * S]) {
       const old = pointsAt(clip, time);
       const now = pointsAt(after, time);
       expect(now).toHaveLength(4);
