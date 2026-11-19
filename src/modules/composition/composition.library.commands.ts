@@ -60,6 +60,10 @@ export const deleteComposition = defineCommand({
       for (const marker of Object.values(draft.markers)) {
         if (marker.compositionId === id) delete draft.markers[marker.id];
       }
+      for (const path of Object.values(draft.paths ?? {})) {
+        if (path.compositionId === id) delete draft.paths![path.id];
+      }
+      if (draft.paths && Object.keys(draft.paths).length === 0) delete draft.paths;
       for (const trackId of tracks) delete draft.tracks[trackId];
       delete draft.compositions[id];
       draft.compositionOrder = others;

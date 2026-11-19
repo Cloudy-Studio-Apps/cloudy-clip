@@ -3,7 +3,7 @@ import { createId } from "@/core";
 import type { ClipId, CompositionId, ProjectState, TrackId } from "@/modules/project";
 
 /**
- * Copies a composition with its tracks, clips, junctions and markers under new ids. Links stay links within
+ * Copies a composition with its tracks, clips, junctions, markers and motion paths under new ids. Links stay links within
  * the copy; compositions placed in it stay shared.
  */
 export function cloneComposition(
@@ -52,6 +52,18 @@ export function cloneComposition(
     if (marker.compositionId !== compositionId) continue;
     const copyId = createId("marker");
     draft.markers[copyId] = { ...marker, id: copyId, compositionId: id };
+  }
+  // Every path comes along (unused ones too); the copied clips follow the copies.
+  const paths = new Map<string, string>();
+  for (const path of Object.values(state.paths ?? {})) {
+    if (path.compositionId !== compositionId) continue;
+    const copyId = createId("path");
+    (draft.paths ??= {})[copyId] = { ...structuredClone(path), id: copyId, compositionId: id };
+    paths.set(path.id, copyId);
+  }
+  for (const copyId of clips.values()) {
+    const follow = draft.clips[copyId]!.follow;
+    if (follow) follow.pathId = paths.get(follow.pathId) ?? follow.pathId;
   }
   draft.compositions[id] = {
     ...structuredClone(original),

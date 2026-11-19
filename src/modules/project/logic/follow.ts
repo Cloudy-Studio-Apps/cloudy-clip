@@ -121,7 +121,12 @@ export function copyFollowedPaths(
     if (path.compositionId === compositionId) continue;
     if (!copies.has(pathId)) {
       const id = createId("path");
-      draft.paths![id] = { ...structuredClone(path as MotionPath), id, compositionId };
+      draft.paths![id] = {
+        ...path,
+        id,
+        compositionId,
+        points: path.points.map((point) => ({ ...point })),
+      };
       copies.set(pathId, id);
     }
     clip.follow.pathId = copies.get(pathId)!;

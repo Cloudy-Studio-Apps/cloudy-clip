@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CommandFailure, createId, defineCommand } from "@/core";
 import {
+  copyFollowedPaths,
   clipHasKeys,
   contentTime,
   filePlayed,
@@ -113,6 +114,8 @@ export const groupClips = defineCommand({
         trackOrder: [...lanes.values()],
       };
       draft.compositionOrder.push(id);
+      // Grouped followers keep flying, on a copy of their path in the new composition.
+      copyFollowedPaths(draft, [...moved], id);
       for (const clip of placement) {
         draft.clips[clip.id] = clip;
         const lane = draft.tracks[clip.trackId]!;

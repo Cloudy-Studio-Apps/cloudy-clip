@@ -520,4 +520,72 @@ describe("composition commands", () => {
     const [picture] = placementsOf(state(), grouped);
     expect(picture).toMatchObject({ start: 2 * S, duration: 3 * S });
   });
+
+  describe("motion paths", () => {
+    const LINE = [
+      { x: 0, y: 0, inX: 0, inY: 0, outX: 0, outY: 0 },
+      { x: 100, y: 50, inX: 0, inY: 0, outX: 0, outY: 0 },
+    ];
+
+    /** A composition with a path `p` and clip `a` following it. */
+    async function followed() {
+      const { compositionId } = await ok(createComposition, {});
+      const [v] = state().compositions[compositionId]!.trackOrder as [string, string];
+      write((draft) => {
+        draft.paths = {
+          p: { id: "p", compositionId, name: "Path 1", closed: false, points: LINE },
+        };
+        draft.clips.a = text("a", v, 0, {
+          duration: 2 * S,
+          follow: { pathId: "p", progress: 0.5, orient: false },
+        });
+        draft.tracks[v]!.clipIds = ["a"];
+      });
+      return { compositionId, v };
+    }
+
+    const followerIn = (compositionId: string) =>
+      Object.values(state().clips).find(
+        (c) => c.follow && state().tracks[c.trackId]?.compositionId === compositionId,
+      )!;
+
+    it("duplicating a composition copies its paths and followers follow the copy", async () => {
+      const { compositionId } = await followed();
+      const copy = await ok(duplicateComposition, { compositionId });
+      const clip = followerIn(copy.compositionId);
+      expect(clip.follow!.pathId).not.toBe("p");
+      expect(state().paths![clip.follow!.pathId]).toMatchObject({
+        compositionId: copy.compositionId,
+        points: LINE,
+      });
+    });
+
+    it("grouping followers keeps them following a copied path", async () => {
+      await followed();
+      const { compositionId } = await ok(groupClips, { clipIds: ["a"] });
+      const pathId = state().clips.a!.follow!.pathId;
+      expect(state().paths![pathId]!.compositionId).toBe(compositionId);
+    });
+
+    it("resizing scales path points", async () => {
+      const { compositionId } = await followed();
+      const format = state().compositions[compositionId]!.format;
+      await ok(setSettings, {
+        compositionId,
+        format: { ...format, width: format.width * 2, height: format.height * 2 },
+        resize: "scale",
+      });
+      expect(state().paths!.p!.points[1]).toMatchObject({ x: 200, y: 100 });
+    });
+
+    it("deleting a composition deletes its paths", async () => {
+      const { compositionId } = await followed();
+      await ok(createComposition, {});
+      await ok(setMain, {
+        compositionId: Object.keys(state().compositions).find((id) => id !== compositionId)!,
+      });
+      await ok(deleteComposition, { compositionId });
+      expect(state().paths?.p).toBeUndefined();
+    });
+  });
 });

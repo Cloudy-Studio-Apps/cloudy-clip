@@ -8,6 +8,7 @@ import {
   IDENTITY_TRANSFORM,
   projectRef,
   requireComposition,
+  scalePath,
 } from "@/modules/project";
 import { checkFormat, checkLength, compositionId, settings } from "./composition.guards";
 import { scaleKeys, scaleTransform } from "./logic/resize";
@@ -50,6 +51,13 @@ export const setSettings = defineCommand({
         );
         const keys = scaleKeys(animation, fit, before, input.format!);
         if (keys) draft.clips[clipId]!.animation = keys;
+      }
+      if (input.format && resize === "scale") {
+        const kx = input.format.width / before.width;
+        const ky = input.format.height / before.height;
+        for (const path of Object.values(draft.paths ?? {})) {
+          if (path.compositionId === id) draft.paths![path.id] = scalePath(path, kx, ky);
+        }
       }
       const composition = draft.compositions[id]!;
       if (input.name !== undefined) composition.name = input.name;

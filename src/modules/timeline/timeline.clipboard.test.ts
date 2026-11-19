@@ -147,6 +147,45 @@ describe("paste", () => {
     expect(result).toMatchObject({ ok: false, error: { code: "composition.cycle" } });
   });
 
+  it("pasting a follower into another composition bakes it", async () => {
+    const corner = (x: number) => ({ x, y: 0, inX: 0, inY: 0, outX: 0, outY: 0 });
+    kernel.modules.require(timelineRef).clipboard.set("local", {
+      clips: [
+        {
+          id: "f",
+          kind: "text",
+          trackId: "v1",
+          start: 0,
+          sourceIn: 0,
+          duration: S,
+          props: {},
+          follow: { pathId: "p", progress: 1, orient: false },
+        },
+      ] as never,
+      gradeGroups: [],
+      origin: 0,
+      trackKinds: { v1: "video" },
+    });
+    const store = kernel.modules.require(projectRef).store as unknown as {
+      produce(r: (d: ReturnType<typeof doc>) => void): unknown;
+    };
+    store.produce((d) => {
+      d.paths = {
+        p: {
+          id: "p",
+          compositionId: "c1",
+          name: "Path 1",
+          closed: false,
+          points: [corner(0), corner(80)],
+        },
+      };
+    });
+    const { clips } = await run(kernel.bus.run(pasteClips, { time: 0, trackId: "t2" }));
+    const pasted = doc().clips[clips[0]!.id]!;
+    expect(pasted.follow).toBeUndefined();
+    expect(pasted.transform?.x).toBeCloseTo(80);
+  });
+
   it("fails when the copied file is gone, writing nothing", async () => {
     const a = await sound(0, 2);
     kernel.modules.require(timelineRef).clipboard.set("local", {

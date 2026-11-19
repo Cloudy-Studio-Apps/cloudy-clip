@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { CommandFailure, defineCommand, type CommandContext, type Micros } from "@/core";
 import { previewRef } from "@/modules/preview";
-import { clipEnd, contains, projectRef, withPartners, type Clip } from "@/modules/project";
+import {
+  bakeFollow,
+  clipEnd,
+  contains,
+  projectRef,
+  withPartners,
+  type Clip,
+} from "@/modules/project";
 import { clipboardEntry, pastePlan } from "./logic/paste";
 import { sortClipIds } from "./logic/placement";
 import { requireClip, targetComposition, time } from "./timeline.guards";
@@ -43,7 +50,12 @@ async function paste(
       placement.trackId ??
       (await ctx.execute(addTrack, { kind: placement.kind, compositionId: composition.id }))
         .trackId;
-    clips.push(...placement.clips.map((clip) => ({ ...clip, trackId })));
+    // A follower whose path isn't in this composition stays where it was, no longer following.
+    const settled = (clip: Clip) =>
+      clip.follow && state.paths?.[clip.follow.pathId]?.compositionId !== composition.id
+        ? bakeFollow(clip, state.paths, clip.start)
+        : clip;
+    clips.push(...placement.clips.map((clip) => settled({ ...clip, trackId })));
   }
   ctx.mutate(store, (draft) => {
     // A cut that emptied a shot group dropped it; bring it back before its clips land.
