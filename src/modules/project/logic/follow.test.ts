@@ -42,6 +42,11 @@ describe("followedClip", () => {
     expect(clipTransform(followedClip(clip, 0, down)).rotation).toBeCloseTo(95);
   });
 
+  it("live values apply before the path", () => {
+    const live = { transform: { x: 20 }, follow: { progress: 1 } };
+    expect(clipTransform(followedClip(follower(), 0, right, live)).x).toBeCloseTo(120);
+  });
+
   it("a missing path leaves the clip at its offset", () => {
     expect(clipTransform(followedClip(follower(), 0, {})).x).toBe(10);
     expect(clipTransform(followedClip(follower(), 0, undefined)).x).toBe(10);

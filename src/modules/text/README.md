@@ -18,7 +18,7 @@ text element: Content, Font, Fill, Outline, Background, Shadow, then Transform.
 - **Points it owns:** —
 - **API:** none (`TextApi` is empty). Exports `textElement`, `applyTextPreset`, `presetStyle`,
   `presetTransform`, `textLayout`.
-- **Keys:** the in-place editor places its box with `animatedClip(clip, time)` at the playhead as the editor opens, so it sits on the text as drawn.
+- **Keys:** the in-place editor places its box with `followedClip(clip, time, paths)` at the playhead as the editor opens (on a motion path too), so it sits on the text as drawn.
 - **Fill:** `fill.type` is `color` or `gradient`. A gradient spans the text box and `fill.opacity` still multiplies it, because in-place editing hides the canvas text with `fill: { opacity: 0 }`; while it shows, that opacity has no control of its own (stops and Composite have one). Presets set `type: "color"`. The editor shows the gradient with `background-clip: text`.
 - **Files:**
   - `text.element.ts`: `textElement` (`textProperties`: words, `font` (custom prop), size, weight,

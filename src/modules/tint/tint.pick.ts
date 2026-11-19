@@ -3,6 +3,7 @@ import type { MediaApi } from "@/modules/media";
 import type { PreviewApi } from "@/modules/preview";
 import {
   animatedClip,
+  followedClip,
   clipEnd,
   clipPlacement,
   clipTransform,
@@ -48,7 +49,7 @@ export function createPicker(
       ? clipPlacement(
           formatOf(state, clip),
           { width: probe.width, height: probe.height },
-          clipTransform(animatedClip(clip, time)),
+          clipTransform(followedClip(clip, time, state.paths)),
         )
       : null;
   };

@@ -1,6 +1,13 @@
 import type { CommandBus } from "@/core";
 import type { PreviewApi } from "@/modules/preview";
-import type { ClipFit, ClipId, ClipTransform, PictureSize, ProjectFormat } from "@/modules/project";
+import type {
+  ClipFit,
+  ClipId,
+  ClipTransform,
+  FollowShift,
+  PictureSize,
+  ProjectFormat,
+} from "@/modules/project";
 
 /** The transform module's API. Empty: its command and preview overlay are its whole surface. */
 export type TransformApi = Record<string, never>;
@@ -25,6 +32,8 @@ export interface VisibleLayer {
   transform: ClipTransform;
   /** The transform fields its element supports (without its `except` fields). */
   fields: ReadonlySet<TransformField>;
+  /** What its motion path adds to `transform` now (a follower), else undefined. */
+  shift?: FollowShift;
 }
 
 /** Which way `transform.flip` mirrors: left to right (`scaleX`) or upside down (`scaleY`). */
@@ -48,6 +57,8 @@ export interface TransformGestureOptions {
   fit: ClipFit;
   /** The fields the clip's element supports; the others stay at `start`. */
   fields: ReadonlySet<TransformField>;
+  /** What the clip's motion path adds to `start`: taken off again before committing. */
+  shift?: FollowShift;
   format: ProjectFormat;
   /** The overlay, which covers the frame exactly. */
   frame: HTMLElement;

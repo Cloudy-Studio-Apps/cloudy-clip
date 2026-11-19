@@ -1,6 +1,6 @@
 import { setProps } from "@/modules/element";
 import { clipPlacement } from "@/modules/project";
-import { TRANSFORM_KEYS, transformPatch } from "../logic/commit";
+import { TRANSFORM_KEYS, transformPatch, unshift } from "../logic/commit";
 import { toFramePoint } from "../logic/frame";
 import {
   moveTransform,
@@ -39,6 +39,7 @@ export function startTransformGesture(options: TransformGestureOptions): void {
     source,
     fit,
     fields,
+    shift,
     format,
     frame,
     box,
@@ -93,7 +94,7 @@ export function startTransformGesture(options: TransformGestureOptions): void {
     window.removeEventListener("pointercancel", finish);
     document.body.style.cursor = "";
     showGuides(false, false);
-    const patch = transformPatch(start, current, fields);
+    const patch = transformPatch(unshift(start, shift), unshift(current, shift), fields);
     const result = patch
       ? await bus.run(setProps, {
           clipIds: [clipId],

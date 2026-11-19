@@ -121,4 +121,39 @@ describe("resolveFrame", () => {
     state.compositions.inner!.duration = 2 * S;
     expect(innerClips(resolveFrame(state, "outer", 3 * S, opts))).toEqual([]);
   });
+
+  it("a follower is drawn on its path", () => {
+    const state = project(
+      [track("v", "outer", ["f"])],
+      [
+        clip("f", "v", 0, 10 * S, {
+          transform: {
+            x: 5,
+            y: 0,
+            scale: 1,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0,
+            pivotX: 0,
+            pivotY: 0,
+          },
+          follow: { pathId: "p", progress: 0.5, orient: false },
+        }),
+      ],
+    );
+    state.paths = {
+      p: {
+        id: "p",
+        compositionId: "outer",
+        name: "Path 1",
+        closed: false,
+        points: [
+          { x: 0, y: 0, inX: 0, inY: 0, outX: 0, outY: 0 },
+          { x: 100, y: 0, inX: 0, inY: 0, outX: 0, outY: 0 },
+        ],
+      },
+    };
+    const drawn = resolveFrame(state, "outer", S, opts).tracks[0]!.clips[0]!.clip;
+    expect(drawn.transform?.x).toBeCloseTo(55);
+  });
 });

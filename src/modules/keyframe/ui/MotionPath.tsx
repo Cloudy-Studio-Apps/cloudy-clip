@@ -36,6 +36,8 @@ export function MotionPath() {
       return clip?.animation?.["transform.x"] || clip?.animation?.["transform.y"] ? [clip] : [];
     });
     const [only] = animated;
+    // A clip on a motion path shows that path (the path module's overlay), not its X/Y offsets.
+    if (only?.follow?.pathId) return undefined;
     return animated.length === 1 && only ? motionPath(only, format, SAMPLES) : undefined;
   }, [open, clips, selection, format]);
 

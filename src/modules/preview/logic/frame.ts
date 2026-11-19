@@ -1,6 +1,6 @@
 import type { Micros } from "@/core";
 import {
-  animatedClip,
+  followedClip,
   type Clip,
   type CompositionId,
   type ProjectState,
@@ -70,12 +70,23 @@ function resolveLevel(
       const path = pathOf(prefix, clip.id);
       if (clip.start <= time && time < clip.start + clip.duration) {
         const inner = inside(project, clip, track, time, options, path);
-        clips.push({ clip: animatedClip(clip, time), path, time, ...(inner && { inner }) });
+        clips.push({
+          clip: followedClip(clip, time, project.paths),
+          path,
+          time,
+          ...(inner && { inner }),
+        });
         if (inner) upcoming.push(...inner.upcoming);
       } else if (clip.start > time && clip.start - time <= options.preloadAhead) {
         const inner = inside(project, clip, track, clip.start, options, path);
         if (inner) upcoming.push(...showing(inner));
-        else upcoming.push({ path, clip: animatedClip(clip, clip.start), track, time: clip.start });
+        else
+          upcoming.push({
+            path,
+            clip: followedClip(clip, clip.start, project.paths),
+            track,
+            time: clip.start,
+          });
       } else if (clip.start > time + options.preloadAhead) break; // clips are sorted by start
     }
   }

@@ -6,6 +6,7 @@ import type {
   ClipFollow,
   ClipId,
   CompositionId,
+  FollowLive,
   FollowShift,
   KeyTrack,
   MotionPath,
@@ -32,17 +33,31 @@ export function followShift(clip: Clip, paths: ProjectState["paths"]): FollowShi
 }
 
 /**
- * The clip as it is placed at a timeline time: `animatedClip`, then, when it follows a path, its
- * position moved onto the path (its own `x`, `y` being the offset) and, with orient, the path's
- * direction added to its rotation. Every placement of a picture reads clips through this.
+ * The clip as it is placed at a timeline time: `animatedClip`, then `live` values over it (an
+ * unsaved edit in progress, such as a slider being dragged: the offset and the follow settings),
+ * then, when it follows a path, its position moved onto the path (its own `x`, `y` being the
+ * offset) and, with orient, the path's direction added to its rotation. Every placement of a
+ * picture reads clips through this.
  */
-export function followedClip(clip: Clip, time: Micros, paths: ProjectState["paths"]): Clip {
-  const animated = animatedClip(clip, time);
-  const shift = followShift(animated, paths);
-  if (!shift) return animated;
-  const t = clipTransform(animated);
+export function followedClip(
+  clip: Clip,
+  time: Micros,
+  paths: ProjectState["paths"],
+  live?: FollowLive,
+): Clip {
+  let placed = animatedClip(clip, time);
+  if (live?.transform || live?.follow) {
+    placed = {
+      ...placed,
+      transform: clipTransform(placed, live.transform),
+      ...(placed.follow && { follow: { ...placed.follow, ...live.follow } }),
+    };
+  }
+  const shift = followShift(placed, paths);
+  if (!shift) return placed;
+  const t = clipTransform(placed);
   return {
-    ...animated,
+    ...placed,
     transform: { ...t, x: t.x + shift.x, y: t.y + shift.y, rotation: t.rotation + shift.rotation },
   };
 }

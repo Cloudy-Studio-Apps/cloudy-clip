@@ -86,6 +86,7 @@ export function TransformOverlay() {
       source: target.source,
       fit: target.fit,
       fields: target.fields,
+      shift: target.shift,
       format,
       frame,
       box: target === selected ? boxRef.current : null,

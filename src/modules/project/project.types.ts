@@ -428,6 +428,12 @@ export interface PathSample {
   angle: number;
 }
 
+/** Unsaved values over a clip while it is being edited (a slider being dragged), in its own terms. */
+export interface FollowLive {
+  transform?: Partial<ClipTransform>;
+  follow?: Partial<ClipFollow>;
+}
+
 /** What following a path adds to a clip's transform at a moment. */
 export interface FollowShift {
   x: number;

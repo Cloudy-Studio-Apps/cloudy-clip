@@ -3,10 +3,11 @@ import { useKernel, useModule } from "@/core";
 import { gradientCss } from "@/modules/element";
 import { previewRef } from "@/modules/preview";
 import {
-  animatedClip,
   type Clip,
   clipPlacement,
   clipTransform,
+  followedClip,
+  projectRef,
   type PictureSize,
   useOpenFormat,
 } from "@/modules/project";
@@ -33,7 +34,12 @@ export function TextEditor({ clip, onDone }: TextEditorProps) {
   const style = useMemo(() => textStyleOf(clip, format), [clip, format]);
   // Where the playhead is as the editor opens: the box stays put while typing.
   const [openedAt] = useState(() => preview.playback.getTime());
-  const transform = useMemo(() => clipTransform(animatedClip(clip, openedAt)), [clip, openedAt]);
+  const project = useModule(projectRef).store;
+  // On a motion path, the box sits where the text is drawn.
+  const transform = useMemo(
+    () => clipTransform(followedClip(clip, openedAt, project.getState().paths)),
+    [clip, openedAt, project],
+  );
   const box = useRef<HTMLDivElement>(null);
   const area = useRef<HTMLTextAreaElement>(null);
   const ended = useRef(false);

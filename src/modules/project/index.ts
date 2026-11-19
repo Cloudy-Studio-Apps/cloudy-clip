@@ -54,6 +54,7 @@ export {
 export type {
   Clip,
   ClipFollow,
+  FollowLive,
   FollowShift,
   MotionPath,
   PathId,

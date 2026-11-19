@@ -49,7 +49,7 @@ pivot. Click empty space to deselect.
     that `except`s fields: the box hides the corners without `scale`, the side handles without `scaleX` / `scaleY`, the
     crosshair without both `pivotX` and `pivotY`, and the rotate handle without
     `rotation`, and a picture without `x` and `y` is selected by a click but not dragged.
-- **Keys:** `visibleLayers` reads each clip through `animatedClip(clip, time)`, so the box sits on the picture the engine draws; the live `transform` patch still goes over it.
+- **Keys and paths:** `visibleLayers` reads each clip through `followedClip(clip, time, paths, live)` (`project`), so the box sits on the picture the engine draws, on a follower's motion path too; the live patch goes in as its live values. A follower's layer carries `shift` (what its path adds now), and a gesture takes it off before committing (`unshift`, `logic/commit.ts`), since a follower stores its offset from the path: dragging, rotating or moving the pivot of a follower edits its offset and it doesn't jump on release.
 - **Not yet:** crop, a switch on the Composite band, keeping an off-center pivot in place when a composition is resized with `scale` and its aspect changes (`composition/logic/resize.ts`).
 
 | Command                                 | MCP tool                                 |

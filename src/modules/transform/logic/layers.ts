@@ -3,13 +3,26 @@ import { mergeProps, type ElementApi, type TextMeasure } from "@/modules/element
 import {
   animatedClip,
   clipTransform,
+  followedClip,
   type ClipTransform,
+  type FollowLive,
+  type FollowShift,
   type Composition,
   type MediaId,
   type PictureSize,
   type ProjectState,
 } from "@/modules/project";
 import type { TransformField, VisibleLayer } from "../transform.types";
+
+/** What the path adds to a follower (`placed` minus `offset`), or undefined when nothing. */
+function shiftOf(placed: ClipTransform, offset: ClipTransform): FollowShift | undefined {
+  const shift = {
+    x: placed.x - offset.x,
+    y: placed.y - offset.y,
+    rotation: placed.rotation - offset.rotation,
+  };
+  return shift.x || shift.y || shift.rotation ? shift : undefined;
+}
 
 /**
  * Pictures on screen at `time` (media clips and elements that draw themselves), top-most first (the order to hit-test
@@ -34,18 +47,24 @@ export function visibleLayers(
       if (!saved || saved.disabled) continue;
       if (saved.start > time) break; // sorted by start
       if (time >= saved.start + saved.duration) continue;
-      const clip = animatedClip(saved, time);
+      const live = liveProps(clipId);
+      // On a path: the box sits where the picture is drawn; `shift` is what the path adds, so a
+      // drag commits the offset the clip stores.
+      const clip = followedClip(saved, time, state.paths, live as FollowLive | undefined);
       const element = elements.get(clip.kind);
       const picture = element?.definition.picture;
       const group = element?.groups.find((g) => g.id === "transform");
       if (!picture || !group) continue;
       const fields = new Set(Object.keys(group.properties) as TransformField[]);
-      const live = liveProps(clipId);
-      const transform = clipTransform(clip, live?.transform as Partial<ClipTransform> | undefined);
+      const transform = clipTransform(clip);
+      const offset = clip.follow?.pathId
+        ? clipTransform(animatedClip(saved, time), live?.transform as Partial<ClipTransform>)
+        : transform;
+      const shift = shiftOf(transform, offset);
       if (picture.source === "media") {
         if (!clip.mediaId || state.media[clip.mediaId]?.kind === "audio") continue;
         const source = sizeOf(clip.mediaId);
-        if (source) layers.push({ clipId, source, fit: picture.fit, transform, fields });
+        if (source) layers.push({ clipId, source, fit: picture.fit, transform, fields, shift });
         continue;
       }
       if (picture.source === "composition") {
@@ -53,7 +72,7 @@ export function visibleLayers(
         if (placed) {
           const { width, height } = placed.format;
           const source = { width, height };
-          layers.push({ clipId, source, fit: picture.fit, transform, fields });
+          layers.push({ clipId, source, fit: picture.fit, transform, fields, shift });
         }
         continue;
       }
@@ -66,6 +85,7 @@ export function visibleLayers(
         fit: picture.fit,
         transform,
         fields,
+        shift,
       });
     }
   }

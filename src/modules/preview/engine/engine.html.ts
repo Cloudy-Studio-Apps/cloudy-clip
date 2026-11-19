@@ -4,6 +4,8 @@ import {
   clipComposite,
   clipPlacement,
   clipTransform,
+  followedClip,
+  type FollowLive,
   formatOf,
   type Clip,
   dbToLinear,
@@ -513,8 +515,11 @@ export class HtmlMediaEngine implements PreviewEngine {
       for (const { clip, inner } of clips) if (inner) inners.set(clip.id, inner);
     }
     const paint = (on: CanvasRenderingContext2D, clip: Clip) => {
-      const live = propsOverrides.get(clip.id)?.transform as Partial<ClipTransform> | undefined;
-      const transform = transforms.get(clip.id) ?? clipTransform(clip, live);
+      // A live edit (a slider being dragged) is in the clip's own terms: placed through its path again.
+      const live = propsOverrides.get(clip.id) as FollowLive | undefined;
+      const saved = project.clips[clip.id];
+      const placed = live && saved ? followedClip(saved, time, project.paths, live) : clip;
+      const transform = transforms.get(clip.id) ?? clipTransform(placed);
       const subject = { clip, project, path: pathOf(clip), time };
       const box = { on, format, kx, ky };
       const inner = inners.get(clip.id);
