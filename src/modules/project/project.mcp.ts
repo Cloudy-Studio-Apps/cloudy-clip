@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { defineMcpTool, textResult } from "@/core";
 import { orderedJunctions } from "./logic/junctions";
+import { orderedMasks } from "./logic/mask";
 import {
   compositionMarkers,
   orderedTracks,
@@ -8,10 +9,26 @@ import {
   trackClips,
 } from "./project.selectors";
 import { projectRef } from "./project.ref";
-import type { Composition, ProjectState } from "./project.types";
+import type { Clip, Composition, ProjectState } from "./project.types";
 
 /** Sections left out unless asked for in `include`, each counted in `counts`. */
 const SECTIONS = ["media", "bins", "solids", "gradeGroups", "luts", "stills"] as const;
+
+/** A clip as agents see it: as stored, with its masks listed in order (id, name, kind, mode, on, invert). */
+function clipView(clip: Clip) {
+  if (!clip.masks) return clip;
+  return {
+    ...clip,
+    masks: orderedMasks(clip).map(({ id, name, shape, mode, on, invert }) => ({
+      id,
+      name,
+      kind: shape.kind,
+      mode,
+      on,
+      invert,
+    })),
+  };
+}
 
 /** One composition in full: settings, mix and grade as stored, tracks with clips, junctions, markers. */
 function fullComposition(state: ProjectState, composition: Composition) {
@@ -32,7 +49,7 @@ function fullComposition(state: ProjectState, composition: Composition) {
       muted: track.muted || undefined,
       hidden: track.hidden || undefined,
       mix: track.mix,
-      clips: trackClips(state, track),
+      clips: trackClips(state, track).map(clipView),
     })),
     junctions: orderedJunctions(state, id),
     markers: compositionMarkers(state, id),

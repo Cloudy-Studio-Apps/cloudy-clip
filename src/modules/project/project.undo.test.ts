@@ -240,6 +240,68 @@ describe("per-actor undo", () => {
     expect(t.state().compositions.c1!.trackOrder).toEqual(["t1", "t3", "t2"]);
   });
 
+  const withMatte = (d: ProjectState) => {
+    d.clips.a!.matte = { trackId: "t2", by: "alpha" };
+  };
+
+  it("refuses a matte naming a track of another composition", async () => {
+    await t.edit(LOCAL_ACTOR, withMatte);
+    await t.edit(AGENT, (d) => void delete d.clips.a!.matte);
+    await t.edit(LOCAL_ACTOR, (d) => {
+      d.compositions.c2 = { ...d.compositions.c1!, id: "c2", trackOrder: ["t2"] };
+      d.compositionOrder.push("c2");
+      d.tracks.t2!.compositionId = "c2";
+    });
+    expect(() => t.history.undo(AGENT)).toThrow(
+      /a matte would name a track of another composition/,
+    );
+  });
+
+  it("drops a matte with its track and brings both back on undo", async () => {
+    await t.edit(AGENT, withMatte);
+    await t.edit(AGENT, (d) => {
+      delete d.tracks.t2;
+      d.compositions.c1!.trackOrder = d.compositions.c1!.trackOrder.filter((id) => id !== "t2");
+    });
+    expect(t.state().clips.a!.matte).toBeUndefined();
+    t.history.undo(AGENT);
+    expect(t.state().tracks.t2).toBeDefined();
+    expect(t.state().clips.a!.matte).toEqual({ trackId: "t2", by: "alpha" });
+    t.history.redo(AGENT);
+    expect(t.state().tracks.t2).toBeUndefined();
+    expect(t.state().clips.a!.matte).toBeUndefined();
+  });
+
+  it("refuses a mask path with two points", async () => {
+    const point = { x: 0, y: 0, inX: 0, inY: 0, outX: 0, outY: 0 };
+    await t.edit(AGENT, (d) => {
+      d.clips.a!.masks = {
+        m: {
+          id: "m",
+          name: "Mask 1",
+          color: "orange",
+          mode: "add",
+          opacity: 1,
+          feather: 0,
+          expansion: 0,
+          x: 0,
+          y: 0,
+          rotation: 0,
+          shape: { kind: "path", scale: 1, points: { p: point, q: point }, pointOrder: ["p", "q"] },
+        },
+      };
+      d.clips.a!.maskOrder = ["m"];
+    });
+    await t.edit(LOCAL_ACTOR, (d) => {
+      delete d.clips.a!.masks;
+      delete d.clips.a!.maskOrder;
+    });
+    await t.edit(AGENT, (d) => void (d.clips.a!.start = 5));
+    expect(() => t.history.undo(LOCAL_ACTOR)).toThrow(
+      /a mask path would have fewer than three points/,
+    );
+  });
+
   it("an out-of-order undo of a deleted gradeGroup restores the group and the clip's ref", async () => {
     await t.edit(LOCAL_ACTOR, (d) => {
       d.gradeGroups = { g1: { id: "g1", name: "Look" } };

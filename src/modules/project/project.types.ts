@@ -245,6 +245,11 @@ export interface Clip extends Partial<SharedGroupValues> {
   gradeVersion?: string;
   /** The shot group whose grade runs after this clip's own. */
   gradeGroup?: GradeGroupId;
+  /** Masks by id; `maskOrder` is the order they apply in. Picture clips only; missing means none. */
+  masks?: Record<MaskId, ClipMask>;
+  maskOrder?: MaskId[];
+  /** The track whose picture decides where this clip shows. Missing means none. */
+  matte?: ClipMatte;
 }
 
 /** One color of a gradient. `at` is its place along the gradient and `opacity` its alpha, each 0–1. */
@@ -808,3 +813,84 @@ export interface ProjectApi {
   /** Who has which composition open. */
   readonly view: CompositionView;
 }
+
+/** Id of a mask, unique in its clip. */
+export type MaskId = string;
+
+/** Id of a point of a mask path, unique in its mask. */
+export type PointId = string;
+
+/** How a mask combines with the ones before it. */
+export type MaskMode = "add" | "subtract" | "intersect" | "difference";
+
+/** The shape of a mask, in the clip's fitted picture space (see {@link MaskMapping}). */
+export type MaskShape =
+  | { kind: "rectangle"; width: number; height: number; roundness: number }
+  | { kind: "ellipse"; width: number; height: number }
+  | { kind: "star"; width: number; height: number; points: number; inner: number }
+  | { kind: "heart"; width: number; height: number }
+  | { kind: "linear" }
+  | { kind: "mirror"; width: number }
+  | {
+      kind: "path";
+      scale: number;
+      points: Record<PointId, PathPoint>;
+      pointOrder: PointId[];
+    };
+
+/** A mask on a clip: a shape in the fitted picture, centered at (`x`, `y`) from the picture's center. */
+export interface ClipMask {
+  id: MaskId;
+  name: string;
+  /** Its outline on the canvas. */
+  color: MarkerColor;
+  /** Missing means on. */
+  on?: false;
+  mode: MaskMode;
+  invert?: true;
+  /** 0 to 1. */
+  opacity: number;
+  /** Picture px (Gaussian radius, about 2 sigma). */
+  feather: number;
+  /** Picture px; grows (+) or shrinks (-) the shape. */
+  expansion: number;
+  x: number;
+  y: number;
+  /** Degrees, clockwise. */
+  rotation: number;
+  shape: MaskShape;
+}
+
+/** A clip shown only where another track's picture is (or isn't, with `invert`). */
+export interface ClipMatte {
+  /** A video track of the clip's composition. */
+  trackId: TrackId;
+  by: "alpha" | "luma";
+  invert?: true;
+}
+
+/** Where a mask's space sits in the frame: a point (px, py) lands at `rotate((px*sx, py*sy), rotation) + (cx, cy)`. */
+export interface MaskMapping {
+  cx: number;
+  cy: number;
+  /** Degrees, clockwise. */
+  rotation: number;
+  /** Placed over fitted size, signed by the flip. */
+  sx: number;
+  sy: number;
+}
+
+/** The allowed range of each mask number, by field name. */
+export const MASK_RANGES: Record<string, { min: number; max: number }> = {
+  opacity: { min: 0, max: 1 },
+  feather: { min: 0, max: 2000 },
+  expansion: { min: -2000, max: 2000 },
+  x: { min: -100000, max: 100000 },
+  y: { min: -100000, max: 100000 },
+  width: { min: 0, max: 100000 },
+  height: { min: 0, max: 100000 },
+  roundness: { min: 0, max: 1 },
+  points: { min: 3, max: 24 },
+  inner: { min: 0.05, max: 1 },
+  scale: { min: 0.001, max: 1000 },
+};

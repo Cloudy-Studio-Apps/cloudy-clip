@@ -3,6 +3,7 @@ import type { FieldChange, StorePolicy } from "@/core";
 import type { Clip, CompositionId, ProjectState, SoundEffect, TrackId } from "../project.types";
 import { contains, settleCompositions } from "./compositions";
 import { dropDeletedGrades, gradeProblem } from "./fields.grades";
+import { dropDeletedMattes, maskProblem } from "./fields.masks";
 import { findLayoutConflict, staleJunctions } from "./junctions";
 
 /** Collections of records compared field by field. */
@@ -228,6 +229,8 @@ function validate(state: ProjectState): string | null {
   if (paths) return paths;
   const grades = gradeProblem(state);
   if (grades) return grades;
+  const masks = maskProblem(state);
+  if (masks) return masks;
   if (findLayoutConflict(state)) return "clips would overlap";
   if (staleJunctions(state).length > 0) return "a transition would no longer fit its clips";
   const cuts = new Set<string>();
@@ -292,5 +295,6 @@ export const projectPolicy: StorePolicy<ProjectState> = {
     clampFades(draft);
     dropDeletedListens(draft);
     dropDeletedGrades(draft);
+    dropDeletedMattes(draft);
   },
 };

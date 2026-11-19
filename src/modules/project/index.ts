@@ -50,10 +50,21 @@ export {
   rippleMoves,
   staleJunctions,
 } from "./logic/junctions";
+/** Masks: where their space sits in the frame, their outlines and lines, their order and scaling. */
+export { maskLine, maskOutline, maskPlacement, orderedMasks, scaleMasks } from "./logic/mask";
+/** The allowed range of each mask number. */
+export { MASK_RANGES } from "./project.types";
 /** The document's types. */
 export type {
   Clip,
   ClipFollow,
+  ClipMask,
+  ClipMatte,
+  MaskId,
+  MaskMapping,
+  MaskMode,
+  MaskShape,
+  PointId,
   FollowLive,
   FollowShift,
   MotionPath,
