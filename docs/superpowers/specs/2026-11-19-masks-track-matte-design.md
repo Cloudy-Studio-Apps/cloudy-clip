@@ -130,25 +130,29 @@ interface ClipMatte {
 }
 ```
 
-- **Space:** a mask lives in its clip's **picture space** (the picture's own pixels from its center,
-  before the clip's transform), as in After Effects. "Picture px" means the size the canvas tools
-  use: a media clip's **probe** size (never the decoded size, which is the proxy's in the preview and
-  the master's in export), an element's `picture.size` (text measured). The engine maps a mask by
-  probe px × (`place.width` / probe width), so the preview and the export agree. The size logic that
-  sits privately in `transform/logic/layers.ts` (`visibleLayers`) moves somewhere shared (`element`'s
-  API or `project`, the builder's call) and both `transform` and `mask` use it. Moving, scaling, rotating, flipping the clip, or
-  following a motion path, carries its masks. Widths/heights are in the same px.
-- **Defaults** of a new preset: centered (0, 0), rotation 0, size half the picture's
-  (`picture.size`/probe), feather 0, expansion 0, opacity 1, mode Add. Linear starts horizontal through
+- **Space:** a mask lives in its clip's **fitted picture space**: output px from the picture's center,
+  with the picture as `clipPlacement` fits it at the identity transform (contained for media, natural
+  size for text), before the clip's own transform. Moving, scaling, rotating, flipping the clip, or
+  following a motion path, carries its masks, as in After Effects. This space depends only on the
+  picture's aspect, never its pixel count, so a proxy in the preview and the master in export map a
+  mask identically, and the engine needs no probe sizes. `maskPlacement(format, size, transform)`
+  (`project`) gives the one mapping: the clip's placement center and rotation, and per-axis factors
+  `placed / fitted` (signed by the flip). The engine and the canvas use only it.
+- **Resizing a composition with scale** scales every mask length (`x`, `y`, sizes, `feather`,
+  `expansion`, point coordinates, and their keys) by `min(kx, ky)`, beside `scaleTransform`, with the
+  same shortcut comment about aspect changes.
+- **Defaults** of a new preset: centered (0, 0), rotation 0, size half the fitted picture's (the
+  Mask tab passes it, from the layer on screen; a command given no size uses half the frame, so
+  commands never need probes or text measuring), feather 0, expansion 0, opacity 1, mode Add. Linear starts horizontal through
   the center; Mirror at a quarter of the picture's height.
 - **Never stored empty:** an empty `masks` drops both fields; `matte` is dropped with its track.
-- **Pure geometry** in `project/logic/mask.ts`: `maskOutline(mask, pictureSize)` → closed cubic
-  segments in picture px (rectangle with rounded corners, ellipse as 4 Béziers, star, heart, path with
+- **Pure geometry** in `project/logic/mask.ts`: `maskOutline(mask)` → closed cubic
+  segments in fitted picture px (rectangle with rounded corners, ellipse as 4 Béziers, star, heart, path with
   `scale`, `rotation`, `(x, y)` applied), and `maskLine(mask)` for linear/mirror (a point and a normal).
   The engine rasterizes from this, and the overlay draws from this, so they cannot disagree.
 - **Validation** (`projectPolicy.validate`, like paths): `maskOrder` matches the keys of `masks`; ranges;
   a path shape has ≥ 3 points and `pointOrder` matches `points`; `matte.trackId` is a video track of the
-  same composition and not the clip's own track. **Settle:** deleting a track drops every `matte` naming
+  same composition (its own track is allowed in the document and ignored by the engine, so moves never fail). **Settle:** deleting a track drops every `matte` naming
   it in the same step (as ducks' `listensTo`).
 - **Clips that move:** split copies masks and matte to both halves (keys sit in content time, so
   they follow). Freeze frame bakes the masks at the frozen moment like every other value of the hold
@@ -231,8 +235,8 @@ Per clip in `drawFrame`'s `drawClip`, when the clip has an enabled mask or a mat
 - **`only` captures** (Tint stills and matching read a clip's own picture) skip masks and matte.
 - **Bypass** (`bypassFilters`, Tint's compare): masks and mattes still apply. They aren't filters, so
   their GPU passes run whether or not `filtering` is on.
-- **Picking:** `transform`'s `visibleLayers` doesn't pick clips on a matte track from the canvas (they
-  aren't drawn); selected from the timeline, they still get their box.
+- **Picking:** `transform`'s `visibleLayers` marks clips on a matte track (`matte: true`); a canvas
+  click doesn't pick them (they aren't drawn), but selected from the timeline they still get their box.
 - **Caching:** a clip's `M` may be kept while its masks, placement and canvas size are unchanged and
   nothing is animated (builder's call; correctness first).
 - **No WebGL2 / GPU failure:** as Tint's filters. In the live preview a feathered mask draws hard-edged
@@ -244,12 +248,12 @@ Per clip in `drawFrame`'s `drawClip`, when the clip has an enabled mask or a mat
 
 ### 4. The `mask` feature module (`src/modules/mask/`)
 
-- **Tier:** feature. **Requires:** `project`, `element` (picture sizes), `media` (probe sizes),
-  `fonts` (re-measure text when a font loads), `keyframe` (`keyTargets`, `setMany`), `preview`
+- **Tier:** feature. **Requires:** `project`, `element` (which kinds draw a picture), `keyframe` (`keyTargets`, `setMany`), `preview`
   (playhead, `previewProps`, viewport), `inspector` (`inspectorTabs`, `propertyControls`, `FieldRow`),
   `timeline` (selection, `timelineTrackControls`), `path` (the shared Bézier editing pieces, see
-  below). Not `transform`: its box learns a mask is being edited some other way (see "Left to the
-  builder").
+  below), `transform` (`useVisibleLayers`, the selected clip's picture size and placement on screen,
+  and `hideBox(owner, hidden)`, a new `TransformApi` call that hides its box while a mask is edited;
+  `transform` never knows about `mask`).
 - **UI store** (per kernel, not in history): `selectedMaskId`, `selectedPointId`, `drawing`
   (`{ mode: "freehand" | "pen" }` while a new path mask is drawn).
 
@@ -332,8 +336,6 @@ the result. Tool descriptions say masks live in picture px from the picture's ce
 
 ## Left to the builder
 
-- How `transform`'s box learns a mask is being edited without `transform` requiring `mask` (a shared
-  flag through a point or `preview`'s state; features must not import each other's internals).
 - The exact rounded-rectangle, star and heart outlines (a heart: two arcs and a point, as Béziers).
 - Kernel size and downscale thresholds of the blur; caching of `M` and `T`.
 - Difference's soft-edge formula, if `xor` reads wrong.
