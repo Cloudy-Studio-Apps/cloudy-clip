@@ -80,7 +80,7 @@ const NOTHING = new Map();
 /** Every clip, with its filters, and nothing over the frame. */
 const PLAIN: PictureOptions = { bypass: false, compare: null, viewer: [], only: null };
 
-/** Draws a picture at its placement. `kx` and `ky` are canvas pixels per output pixel. */
+/** Draws a picture at its placement, mirrored by its flip. `kx` and `ky` are canvas pixels per output pixel. */
 function land(
   target: CanvasRenderingContext2D,
   source: CanvasImageSource,
@@ -91,6 +91,7 @@ function land(
   target.setTransform(kx, 0, 0, ky, 0, 0);
   target.translate(place.cx, place.cy);
   target.rotate((place.rotation * Math.PI) / 180);
+  target.scale(place.flipX ? -1 : 1, place.flipY ? -1 : 1);
   target.drawImage(source, -place.width / 2, -place.height / 2, place.width, place.height);
 }
 

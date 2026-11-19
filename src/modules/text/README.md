@@ -46,7 +46,9 @@ textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs 
     from the box center; blank lines keep their height), `textBox`. Types (`TextStyle`,
     `TextProps`, …) are type aliases in `text.types.ts`.
   - `text.draw.ts`: `drawText(ctx, props, env)`: background box, then per line the shadow (first
-    painted pass only), outline stroke and fill, at `env.placement`. A font not loaded yet is drawn
+    painted pass only), outline stroke and fill, at `env.placement`, scaled on each axis by the
+    placed size over the natural one (so Stretch squashes the letters, background and outline too)
+    and mirrored by its flip; nothing at a width or height of 0. A font not loaded yet is drawn
     in Inter at the clip's scale.
   - `logic/snap.ts`: `snapStyleToFamily` moves a style's weight/italic to the closest face its
     family has (`closestVariant`). `logic/presets.ts`: `presetStyle` / `presetTransform` (sizes are

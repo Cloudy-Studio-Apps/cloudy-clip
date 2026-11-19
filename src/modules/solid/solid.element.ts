@@ -17,6 +17,7 @@ function drawSolid(ctx: CanvasRenderingContext2D, fill: SolidFill, env: DrawEnv)
   ctx.setTransform(kx, 0, 0, ky, 0, 0);
   ctx.translate(place.cx, place.cy);
   ctx.rotate((place.rotation * Math.PI) / 180);
+  ctx.scale(place.flipX ? -1 : 1, place.flipY ? -1 : 1);
   ctx.fillStyle =
     fill.fillType === "gradient"
       ? gradientPaint(ctx, fill.gradient, place.width, place.height)

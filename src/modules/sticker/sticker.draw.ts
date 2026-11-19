@@ -23,6 +23,7 @@ export function drawSticker(
   ctx.setTransform(kx, 0, 0, ky, 0, 0);
   ctx.translate(place.cx, place.cy);
   ctx.rotate((place.rotation * Math.PI) / 180);
+  ctx.scale(place.flipX ? -1 : 1, place.flipY ? -1 : 1);
   const box = { width: place.width, height: place.height };
   const seconds = microsToSeconds(env.time);
   const drawn = art && cache.draw(ctx, art, seconds, box, place.width * kx);

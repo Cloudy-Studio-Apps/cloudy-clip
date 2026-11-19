@@ -56,7 +56,7 @@ export function TextEditor({ clip, onDone }: TextEditorProps) {
         top: `${(placement.cy / format.height) * 100}%`,
         width: `${size.width}px`,
         height: `${size.height}px`,
-        transform: `translate(-50%, -50%) rotate(${placement.rotation}deg) scale(${k * transform.scale})`,
+        transform: `translate(-50%, -50%) rotate(${placement.rotation}deg) scale(${k * transform.scale * transform.scaleX}, ${k * transform.scale * transform.scaleY})`,
       });
     },
     [style, transform, format, measure],

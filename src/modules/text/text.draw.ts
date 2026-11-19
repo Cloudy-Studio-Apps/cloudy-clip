@@ -46,20 +46,23 @@ function paintLine(
  * Draws a text clip from its layout: background, then each line with shadow, outline and fill.
  * The box sits where `env.placement` says (from `textLayout` and `clipPlacement(…, "none")`, the
  * same as the canvas tools hit-test). A font that is not loaded yet is drawn as Inter, at the
- * clip's scale.
+ * clip's scale. Stretch scales each axis on its own, and a flip mirrors it.
  */
 export function drawText(ctx: CanvasRenderingContext2D, props: TextProps, env: DrawEnv): void {
   const { placement: place, kx, ky } = env;
   const used = drawnStyle(props, env.ensureFont);
   const layout = textLayout(props.text, used, env.measure);
-  // The clip's own scale: the placed size over the natural size of the requested font.
-  const scale = place.width / textLayout(props.text, props, env.measure).box.width;
+  // The clip's own scale on each axis: the placed size over the natural size of the requested font.
+  const natural = textLayout(props.text, props, env.measure).box;
+  const sx = place.width / natural.width;
+  const sy = place.height / natural.height;
+  if (!(sx > 0 && sy > 0)) return;
 
   ctx.save();
   ctx.setTransform(kx, 0, 0, ky, 0, 0);
   ctx.translate(place.cx, place.cy);
   ctx.rotate((place.rotation * Math.PI) / 180);
-  ctx.scale(scale, scale);
+  ctx.scale(place.flipX ? -sx : sx, place.flipY ? -sy : sy);
 
   const native = "letterSpacing" in ctx;
   const { background, outline, shadow, fill } = used;
@@ -86,9 +89,10 @@ export function drawText(ctx: CanvasRenderingContext2D, props: TextProps, env: D
   const angle = (shadow.angle * Math.PI) / 180;
   const shadowPass = () => {
     ctx.shadowColor = rgba(shadow.color, shadow.opacity);
-    ctx.shadowBlur = shadow.blur * kx * scale;
-    ctx.shadowOffsetX = Math.cos(angle) * shadow.distance * kx * scale;
-    ctx.shadowOffsetY = Math.sin(angle) * shadow.distance * ky * scale;
+    // A stretched shadow blurs by the smaller axis, so a squashed text doesn't smear.
+    ctx.shadowBlur = shadow.blur * kx * Math.min(sx, sy);
+    ctx.shadowOffsetX = Math.cos(angle) * shadow.distance * kx * sx;
+    ctx.shadowOffsetY = Math.sin(angle) * shadow.distance * ky * sy;
   };
   const noShadow = () => {
     ctx.shadowColor = "transparent";

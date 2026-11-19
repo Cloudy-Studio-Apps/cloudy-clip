@@ -24,7 +24,7 @@ export function meanAround(frame: PickFrame, x: number, y: number): Rgb {
 /**
  * Where a point of the frame (output pixels, y down) is in a clip's own picture, as `v_uv` has it
  * (`u` 0 left to 1 right, `v` 0 bottom to 1 top), undoing the placement's move, size and clockwise
- * rotation, with the picture's aspect. Outside 0…1 when the point is off the picture.
+ * rotation and its flip, with the picture's aspect. Outside 0…1 when the point is off the picture.
  */
 export function pictureAt(placement: ClipPlacement, x: number, y: number): PixelAt {
   const turn = (placement.rotation * Math.PI) / 180;
@@ -32,9 +32,11 @@ export function pictureAt(placement: ClipPlacement, x: number, y: number): Pixel
   const dy = y - placement.cy;
   const lx = dx * Math.cos(turn) + dy * Math.sin(turn);
   const ly = -dx * Math.sin(turn) + dy * Math.cos(turn);
+  const u = lx / placement.width + 0.5;
+  const v = 0.5 - ly / placement.height;
   return {
-    u: lx / placement.width + 0.5,
-    v: 0.5 - ly / placement.height,
+    u: placement.flipX ? 1 - u : u,
+    v: placement.flipY ? 1 - v : v,
     aspect: placement.width / placement.height,
   };
 }
