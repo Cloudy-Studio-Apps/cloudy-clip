@@ -6,6 +6,22 @@ All notable changes to Cloudy Clip are listed here. The format follows
 
 Leer en [español](CHANGELOG.es.md).
 
+## [Unreleased]
+
+### Added
+
+- **Pivot, stretch and flip in Transform**, the After Effects way. Each picture has a pivot
+  (Pivot X/Y) that scale, stretch and rotation turn about; Position places the pivot. Stretch
+  sets Width and Height on their own for squash and stretch, and a negative value flips that
+  axis, so a turn can animate smoothly through zero. Flip Horizontal and Flip Vertical (in the
+  Transform section and the clip menu) mirror the clip and every key of that value in one step.
+  All of it can hold keys.
+- On the canvas, side handles stretch one axis (dragging past the pivot flips it) and a crosshair
+  moves the pivot without moving the picture; corners and the rotate handle now work about the
+  pivot.
+- Agents get `transform_flip`, and `element_set_props` takes `scaleX`, `scaleY`, `pivotX` and
+  `pivotY` under `transform`.
+
 ## [0.1.0] - 2026-11-17
 
 ### Added

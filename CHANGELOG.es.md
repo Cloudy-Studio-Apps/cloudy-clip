@@ -6,6 +6,22 @@ Aquí se recogen los cambios importantes de Cloudy Clip. El formato sigue
 
 Read in [English](CHANGELOG.md).
 
+## [Sin publicar]
+
+### Añadido
+
+- **Pivote, estirar y voltear en Transformar**, como en After Effects. Cada imagen tiene un pivote
+  (Pivote X/Y) sobre el que giran la escala, el estiramiento y la rotación; Posición coloca el
+  pivote. Estirar ajusta Ancho y Alto por separado para aplastar y estirar, y un valor negativo
+  voltea ese eje, así que un giro se puede animar suave pasando por cero. Voltear horizontal y
+  Voltear vertical (en la sección Transformar y en el menú del clip) reflejan el clip y todas las
+  claves de ese valor en un solo paso. Todo admite claves.
+- En el lienzo, las asas laterales estiran un eje (arrastrar más allá del pivote lo voltea) y una
+  cruz mueve el pivote sin mover la imagen; las esquinas y el asa de rotación ahora trabajan
+  sobre el pivote.
+- Los agentes tienen `transform_flip`, y `element_set_props` acepta `scaleX`, `scaleY`, `pivotX`
+  y `pivotY` dentro de `transform`.
+
 ## [0.1.0] - 2026-11-17
 
 ### Añadido
