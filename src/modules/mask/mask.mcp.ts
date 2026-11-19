@@ -4,6 +4,7 @@ import { previewRef } from "@/modules/preview";
 import { animatedClip, orderedMasks, projectRef } from "@/modules/project";
 import { addMask, removeMasks, reorderMask, updateMask } from "./mask.commands";
 import { setMatte } from "./mask.matte.commands";
+import { convertMask, setPoints } from "./mask.points.commands";
 
 /** Reads a clip's masks in order, with the values they have at a time, and its matte. */
 const listMasks = defineMcpTool({
@@ -41,4 +42,6 @@ export const maskMcpTools = [
   commandTool(removeMasks, { name: "mask_remove" }),
   commandTool(reorderMask, { name: "mask_reorder" }),
   commandTool(setMatte, { name: "mask_set_matte" }),
+  commandTool(setPoints, { name: "mask_set_points" }),
+  commandTool(convertMask, { name: "mask_convert" }),
 ];

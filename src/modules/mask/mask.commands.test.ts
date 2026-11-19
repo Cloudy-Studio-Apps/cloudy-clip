@@ -2,15 +2,23 @@ import { Film } from "lucide-react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createKernel, defineModule, defineModuleRef, type Kernel } from "@/core";
 import { defineElement, elementModule, elements, prop } from "@/modules/element";
+import { keyframeModule, removeKeys } from "@/modules/keyframe";
 import {
+  animatedClip,
   createProjectModule,
   IDENTITY_TRANSFORM,
+  insertPoint,
+  maskOutline,
   projectRef,
+  segmentAt,
   seedProject,
   type Clip,
+  type KeyTrack,
+  type PathPoint,
 } from "@/modules/project";
 import { addMask, removeMasks, reorderMask, updateMask } from "./mask.commands";
 import { setMatte } from "./mask.matte.commands";
+import { convertMask, setPoints } from "./mask.points.commands";
 import { maskModule } from "./mask.module";
 
 const S = 1_000_000;
@@ -59,6 +67,70 @@ const pictureClip = (id: string, trackId: string): Clip => ({
   props: {},
   transform: { ...IDENTITY_TRANSFORM },
 });
+
+const COORDS = ["x", "y", "inX", "inY", "outX", "outY"] as const;
+const track = (a: number, b: number): KeyTrack => ({
+  shared: true,
+  blend: "number",
+  keys: [
+    { id: "ka", t: 0, value: a },
+    { id: "kb", t: S, value: b },
+  ],
+});
+
+/** A clip with a path mask "m" of `n` points "p1".."pn", every coordinate keyed at 0 and 1 s. */
+function keyedPathClip(id: string, n: number): Clip {
+  const ids = Array.from({ length: n }, (_, i) => `p${i + 1}`);
+  const at = (i: number, grow: number): PathPoint => {
+    const turn = (2 * Math.PI * i) / n;
+    const r = 100 * grow;
+    return {
+      x: r * Math.cos(turn),
+      y: r * Math.sin(turn) * (grow > 1 ? 0.5 : 1),
+      inX: 10 * grow,
+      inY: -20,
+      outX: -10,
+      outY: 20 * grow,
+    };
+  };
+  const animation: Record<string, KeyTrack> = {};
+  ids.forEach((pid, i) => {
+    for (const c of COORDS)
+      animation[`masks.m.shape.points.${pid}.${c}`] = track(at(i, 1)[c], at(i, 2)[c]);
+  });
+  return {
+    ...pictureClip(id, "v1"),
+    masks: {
+      m: {
+        id: "m",
+        name: "Mask 1",
+        color: "orange",
+        mode: "add",
+        opacity: 1,
+        feather: 0,
+        expansion: 0,
+        x: 0,
+        y: 0,
+        rotation: 0,
+        shape: {
+          kind: "path",
+          scale: 1,
+          points: Object.fromEntries(ids.map((pid, i) => [pid, at(i, 1)])),
+          pointOrder: ids,
+        },
+      },
+    },
+    maskOrder: ["m"],
+    animation,
+  };
+}
+
+/** The path points of mask "m" in order, at timeline time `t`. */
+function pointsAt(clip: Clip, t: number): PathPoint[] {
+  const shape = animatedClip(clip, t).masks!.m!.shape;
+  if (shape.kind !== "path") throw new Error("not a path");
+  return shape.pointOrder.map((pid) => shape.points[pid]!);
+}
 
 let kernel: Kernel;
 const doc = () => kernel.modules.require(projectRef).store.getState();
@@ -114,16 +186,23 @@ beforeEach(async () => {
       "masks.m1.feather": {
         shared: true,
         blend: "number",
-        keys: [{ id: "k1", t: 0, value: 0, ease: { kind: "linear" } }],
+        keys: [{ id: "k1", t: 0, value: 25, ease: { kind: "linear" } }],
       },
+      "masks.m1.shape.width": track(100, 300),
     },
   };
+  state.tracks.v1!.clipIds.push("t", "q");
+  state.clips.t = { ...keyedPathClip("t", 3), start: 4 * S };
+  state.clips.q = { ...keyedPathClip("q", 4), start: 6 * S };
   state.clips.s = { ...pictureClip("s", "a1"), kind: "test.picture" };
   await kernel.modules.loadAll([
     createProjectModule(state),
     elementModule,
     stub("preview"),
+    stub("inspector"),
+    stub("timeline"),
     fixtures,
+    keyframeModule,
     maskModule,
   ]);
 });
@@ -194,5 +273,87 @@ describe("masks", () => {
       "mask.own_track",
     );
     expect(doc()).toBe(before);
+  });
+
+  it("inserting a point on an animated path keeps every keyed shape", async () => {
+    const clip = doc().clips.t!;
+    const [p1, p2, p3] = pointsAt(clip, 4 * S);
+    const added = insertPoint([p1!, p2!, p3!], 0, 0.5);
+    const points = [
+      { ...added[0]!, id: "p1" },
+      added[1]!,
+      { ...added[2]!, id: "p2" },
+      { ...added[3]!, id: "p3" },
+    ];
+    await ok(
+      kernel.bus.run(setPoints, {
+        clipId: "t",
+        maskId: "m",
+        points,
+        insertAt: { after: "p1", t: 0.5 },
+      }),
+    );
+    const after = doc().clips.t!;
+    for (const time of [4 * S, 5 * S]) {
+      const old = pointsAt(clip, time);
+      const now = pointsAt(after, time);
+      expect(now).toHaveLength(4);
+      for (let s = 0; s < 3; s++) {
+        for (let k = 0; k <= 32; k++) {
+          const u = k / 32;
+          const want = segmentAt(old, s, u);
+          const got =
+            s > 0
+              ? segmentAt(now, s + 1, u)
+              : u <= 0.5
+                ? segmentAt(now, 0, u * 2)
+                : segmentAt(now, 1, u * 2 - 1);
+          expect(got.x).toBeCloseTo(want.x, 6);
+          expect(got.y).toBeCloseTo(want.y, 6);
+        }
+      }
+    }
+  });
+
+  it("removing a point drops its keys", async () => {
+    const [p1, p2, p3] = pointsAt(doc().clips.q!, 6 * S);
+    const points = [
+      { ...p1!, id: "p1" },
+      { ...p2!, id: "p2" },
+      { ...p3!, id: "p3" },
+    ];
+    await ok(kernel.bus.run(setPoints, { clipId: "q", maskId: "m", points }));
+    const clip = doc().clips.q!;
+    const shape = clip.masks!.m!.shape;
+    expect(shape.kind === "path" && shape.pointOrder).toEqual(["p1", "p2", "p3"]);
+    expect(Object.keys(clip.animation!).filter((path) => path.includes(".p4."))).toEqual([]);
+    expect(Object.keys(clip.animation!)).toHaveLength(18);
+  });
+
+  it("converting an animated ellipse keeps its shape at each key", async () => {
+    const clip = doc().clips.k!;
+    await ok(kernel.bus.run(convertMask, { clipId: "k", maskId: "m1" }));
+    const after = doc().clips.k!;
+    expect(after.animation!["masks.m1.shape.width"]).toBeUndefined();
+    for (const time of [0, S]) {
+      const want = maskOutline(animatedClip(clip, time).masks!.m1!)!.flat();
+      const got = maskOutline(animatedClip(after, time).masks!.m1!)!.flat();
+      expect(got).toHaveLength(want.length);
+      got.forEach((p, i) => {
+        expect(p.x).toBeCloseTo(want[i]!.x, 6);
+        expect(p.y).toBeCloseTo(want[i]!.y, 6);
+      });
+    }
+  });
+
+  it("keying the last key away makes the value static", async () => {
+    await ok(
+      kernel.bus.run(removeKeys, {
+        keys: [{ clipId: "k", path: "masks.m1.feather", keyId: "k1" }],
+      }),
+    );
+    const clip = doc().clips.k!;
+    expect(clip.animation!["masks.m1.feather"]).toBeUndefined();
+    expect(clip.masks!.m1!.feather).toBe(25);
   });
 });

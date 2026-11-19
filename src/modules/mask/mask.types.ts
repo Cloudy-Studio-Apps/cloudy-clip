@@ -63,6 +63,14 @@ declare module "@/core" {
     };
     "mask.remove": { clipId: string; maskIds: string[] };
     "mask.reorder": { clipId: string; maskId: string; index: number };
+    "mask.setPoints": {
+      clipId: string;
+      maskId: string;
+      points: Array<MaskPointInput & { id?: PointId }>;
+      insertAt?: { after: PointId; t: number };
+      at?: number;
+    };
+    "mask.convert": { clipId: string; maskId: string };
     "mask.setMatte": {
       clipIds: string[];
       trackId: string | null;
