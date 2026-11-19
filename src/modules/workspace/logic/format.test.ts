@@ -155,4 +155,51 @@ describe("project file", () => {
     const text = encodeProject({ ...followed, paths: {} }, "1.0.0", new Date(0));
     expect(decodeProject(text).clips.c!.follow).toBeUndefined();
   });
+  const masked = (change: (clip: Clip) => void): ProjectState => {
+    const clip: Clip = { ...followed.clips.c! };
+    delete clip.follow;
+    change(clip);
+    return { ...followed, paths: {}, clips: { c: clip } };
+  };
+  const mask = {
+    id: "m",
+    name: "Mask 1",
+    color: "pink",
+    mode: "add",
+    opacity: 1,
+    feather: 4,
+    expansion: 0,
+    x: 0,
+    y: 0,
+    rotation: 0,
+    shape: { kind: "rectangle", width: 100, height: 50, roundness: 0.2 },
+  } as const;
+
+  it("writes version 6 only when a clip has masks or a matte", () => {
+    const plain = masked(() => {});
+    expect(JSON.parse(encodeProject(plain, "1.0.0", new Date(0))).version).toBeLessThanOrEqual(5);
+    const withMask = masked((clip) => {
+      clip.masks = { m: mask };
+      clip.maskOrder = ["m"];
+    });
+    expect(JSON.parse(encodeProject(withMask, "1.0.0", new Date(0))).version).toBe(6);
+  });
+
+  it("reads masks back unchanged", () => {
+    const withMask = masked((clip) => {
+      clip.masks = { m: mask };
+      clip.maskOrder = ["m"];
+      clip.matte = { trackId: "t", by: "luma", invert: true };
+    });
+    expect(decodeProject(encodeProject(withMask, "1.0.0", new Date(0)))).toEqual(withMask);
+  });
+
+  it("drops a matte whose track is missing", () => {
+    const text = encodeProject(
+      masked((clip) => (clip.matte = { trackId: "gone", by: "alpha" })),
+      "1.0.0",
+      new Date(0),
+    );
+    expect(decodeProject(text).clips.c!.matte).toBeUndefined();
+  });
 });

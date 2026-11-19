@@ -3,6 +3,7 @@ import { CommandFailure, createLogger } from "@/core";
 import {
   gradeSchema,
   MARKER_COLORS,
+  MASK_RANGES,
   validateGrade,
   type ClipGrade,
   type KeyTrack,
@@ -12,7 +13,9 @@ import type { ProjectEnvelope } from "../workspace.types";
 
 const FORMAT = "cloudy-clip-project";
 /** Bump when the document changes shape, and teach `decodeProject` to upgrade the older one. */
-const VERSION = 5;
+const VERSION = 6;
+/** What a project with motion paths but no masks is saved as, so an older app still opens it. */
+const PATHS_VERSION = 5;
 /** What a project with grades but no motion paths is saved as, so an older app still opens it. */
 const GRADED_VERSION = 4;
 /** What a project with keys but no grades is saved as, so an older app still opens it. */
@@ -26,6 +29,66 @@ const envelope = z.object({
   format: z.literal(FORMAT),
   version: z.number().int().positive(),
   document: z.unknown(),
+});
+
+const range = (field: keyof typeof MASK_RANGES & string) =>
+  z.number().min(MASK_RANGES[field]!.min).max(MASK_RANGES[field]!.max);
+
+const pathPoint = z.strictObject({
+  x: z.number(),
+  y: z.number(),
+  inX: z.number(),
+  inY: z.number(),
+  outX: z.number(),
+  outY: z.number(),
+});
+
+const maskShape = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("rectangle"),
+    width: range("width"),
+    height: range("height"),
+    roundness: range("roundness"),
+  }),
+  z.strictObject({ kind: z.literal("ellipse"), width: range("width"), height: range("height") }),
+  z.strictObject({
+    kind: z.literal("star"),
+    width: range("width"),
+    height: range("height"),
+    points: range("points").int(),
+    inner: range("inner"),
+  }),
+  z.strictObject({ kind: z.literal("heart"), width: range("width"), height: range("height") }),
+  z.strictObject({ kind: z.literal("linear") }),
+  z.strictObject({ kind: z.literal("mirror"), width: range("width") }),
+  z.strictObject({
+    kind: z.literal("path"),
+    scale: range("scale"),
+    points: z.record(z.string(), pathPoint),
+    pointOrder: z.array(z.string()),
+  }),
+]);
+
+const clipMask = z.strictObject({
+  id: z.string(),
+  name: z.string(),
+  color: z.enum(MARKER_COLORS),
+  on: z.literal(false).optional(),
+  mode: z.enum(["add", "subtract", "intersect", "difference"]),
+  invert: z.literal(true).optional(),
+  opacity: range("opacity"),
+  feather: range("feather"),
+  expansion: range("expansion"),
+  x: range("x"),
+  y: range("y"),
+  rotation: z.number(),
+  shape: maskShape,
+});
+
+const clipMatte = z.strictObject({
+  trackId: z.string(),
+  by: z.enum(["alpha", "luma"]),
+  invert: z.literal(true).optional(),
 });
 
 const size = z.object({ width: z.number(), height: z.number(), fps: z.number() });
@@ -101,6 +164,9 @@ const documentSchema = z.looseObject({
       sourceIn: z.number(),
       duration: z.number(),
       props: z.record(z.string(), z.unknown()),
+      masks: z.record(z.string(), clipMask).optional(),
+      maskOrder: z.array(z.string()).optional(),
+      matte: clipMatte.optional(),
     }),
   ),
   junctions: z.record(
@@ -153,6 +219,11 @@ const documentSchema = z.looseObject({
     )
     .optional(),
 });
+
+/** Whether any clip has masks or a matte, which only version 6 knows. */
+function usesMasks(document: ProjectState): boolean {
+  return Object.values(document.clips).some((clip) => clip.masks || clip.matte);
+}
 
 /** Whether the document has motion paths or a clip following one, which only version 5 knows. */
 function usesPaths(document: ProjectState): boolean {
@@ -234,6 +305,16 @@ function withValidFollows(document: ProjectState): ProjectState {
   return document;
 }
 
+/** The document without mattes naming a track that isn't there: such a clip shows unmatted, with a warning. */
+function withValidMattes(document: ProjectState): ProjectState {
+  for (const clip of Object.values(document.clips)) {
+    if (!clip.matte || document.tracks[clip.matte.trackId]) continue;
+    log.warn(`Clip ${clip.id} had a matte from a missing track; it no longer has one.`);
+    delete clip.matte;
+  }
+  return document;
+}
+
 /** The document without key tracks that have no keys, which nothing can play. */
 function withoutEmptyTracks(document: ProjectState): ProjectState {
   for (const clip of Object.values(document.clips)) {
@@ -248,19 +329,21 @@ function withoutEmptyTracks(document: ProjectState): ProjectState {
 }
 
 /**
- * The text of a project file: version 5 when it uses motion paths, else 4 when it uses grades, else version 3 when a clip has keys,
+ * The text of a project file: version 6 when a clip has masks or a matte, else 5 when it uses motion paths, else 4 when it uses grades, else version 3 when a clip has keys,
  * else version 2, so a project that never used them opens in an app from before them.
  */
 export function encodeProject(document: ProjectState, appVersion: string, now: Date): string {
   const file: ProjectEnvelope = {
     format: FORMAT,
-    version: usesPaths(document)
+    version: usesMasks(document)
       ? VERSION
-      : usesGrades(document)
-        ? GRADED_VERSION
-        : isAnimated(document)
-          ? ANIMATED_VERSION
-          : UNANIMATED_VERSION,
+      : usesPaths(document)
+        ? PATHS_VERSION
+        : usesGrades(document)
+          ? GRADED_VERSION
+          : isAnimated(document)
+            ? ANIMATED_VERSION
+            : UNANIMATED_VERSION,
     appVersion,
     savedAt: now.toISOString(),
     document,
@@ -269,8 +352,8 @@ export function encodeProject(document: ProjectState, appVersion: string, now: D
 }
 
 /**
- * Reads a project file of any version up to 5. Throws `workspace.not_a_project`,
- * `workspace.too_new` or `workspace.damaged`. Key tracks without keys are dropped, and so is a grade that fails `gradeSchema` and a follow whose path is missing or in another composition (with a warning). The document's
+ * Reads a project file of any version up to 6. Throws `workspace.not_a_project`,
+ * `workspace.too_new` or `workspace.damaged`. Key tracks without keys are dropped, and so is a grade that fails `gradeSchema` a follow whose path is missing or in another composition, and a matte whose track is missing (with a warning). The document's
  * rules are checked when it replaces the store.
  */
 export function decodeProject(text: string): ProjectState {
@@ -294,7 +377,7 @@ export function decodeProject(text: string): ProjectState {
   if (!document.success) {
     throw new CommandFailure("workspace.damaged", "This project file is damaged.");
   }
-  return withValidFollows(
-    withValidGrades(withoutEmptyTracks(document.data as unknown as ProjectState)),
+  return withValidMattes(
+    withValidFollows(withValidGrades(withoutEmptyTracks(document.data as unknown as ProjectState))),
   );
 }
