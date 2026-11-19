@@ -887,10 +887,10 @@ export const MASK_RANGES: Record<string, { min: number; max: number }> = {
   expansion: { min: -2000, max: 2000 },
   x: { min: -100000, max: 100000 },
   y: { min: -100000, max: 100000 },
-  width: { min: 0, max: 100000 },
-  height: { min: 0, max: 100000 },
+  width: { min: 1, max: 100000 },
+  height: { min: 1, max: 100000 },
   roundness: { min: 0, max: 1 },
   points: { min: 3, max: 24 },
   inner: { min: 0.05, max: 1 },
-  scale: { min: 0.001, max: 1000 },
+  scale: { min: 0.01, max: 20 },
 };
