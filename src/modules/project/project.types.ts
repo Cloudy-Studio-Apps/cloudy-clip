@@ -374,6 +374,65 @@ export interface ClipPlacement {
 export interface SharedGroupValues {
   transform: ClipTransform;
   composite: ClipComposite;
+  follow: ClipFollow;
+}
+
+/** Id of a motion path, unique in the project. */
+export type PathId = string;
+
+/**
+ * A point of a motion path, in output pixels from the frame's center (the space of `transform.x`,
+ * `transform.y`), with its two curve handles as offsets from it (0, 0 is a corner).
+ */
+export interface PathPoint {
+  x: number;
+  y: number;
+  /** The handle toward the previous point. */
+  inX: number;
+  inY: number;
+  /** The handle toward the next point. */
+  outX: number;
+  outY: number;
+}
+
+/**
+ * A curve drawn on a composition's frame that clips can follow. Cubic Béziers between its
+ * points, and from the last back to the first when `closed`. Never drawn in the picture.
+ */
+export interface MotionPath {
+  id: PathId;
+  compositionId: CompositionId;
+  name: string;
+  closed: boolean;
+  /** At least two. */
+  points: PathPoint[];
+}
+
+/**
+ * How a clip follows a path (the `follow` shared group). While following, `transform.x` and
+ * `transform.y` are an offset from the path's point.
+ */
+export interface ClipFollow {
+  /** The path followed; empty means none. */
+  pathId: PathId;
+  /** Where on the path, by distance: 0 its start, 1 its end. A closed path wraps, an open one holds. */
+  progress: number;
+  /** Adds the path's direction to the rotation. */
+  orient: boolean;
+}
+
+/** A place on a path: the point (output px from the frame's center) and its direction (degrees clockwise, 0 = right). */
+export interface PathSample {
+  x: number;
+  y: number;
+  angle: number;
+}
+
+/** What following a path adds to a clip's transform at a moment. */
+export interface FollowShift {
+  x: number;
+  y: number;
+  rotation: number;
 }
 
 /** The blend modes, in menu order. Each is a canvas operation (`preview`'s `canvasBlend`). */
@@ -638,6 +697,8 @@ export interface ProjectState {
   luts?: Record<LutId, Lut>;
   /** Grabbed frames with their grades. */
   stills?: Record<StillId, Still>;
+  /** Motion paths clips can follow, each in one composition. Missing in projects without any. */
+  paths?: Record<PathId, MotionPath>;
   /** Order of the stills. */
   stillOrder?: StillId[];
 }

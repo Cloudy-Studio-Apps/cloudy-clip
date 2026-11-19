@@ -79,11 +79,11 @@ In `project` (types, validation, geometry), like markers:
 A follower stores its settings in a new shared group `follow` at `clip.follow`
 (`{ pathId, progress, orient }`, missing = not following), applying to clips on video tracks:
 
-| Field      | Meaning                                                     | Default | Keyable |
-| ---------- | ----------------------------------------------------------- | ------- | ------- |
-| `pathId`   | The path followed; empty = none                             | none    | no      |
-| `progress` | Where on the path, by distance, shown as % (range −10…10, slider 0–100 %) | 0 | yes |
-| `orient`   | Add the path's direction (degrees, 0 = pointing right)      | false   | no      |
+| Field      | Meaning                                                                   | Default | Keyable |
+| ---------- | ------------------------------------------------------------------------- | ------- | ------- |
+| `pathId`   | The path followed; empty = none                                           | none    | no      |
+| `progress` | Where on the path, by distance, shown as % (range −10…10, slider 0–100 %) | 0       | yes     |
+| `orient`   | Add the path's direction (degrees, 0 = pointing right)                    | false   | no      |
 
 Progress outside 0–1: an open path holds its ends; a closed path wraps, so 0 → 300 % is three
 laps (and loop/ping-pong repeats work too).
@@ -107,14 +107,14 @@ overlay replaces it).
 
 ## Commands and tools (a new feature module `path`)
 
-| Command       | MCP tool      | Does                                                                                        |
-| ------------- | ------------- | ------------------------------------------------------------------------------------------- |
-| `path.create` | `path_create` | A path in a composition (default: the actor's open one) from points, `closed`, `name`        |
-| `path.update` | `path_update` | Replace points, rename, open/close. Every follower moves with it                             |
-| `path.remove` | `path_remove` | Many ids, all or none. Followers are detached in the same step, baked (below)                |
+| Command       | MCP tool      | Does                                                                                                                                                                          |
+| ------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `path.create` | `path_create` | A path in a composition (default: the actor's open one) from points, `closed`, `name`                                                                                         |
+| `path.update` | `path_update` | Replace points, rename, open/close. Every follower moves with it                                                                                                              |
+| `path.remove` | `path_remove` | Many ids, all or none. Followers are detached in the same step, baked (below)                                                                                                 |
 | `path.attach` | `path_attach` | Clips follow a path: sets `follow`, keys Progress 0 % / 100 % at each clip's ends (unless it already has Progress keys), zeroes the static X/Y (X/Y keys are kept as offsets) |
-| `path.detach` | `path_detach` | Clears `follow`, baked (below)                                                               |
-| (read)        | `path_list`   | Paths of a composition with their points and followers                                      |
+| `path.detach` | `path_detach` | Clears `follow`, baked (below)                                                                                                                                                |
+| (read)        | `path_list`   | Paths of a composition with their points and followers                                                                                                                        |
 
 **Baking** (detach, delete): the path point and (with orient) the angle at `at` (default the
 actor's playhead, clamped to the clip) are added to the static X/Y/Rotation and to every X/Y/

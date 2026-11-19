@@ -166,6 +166,29 @@ describe("per-actor undo", () => {
     expect(t.state()).toBe(before);
   });
 
+  it("undo that would leave a follower on a missing path is refused", async () => {
+    await t.edit(AGENT, (d) => {
+      d.paths = {
+        p: {
+          id: "p",
+          compositionId: "c1",
+          name: "Path 1",
+          closed: false,
+          points: [
+            { x: 0, y: 0, inX: 0, inY: 0, outX: 0, outY: 0 },
+            { x: 100, y: 0, inX: 0, inY: 0, outX: 0, outY: 0 },
+          ],
+        },
+      };
+    });
+    await t.edit(LOCAL_ACTOR, (d) => {
+      d.clips.a!.follow = { pathId: "p", progress: 0, orient: false };
+    });
+    const before = t.state();
+    expect(() => t.history.undo(AGENT)).toThrow(/Can't undo: a clip would follow a missing path/);
+    expect(t.state()).toBe(before);
+  });
+
   const addTrack4 = (d: ProjectState) => {
     d.tracks.t4 = {
       id: "t4",

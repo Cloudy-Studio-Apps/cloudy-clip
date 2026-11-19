@@ -3,6 +3,7 @@ import type {
   Junction,
   Marker,
   MediaAsset,
+  MotionPath,
   ProjectFormat,
   ProjectState,
   Track,
@@ -17,6 +18,7 @@ export interface ProjectSeed {
   junctions?: Record<string, Junction>;
   media?: Record<string, MediaAsset>;
   markers?: Record<string, Marker>;
+  paths?: Record<string, MotionPath>;
   mediaOrder?: string[];
 }
 
@@ -56,5 +58,6 @@ export function seedProject(seed: ProjectSeed = {}): ProjectState {
     solidOrder: [],
     junctions: seed.junctions ?? {},
     markers: seed.markers ?? {},
+    ...(seed.paths && { paths: seed.paths }),
   };
 }

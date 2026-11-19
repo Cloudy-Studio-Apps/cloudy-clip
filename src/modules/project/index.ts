@@ -53,6 +53,12 @@ export {
 /** The document's types. */
 export type {
   Clip,
+  ClipFollow,
+  FollowShift,
+  MotionPath,
+  PathId,
+  PathPoint,
+  PathSample,
   ClipMove,
   Junction,
   JunctionId,
@@ -252,6 +258,21 @@ export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";
  * (`simplify`: export envelopes, drawn strokes and fader passes).
  */
 export { animatedClip, keyMoments, simplify, trackValue } from "./logic/animate";
+/** Motion paths: a place on a path by distance (`pathPointAt`) and its length. */
+export { pathLength, pathPointAt } from "./logic/path";
+/**
+ * Clips following paths: where one is placed at a time (`followedClip`, used by every placement
+ * of a picture), what its path adds (`followShift`), leaving a path in place (`bakeFollow`),
+ * copying followed paths into another composition and scaling a path with its frame.
+ */
+export {
+  bakeFollow,
+  copyFollowedPaths,
+  followedClip,
+  followShift,
+  NO_FOLLOW,
+  scalePath,
+} from "./logic/follow";
 /**
  * Editing key tracks: writing, moving and removing keys, replacing a span with straight points
  * while the rest plays as before (`writeSpan`), and mirroring an ease.

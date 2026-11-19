@@ -224,6 +224,8 @@ function validate(state: ProjectState): string | null {
       return "a marker would be left without its composition";
     }
   }
+  const paths = followProblem(state);
+  if (paths) return paths;
   const grades = gradeProblem(state);
   if (grades) return grades;
   if (findLayoutConflict(state)) return "clips would overlap";
@@ -233,6 +235,26 @@ function validate(state: ProjectState): string | null {
     const cut = `${junction.leftClipId}|${junction.rightClipId}`;
     if (cuts.has(cut)) return "a cut would have two transitions";
     cuts.add(cut);
+  }
+  return null;
+}
+
+/** A path without its composition or points, or a clip following a path it can't. */
+function followProblem(state: ProjectState): string | null {
+  for (const path of Object.values(state.paths ?? {})) {
+    if (!state.compositions[path.compositionId]) {
+      return "a path would be left without its composition";
+    }
+    if (path.points.length < 2) return "a path would have fewer than two points";
+  }
+  for (const clip of Object.values(state.clips)) {
+    const pathId = clip.follow?.pathId;
+    if (!pathId) continue;
+    const path = state.paths?.[pathId];
+    if (!path) return "a clip would follow a missing path";
+    if (state.tracks[clip.trackId]?.compositionId !== path.compositionId) {
+      return "a clip would follow a path of another composition";
+    }
   }
   return null;
 }
@@ -253,6 +275,7 @@ export const projectPolicy: StorePolicy<ProjectState> = {
     diffOptional("gradeGroups", before.gradeGroups, after.gradeGroups, true, out);
     diffOptional("luts", before.luts, after.luts, false, out);
     diffOptional("stills", before.stills, after.stills, false, out);
+    diffOptional("paths", before.paths, after.paths, true, out);
     if (before.mainCompositionId !== after.mainCompositionId) {
       out.push({
         path: ["mainCompositionId"],

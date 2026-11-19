@@ -80,6 +80,7 @@ CHANGELOG.md, CHANGELOG.es.md, READMEs M
 **Files:** Modify `project.types.ts`, `logic/fields.ts`, `project.testing.ts`, `index.ts`, `README.md`, `project.undo.test.ts`. Create `logic/path.ts`, `logic/path.test.ts`, `logic/follow.ts`, `logic/follow.test.ts`.
 
 **Interfaces — Produces:**
+
 ```ts
 export type PathId = string;
 export interface PathPoint { x: number; y: number; inX: number; inY: number; outX: number; outY: number }
@@ -99,6 +100,7 @@ export function scalePath(path: MotionPath, kx: number, ky: number): MotionPath;
 ```
 
 Semantics:
+
 - Segments are cubic Béziers `p[i] → p[i+1]` with controls `p[i] + out`, `p[i+1] + in`; plus last → first when `closed`.
 - `pathPointAt`: by arc length (a table of 32 samples per segment, cached in a `WeakMap` keyed by the path object). Open: progress clamped to 0…1. Closed: wrapped (`((p % 1) + 1) % 1`). `angle` = `atan2(dy, dx)` of the derivative, in degrees. A zero-length path gives the first point, angle 0.
 - `followShift`: `null` when `clip.follow` is missing, `pathId` is empty or not in `paths`. Otherwise `{ x: point.x, y: point.y, rotation: orient ? angle : 0 }`, with `progress` from `clip.follow.progress`.
@@ -116,6 +118,7 @@ Semantics:
 - [ ] **Step 1: Write the failing tests.**
 
 `logic/path.test.ts`, with `line` = an open path from (0,0) to (100,0), no handles, and `arc` = (0,0) → (100,0) with `out (0,−100)` and `in (0,−100)`:
+
 - `"a straight path is half way at 0.5"`: `pathPointAt(line, 0.5)` ≈ `{ x: 50, y: 0, angle: 0 }`.
 - `"speed is even along a curve"`: for `arc`, the length from 0 to 0.25 equals the length from 0.25 to 0.5. Check with `pathLength` of a sub-sampled polyline, ±1%.
 - `"an open path holds its ends"`: `pathPointAt(line, 1.5)` ≈ `{ x: 100, y: 0 }`, and at `-1` ≈ `{ x: 0, y: 0 }`.
@@ -123,12 +126,14 @@ Semantics:
 - `"angle points down a downward segment"`: (0,0) → (0,100) gives `angle` 90.
 
 `logic/follow.test.ts`:
+
 - `"a follower sits at its offset plus the path point"`: a clip with `transform.x = 10`, `follow { pathId: "p", progress: 0.5 }` on `line` gives `followedClip(…).transform.x` = 60.
 - `"orient adds the direction to rotation"`: a downward path with `orient: true` and rotation 5 gives 95.
 - `"a missing path leaves the clip at its offset"`.
 - `"bake keeps the clip where it was"`: `clipTransform(bakeFollow(c, paths, at))` `.x/.y` equal `followedClip(c, at, paths).transform` `.x/.y`. `follow` is undefined and there is no `follow.progress` track.
 
 `project.undo.test.ts`, `"undo that would leave a follower on a missing path is refused"`:
+
 - A creates a path (a mutate adding `paths.p`).
 - B mutates a clip to `follow { pathId: "p" }`.
 - Undoing A's step returns a conflict, matching how the file's existing refusals are asserted.
@@ -210,6 +215,7 @@ Semantics:
 ### Task 4: Every placement uses `followedClip`
 
 **Files:**
+
 - `preview/logic/frame.ts` and `frame.test.ts`
 - `transform/logic/layers.ts`, `transform/transform.types.ts` (`VisibleLayer.shift?: FollowShift`), `transform/logic/commit.ts`, `transform/ui/transform.gesture.ts`
 - `tint/tint.pick.ts`
@@ -232,6 +238,7 @@ Semantics:
 ### Task 5: Compositions and the clipboard
 
 **Files:**
+
 - `composition/composition.library.commands.ts` (delete)
 - `composition/logic/clone.ts` (duplicate and Make unique both go through it)
 - `composition/composition.group.command.ts`
@@ -260,6 +267,7 @@ Semantics:
 **Files:** Create `path.store.ts`, `ui/PathPicker.tsx`, `ui/PathsSection.tsx`, `ui/index.ts`. Modify `path.module.ts`, `path.types.ts`, `README.md`.
 
 **Produces:** `PathUi` (Zustand per kernel; `path.types.ts`):
+
 ```ts
 {
   selectedPathId: PathId | null;
@@ -267,6 +275,7 @@ Semantics:
   drawing: null | { mode: "freehand" | "pen"; attach: string[] };
 }
 ```
+
 It is exposed as `api.ui`.
 
 - **`PathPicker`** (`propertyControls`, `{ id: "path-picker", for: "command" }`):
@@ -290,6 +299,7 @@ It is exposed as `api.ui`.
 **Files:** Create `logic/edit.ts`, `ui/PathOverlay.tsx`, `ui/path.edit.gesture.ts`. Modify `path.module.ts`, `README.md`.
 
 **Produces** (`logic/edit.ts`, pure):
+
 ```ts
 movePoint(points, i, dx, dy): PathPoint[]                // handles travel with it
 moveHandle(points, i, side: "in" | "out", dx, dy, broken: boolean): PathPoint[]  // opposite handle mirrored in direction (keeps its own length) unless broken
@@ -320,6 +330,7 @@ removePoint(points, i): PathPoint[]                      // refuses below 2: ret
 **Files:** Create `logic/fit.ts`, `ui/PathDrawing.tsx`, `ui/draw.gesture.ts`. Modify `path.module.ts`, `README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`.
 
 **Produces:** `fitStroke(points: {x: number; y: number}[], tolerance: number): PathPoint[]`. This is Schneider's least-squares cubic fitting:
+
 - Split at the point of maximum error until each piece is within `tolerance`.
 - The tangents at the joins are shared, so the joins come out smooth.
 - Duplicate input points are removed first.
