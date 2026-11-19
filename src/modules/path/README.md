@@ -3,17 +3,19 @@
 Motion paths: a curve drawn on a composition's frame that picture clips travel along over time. One path can carry any number of clips (three birds on one arc); reshaping it moves them all. A clip's Progress (keyable, 0 → 100 %) says where on the path it is, by distance, so it moves at an even speed and eases only as its Progress keys do. While following, the clip's Position is an offset from the path, so followers can sit side by side, and Orient along path adds the path's direction to its rotation. After Effects' motion path / GSAP's MotionPath, shared like Blender's Follow Path.
 
 - **Tier:** feature
-- **Requires:** `project` (the paths, `followedClip`, `bakeFollow`), `element` (`sharedGroups`), `keyframe` (`setKey`, for the Progress keys), `preview` (the actor's playhead, as the default `at`)
-- **Contributes:** shared group `follow` (`sharedGroups`, `path.group.ts`), which the picture elements opt into with `supports.follow` (media, text, sticker, solid, composition)
+- **Requires:** `project` (the paths, `followedClip`, `bakeFollow`), `element` (`sharedGroups`), `keyframe` (`setKey`, for the Progress keys), `preview` (the actor's playhead, as the default `at`), `inspector` (`propertyControls`, `FieldRow`), `media` (`librarySections`)
+- **Contributes:** shared group `follow` (`sharedGroups`, `path.group.ts`), which the picture elements opt into with `supports.follow` (media, text, sticker, solid, composition); command control `path-picker` (`propertyControls`); Library section `path.section` (`librarySections`)
 - **Points it owns:** —
-- **API:** none yet
+- **API** (`useModule(pathRef)`): `ui` (`PathUiState`, per kernel, never in history: `selectedPathId`, the path shown on the canvas; `selectedPoint`; `drawing`, `{ mode: "freehand" | "pen", attach }` while a path is being drawn)
 - **Files:**
   - `path.group.ts`: `followGroup` at `clip.follow` (`ClipFollow`: `pathId`, `progress`, `orient`; default `NO_FOLLOW`), only on video tracks. `pathId` is `hidden` and `readOnly`, so `element.setProps` refuses it (`element.read_only`): a clip joins or leaves a path only through `path.attach` / `path.detach`, which key Progress and bake, so no route makes it jump. `progress` is a number from −10 to 10 (slider 0–100 %), keyable as `follow.progress`; `orient` a boolean.
   - `path.commands.ts`: create, update, remove; `requirePath`. `path.follow.commands.ts`: attach, detach. `path.schema.ts`: `pathPoints` (two or more, handles default to 0).
-  - `path.mcp.ts`: the tools, and `path_list`.
+  - `path.mcp.ts`: the tools, and `path_list`. `path.store.ts`: `createPathUi()`.
+  - `ui/PathPicker.tsx`: the Follow path section's Path row (the `path-picker` control on `path.attach`): None, the clip's composition's paths, Draw new path…; Mixed when the selected clips differ. A path runs `path.attach`; None runs `path.detach` at the playhead; Draw new path sets `ui.drawing` with the clips to attach.
+  - `ui/PathsSection.tsx`, `ui/PathRow.tsx`: the Library's Paths of the open composition, each with its follower count. New starts drawing (nothing attached); a click selects a path (again deselects); a double-click renames it (`path.update`, Enter or blur; Escape cancels); the bin deletes it (`path.remove` at the playhead).
 - **Data:** paths live in the document (`ProjectState.paths`, `project` declares and validates them, see its README), one record each, so each undoes on its own. Where a follower is placed is `project`'s `followedClip`.
 - **Invariants:** a path has two or more points and belongs to one composition; a clip follows only a path of its own composition (the document refuses anything else, so an undo that would leave a follower on a deleted path is refused). Leaving a path (detach, delete) never moves the clip at `at`: `bakeFollow` adds the path's shift there to the position and rotation and their keys. Every command is one undo step; `path.create` with `attach` runs `path.attach` inside it.
-- **Not yet:** the inspector picker and the Library section, editing on the canvas, drawing; a path that moves or animates; drawing the path into the picture.
+- **Not yet:** editing on the canvas, drawing; a path that moves or animates; drawing the path into the picture.
 
 | Command       | MCP tool      | Notes                                                                                                                                                                                                                                                  |
 | ------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

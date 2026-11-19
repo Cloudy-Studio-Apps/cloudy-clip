@@ -31,6 +31,10 @@ export const followGroup = defineSharedGroup({
     title: "Follow path",
     order: 910,
     tab: "video",
-    items: ["progress", "orient"],
+    items: [
+      { command: "path.attach", control: "path-picker", label: "Path" },
+      "progress",
+      "orient",
+    ],
   },
 });
