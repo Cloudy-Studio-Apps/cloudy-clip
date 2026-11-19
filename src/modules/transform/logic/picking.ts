@@ -3,6 +3,8 @@ import type { FramePoint } from "../transform.types";
 
 /** Whether a frame point falls inside a (possibly rotated) placed picture. */
 export function containsPoint(placement: ClipPlacement, point: FramePoint): boolean {
+  // A picture squashed to nothing (Width or Height at 0) can't be clicked.
+  if (placement.width === 0 || placement.height === 0) return false;
   const angle = (-placement.rotation * Math.PI) / 180;
   const dx = point.x - placement.cx;
   const dy = point.y - placement.cy;

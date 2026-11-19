@@ -1,6 +1,7 @@
-import type { ClipTransform } from "@/modules/project";
+import { IDENTITY_TRANSFORM, type ClipTransform } from "@/modules/project";
 
-const KEYS = ["x", "y", "scale", "rotation"] as const;
+/** Every field of a clip's transform, in the identity's order. */
+export const TRANSFORM_KEYS = Object.keys(IDENTITY_TRANSFORM) as (keyof ClipTransform)[];
 
 /**
  * What a canvas gesture commits: the fields that changed from `start` to `current` and that the
@@ -12,7 +13,7 @@ export function transformPatch(
   fields: ReadonlySet<string>,
 ): Partial<ClipTransform> | null {
   const patch: Partial<ClipTransform> = {};
-  for (const key of KEYS) {
+  for (const key of TRANSFORM_KEYS) {
     if (fields.has(key) && current[key] !== start[key]) patch[key] = current[key];
   }
   return Object.keys(patch).length > 0 ? patch : null;
