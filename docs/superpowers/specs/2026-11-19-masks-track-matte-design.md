@@ -100,17 +100,18 @@ matte?: ClipMatte;
 
 ```ts
 interface ClipMask {
-  id: MaskId;              // createId("mask")
-  name: string;            // "Mask 1", unique per clip by default, editable
-  color: MarkerColor;      // its outline on the canvas; cycles MARKER_COLORS
-  on?: false;              // missing = on
+  id: MaskId; // createId("mask")
+  name: string; // "Mask 1", unique per clip by default, editable
+  color: MarkerColor; // its outline on the canvas; cycles MARKER_COLORS
+  on?: false; // missing = on
   mode: "add" | "subtract" | "intersect" | "difference";
   invert?: true;
-  opacity: number;         // 0..1
-  feather: number;         // 0..2000, picture px (Gaussian radius ≈ 2σ)
-  expansion: number;       // -2000..2000, picture px; grows (+) or shrinks (−) the shape
-  x: number; y: number;    // the mask's center in the picture, px from the picture's center
-  rotation: number;        // degrees, normalized like transform's
+  opacity: number; // 0..1
+  feather: number; // 0..2000, picture px (Gaussian radius ≈ 2σ)
+  expansion: number; // -2000..2000, picture px; grows (+) or shrinks (−) the shape
+  x: number;
+  y: number; // the mask's center in the picture, px from the picture's center
+  rotation: number; // degrees, normalized like transform's
   shape: MaskShape;
 }
 
@@ -119,12 +120,12 @@ type MaskShape =
   | { kind: "ellipse"; width: number; height: number }
   | { kind: "star"; width: number; height: number; points: number; inner: number } // 3..24, rounded; inner 0.05..1
   | { kind: "heart"; width: number; height: number }
-  | { kind: "linear" }                       // half-plane: shows below the line through (x, y) at `rotation`
-  | { kind: "mirror"; width: number }        // a band of `width` centered on that line
+  | { kind: "linear" } // half-plane: shows below the line through (x, y) at `rotation`
+  | { kind: "mirror"; width: number } // a band of `width` centered on that line
   | { kind: "path"; scale: number; points: Record<PointId, PathPoint>; pointOrder: PointId[] }; // closed, ≥ 3 points, relative to (x, y)
 
 interface ClipMatte {
-  trackId: TrackId;          // a video track of the clip's composition, not the clip's own
+  trackId: TrackId; // a video track of the clip's composition, not the clip's own
   by: "alpha" | "luma";
   invert?: true;
 }
@@ -261,16 +262,16 @@ Per clip in `drawFrame`'s `drawClip`, when the clip has an enabled mask or a mat
 `mask.not_picture`, `mask.not_found`, `mask.point_not_found`, `mask.animated` (a keyed field without
 `at`), `mask.invalid`, `mask.track_not_found`, `mask.own_track`, `mask.not_video`):
 
-| Command | MCP tool | What |
-| --- | --- | --- |
-| `mask.add` | `mask_add` | `clipIds` (all picture clips), a preset `kind` with optional values, or `points` for a path; optional `mode`, `name`, `feather`… Returns `maskIds` by clip. |
-| `mask.update` | `mask_update` | `clipId`, `maskId`, a partial patch (any field but `id` and the path's points); `at` for keyed fields (as `element.setProps`). |
+| Command          | MCP tool          | What                                                                                                                                                                  |
+| ---------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mask.add`       | `mask_add`        | `clipIds` (all picture clips), a preset `kind` with optional values, or `points` for a path; optional `mode`, `name`, `feather`… Returns `maskIds` by clip.           |
+| `mask.update`    | `mask_update`     | `clipId`, `maskId`, a partial patch (any field but `id` and the path's points); `at` for keyed fields (as `element.setProps`).                                        |
 | `mask.setPoints` | `mask_set_points` | The whole point list of a path mask (ids kept for existing points, new ones made), `at` when keyed. Also how insert/remove on the canvas commit (keys kept as in §2). |
-| `mask.convert` | `mask_convert` | A preset to a path mask (§2). |
-| `mask.remove` | `mask_remove` | `clipId`, `maskIds`, with their key tracks. |
-| `mask.reorder` | `mask_reorder` | `clipId`, `maskId`, `index`. |
-| `mask.setMatte` | `mask_set_matte` | `clipIds`, `trackId` or `null`, `by`, `invert`. |
-| (read) | `mask_list` | A clip's masks in order with their point ids and their values at `at` (default your playhead), and its matte. |
+| `mask.convert`   | `mask_convert`    | A preset to a path mask (§2).                                                                                                                                         |
+| `mask.remove`    | `mask_remove`     | `clipId`, `maskIds`, with their key tracks.                                                                                                                           |
+| `mask.reorder`   | `mask_reorder`    | `clipId`, `maskId`, `index`.                                                                                                                                          |
+| `mask.setMatte`  | `mask_set_matte`  | `clipIds`, `trackId` or `null`, `by`, `invert`.                                                                                                                       |
+| (read)           | `mask_list`       | A clip's masks in order with their point ids and their values at `at` (default your playhead), and its matte.                                                         |
 
 **Inspector: the Mask tab** (`inspectorTabs`, picture clips on video tracks):
 

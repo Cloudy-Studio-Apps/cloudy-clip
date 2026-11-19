@@ -87,7 +87,8 @@ CHANGELOG.md, CHANGELOG.es.md  M
 **Interfaces — Produces:**
 
 ```ts
-export type MaskId = string; export type PointId = string;
+export type MaskId = string;
+export type PointId = string;
 export type MaskMode = "add" | "subtract" | "intersect" | "difference";
 export type MaskShape =
   | { kind: "rectangle"; width: number; height: number; roundness: number }
@@ -97,15 +98,44 @@ export type MaskShape =
   | { kind: "linear" }
   | { kind: "mirror"; width: number }
   | { kind: "path"; scale: number; points: Record<PointId, PathPoint>; pointOrder: PointId[] };
-export interface ClipMask { id: MaskId; name: string; color: MarkerColor; on?: false; mode: MaskMode; invert?: true;
-  opacity: number; feather: number; expansion: number; x: number; y: number; rotation: number; shape: MaskShape }
-export interface ClipMatte { trackId: TrackId; by: "alpha" | "luma"; invert?: true }
+export interface ClipMask {
+  id: MaskId;
+  name: string;
+  color: MarkerColor;
+  on?: false;
+  mode: MaskMode;
+  invert?: true;
+  opacity: number;
+  feather: number;
+  expansion: number;
+  x: number;
+  y: number;
+  rotation: number;
+  shape: MaskShape;
+}
+export interface ClipMatte {
+  trackId: TrackId;
+  by: "alpha" | "luma";
+  invert?: true;
+}
 // Clip: masks?: Record<MaskId, ClipMask>; maskOrder?: MaskId[]; matte?: ClipMatte
 export const MASK_RANGES: Record<string, { min: number; max: number }>; // keys: opacity, feather, expansion, x, y, width, height, roundness, points, inner, scale
-export interface MaskMapping { cx: number; cy: number; rotation: number; sx: number; sy: number } // output px; sx/sy signed by flip
-export function maskPlacement(format: ProjectFormat, size: PictureSize, transform: ClipTransform): MaskMapping;
+export interface MaskMapping {
+  cx: number;
+  cy: number;
+  rotation: number;
+  sx: number;
+  sy: number;
+} // output px; sx/sy signed by flip
+export function maskPlacement(
+  format: ProjectFormat,
+  size: PictureSize,
+  transform: ClipTransform,
+): MaskMapping;
 export function maskOutline(mask: ClipMask): BezierSegment[] | null; // fitted picture px; null for linear/mirror
-export function maskLine(mask: ClipMask): { x: number; y: number; nx: number; ny: number; half: number } | null; // half = mirror half-width, 0 for linear
+export function maskLine(
+  mask: ClipMask,
+): { x: number; y: number; nx: number; ny: number; half: number } | null; // half = mirror half-width, 0 for linear
 export function orderedMasks(clip: Pick<Clip, "masks" | "maskOrder">): ClipMask[];
 export function scaleMasks(clip: Clip, k: number): Pick<Clip, "masks" | "animation">;
 ```
@@ -128,17 +158,26 @@ Semantics:
 - [ ] **Step 1: Write the failing tests.**
 
 `logic/mask.test.ts`:
+
 ```ts
 it("maps the fitted picture to the frame regardless of pixel count", () => {
   const f = { width: 1920, height: 1080, fps: 30 };
   const t = { ...IDENTITY_TRANSFORM, scale: 2, scaleX: -1 };
-  expect(maskPlacement(f, { width: 960, height: 540 }, t)).toEqual(maskPlacement(f, { width: 3840, height: 2160 }, t));
+  expect(maskPlacement(f, { width: 960, height: 540 }, t)).toEqual(
+    maskPlacement(f, { width: 3840, height: 2160 }, t),
+  );
   expect(maskPlacement(f, { width: 960, height: 540 }, t)).toMatchObject({ sx: -2, sy: 2 });
 });
-it("outlines an ellipse through its four extremes", () => { /* x 10, y 20, w 100, h 50 → segment ends at (60,20),(10,45),(-40,20),(10,-5) in some order */ });
-it("rounds a star's point count", () => { expect(maskOutline(star(5.4))!.length).toBe(10); });
+it("outlines an ellipse through its four extremes", () => {
+  /* x 10, y 20, w 100, h 50 → segment ends at (60,20),(10,45),(-40,20),(10,-5) in some order */
+});
+it("rounds a star's point count", () => {
+  expect(maskOutline(star(5.4))!.length).toBe(10);
+});
 ```
+
 `project.undo.test.ts`:
+
 ```ts
 it("refuses a matte naming a track of another composition", …);           // ctx.mutate throws with that message
 it("drops a matte with its track and brings both back on undo", …);       // remove track → clip.matte undefined; undo → track and matte back; redo → gone
@@ -230,7 +269,7 @@ export const setMatte;    // { clipIds; trackId: TrackId | null; by?: "alpha" | 
 - `updateMask`: keyed fields need `at` (`mask.animated`, naming the path and `keyframe_set`), like `element.setProps` with `splitAnimated`'s semantics: keyed leaves go through `writeKey` at `contentTime(clip, clampToClip(clip, at))`, the rest static. Range errors `mask.invalid`. `rotation` normalized.
 - `setMatte`: `trackId` must exist (`mask.track_not_found`), be video (`mask.not_video`), share the clip's composition (`mask.track_not_found`), not be the clip's own (`mask.own_track`); refuse `mask.matte_chain` when the matte track holds a clip with a `matte` or the clip's own track is a matte of some clip. `null` removes. `by` defaults `alpha`.
 - Removing a mask drops its `masks.<id>.` tracks; removing the last drops `masks` and `maskOrder`.
-- MCP: `mask_add`, `mask_update`, `mask_remove`, `mask_reorder`, `mask_set_matte` (`commandTool`), and `mask_list` (read: `{ masks: [... ordered, values at `at` (default your playhead) through `animatedClip`, path points as `{ id, x, y, inX, inY, outX, outY }`], matte }`). Descriptions state the mask space ("output px from the picture's center, the picture fitted in the frame before the clip's transform") and each failure code.
+- MCP: `mask_add`, `mask_update`, `mask_remove`, `mask_reorder`, `mask_set_matte` (`commandTool`), and `mask_list` (read: `{ masks: [... ordered, values at `at`(default your playhead) through`animatedClip`, path points as `{ id, x, y, inX, inY, outX, outY }`], matte }`). Descriptions state the mask space ("output px from the picture's center, the picture fitted in the frame before the clip's transform") and each failure code.
 - `requires`: `project`, `element`, `keyframe` (key writes), `preview` (the actor's playhead for `mask_list`), and — added in later tasks — `inspector`, `timeline`, `path`, `transform`. List only what the task's code uses at each commit.
 
 - [ ] **Step 1: Write the failing tests** (`mask.commands.test.ts`, fixtures as `path.commands.test.ts`: a test picture element on `v1`, a second video track `v2`, an audio track `a1`):
@@ -255,7 +294,7 @@ export const setMatte;    // { clipIds; trackId: TrackId | null; by?: "alpha" | 
 
 ```ts
 export const maskKeys: KeyTarget; // id "mask.keys"
-export const setPoints;   // { clipId; maskId; points: Array<MaskPointInput & { id?: PointId }>; insertAt?: { after: PointId; t: number }; at?: Micros } → { pointIds: PointId[] }
+export const setPoints; // { clipId; maskId; points: Array<MaskPointInput & { id?: PointId }>; insertAt?: { after: PointId; t: number }; at?: Micros } → { pointIds: PointId[] }
 export const convertMask; // { clipId; maskId } → { pointIds: PointId[] }
 export function pathKeyTimes(clip: Clip, maskId: MaskId): Micros[]; // content times of every key under masks.<id>.shape.points. and .shape.scale
 ```
@@ -287,12 +326,18 @@ export function pathKeyTimes(clip: Clip, maskId: MaskId): Micros[]; // content t
 **Interfaces — Consumes:** `orderedMasks`, `maskOutline`, `maskLine`, `maskPlacement`, `ClipMatte` (Task 1); `GpuRunner`, `GpuPass`, `GpuUnavailable`. **Produces (internal to preview):**
 
 ```ts
-export function blurPasses(sigmaX: number, sigmaY: number): GpuPass[];   // separable Gaussian on alpha, key "mask.blur"
-export function lumaAlphaPass(invert: boolean): GpuPass;                 // alpha = (0.2126r+0.7152g+0.0722b)·a, key "mask.luma"
+export function blurPasses(sigmaX: number, sigmaY: number): GpuPass[]; // separable Gaussian on alpha, key "mask.blur"
+export function lumaAlphaPass(invert: boolean): GpuPass; // alpha = (0.2126r+0.7152g+0.0722b)·a, key "mask.luma"
 export class MaskPainter {
   constructor(options: { gpu?: GpuRunner; strict: boolean; onFailure(error: unknown): void });
   /** Draws `masks` (live overrides merged) into an alpha canvas sized like `like`, or null when none is on. */
-  masks(like: HTMLCanvasElement, masks: readonly ClipMask[], mapping: MaskMapping, kx: number, ky: number): HTMLCanvasElement | null;
+  masks(
+    like: HTMLCanvasElement,
+    masks: readonly ClipMask[],
+    mapping: MaskMapping,
+    kx: number,
+    ky: number,
+  ): HTMLCanvasElement | null;
   /** The alpha a matte cuts with, from a drawn track canvas. */
   matte(track: HTMLCanvasElement, matte: ClipMatte): HTMLCanvasElement;
   dispose(): void;
