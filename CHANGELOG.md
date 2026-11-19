@@ -16,8 +16,8 @@ Leer en [español](CHANGELOG.es.md).
   axis, so a turn can animate smoothly through zero. Flip Horizontal and Flip Vertical (in the
   Transform section and the clip menu) mirror the clip and every key of that value in one step.
   All of it can hold keys.
-- On the canvas, side handles stretch one axis (dragging past the pivot flips it) and a crosshair
-  moves the pivot without moving the picture; corners and the rotate handle now work about the
+- On the canvas, side handles stretch one axis (dragging past the pivot flips it) and Alt+drag on the
+  crosshair moves the pivot without moving the picture; corners and the rotate handle now work about the
   pivot.
 - Agents get `transform_flip`, and `element_set_props` takes `scaleX`, `scaleY`, `pivotX` and
   `pivotY` under `transform`.

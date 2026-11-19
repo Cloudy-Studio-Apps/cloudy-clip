@@ -16,8 +16,8 @@ Read in [English](CHANGELOG.md).
   voltea ese eje, así que un giro se puede animar suave pasando por cero. Voltear horizontal y
   Voltear vertical (en la sección Transformar y en el menú del clip) reflejan el clip y todas las
   claves de ese valor en un solo paso. Todo admite claves.
-- En el lienzo, las asas laterales estiran un eje (arrastrar más allá del pivote lo voltea) y una
-  cruz mueve el pivote sin mover la imagen; las esquinas y el asa de rotación ahora trabajan
+- En el lienzo, las asas laterales estiran un eje (arrastrar más allá del pivote lo voltea) y Alt+arrastrar
+  la cruz mueve el pivote sin mover la imagen; las esquinas y el asa de rotación ahora trabajan
   sobre el pivote.
 - Los agentes tienen `transform_flip`, y `element_set_props` acepta `scaleX`, `scaleY`, `pivotX`
   y `pivotY` dentro de `transform`.
