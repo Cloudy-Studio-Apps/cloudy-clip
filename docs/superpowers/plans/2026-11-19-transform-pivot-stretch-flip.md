@@ -300,8 +300,7 @@ literal `{ x: 100, y: -50, scale: 0.5, rotation: 30 }` the identity spread.
       left and right edges (`cursor-ew-resize`), `"stretchY"` at top and bottom
       (`cursor-ns-resize`), same look as the corners. Pivot crosshair: `data-handle="pivot"`, a
       small square-cornered ring (`rounded-xs`, `border-primary`, `bg-transparent`) with a 1px
-      cross, centered on `pivotStyle(transform)`, `cursor-crosshair`, `title="Pivot"`. The top
-      rotate handle moves left by nothing (stays on top).
+      cross, centered on `pivotStyle(transform)`, `cursor-crosshair`, `title="Pivot"`.
 - [ ] **Step 2:** `TransformOverlay`: accept the new handle modes from `data-handle`; pass
       `handles` from `selected.fields` (`scaleX`, `scaleY`, `pivotX && pivotY`) and
       `transform={selected.transform}`.
