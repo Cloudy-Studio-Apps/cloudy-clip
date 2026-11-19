@@ -1,17 +1,14 @@
-import type { MotionPath, PathPoint, PathSample } from "../project.types";
+import type {
+  BezierSegment as Segment,
+  MotionPath,
+  PathLengthTable as LengthTable,
+  PathPoint,
+  PathSample,
+  Vec2 as Vec,
+} from "../project.types";
 
 /** Samples per segment for the length table. */
 const STEPS = 32;
-
-type Vec = { x: number; y: number };
-type Segment = [Vec, Vec, Vec, Vec];
-
-/** Lengths along a path: `lengths[s][i]` is the distance from the path's start to sample `i` of segment `s`. */
-interface LengthTable {
-  segments: Segment[];
-  lengths: number[][];
-  total: number;
-}
 
 const tables = new WeakMap<MotionPath, LengthTable>();
 

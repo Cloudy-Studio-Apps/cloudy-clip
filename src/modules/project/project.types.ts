@@ -434,6 +434,22 @@ export interface FollowLive {
   follow?: Partial<ClipFollow>;
 }
 
+/** A point or a direction in the frame, in output pixels. */
+export interface Vec2 {
+  x: number;
+  y: number;
+}
+
+/** One cubic Bézier: its start, two control points and its end. */
+export type BezierSegment = [Vec2, Vec2, Vec2, Vec2];
+
+/** Lengths along a path: `lengths[s][i]` is the distance from its start to sample `i` of segment `s`. */
+export interface PathLengthTable {
+  segments: BezierSegment[];
+  lengths: number[][];
+  total: number;
+}
+
 /** What following a path adds to a clip's transform at a moment. */
 export interface FollowShift {
   x: number;

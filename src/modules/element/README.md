@@ -33,7 +33,7 @@ declaration, and one command changes any element's values.
     the resolved values, run through the element's `normalize`, then minimized. A group's values
     are merged over its defaults, run through its `normalize`, and removed when equal to the
     defaults (an untouched transform stays unset). A patch of shared groups only leaves the props
-    alone (the element's `normalize` doesn't run). A reset's props also go through `normalize`
+    alone (the element's `normalize` doesn't run). Resetting a whole group keeps its `readOnly` fields (`follow.pathId` changes only through `path.attach` / `path.detach`). A reset's props also go through `normalize`
     (with an empty patch) and are minimized; several paths of one group add up.
   - `element.guards.ts` (exported): `parsePatch` (schema + `read_only`), `checkGroupsApply`
     (a group on a track it doesn't apply to), `checkResetPaths` (unknown path →

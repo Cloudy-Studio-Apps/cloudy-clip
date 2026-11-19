@@ -309,6 +309,15 @@ describe("speed.freezeFrame", () => {
     expect(clipOf("B").start).toBe(7 * S);
   });
 
+  it("a frozen follower stays on its path", async () => {
+    const follow = { pathId: "p", progress: 0.25, orient: false };
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: { ...s.clips, A: { ...s.clips.A!, follow } },
+    }));
+    const { hold } = await freeze();
+    expect(clipOf(hold).follow).toEqual(follow);
+  });
+
   it("leaves linked sound a gap of the same length", async () => {
     await freeze();
     const sounds = Object.values(doc().clips).filter((c) => c.trackId === clipOf("sA").trackId);

@@ -187,6 +187,8 @@ export const freezeFrame = defineCommand({
       ...(clip.mediaId !== undefined && { mediaId: clip.mediaId }),
       ...(baked.transform && { transform: { ...clipTransform(baked) } }),
       ...(baked.composite && { composite: { ...clipComposite(baked) } }),
+      // Held on its motion path where Progress is at that moment (keyed into `baked`).
+      ...(baked.follow && { follow: { ...baked.follow } }),
       // Keyed grade values are already written into `baked.grade`, so the hold is a still grade.
       ...(baked.grade && { grade: structuredClone(baked.grade) }),
       // Like its own keys, a version's keys are dropped: the hold is a still.

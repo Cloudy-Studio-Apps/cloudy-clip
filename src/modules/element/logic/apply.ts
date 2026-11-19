@@ -79,7 +79,15 @@ export function resetPaths(
     if (group) {
       const defaults = group.defaults(format);
       if (field === undefined) {
-        working.set(group.key, undefined);
+        // Read-only fields keep their values: they change only through their own commands.
+        const current = mergeProps(defaults, groupValue(clip, group.key));
+        const kept = Object.entries(group.properties).filter(([, spec]) => spec.readOnly);
+        working.set(
+          group.key,
+          kept.some(([name]) => current[name] !== defaults[name])
+            ? { ...defaults, ...Object.fromEntries(kept.map(([name]) => [name, current[name]])) }
+            : undefined,
+        );
         continue;
       }
       const before = working.has(group.key)

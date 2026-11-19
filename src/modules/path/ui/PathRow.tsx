@@ -1,10 +1,15 @@
 import { Spline, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useKernel, useModule } from "@/core";
+import { notify, useKernel, useModule, type AppError, type Result } from "@/core";
 import { previewRef } from "@/modules/preview";
 import type { MotionPath } from "@/modules/project";
 import { IconButton, cn } from "@/ui";
 import { removePaths, updatePath } from "../path.commands";
+
+/** A failed command as a toast (rule 32). */
+const tell = (result: Result<unknown, AppError>) => {
+  if (!result.ok) notify("error", result.error.message);
+};
 
 interface PathRowProps {
   path: MotionPath;
@@ -23,7 +28,7 @@ export function PathRow({ path, followers, selected, onSelect }: PathRowProps) {
     setRenaming(false);
     const trimmed = name.trim();
     if (trimmed && trimmed !== path.name)
-      void bus.run(updatePath, { pathId: path.id, name: trimmed });
+      void bus.run(updatePath, { pathId: path.id, name: trimmed }).then(tell);
   };
 
   return (
@@ -59,7 +64,9 @@ export function PathRow({ path, followers, selected, onSelect }: PathRowProps) {
         label="Delete path"
         onClick={(e) => {
           e.stopPropagation();
-          void bus.run(removePaths, { pathIds: [path.id], at: preview.playback.getTime() });
+          void bus
+            .run(removePaths, { pathIds: [path.id], at: preview.playback.getTime() })
+            .then(tell);
         }}
       >
         <Trash2 />

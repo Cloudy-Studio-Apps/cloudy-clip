@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useStore } from "zustand";
-import { useKernel, useModule } from "@/core";
+import { notify, useKernel, useModule } from "@/core";
 import { FieldRow, type CommandControlProps } from "@/modules/inspector";
 import { previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
@@ -46,7 +46,9 @@ export function PathPicker({ clipIds, label, run }: CommandControlProps) {
   const choose = (value: string) => {
     if (value === DRAW) ui.setState({ drawing: { mode: "freehand", attach: clipIds } });
     else if (value === NONE) {
-      void bus.run(detachPath, { clipIds, at: preview.playback.getTime() });
+      void bus.run(detachPath, { clipIds, at: preview.playback.getTime() }).then((result) => {
+        if (!result.ok) notify("error", result.error.message);
+      });
     } else if (value !== MIXED) run({ pathId: value });
   };
 

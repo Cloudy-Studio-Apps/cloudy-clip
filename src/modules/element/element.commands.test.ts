@@ -17,7 +17,7 @@ const testElement = defineElement({
   name: "Keyed",
   source: "none",
   tracks: ["video"],
-  supports: { transform: true },
+  supports: { transform: true, linked: true },
   properties: {
     amount: prop.number({ min: 0, max: 10 }),
     tint: prop.color(),
@@ -39,6 +39,16 @@ const group = defineSharedGroup({
   appliesTo: (_clip, track) => track.kind === "video",
 });
 
+/** A group with a read-only field, like `follow.pathId`. */
+const linkedGroup = defineSharedGroup({
+  id: "linked",
+  key: "follow",
+  label: "Linked",
+  order: 910,
+  properties: { pathId: prop.string({ readOnly: true }), progress: prop.number() },
+  defaults: () => ({ pathId: "", progress: 0, orient: false }),
+});
+
 const fixtures = defineModule({
   ref: defineModuleRef<Record<string, never>>("element-test-fixtures"),
   name: "fixtures",
@@ -48,7 +58,7 @@ const fixtures = defineModule({
   mcpTools: [],
   setup({ contribute }) {
     contribute(elements, testElement);
-    contribute(sharedGroups, group);
+    contribute(sharedGroups, group, linkedGroup);
     return { api: {} };
   },
 });
@@ -116,6 +126,19 @@ describe("element.setProps with keys", () => {
     );
     const times = clipOf(id).animation!["transform.x"]!.keys.map((k) => k.t);
     expect(Math.max(...times)).toBeLessThan(clipOf(id).duration);
+  });
+});
+
+describe("element.resetProps of a group", () => {
+  it("resetting a group keeps its read-only fields", async () => {
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: {
+        ...s.clips,
+        [id]: { ...s.clips[id]!, follow: { pathId: "p", progress: 0.7, orient: false } },
+      },
+    }));
+    await run(kernel.bus.run(resetProps, { clipIds: [id], paths: ["follow"] }));
+    expect(clipOf(id).follow).toMatchObject({ pathId: "p", progress: 0 });
   });
 });
 

@@ -59,6 +59,8 @@ export function splitClips(
         duration: left.duration - offset,
         ...(left.transform && { transform: { ...left.transform } }),
         ...(left.composite && { composite: { ...left.composite } }),
+        // Both halves stay on the motion path, with the Progress keys copied below.
+        ...(left.follow && { follow: { ...left.follow } }),
         ...(left.speed && { speed: { ...left.speed } }),
         // The grade, its stored versions and its shot group go with both halves.
         ...(left.grade && { grade: structuredClone(target.grade!) }),

@@ -1,9 +1,5 @@
-import type { PathPoint } from "@/modules/project";
-
-type Vec = { x: number; y: number };
-
-/** Which part of a point a drag moves: the point itself (its handles travel with it) or a handle. */
-export type PointPart = "point" | "in" | "out";
+import type { BezierSegment, PathPoint, Vec2 as Vec } from "@/modules/project";
+import type { PointPart } from "../path.types";
 
 const lerp = (a: Vec, b: Vec, t: number): Vec => ({
   x: a.x + (b.x - a.x) * t,
@@ -11,7 +7,7 @@ const lerp = (a: Vec, b: Vec, t: number): Vec => ({
 });
 
 /** The four control points of segment `i` (the closing one when `i` is the last point). */
-function controls(points: readonly PathPoint[], i: number): [Vec, Vec, Vec, Vec] {
+function controls(points: readonly PathPoint[], i: number): BezierSegment {
   const a = points[i]!;
   const b = points[(i + 1) % points.length]!;
   return [

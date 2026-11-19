@@ -1,10 +1,17 @@
 import { useEffect } from "react";
 import { useStore } from "zustand";
 import { notify, useKernel, useModule } from "@/core";
-import { projectRef, useOpenFormat, type MotionPath, type PathPoint } from "@/modules/project";
+import {
+  projectRef,
+  useOpenComposition,
+  useOpenFormat,
+  type MotionPath,
+  type PathPoint,
+} from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { cn } from "@/ui";
-import { insertPoint, nearestOnPath, pathData, removePoint, type PointPart } from "../logic/edit";
+import { insertPoint, nearestOnPath, pathData, removePoint } from "../logic/edit";
+import type { PointPart } from "../path.types";
 import { updatePath } from "../path.commands";
 import { pathRef } from "../path.ref";
 import { startPathEdit } from "./path.edit.gesture";
@@ -28,11 +35,15 @@ function useShownPath(): MotionPath | null {
   const picked = useStore(ui, (s) => s.selectedPathId);
   const drawing = useStore(ui, (s) => s.drawing);
   const selection = useStore(timeline.view, (s) => s.selection);
+  const open = useOpenComposition()?.id;
   return useStore(store.api, (s) => {
     if (drawing) return null;
+    const mine = (id: string | undefined) => {
+      const path = id ? s.paths?.[id] : undefined;
+      return path?.compositionId === open ? path : undefined;
+    };
     const only = selection.length === 1 ? s.clips[selection[0]!] : undefined;
-    const id = picked ?? only?.follow?.pathId;
-    return (id && s.paths?.[id]) || null;
+    return mine(picked ?? undefined) ?? mine(only?.follow?.pathId) ?? null;
   });
 }
 
@@ -56,19 +67,33 @@ export function PathOverlay() {
     });
   };
 
+  const pathId = path?.id;
+  // A point stays selected only while its path is shown and nothing else is pressed.
   useEffect(() => {
-    if (!path || selected === null) return;
+    ui.setState({ selectedPoint: null });
+    if (!pathId) return;
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target instanceof Element) || !e.target.closest("[data-point], [data-handle]")) {
+        ui.setState({ selectedPoint: null });
+      }
+    };
+    window.addEventListener("pointerdown", onDown, true);
+    return () => window.removeEventListener("pointerdown", onDown, true);
+  }, [pathId, ui]);
+
+  useEffect(() => {
+    // With two points none can go: Delete is left to the timeline.
+    if (!path || selected === null || path.points.length <= 2) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.key !== "Delete" && e.key !== "Backspace") || isTextField(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
-      if (path.points.length <= 2) return;
       ui.setState({ selectedPoint: null });
-      void bus.run(updatePath, { pathId: path.id, points: removePoint(path.points, selected) });
+      save(removePoint(path.points, selected));
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [path, selected, bus, ui]);
+  });
 
   if (!path || !format) return null;
   const { width, height } = format;

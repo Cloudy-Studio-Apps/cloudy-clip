@@ -60,6 +60,8 @@ export type {
   PathId,
   PathPoint,
   PathSample,
+  BezierSegment,
+  Vec2,
   ClipMove,
   Junction,
   JunctionId,

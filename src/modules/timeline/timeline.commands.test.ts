@@ -330,6 +330,16 @@ describe("keys on a clip", () => {
     expect(doc()).toEqual(before);
   });
 
+  it("splitting a follower keeps both halves on the path", async () => {
+    const id = await keyed();
+    const follow = { pathId: "p", progress: 0.5, orient: true };
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: { ...s.clips, [id]: { ...s.clips[id]!, follow } },
+    }));
+    const { created } = await run(kernel.bus.run(splitAt, { at: 5 * S, clipIds: [id] }));
+    expect(clipOf(created[0]!).follow).toEqual(follow);
+  });
+
   it("gives both halves of a split the same composite", async () => {
     const id = await keyed();
     const composite = { mode: "screen", opacity: 0.5 } as const;
