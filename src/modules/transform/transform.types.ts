@@ -27,6 +27,9 @@ export interface VisibleLayer {
   fields: ReadonlySet<TransformField>;
 }
 
+/** Which way `transform.flip` mirrors: left to right (`scaleX`) or upside down (`scaleY`). */
+export type FlipAxis = "horizontal" | "vertical";
+
 /** One field of a clip's transform. */
 export type TransformField = keyof ClipTransform;
 
@@ -57,5 +60,6 @@ export interface TransformGestureOptions {
 declare module "@/core" {
   interface CommandInputs {
     "transform.reset": { clipIds: string[] };
+    "transform.flip": { clipIds: string[]; axis: FlipAxis };
   }
 }

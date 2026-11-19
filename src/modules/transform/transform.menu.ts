@@ -1,11 +1,11 @@
-import { RotateCcw } from "lucide-react";
+import { FlipHorizontal2, FlipVertical2, RotateCcw } from "lucide-react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ModuleContext } from "@/core";
 import { projectRef } from "@/modules/project";
 import type { ClipActions, TimelineViewState } from "@/modules/timeline";
-import { resetTransform } from "./transform.commands";
+import { flipTransform, resetTransform } from "./transform.commands";
 
-/** Reset transform in a clip's menu: for pictures, which are what the transform places. */
+/** Flip and Reset transform in a clip's menu: for pictures, which are what the transform places. */
 export function transformMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>): ClipActions {
   return {
     id: "transform.clip",
@@ -16,6 +16,18 @@ export function transformMenu(ctx: ModuleContext, view: StoreApi<TimelineViewSta
         .getState()
         .selection.filter((id) => state.tracks[state.clips[id]?.trackId ?? ""]?.kind === "video");
       return [
+        {
+          group: "reset",
+          icon: FlipHorizontal2,
+          label: "Flip horizontally",
+          onSelect: () => void ctx.bus.run(flipTransform, { clipIds, axis: "horizontal" }),
+        },
+        {
+          group: "reset",
+          icon: FlipVertical2,
+          label: "Flip vertically",
+          onSelect: () => void ctx.bus.run(flipTransform, { clipIds, axis: "vertical" }),
+        },
         {
           group: "reset",
           icon: RotateCcw,

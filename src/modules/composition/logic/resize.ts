@@ -1,6 +1,7 @@
 import { IDENTITY_TRANSFORM } from "@/modules/project";
 import type { ClipFit, ClipTransform, KeyTrack, ProjectFormat } from "@/modules/project";
 
+// shortcut: an off-center pivot drifts when the aspect changes (placing it needs the picture size), upgrade when resize gets picture sizes
 /**
  * Keeps a picture in the same proportion of the frame when the frame changes size. A `contain`
  * picture keeps its scale, because it already refits to the new frame; a picture at its natural

@@ -145,11 +145,11 @@ k·scale·scaleY)`. Text does not `except` the new fields.
   (`keyframe/logic/motion.ts`) draws where the pivot travels, as After Effects draws the anchor's
   path. No change there. Presets, sticker add and composition placement write `x`/`y` with the
   pivot at its default (center), so they keep meaning the picture's center.
-- **Frame resize keeps the picture where it was.** `composition/logic/resize.ts` does change: the
-  picture's center is scaled as today (`× kx`, `× ky`), then `x`/`y` are recomputed from that
-  center and the new placement's pivot offset, so an off-center pivot doesn't drift when the aspect
-  changes. Same for the keys of `transform.x`/`transform.y` (at each key, with the clip's static
-  other fields). With the pivot at 0 it is today's math. The existing resize test gains a pivot case.
+- **Frame resize (known limit).** Keeping an off-center pivot from drifting needs each clip's
+  picture size inside `composition.setSettings`, which it doesn't have. `resize.ts` keeps scaling
+  `x`/`y` as before: with the pivot at its default nothing changes; with an off-center pivot and an
+  aspect change the picture shifts by the pivot's offset times the difference of the ratios. Marked
+  with a `shortcut:` comment; upgrade when resize gets picture sizes.
 - **Zero Width/Height.** 0 may be stored and typed; the picture draws nothing, can't be picked by
   a click, and the box collapses onto the pivot (still selected; its handles sit on the pivot until
   the value leaves 0, e.g. from the panel or the flip buttons). Panel sliders: `ui` range −4…4.

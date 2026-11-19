@@ -1,8 +1,12 @@
 import { commandTool } from "@/core";
-import { resetTransform } from "./transform.commands";
+import { flipTransform, resetTransform } from "./transform.commands";
 
 /**
- * Agents reset pictures with the same command as the inspector. They move, scale and rotate them
- * with `element_set_props` (`{ transform: { … } }`), like the canvas tools.
+ * Agents reset and flip pictures with the same commands as the inspector. They move, scale,
+ * stretch, rotate and set the pivot with `element_set_props` (`{ transform: { … } }`), like the
+ * canvas tools.
  */
-export const transformMcpTools = [commandTool(resetTransform, { name: "transform_reset" })];
+export const transformMcpTools = [
+  commandTool(resetTransform, { name: "transform_reset" }),
+  commandTool(flipTransform, { name: "transform_flip" }),
+];
