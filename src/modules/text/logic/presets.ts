@@ -1,3 +1,4 @@
+import { IDENTITY_TRANSFORM } from "@/modules/project";
 import type { ClipTransform, ProjectFormat } from "@/modules/project";
 import type { TextStylePatch } from "../text.types";
 import type { TextPresetId } from "../text.types";
@@ -58,5 +59,5 @@ export function presetStyle(id: TextPresetId, format: ProjectFormat): TextStyleP
 /** Where a preset puts the text in the frame, or null when it leaves the position alone. */
 export function presetTransform(id: TextPresetId, format: ProjectFormat): ClipTransform | null {
   if (id !== "lower-third") return null;
-  return { x: -0.2 * format.width, y: 0.32 * format.height, scale: 1, rotation: 0 };
+  return { ...IDENTITY_TRANSFORM, x: -0.2 * format.width, y: 0.32 * format.height };
 }

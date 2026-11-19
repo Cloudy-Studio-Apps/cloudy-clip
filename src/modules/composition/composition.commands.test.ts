@@ -6,6 +6,7 @@ import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule, mediaRef, removeMedia, type MediaProbe } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
 import {
+  IDENTITY_TRANSFORM,
   createProjectModule,
   orderedTracks,
   placementsOf,
@@ -478,7 +479,7 @@ describe("composition commands", () => {
       format: { width: 1080, height: 1920, fps: 30 },
     });
     addTo(compositionId, {
-      ...text("t", "", 0, { transform: { x: 0, y: 600, scale: 1, rotation: 0 } }),
+      ...text("t", "", 0, { transform: { ...IDENTITY_TRANSFORM, y: 600 } }),
       kind: "media",
     });
     await ok(setSettings, {

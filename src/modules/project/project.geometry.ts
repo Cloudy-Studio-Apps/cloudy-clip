@@ -13,7 +13,11 @@ export const IDENTITY_TRANSFORM: Readonly<ClipTransform> = Object.freeze({
   x: 0,
   y: 0,
   scale: 1,
+  scaleX: 1,
+  scaleY: 1,
   rotation: 0,
+  pivotX: 0,
+  pivotY: 0,
 });
 
 /**
@@ -51,7 +55,8 @@ export function normalizeRotation(degrees: number): number {
 }
 
 /**
- * Where a picture of `source` size lands in the `format` frame with `transform` applied. Used by
+ * Where a picture of `source` size lands in the `format` frame with `transform` applied (the pivot
+ * folded into its center, the flip into `flipX`/`flipY`). Used by
  * the preview engine to draw and by the canvas tools to hit-test, so both always agree.
  */
 export function clipPlacement(
@@ -60,13 +65,25 @@ export function clipPlacement(
   transform: ClipTransform,
   fit: ClipFit = "contain",
 ): ClipPlacement {
-  const scale =
+  const fitted =
     fit === "contain" ? Math.min(format.width / source.width, format.height / source.height) : 1;
+  const width = source.width * fitted * transform.scale * Math.abs(transform.scaleX);
+  const height = source.height * fitted * transform.scale * Math.abs(transform.scaleY);
+  const flipX = transform.scaleX < 0;
+  const flipY = transform.scaleY < 0;
+  // The pivot's offset from the picture's center, in its own (mirrored, unrotated) axes.
+  const px = transform.pivotX * width * (flipX ? -1 : 1);
+  const py = transform.pivotY * height * (flipY ? -1 : 1);
+  const turn = (transform.rotation * Math.PI) / 180;
+  const cos = Math.cos(turn);
+  const sin = Math.sin(turn);
   return {
-    cx: format.width / 2 + transform.x,
-    cy: format.height / 2 + transform.y,
-    width: source.width * scale * transform.scale,
-    height: source.height * scale * transform.scale,
+    cx: format.width / 2 + transform.x - (px * cos - py * sin),
+    cy: format.height / 2 + transform.y - (px * sin + py * cos),
+    width,
+    height,
     rotation: transform.rotation,
+    flipX,
+    flipY,
   };
 }

@@ -43,8 +43,14 @@ lives here, so every change is undoable and readable by agents.
   - `createProjectModule(initial)` seeds the document in tests.
 - **Invariants:** tracks, clips and junctions stay in flat records with project-wide ids, and a track belongs to one composition, so a clip or track id says which composition it means; track order is top → bottom (higher video tracks are drawn on top);
   `Track.clipIds` is sorted by `start` and clips on a track never overlap, except by `allowedOverlap` (junctions); times are microseconds;
-  `Clip.transform` is optional (missing = fitted and centered): `x`/`y` offset of the picture's center
-  from the frame's center in output pixels, `scale` relative to fit, `rotation` clockwise degrees.
+  `Clip.transform` is optional, and each field missing is the identity (fitted and centered): `x`/`y`
+  where the pivot sits, offset from the frame's center in output pixels (the picture's center while
+  the pivot is at its default), `scale` relative to fit, `scaleX`/`scaleY` width and height factors
+  on top of it (negative flips that axis), `rotation` clockwise degrees, `pivotX`/`pivotY` the pivot
+  in the picture as a fraction of its size from its center (-0.5 is the left or top edge). Scale,
+  stretch and rotation happen about the pivot. `clipPlacement` folds the pivot into the placement's
+  center and gives the flip as `flipX`/`flipY` (its `width`/`height` stay positive); every drawer
+  mirrors by them after rotating.
   Video tracks hold pictures only; audio tracks hold sound (a video file's sound sits there as a
   clip of the same media). Clips sharing a `Clip.linkId` are linked (picture and sound of one
   video) and are edited together by the timeline until unlinked.

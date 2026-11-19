@@ -322,17 +322,27 @@ export interface KeyTrack {
 
 /**
  * Placement of a clip's picture in the output frame. The picture is first fitted (contained) in
- * the frame and centered; then scaled, rotated about its center, and moved.
+ * the frame; then scaled, stretched (and flipped) and rotated about its pivot, which sits at
+ * `x`, `y` from the frame's center. With the pivot at its center (the default) `x`, `y` are the
+ * offset of the picture's center.
  */
 export interface ClipTransform {
-  /** Horizontal offset of the picture's center from the frame's center, in output pixels. */
+  /** Horizontal offset of the pivot from the frame's center, in output pixels. */
   x: number;
-  /** Vertical offset (down is positive), in output pixels. */
+  /** Vertical offset of the pivot (down is positive), in output pixels. */
   y: number;
   /** Size relative to "fit": 1 fits the frame, 2 is twice as big. */
   scale: number;
+  /** Width factor on top of `scale`; negative mirrors the picture left to right. */
+  scaleX: number;
+  /** Height factor on top of `scale`; negative mirrors the picture upside down. */
+  scaleY: number;
   /** Clockwise rotation, in degrees (-180, 180]. */
   rotation: number;
+  /** Pivot in the picture, as a fraction of its width from its center (-0.5 is the left edge). */
+  pivotX: number;
+  /** Pivot in the picture, as a fraction of its height from its center (-0.5 is the top edge). */
+  pivotY: number;
 }
 
 /**
@@ -351,6 +361,10 @@ export interface ClipPlacement {
   height: number;
   /** Clockwise, in degrees. */
   rotation: number;
+  /** Mirrored left to right (a negative `scaleX`), after rotating. */
+  flipX: boolean;
+  /** Mirrored upside down (a negative `scaleY`), after rotating. */
+  flipY: boolean;
 }
 
 /**
