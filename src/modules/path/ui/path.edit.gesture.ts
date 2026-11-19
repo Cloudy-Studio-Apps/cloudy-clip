@@ -1,4 +1,4 @@
-import { movePart } from "../logic/edit";
+import { movePart } from "@/modules/project";
 import type { PathEditOptions } from "../path.types";
 import { paintPath } from "./path.paint";
 

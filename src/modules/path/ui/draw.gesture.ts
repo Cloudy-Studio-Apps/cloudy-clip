@@ -1,4 +1,4 @@
-import { pathData } from "../logic/edit";
+import { pathData } from "@/modules/project";
 import type { FreehandOptions, PenOptions } from "../path.types";
 import { framePoint } from "./path.paint";
 

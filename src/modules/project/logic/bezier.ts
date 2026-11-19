@@ -1,5 +1,4 @@
-import type { BezierSegment, PathPoint, Vec2 as Vec } from "@/modules/project";
-import type { PointPart } from "../path.types";
+import type { BezierSegment, PathPoint, PointPart, Vec2 as Vec } from "../project.types";
 
 const lerp = (a: Vec, b: Vec, t: number): Vec => ({
   x: a.x + (b.x - a.x) * t,

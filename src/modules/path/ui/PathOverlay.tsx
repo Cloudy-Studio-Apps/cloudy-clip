@@ -7,11 +7,14 @@ import {
   useOpenFormat,
   type MotionPath,
   type PathPoint,
+  type PointPart,
+  insertPoint,
+  nearestOnPath,
+  pathData,
+  removePoint,
 } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { cn } from "@/ui";
-import { insertPoint, nearestOnPath, pathData, removePoint } from "../logic/edit";
-import type { PointPart } from "../path.types";
 import { updatePath } from "../path.commands";
 import { pathRef } from "../path.ref";
 import { startPathEdit } from "./path.edit.gesture";

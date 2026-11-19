@@ -40,6 +40,8 @@ lives here, so every change is undoable and readable by agents.
     another track, else 0), `rippleMoves`, `applyMoves` (pure, keeps `clipIds` sorted),
     `findLayoutConflict`, `staleJunctions`.
   - `logic/ease.ts`, `logic/animate.ts`, `logic/content.ts`, `logic/keys.ts`: keyframes, see below.
+  - `logic/bezier.ts`: Bézier editing of a path's points, in frame px, shared by the path module's canvas overlay and its drawing gestures: `segmentAt`, `segmentCount`, `movePart` (a point or a handle, the other handle kept in line unless asked), `insertPoint` (a de Casteljau split, the shape unchanged) and `removePoint` (unchanged below two points), `nearestOnPath`, `pathData` (the SVG `d`). `PointPart` (`point`, `in`, `out`) is in `project.types.ts`.
+  - `logic/fit.ts`: `fitStroke(stroke, tolerance)`, a freehand stroke fitted into a few smooth points (Schneider least-squares Béziers, splitting where one cannot fit).
   - `createProjectModule(initial)` seeds the document in tests.
 - **Invariants:** tracks, clips and junctions stay in flat records with project-wide ids, and a track belongs to one composition, so a clip or track id says which composition it means; track order is top → bottom (higher video tracks are drawn on top);
   `Track.clipIds` is sorted by `start` and clips on a track never overlap, except by `allowedOverlap` (junctions); times are microseconds;

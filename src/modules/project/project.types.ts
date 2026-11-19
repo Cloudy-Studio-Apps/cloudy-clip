@@ -439,6 +439,9 @@ export interface FollowLive {
   follow?: Partial<ClipFollow>;
 }
 
+/** Which part of a point a drag moves: the point itself (its handles travel with it) or a handle. */
+export type PointPart = "point" | "in" | "out";
+
 /** A point or a direction in the frame, in output pixels. */
 export interface Vec2 {
   x: number;

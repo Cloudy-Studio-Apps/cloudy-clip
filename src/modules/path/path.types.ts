@@ -1,5 +1,7 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { PathId, PathPoint } from "@/modules/project";
+import type { PathId, PathPoint, PointPart } from "@/modules/project";
+
+export type { PointPart };
 
 /** How a path is being drawn: freehand (one stroke, fitted into points) or with the pen. */
 export type DrawMode = "freehand" | "pen";
@@ -26,9 +28,6 @@ declare module "@/core" {
     "path.detach": { clipIds: string[]; at?: number };
   }
 }
-
-/** Which part of a point a drag moves: the point itself (its handles travel with it) or a handle. */
-export type PointPart = "point" | "in" | "out";
 
 /** What a drag on the path overlay moves and how it reports back. */
 export interface PathEditOptions {

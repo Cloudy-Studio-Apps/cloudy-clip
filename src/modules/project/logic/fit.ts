@@ -1,4 +1,4 @@
-import type { BezierSegment as Cubic, PathPoint, Vec2 as Vec } from "@/modules/project";
+import type { BezierSegment as Cubic, PathPoint, Vec2 as Vec } from "../project.types";
 
 const add = (a: Vec, b: Vec): Vec => ({ x: a.x + b.x, y: a.y + b.y });
 const sub = (a: Vec, b: Vec): Vec => ({ x: a.x - b.x, y: a.y - b.y });

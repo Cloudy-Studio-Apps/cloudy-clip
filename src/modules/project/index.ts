@@ -71,6 +71,7 @@ export type {
   PathId,
   PathPoint,
   PathSample,
+  PointPart,
   BezierSegment,
   Vec2,
   ClipMove,
@@ -274,6 +275,23 @@ export { EASE_PRESETS, easeProgress, presetOf } from "./logic/ease";
 export { animatedClip, keyMoments, simplify, trackValue } from "./logic/animate";
 /** Motion paths: a place on a path by distance (`pathPointAt`) and its length. */
 export { pathLength, pathPointAt } from "./logic/path";
+/**
+ * Bézier editing of a path's points, all in frame px: a segment at `t` (`segmentAt`) and how many
+ * there are (`segmentCount`), moving a point or a handle (`movePart`), inserting a point at `t`
+ * (`insertPoint`) and removing one (`removePoint`), the nearest point on the curve (`nearestOnPath`)
+ * and the SVG `d` of the outline (`pathData`).
+ */
+export {
+  insertPoint,
+  movePart,
+  nearestOnPath,
+  pathData,
+  removePoint,
+  segmentAt,
+  segmentCount,
+} from "./logic/bezier";
+/** Fits a freehand stroke into a few smooth points: least-squares cubic Béziers within a tolerance. */
+export { fitStroke } from "./logic/fit";
 /**
  * Clips following paths: where one is placed at a time (`followedClip`, used by every placement
  * of a picture), what its path adds (`followShift`), leaving a path in place (`bakeFollow`),

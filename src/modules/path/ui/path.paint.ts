@@ -1,5 +1,4 @@
-import type { PathPoint } from "@/modules/project";
-import { pathData } from "../logic/edit";
+import { pathData, type PathPoint } from "@/modules/project";
 
 /** A spot in the frame (output px from its center) as CSS `left`/`top` percentages. */
 export function spot(x: number, y: number, size: { width: number; height: number }) {

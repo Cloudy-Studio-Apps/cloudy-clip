@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { notify, useKernel, useModule } from "@/core";
-import { useOpenFormat, type PathPoint } from "@/modules/project";
+import { fitStroke, useOpenFormat, type PathPoint } from "@/modules/project";
 import { Button, SegmentedControl } from "@/ui";
-import { fitStroke } from "../logic/fit";
 import { createPath } from "../path.commands";
 import { pathRef } from "../path.ref";
 import type { DrawMode } from "../path.types";
