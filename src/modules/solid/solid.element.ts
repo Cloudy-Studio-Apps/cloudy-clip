@@ -38,7 +38,7 @@ export const solidElement = defineElement({
   name: "Solid color",
   source: "none",
   tracks: ["video"],
-  supports: { transform: true, composite: true },
+  supports: { transform: true, composite: true, follow: true },
   properties: {
     fillType: prop.enum(FILL_TYPES, {
       label: "Fill",
