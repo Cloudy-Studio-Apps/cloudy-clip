@@ -3,8 +3,9 @@
 Placing pictures (video and text) in the frame, like CapCut on the surface and After Effects
 underneath: click a picture in the preview to select its clip, drag it to move (snapping to the
 frame's center lines), drag a corner to scale, a side to stretch that axis (dragging past the pivot
-flips it), the handle on top to rotate (Shift snaps to 15°), and the crosshair to move the pivot
-(the picture stays put: `x`/`y` follow the pivot). Scale, stretch and rotation turn about the
+flips it), the handle on top to rotate (Shift snaps to 15°), and Alt+drag the crosshair to move the pivot
+(the picture stays put: `x`/`y` follow the pivot; a plain drag on it moves the picture). Moving snaps
+the pivot to the center lines, as After Effects snaps the anchor. Scale, stretch and rotation turn about the
 pivot. Click empty space to deselect.
 
 - **Tier:** feature

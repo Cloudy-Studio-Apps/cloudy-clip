@@ -29,6 +29,9 @@ export const MAX_STRETCH = 20;
 /** Farthest the pivot can go from the picture's center, as a fraction of its size. */
 export const MAX_PIVOT = 10;
 
+/** Closer to the pivot than this (output px), a side drag does nothing: the ratio would explode. */
+const STRETCH_DEAD_ZONE = 4;
+
 const clamp = (value: number, limit: number) => Math.min(limit, Math.max(-limit, value));
 
 /** Scales about the pivot (`center`), by how much further from it the pointer is than at the start. */
@@ -77,7 +80,7 @@ export function stretchTransform(
       : { x: -Math.sin(turn), y: Math.cos(turn) };
   const reach = (p: FramePoint) => (p.x - pivot.x) * along.x + (p.y - pivot.y) * along.y;
   const before = reach(from);
-  if (before === 0) return start;
+  if (Math.abs(before) < STRETCH_DEAD_ZONE) return start;
   const field = axis === "x" ? "scaleX" : "scaleY";
   return { ...start, [field]: clamp((start[field] * reach(to)) / before, MAX_STRETCH) };
 }

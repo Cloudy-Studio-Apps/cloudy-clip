@@ -5,14 +5,15 @@ import { mediaRef } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { canvasTextMeasure, elementRef } from "@/modules/element";
 import { projectRef, type MediaId, type PictureSize } from "@/modules/project";
+import { TRANSFORM_KEYS } from "../logic/commit";
 import { visibleLayers } from "../logic/layers";
 import type { VisibleLayer } from "../transform.types";
 
 const keyOf = (layers: readonly VisibleLayer[]) =>
   layers
     .map((l) => {
-      const t = l.transform;
-      return `${l.clipId}:${l.source.width}x${l.source.height}@${t.x},${t.y},${t.scale},${t.rotation}`;
+      const t = TRANSFORM_KEYS.map((key) => l.transform[key]).join(",");
+      return `${l.clipId}:${l.source.width}x${l.source.height}@${t}`;
     })
     .join("|");
 

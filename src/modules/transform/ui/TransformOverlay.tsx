@@ -55,7 +55,9 @@ export function TransformOverlay() {
     if (e.button !== 0 || !frame) return;
     const handle = (e.target as HTMLElement).dataset.handle as TransformGestureMode | undefined;
     let target = handle && handle !== "move" ? selected : undefined;
-    let mode: TransformGestureMode = handle ?? "move";
+    // The crosshair moves the pivot only with Alt (as After Effects' Pan Behind tool): a plain drag
+    // on the middle of a picture still moves it.
+    let mode: TransformGestureMode = handle === "pivot" && !e.altKey ? "move" : (handle ?? "move");
 
     if (!target) {
       const point = toFramePoint(frame, format, e.clientX, e.clientY);

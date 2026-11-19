@@ -23,8 +23,8 @@ interface SelectionBoxProps {
 
 /**
  * The outline of the selected picture: drag inside to move, a corner to scale, a side to stretch
- * (past the pivot flips), the handle on top to rotate (Shift snaps to 15°), the crosshair to move
- * the pivot. Handles are found by their `data-handle` attribute; a handle whose field the element
+ * (past the pivot flips), the handle on top to rotate (Shift snaps to 15°), Alt+drag the crosshair
+ * to move the pivot (a plain drag on it moves the picture). Handles are found by their `data-handle` attribute; a handle whose field the element
  * doesn't support isn't shown.
  */
 export const SelectionBox = forwardRef<HTMLDivElement, SelectionBoxProps>(function SelectionBox(
@@ -38,6 +38,18 @@ export const SelectionBox = forwardRef<HTMLDivElement, SelectionBoxProps>(functi
       className="absolute cursor-move outline outline-1 outline-primary"
       style={boxStyle(placement, format)}
     >
+      {/* First, so a handle sitting on the pivot stays on top of it. */}
+      {handles.pivot && (
+        <i
+          data-handle="pivot"
+          title="Pivot (Alt+drag to move it)"
+          className="absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-move rounded-xs border border-primary"
+          style={pivotStyle(transform)}
+        >
+          <span className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-primary" />
+          <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-primary" />
+        </i>
+      )}
       {handles.scale &&
         CORNERS.map((corner) => (
           <i
@@ -63,17 +75,6 @@ export const SelectionBox = forwardRef<HTMLDivElement, SelectionBoxProps>(functi
             className="absolute -top-7 left-1/2 size-2.5 -translate-x-1/2 cursor-grab border border-primary bg-white"
           />
         </>
-      )}
-      {handles.pivot && (
-        <i
-          data-handle="pivot"
-          title="Pivot"
-          className="absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-crosshair rounded-xs border border-primary"
-          style={pivotStyle(transform)}
-        >
-          <span className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-primary" />
-          <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-primary" />
-        </i>
       )}
     </div>
   );

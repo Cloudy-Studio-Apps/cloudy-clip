@@ -19,6 +19,8 @@ export function drawSticker(
   env: DrawEnv,
 ): void {
   const { placement: place, kx, ky } = env;
+  // Squashed to nothing (Width or Height at 0): no raster of zero size to draw.
+  if (place.width === 0 || place.height === 0) return;
   ctx.save();
   ctx.setTransform(kx, 0, 0, ky, 0, 0);
   ctx.translate(place.cx, place.cy);
