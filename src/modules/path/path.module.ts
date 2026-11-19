@@ -9,7 +9,7 @@ import { followGroup } from "./path.group";
 import { pathMcpTools } from "./path.mcp";
 import { pathRef } from "./path.ref";
 import { createPathUi } from "./path.store";
-import { PathOverlay, PathPicker, PathsSection } from "./ui";
+import { PathDrawing, PathOverlay, PathPicker, PathsSection } from "./ui";
 
 /** Motion paths: curves drawn on the frame that picture clips follow over time. */
 export const pathModule = defineModule({
@@ -25,6 +25,7 @@ export const pathModule = defineModule({
     ctx.contribute(propertyControls, { id: "path-picker", for: "command", component: PathPicker });
     ctx.contribute(librarySections, { id: "path.section", component: PathsSection });
     ctx.contribute(previewOverlays, { id: "path.overlay", component: PathOverlay });
+    ctx.contribute(previewOverlays, { id: "path.drawing", component: PathDrawing });
     return { api: { ui } };
   },
 });

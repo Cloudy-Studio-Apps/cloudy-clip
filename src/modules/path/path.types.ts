@@ -41,3 +41,23 @@ export interface PathEditOptions {
   /** Called on release with the new points, when they moved. */
   onDrop(points: PathPoint[]): void;
 }
+
+/** A freehand stroke being drawn: it ends on release with its points in frame space. */
+export interface FreehandOptions {
+  event: PointerEvent;
+  frame: HTMLElement;
+  size: { width: number; height: number };
+  /** The SVG path that shows the stroke as it is drawn. */
+  line: SVGPathElement;
+  onDone(stroke: { x: number; y: number }[]): void;
+}
+
+/** A pen click: adds a point to `points` (in place); dragging pulls its handles. */
+export interface PenOptions {
+  event: PointerEvent;
+  frame: HTMLElement;
+  size: { width: number; height: number };
+  points: PathPoint[];
+  line: SVGPathElement;
+  onChange(): void;
+}

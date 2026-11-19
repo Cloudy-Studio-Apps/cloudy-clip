@@ -8,7 +8,7 @@ import { insertPoint, nearestOnPath, pathData, removePoint, type PointPart } fro
 import { updatePath } from "../path.commands";
 import { pathRef } from "../path.ref";
 import { startPathEdit } from "./path.edit.gesture";
-import { spot } from "./path.paint";
+import { framePoint, spot } from "./path.paint";
 
 /** How near the line a double-click adds a point, in output px. */
 const ADD_REACH = 24;
@@ -95,11 +95,7 @@ export function PathOverlay() {
     const frame = overlayOf(e.currentTarget);
     if (!frame) return;
     e.stopPropagation();
-    const box = frame.getBoundingClientRect();
-    const at = {
-      x: ((e.clientX - box.left) / box.width) * width - width / 2,
-      y: ((e.clientY - box.top) / box.height) * height - height / 2,
-    };
+    const at = framePoint(frame, format, e.clientX, e.clientY);
     const near = nearestOnPath(path.points, path.closed, at);
     if (near.distance > ADD_REACH) return;
     ui.setState({ selectedPoint: near.segment + 1 });

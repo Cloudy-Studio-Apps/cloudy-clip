@@ -10,6 +10,20 @@ Read in [English](CHANGELOG.md).
 
 ### Añadido
 
+- **Seguir trayectoria:** dibuja una trayectoria sobre el fotograma, a mano alzada (un trazo que se
+  suaviza en pocos puntos) o con la pluma (clic para esquinas, arrastrar para curvas), y cualquier
+  número de clips la siguen. Progreso (0–100 %, con claves puestas por ti del inicio al final del
+  clip) mueve el clip por la trayectoria a velocidad uniforme, así que los preajustes de curva y
+  los bucles dan forma al movimiento; Posición pasa a ser un desplazamiento respecto a la
+  trayectoria, para que varios clips viajen lado a lado, y Orientar según la trayectoria gira el
+  clip con la curva. Cambia la forma en el lienzo (arrastra puntos y asas, doble clic para añadir
+  un punto, Supr para quitarlo) y todos los clips la siguen. Dejar de seguirla o borrarla deja los
+  clips donde están.
+- Una sección **Trayectorias** en la Biblioteca muestra las de la composición abierta y cuántos
+  clips siguen cada una, y una sección **Seguir trayectoria** en el inspector elige la de un clip o
+  dibuja una nueva.
+- Los agentes tienen `path_create`, `path_update`, `path_remove`, `path_attach`, `path_detach` y
+  `path_list`. Los proyectos con trayectorias se guardan en la versión 5.
 - **Pivote, estirar y voltear en Transformar**, como en After Effects. Cada imagen tiene un pivote
   (Pivote X/Y) sobre el que giran la escala, el estiramiento y la rotación; Posición coloca el
   pivote. Estirar ajusta Ancho y Alto por separado para aplastar y estirar, y un valor negativo

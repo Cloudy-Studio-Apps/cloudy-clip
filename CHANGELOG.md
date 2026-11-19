@@ -10,6 +10,17 @@ Leer en [español](CHANGELOG.es.md).
 
 ### Added
 
+- **Follow path:** draw a path on the frame, freehand (one stroke, smoothed into a few points) or
+  with the pen (click for corners, drag for curves), and any number of clips follow it. Progress
+  (0–100 %, keyed for you from the clip's start to its end) moves a clip along the path at an even
+  speed, so ease presets and loops shape its motion; Position becomes an offset from the path, so
+  clips can travel side by side, and Orient along path turns a clip with the curve. Reshape the
+  path on the canvas (drag points and handles, double-click to add a point, Delete to remove one)
+  and every clip on it follows. Stopping or deleting a path leaves clips where they are.
+- A **Paths** section in the Library lists the open composition's paths with how many clips follow
+  each, and a **Follow path** section in the inspector picks a clip's path or draws a new one.
+- Agents have `path_create`, `path_update`, `path_remove`, `path_attach`, `path_detach` and
+  `path_list`. Projects with paths are saved as version 5.
 - **Pivot, stretch and flip in Transform**, the After Effects way. Each picture has a pivot
   (Pivot X/Y) that scale, stretch and rotation turn about; Position places the pivot. Stretch
   sets Width and Height on their own for squash and stretch, and a negative value flips that

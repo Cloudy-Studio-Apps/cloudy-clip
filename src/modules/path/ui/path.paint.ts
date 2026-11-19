@@ -37,3 +37,17 @@ export function paintPath(
     }
   });
 }
+
+/** A pointer position as a spot in the frame (output px from its center), from the overlay's box. */
+export function framePoint(
+  frame: Element,
+  size: { width: number; height: number },
+  clientX: number,
+  clientY: number,
+) {
+  const box = frame.getBoundingClientRect();
+  return {
+    x: ((clientX - box.left) / box.width) * size.width - size.width / 2,
+    y: ((clientY - box.top) / box.height) * size.height - size.height / 2,
+  };
+}
