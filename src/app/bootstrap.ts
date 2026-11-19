@@ -21,6 +21,7 @@ import { previewModule } from "@/modules/preview";
 import { projectModule } from "@/modules/project";
 import { settingsModule } from "@/modules/settings";
 import { markerModule } from "@/modules/marker";
+import { maskModule } from "@/modules/mask";
 import { pathModule } from "@/modules/path";
 import { solidModule } from "@/modules/solid";
 import { soundModule } from "@/modules/sound";
@@ -58,6 +59,7 @@ const MODULES: AnyModuleDefinition[] = [
   speedModule,
   keyframeModule,
   pathModule,
+  maskModule,
   markerModule,
   collabModule,
   tintModule,
