@@ -105,4 +105,54 @@ describe("project file", () => {
     expect(codeOf(file((json) => (json.version = 99)))).toBe("workspace.too_new");
     expect(codeOf(file((json) => (json.document = { media: {} })))).toBe("workspace.damaged");
   });
+
+  const followed: ProjectState = {
+    ...document,
+    tracks: {
+      t: {
+        id: "t",
+        compositionId: "c",
+        kind: "video",
+        name: "V",
+        clipIds: ["c"],
+        muted: false,
+        hidden: false,
+      },
+    },
+    clips: {
+      c: {
+        id: "c",
+        trackId: "t",
+        kind: "text",
+        start: 0,
+        sourceIn: 0,
+        duration: 1,
+        props: {},
+        follow: { pathId: "p", progress: 0, orient: false },
+      },
+    },
+    paths: {
+      p: {
+        id: "p",
+        compositionId: "c",
+        name: "Path 1",
+        closed: false,
+        points: [
+          { x: 0, y: 0, inX: 0, inY: 0, outX: 0, outY: 0 },
+          { x: 1, y: 1, inX: 0, inY: 0, outX: 0, outY: 0 },
+        ],
+      },
+    },
+  };
+
+  it("a project with paths round-trips at version 5", () => {
+    const text = encodeProject(followed, "1.0.0", new Date(0));
+    expect(JSON.parse(text).version).toBe(5);
+    expect(decodeProject(text)).toEqual(followed);
+  });
+
+  it("a dangling follow is dropped on open", () => {
+    const text = encodeProject({ ...followed, paths: {} }, "1.0.0", new Date(0));
+    expect(decodeProject(text).clips.c!.follow).toBeUndefined();
+  });
 });

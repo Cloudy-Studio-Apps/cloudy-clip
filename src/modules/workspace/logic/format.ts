@@ -12,7 +12,9 @@ import type { ProjectEnvelope } from "../workspace.types";
 
 const FORMAT = "cloudy-clip-project";
 /** Bump when the document changes shape, and teach `decodeProject` to upgrade the older one. */
-const VERSION = 4;
+const VERSION = 5;
+/** What a project with grades but no motion paths is saved as, so an older app still opens it. */
+const GRADED_VERSION = 4;
 /** What a project with keys but no grades is saved as, so an older app still opens it. */
 const ANIMATED_VERSION = 3;
 /** What a project without keys or grades is saved as, so an older app still opens it. */
@@ -126,7 +128,39 @@ const documentSchema = z.looseObject({
       }),
     )
     .default({}),
+  // Files from before paths open with none.
+  paths: z
+    .record(
+      z.string(),
+      z.looseObject({
+        id: z.string(),
+        compositionId: z.string(),
+        name: z.string(),
+        closed: z.boolean(),
+        points: z
+          .array(
+            z.looseObject({
+              x: z.number(),
+              y: z.number(),
+              inX: z.number(),
+              inY: z.number(),
+              outX: z.number(),
+              outY: z.number(),
+            }),
+          )
+          .min(2),
+      }),
+    )
+    .optional(),
 });
+
+/** Whether the document has motion paths or a clip following one, which only version 5 knows. */
+function usesPaths(document: ProjectState): boolean {
+  return (
+    Object.keys(document.paths ?? {}).length > 0 ||
+    Object.values(document.clips).some((clip) => clip.follow)
+  );
+}
 
 /** Whether any clip has keys, which only version 3 knows. */
 function isAnimated(document: ProjectState): boolean {
@@ -179,6 +213,27 @@ function withValidGrades(document: ProjectState): ProjectState {
   return document;
 }
 
+/**
+ * The document without follows it can't play: a clip following a missing path, or a path of
+ * another composition, stops following (and loses its Progress keys) with a warning.
+ */
+function withValidFollows(document: ProjectState): ProjectState {
+  for (const clip of Object.values(document.clips)) {
+    if (!clip.follow) continue;
+    const path = document.paths?.[clip.follow.pathId];
+    const home = document.tracks[clip.trackId]?.compositionId;
+    if (path && path.compositionId === home) continue;
+    log.warn(`Clip ${clip.id} followed a path it can't; it no longer follows one.`);
+    delete clip.follow;
+    if (!clip.animation) continue;
+    for (const key of Object.keys(clip.animation)) {
+      if (key.startsWith("follow.")) delete clip.animation[key];
+    }
+    if (Object.keys(clip.animation).length === 0) delete clip.animation;
+  }
+  return document;
+}
+
 /** The document without key tracks that have no keys, which nothing can play. */
 function withoutEmptyTracks(document: ProjectState): ProjectState {
   for (const clip of Object.values(document.clips)) {
@@ -193,17 +248,19 @@ function withoutEmptyTracks(document: ProjectState): ProjectState {
 }
 
 /**
- * The text of a project file: version 4 when it uses grades, else version 3 when a clip has keys,
+ * The text of a project file: version 5 when it uses motion paths, else 4 when it uses grades, else version 3 when a clip has keys,
  * else version 2, so a project that never used them opens in an app from before them.
  */
 export function encodeProject(document: ProjectState, appVersion: string, now: Date): string {
   const file: ProjectEnvelope = {
     format: FORMAT,
-    version: usesGrades(document)
+    version: usesPaths(document)
       ? VERSION
-      : isAnimated(document)
-        ? ANIMATED_VERSION
-        : UNANIMATED_VERSION,
+      : usesGrades(document)
+        ? GRADED_VERSION
+        : isAnimated(document)
+          ? ANIMATED_VERSION
+          : UNANIMATED_VERSION,
     appVersion,
     savedAt: now.toISOString(),
     document,
@@ -212,8 +269,8 @@ export function encodeProject(document: ProjectState, appVersion: string, now: D
 }
 
 /**
- * Reads a project file of any version up to 4. Throws `workspace.not_a_project`,
- * `workspace.too_new` or `workspace.damaged`. Key tracks without keys are dropped, and so is a grade that fails `gradeSchema` (with a warning). The document's
+ * Reads a project file of any version up to 5. Throws `workspace.not_a_project`,
+ * `workspace.too_new` or `workspace.damaged`. Key tracks without keys are dropped, and so is a grade that fails `gradeSchema` and a follow whose path is missing or in another composition (with a warning). The document's
  * rules are checked when it replaces the store.
  */
 export function decodeProject(text: string): ProjectState {
@@ -237,5 +294,7 @@ export function decodeProject(text: string): ProjectState {
   if (!document.success) {
     throw new CommandFailure("workspace.damaged", "This project file is damaged.");
   }
-  return withValidGrades(withoutEmptyTracks(document.data as unknown as ProjectState));
+  return withValidFollows(
+    withValidGrades(withoutEmptyTracks(document.data as unknown as ProjectState)),
+  );
 }
