@@ -318,6 +318,52 @@ describe("speed.freezeFrame", () => {
     expect(clipOf(hold).follow).toEqual(follow);
   });
 
+  it("a frozen hold keeps its masks at the frozen moment", async () => {
+    const mask = {
+      id: "m1",
+      name: "Mask 1",
+      color: "blue",
+      mode: "add",
+      opacity: 1,
+      feather: 0,
+      expansion: 0,
+      x: 0,
+      y: 0,
+      rotation: 0,
+      shape: { kind: "ellipse", width: 100, height: 100 },
+    };
+    const matte = { trackId: clipOf("A").trackId, by: "luma" };
+    kernel.modules.require(projectRef).store.api.setState(
+      (s) =>
+        ({
+          clips: {
+            ...s.clips,
+            A: {
+              ...s.clips.A!,
+              masks: { m1: mask },
+              maskOrder: ["m1"],
+              matte,
+              animation: {
+                "masks.m1.feather": {
+                  blend: "number",
+                  shared: true,
+                  keys: [
+                    { id: "k0", t: 0, value: 0 },
+                    { id: "k1", t: 4 * S, value: 100 },
+                  ],
+                },
+              },
+            },
+          },
+        }) as never,
+    );
+    const { hold } = await freeze(2 * S);
+    expect(clipOf(hold).masks!.m1!.feather).toBe(50);
+    expect(clipOf(hold).maskOrder).toEqual(["m1"]);
+    expect(clipOf(hold).matte).toEqual(matte);
+    expect(clipOf(hold).animation).toBeUndefined();
+  });
+
   it("leaves linked sound a gap of the same length", async () => {
     await freeze();
     const sounds = Object.values(doc().clips).filter((c) => c.trackId === clipOf("sA").trackId);

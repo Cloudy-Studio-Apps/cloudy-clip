@@ -330,6 +330,23 @@ describe("keys on a clip", () => {
     expect(doc()).toEqual(before);
   });
 
+  it("splitting a masked clip keeps masks and matte on both halves", async () => {
+    const id = await keyed();
+    const mask = { id: "m1", name: "Mask 1" } as never;
+    const matte = { trackId: clipOf(id).trackId, by: "alpha" as const };
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      clips: {
+        ...s.clips,
+        [id]: { ...s.clips[id]!, masks: { m1: mask }, maskOrder: ["m1"], matte },
+      },
+    }));
+    const { created } = await run(kernel.bus.run(splitAt, { at: 3 * S, clipIds: [id] }));
+    for (const half of [clipOf(id), clipOf(created[0]!)]) {
+      expect(half).toMatchObject({ masks: { m1: mask }, maskOrder: ["m1"], matte });
+    }
+    expect(clipOf(created[0]!).masks).not.toBe(clipOf(id).masks);
+  });
+
   it("splitting a follower keeps both halves on the path", async () => {
     const id = await keyed();
     const follow = { pathId: "p", progress: 0.5, orient: true };

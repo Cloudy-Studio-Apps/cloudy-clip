@@ -1,5 +1,6 @@
 import { clipPlacement } from "../project.geometry";
 import { IDENTITY_TRANSFORM } from "../project.geometry";
+import { MASK_RANGES } from "../project.types";
 import type {
   BezierSegment,
   Clip,
@@ -180,6 +181,10 @@ function isLength(path: string): boolean {
   return rest.length === 4 && rest[1] === "points" && POINT_LENGTHS.has(rest[3]!);
 }
 
+/** A scaled feather or expansion, held to its range so a resize can't make an invalid document. */
+const clamp = (value: number, field: "feather" | "expansion") =>
+  Math.min(MASK_RANGES[field]!.max, Math.max(MASK_RANGES[field]!.min, value));
+
 /**
  * The clip's masks and keys with every length scaled by `k`: positions, sizes, feather, expansion
  * and path point coordinates and handles, static and keyed. For resizing a composition.
@@ -214,8 +219,8 @@ export function scaleMasks(clip: Clip, k: number): Pick<Clip, "masks" | "animati
             ...m,
             x: m.x * k,
             y: m.y * k,
-            feather: m.feather * k,
-            expansion: m.expansion * k,
+            feather: clamp(m.feather * k, "feather"),
+            expansion: clamp(m.expansion * k, "expansion"),
             shape,
           },
         ];
@@ -236,5 +241,5 @@ export function scaleMasks(clip: Clip, k: number): Pick<Clip, "masks" | "animati
           : track,
       ]),
     );
-  return { masks, animation };
+  return { ...(masks && { masks }), ...(animation && { animation }) };
 }

@@ -1,5 +1,5 @@
 import { Copy, Group } from "lucide-react";
-import { appMenuItems, appOverlays, defineModule, LOCAL_ACTOR } from "@/core";
+import { appMenuItems, appOverlays, defineModule, LOCAL_ACTOR, notify } from "@/core";
 import { elements } from "@/modules/element";
 import { librarySections, mediaRef } from "@/modules/media";
 import { projectRef } from "@/modules/project";
@@ -107,7 +107,12 @@ export const compositionModule = defineModule({
             group: "composition",
             icon: Group,
             label: "Group into composition",
-            onSelect: () => void ctx.bus.run(groupClips, { clipIds }),
+            onSelect: () =>
+              void ctx.bus.run(groupClips, { clipIds }).then((result) => {
+                if (result.ok && result.value.droppedMattes.length > 0) {
+                  notify("info", "Some clips lost their track matte: its track stayed behind.");
+                }
+              }),
           },
           ...(clip.compositionRef === undefined
             ? []

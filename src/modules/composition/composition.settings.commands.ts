@@ -8,6 +8,7 @@ import {
   IDENTITY_TRANSFORM,
   projectRef,
   requireComposition,
+  scaleMasks,
   scalePath,
 } from "@/modules/project";
 import { checkFormat, checkLength, compositionId, settings } from "./composition.guards";
@@ -38,7 +39,7 @@ export const setSettings = defineCommand({
     const clips = input.format && resize === "scale" ? compositionClips(state, id) : [];
     ctx.mutate(store, (draft) => {
       for (const clip of clips) {
-        const { id: clipId, kind, transform, animation } = clip;
+        const { id: clipId, kind, transform } = clip;
         const definition = elements.get(kind)?.definition;
         const fit = definition?.picture?.fit;
         if (!fit || !definition.supports?.transform) continue;
@@ -49,7 +50,16 @@ export const setSettings = defineCommand({
           before,
           input.format!,
         );
-        const keys = scaleKeys(animation, fit, before, input.format!);
+        // Masks scale with the smaller of the two factors, like a transform's size.
+        // shortcut: a fit that isn't uniform keeps masks round, upgrade if masks must stretch.
+        Object.assign(
+          draft.clips[clipId]!,
+          scaleMasks(
+            clip,
+            Math.min(input.format!.width / before.width, input.format!.height / before.height),
+          ),
+        );
+        const keys = scaleKeys(draft.clips[clipId]!.animation, fit, before, input.format!);
         if (keys) draft.clips[clipId]!.animation = keys;
       }
       if (input.format && resize === "scale") {

@@ -66,6 +66,20 @@ function addTo(compositionId: string, clip: Omit<Clip, "trackId">) {
   });
 }
 
+const mask = {
+  id: "m1",
+  name: "Mask 1",
+  color: "blue",
+  mode: "add",
+  opacity: 1,
+  feather: 0,
+  expansion: 0,
+  x: 0,
+  y: 0,
+  rotation: 0,
+  shape: { kind: "rectangle", width: 400, height: 200, roundness: 0 },
+} as const;
+
 beforeEach(async () => {
   kernel = await createKernel();
   const empty: ProjectState = {
@@ -206,6 +220,19 @@ describe("composition commands", () => {
     expect(state().clips[cl]!.linkId).not.toBe("k");
     const junction = Object.values(state().junctions).find((j) => j.trackId === cv)!;
     expect([junction.leftClipId, junction.rightClipId]).toEqual([cl, cr]);
+  });
+
+  it("a duplicated composition's matte names the copied track", async () => {
+    const { compositionId } = await ok(createComposition, {});
+    const [v] = state().compositions[compositionId]!.trackOrder as [string, string];
+    write((draft) => {
+      draft.clips.l = text("l", v, 0, { matte: { trackId: v, by: "luma" } });
+      draft.tracks[v]!.clipIds = ["l"];
+    });
+    const copy = await ok(duplicateComposition, { compositionId });
+    const [cv] = state().compositions[copy.compositionId]!.trackOrder as [string, string];
+    const cl = state().tracks[cv]!.clipIds[0]!;
+    expect(state().clips[cl]!.matte).toEqual({ trackId: cv, by: "luma" });
   });
 
   it("a copy keeps the other mix's track levels under its own track ids", async () => {
@@ -462,6 +489,30 @@ describe("composition commands", () => {
       expect(state().tracks[v]!.clipIds).toEqual(["a", "b"]);
     });
 
+    it("grouping a clip with its matte track keeps the matte on the copy", async () => {
+      const { compositionId, v } = await twoClips();
+      write((draft) => {
+        draft.clips.a!.matte = { trackId: v, by: "alpha" };
+      });
+      const group = await ok(groupClips, { clipIds: ["a", "b"] });
+      const lane = state().clips.a!.trackId;
+      expect(lane).not.toBe(v);
+      expect(state().clips.a!.matte).toEqual({ trackId: lane, by: "alpha" });
+      expect(group).toMatchObject({ droppedMattes: [] });
+      expect(compositionId).not.toBe(group.compositionId);
+    });
+
+    it("grouping a clip without its matte track drops the matte and lists it", async () => {
+      const { compositionId } = await twoClips();
+      const [, a] = state().compositions[compositionId]!.trackOrder as [string, string];
+      write((draft) => {
+        draft.clips.a!.matte = { trackId: a, by: "alpha" };
+      });
+      const group = await ok(groupClips, { clipIds: ["a", "b"] });
+      expect(state().clips.a!.matte).toBeUndefined();
+      expect(group).toMatchObject({ droppedMattes: ["a"] });
+    });
+
     it("refuses with composition.group_blocked, changing nothing", async () => {
       const { v } = await twoClips();
       write((draft) => {
@@ -491,6 +542,22 @@ describe("composition commands", () => {
     kernel.history.undo(LOCAL_ACTOR);
     expect(state().clips.t!.transform!.y).toBe(600);
     expect(state().compositions[compositionId]!.format.width).toBe(1080);
+  });
+
+  it("resizing with scale scales masks", async () => {
+    const { compositionId } = await ok(createComposition, {
+      format: { width: 1920, height: 1080, fps: 30 },
+    });
+    addTo(compositionId, {
+      ...text("t", "", 0, { masks: { m1: { ...mask } }, maskOrder: ["m1"] }),
+      kind: "media",
+    });
+    await ok(setSettings, {
+      compositionId,
+      format: { width: 960, height: 540, fps: 30 },
+      resize: "scale",
+    });
+    expect(state().clips.t!.masks!.m1!.shape).toMatchObject({ width: 200, height: 100 });
   });
 
   it("refuses a length under one frame, which would shrink every placement to nothing", async () => {

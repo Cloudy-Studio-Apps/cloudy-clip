@@ -71,6 +71,10 @@ export function splitClips(
         ...(target.animation && { animation: structuredClone(target.animation) }),
         // A key track parked in a grade version keeps its time too.
         ...(clipHasKeys(target) && { animationOrigin: contentTime(target, at) }),
+        // Masks and the matte stay on both halves (their keys are in `animation`).
+        ...(target.masks && { masks: structuredClone(target.masks) }),
+        ...(target.maskOrder && { maskOrder: [...target.maskOrder] }),
+        ...(target.matte && { matte: { ...target.matte } }),
         ...(left.disabled && { disabled: true as const }),
         // A fade stays on the outer edge of its piece.
         ...(left.sound && { sound: { ...structuredClone(target.sound!), fadeIn: 0 } }),

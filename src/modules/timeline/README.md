@@ -26,7 +26,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
     `timeline.move.commands.ts` (move, trim), `timeline.split.commands.ts` (split, delete), `timeline.sound.ts` (`editSoundOnly`, shared by move, trim and delete, and exported for a module's own sound edit: `sound.stripSilence`), shared
     checks in `timeline.guards.ts` (`checkLayout`: the whole layout through `project`'s
     `findLayoutConflict`); `timeline.commands.ts` lists them.
-  - `timeline.ripple.command.ts`, `timeline.link.command.ts`, `timeline.enable.command.ts`, `timeline.clipboard.commands.ts`; pure parts in `logic/ripple.ts` (`rippleDeleteMoves`) and `logic/paste.ts` (`clipboardEntry`, which also copies the shot groups the clips name so a cut that empties one doesn't lose its grade: paste restores any missing group before the clips land; `pastePlan`). A pasted clip following a motion path that isn't in the target composition is baked there (`bakeFollow` at its first frame, `project`): it keeps its place and stops following.
+  - `timeline.ripple.command.ts`, `timeline.link.command.ts`, `timeline.enable.command.ts`, `timeline.clipboard.commands.ts`; pure parts in `logic/ripple.ts` (`rippleDeleteMoves`) and `logic/paste.ts` (`clipboardEntry`, which also copies the shot groups the clips name so a cut that empties one doesn't lose its grade: paste restores any missing group before the clips land; `pastePlan`). A pasted clip following a motion path that isn't in the target composition is baked there (`bakeFollow` at its first frame, `project`): it keeps its place and stops following. Masks always come along; a `matte` stays only when its track is in the target composition and is dropped otherwise (`validate` refuses a matte naming another composition's track).
   - `timeline.junctions.ts`: what the clip commands share to keep junctions valid: `moveClips`,
     `followMove`, `rippleTrim`, `fitJunctions`, `junctionsOverlapping`, and `commitState` (writes
     a state worked out with `project`'s pure helpers as one undo step).
@@ -88,7 +88,7 @@ clips, playhead and the toolbar (split, delete, add track, zoom).
   goes through that rule: `findOverlap(…, self)`, `neighbourBounds` (a joined neighbour bounds a
   clip at its own edge, except on the edge being trimmed), `checkLayout`; move/add fail with `timeline.overlap`. Trims are clamped
   to the source media, neighbours and a one-frame minimum; clips only move between tracks of the
-  same kind; a split keeps the clip's transform, composite and `follow` (its motion path, with the Progress keys) on both halves, and its grade (`grade`, `gradeVersions`, `gradeVersion`, `gradeGroup`, cloned) with the `grade.*` key tracks; only audio tracks can be muted.
+  same kind; a split keeps the clip's transform, composite and `follow` (its motion path, with the Progress keys), masks (`masks`, `maskOrder`) and `matte` on both halves, and its grade (`grade`, `gradeVersions`, `gradeVersion`, `gradeGroup`, cloned) with the `grade.*` key tracks; only audio tracks can be muted.
   `snapCandidates` include each junction's cut (the middle of its overlap).
 - **Junctions** (junction rules 2, 7, 10): after every clip command no junction is stale
   (`staleJunctions` is empty).

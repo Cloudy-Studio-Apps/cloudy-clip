@@ -191,6 +191,10 @@ export const freezeFrame = defineCommand({
       ...(baked.follow && { follow: { ...baked.follow } }),
       // Keyed grade values are already written into `baked.grade`, so the hold is a still grade.
       ...(baked.grade && { grade: structuredClone(baked.grade) }),
+      // Masks at the frozen moment (keyed values are baked into `baked.masks`), and the matte.
+      ...(baked.masks && { masks: structuredClone(baked.masks) }),
+      ...(baked.maskOrder && { maskOrder: [...baked.maskOrder] }),
+      ...(baked.matte && { matte: { ...baked.matte } }),
       // Like its own keys, a version's keys are dropped: the hold is a still.
       ...(clip.gradeVersions && {
         gradeVersions: Object.fromEntries(

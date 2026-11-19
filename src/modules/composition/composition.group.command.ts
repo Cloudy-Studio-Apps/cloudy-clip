@@ -38,7 +38,7 @@ export const groupClips = defineCommand({
   id: "composition.group",
   label: "Group into composition",
   description:
-    "Moves clips and their linked clips into a new composition with the current size and frame rate, times starting at 0, and leaves a placement in their place, spanning from the first to the last of them. A transition between a moved clip and one left behind is removed. Fails with composition.group_blocked, changing nothing, if another clip sits in that span on the placement's tracks, or the clips are in different compositions. Returns { compositionId, clips } (the placement's ids, picture first).",
+    "Moves clips and their linked clips into a new composition with the current size and frame rate, times starting at 0, and leaves a placement in their place, spanning from the first to the last of them. A transition between a moved clip and one left behind is removed. A moved clip whose matte track stays behind loses its matte (listed in droppedMattes); one whose matte track moves too keeps it on the copy. Fails with composition.group_blocked, changing nothing, if another clip sits in that span on the placement's tracks, or the clips are in different compositions. Returns { compositionId, clips, droppedMattes } (the placement's ids, picture first; the ids of moved clips that lost their matte).",
   undoable: true,
   input: z.object({ clipIds: z.array(z.string()).min(1) }),
   async run(ctx, { clipIds }) {
@@ -76,6 +76,7 @@ export const groupClips = defineCommand({
       linkId,
     }));
 
+    const droppedMattes: string[] = [];
     ctx.mutate(store, (draft) => {
       const home = draft.compositions[homeId]!;
       const lanes = new Map<TrackId, TrackId>();
@@ -97,6 +98,14 @@ export const groupClips = defineCommand({
         const clip = draft.clips[clipId]!;
         clip.trackId = lanes.get(clip.trackId)!;
         clip.start -= span.start;
+        if (clip.matte) {
+          const lane = lanes.get(clip.matte.trackId);
+          if (lane) clip.matte.trackId = lane;
+          else {
+            delete clip.matte;
+            droppedMattes.push(clipId);
+          }
+        }
       }
       for (const junctionId of droppedJunctions) delete draft.junctions[junctionId];
       for (const clipId of neighbours) trimToSpan(draft.clips[clipId]!, span);
@@ -122,6 +131,6 @@ export const groupClips = defineCommand({
         lane.clipIds = sortClipIds([...lane.clipIds, clip.id], draft.clips);
       }
     });
-    return { compositionId: id, clips: placement.map((clip) => clip.id) };
+    return { compositionId: id, clips: placement.map((clip) => clip.id), droppedMattes };
   },
 });

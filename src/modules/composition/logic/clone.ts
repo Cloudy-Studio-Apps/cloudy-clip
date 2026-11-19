@@ -34,6 +34,7 @@ export function cloneComposition(
       if (!links.has(clip.linkId)) links.set(clip.linkId, createId("link"));
       clip.linkId = links.get(clip.linkId)!;
     }
+    if (clip.matte) clip.matte.trackId = tracks.get(clip.matte.trackId) ?? clip.matte.trackId;
     draft.clips[copyId] = { ...clip, id: copyId, trackId: tracks.get(clip.trackId)! };
   }
   for (const junction of Object.values(state.junctions)) {

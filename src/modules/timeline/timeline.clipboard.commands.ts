@@ -51,10 +51,18 @@ async function paste(
       (await ctx.execute(addTrack, { kind: placement.kind, compositionId: composition.id }))
         .trackId;
     // A follower whose path isn't in this composition stays where it was, no longer following.
-    const settled = (clip: Clip) =>
-      clip.follow && state.paths?.[clip.follow.pathId]?.compositionId !== composition.id
-        ? bakeFollow(clip, state.paths, clip.start)
-        : clip;
+    const settled = (source: Clip) => {
+      let clip = source;
+      if (clip.follow && state.paths?.[clip.follow.pathId]?.compositionId !== composition.id) {
+        clip = bakeFollow(clip, state.paths, clip.start);
+      }
+      // A matte names a track of this composition; elsewhere the clip shows whole.
+      if (clip.matte && state.tracks[clip.matte.trackId]?.compositionId !== composition.id) {
+        clip = { ...clip };
+        delete clip.matte;
+      }
+      return clip;
+    };
     clips.push(...placement.clips.map((clip) => settled({ ...clip, trackId })));
   }
   ctx.mutate(store, (draft) => {

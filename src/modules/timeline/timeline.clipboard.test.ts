@@ -186,6 +186,50 @@ describe("paste", () => {
     expect(pasted.transform?.x).toBeCloseTo(80);
   });
 
+  it("a pasted clip keeps its matte in its own composition and drops it in another", async () => {
+    const mask = {
+      id: "m1",
+      name: "Mask 1",
+      color: "blue",
+      mode: "add",
+      opacity: 1,
+      feather: 0,
+      expansion: 0,
+      x: 0,
+      y: 0,
+      rotation: 0,
+      shape: { kind: "ellipse", width: 100, height: 100 },
+    };
+    kernel.modules.require(timelineRef).clipboard.set("local", {
+      clips: [
+        {
+          id: "f",
+          kind: "text",
+          trackId: "v1",
+          start: 0,
+          sourceIn: 0,
+          duration: S,
+          props: {},
+          masks: { m1: mask },
+          maskOrder: ["m1"],
+          matte: { trackId: "v1", by: "alpha" },
+        },
+      ] as never,
+      gradeGroups: [],
+      origin: 0,
+      trackKinds: { v1: "video" },
+    });
+    const own = await run(kernel.bus.run(pasteClips, { time: 2 * S, trackId: "v1" }));
+    expect(doc().clips[own.clips[0]!.id]).toMatchObject({
+      matte: { trackId: "v1", by: "alpha" },
+      maskOrder: ["m1"],
+    });
+    const other = await run(kernel.bus.run(pasteClips, { time: 0, trackId: "t2" }));
+    const pasted = doc().clips[other.clips[0]!.id]!;
+    expect(pasted.matte).toBeUndefined();
+    expect(pasted.masks!.m1).toEqual(mask);
+  });
+
   it("fails when the copied file is gone, writing nothing", async () => {
     const a = await sound(0, 2);
     kernel.modules.require(timelineRef).clipboard.set("local", {
