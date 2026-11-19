@@ -33,8 +33,11 @@ export type FlipAxis = "horizontal" | "vertical";
 /** One field of a clip's transform. */
 export type TransformField = keyof ClipTransform;
 
-/** What a canvas drag does: move the picture, scale it from a corner, or rotate it. */
-export type TransformGestureMode = "move" | "scale" | "rotate";
+/**
+ * What a canvas drag does: move the picture, scale it from a corner, stretch one axis from a side,
+ * rotate it, or move its pivot.
+ */
+export type TransformGestureMode = "move" | "scale" | "rotate" | "stretchX" | "stretchY" | "pivot";
 
 /** Everything a canvas drag needs, captured when it starts. */
 export interface TransformGestureOptions {

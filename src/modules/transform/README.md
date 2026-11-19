@@ -1,9 +1,11 @@
 # transform
 
-Placing pictures (video and text) in the frame, like CapCut: click a picture in the preview to
-select its clip, drag
-it to move (snapping to the frame's center lines), drag a corner to scale, drag the handle on top to
-rotate (Shift snaps to 15°). Click empty space to deselect.
+Placing pictures (video and text) in the frame, like CapCut on the surface and After Effects
+underneath: click a picture in the preview to select its clip, drag it to move (snapping to the
+frame's center lines), drag a corner to scale, a side to stretch that axis (dragging past the pivot
+flips it), the handle on top to rotate (Shift snaps to 15°), and the crosshair to move the pivot
+(the picture stays put: `x`/`y` follow the pivot). Scale, stretch and rotation turn about the
+pivot. Click empty space to deselect.
 
 - **Tier:** feature
 - **Requires:** `project`, `element` (picture sizes and fits), `media` (picture sizes), `fonts` (re-measure text when a font loads), `preview`, `timeline` (the selection)
@@ -28,11 +30,13 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     through the `choices` control); the band's reset does what `transform.reset` does.
   - `transform.composite.group.ts`: `compositeGroup`, the shared group `composite` stored at `Clip.composite`: `mode` (one of `BLEND_MODES`) and `opacity` (0–1, shown as %). Missing means Normal at 100%, and `element.setProps` removes it when the values are back to that. An element opts in with `composite: true` in `supports`; all five picture elements do. Applies only on video tracks. Its section, in the Video tab, sits right under Transform (order 910). The engine draws it.
   - `transform.commands.ts`: `transform.reset` (`clipIds`): drops `Clip.transform` and the key tracks under `transform.`, one undo step. `transform.flip` (`clipIds`, `axis`: `horizontal` | `vertical`): negates `scaleX` or `scaleY` (the effective value, so a clip with none stored becomes −1) and every key of `transform.scaleX` / `transform.scaleY`, so the whole clip mirrors, one undo step; `transform.clip_not_found`, `transform.not_picture` (not on a video track).
-  - `logic/`: pure parts: `picking.ts` (hit test of rotated pictures), `gestures.ts`
-    (move/scale/rotate math, snapping), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override; each layer's `transform` is
+  - `logic/`: pure parts: `picking.ts` (hit test of rotated pictures; one squashed to zero width or height isn't hit), `gestures.ts`
+    (move/scale/rotate math about the pivot, snapping; `stretchTransform`: one axis, in the
+    picture's own axes from the pivot, sign flips past it; `pivotTransform`: moves the pivot and
+    `x`/`y` together so the picture stays), `layers.ts` (which pictures are on screen: media sized from probes, other elements from their `picture.size` with the live override; each layer's `transform` is
     the live `transform` patch over the saved one, so a panel slider moves the box too; elements
     without the `transform` group are left out, so they can't be picked or dragged, and each layer
-    lists the transform `fields` its element supports), `commit.ts` (`transformPatch`: only the
+    lists the transform `fields` its element supports), `commit.ts` (`TRANSFORM_KEYS`; `transformPatch`: only the
     changed, supported fields, or null), `frame.ts`
     (screen → frame coordinates). Placement is `project`'s `clipPlacement`, so the box and the
     picture always agree.
@@ -41,7 +45,8 @@ rotate (Shift snaps to 15°). Click empty space to deselect.
     DOM updates; release commits one `element.setProps` with a `transform` patch of the changed, supported (and `at`, the playhead, so an animated field gets a key there)
     fields, one undo step; nothing when none changed), `layers.hook.ts`. The box shows
     when the selection is one clip or one linked picture + sound (`selectionSubject`). An element
-    that `except`s fields: the box hides the corners without `scale` and the rotate handle without
+    that `except`s fields: the box hides the corners without `scale`, the side handles without `scaleX` / `scaleY`, the
+    crosshair without both `pivotX` and `pivotY`, and the rotate handle without
     `rotation`, and a picture without `x` and `y` is selected by a click but not dragged.
 - **Keys:** `visibleLayers` reads each clip through `animatedClip(clip, time)`, so the box sits on the picture the engine draws; the live `transform` patch still goes over it.
 - **Not yet:** crop, a switch on the Composite band, keeping an off-center pivot in place when a composition is resized with `scale` and its aspect changes (`composition/logic/resize.ts`).

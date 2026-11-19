@@ -12,8 +12,8 @@ import { startTransformGesture } from "./transform.gesture";
 import { useVisibleLayers } from "./layers.hook";
 
 /**
- * Canvas tools over the preview frame: click a picture to select its clip, then move, scale or
- * rotate it. Click empty space to deselect.
+ * Canvas tools over the preview frame: click a picture to select its clip, then move, scale,
+ * stretch or rotate it, or move its pivot. Click empty space to deselect.
  */
 export function TransformOverlay() {
   const project = useModule(projectRef).store;
@@ -55,7 +55,7 @@ export function TransformOverlay() {
     if (e.button !== 0 || !frame) return;
     const handle = (e.target as HTMLElement).dataset.handle as TransformGestureMode | undefined;
     let target = handle && handle !== "move" ? selected : undefined;
-    let mode: TransformGestureMode = handle === "scale" || handle === "rotate" ? handle : "move";
+    let mode: TransformGestureMode = handle ?? "move";
 
     if (!target) {
       const point = toFramePoint(frame, format, e.clientX, e.clientY);
@@ -115,10 +115,14 @@ export function TransformOverlay() {
           key={selected.clipId}
           ref={boxRef}
           placement={selected.placement}
+          transform={selected.transform}
           format={format}
           handles={{
             scale: selected.fields.has("scale"),
             rotate: selected.fields.has("rotation"),
+            stretchX: selected.fields.has("scaleX"),
+            stretchY: selected.fields.has("scaleY"),
+            pivot: selected.fields.has("pivotX") && selected.fields.has("pivotY"),
           }}
         />
       )}

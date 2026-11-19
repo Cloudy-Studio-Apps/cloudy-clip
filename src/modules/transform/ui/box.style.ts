@@ -1,4 +1,4 @@
-import type { ClipPlacement, ProjectFormat } from "@/modules/project";
+import type { ClipPlacement, ClipTransform, ProjectFormat } from "@/modules/project";
 
 /** CSS that puts an element over a placed picture, in % of the frame (zoom-independent). */
 export function boxStyle(
@@ -21,4 +21,17 @@ export function applyBox(
   format: ProjectFormat,
 ): void {
   Object.assign(element.style, boxStyle(placement, format));
+}
+
+/**
+ * Where the pivot sits inside the box, in % of it. The box is never mirrored (CSS turns it about
+ * its center), so a flipped axis puts the pivot on the other side.
+ */
+export function pivotStyle(transform: ClipTransform): { left: string; top: string } {
+  const sx = transform.scaleX < 0 ? -1 : 1;
+  const sy = transform.scaleY < 0 ? -1 : 1;
+  return {
+    left: `${50 + transform.pivotX * sx * 100}%`,
+    top: `${50 + transform.pivotY * sy * 100}%`,
+  };
 }
