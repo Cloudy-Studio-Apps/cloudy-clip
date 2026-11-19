@@ -164,6 +164,12 @@ describe("masks", () => {
     expect(clip.animation).toBeUndefined();
   });
 
+  it("removing from a clip with no masks does nothing", async () => {
+    const before = doc();
+    await ok(kernel.bus.run(removeMasks, { clipId: "a", maskIds: [] }));
+    expect(doc()).toBe(before);
+  });
+
   it("reorders masks", async () => {
     const first = await ellipse("a");
     const second = await ellipse("a");
@@ -182,5 +188,11 @@ describe("masks", () => {
     );
     await ok(kernel.bus.run(setMatte, { clipIds: ["b"], trackId: null }));
     expect(doc().clips.b!.matte).toBeUndefined();
+    const before = doc();
+    // Both clips in one call: the one on the matte track would be matted by its own track.
+    expect(await code(kernel.bus.run(setMatte, { clipIds: ["a", "b"], trackId: "v2" }))).toBe(
+      "mask.own_track",
+    );
+    expect(doc()).toBe(before);
   });
 });

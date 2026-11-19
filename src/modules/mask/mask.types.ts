@@ -55,6 +55,12 @@ declare module "@/core" {
       mode?: MaskMode;
       name?: string;
     };
+    "mask.update": {
+      clipId: string;
+      maskId: string;
+      patch: Record<string, unknown>;
+      at?: number;
+    };
     "mask.remove": { clipId: string; maskIds: string[] };
     "mask.reorder": { clipId: string; maskId: string; index: number };
     "mask.setMatte": {

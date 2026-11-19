@@ -129,6 +129,7 @@ export const removeMasks = defineCommand({
     const { store } = ctx.require(projectRef);
     const clip = requirePictureClip(ctx, store.getState(), clipId);
     const gone = new Set(maskIds.length > 0 ? maskIds : (clip.maskOrder ?? []));
+    if (gone.size === 0) return;
     for (const id of gone) requireMask(clip, id);
     ctx.mutate(store, (draft) => {
       const target = draft.clips[clipId]!;

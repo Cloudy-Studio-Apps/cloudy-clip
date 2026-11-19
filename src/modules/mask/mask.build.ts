@@ -1,6 +1,7 @@
 import { CommandFailure, createId } from "@/core";
 import {
   MARKER_COLORS,
+  normalizeRotation,
   type Clip,
   type ClipMask,
   type MaskShape,
@@ -105,7 +106,7 @@ export function buildMask(
     expansion: values.expansion ?? 0,
     x: values.x ?? path?.x ?? 0,
     y: values.y ?? path?.y ?? 0,
-    rotation: values.rotation ?? 0,
+    rotation: normalizeRotation(values.rotation ?? 0),
     shape,
   };
 }
