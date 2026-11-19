@@ -5,6 +5,8 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule, mediaRef, removeMedia, type MediaProbe } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
+import { solidModule } from "@/modules/solid";
+import { transformModule } from "@/modules/transform";
 import {
   IDENTITY_TRANSFORM,
   createProjectModule,
@@ -558,6 +560,24 @@ describe("composition commands", () => {
       resize: "scale",
     });
     expect(state().clips.t!.masks!.m1!.shape).toMatchObject({ width: 200, height: 100 });
+  });
+
+  it("resizing with scale scales the masks of a picture that follows the frame", async () => {
+    await kernel.modules.loadAll([transformModule, solidModule]);
+    const { compositionId } = await ok(createComposition, {
+      format: { width: 1920, height: 1080, fps: 30 },
+    });
+    addTo(compositionId, {
+      ...text("t", "", 0, { masks: { m1: { ...mask } }, maskOrder: ["m1"] }),
+      kind: "solid",
+    });
+    await ok(setSettings, {
+      compositionId,
+      format: { width: 960, height: 540, fps: 30 },
+      resize: "scale",
+    });
+    expect(state().clips.t!.masks!.m1!.shape).toMatchObject({ width: 200, height: 100 });
+    expect(state().clips.t!.transform).toBeUndefined();
   });
 
   it("refuses a length under one frame, which would shrink every placement to nothing", async () => {

@@ -43,14 +43,7 @@ export const setSettings = defineCommand({
         const definition = elements.get(kind)?.definition;
         const fit = definition?.picture?.fit;
         if (!fit || !definition.supports?.transform) continue;
-        if (definition.picture?.followsFrame?.(clip)) continue;
-        draft.clips[clipId]!.transform = scaleTransform(
-          transform ?? IDENTITY_TRANSFORM,
-          fit,
-          before,
-          input.format!,
-        );
-        // Masks scale with the smaller of the two factors, like a transform's size.
+        // Masks scale for every picture, one that follows the frame too: its fitted picture is the frame.
         // shortcut: a fit that isn't uniform keeps masks round, upgrade if masks must stretch.
         Object.assign(
           draft.clips[clipId]!,
@@ -58,6 +51,14 @@ export const setSettings = defineCommand({
             clip,
             Math.min(input.format!.width / before.width, input.format!.height / before.height),
           ),
+        );
+        // The transform and its keys already track the frame for such a picture.
+        if (definition.picture?.followsFrame?.(clip)) continue;
+        draft.clips[clipId]!.transform = scaleTransform(
+          transform ?? IDENTITY_TRANSFORM,
+          fit,
+          before,
+          input.format!,
         );
         const keys = scaleKeys(draft.clips[clipId]!.animation, fit, before, input.format!);
         if (keys) draft.clips[clipId]!.animation = keys;
