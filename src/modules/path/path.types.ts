@@ -1,5 +1,6 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { PathId } from "@/modules/project";
+import type { PathId, PathPoint } from "@/modules/project";
+import type { PointPart } from "./logic/edit";
 
 /** How a path is being drawn: freehand (one stroke, fitted into points) or with the pen. */
 export type DrawMode = "freehand" | "pen";
@@ -25,4 +26,18 @@ declare module "@/core" {
     "path.attach": { clipIds: string[]; pathId: string };
     "path.detach": { clipIds: string[]; at?: number };
   }
+}
+
+/** What a drag on the path overlay moves and how it reports back. */
+export interface PathEditOptions {
+  event: PointerEvent;
+  /** The overlay, which covers the frame exactly. */
+  frame: HTMLElement;
+  size: { width: number; height: number };
+  points: PathPoint[];
+  closed: boolean;
+  index: number;
+  part: PointPart;
+  /** Called on release with the new points, when they moved. */
+  onDrop(points: PathPoint[]): void;
 }
