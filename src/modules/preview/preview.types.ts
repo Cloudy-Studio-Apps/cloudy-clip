@@ -853,6 +853,8 @@ export interface PreviewFilters {
   onChange(listener: () => void): () => void;
   /** A filter failed in the live preview: the user is told once per kernel per id. */
   failed(id: string, error: unknown): void;
+  /** A mask's feather or a luma matte failed on the GPU in the live preview: told once per kernel. */
+  maskFailed(error: unknown): void;
 }
 
 /** A level a gain reaches at a playhead time, on the way along volume lines. */

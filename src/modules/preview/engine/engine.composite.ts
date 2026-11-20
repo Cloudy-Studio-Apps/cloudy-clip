@@ -17,3 +17,18 @@ export function landLayer(
   target.drawImage(source, 0, 0);
   target.restore();
 }
+
+/** Keeps (`destination-in`) or cuts away (`destination-out`) a layer where `alpha` is opaque. */
+export function cutLayer(
+  layer: CanvasRenderingContext2D,
+  alpha: CanvasImageSource,
+  op: "destination-in" | "destination-out",
+): void {
+  const { width, height } = layer.canvas;
+  layer.save();
+  layer.setTransform(1, 0, 0, 1, 0, 0);
+  layer.globalAlpha = 1;
+  layer.globalCompositeOperation = op;
+  layer.drawImage(alpha, 0, 0, width, height);
+  layer.restore();
+}

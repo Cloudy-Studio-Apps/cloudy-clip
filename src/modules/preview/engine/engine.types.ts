@@ -405,6 +405,8 @@ export interface EngineOptions {
   filterTarget?: FilterTarget;
   /** A filter (or viewer passes) failed in the live preview, which drew without it. */
   filterFailed?(id: string, error: unknown): void;
+  /** A mask's feather or a luma matte failed on the GPU in the live preview, which drew it hard. */
+  maskFailed?(error: unknown): void;
   /** Called after each frame drawn. */
   onDrawn?(): void;
 }
@@ -464,6 +466,8 @@ export interface ResolvedFrame {
   /** Top to bottom. */
   tracks: ResolvedTrack[];
   upcoming: UpcomingClip[];
+  /** Video tracks that are mattes (`matteTracks`): drawn only as mattes, even when hidden. */
+  mattes: ReadonlySet<TrackId>;
 }
 
 /** How a frame is resolved. */
@@ -500,4 +504,19 @@ export interface PlacementTarget {
   format: ProjectFormat;
   kx: number;
   ky: number;
+}
+
+/** How `MaskPainter` reaches the GPU, and what a failure there does. */
+export interface MaskPainterOptions {
+  gpu?: GpuRunner;
+  /** A capture or an export: a GPU failure throws instead of drawing hard edges. */
+  strict: boolean;
+  /** The live preview drew without the GPU. */
+  onFailure(error: unknown): void;
+}
+
+/** A matte's alpha and the canvas operation that cuts a clip's picture with it. */
+export interface MatteCut {
+  canvas: HTMLCanvasElement;
+  op: "destination-in" | "destination-out";
 }

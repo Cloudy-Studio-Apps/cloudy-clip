@@ -128,6 +128,7 @@ export const previewModule = defineModule({
           onDrawn,
           filterTarget: "preview",
           filterFailed: filters.failed,
+          maskFailed: filters.maskFailed,
           gpu: createGpuRunner(),
           capPasses: true,
         }),

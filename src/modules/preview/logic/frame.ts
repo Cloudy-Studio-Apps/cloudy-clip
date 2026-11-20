@@ -14,13 +14,17 @@ import type {
   ResolvedTrack,
   UpcomingClip,
 } from "../engine/engine.types";
+import { matteTracks } from "./masks";
 
 const pathOf = (prefix: string, clipId: string) => (prefix ? `${prefix}/${clipId}` : clipId);
 
 /** Clock of a composition clip's composition when its own clock reads `time`. */
 const localTime = (clip: Clip, time: Micros) => clip.sourceIn + time - clip.start;
 
-/** What a placement shows at its local time: sound from a sound clip, pictures from a picture. */
+/**
+ * What a placement shows at its local time: sound from a sound clip, pictures from a picture.
+ * `matte`: its track is a matte, drawn even when hidden.
+ */
 function inside(
   project: ProjectState,
   clip: Clip,
@@ -28,9 +32,10 @@ function inside(
   time: Micros,
   options: FrameOptions,
   prefix: string,
+  matte: boolean,
 ): ResolvedFrame | undefined {
   if (clip.compositionRef === undefined) return undefined;
-  if (track.kind === "video" && track.hidden) return undefined;
+  if (track.kind === "video" && track.hidden && !matte) return undefined;
   const local = localTime(clip, time);
   return resolveLevel(project, clip.compositionRef, local, options, prefix, track.kind);
 }
@@ -57,6 +62,7 @@ function resolveLevel(
   const tracks: ResolvedTrack[] = [];
   const upcoming: UpcomingClip[] = [];
   const ended = time >= composition.duration;
+  const mattes = matteTracks(project, composition);
   for (const trackId of composition.trackOrder) {
     const track = project.tracks[trackId];
     if (!track || (only !== null && track.kind !== only)) continue;
@@ -64,12 +70,13 @@ function resolveLevel(
     const clips: ResolvedClip[] = [];
     tracks.push({ track, clips });
     if (ended) continue;
+    const matte = mattes.has(track.id);
     for (const clipId of track.clipIds) {
       const clip = project.clips[clipId];
       if (!clip || clip.disabled) continue;
       const path = pathOf(prefix, clip.id);
       if (clip.start <= time && time < clip.start + clip.duration) {
-        const inner = inside(project, clip, track, time, options, path);
+        const inner = inside(project, clip, track, time, options, path, matte);
         clips.push({
           clip: followedClip(clip, time, project.paths),
           path,
@@ -78,7 +85,7 @@ function resolveLevel(
         });
         if (inner) upcoming.push(...inner.upcoming);
       } else if (clip.start > time && clip.start - time <= options.preloadAhead) {
-        const inner = inside(project, clip, track, clip.start, options, path);
+        const inner = inside(project, clip, track, clip.start, options, path, matte);
         if (inner) upcoming.push(...showing(inner));
         else
           upcoming.push({
@@ -90,7 +97,7 @@ function resolveLevel(
       } else if (clip.start > time + options.preloadAhead) break; // clips are sorted by start
     }
   }
-  return { composition, time, tracks, upcoming };
+  return { composition, time, tracks, upcoming, mattes };
 }
 
 /**

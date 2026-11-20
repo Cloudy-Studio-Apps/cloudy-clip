@@ -14,6 +14,7 @@ import {
   pitchShift,
   soundOf,
   type ClipComposite,
+  type ClipMask,
   type BusId,
   type ClipId,
   type ClipPlacement,
@@ -21,6 +22,9 @@ import {
   type ClipTransform,
   type Composition,
   type MediaAsset,
+  type MaskId,
+  type MaskMapping,
+  maskPlacement,
   type MediaId,
   type TrackId,
   type ProjectFormat,
@@ -34,6 +38,7 @@ import {
 } from "@/modules/project";
 import { cappedPassSize } from "../logic/capping";
 import { resolveFrame } from "../logic/frame";
+import { liveMasks, usableMatte } from "../logic/masks";
 import { soundGains } from "../logic/junctions";
 import { mutedInPlacement, placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";
@@ -47,9 +52,10 @@ import type {
 import { elementUrl, quietSlot, voiceSlot } from "./engine.audio";
 import { PITCH_LEAD_SECONDS } from "./engine.soundchain";
 import { ImageCache } from "./engine.images";
-import { landLayer } from "./engine.composite";
+import { cutLayer, landLayer } from "./engine.composite";
 import { EngineFilters } from "./engine.filters";
 import { createLineLists, NO_LINES } from "./engine.line";
+import { MaskPainter } from "./engine.masks";
 import { MixCanvases, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { createSoundMix } from "./engine.soundmix";
@@ -57,6 +63,7 @@ import { MediaSlotPool } from "./engine.slots";
 import { RAMP_RATE_STEP, syncSlot } from "./engine.sync";
 import type {
   CachedPicture,
+  ClipDrawer,
   EngineOptions,
   FilterSubject,
   Nesting,
@@ -143,6 +150,8 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly clock: SoundClock = { time: 0, playing: false, until: Infinity };
   /** The volume lines of inner tracks, made once per placement and line. */
   private readonly lineLists = createLineLists();
+  /** Masks and matte tracks; a capture or an export fails its frame when their GPU part does. */
+  private readonly maskPainter: MaskPainter;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -159,6 +168,11 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.pictureOnly = options.pictureOnly ?? false;
     this.sound = createSoundMix(this.pictureOnly);
     this.filters = new EngineFilters(options);
+    this.maskPainter = new MaskPainter({
+      gpu: options.gpu,
+      strict: (options.filterTarget ?? "preview") !== "preview",
+      onFailure: (error) => options.maskFailed?.(error),
+    });
   }
 
   setPicture(options: PictureOptions): void {
@@ -209,6 +223,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     collect(frame);
     this.pool.release(needed);
     this.nested.release(placements);
+    this.maskPainter.release(placements);
 
     this.settled = true;
     this.prepare(project, frame, playing, propsOverrides, 1, false, null);
@@ -301,7 +316,7 @@ export class HtmlMediaEngine implements PreviewEngine {
    */
   private prepare(
     project: ProjectState,
-    { composition, time, tracks }: ResolvedFrame,
+    { composition, time, tracks, mattes }: ResolvedFrame,
     playing: boolean,
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
     gain: number,
@@ -319,8 +334,10 @@ export class HtmlMediaEngine implements PreviewEngine {
       const quiet = silenced || (nesting !== null && mutedInPlacement(composition, track));
       // During a junction's overlap both clips are here, each on its own element (one per path),
       // and both frames must be ready before anything is painted.
+      // A matte track draws (as a matte) even when hidden, so its frames are waited for too.
+      const visible = !track.hidden || mattes.has(track.id);
       for (const { clip, path, inner } of clips) {
-        const shown = track.kind === "video" && !track.hidden;
+        const shown = track.kind === "video" && visible;
         const filtered = inner !== undefined || hasMedia(clip);
         if (shown && filtered && filtering && !this.filters.clipReady({ clip, project })) {
           this.settled = false;
@@ -350,7 +367,7 @@ export class HtmlMediaEngine implements PreviewEngine {
         if (media.kind === "image") {
           // Never a pooled element: the picture comes from the cache, at the clip's own time.
           const current = this.wantImage(media, time - clip.start);
-          if (!track.hidden && !this.images.ready(current)) this.settled = false;
+          if (visible && !this.images.ready(current)) this.settled = false;
           continue;
         }
         // A ramp plays as keyed: a speed drag doesn't reach it, and its rate is the one now.
@@ -386,7 +403,7 @@ export class HtmlMediaEngine implements PreviewEngine {
         const pitched = playing && track.kind === "audio" && pitchShift(heard) !== 0;
         const lead = pitched ? PITCH_LEAD_SECONDS * rate : 0;
         syncSlot(slot, exact + lead, playing && rate > 0, rate, ramped);
-        if (slot.kind === "video" && !track.hidden && !this.pool.hasFrame(slot)) {
+        if (slot.kind === "video" && visible && !this.pool.hasFrame(slot)) {
           this.settled = false;
         }
       }
@@ -396,7 +413,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       .flatMap(({ track, clips }) =>
         clips
           .filter(({ clip, inner }) => !hasMedia(clip) && !inner)
-          .map(({ clip }) => ({ clip, hidden: track.hidden })),
+          .map(({ clip }) => ({ clip, hidden: track.hidden && !mattes.has(track.id) })),
       );
     const ready = (clip: Clip) =>
       this.pictureReady(composition.format, clip, time, propsOverrides.get(clip.id));
@@ -447,6 +464,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.images.dispose();
     this.mixCanvases.dispose();
     this.nested.dispose();
+    this.maskPainter.dispose();
     this.options.gpu?.dispose();
     this.filters.dispose();
   }
@@ -500,7 +518,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     target: CanvasRenderingContext2D,
     mix: MixCanvases,
     project: ProjectState,
-    { composition, time, tracks }: ResolvedFrame,
+    { composition, time, tracks, mattes }: ResolvedFrame,
     prefix: string,
     transforms: ReadonlyMap<ClipId, ClipTransform>,
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
@@ -514,7 +532,8 @@ export class HtmlMediaEngine implements PreviewEngine {
     for (const { clips } of tracks) {
       for (const { clip, inner } of clips) if (inner) inners.set(clip.id, inner);
     }
-    const paint = (on: CanvasRenderingContext2D, clip: Clip) => {
+    /** Paints a clip; where its mask space sits, or null when nothing was drawn. */
+    const paint = (on: CanvasRenderingContext2D, clip: Clip): MaskMapping | null => {
       // A live edit (a slider being dragged) is in the clip's own terms: placed through its path again.
       const live = propsOverrides.get(clip.id) as FollowLive | undefined;
       const saved = project.clips[clip.id];
@@ -523,36 +542,60 @@ export class HtmlMediaEngine implements PreviewEngine {
       const subject = { clip, project, path: pathOf(clip), time };
       const box = { on, format, kx, ky };
       const inner = inners.get(clip.id);
-      if (inner) {
-        this.drawPlacement(box, subject, inner, transform);
-        return;
-      }
+      if (inner) return this.drawPlacement(box, subject, inner, transform);
       const media = clip.mediaId ? project.media[clip.mediaId] : undefined;
       if (media?.kind === "image") {
         const [url] = this.imageFrames(media.id, time - clip.start, 0);
         const picture = url ? this.images.picture(url) : undefined;
-        if (picture) this.drawCached(box, subject, picture, transform);
-        return;
+        return picture ? this.drawCached(box, subject, picture, transform) : null;
       }
-      this.drawClip(box, subject, transform, propsOverrides);
+      return this.drawClip(box, subject, transform, propsOverrides);
     };
-    // `blend` is false under a junction: the picture has no backdrop there (see `drawTrack`).
-    const drawClip = (on: CanvasRenderingContext2D, clip: Clip, blend = true) => {
-      const live = propsOverrides.get(clip.id)?.composite as Partial<ClipComposite> | undefined;
-      const composite = clipComposite(clip, live);
-      const mode = blend ? composite.mode : "normal";
-      if (mode === "normal" && composite.opacity === 1) {
-        paint(on, clip);
-        return;
-      }
-      const layer = mix.layer();
-      paint(layer, clip);
-      landLayer(on, layer.canvas, { mode, opacity: composite.opacity });
-    };
-
-    // One clip alone (a capture's `only`): its own picture, so no other top-level clip and no
-    // junction mix (which would pull in the clip beside it), at Normal with its opacity.
+    // One clip alone (a capture's `only`): its own picture, so no other top-level clip, no
+    // junction mix (which would pull in the clip beside it), no mask and no matte, at Normal with
+    // its opacity.
     const only = prefix === "" ? this.picture.only : null;
+    const matteCanvases = new Map<TrackId, HTMLCanvasElement>();
+    // `blend` is false under a junction: the picture has no backdrop there (see `drawTrack`).
+    // `matted` is false on a matte track, whose clips' own mattes are ignored (no chains).
+    const drawWith =
+      (matted: boolean): ClipDrawer =>
+      (on, clip, blend = true) => {
+        const live = propsOverrides.get(clip.id);
+        const composite = clipComposite(clip, live?.composite as Partial<ClipComposite>);
+        const mode = blend ? composite.mode : "normal";
+        const liveShapes = live?.masks as Record<MaskId, Partial<ClipMask>> | undefined;
+        const masks = only === null ? liveMasks(clip, liveShapes) : [];
+        const matteTrack = matted && only === null ? usableMatte(clip, mattes) : null;
+        const matte = matteTrack ? matteCanvases.get(matteTrack) : undefined;
+        if (mode === "normal" && composite.opacity === 1 && masks.length === 0 && !matte) {
+          paint(on, clip);
+          return;
+        }
+        const layer = mix.layer();
+        const mapping = paint(layer, clip);
+        const alpha = mapping && this.maskPainter.masks(layer.canvas, masks, mapping, kx, ky);
+        if (alpha) cutLayer(layer, alpha, "destination-in");
+        if (matte && clip.matte) {
+          const { canvas, op } = this.maskPainter.matte(matte, clip.matte);
+          cutLayer(layer, canvas, op);
+        }
+        landLayer(on, layer.canvas, { mode, opacity: composite.opacity });
+      };
+    const drawClip = drawWith(true);
+
+    // Matte tracks first, each into its own canvas (never a `MixCanvases` slot, which a junction
+    // being mixed may hold), drawn as any track but with its clips' own mattes ignored.
+    if (only === null) {
+      for (const { track, clips } of tracks) {
+        if (!mattes.has(track.id)) continue;
+        const ctx = this.maskPainter.track(prefix, track.id, target.canvas);
+        const shown = clips.map(({ clip }) => clip);
+        const frame = { project, format, track, clips: shown, time };
+        drawTrack(ctx, frame, mix, this.junctions, drawWith(false));
+        matteCanvases.set(track.id, ctx.canvas);
+      }
+    }
     // Tracks are top → bottom; draw bottom first so higher tracks end up on top.
     for (let i = tracks.length - 1; i >= 0; i--) {
       const { track, clips } = tracks[i]!;
@@ -562,6 +605,7 @@ export class HtmlMediaEngine implements PreviewEngine {
         if (alone) drawClip(target, alone.clip, false);
         continue;
       }
+      if (mattes.has(track.id)) continue;
       const shown = clips.map(({ clip }) => clip);
       drawTrack(
         target,
@@ -582,7 +626,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     subject: FilterSubject,
     inner: ResolvedFrame,
     transform: ClipTransform,
-  ): void {
+  ): MaskMapping {
     const { project, path } = subject;
     const size = inner.composition.format;
     // No sharper than the preview itself: a 4K composition in a small window stays cheap.
@@ -606,6 +650,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       picture = this.filters.picture(nested.ctx.canvas, full, passSize, groups);
     }
     land(on, picture, place, kx, ky);
+    return maskPlacement(format, size, transform);
   }
 
   /** Draws an image from the cache, where a video frame of its size would land. */
@@ -614,7 +659,7 @@ export class HtmlMediaEngine implements PreviewEngine {
     subject: FilterSubject,
     { source, width, height }: CachedPicture,
     transform: ClipTransform,
-  ): void {
+  ): MaskMapping {
     const size = { width, height };
     const place = clipPlacement(format, size, transform);
     let picture: CanvasImageSource = source;
@@ -624,6 +669,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       picture = this.filters.picture(source, size, passSize, groups);
     }
     land(on, picture, place, kx, ky);
+    return maskPlacement(format, size, transform);
   }
 
   /** Draws one clip onto `target` at its placement: a media frame or the element's own `draw`. */
@@ -632,12 +678,12 @@ export class HtmlMediaEngine implements PreviewEngine {
     subject: FilterSubject,
     transform: ClipTransform,
     propsOverrides: ReadonlyMap<ClipId, Record<string, unknown>>,
-  ): void {
+  ): MaskMapping | null {
     const { clip, path, time } = subject;
     const picture = this.elements.get(clip.kind)?.definition.picture;
-    if (!picture) return;
+    if (!picture) return null;
     if (picture.source !== "media") {
-      this.drawPicture(
+      return this.drawPicture(
         target,
         picture,
         format,
@@ -648,18 +694,20 @@ export class HtmlMediaEngine implements PreviewEngine {
         kx,
         ky,
       );
-      return;
     }
-    if (!hasMedia(clip)) return;
+    if (!hasMedia(clip)) return null;
     const element = this.pool.elementOf(path);
-    if (!(element instanceof HTMLVideoElement)) return;
-    if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) return;
+    if (!(element instanceof HTMLVideoElement)) return null;
+    if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || element.videoWidth === 0) {
+      return null;
+    }
 
     const size = { width: element.videoWidth, height: element.videoHeight };
     const place = clipPlacement(format, size, transform);
     const passSize = this.options.capPasses ? cappedPassSize(size, place, kx, ky) : size;
     const groups = this.filtering ? this.filters.forClip(subject, passSize) : [];
     land(target, this.filters.video(element, clip.mediaId, size, passSize, groups), place, kx, ky);
+    return maskPlacement(format, size, transform);
   }
 
   /** Draws an element that paints itself (text, a plugin's), at its placement. */
@@ -673,8 +721,8 @@ export class HtmlMediaEngine implements PreviewEngine {
     override: Record<string, unknown> | undefined,
     kx: number,
     ky: number,
-  ): void {
-    if (!picture.size || !picture.draw) return;
+  ): MaskMapping | null {
+    if (!picture.size || !picture.draw) return null;
     const saved = this.elements.resolve(clip, format);
     const props = override ? mergeProps(saved, override) : saved;
     const measure = canvasTextMeasure(this.ctx);
@@ -690,6 +738,7 @@ export class HtmlMediaEngine implements PreviewEngine {
       ensureFont: this.ensureFont,
     };
     picture.draw(target, props, env);
+    return maskPlacement(format, size, transform);
   }
 
   /** Whether a clip that paints itself can paint at `time`; asking may start its loading. */
