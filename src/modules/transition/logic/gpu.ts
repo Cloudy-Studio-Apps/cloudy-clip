@@ -8,6 +8,28 @@ const up = (y: number) => 1 - y;
 /** Taps per blur, fixed so the program is one per key. */
 const TAPS = 16;
 
+// Where a pixel's tap walk starts, 0..1 of one step: interleaved gradient noise on the output
+// pixel, so the steps between taps turn into fine grain instead of bands, and a frame always
+// renders the same. Taps are weighted by alpha: the input is not premultiplied, so a transparent
+// texel (black) must not darken its neighbours.
+const TAP_WALK = `
+float jitter() {
+  return fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+}
+vec4 tapWeight(vec4 c) {
+  return vec4(c.rgb * c.a, c.a);
+}
+vec4 tapAverage(vec4 sum) {
+  return vec4(sum.rgb / max(sum.a, 1e-5), sum.a / ${TAPS}.0);
+}`;
+
+// A mix weighted by alpha, for the same reason as the taps.
+const MIX_ALPHA = `
+vec4 mixAlpha(vec4 a, vec4 b, float t) {
+  vec4 p = mix(vec4(a.rgb * a.a, a.a), vec4(b.rgb * b.a, b.a), t);
+  return vec4(p.rgb / max(p.a, 1e-5), p.a);
+}`;
+
 const ASPECT = `
 float aspect() {
   vec2 size = vec2(textureSize(u_in0, 0));
@@ -15,50 +37,53 @@ float aspect() {
 }`;
 
 // Samples from the pixel toward the center, scaling its distance by 1 down to 1 - strength.
-const ZOOM = `
+const ZOOM = `${TAP_WALK}
 uniform vec2 u_center;
 uniform float u_strength;
 void main() {
   vec2 d = v_uv - u_center;
+  float start = jitter();
   vec4 sum = vec4(0.0);
   for (int i = 0; i < ${TAPS}; i++) {
-    float t = float(i) / ${TAPS - 1}.0;
-    sum += texture(u_in0, u_center + d * (1.0 - u_strength * t));
+    float t = (float(i) + start) / ${TAPS}.0;
+    sum += tapWeight(texture(u_in0, u_center + d * (1.0 - u_strength * t)));
   }
-  o = sum / ${TAPS}.0;
+  o = tapAverage(sum);
 }`;
 
 // Samples around the center over -angle/2..angle/2, rotating in the square space.
-const SPIN = `${ASPECT}
+const SPIN = `${ASPECT}${TAP_WALK}
 uniform vec2 u_center;
 uniform float u_angle;
 void main() {
   vec2 scale = vec2(aspect(), 1.0);
   vec2 d = (v_uv - u_center) * scale;
+  float start = jitter();
   vec4 sum = vec4(0.0);
   for (int i = 0; i < ${TAPS}; i++) {
-    float a = u_angle * (float(i) / ${TAPS - 1}.0 - 0.5);
+    float a = u_angle * ((float(i) + start) / ${TAPS}.0 - 0.5);
     float c = cos(a);
     float s = sin(a);
-    sum += texture(u_in0, u_center + vec2(c * d.x - s * d.y, s * d.x + c * d.y) / scale);
+    sum += tapWeight(texture(u_in0, u_center + vec2(c * d.x - s * d.y, s * d.x + c * d.y) / scale));
   }
-  o = sum / ${TAPS}.0;
+  o = tapAverage(sum);
 }`;
 
 // Samples along the step (frame heights) over -1/2..1/2 of it.
-const DIRECTIONAL = `${ASPECT}
+const DIRECTIONAL = `${ASPECT}${TAP_WALK}
 uniform vec2 u_step;
 void main() {
   vec2 stride = u_step / vec2(aspect(), 1.0);
+  float start = jitter();
   vec4 sum = vec4(0.0);
   for (int i = 0; i < ${TAPS}; i++) {
-    sum += texture(u_in0, v_uv + stride * (float(i) / ${TAPS - 1}.0 - 0.5));
+    sum += tapWeight(texture(u_in0, v_uv + stride * ((float(i) + start) / ${TAPS}.0 - 0.5)));
   }
-  o = sum / ${TAPS}.0;
+  o = tapAverage(sum);
 }`;
 
 // B shows where the key (A's Rec. 709 luma, or one minus it) is below the threshold.
-const LUMA_KEY = `
+const LUMA_KEY = `${MIX_ALPHA}
 uniform float u_threshold;
 uniform float u_softness;
 uniform float u_invert;
@@ -68,7 +93,7 @@ void main() {
   float key = mix(luma, 1.0 - luma, u_invert);
   float soft = max(u_softness, 1e-4);
   float show = 1.0 - smoothstep(u_threshold - soft, u_threshold + soft, key);
-  o = mix(a, texture(u_in1, v_uv), show);
+  o = mixAlpha(a, texture(u_in1, v_uv), show);
 }`;
 
 // Pushes each pixel along its ray from the center by amount * sin(rings * distance - phase).
@@ -168,10 +193,10 @@ export function ripplePass(
 }
 
 // A mix of two inputs by amount.
-const MIX = `
+const MIX = `${MIX_ALPHA}
 uniform float u_amount;
 void main() {
-  o = mix(texture(u_in0, v_uv), texture(u_in1, v_uv), u_amount);
+  o = mixAlpha(texture(u_in0, v_uv), texture(u_in1, v_uv), u_amount);
 }`;
 
 /** Mixes input `a` into input `b` by `amount` (0 is exactly `a`, 1 exactly `b`). */
