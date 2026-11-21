@@ -1,3 +1,7 @@
+import { blinkPreset } from "./blink";
+import { clockPreset } from "./clock";
+import { irisPreset } from "./iris";
+import { splitPreset } from "./split";
 import { crossDissolvePreset } from "./crossDissolve";
 import { dissolvePreset } from "./dissolve";
 import { fadePreset } from "./fade";
@@ -15,7 +19,13 @@ export const builtInPresets = [
   dissolvePreset,
   wipePreset,
   variantOf(wipePreset, "wipe-down", "Top to bottom", { direction: "down" }),
+  clockPreset,
+  irisPreset,
+  variantOf(irisPreset, "iris-close", "Circle close", { direction: "in" }),
+  splitPreset,
+  variantOf(splitPreset, "split-v", "Split vertical", { direction: "vertical" }),
   glarePreset,
+  blinkPreset,
   wooshPreset,
   variantOf(wooshPreset, "woosh-up", "Woosh up", { direction: "up" }),
   glitchPreset,
