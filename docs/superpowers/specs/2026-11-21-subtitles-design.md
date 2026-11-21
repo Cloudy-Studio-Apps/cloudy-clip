@@ -72,7 +72,7 @@ the editor clean and the subtitle work on its own page.
 - `Clip.subtitle?: { styleId: SubtitleStyleId }`: the mark. Text clips only. A plain clip field
   like `matte`, not a shared group: it changes only through subtitle commands.
 - `ProjectState.subtitleStyles?: Record<SubtitleStyleId, SubtitleStyle>`, each
-  `{ id, compositionId, name, props, position }`:
+  `{ id, compositionId, name, color, props, position }` (`color` is a marker color, for its dot and the badge):
   - `props`: text element values (the same fields as a text clip's `props`: font, size, weight,
     fill, outline, background, shadow, align, spacing, uppercase). Stored whole, not minimized, so
     a style reads on its own.
@@ -129,11 +129,11 @@ and keyframes all keep reading the clip as they do today.
   writes the new style over the values that followed the old one and keeps its own values.
 - **Unmark** (`subtitle.unmark`, `clipIds`): drops the mark. The look is already stored in the clip,
   so it looks the same afterwards and nothing else is written.
-- A mark naming a style that is gone (a stale paste from another composition) is moved to the
-  composition's default style by the paste; the cue keeps its look until that style changes.
-- Marks survive split, copy and paste, duplicate, freeze, and grouping into a composition (the
-  style is copied into the new composition when needed). The builder checks each place that copies
-  clip fields selectively (the masks work found several).
+- A marked clip that ends up in another composition (paste, grouping, duplicating a composition)
+  takes a copy of its style into that composition, made by the project's integrity pass after every
+  edit, so no command copies styles itself. A mark whose style is gone is dropped; the clip keeps
+  its look.
+- Marks survive split and freeze too (both copy clip fields one by one, so they copy the mark).
 
 ### Styles (subtitle module)
 
