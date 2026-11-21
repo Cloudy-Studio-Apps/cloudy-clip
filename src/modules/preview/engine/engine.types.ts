@@ -1,7 +1,7 @@
 import type { ElementApi } from "@/modules/element";
 import type { MixCanvases } from "./engine.mix";
 import type { FontRequest } from "@/modules/fonts";
-import type { JunctionApi } from "@/modules/junction";
+import type { JunctionApi, MixGpu } from "@/modules/junction";
 import type { DenoiseSettings, MediaApi } from "@/modules/media";
 import type { GpuRunner } from "../gpu/gpu.types";
 import type { Micros } from "@/core";
@@ -520,9 +520,11 @@ export interface MaskPainterOptions {
 /** How a junction's mix reaches the GPU (`MixEnv.gpu`), and what doing without it does. */
 export interface MixGpuHost {
   runner?: GpuRunner;
-  /** A capture or an export: a mix without the GPU throws instead of drawing its 2D path. */
+  /** `MixEnv.gpu` over `runner`, made once; handed to a mix only while `runner` is available. */
+  gpu?: MixGpu;
+  /** A capture or an export: a mix without the GPU, or failing on it, fails the frame. */
   strict: boolean;
-  /** The live preview drew a mix's 2D path for want of the GPU. */
+  /** `MixEnv.withoutGpu`: tells the user in the live preview, throws when `strict`. */
   withoutGpu(): void;
 }
 

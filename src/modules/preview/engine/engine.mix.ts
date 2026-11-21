@@ -1,7 +1,8 @@
 import { createLogger } from "@/core";
-import type { MixEnv } from "@/modules/junction";
+import type { MixEnv, MixGpu } from "@/modules/junction";
 import { clipComposite } from "@/modules/project";
 import { GpuUnavailable } from "../gpu/gpu.errors";
+import type { GpuRunner } from "../gpu/gpu.types";
 import { activeJunctions } from "../logic/junctions";
 import { seededRandom } from "../logic/random";
 import { landLayer } from "./engine.composite";
@@ -79,6 +80,39 @@ const unavailable = (): never => {
 };
 
 /**
+ * How an engine's mixes reach `runner`, made once per engine. In a capture or an export
+ * (`strict`) any error of a GPU run becomes `GpuUnavailable`, so `drawTrack` fails the frame
+ * rather than drawing the right clip over the left; `withoutGpu` throws there too.
+ */
+export function createMixGpuHost(
+  runner: GpuRunner | undefined,
+  strict: boolean,
+  withoutGpu: () => void,
+): MixGpuHost {
+  const run: MixGpu["run"] = (sources, size, passes) => {
+    if (!runner) throw new GpuUnavailable();
+    // The sources are the pool's canvases (and canvases a mix made), all uploadable.
+    const pictures = sources as readonly TexImageSource[];
+    if (!strict) return runner.run(pictures, size, passes);
+    try {
+      return runner.run(pictures, size, passes);
+    } catch (error) {
+      if (error instanceof GpuUnavailable) throw error;
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new GpuUnavailable(`A transition failed on the graphics card: ${reason}`, {
+        cause: error,
+      });
+    }
+  };
+  return {
+    runner,
+    gpu: runner ? { run } : undefined,
+    strict,
+    withoutGpu: strict ? unavailable : withoutGpu,
+  };
+}
+
+/**
  * Draws one video track's clips onto `ctx`. Under a junction whose kind has a `mix`, the left and
  * right pictures are drawn into the offscreen canvases and the mix draws the result in the
  * track's place. Otherwise (no junction, no `mix`, a missing kind) clips draw in start order, so
@@ -122,21 +156,14 @@ export function drawTrack(
     const kx = ctx.canvas.width / format.width;
     const ky = ctx.canvas.height / format.height;
     // A fresh generator each frame, seeded by the junction: the same noise on every frame.
-    const { runner } = gpu;
     const env: MixEnv = {
       format,
       kx,
       ky,
       random: seededRandom(junction.id),
       elapsed,
-      gpu: runner?.available
-        ? {
-            // The sources are the pool's canvases (and canvases a mix made), all uploadable.
-            run: (sources, size, passes) =>
-              runner.run(sources as readonly TexImageSource[], size, passes),
-          }
-        : undefined,
-      withoutGpu: gpu.strict ? unavailable : gpu.withoutGpu,
+      gpu: gpu.runner?.available ? gpu.gpu : undefined,
+      withoutGpu: gpu.withoutGpu,
     };
     target.save();
     try {

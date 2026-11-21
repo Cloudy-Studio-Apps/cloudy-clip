@@ -81,24 +81,32 @@ function unbindUnits(gl: WebGL2RenderingContext, used: number): void {
   }
 }
 
+/** Whether `run` was given several sources rather than one. */
+const isPictureList = (
+  source: TexImageSource | readonly TexImageSource[],
+): source is readonly TexImageSource[] => Array.isArray(source);
+
 /** Uploads the sources and runs the passes on `context`; the last one draws on its canvas. */
 function runPasses(
   context: GpuContext,
-  pictures: readonly TexImageSource[],
+  pictures: TexImageSource | readonly TexImageSource[],
   width: number,
   height: number,
   passes: readonly GpuPass[],
 ): void {
   const { gl, canvas, programs, targets, data, sources, floatTargets } = context;
-  const lastRead = lastReaders(passes, pictures.length);
+  // One source isn't wrapped in a list: filters and levels run per picture, every frame.
+  const list = isPictureList(pictures);
+  const given = list ? pictures.length : 1;
+  const lastRead = lastReaders(passes, given);
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
     canvas.height = height;
   }
-  pictures.forEach((picture, index) => {
+  for (let index = 0; index < given; index++) {
     const texture = (sources[index] ??= createTexture(gl));
-    uploadSource(gl, texture, picture);
-  });
+    uploadSource(gl, texture, list ? pictures[index]! : pictures);
+  }
   gl.viewport(0, 0, width, height);
   const outputs: GpuTarget[] = [];
   // The most texture units a pass has bound, emptied again however the run ends.
@@ -146,11 +154,6 @@ function runPasses(
   }
 }
 
-/** Whether `run` was given several sources rather than one. */
-const isPictureList = (
-  source: TexImageSource | readonly TexImageSource[],
-): source is readonly TexImageSource[] => Array.isArray(source);
-
 /**
  * Creates a runner with a WebGL2 context of its own, made the first time it is needed. Each
  * engine owns one; nothing else in the app creates a WebGL context. A lost context (a GPU reset,
@@ -183,8 +186,7 @@ export function createGpuRunner(): GpuRunner {
       if (passes.length === 0) throw new Error("Nothing to run");
       const working = current();
       if (!working) throw new GpuUnavailable();
-      const pictures = isPictureList(source) ? source : [source];
-      runPasses(working, pictures, width, height, passes);
+      runPasses(working, source, width, height, passes);
       if (working.gl.isContextLost()) {
         working.lost = true;
         throw new Error("The graphics context was lost; it is made again on the next frame");

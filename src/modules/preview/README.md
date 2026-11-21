@@ -145,7 +145,9 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
     the junction id and re-created each frame (`logic/random.ts`), so noise is the same on every
     frame. `env.gpu` (`MixGpu`) runs passes on the engine's runner over the mix's sources (the
     pool's canvases), only while the runner is `available`; the engine builds its `MixGpuHost`
-    once (`runner`, `strict` when `filterTarget` isn't `"preview"`, `withoutGpu`). A mix without
+    once (`createMixGpuHost`: `runner`, the `MixGpu` over it, `strict` when `filterTarget` isn't
+    `"preview"`, `withoutGpu`). When `strict`, any error of a `run` (a lost context, a shader that
+    doesn't compile) comes out as `GpuUnavailable` with the original as `cause`. A mix without
     `gpu` draws its 2D path and calls `env.withoutGpu()`: in the live preview that is
     `EngineOptions.mixWithoutGpu` (`PreviewFilters.mixWithoutGpu`, one notice per kernel); in a
     capture or an export it throws `GpuUnavailable`, and a mix that throws `GpuUnavailable` there is

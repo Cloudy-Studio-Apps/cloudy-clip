@@ -57,7 +57,7 @@ import { cutLayer, landLayer } from "./engine.composite";
 import { EngineFilters } from "./engine.filters";
 import { createLineLists, NO_LINES } from "./engine.line";
 import { MaskPainter } from "./engine.masks";
-import { MixCanvases, drawTrack } from "./engine.mix";
+import { MixCanvases, createMixGpuHost, drawTrack } from "./engine.mix";
 import { NestedCanvases } from "./engine.nested";
 import { createSoundMix } from "./engine.soundmix";
 import { MediaSlotPool } from "./engine.slots";
@@ -172,16 +172,13 @@ export class HtmlMediaEngine implements PreviewEngine {
     this.pictureOnly = options.pictureOnly ?? false;
     this.sound = createSoundMix(this.pictureOnly);
     this.filters = new EngineFilters(options);
+    const strict = (options.filterTarget ?? "preview") !== "preview";
     this.maskPainter = new MaskPainter({
       gpu: options.gpu,
-      strict: (options.filterTarget ?? "preview") !== "preview",
+      strict,
       onFailure: (error) => options.maskFailed?.(error),
     });
-    this.mixGpu = {
-      runner: options.gpu,
-      strict: (options.filterTarget ?? "preview") !== "preview",
-      withoutGpu: () => options.mixWithoutGpu?.(),
-    };
+    this.mixGpu = createMixGpuHost(options.gpu, strict, () => options.mixWithoutGpu?.());
   }
 
   setPicture(options: PictureOptions): void {
