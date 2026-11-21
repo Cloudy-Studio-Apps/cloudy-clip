@@ -8,10 +8,16 @@ the cues that still had its old value, and a cue that differed keeps its own. Ke
 written: their keys win.
 
 - **Tier:** feature
-- **Requires:** `project`, `element`, `text`, `fonts`, `timeline`
-- **Contributes:** nothing yet (the page and panels come later)
+- **Requires:** `project`, `element`, `text`, `fonts`, `timeline`, `preview`, `media`, `transform`
+- **Contributes:** the page `subtitle` (`SUBTITLE_PAGE`; `appPages`, "Subtitles", icon `Captions`,
+  order 22, after Edit and before Tint and Sound, `keepsPlayback: true`, `timelineScope:
+"subtitle"`); the timeline overlay `subtitle.context` (`timelineOverlays`, scope `subtitle`: the
+  context band); the timing keys (`keybindings`, below).
 - **Points it owns:** none
-- **API** (`useModule(subtitleRef)` / `ctx.require(subtitleRef)`): empty
+- **API** (`useModule(subtitleRef)` / `ctx.require(subtitleRef)`): `view`, the page's view state
+  (`SubtitleViewState`, `subtitle.store.ts`): `edge` (the edge the timing keys nudge, set by
+  touching a time), `tab` and `styleId` (the side panel's), `focus` (a row to put the cursor in,
+  at `caret`, the end or around all its words; the cue list scrolls to it and clears it).
 - **Files:**
   - `logic/presets.ts`: Classic (the first style, `Default`), Punchy, Intense, Whisper, sized as
     fractions of the short side over the default text style; `position.y` as a fraction of height.
@@ -27,7 +33,17 @@ written: their keys win.
     `logic/srt.ts` (`parseSubtitles`, `toSrt`), `logic/lanes.ts` (`laneOf`, greedy lanes for
     overlapping cues), `subtitle.service.ts` (file dialogs and `subtitle_read_text` /
     `subtitle_write_text` in `src-tauri/src/subtitle/`: absolute `.srt` / `.vtt` paths, 8 MB).
-- **Not yet:** the Subtitles page and its panels.
+  - `logic/time.ts` (`parseTime`: seconds or `m:ss.cc`; `clampCue`: between the neighbours and at
+    least `MIN_CUE` = 0.2 s), `subtitle.timing.ts` (`cueTimeAction`: the `timeline.trimClip` /
+    `timeline.moveClip` that sets one time of a cue, clamped), `subtitle.keys.ts`.
+  - `logic/context.ts`: `pictureCuts` (edges of the enabled picture clips that aren't cues, each
+    once), `pictureSpans` (the stretches between two cuts that show a picture), `soundLine` (the
+    loudest peak per column of the enabled clips on unmuted audio tracks, through `sourceIn` and
+    speed).
+  - `ui/`: `SubtitlePage`, `SubtitleTransport`, `CueList` (+ `now.row.hook.ts`), `CueRow` (+
+    `cue.edit.hook.ts`), `TimeField`, `SubtitleStage` (+ `CuePicker`), `ContextBand` (+
+    `SoundRow`, `timeline.window.hook.ts`), `subtitle.files.ts` (Import and Export), `report.ts`.
+- **Not yet:** the side panel (Style and Cue tabs): the page leaves a 330 px column for it.
 
 The data (`SubtitleStyle`, `Clip.subtitle`, `Composition.subtitleStyleOrder`) lives in `project`,
 whose integrity pass copies a style along with a cue that lands in another composition and drops a
@@ -54,3 +70,39 @@ Failures: `subtitle.clip_not_found`, `subtitle.not_text`, `subtitle.not_marked`,
 `subtitle.style_not_found`, `subtitle.last_style`, `subtitle.composition_not_found`,
 `subtitle.invalid_style`, `subtitle.overlap`, `subtitle.split_outside`, `subtitle.not_adjacent`,
 `subtitle.empty_file`.
+
+## The Subtitles page
+
+- **Transport:** the time, To start, Play; Add cue (2 s of "New cue" at the playhead, by
+  `subtitle.addCue`, its words selected), Import .srt / .vtt (`pickSubtitleFile` →
+  `readSubtitleFile` → `subtitle.import`, the tracks named after the file), Export .srt (`toSrt` →
+  `saveSrt`, named after the composition); the number of cues; Undo. Results and failures are
+  toasts (`notify`).
+- **Cue list:** every cue of the open composition (`cuesOf`: by start, then track order) as rows of
+  64 px, drawn only near the view (`visibleWindow`). A row: start, end and length with the track
+  (`TimeField`), the words in a `<textarea>`, the style's dot (`MARKER_HEX`) and ◆ when `ownPaths`
+  is not empty. A click selects the cue (the timeline's selection) and seeks to its start, Ctrl
+  adds or removes one, Shift takes the range; the side tab turns to Cue. The row under the playhead
+  gets `data-now` from `playback.onTime`, written on the DOM. In the words: focus selects and seeks;
+  Enter splits at the caret (`subtitle.splitCue` with the typed words); Shift+Enter a new line;
+  Backspace at the start merges with the cue ending where it starts on the same track
+  (`subtitle.mergeCues`, the typed words); Up at the start and Down at the end go to the row
+  before or after; Esc leaves; the words are written on blur (one `element.setProps`).
+- **Times:** drag one sideways to nudge it a frame (the composition's `frameDuration`) every 4 px,
+  shown live on the DOM, one `timeline.trimClip` (start, end, length) on release; click to type
+  (`parseTime`). Kept between the neighbours on its track (`neighbourBounds`) and at least 0.2 s
+  long; a value that had to be clamped says so. Touching start sets `view.edge` to `start`, end or
+  length to `end`.
+- **Keys** (this page, one cue selected, not typing): `[` / `]` its start / end at the playhead;
+  Alt+Left / Alt+Right move `view.edge` by one frame; with Shift the whole cue
+  (`timeline.moveClip`). Clamped like the times.
+- **Stage:** `PreviewStage bare` with a layer over the frame (`CuePicker`): a click selects the
+  top-most cue under the pointer (`useVisibleLayers`, `clipPlacement`, `topmostAt`), a
+  double-click puts the cursor at the end of its row.
+- **Context band** (`ContextBand`, sticky under the ruler in the `CONTEXT_HEIGHT` room the panel
+  leaves): a Picture row (`pictureSpans`) and a Sound row (`SoundRow`: a canvas the width of the
+  view, sticking after the headers, redrawn on scroll, zoom, project changes, resize and
+  `media.onPeaks`; peaks are asked once per file for clips in view only), both at half opacity; a
+  press scrubs the playhead (`useScrubDrag`). The cuts are faint dashed lines through the cue
+  lanes. Only the page in view and one each side are drawn. Cues snap to cuts already (every
+  clip edge is a snap candidate).

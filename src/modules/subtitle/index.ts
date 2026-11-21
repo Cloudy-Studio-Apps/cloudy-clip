@@ -3,7 +3,17 @@
  * storing its style's values so it reads on its own.
  * @module subtitle
  */
-export type { SubtitleApi, SubtitlePreset, SubtitlePresetId } from "./subtitle.types";
+export type {
+  CueTimeField,
+  SubtitleApi,
+  SubtitlePreset,
+  SubtitlePresetId,
+  SubtitleViewState,
+} from "./subtitle.types";
+/** Id of the Subtitles page in `appPages`. */
+export { SUBTITLE_PAGE } from "./subtitle.ref";
+/** A composition's cues in list order: by start, then track order. */
+export { cuesOf } from "./logic/srt";
 /** Add, change, rename, delete and reorder a composition's subtitle styles. */
 export {
   addStyle,

@@ -1,5 +1,5 @@
 import type { Micros } from "@/core";
-import type { CompositionId, ProjectState } from "@/modules/project";
+import type { Clip, CompositionId, ProjectState } from "@/modules/project";
 import type { ParsedSubtitles } from "../subtitle.types";
 
 const TIME = /(?:(\d+):)?(\d{1,2}):(\d{2})[,.](\d{1,3})/;
@@ -57,19 +57,25 @@ function stamp(time: Micros): string {
   return `${pad(Math.floor(ms / 3_600_000), 2)}:${pad(Math.floor(ms / 60_000) % 60, 2)}:${pad(Math.floor(ms / 1000) % 60, 2)},${pad(ms % 1000, 3)}`;
 }
 
-/** `.srt` text of a composition's marked, enabled cues on its own tracks: by start, then track order. */
-export function toSrt(state: ProjectState, compositionId: CompositionId): string {
+/** A composition's marked clips (cues) on its own tracks: by start, then track order. */
+export function cuesOf(state: ProjectState, compositionId: CompositionId): Clip[] {
   const order = state.compositions[compositionId]?.trackOrder ?? [];
   const cues = order.flatMap((trackId, index) =>
     (state.tracks[trackId]?.clipIds ?? []).flatMap((id) => {
       const clip = state.clips[id];
-      return clip?.subtitle && !clip.disabled ? [{ clip, index }] : [];
+      return clip?.subtitle ? [{ clip, index }] : [];
     }),
   );
   cues.sort((a, b) => a.clip.start - b.clip.start || a.index - b.index);
-  return cues
+  return cues.map(({ clip }) => clip);
+}
+
+/** `.srt` text of a composition's marked, enabled cues on its own tracks: by start, then track order. */
+export function toSrt(state: ProjectState, compositionId: CompositionId): string {
+  return cuesOf(state, compositionId)
+    .filter((clip) => !clip.disabled)
     .map(
-      ({ clip }, n) =>
+      (clip, n) =>
         `${n + 1}\n${stamp(clip.start)} --> ${stamp(clip.start + clip.duration)}\n${String(clip.props.text ?? "")}\n`,
     )
     .join("\n");
