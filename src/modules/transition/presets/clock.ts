@@ -37,7 +37,9 @@ export const clockPreset = defineTransitionPreset({
       ctx.drawImage(b, 0, 0, width, height);
       ctx.restore();
     };
-    if (s > 0) layer(Math.min(2 * Math.PI, 2 * Math.PI * p + s * Math.PI), 0.5);
+    // The soft edge grows from nothing and shrinks back, so it doesn't pop in at either end.
+    const soft = s * Math.PI * Math.sin(Math.PI * p);
+    if (soft > 0) layer(Math.min(2 * Math.PI, 2 * Math.PI * p + soft), 0.5);
     layer(2 * Math.PI * p, 1);
   },
 });

@@ -5,7 +5,7 @@ import { defineTransitionPreset } from "../transition.points";
 import { drawDissolve, drawOnly } from "./presets.mask";
 import { intensityProp } from "./presets.props";
 
-/** Rings spread from the center and bend both pictures while a dissolves into b; the ripple peaks at the cut. Needs the GPU, else a cross dissolve. */
+/** Rings spread from the center and bend both pictures while a dissolves into b; the ripple peaks at the cut. Needs the GPU, else a cross dissolve with a slight scale. */
 export const ripplePreset = defineTransitionPreset({
   id: "ripple",
   name: "Ripple",
@@ -18,7 +18,16 @@ export const ripplePreset = defineTransitionPreset({
     const amount = clamp01(Number(props.intensity ?? 0.5)) * bump(progress) * 0.03;
     if (!env.gpu) {
       if (amount > 0) env.withoutGpu();
-      return drawDissolve(ctx, a, b, progress);
+      // A cross dissolve with a slight scale about the center.
+      const { width, height } = ctx.canvas;
+      const scale = 1 + 0.03 * bump(progress);
+      ctx.save();
+      ctx.translate(width / 2, height / 2);
+      ctx.scale(scale, scale);
+      ctx.translate(-width / 2, -height / 2);
+      drawDissolve(ctx, a, b, progress);
+      ctx.restore();
+      return;
     }
     const phase = progress * 20;
     ctx.save();

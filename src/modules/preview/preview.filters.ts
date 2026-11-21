@@ -57,7 +57,7 @@ export function createFilters(points: PointReader, log: Logger): PreviewFilters 
       if (mixTold) return;
       mixTold = true;
       log.warn("A transition drew without the GPU in the preview (no WebGL2)");
-      notify("info", "Some transitions need the graphics card; they show without blur for now.");
+      notify("info", "Some transitions need the graphics card; they show a simpler look for now.");
     },
   };
 }
