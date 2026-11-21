@@ -39,6 +39,25 @@ export interface MaskNumbers {
   inner?: number;
 }
 
+/** A number a mask has, as the tab's slider edits it. */
+export interface MaskFieldSpec {
+  /** The name in `mask.update`'s patch (inside `shape` when `shape` is set). */
+  name: string;
+  shape?: true;
+  min: number;
+  max: number;
+  step: number;
+  unit?: string;
+  /** Shown value = stored value times this (percent for 0–1 numbers). */
+  show?: number;
+}
+
+/** One row of the selected mask's fields: a label and one or two numbers sharing a diamond. */
+export interface MaskRowSpec {
+  label: string;
+  fields: MaskFieldSpec[];
+}
+
 /** The mask module's API for one kernel. */
 export interface MaskApi {
   /** The selected mask and point, and the drawing in progress. Read with `useStore(api.ui, selector)`. */

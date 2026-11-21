@@ -11,7 +11,7 @@ Bookmarks on a composition's timeline: small colored flags in the ruler, each wi
   - `marker.commands.ts`: the commands below. Markers live in the document (`ProjectState.markers`, one record each, so the user's and an agent's markers undo on their own). `project` declares the type and validates that a marker's composition exists; `composition` deletes and copies a composition's markers with it.
   - `marker.menu.ts`: the right-click entries of the timeline and of clips.
   - `marker.keys.ts`: the keybindings. The jumps resolve to `preview.seek`.
-  - `logic/markers.ts`: the colors' hex values (fixed: a marker's color is the user's label, not chrome), next/previous, frame flooring.
+  - `logic/markers.ts`: the colors' hex values (`MARKER_HEX`, exported from `index.ts`; `mask` labels its masks with them) (fixed: a marker's color is the user's label, not chrome), next/previous, frame flooring.
   - `ui/`: `MarkerFlags` (the overlay), `MarkerFlag` (one flag, its sticky head placed with `useFlagRow()`: click seeks, drag moves, double-click edits, right-click removes), `flag.gesture.ts`, `MarkerEditor` (note and color).
 - **Invariants:** a marker added at the playhead lands on the start of the frame the playhead shows. A marker may sit past the composition's end; it is kept and drawn. Markers stay put when clips ripple. Two markers may share a time; next/previous step past it.
 - **Not yet:** range markers, markers on clips or media, a marker list, exporting markers as chapters.

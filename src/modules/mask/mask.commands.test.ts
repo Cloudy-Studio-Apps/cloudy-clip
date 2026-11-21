@@ -207,6 +207,7 @@ beforeEach(async () => {
     stub("preview"),
     stub("inspector"),
     stub("timeline"),
+    stub("transform"),
     fixtures,
     keyframeModule,
     maskModule,
