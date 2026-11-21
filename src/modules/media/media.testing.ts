@@ -26,6 +26,9 @@ export function createFakeMediaModule(probes: Record<string, MediaProbe>) {
       return {
         api: {
           ...state,
+          peaks: async () => null,
+          peaksNow: () => undefined,
+          onPeaks: () => () => undefined,
           mediaUrl: (id: string) => `fake://${id}`,
           prepareMaster: async () => false,
           masterUrl: (id: string) => `fake://${id}`,

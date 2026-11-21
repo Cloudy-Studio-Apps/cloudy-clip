@@ -2,6 +2,7 @@
  * Media module: importing files, reading their metadata, and the media library panel.
  * @module media
  */
+export { PEAKS_PER_SECOND } from "./media.peaks";
 export { mediaHasAudio } from "./media.audio";
 export { importMedia, relinkMedia, removeMedia, revealMedia } from "./media.commands";
 export { createBin, deleteBin, moveToBin, renameBin } from "./media.bin.commands";

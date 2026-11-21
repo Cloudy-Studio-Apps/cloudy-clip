@@ -45,6 +45,7 @@ pub fn run() {
             media::disks::media_list_disks,
             media::facts::media_file_facts,
             media::levels::media_levels_clip,
+            media::peaks::media_peaks,
             mcp::commands::mcp_register_tools,
             mcp::commands::mcp_respond,
             mcp::commands::mcp_status,

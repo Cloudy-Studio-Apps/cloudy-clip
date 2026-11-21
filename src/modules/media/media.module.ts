@@ -12,7 +12,14 @@ import { mediaMcpTools } from "./media.mcp";
 import { createProbeQueue } from "./media.probe";
 import { mediaRef } from "./media.ref";
 import { createMediaFiles } from "./media.files";
-import { createMediaService, listDisks, readFileFacts, revealFile } from "./media.service";
+import { createPeaks } from "./media.peaks";
+import {
+  createMediaService,
+  listDisks,
+  readFileFacts,
+  revealFile,
+  scanPeaks,
+} from "./media.service";
 import { createMediaState } from "./media.store";
 import { createDerivedFiles } from "./media.derived";
 import { createLibraryView } from "./media.view.store";
@@ -53,6 +60,13 @@ export const mediaModule = defineModule({
         view.setState({ place: { kind: "bin", binId: null } });
       }),
     );
+
+    const peaks = createPeaks(
+      scanPeaks,
+      (id) => project.getState().media[id]?.path,
+      (id) => getProbe(id)?.revision,
+    );
+    onDispose(() => peaks.dispose());
 
     const files = createMediaFiles({ project, state, probes });
     onDispose(files.follow());
@@ -106,6 +120,9 @@ export const mediaModule = defineModule({
         getProbe,
         waitForProbe: state.waitForProbe,
         pictureMeta: state.pictureMeta,
+        peaks: peaks.peaks,
+        peaksNow: peaks.peaksNow,
+        onPeaks: peaks.onPeaks,
         mediaUrl: service.mediaUrl,
         prepareMaster: service.prepareMaster,
         masterUrl: service.masterUrl,

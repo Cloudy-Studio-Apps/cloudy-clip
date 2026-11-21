@@ -7,6 +7,7 @@ pub mod disks;
 pub mod facts;
 mod image;
 pub mod levels;
+pub mod peaks;
 pub mod proxy;
 pub mod registry;
 pub(crate) mod reversed;

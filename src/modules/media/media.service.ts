@@ -23,6 +23,11 @@ export function statFile(path: string): Promise<MediaFile> {
   return invoke<MediaFile>("media_stat", { path });
 }
 
+/** The sound of a file as peaks (see `PEAKS_PER_SECOND`); empty when it has none. */
+export async function scanPeaks(path: string): Promise<Uint8Array> {
+  return new Uint8Array(await invoke<ArrayBuffer>("media_peaks", { path }));
+}
+
 /** What a registered file says about itself. Every field is missing when it can't be told. */
 export function readFileFacts(id: string): Promise<FileFacts> {
   return invoke<FileFacts>("media_file_facts", { id });

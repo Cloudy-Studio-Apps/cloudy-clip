@@ -204,6 +204,15 @@ export interface MediaApi {
   readonly probes: StoreApi<MediaProbeState>;
   /** Whether files from the OS are being dragged over the window. */
   readonly fileDrop: StoreApi<{ active: boolean }>;
+  /**
+   * The file's sound as peaks, 0-255, `PEAKS_PER_SECOND` per second of the file; null when it has
+   * no sound. Scanned once per file and kept per kernel.
+   */
+  peaks(mediaId: MediaId): Promise<Uint8Array | null>;
+  /** The peaks if already scanned (for drawing), else undefined. */
+  peaksNow(mediaId: MediaId): Uint8Array | undefined;
+  /** Calls `listener` whenever a file's peaks arrive. Returns the unsubscribe function. */
+  onPeaks(listener: (mediaId: MediaId) => void): () => void;
   /** Current probe of a media item, if any. */
   getProbe(id: MediaId): MediaProbe | undefined;
   /**
@@ -303,6 +312,9 @@ export interface MediaApi {
 /** Probe state plus the setters only the media module uses. */
 export interface MediaState extends Omit<
   MediaApi,
+  | "peaks"
+  | "peaksNow"
+  | "onPeaks"
   | "mediaUrl"
   | "prepareMaster"
   | "masterUrl"
