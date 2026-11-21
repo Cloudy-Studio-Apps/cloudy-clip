@@ -4,13 +4,14 @@ import { bump, clamp01, eased } from "../logic/easing";
 import { spinBlurPass } from "../logic/gpu";
 import { defineTransitionPreset } from "../transition.points";
 import { drawOnly } from "./presets.mask";
-import { drawBlurred, drawMoved, drawStacked } from "./presets.blur";
+import { drawBlurred, drawStacked } from "./presets.blur";
+import { drawMoved } from "./presets.camera";
 import { easeProp, intensityProp } from "./presets.props";
 
 /** The picture's turn at progress `p`: a quarter turn at the cut, mirrored after it. */
 function angleAt(props: Record<string, unknown>, p: number): number {
   const sign = props.direction === "ccw" ? -1 : 1;
-  const turn = (Math.PI / 2) * clamp01(eased(props, p < 0.5 ? p * 2 : (1 - p) * 2));
+  const turn = (Math.PI / 2) * clamp01(2 * eased(props, Math.min(p, 1 - p)));
   return p < 0.5 ? sign * turn : -sign * turn;
 }
 

@@ -4,14 +4,16 @@ import { bump, clamp01, eased } from "../logic/easing";
 import { zoomBlurPass } from "../logic/gpu";
 import { defineTransitionPreset } from "../transition.points";
 import { drawOnly } from "./presets.mask";
-import { drawBlurred, drawMoved, drawStacked } from "./presets.blur";
+import { drawBlurred, drawStacked } from "./presets.blur";
+import { drawMoved } from "./presets.camera";
 import { easeProp, intensityProp } from "./presets.props";
 
-/** The picture's scale at progress `p` (the same before and after the cut, so the cut is seamless). */
+/** The picture's scale at progress `p`: the camera keeps moving through the cut (b starts at the inverse of a's end scale); the peak blur hides the jump. */
 function scaleAt(props: Record<string, unknown>, p: number): number {
   const intensity = clamp01(Number(props.intensity ?? 0.6));
   const end = props.direction === "out" ? 1 / (1 + intensity) : 1 + intensity;
-  return end ** clamp01(eased(props, p < 0.5 ? p * 2 : (1 - p) * 2));
+  const s = end ** clamp01(2 * eased(props, Math.min(p, 1 - p)));
+  return p < 0.5 ? s : 1 / s;
 }
 
 /**
@@ -34,7 +36,7 @@ export const zoomPreset = defineTransitionPreset({
     if (progress <= 0) return drawOnly(ctx, a);
     if (progress >= 1) return drawOnly(ctx, b);
     const scale = scaleAt(props, progress);
-    const strength = clamp01(Number(props.intensity ?? 0.6)) * bump(progress);
+    const strength = 0.35 * clamp01(Number(props.intensity ?? 0.6)) * bump(progress);
     drawBlurred(ctx, env, strength > 1e-4, zoomBlurPass(-1, [0.5, 0.5], strength), (target) =>
       drawMoved(target, progress < 0.5 ? a : b, scale, 0),
     );

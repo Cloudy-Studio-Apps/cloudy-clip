@@ -3,7 +3,8 @@ import { bump, clamp01 } from "../logic/easing";
 import { directionalBlurPass } from "../logic/gpu";
 import { defineTransitionPreset } from "../transition.points";
 import { drawOnly } from "./presets.mask";
-import { drawBlurred, drawMoved, drawStacked } from "./presets.blur";
+import { drawBlurred, drawStacked } from "./presets.blur";
+import { drawMoved } from "./presets.camera";
 import { intensityProp } from "./presets.props";
 
 /** Jolts over a transition; the jitter is one fixed offset per step. */
