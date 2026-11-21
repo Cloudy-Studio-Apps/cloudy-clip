@@ -27,6 +27,7 @@ import { solidModule } from "@/modules/solid";
 import { soundModule } from "@/modules/sound";
 import { speedModule } from "@/modules/speed";
 import { stickerModule } from "@/modules/sticker";
+import { subtitleModule } from "@/modules/subtitle";
 import { textModule } from "@/modules/text";
 import { themeModule } from "@/modules/theme";
 import { tintModule } from "@/modules/tint";
@@ -61,6 +62,7 @@ const MODULES: AnyModuleDefinition[] = [
   pathModule,
   maskModule,
   markerModule,
+  subtitleModule,
   collabModule,
   tintModule,
   soundModule,
