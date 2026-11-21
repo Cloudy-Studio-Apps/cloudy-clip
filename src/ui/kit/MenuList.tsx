@@ -9,7 +9,27 @@ interface MenuListProps {
   onClose(): void;
 }
 
-/** The entries of a menu. An entry with `items` opens a submenu to its right, on hover or click. */
+/** Space kept between a submenu and the window's edges. */
+const EDGE = 6;
+
+/** Keeps a submenu inside the window: to the left of its entry when there's no room on the right, and higher near the bottom. */
+function placeSubmenu(box: HTMLDivElement | null): void {
+  if (!box) return;
+  const { right, bottom } = box.getBoundingClientRect();
+  if (right > window.innerWidth - EDGE) {
+    box.style.left = "auto";
+    box.style.right = "100%";
+    box.style.marginLeft = "0";
+    box.style.marginRight = "4px";
+  }
+  const over = bottom - (window.innerHeight - EDGE);
+  if (over > 0) box.style.top = `${-over}px`;
+}
+
+/**
+ * The entries of a menu. An entry with `items` opens a submenu to its right (its left when that
+ * would leave the window), on hover or click.
+ */
 export function MenuList({ items, onClose }: MenuListProps) {
   const [open, setOpen] = useState<string | null>(null);
   return (
@@ -58,7 +78,10 @@ export function MenuList({ items, onClose }: MenuListProps) {
               {nested && <ChevronRight aria-hidden className="size-3.5 shrink-0" />}
             </button>
             {expanded && (
-              <div className="absolute left-full top-0 z-10 ml-1 rounded-sm border border-border-strong bg-popover p-1 shadow-popover">
+              <div
+                ref={placeSubmenu}
+                className="absolute left-full top-0 z-10 ml-1 rounded-sm border border-border-strong bg-popover p-1 shadow-popover"
+              >
                 <MenuList items={item.items!} onClose={onClose} />
               </div>
             )}
