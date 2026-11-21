@@ -29,7 +29,7 @@ lists them.
   - `transition.apply.command.ts`: `transition.apply`.
   - `transition.mcp.ts`: the tools.
   - `presets/`: `fade`, `cross-dissolve`, `dissolve` (seeded block mask), `wipe` (gradient mask),
-    `glare`, `woosh` (a whip pan blurred by squeezing and stretching through scratch canvases), `glitch` (slice offsets + red/blue split); `presets.ts`
+    `push` (GPU directional blur), `slide`, `glare`, `woosh` (a whip pan blurred by squeezing and stretching through scratch canvases), `glitch` (slice offsets + red/blue split); `presets.ts`
     lists them as `builtInPresets`, contributed by the module. Masks are drawn into canvas `b`
     with `destination-in` (in place when `b` is a canvas, else into a temporary canvas); no pixel
     reads and no `ctx.filter`.
@@ -67,6 +67,8 @@ lists them.
 | Basic    | Dissolve       | Grainy: B appears in random blocks      |
 | Basic    | Left to right  | A soft-edged wipe                       |
 | Light    | Glare          | A bright flash hides the cut            |
+| Motion   | Push           | A and B slide across, GPU motion blur   |
+| Motion   | Slide          | B slides in over a still A              |
 | Blur     | Woosh          | A fast blurred swipe (whip pan)         |
 | Glitch   | Glitch         | Shifted slices and a red/blue split     |
 

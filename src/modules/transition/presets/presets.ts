@@ -1,6 +1,8 @@
 import { blinkPreset } from "./blink";
 import { clockPreset } from "./clock";
 import { irisPreset } from "./iris";
+import { pushPreset } from "./push";
+import { slidePreset } from "./slide";
 import { splitPreset } from "./split";
 import { crossDissolvePreset } from "./crossDissolve";
 import { dissolvePreset } from "./dissolve";
@@ -24,6 +26,12 @@ export const builtInPresets = [
   variantOf(irisPreset, "iris-close", "Circle close", { direction: "in" }),
   splitPreset,
   variantOf(splitPreset, "split-v", "Split vertical", { direction: "vertical" }),
+  pushPreset,
+  variantOf(pushPreset, "push-right", "Push right", { direction: "right" }),
+  variantOf(pushPreset, "push-up", "Push up", { direction: "up" }),
+  variantOf(pushPreset, "push-down", "Push down", { direction: "down" }),
+  slidePreset,
+  variantOf(slidePreset, "slide-up", "Slide up", { direction: "up" }),
   glarePreset,
   blinkPreset,
   wooshPreset,
