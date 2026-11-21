@@ -167,6 +167,18 @@ export function ripplePass(
   };
 }
 
+// A mix of two inputs by amount.
+const MIX = `
+uniform float u_amount;
+void main() {
+  o = mix(texture(u_in0, v_uv), texture(u_in1, v_uv), u_amount);
+}`;
+
+/** Mixes input `a` into input `b` by `amount` (0 is exactly `a`, 1 exactly `b`). */
+export function mixPass(a: number, b: number, amount: number): GpuPass {
+  return { key: "transition.mix", fragment: MIX, inputs: [a, b], uniforms: { u_amount: amount } };
+}
+
 /**
  * Runs `passes` over `sources` at `ctx.canvas`'s size and draws the result over the whole canvas
  * (identity transform). Throws what `gpu.run` throws.

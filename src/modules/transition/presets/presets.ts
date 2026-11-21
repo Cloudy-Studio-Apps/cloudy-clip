@@ -1,6 +1,10 @@
 import { blinkPreset } from "./blink";
 import { clockPreset } from "./clock";
 import { irisPreset } from "./iris";
+import { leakPreset } from "./leak";
+import { lumaPreset } from "./luma";
+import { pixelatePreset } from "./pixelate";
+import { ripplePreset } from "./ripple";
 import { pushPreset } from "./push";
 import { shakePreset } from "./shake";
 import { slidePreset } from "./slide";
@@ -42,8 +46,13 @@ export const builtInPresets = [
   shakePreset,
   glarePreset,
   blinkPreset,
+  leakPreset,
+  variantOf(leakPreset, "film-burn", "Film burn", { color: "#ff5a1f", intensity: 1 }),
   wooshPreset,
   variantOf(wooshPreset, "woosh-up", "Woosh up", { direction: "up" }),
+  pixelatePreset,
+  lumaPreset,
+  ripplePreset,
   glitchPreset,
   variantOf(glitchPreset, "rgb-split", "RGB split", { slices: 0 }),
 ];
