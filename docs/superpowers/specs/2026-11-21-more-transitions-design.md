@@ -122,27 +122,27 @@ optional field on `TransitionPresetDefinition`, nothing else changes in the poin
 `distort`; `logic/categories.ts` orders them: basic, motion, camera, light, blur, distort, glitch,
 overlay.
 
-| Category | Routine (file) | Tiles (id → name) | Options | Look |
-| -------- | -------------- | ----------------- | ------- | ---- |
-| basic | `crossDissolve`, `dissolve` (exist) | `cross-dissolve`, `dissolve` (unchanged) | (existing) | blend / grain |
-| basic | `fade` (exists) | `fade` Fade · `dip-white` Dip to white | color | A to color to B |
-| basic | `wipe` (exists) | `wipe` Left to right · `wipe-down` Top to bottom | direction, softness | soft edge |
-| basic | `iris.ts` | `iris-open` Circle open · `iris-close` Circle close | direction in/out, softness, ease | circle mask grows / shrinks |
-| basic | `clock.ts` | `clock` Clock wipe | direction cw/ccw, softness, ease | sweeping hand |
-| basic | `split.ts` | `split-h` Split · `split-v` Split vertical | direction (h/v, open/close), softness, ease | barn doors |
-| motion | `push.ts` | `push-left`, `push-right`, `push-up`, `push-down` | direction, ease, intensity (motion blur ★) | B pushes A out |
-| motion | `slide.ts` | `slide-left`, `slide-up` | direction, ease | B slides over a still A |
-| camera | `zoom.ts` ★ | `zoom-in` Zoom in · `zoom-out` Zoom out | direction in/out, intensity, ease | punch through with radial blur, cut at peak |
-| camera | `spin.ts` ★ | `spin` Spin · `spin-ccw` Spin left | direction cw/ccw, intensity, ease | rotate + slight zoom, rotational blur |
-| camera | `shake.ts` ★ | `shake` Shake | intensity | seeded jitter with directional blur |
-| blur | `woosh` (exists) | `woosh` · `woosh-up` Woosh up | direction (+ up/down) | whip pan |
-| light | `glare` (exists) | `glare` Glare (CapCut "Flash") | color | flash hides the cut |
-| light | `leak.ts` | `light-leak` Light leak · `film-burn` Film burn | color, intensity | moving warm gradient blobs added with `lighter` |
-| light | `blink.ts` | `blink` Blink | color, ease | eyelids close on A, open on B |
-| distort | `pixelate.ts` | `pixelate` Pixelate | intensity | blocks grow then shrink (smoothing off, no pixel reads) |
-| distort | `luma.ts` ★ | `luma-fade` Luma fade | direction dark→light / light→dark, softness | B appears through A's brightness; 2D path: cross dissolve |
-| distort | `ripple.ts` ★ | `ripple` Ripple | intensity | wave warp; 2D path: cross dissolve with a slight scale |
-| glitch | `glitch` (exists) | `glitch` · `rgb-split` RGB split | (existing) + slices off | channel split only |
+| Category | Routine (file)                      | Tiles (id → name)                                   | Options                                     | Look                                                      |
+| -------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------- |
+| basic    | `crossDissolve`, `dissolve` (exist) | `cross-dissolve`, `dissolve` (unchanged)            | (existing)                                  | blend / grain                                             |
+| basic    | `fade` (exists)                     | `fade` Fade · `dip-white` Dip to white              | color                                       | A to color to B                                           |
+| basic    | `wipe` (exists)                     | `wipe` Left to right · `wipe-down` Top to bottom    | direction, softness                         | soft edge                                                 |
+| basic    | `iris.ts`                           | `iris-open` Circle open · `iris-close` Circle close | direction in/out, softness, ease            | circle mask grows / shrinks                               |
+| basic    | `clock.ts`                          | `clock` Clock wipe                                  | direction cw/ccw, softness, ease            | sweeping hand                                             |
+| basic    | `split.ts`                          | `split-h` Split · `split-v` Split vertical          | direction (h/v, open/close), softness, ease | barn doors                                                |
+| motion   | `push.ts`                           | `push-left`, `push-right`, `push-up`, `push-down`   | direction, ease, intensity (motion blur ★)  | B pushes A out                                            |
+| motion   | `slide.ts`                          | `slide-left`, `slide-up`                            | direction, ease                             | B slides over a still A                                   |
+| camera   | `zoom.ts` ★                         | `zoom-in` Zoom in · `zoom-out` Zoom out             | direction in/out, intensity, ease           | punch through with radial blur, cut at peak               |
+| camera   | `spin.ts` ★                         | `spin` Spin · `spin-ccw` Spin left                  | direction cw/ccw, intensity, ease           | rotate + slight zoom, rotational blur                     |
+| camera   | `shake.ts` ★                        | `shake` Shake                                       | intensity                                   | seeded jitter with directional blur                       |
+| blur     | `woosh` (exists)                    | `woosh` · `woosh-up` Woosh up                       | direction (+ up/down)                       | whip pan                                                  |
+| light    | `glare` (exists)                    | `glare` Glare (CapCut "Flash")                      | color                                       | flash hides the cut                                       |
+| light    | `leak.ts`                           | `light-leak` Light leak · `film-burn` Film burn     | color, intensity                            | moving warm gradient blobs added with `lighter`           |
+| light    | `blink.ts`                          | `blink` Blink                                       | color, ease                                 | eyelids close on A, open on B                             |
+| distort  | `pixelate.ts`                       | `pixelate` Pixelate                                 | intensity                                   | blocks grow then shrink (smoothing off, no pixel reads)   |
+| distort  | `luma.ts` ★                         | `luma-fade` Luma fade                               | direction dark→light / light→dark, softness | B appears through A's brightness; 2D path: cross dissolve |
+| distort  | `ripple.ts` ★                       | `ripple` Ripple                                     | intensity                                   | wave warp; 2D path: cross dissolve with a slight scale    |
+| glitch   | `glitch` (exists)                   | `glitch` · `rgb-split` RGB split                    | (existing) + slices off                     | channel split only                                        |
 
 Count: 13 new routines (iris, clock, split, push, slide, zoom, spin, shake, leak, blink, pixelate,
 luma, ripple). 33 tiles: the 7 existing plus 26 new.

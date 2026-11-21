@@ -35,17 +35,17 @@ Checked by reviewers and the live check (no DOM/WebGL in Vitest, so no tests):
 
 ## Models
 
-| Task | Implementer | Reviewer | Why |
-| ---- | ----------- | -------- | --- |
-| 1 GPU in a mix | opus | opus | cross-layer, export parity, WebGL state |
-| 2 Shared options, variants, family | sonnet | sonnet | clear, spec'd |
-| 3 Shaders | opus | sonnet | shader math |
-| 4 Shape wipes (iris, clock, split, blink) | sonnet | sonnet | 2D, clear |
-| 5 Motion (push, slide) | sonnet | sonnet | 2D + one shader call |
-| 6 Camera (zoom, spin, shake) | sonnet | opus | GPU + fallback + thumbnails |
-| 7 Light & distort (leak, pixelate, luma, ripple) | sonnet | sonnet | clear |
-| 8 Docs and changelogs | haiku | haiku | mechanical |
-| Final whole-branch review | — | opus | |
+| Task                                             | Implementer | Reviewer | Why                                     |
+| ------------------------------------------------ | ----------- | -------- | --------------------------------------- |
+| 1 GPU in a mix                                   | opus        | opus     | cross-layer, export parity, WebGL state |
+| 2 Shared options, variants, family               | sonnet      | sonnet   | clear, spec'd                           |
+| 3 Shaders                                        | opus        | sonnet   | shader math                             |
+| 4 Shape wipes (iris, clock, split, blink)        | sonnet      | sonnet   | 2D, clear                               |
+| 5 Motion (push, slide)                           | sonnet      | sonnet   | 2D + one shader call                    |
+| 6 Camera (zoom, spin, shake)                     | sonnet      | opus     | GPU + fallback + thumbnails             |
+| 7 Light & distort (leak, pixelate, luma, ripple) | sonnet      | sonnet   | clear                                   |
+| 8 Docs and changelogs                            | haiku       | haiku    | mechanical                              |
+| Final whole-branch review                        | —           | opus     |                                         |
 
 ## File tree
 
@@ -103,6 +103,7 @@ CHANGELOG.md, CHANGELOG.es.md  M  one entry each
 **Files:** junction `junction.types.ts`, `index.ts`, `README.md`; preview `gpu/gpu.types.ts`, `gpu/gpu.runner.ts`, `engine/engine.mix.ts`, `engine/engine.html.ts`, `engine/engine.types.ts`, `preview.filters.ts`, `preview.types.ts`, `preview.module.ts`, `README.md`; transition `ui/thumbnail.hook.ts`.
 
 **Interfaces:**
+
 - Produces (in `junction.types.ts`, exported from `@/modules/junction`):
   - `GpuInt`, `GpuUniform`, `GpuTexture`, `GpuPass` — moved verbatim from `preview/gpu/gpu.types.ts`; `GpuPass.inputs` doc: `-1` is source 0, `-2` source 1, `n` the output of pass `n`.
   - `interface MixGpu { run(sources: readonly CanvasImageSource[], size: { width: number; height: number }, passes: readonly GpuPass[]): CanvasImageSource }` — returns a shared canvas; draw it before the next `run`.
@@ -128,6 +129,7 @@ CHANGELOG.md, CHANGELOG.es.md  M  one entry each
 **Files:** transition `transition.types.ts`, `transition.points.ts`, `transition.kind.ts`, `index.ts`, `logic/categories.ts`, `logic/easing.ts`, `presets/presets.props.ts` (new), `presets/fade.ts`, `presets/wipe.ts`, `presets/woosh.ts`, `presets/glitch.ts`, `presets/presets.ts`.
 
 **Interfaces:**
+
 - Consumes: `EASE_PRESETS`, `easeProgress` from `@/modules/project`.
 - Produces:
   - `TransitionPresetDefinition.family?: string` (chip label); `category` union gains `"motion" | "camera" | "light" | "distort"`.
@@ -152,6 +154,7 @@ CHANGELOG.md, CHANGELOG.es.md  M  one entry each
 **Files:** Create `src/modules/transition/logic/gpu.ts`.
 
 **Interfaces:**
+
 - Consumes: `GpuPass`, `MixGpu` from `@/modules/junction` (Task 1).
 - Produces (each returns one `GpuPass`; `input` is `-1`, `-2` or an earlier pass index; fixed 16 samples; keys `transition.<name>`):
   - `zoomBlurPass(input: number, center: [number, number], strength: number)` — radial blur toward `center` (uv), `strength` 0..1 of the radius.
@@ -172,12 +175,12 @@ CHANGELOG.md, CHANGELOG.es.md  M  one entry each
 
 **Interfaces:** Consumes `maskableSurface`, `easeProp`, `softnessProp`, `eased`, `variantOf`, `defineTransitionPreset`.
 
-| id → name | category, family | options (defaults) | draw |
-| --------- | ---------------- | ------------------ | ---- |
-| `iris-open` Circle open · `iris-close` Circle close | basic, "Circle" | direction `in\|out` (`out`; close = `in`), softness (0.15), ease (`ease`) | B masked by a radial gradient circle growing from center to frame diagonal (`out`); `in`: A masked by a shrinking circle over B |
-| `clock` Clock wipe | basic | direction `cw\|ccw` (`cw`), softness (0.05), ease (`linear`) | B masked by a pie from 12 o'clock sweeping `2π·t`; softness via a second wider pie at partial alpha |
-| `split-h` Split · `split-v` Split vertical | basic, "Split" | direction `horizontal\|vertical` (`horizontal`), mode `open\|close` (`open`), softness (0.1), ease (`ease`) | barn doors: B revealed by a centered band growing to full (`open`) or two bands closing from the edges (`close`) |
-| `blink` Blink | light | color (`#000000`), ease (`ease`) | two lids (filled rects with a soft gradient edge) close on A by 0.5 and open on B |
+| id → name                                           | category, family | options (defaults)                                                                                          | draw                                                                                                                            |
+| --------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `iris-open` Circle open · `iris-close` Circle close | basic, "Circle"  | direction `in\|out` (`out`; close = `in`), softness (0.15), ease (`ease`)                                   | B masked by a radial gradient circle growing from center to frame diagonal (`out`); `in`: A masked by a shrinking circle over B |
+| `clock` Clock wipe                                  | basic            | direction `cw\|ccw` (`cw`), softness (0.05), ease (`linear`)                                                | B masked by a pie from 12 o'clock sweeping `2π·t`; softness via a second wider pie at partial alpha                             |
+| `split-h` Split · `split-v` Split vertical          | basic, "Split"   | direction `horizontal\|vertical` (`horizontal`), mode `open\|close` (`open`), softness (0.1), ease (`ease`) | barn doors: B revealed by a centered band growing to full (`open`) or two bands closing from the edges (`close`)                |
+| `blink` Blink                                       | light            | color (`#000000`), ease (`ease`)                                                                            | two lids (filled rects with a soft gradient edge) close on A by 0.5 and open on B                                               |
 
 - [ ] **Step 1: Write the four presets and their variants**; add them to `builtInPresets` after the wipes (blink after glare).
 - [ ] **Step 2: Verify** checks PASS; in the app each tile's thumbnail animates on hover and progress 0/1 shows exactly A/B.
@@ -189,10 +192,10 @@ CHANGELOG.md, CHANGELOG.es.md  M  one entry each
 
 **Interfaces:** Consumes Task 2 helpers and `directionalBlurPass`, `drawGpu` (Task 3), `env.gpu` / `env.withoutGpu` (Task 1).
 
-| id → name | category, family | options (defaults) | draw |
-| --------- | ---------------- | ------------------ | ---- |
-| `push-left` Push left · `push-right` · `push-up` · `push-down` | motion, "Push" | direction `left\|right\|up\|down` (`left`), ease (`ease`), intensity (0.5) = motion blur | A and B side by side shifted by `eased(t)·size`; with `env.gpu` and intensity > 0, the pair is drawn into a ghost canvas and blurred along the motion with length `intensity · bump(t) · 0.08`; without gpu and intensity > 0, call `env.withoutGpu()` and draw unblurred |
-| `slide-left` Slide left · `slide-up` Slide up | motion, "Slide" | direction (`left`), ease (`snap`) | A still; B slides in over it from the opposite edge |
+| id → name                                                      | category, family | options (defaults)                                                                       | draw                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `push-left` Push left · `push-right` · `push-up` · `push-down` | motion, "Push"   | direction `left\|right\|up\|down` (`left`), ease (`ease`), intensity (0.5) = motion blur | A and B side by side shifted by `eased(t)·size`; with `env.gpu` and intensity > 0, the pair is drawn into a ghost canvas and blurred along the motion with length `intensity · bump(t) · 0.08`; without gpu and intensity > 0, call `env.withoutGpu()` and draw unblurred |
+| `slide-left` Slide left · `slide-up` Slide up                  | motion, "Slide"  | direction (`left`), ease (`snap`)                                                        | A still; B slides in over it from the opposite edge                                                                                                                                                                                                                       |
 
 - [ ] **Step 1: Write both presets and variants**; add after the split in `builtInPresets`.
 - [ ] **Step 2: Verify** checks PASS; in the app push blurs mid-move with a GPU, and with `intensity: 0` never calls `withoutGpu`.
@@ -204,11 +207,11 @@ CHANGELOG.md, CHANGELOG.es.md  M  one entry each
 
 **Interfaces:** Consumes Task 2 helpers, `zoomBlurPass`, `spinBlurPass`, `directionalBlurPass`, `drawGpu`, `ghostCanvas`, `env.random`.
 
-| id → name | family | options (defaults) | draw |
-| --------- | ------ | ------------------ | ---- |
-| `zoom-in` Zoom in · `zoom-out` Zoom out | "Zoom" | direction `in\|out` (`in`), intensity (0.6), ease (`ease`) | cut at 0.5; A scales 1→(1+intensity) (in) or 1→1/(1+intensity) shown with B from the inverse; radial blur strength `intensity · bump(t)` around the center |
-| `spin` Spin · `spin-ccw` Spin left | "Spin" | direction `cw\|ccw` (`cw`), intensity (0.6), ease (`ease`) | cut at 0.5; rotate by `±π/2 · eased(t)` mirrored after the cut, scale 1+0.3·bump so corners stay covered; rotational blur `angle = intensity · bump(t) · 0.6` |
-| `shake` Shake | — | intensity (0.5) | cut at 0.5; offsets from `env.random()` per frame step (12 steps over the transition) scaled by `intensity · bump(t) · 0.04 · width`; directional blur along the last offset |
+| id → name                               | family | options (defaults)                                         | draw                                                                                                                                                                         |
+| --------------------------------------- | ------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `zoom-in` Zoom in · `zoom-out` Zoom out | "Zoom" | direction `in\|out` (`in`), intensity (0.6), ease (`ease`) | cut at 0.5; A scales 1→(1+intensity) (in) or 1→1/(1+intensity) shown with B from the inverse; radial blur strength `intensity · bump(t)` around the center                   |
+| `spin` Spin · `spin-ccw` Spin left      | "Spin" | direction `cw\|ccw` (`cw`), intensity (0.6), ease (`ease`) | cut at 0.5; rotate by `±π/2 · eased(t)` mirrored after the cut, scale 1+0.3·bump so corners stay covered; rotational blur `angle = intensity · bump(t) · 0.6`                |
+| `shake` Shake                           | —      | intensity (0.5)                                            | cut at 0.5; offsets from `env.random()` per frame step (12 steps over the transition) scaled by `intensity · bump(t) · 0.04 · width`; directional blur along the last offset |
 
 Each: when `env.gpu` is absent and the blur amount > 0, call `env.withoutGpu()` once per draw and draw the transform without blur. Each gets a `thumbnail` that suggests the blur with 4 stacked copies at decreasing alpha (no GPU in thumbnails).
 
@@ -220,12 +223,12 @@ Each: when `env.gpu` is absent and the blur amount > 0, call `env.withoutGpu()` 
 
 **Files:** Create `presets/leak.ts`, `presets/pixelate.ts`, `presets/luma.ts`, `presets/ripple.ts`; modify `presets/presets.ts`.
 
-| id → name | category, family | options (defaults) | draw |
-| --------- | ---------------- | ------------------ | ---- |
-| `light-leak` Light leak · `film-burn` Film burn | light, "Light leak" | color (`#ffb347`; burn `#ff5a1f`), intensity (0.7; burn 1) | cross-dissolve A→B under 3 radial gradient blobs (positions from `env.random()`, drifting with `t`) added with `lighter` at `intensity · bump(t)` |
-| `pixelate` Pixelate | distort | intensity (0.6) | cut at 0.5; draw the source into a scratch canvas `max(1, width / (1 + 63·intensity·bump(t)))` wide with `imageSmoothingEnabled = false`, then scale back up |
-| `luma-fade` Luma fade | distort | direction `dark\|light` (`dark`), softness (0.1) | GPU: `lumaKeyPass(-1, -2, t·(1+2s)−s, s, light)`; without gpu: `env.withoutGpu()` and a cross dissolve |
-| `ripple` Ripple | distort | intensity (0.5) | GPU: `ripplePass` on A then B, amount `intensity·bump(t)·0.03`, cross-dissolve between them (one run with both sources); without gpu: `withoutGpu()` and a cross dissolve |
+| id → name                                       | category, family    | options (defaults)                                         | draw                                                                                                                                                                      |
+| ----------------------------------------------- | ------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `light-leak` Light leak · `film-burn` Film burn | light, "Light leak" | color (`#ffb347`; burn `#ff5a1f`), intensity (0.7; burn 1) | cross-dissolve A→B under 3 radial gradient blobs (positions from `env.random()`, drifting with `t`) added with `lighter` at `intensity · bump(t)`                         |
+| `pixelate` Pixelate                             | distort             | intensity (0.6)                                            | cut at 0.5; draw the source into a scratch canvas `max(1, width / (1 + 63·intensity·bump(t)))` wide with `imageSmoothingEnabled = false`, then scale back up              |
+| `luma-fade` Luma fade                           | distort             | direction `dark\|light` (`dark`), softness (0.1)           | GPU: `lumaKeyPass(-1, -2, t·(1+2s)−s, s, light)`; without gpu: `env.withoutGpu()` and a cross dissolve                                                                    |
+| `ripple` Ripple                                 | distort             | intensity (0.5)                                            | GPU: `ripplePass` on A then B, amount `intensity·bump(t)·0.03`, cross-dissolve between them (one run with both sources); without gpu: `withoutGpu()` and a cross dissolve |
 
 - [ ] **Step 1: Write the four presets and the film-burn variant**; add them in category order.
 - [ ] **Step 2: Verify** checks PASS; live: luma fade reveals dark areas first, `direction: light` the reverse.
