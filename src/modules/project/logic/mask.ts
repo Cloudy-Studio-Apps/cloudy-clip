@@ -171,6 +171,9 @@ const LENGTHS = new Set(["x", "y", "feather", "expansion"]);
 const SHAPE_LENGTHS = new Set(["width", "height"]);
 const POINT_LENGTHS = new Set(["x", "y", "inX", "inY", "outX", "outY"]);
 
+/** The field a mask key path names (`x`, `width`), or a point's coordinate, which has no range. */
+const maskField = (path: string) => (path.includes(".points.") ? "" : path.split(".").pop()!);
+
 /** Whether a key path (`masks.<id>.x`, `masks.<id>.shape.points.<pid>.inX`) holds a length. */
 function isLength(path: string): boolean {
   const [head, , ...rest] = path.split(".");
@@ -181,14 +184,16 @@ function isLength(path: string): boolean {
   return rest.length === 4 && rest[1] === "points" && POINT_LENGTHS.has(rest[3]!);
 }
 
-/** A scaled feather or expansion, held to its range so a resize can't make an invalid document. */
-const clamp = (value: number, field: "feather" | "expansion") =>
-  Math.min(MASK_RANGES[field]!.max, Math.max(MASK_RANGES[field]!.min, value));
+/** A scaled length held to its field's range (if it has one), so a resize can't make an invalid document. */
+function scaled(value: number, k: number, field: string): number {
+  const range = MASK_RANGES[field];
+  return range ? Math.min(range.max, Math.max(range.min, value * k)) : value * k;
+}
 
 /**
  * The clip's masks and keys with every length scaled by `k`: positions, sizes, feather, expansion
- * and path point coordinates and handles, static and keyed. For resizing a composition.
- * shortcut: a whole-shape ("Path") key's value isn't scaled, upgrade when such keys exist.
+ * and path point coordinates and handles, static and keyed, each held to its `MASK_RANGES` range.
+ * For resizing a composition.
  */
 export function scaleMasks(clip: Clip, k: number): Pick<Clip, "masks" | "animation"> {
   const masks =
@@ -196,8 +201,8 @@ export function scaleMasks(clip: Clip, k: number): Pick<Clip, "masks" | "animati
     Object.fromEntries(
       Object.entries(clip.masks).map(([id, m]) => {
         const shape = { ...m.shape };
-        if ("width" in shape) shape.width *= k;
-        if ("height" in shape) shape.height *= k;
+        if ("width" in shape) shape.width = scaled(shape.width, k, "width");
+        if ("height" in shape) shape.height = scaled(shape.height, k, "height");
         if (shape.kind === "path") {
           shape.points = Object.fromEntries(
             Object.entries(shape.points).map(([pid, p]) => [
@@ -217,10 +222,10 @@ export function scaleMasks(clip: Clip, k: number): Pick<Clip, "masks" | "animati
           id,
           {
             ...m,
-            x: m.x * k,
-            y: m.y * k,
-            feather: clamp(m.feather * k, "feather"),
-            expansion: clamp(m.expansion * k, "expansion"),
+            x: scaled(m.x, k, "x"),
+            y: scaled(m.y, k, "y"),
+            feather: scaled(m.feather, k, "feather"),
+            expansion: scaled(m.expansion, k, "expansion"),
             shape,
           },
         ];
@@ -235,7 +240,9 @@ export function scaleMasks(clip: Clip, k: number): Pick<Clip, "masks" | "animati
           ? {
               ...track,
               keys: track.keys.map((key) =>
-                typeof key.value === "number" ? { ...key, value: key.value * k } : key,
+                typeof key.value === "number"
+                  ? { ...key, value: scaled(key.value, k, maskField(path)) }
+                  : key,
               ),
             }
           : track,

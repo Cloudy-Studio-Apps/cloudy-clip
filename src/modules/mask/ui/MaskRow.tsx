@@ -5,11 +5,12 @@ import {
   MoreVertical,
   MoveDown,
   MoveUp,
+  Palette,
   Spline,
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { MARKER_HEX, type ClipMask } from "@/modules/project";
+import { MARKER_COLORS, MARKER_HEX, type ClipMask } from "@/modules/project";
 import { IconButton, MenuList, Popover, SelectField, cn } from "@/ui";
 import type { useMaskEdit } from "./mask.edit.hook";
 
@@ -19,6 +20,19 @@ const MODES = [
   { value: "intersect", label: "Intersect" },
   { value: "difference", label: "Difference" },
 ];
+
+/** A swatch for each color, drawn where a menu entry's icon goes. */
+const SWATCHES = Object.fromEntries(
+  MARKER_COLORS.map((color) => [
+    color,
+    ({ className }: { className?: string }) => (
+      <span
+        className={cn(className, "rounded-xs")}
+        style={{ backgroundColor: MARKER_HEX[color] }}
+      />
+    ),
+  ]),
+);
 
 interface MaskRowProps {
   clipId: string;
@@ -30,7 +44,7 @@ interface MaskRowProps {
   onSelect(): void;
 }
 
-/** One mask of the list: color, name (double-click renames), mode, invert, on, and a menu. */
+/** One mask of the list: color, name (double-click renames), mode, invert, on, and a menu (its color among them). */
 export function MaskRow({ clipId, mask, index, count, selected, edit, onSelect }: MaskRowProps) {
   const [name, setName] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
@@ -54,6 +68,15 @@ export function MaskRow({ clipId, mask, index, count, selected, edit, onSelect }
           },
         ]
       : []),
+    {
+      label: "Color",
+      icon: Palette,
+      items: MARKER_COLORS.map((color) => ({
+        label: color[0]!.toUpperCase() + color.slice(1),
+        icon: SWATCHES[color],
+        onSelect: () => color !== mask.color && patch({ color }),
+      })),
+    },
     {
       label: "Move up",
       icon: MoveUp,

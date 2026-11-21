@@ -3,6 +3,9 @@ import { MARKER_COLORS } from "@/modules/project";
 
 const finite = z.number().finite();
 
+/** The most points a path mask takes from input. */
+export const MAX_POINTS = 2000;
+
 /** A point of a path mask: handles default to 0 (a corner). */
 export const maskPoint = z.object({
   x: finite,

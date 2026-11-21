@@ -13,7 +13,7 @@ import {
   type PointId,
 } from "@/modules/project";
 import { requireMask, requirePictureClip } from "./mask.guards";
-import { maskPoint } from "./mask.schema";
+import { MAX_POINTS, maskPoint } from "./mask.schema";
 import {
   dropFlat,
   keyInto,
@@ -32,13 +32,15 @@ const invalid = (message: string) => new CommandFailure("mask.invalid", message)
 export const setPoints = defineCommand({
   id: "mask.setPoints",
   label: "Edit mask points",
-  description:
-    'Sets the points of a path mask, in order (3 or more { id?, x, y, inX, inY, outX, outY }, relative to the mask\'s x/y as mask_list gives them, handles as offsets). Listed ids keep their point, a point without an id is new, unlisted points go with their keys. When the points have keys, "at" (timeline microseconds) keys the six coordinates of every changed point there; without it a changed keyed coordinate fails with mask.animated. "insertAt" { after, t } marks the one new point as inserted on the segment after point "after" at t (0-1): on an animated path it gets keys at every key time of the path, placed on that time\'s curve, and its neighbors\' handles are keyed to keep each shape. Fails with mask.clip_not_found, mask.not_found, mask.invalid and mask.animated. Returns { pointIds }.',
+  description: `Sets the points of a path mask, in order (3 to ${MAX_POINTS} { id?, x, y, inX, inY, outX, outY }, relative to the mask's x/y as mask_list gives them, handles as offsets). Listed ids keep their point, a point without an id is new, unlisted points go with their keys. When the points have keys, "at" (timeline microseconds) keys the six coordinates of every changed point there; without it a changed keyed coordinate fails with mask.animated. "insertAt" { after, t } marks the one new point as inserted on the segment after point "after" at t (0-1): on an animated path it gets keys at every key time of the path, placed on that time's curve, and its neighbors' handles are keyed to keep each shape. Fails with mask.clip_not_found, mask.not_found, mask.invalid and mask.animated. Returns { pointIds }.`,
   undoable: true,
   input: z.object({
     clipId: z.string(),
     maskId: z.string(),
-    points: z.array(maskPoint.extend({ id: z.string().optional() })).min(3),
+    points: z
+      .array(maskPoint.extend({ id: z.string().optional() }))
+      .min(3)
+      .max(MAX_POINTS),
     insertAt: z.object({ after: z.string(), t: z.number().min(0).max(1) }).optional(),
     at: z.number().int().min(0).optional(),
   }),
@@ -49,7 +51,10 @@ export const setPoints = defineCommand({
     const shape = requireMask(clip, maskId).shape;
     if (shape.kind !== "path") throw invalid(`Mask "${maskId}" is not a path.`);
     const listed = points.flatMap((p) => (p.id === undefined ? [] : [p.id]));
-    if (new Set(listed).size !== listed.length || listed.some((id) => !Object.hasOwn(shape.points, id))) {
+    if (
+      new Set(listed).size !== listed.length ||
+      listed.some((id) => !Object.hasOwn(shape.points, id))
+    ) {
       throw invalid("Each id must be a point of the mask, listed once.");
     }
     const order: PointId[] = points.map((p) => p.id ?? createId("point"));

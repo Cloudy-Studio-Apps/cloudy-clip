@@ -13,7 +13,7 @@ import {
 } from "@/modules/project";
 import { buildMask } from "./mask.build";
 import { checkRange, requireMask, requirePictureClip } from "./mask.guards";
-import { maskMode, maskNumbers, maskPatch, maskPoint } from "./mask.schema";
+import { MAX_POINTS, maskMode, maskNumbers, maskPatch, maskPoint } from "./mask.schema";
 
 const PRESETS = ["rectangle", "ellipse", "star", "heart", "linear", "mirror"] as const;
 const SPACE =
@@ -23,12 +23,12 @@ const SPACE =
 export const addMask = defineCommand({
   id: "mask.add",
   label: "Add mask",
-  description: `Adds a mask to each of the picture clips (one undo step). Give exactly one of "preset" (${PRESETS.join(", ")}; centered, half the frame in size, Mirror a quarter of its height) or "points" (3 or more { x, y, inX, inY, outX, outY }, handles as offsets, 0 = a corner; a closed Bézier path). "values" may set opacity (0-1), feather (0-2000), expansion (-2000-2000), x, y, rotation, and width, height, roundness (0-1), points (3-24), inner (0.05-1) where the shape has them. "mode" is add (default), subtract, intersect or difference; "name" defaults to "Mask N". ${SPACE} Fails with mask.clip_not_found, mask.not_picture (audio clips and clips with no picture) and mask.invalid. Returns { maskIds } by clip id.`,
+  description: `Adds a mask to each of the picture clips (one undo step). Give exactly one of "preset" (${PRESETS.join(", ")}; centered, half the frame in size, Mirror a quarter of its height) or "points" (3 to ${MAX_POINTS} { x, y, inX, inY, outX, outY }, handles as offsets, 0 = a corner; a closed Bézier path). "values" may set opacity (0-1), feather (0-2000), expansion (-2000-2000), x, y, rotation, and width, height, roundness (0-1), points (3-24), inner (0.05-1) where the shape has them. "mode" is add (default), subtract, intersect or difference; "name" defaults to "Mask N". ${SPACE} Fails with mask.clip_not_found, mask.not_picture (audio clips and clips with no picture) and mask.invalid. Returns { maskIds } by clip id.`,
   undoable: true,
   input: z.object({
     clipIds: z.array(z.string()).min(1),
     preset: z.enum(PRESETS).optional(),
-    points: z.array(maskPoint).optional(),
+    points: z.array(maskPoint).max(MAX_POINTS).optional(),
     values: maskNumbers.optional(),
     mode: maskMode.optional(),
     name: z.string().trim().min(1).optional(),
