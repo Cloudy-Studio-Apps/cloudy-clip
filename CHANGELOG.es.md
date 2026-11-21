@@ -37,6 +37,17 @@ Read in [English](CHANGELOG.md).
   sobre el pivote.
 - Los agentes tienen `transform_flip`, y `element_set_props` acepta `scaleX`, `scaleY`, `pivotX`
   y `pivotY` dentro de `transform`.
+- **Subtítulos:** marca clips de texto como subtítulos, cada uno con un estilo (Classic, Punchy,
+  Intense, Whisper o uno tuyo) que fija su aspecto y posición. Si cambias un estilo, cambian todos
+  los subtítulos que lo seguían; uno que cambiaste a mano conserva sus valores (se muestra con un
+  rombo, con la acción Restablecer al estilo).
+- Una página **Subtítulos** lista cada cue con palabras y tiempos editables, añade, divide y une
+  cues, ajusta tiempos con las teclas `[`, `]` y Alt+flechas, y muestra la imagen y el sonido bajo
+  la línea de tiempo. Importa y exporta `.srt` (y lee `.vtt`).
+- Los agentes tienen `subtitle_add_style`, `subtitle_update_style`, `subtitle_rename_style`,
+  `subtitle_remove_style`, `subtitle_reorder_styles`, `subtitle_mark`, `subtitle_unmark`,
+  `subtitle_reset_to_style`, `subtitle_add_cue`, `subtitle_split_cue`, `subtitle_merge_cues`,
+  `subtitle_import` y `subtitle_to_srt`.
 
 ## [0.1.0] - 2026-11-17
 

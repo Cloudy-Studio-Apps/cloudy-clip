@@ -135,6 +135,11 @@ Tabs **Style | Cue** (`view.tab`).
   paths, on every selected cue when the clip is one of them). It shows in the Cue tab and in the
   editor's inspector.
 
+## Known limits
+
+- The Cue tab's field actions (keys, ◆) act on the first selected cue.
+- The Cue tab has no Position section: x / y live in the editor's Transform.
+
 ## In the editor
 
 - `CueBadge`: "CC" in the style's color at the bottom right of a marked clip (editor scope only).

@@ -9,7 +9,7 @@ Two product ideas drive the architecture:
 1. **Agents are first-class editors.** An MCP server is built in and on by default. An agent can do anything a user can do, on the same live project, and the user can undo it. Neither side has powers the other lacks. The user's own app settings, like the theme, aren't part of the project: those stay the user's alone.
 2. **Plugins come later, but the API is designed now.** Built-in modules register through the same surface third-party plugins will use.
 
-**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, clip sound controls, constant clip speed with Freeze frame and Reverse, text clips with full styling and fonts, solid colors and gradients, blend modes and opacity, junctions with transitions between clips, stickers in packs, keyframes on values and sound with curves, speed ramps, color grading on the Tint page, and a Settings window with themes). Projects save and reopen (workspace), and compositions export to files (export). No picture effects or AI features yet. Do not scaffold modules beyond this unless asked.
+**Scope of v1:** media import, timeline, timeline preview (plus the inspector, canvas transforms, linked picture/sound clips, clip sound controls, constant clip speed with Freeze frame and Reverse, text clips with full styling and fonts, solid colors and gradients, blend modes and opacity, junctions with transitions between clips, stickers in packs, keyframes on values and sound with curves, speed ramps, color grading on the Tint page, subtitles marked on text clips, with styles, the Subtitles page and `.srt` in and out, and a Settings window with themes). Projects save and reopen (workspace), and compositions export to files (export). No picture effects or AI features yet. Do not scaffold modules beyond this unless asked.
 
 ## Commands
 
@@ -130,6 +130,7 @@ src/
     collab/     agents as collaborators: presence, access, pointer, Follow (feature)
     tint/       the Tint page: grading as layers or nodes, scopes, looks (feature)
     sound/      the Sound page, empty for now (feature)
+    subtitle/   subtitles: text clips marked as cues of a style, the Subtitles page, `.srt` in and out (feature)
     export/     the Export page and queue: frames from the preview engine, sound mixed by FFmpeg (feature)
     workspace/  the open project: start dialog, save, autosave, open, recent list
 src-tauri/      the Rust side: native media server + proxies (media/), export through FFmpeg (export/), installed fonts (fonts/), MCP server (mcp/), project files (workspace/), LUT files (tint/)

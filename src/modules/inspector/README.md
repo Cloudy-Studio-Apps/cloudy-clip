@@ -25,7 +25,7 @@ panel, without tabs.
   - `sectionLayouts` (keyed by `id`): `{ id, component }` gets `SectionLayoutProps` (`section`,
     `clip`, `values`, `live`, `renderItem`, `enabled(path)`). Built in: `section`
     (`ui/PanelSection.tsx`): collapsible, the group's toggle as a `Switch` in the header (disabled
-    when `enabled(header)` is false), items only while it is on.
+    when `enabled(header)` is false), items stay shown, disabled while it is off.
   - `inspectorTabs` (keyed by `id`): `{ id, label, icon, order, contextual? }`. A tab holds no logic:
     it is available exactly when a section lands in it, else greyed out, or left out when
     `contextual` (Text, Sticker, from their modules). `logic/tabs.ts`: `sectionTab`, `tabStates`,

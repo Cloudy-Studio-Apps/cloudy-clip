@@ -34,6 +34,17 @@ Leer en [español](CHANGELOG.es.md).
   pivot.
 - Agents get `transform_flip`, and `element_set_props` takes `scaleX`, `scaleY`, `pivotX` and
   `pivotY` under `transform`.
+- **Subtitles:** mark text clips as subtitles, each with a style (Classic, Punchy, Intense, Whisper
+  or your own) that sets its look and position. Change a style and every subtitle that followed it
+  changes; a subtitle you changed by hand keeps its own values (shown with a diamond, with a
+  Reset to style action).
+- A **Subtitles** page lists every cue with editable words and times, adds, splits and merges cues,
+  nudges times with the `[`, `]` and Alt+arrow keys, and shows the picture and sound under the
+  timeline. Import and export `.srt` (and read `.vtt`).
+- Agents get `subtitle_add_style`, `subtitle_update_style`, `subtitle_rename_style`,
+  `subtitle_remove_style`, `subtitle_reorder_styles`, `subtitle_mark`, `subtitle_unmark`,
+  `subtitle_reset_to_style`, `subtitle_add_cue`, `subtitle_split_cue`, `subtitle_merge_cues`,
+  `subtitle_import` and `subtitle_to_srt`.
 
 ## [0.1.0] - 2026-11-17
 
