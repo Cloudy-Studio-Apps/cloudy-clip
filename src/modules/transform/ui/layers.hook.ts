@@ -13,7 +13,7 @@ const keyOf = (layers: readonly VisibleLayer[]) =>
   layers
     .map((l) => {
       const t = TRANSFORM_KEYS.map((key) => l.transform[key]).join(",");
-      return `${l.clipId}:${l.source.width}x${l.source.height}@${t}`;
+      return `${l.clipId}${l.matte ? "m" : ""}:${l.source.width}x${l.source.height}@${t}`;
     })
     .join("|");
 
