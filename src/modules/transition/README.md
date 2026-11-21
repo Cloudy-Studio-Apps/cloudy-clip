@@ -44,8 +44,9 @@ name, overrides)` makes a variant of a preset.
       `drawStacked`.
     - `presets.camera.ts`: `drawMoved`, a picture scaled, turned and moved, with mirrored edges.
   - `logic/`: `easing.ts`, `noise.ts` (seeded random, block masks), `grid.ts` (the block grid of the
-    dissolve), `color.ts`, `gpu.ts` (GPU passes for presets: zoom, spin and directional blur, luma
-    key, ripple and mix; `drawGpu` draws a run over the canvas), `categories.ts` (the tab's sections),
+    dissolve), `color.ts`, `direction.ts` (`isVertical`, `directionOffset`: where push, slide and
+    woosh draw a picture for a `left`/`right`/`up`/`down` move), `gpu.ts` (GPU passes for presets:
+    zoom, spin and directional blur, luma key, ripple and mix; `drawGpu` draws a run over the canvas), `categories.ts` (the tab's sections),
     `options.ts` (`optionFields`, `optionsPatch`), `preview.ts` (`previewOnCut`).
   - `ui/`: `TransitionsPanel` (one section per category, ordered by `logic/categories.ts`),
     `PresetTile` (click: `transition.apply` on the selected junction, else the cut after the
@@ -106,7 +107,7 @@ variant's look is its base's look with the change named in it.
 | blur     | `woosh-up`       | Woosh up       | Woosh, moving up                                                                          |
 | distort  | `pixelate`       | Pixelate       | a turns into big blocks, cuts to b at the middle, and b sharpens again                    |
 | distort  | `luma-fade`      | Luma fade      | b appears through a's brightness, dark areas first; GPU, else a cross dissolve            |
-| distort  | `ripple`         | Ripple         | rings bend both pictures while a dissolves into b; GPU, else a cross dissolve             |
+| distort  | `ripple`         | Ripple         | rings bend both pictures while a dissolves into b; GPU, else a scaled dissolve            |
 | glitch   | `glitch`         | Glitch         | seeded horizontal slices shift, with a red/blue split at the cut                          |
 | glitch   | `rgb-split`      | RGB split      | Glitch with no slices, only the colour split                                              |
 
@@ -137,11 +138,16 @@ Dissolve has `grain`, glitch has `slices` and split has `mode` (open or close) o
 
 Zoom, spin, shake and push blur their motion on the GPU, and luma fade and ripple are drawn with GPU
 passes (in `logic/gpu.ts`). A mix sees the GPU as `env.gpu` (`MixGpu`), and when it is absent calls
-`env.withoutGpu()` and draws the plainer 2D look:
+`env.withoutGpu()` and draws the plainer 2D look. Each blur takes 16 taps; each pixel starts its
+walk at a fraction of one step from interleaved gradient noise on its position, so the steps show
+as fine grain rather than bands at export size, and the same frame always renders the same. Taps
+and mixes are weighted by alpha (the runner's inputs are not premultiplied), so a transparent
+clip such as text or a sticker gets no dark halo.
 
-- **Live preview** without WebGL2: the plainer look is drawn (no blur; luma fade and ripple show a
-  cross dissolve). The preview shows a notice once per session: "Some transitions need the graphics
-  card; they show without blur for now."
+- **Live preview** without WebGL2: the plainer look is drawn (no blur; luma fade shows a cross
+  dissolve, ripple a cross dissolve with a slight scale). `drawBlurred` draws the unblurred scene
+  straight over the tracks below and never clears them. The preview shows a notice once per
+  session: "Some transitions need the graphics card; they show a simpler look for now."
 - **Export and captures** without the GPU: the frame fails with `GpuUnavailable` and the export
   stops with an error. It never writes the plainer look, and the presets do not catch GPU errors.
 - **Thumbnails** (the Transitions tab) have no GPU and always draw 2D, so their tiles show the plain
@@ -151,7 +157,9 @@ passes (in `logic/gpu.ts`). A mix sees the GPU as `env.gpu` (`MixGpu`), and when
 
 Zoom, spin and shake move or turn the picture, which would leave its edges empty. `drawMoved`
 (`presets.camera.ts`) fills them with mirrored tiles: the picture is drawn with its eight flipped
-neighbours under the same transform, so the frame is always covered.
+neighbours under the same transform, so the frame is always covered. That suits full-frame
+footage. On a clip that doesn't fill the frame (text, a sticker, picture-in-picture), mirrored
+copies of it can show while zooming out or spinning; that is a known limit.
 
 ## Commands and tools
 
