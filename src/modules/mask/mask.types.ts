@@ -1,5 +1,13 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { MaskId, MaskMode, PointId } from "@/modules/project";
+import type {
+  ClipMask,
+  MaskId,
+  MaskMapping,
+  MaskMode,
+  PointId,
+  ProjectFormat,
+  Vec2,
+} from "@/modules/project";
 
 /** The shapes a mask can be added as. */
 export type MaskPreset = "rectangle" | "ellipse" | "star" | "heart" | "linear" | "mirror";
@@ -56,6 +64,58 @@ export interface MaskFieldSpec {
 export interface MaskRowSpec {
   label: string;
   fields: MaskFieldSpec[];
+}
+
+/** Where a mask's own shape sits in mask space: its center (`x`, `y`) and its turn in degrees. */
+export interface MaskPlace {
+  x: number;
+  y: number;
+  rotation: number;
+}
+
+/**
+ * What a handle of the selected mask drags: the whole mask, a corner or side of a preset's box,
+ * its rotation, feather, a rectangle's roundness, a star's inner radius or a mirror's width.
+ */
+export type MaskHandleKind =
+  "move" | "corner" | "side" | "rotate" | "feather" | "roundness" | "inner" | "width";
+
+/** A handle of the selected mask on the canvas: where it sits (mask space) and which way it pulls. */
+export interface MaskHandle {
+  id: string;
+  kind: MaskHandleKind;
+  /** The side of the box it sits on, in the mask's own axes (-1, 0 or 1). */
+  dx: number;
+  dy: number;
+  at: Vec2;
+}
+
+/** What a canvas drag changes on a mask, as `mask.update` takes it in `patch`. */
+export interface MaskPatch {
+  x?: number;
+  y?: number;
+  rotation?: number;
+  feather?: number;
+  shape?: Record<string, number>;
+}
+
+/** A drag on a handle of the selected mask (`startMaskDrag`), captured when it starts. */
+export interface MaskDragOptions {
+  event: PointerEvent;
+  /** The overlay, which covers the frame exactly. */
+  frame: HTMLElement;
+  format: ProjectFormat;
+  /** The clip's `frameMapping`. */
+  mapping: MaskMapping;
+  /** The mask as drawn when the drag starts (its values at the playhead). */
+  mask: ClipMask;
+  handle: MaskHandle;
+  /** Each move past the threshold, with the patch so far. */
+  onMove(patch: MaskPatch): void;
+  /** Release after a drag. */
+  onDrop(patch: MaskPatch): void;
+  /** Escape or a cancelled pointer after a drag. */
+  onCancel(): void;
 }
 
 /** The mask module's API for one kernel. */

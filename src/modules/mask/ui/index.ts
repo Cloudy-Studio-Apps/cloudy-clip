@@ -2,6 +2,9 @@ import type { InspectorSectionItem } from "@/modules/inspector";
 import { MaskSection } from "./MaskSection";
 import { MatteSection } from "./MatteSection";
 
+export { MaskDrawing } from "./MaskDrawing";
+export { MaskOverlay } from "./MaskOverlay";
+
 const picture: InspectorSectionItem["appliesTo"] = ({ track }) => track.kind === "video";
 
 /** The Mask tab's sections: presets, list and fields; then the track matte. */
