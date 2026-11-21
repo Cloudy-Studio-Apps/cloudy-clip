@@ -1,10 +1,10 @@
 // WebKitGTK spike not run; a and b side by side in a scratch canvas, blurred along the move by a GPU pass (ruling R1).
 import { prop } from "@/modules/element";
 import { bump, eased } from "../logic/easing";
-import { directionalBlurPass, drawGpu } from "../logic/gpu";
+import { directionalBlurPass } from "../logic/gpu";
 import { defineTransitionPreset } from "../transition.points";
 import { drawOnly } from "./presets.mask";
-import { ghostCanvas } from "./presets.cache";
+import { drawBlurred } from "./presets.blur";
 import { easeProp, intensityProp } from "./presets.props";
 
 /** Blur length at full intensity and peak speed, in frame heights. */
@@ -37,24 +37,11 @@ export const pushPreset = defineTransitionPreset({
     const length =
       Math.min(1, Math.max(0, Number(props.intensity ?? 0.5))) * bump(progress) * MAX_BLUR;
     const blur = length > 1e-4;
-    if (blur && !env.gpu) env.withoutGpu();
-    const ghost = blur && env.gpu ? ghostCanvas(ctx.canvas, width, height) : null;
-    const target = ghost ? ghost.ctx : ctx;
     const at = (offset: number): [number, number] => (vertical ? [0, offset] : [offset, 0]);
-    target.save();
-    target.globalAlpha = 1;
-    target.globalCompositeOperation = "source-over";
-    if (ghost) target.clearRect(0, 0, width, height);
-    target.drawImage(a, ...at(shift), width, height);
-    target.drawImage(b, ...at(shift - size * sign), width, height);
-    target.restore();
-    if (ghost && env.gpu) {
-      ctx.save();
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
-      const dir: [number, number] = vertical ? [0, 1] : [1, 0];
-      drawGpu(ctx, env.gpu, [ghost.canvas], [directionalBlurPass(-1, dir, length)]);
-      ctx.restore();
-    }
+    const dir: [number, number] = vertical ? [0, 1] : [1, 0];
+    drawBlurred(ctx, env, blur, directionalBlurPass(-1, dir, length), (target) => {
+      target.drawImage(a, ...at(shift), width, height);
+      target.drawImage(b, ...at(shift - size * sign), width, height);
+    });
   },
 });
