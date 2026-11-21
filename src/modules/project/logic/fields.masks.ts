@@ -51,11 +51,12 @@ export function maskProblem(state: ProjectState): string | null {
     if (
       order.length !== ids.length ||
       new Set(order).size !== order.length ||
-      !order.every((id) => clip.masks?.[id])
+      !order.every((id) => clip.masks && Object.hasOwn(clip.masks, id))
     ) {
       return "a clip's mask order would not match its masks";
     }
-    for (const mask of Object.values(clip.masks ?? {})) {
+    for (const [key, mask] of Object.entries(clip.masks ?? {})) {
+      if (mask.id !== key) return "a mask would be stored under another id";
       if (!maskInRange(mask)) return "a mask would be out of range";
       const s = mask.shape;
       if (s.kind !== "path") continue;
@@ -64,7 +65,7 @@ export function maskProblem(state: ProjectState): string | null {
       if (
         s.pointOrder.length !== ids.length ||
         new Set(s.pointOrder).size !== ids.length ||
-        !s.pointOrder.every((id) => s.points[id])
+        !s.pointOrder.every((id) => Object.hasOwn(s.points, id))
       ) {
         return "a mask path's point order would not match its points";
       }

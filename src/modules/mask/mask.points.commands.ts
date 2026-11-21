@@ -49,7 +49,7 @@ export const setPoints = defineCommand({
     const shape = requireMask(clip, maskId).shape;
     if (shape.kind !== "path") throw invalid(`Mask "${maskId}" is not a path.`);
     const listed = points.flatMap((p) => (p.id === undefined ? [] : [p.id]));
-    if (new Set(listed).size !== listed.length || listed.some((id) => !shape.points[id])) {
+    if (new Set(listed).size !== listed.length || listed.some((id) => !Object.hasOwn(shape.points, id))) {
       throw invalid("Each id must be a point of the mask, listed once.");
     }
     const order: PointId[] = points.map((p) => p.id ?? createId("point"));
@@ -99,7 +99,7 @@ export const setPoints = defineCommand({
 
     if (animated) {
       for (const pid of order) {
-        const stored = shape.points[pid];
+        const stored = Object.hasOwn(shape.points, pid) ? shape.points[pid] : undefined;
         const reference = t === undefined || !stored ? stored : pointsAt(clip, maskId, [pid], t)[0];
         const changed = POINT_COORDS.filter(
           (c) => !exempt.has(`${pid}.${c}`) && next[pid]![c] !== reference?.[c],
@@ -121,7 +121,7 @@ export const setPoints = defineCommand({
       }
     }
 
-    const gone = Object.keys(shape.points).filter((pid) => !next[pid]);
+    const gone = Object.keys(shape.points).filter((pid) => !Object.hasOwn(next, pid));
     const tracks = withoutTracks(animation, (path) =>
       gone.some((pid) => path.startsWith(`${prefix}${pid}.`)),
     );

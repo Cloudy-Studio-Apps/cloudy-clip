@@ -5,7 +5,8 @@ import { MASK_RANGES, type Clip, type ClipMask, type ProjectState } from "@/modu
 
 /** The clip when it is a picture clip on a video track, or `mask.clip_not_found` / `mask.not_picture`. */
 export function requirePictureClip(ctx: CommandContext, state: ProjectState, id: string): Clip {
-  const clip = state.clips[id];
+  // Ids come from agents: own keys only, so "constructor" or "__proto__" is never a clip.
+  const clip = Object.hasOwn(state.clips, id) ? state.clips[id] : undefined;
   if (!clip) throw new CommandFailure("mask.clip_not_found", `No clip "${id}".`);
   const picture = ctx.require(elementRef).get(clip.kind)?.definition.picture;
   if (!picture || state.tracks[clip.trackId]?.kind !== "video") {
@@ -16,7 +17,7 @@ export function requirePictureClip(ctx: CommandContext, state: ProjectState, id:
 
 /** The mask, or `mask.not_found`. */
 export function requireMask(clip: Clip, maskId: string): ClipMask {
-  const mask = clip.masks?.[maskId];
+  const mask = clip.masks && Object.hasOwn(clip.masks, maskId) ? clip.masks[maskId] : undefined;
   if (!mask)
     throw new CommandFailure("mask.not_found", `Clip "${clip.id}" has no mask "${maskId}".`);
   return mask;

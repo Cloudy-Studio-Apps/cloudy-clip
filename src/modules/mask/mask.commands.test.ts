@@ -354,6 +354,32 @@ describe("masks", () => {
     }
   });
 
+  it("refuses prototype names as mask and point ids", async () => {
+    const before = doc();
+    for (const maskId of ["constructor", "__proto__", "toString"]) {
+      expect(await code(kernel.bus.run(reorderMask, { clipId: "k", maskId, index: 0 }))).toBe(
+        "mask.not_found",
+      );
+      expect(await code(kernel.bus.run(updateMask, { clipId: "k", maskId, patch: { x: 5 } }))).toBe(
+        "mask.not_found",
+      );
+    }
+    expect(
+      await code(kernel.bus.run(reorderMask, { clipId: "constructor", maskId: "m1", index: 0 })),
+    ).toBe("mask.clip_not_found");
+    expect(doc()).toBe(before);
+    expect(({} as Record<string, unknown>).x).toBeUndefined();
+    const [p1, p2, p3] = pointsAt(doc().clips.q!, 6 * S);
+    const points = [
+      { ...p1!, id: "constructor" },
+      { ...p2!, id: "p2" },
+      { ...p3!, id: "p3" },
+    ];
+    expect(await code(kernel.bus.run(setPoints, { clipId: "q", maskId: "m", points }))).toBe(
+      "mask.invalid",
+    );
+  });
+
   it("keying the last key away makes the value static", async () => {
     await ok(
       kernel.bus.run(removeKeys, {

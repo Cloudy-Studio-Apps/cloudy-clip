@@ -21,7 +21,7 @@ export const setMatte = defineCommand({
     const state = store.getState();
     const clips = clipIds.map((id) => requirePictureClip(ctx, state, id));
     if (trackId !== null) {
-      const matte = state.tracks[trackId];
+      const matte = Object.hasOwn(state.tracks, trackId) ? state.tracks[trackId] : undefined;
       if (!matte) throw new CommandFailure("mask.track_not_found", `No track "${trackId}".`);
       const all = Object.values(state.clips);
       for (const clip of clips) {

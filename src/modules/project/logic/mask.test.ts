@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { IDENTITY_TRANSFORM } from "../project.geometry";
+import { seedProject } from "../project.testing";
 import type { ClipMask } from "../project.types";
+import { maskProblem } from "./fields.masks";
 import { maskOutline, maskPlacement } from "./mask";
 
 function mask(shape: ClipMask["shape"], over: Partial<ClipMask> = {}): ClipMask {
@@ -21,6 +23,25 @@ function mask(shape: ClipMask["shape"], over: Partial<ClipMask> = {}): ClipMask 
 }
 
 describe("masks", () => {
+  it("refuses a mask order naming a prototype property", () => {
+    const clip = {
+      id: "a",
+      kind: "text",
+      trackId: "v1",
+      start: 0,
+      sourceIn: 0,
+      duration: 10,
+      props: {},
+      masks: { m: mask({ kind: "ellipse", width: 10, height: 10 }) },
+    };
+    const state = seedProject({ clips: { a: { ...clip, maskOrder: ["constructor"] } } });
+    expect(maskProblem(state)).toBe("a clip's mask order would not match its masks");
+    const keyed = seedProject({
+      clips: { a: { ...clip, maskOrder: ["m"], masks: { x: clip.masks.m } } },
+    });
+    expect(maskProblem(keyed)).not.toBeNull();
+  });
+
   it("maps the fitted picture to the frame regardless of pixel count", () => {
     const f = { width: 1920, height: 1080, fps: 30 };
     const t = { ...IDENTITY_TRANSFORM, scale: 2, scaleX: -1 };
