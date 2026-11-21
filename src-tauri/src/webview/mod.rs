@@ -11,6 +11,25 @@ use tauri::App;
 #[cfg(target_os = "linux")]
 const OPT_OUT_VAR: &str = "CLOUDY_CLIP_WEBKIT_DAMAGE";
 
+/// The app's sound streams opt out of WirePlumber's per-app volume memory. WebKitGTK makes an
+/// element's `volume` its stream's volume, and the preview keeps pictures at volume 0 (a muted
+/// `<video>` draws black), so WirePlumber saved "cloudy-clip = 0%" and gave it to the next
+/// stream, often the mixer's: the whole preview went silent. Call before any webview starts, so
+/// the WebKit processes inherit it.
+pub fn prepare() {
+    #[cfg(target_os = "linux")]
+    {
+        const FLAG: &str = "state.restore-props=false";
+        let props = match std::env::var("PULSE_PROP") {
+            Ok(v) if v.contains(FLAG) => return,
+            Ok(v) if !v.trim().is_empty() => format!("{v} {FLAG}"),
+            _ => FLAG.to_owned(),
+        };
+        // SAFETY: called first in `run`, before any thread is started.
+        unsafe { std::env::set_var("PULSE_PROP", props) };
+    }
+}
+
 /// Applies the workarounds to every webview window of the app.
 pub fn setup(app: &App) {
     #[cfg(target_os = "linux")]

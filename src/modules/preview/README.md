@@ -105,6 +105,10 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
     Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
     `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
     clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only).
+    WebKitGTK makes an element's `volume` its system stream's volume, and WirePlumber remembers
+    one volume per app and gives it to new streams: the pictures' 0 % landed on the mixer's
+    stream and the whole preview went silent. So the app's streams carry
+    `state.restore-props=false` (`PULSE_PROP`, set by `src-tauri/src/webview/mod.rs` at start).
     **A `<video>` is never muted, not even for a moment.** WebKitGTK suspends a muted video that
     isn't in the viewport (ours are never on the page) by setting its GStreamer pipeline to NULL,
     and resumes it when unmuted. A suspend that lands while the pipeline is starting (after the

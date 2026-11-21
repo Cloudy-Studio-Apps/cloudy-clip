@@ -12,6 +12,7 @@ mod workspace;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    webview::prepare();
     let result = tauri::Builder::default()
         .on_permission_request(sound::permission_request)
         .plugin(tauri_plugin_opener::init())
