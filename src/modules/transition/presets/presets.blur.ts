@@ -3,9 +3,11 @@ import { drawGpu } from "../logic/gpu";
 import { ghostCanvas } from "./presets.cache";
 
 /**
- * Draws `scene` on `ctx`, then blurs it by `pass` (which reads source `-1`, the scene) on the GPU.
- * `blur` false draws the scene alone; true without a GPU calls `env.withoutGpu()` and draws it
- * unblurred. A GPU failure is not caught: an export must fail loudly.
+ * Draws `scene` over `ctx` blurred by `pass` (which reads source `-1`, the scene): the scene goes
+ * into a cleared scratch canvas, which the GPU blurs onto `ctx`. `blur` false draws the scene
+ * straight onto `ctx`; `blur` true with no GPU, or no scratch canvas, calls `env.withoutGpu()` and
+ * draws it there unblurred. `ctx` is never cleared: it holds the tracks below. A GPU failure is not
+ * caught: an export must fail loudly.
  */
 export function drawBlurred(
   ctx: CanvasRenderingContext2D,
@@ -21,7 +23,7 @@ export function drawBlurred(
   target.save();
   target.globalAlpha = 1;
   target.globalCompositeOperation = "source-over";
-  target.clearRect(0, 0, width, height);
+  if (ghost) ghost.ctx.clearRect(0, 0, width, height);
   scene(target);
   target.restore();
   if (ghost && env.gpu) {
