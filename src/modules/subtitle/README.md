@@ -8,7 +8,7 @@ the cues that still had its old value, and a cue that differed keeps its own. Ke
 written: their keys win.
 
 - **Tier:** feature
-- **Requires:** `project`, `element`, `text`, `fonts`, `timeline`, `preview`, `media`, `transform`, `inspector`
+- **Requires:** `project`, `element`, `text`, `fonts`, `timeline`, `preview`, `media`, `transform`, `inspector`, `workspace`
 - **Contributes:** the page `subtitle` (`SUBTITLE_PAGE`; `appPages`, "Subtitles", icon `Captions`,
   order 22, after Edit and before Tint and Sound, `keepsPlayback: true`, `timelineScope:
 "subtitle"`); the timeline overlay `subtitle.context` (`timelineOverlays`, scope `subtitle`: the

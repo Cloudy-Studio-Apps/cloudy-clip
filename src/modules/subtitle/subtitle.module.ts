@@ -34,6 +34,7 @@ export const subtitleModule = defineModule({
     "media",
     "transform",
     "inspector",
+    "workspace",
   ],
   commands: [
     addStyle,
