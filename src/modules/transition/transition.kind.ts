@@ -68,7 +68,7 @@ export function createTransitionKind(api: TransitionApi) {
     },
     display: (props) => {
       const preset = api.find(String(props.preset ?? ""));
-      return preset ? { label: preset.name } : {};
+      return preset ? { label: preset.family ?? preset.name } : {};
     },
   });
 }

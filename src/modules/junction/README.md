@@ -21,6 +21,12 @@ the preview mix are built on it by other modules.
 - **Files:**
   - `junction.types.ts`: `JunctionKindDefinition`, `OverlapRule`, `MixFn`/`MixEnv`,
     `NormalizeEnv` (`format`, `previous` resolved props, `{}` on add, and `patch`, the values the change gave), `JunctionDisplay`, `JunctionApi`.
+    `MixEnv` has `format`, `kx`/`ky`, `random()`, `elapsed`, `gpu?` (`MixGpu`:
+    `run(sources, size, passes)` returns a shared canvas, drawn before the next `run`) and
+    `withoutGpu()`, which a mix calls when it draws its plainer 2D path for want of `gpu`. The GPU
+    pass types live here, so a mix can name them, and `preview` re-exports them: `GpuPass`
+    (`inputs`: -1 is source 0, -2 source 1, n the output of pass n), `GpuUniform`, `GpuInt`,
+    `GpuTexture`.
   - `logic/define.ts`: `defineJunctionKind`.
   - `logic/limits.ts`: `durationLimits(kind, state, left, right)` → `DurationLimits`
     (`{0,0,0}` when the kind doesn't overlap; default clamped into min..max), `clampDuration`.
@@ -37,7 +43,11 @@ the preview mix are built on it by other modules.
   and `project_get_state` need no wiring). A kind never needs the `transition` feature, and no code
   outside a kind's module branches on its id. `timeline` draws the chips and keeps junctions valid
   in clip commands; `preview` calls `mix`, a hook with nothing transition-specific in it, so
-  effects and adjustment layers can reuse it later.
+  effects and adjustment layers can reuse it later. `junction` never imports `preview`: `preview`
+  hands its runner in as `env.gpu`. The strict rule (as masks): in the live preview `gpu` is
+  there only while WebGL2 works and `withoutGpu()` tells the user once per kernel; in a capture or
+  an export `withoutGpu()` and a missing GPU throw `GpuUnavailable`, which fails the frame, so an
+  export never writes the plainer look.
 - **Not yet:** other kinds (a sound on a cut, a flash frame, a beat marker).
 
 ## Rules

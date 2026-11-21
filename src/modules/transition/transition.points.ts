@@ -12,3 +12,22 @@ export function defineTransitionPreset(
 ): TransitionPresetDefinition {
   return def;
 }
+
+/**
+ * A preset that is another with different option defaults (a direction, a color): same look,
+ * its own tile, and the chip shows the base's family.
+ */
+export function variantOf(
+  base: TransitionPresetDefinition,
+  id: string,
+  name: string,
+  overrides: Record<string, unknown>,
+): TransitionPresetDefinition {
+  return {
+    ...base,
+    id,
+    name,
+    family: base.family ?? base.name,
+    defaults: (format) => ({ ...base.defaults(format), ...overrides }),
+  };
+}

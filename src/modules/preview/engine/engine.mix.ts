@@ -1,9 +1,12 @@
 import { createLogger } from "@/core";
+import type { MixEnv, MixGpu } from "@/modules/junction";
 import { clipComposite } from "@/modules/project";
+import { GpuUnavailable } from "../gpu/gpu.errors";
+import type { GpuRunner } from "../gpu/gpu.types";
 import { activeJunctions } from "../logic/junctions";
 import { seededRandom } from "../logic/random";
 import { landLayer } from "./engine.composite";
-import type { ClipDrawer, EngineOptions, TrackFrame } from "./engine.types";
+import type { ClipDrawer, EngineOptions, MixGpuHost, TrackFrame } from "./engine.types";
 
 /**
  * Pooled full-frame offscreen canvases, sized like the main canvas: a junction's two pictures
@@ -71,12 +74,52 @@ export class MixCanvases {
   }
 }
 
+/** `MixEnv.withoutGpu` in a capture or an export, which never writes a mix's plainer look. */
+const unavailable = (): never => {
+  throw new GpuUnavailable();
+};
+
+/**
+ * How an engine's mixes reach `runner`, made once per engine. In a capture or an export
+ * (`strict`) any error of a GPU run becomes `GpuUnavailable`, so `drawTrack` fails the frame
+ * rather than drawing the right clip over the left; `withoutGpu` throws there too.
+ */
+export function createMixGpuHost(
+  runner: GpuRunner | undefined,
+  strict: boolean,
+  withoutGpu: () => void,
+): MixGpuHost {
+  const run: MixGpu["run"] = (sources, size, passes) => {
+    if (!runner) throw new GpuUnavailable();
+    // The sources are the pool's canvases (and canvases a mix made), all uploadable.
+    const pictures = sources as readonly TexImageSource[];
+    if (!strict) return runner.run(pictures, size, passes);
+    try {
+      return runner.run(pictures, size, passes);
+    } catch (error) {
+      if (error instanceof GpuUnavailable) throw error;
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new GpuUnavailable(`A transition failed on the graphics card: ${reason}`, {
+        cause: error,
+      });
+    }
+  };
+  return {
+    runner,
+    gpu: runner ? { run } : undefined,
+    strict,
+    withoutGpu: strict ? unavailable : withoutGpu,
+  };
+}
+
 /**
  * Draws one video track's clips onto `ctx`. Under a junction whose kind has a `mix`, the left and
  * right pictures are drawn into the offscreen canvases and the mix draws the result in the
  * track's place. Otherwise (no junction, no `mix`, a missing kind) clips draw in start order, so
  * the right one covers the left. Offscreen a picture has no backdrop, so each keeps only its
  * opacity there: when both clips share a mode, the mix's result lands with it, else as Normal.
+ * The mix gets `gpu`'s runner while it is available; in a capture or an export (`strict`) doing
+ * without it throws `GpuUnavailable`, which fails the frame rather than drawing the 2D look.
  */
 export function drawTrack(
   ctx: CanvasRenderingContext2D,
@@ -84,6 +127,7 @@ export function drawTrack(
   canvases: MixCanvases,
   junctions: EngineOptions["junctions"],
   drawClip: ClipDrawer,
+  gpu: MixGpuHost,
 ): void {
   const active = activeJunctions(project, track.id, time).find(
     (a) => junctions.get(a.junction.kind)?.definition.mix !== undefined,
@@ -112,12 +156,21 @@ export function drawTrack(
     const kx = ctx.canvas.width / format.width;
     const ky = ctx.canvas.height / format.height;
     // A fresh generator each frame, seeded by the junction: the same noise on every frame.
-    const env = { format, kx, ky, random: seededRandom(junction.id), elapsed };
+    const env: MixEnv = {
+      format,
+      kx,
+      ky,
+      random: seededRandom(junction.id),
+      elapsed,
+      gpu: gpu.runner?.available ? gpu.gpu : undefined,
+      withoutGpu: gpu.withoutGpu,
+    };
     target.save();
     try {
       target.setTransform(1, 0, 0, 1, 0, 0);
       mix(target, a.canvas, b.canvas, progress, props, env);
     } catch (error) {
+      if (gpu.strict && error instanceof GpuUnavailable) throw error;
       if (!canvases.reported) {
         canvases.reported = true;
         log.error(

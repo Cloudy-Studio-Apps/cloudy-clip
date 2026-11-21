@@ -57,8 +57,10 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
     made the first time it is needed (live, each capture engine, each renderer; passed in
     `EngineOptions.gpu` and disposed with the engine). The only place in the app that creates a
     WebGL context. `run(source, size, passes)` uploads the source once (8-bit, not premultiplied, no
-    color-space conversion), runs `GpuPass`es in order (input -1 is the source, n the output of pass
-    n, as `u_in0`, `u_in1`…) on targets pooled by size and format (`gpu.targets.ts`: `RGBA16F` with
+    color-space conversion; `source` may be a list, each into its own texture of
+    `GpuContext.sources`, made on demand and deleted with the context), runs `GpuPass`es in order
+    (input -1 is the first source, -2 the second, n the output of pass n, as `u_in0`, `u_in1`…; a
+    pass reading a source that wasn't given throws) on targets pooled by size and format (`gpu.targets.ts`: `RGBA16F` with
     `EXT_color_buffer_float`, else `RGBA8`; at most 8 free kept), the last one on its canvas, which
     the caller draws before the next `run`. Targets go back to the pool in a `finally`. Uniforms: a
     number is a `float`, 2–4 numbers a `vec`, `gpuInt(…)` an `int`. Data textures
@@ -103,6 +105,10 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
     Elements are chosen by track kind: clips on video tracks get a `<video>` silenced with
     `volume = 0` (pictures only; WebKitGTK stops handing a `muted` video's frames to the canvas);
     clips on audio tracks get an `<audio>`, also for a video file's sound (same URL, sound only).
+    WebKitGTK makes an element's `volume` its system stream's volume, and WirePlumber remembers
+    one volume per app and gives it to new streams: the pictures' 0 % landed on the mixer's
+    stream and the whole preview went silent. So the app's streams carry
+    `state.restore-props=false` (`PULSE_PROP`, set by `src-tauri/src/webview/mod.rs` at start).
     **A `<video>` is never muted, not even for a moment.** WebKitGTK suspends a muted video that
     isn't in the viewport (ours are never on the page) by setting its GStreamer pipeline to NULL,
     and resumes it when unmuted. A suspend that lands while the pipeline is starting (after the
@@ -141,7 +147,16 @@ ready?(clip, project), passes(info) }`) changes a clip's own picture before it l
     once per engine and that frame shows the right picture over the left. `env` has the format,
     `kx`/`ky`, `elapsed` (seconds since the overlap started) and `random()`, a generator seeded by
     the junction id and re-created each frame (`logic/random.ts`), so noise is the same on every
-    frame. A kind without `mix` (or a kind that isn't registered) draws nothing extra: the clips
+    frame. `env.gpu` (`MixGpu`) runs passes on the engine's runner over the mix's sources (the
+    pool's canvases), only while the runner is `available`; the engine builds its `MixGpuHost`
+    once (`createMixGpuHost`: `runner`, the `MixGpu` over it, `strict` when `filterTarget` isn't
+    `"preview"`, `withoutGpu`). When `strict`, any error of a `run` (a lost context, a shader that
+    doesn't compile) comes out as `GpuUnavailable` with the original as `cause`. A mix without
+    `gpu` draws its 2D path and calls `env.withoutGpu()`: in the live preview that is
+    `EngineOptions.mixWithoutGpu` (`PreviewFilters.mixWithoutGpu`, one notice per kernel); in a
+    capture or an export it throws `GpuUnavailable`, and a mix that throws `GpuUnavailable` there is
+    rethrown, failing the frame instead of the right-over-left fallback, so an export never writes
+    the plainer look. A kind without `mix` (or a kind that isn't registered) draws nothing extra: the clips
     draw in start order, so the right covers the left. Nothing here is transition-specific;
     effects can reuse the hook later. The frame is painted only when both clips' frames are ready
     (rule 22). Each clip id has its own element (the pool only reuses a _free_ one), so the two

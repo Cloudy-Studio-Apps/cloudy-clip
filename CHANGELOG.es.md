@@ -10,6 +10,23 @@ Read in [English](CHANGELOG.md).
 
 ### Añadido
 
+- **Más transiciones: 33 mosaicos en la pestaña Transitions (transiciones), antes eran 7.**
+  **Basic** (básicas) añade **Clock wipe** (barrido de reloj), **Circle open** (círculo que se
+  abre), **Circle close** (círculo que se cierra), **Split** (partir), **Split vertical** (partir en
+  vertical), **Dip to white** (fundido a blanco) y **Top to bottom** (de arriba abajo); **Motion**
+  (movimiento) añade **Push left**, **Push right**, **Push up** y **Push down** (empujar a la
+  izquierda, a la derecha, arriba y abajo), **Slide left** (deslizar a la izquierda) y **Slide up**
+  (deslizar hacia arriba); **Camera** (cámara) añade **Zoom in** (acercar), **Zoom out** (alejar),
+  **Spin** (giro), **Spin left** (giro a la izquierda) y **Shake** (sacudida); **Light** (luz) añade
+  **Blink** (parpadeo), **Light leak** (fuga de luz) y **Film burn** (quemadura de película);
+  **Blur** (desenfoque) añade **Woosh up** (silbido hacia arriba); **Distort** (distorsión) añade
+  **Pixelate** (pixelado), **Luma fade** (fundido por luminancia) y **Ripple** (onda); **Glitch**
+  (fallo visual) añade **RGB split** (separación RGB). Donde aplican, usan las opciones comunes:
+  suavizado, dirección, intensidad, suavidad y color. **Zoom**, **Spin**, **Shake** y **Push**
+  necesitan la tarjeta gráfica para su desenfoque, y **Luma fade** y **Ripple** la necesitan del
+  todo. Sin ella, la vista previa los muestra más simples, una sola vez, con un aviso, y una
+  exportación se detiene con un mensaje en lugar de escribir la versión simple. Los agentes ven
+  todos los mosaicos con `transition_list_presets`.
 - **Seguir trayectoria:** dibuja una trayectoria sobre el fotograma, a mano alzada (un trazo que se
   suaviza en pocos puntos) o con la pluma (clic para esquinas, arrastrar para curvas), y cualquier
   número de clips la siguen. Progreso (0–100 %, con claves puestas por ti del inicio al final del

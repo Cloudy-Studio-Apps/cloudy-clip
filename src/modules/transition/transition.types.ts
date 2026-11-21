@@ -7,7 +7,18 @@ import type { ProjectFormat } from "@/modules/project";
 export interface TransitionPresetDefinition {
   id: string;
   name: string;
-  category: "basic" | "overlay" | "blur" | "glitch" | (string & {});
+  category:
+    | "basic"
+    | "motion"
+    | "camera"
+    | "light"
+    | "blur"
+    | "distort"
+    | "glitch"
+    | "overlay"
+    | (string & {});
+  /** Label of the chip on a junction; variants share their base's family. Defaults to `name`. */
+  family?: string;
   /** The preset's options. */
   properties: PropertyTree;
   defaults(format: ProjectFormat): Record<string, unknown>;

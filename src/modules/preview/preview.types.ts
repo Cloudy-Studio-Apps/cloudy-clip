@@ -855,6 +855,8 @@ export interface PreviewFilters {
   failed(id: string, error: unknown): void;
   /** A mask's feather or a luma matte failed on the GPU in the live preview: told once per kernel. */
   maskFailed(error: unknown): void;
+  /** A junction's mix drew its 2D path in the live preview for want of the GPU: told once per kernel. */
+  mixWithoutGpu(): void;
 }
 
 /** A level a gain reaches at a playhead time, on the way along volume lines. */

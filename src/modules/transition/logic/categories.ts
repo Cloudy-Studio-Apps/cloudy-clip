@@ -1,7 +1,16 @@
 import type { TransitionPresetDefinition } from "../transition.types";
 
 /** The categories listed first, in this order; any other category follows by name. */
-const KNOWN_CATEGORIES = ["basic", "overlay", "blur", "glitch"];
+const KNOWN_CATEGORIES = [
+  "basic",
+  "motion",
+  "camera",
+  "light",
+  "blur",
+  "distort",
+  "glitch",
+  "overlay",
+];
 
 /** The presets of one category, in contribution order. */
 export interface PresetSection {
@@ -11,7 +20,7 @@ export interface PresetSection {
   presets: TransitionPresetDefinition[];
 }
 
-/** Groups presets into sections: Basic, Overlay, Blur, Glitch, then other categories by name. */
+/** Groups presets into sections: Basic, Motion, Camera, Light, Blur, Distort, Glitch, Overlay, then other categories by name. */
 export function orderCategories(presets: readonly TransitionPresetDefinition[]): PresetSection[] {
   const groups = new Map<string, TransitionPresetDefinition[]>();
   for (const preset of presets) {

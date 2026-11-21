@@ -1,7 +1,7 @@
 import type { ElementApi } from "@/modules/element";
 import type { MixCanvases } from "./engine.mix";
 import type { FontRequest } from "@/modules/fonts";
-import type { JunctionApi } from "@/modules/junction";
+import type { JunctionApi, MixGpu } from "@/modules/junction";
 import type { DenoiseSettings, MediaApi } from "@/modules/media";
 import type { GpuRunner } from "../gpu/gpu.types";
 import type { Micros } from "@/core";
@@ -407,6 +407,8 @@ export interface EngineOptions {
   filterFailed?(id: string, error: unknown): void;
   /** A mask's feather or a luma matte failed on the GPU in the live preview, which drew it hard. */
   maskFailed?(error: unknown): void;
+  /** A junction's mix drew its plainer 2D path in the live preview for want of the GPU. */
+  mixWithoutGpu?(): void;
   /** Called after each frame drawn. */
   onDrawn?(): void;
 }
@@ -513,6 +515,17 @@ export interface MaskPainterOptions {
   strict: boolean;
   /** The live preview drew without the GPU. */
   onFailure(error: unknown): void;
+}
+
+/** How a junction's mix reaches the GPU (`MixEnv.gpu`), and what doing without it does. */
+export interface MixGpuHost {
+  runner?: GpuRunner;
+  /** `MixEnv.gpu` over `runner`, made once; handed to a mix only while `runner` is available. */
+  gpu?: MixGpu;
+  /** A capture or an export: a mix without the GPU, or failing on it, fails the frame. */
+  strict: boolean;
+  /** `MixEnv.withoutGpu`: tells the user in the live preview, throws when `strict`. */
+  withoutGpu(): void;
 }
 
 /** A matte's alpha and the canvas operation that cuts a clip's picture with it. */
