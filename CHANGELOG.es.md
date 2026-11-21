@@ -10,6 +10,17 @@ Read in [English](CHANGELOG.md).
 
 ### Añadido
 
+- **Más transiciones, 33 mosaicos en la pestaña Transiciones (antes eran 9).** Básicas añade Barrido
+  de reloj, Círculo abrir y Círculo cerrar, Partir y Partir vertical, Fundido a blanco y De arriba
+  abajo; Movimiento añade Empujar en cuatro direcciones y Deslizar hacia arriba; Cámara añade Zoom
+  de entrada y salida, Giro y Giro a la izquierda, y Sacudida; Luz añade Parpadeo, Fuga de luz y
+  Quemadura de película; Desenfoque añade Silbido hacia arriba; Distorsión añade Pixelado,
+  Fundido por luminancia y Onda; Glitch añade Separación RGB. Donde aplican, usan las opciones
+  comunes: suavizado, dirección, intensidad, suavidad y color. Zoom, giro, sacudida y empujar
+  desenfocan su movimiento, y el fundido por luminancia y la onda necesitan la tarjeta gráfica:
+  sin ella, la vista previa los muestra más simples, una sola vez, con un aviso, y una exportación
+  se detiene con un mensaje en lugar de escribir la versión simple. Los agentes ven todos los
+  mosaicos con `transition_list_presets`.
 - **Seguir trayectoria:** dibuja una trayectoria sobre el fotograma, a mano alzada (un trazo que se
   suaviza en pocos puntos) o con la pluma (clic para esquinas, arrastrar para curvas), y cualquier
   número de clips la siguen. Progreso (0–100 %, con claves puestas por ti del inicio al final del
