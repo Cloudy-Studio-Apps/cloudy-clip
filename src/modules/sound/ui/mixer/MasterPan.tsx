@@ -5,7 +5,7 @@ import { compositionMixOf, projectRef, type CompositionId } from "@/modules/proj
 import { formatPan, panAt, panPosition } from "../../logic/fader";
 import { setMaster } from "../../sound.mix.commands";
 import { LineSlider } from "../controls";
-import { report } from "../report";
+import { report } from "@/core";
 
 /**
  * The master's pan, a balance of the stereo mix, −1 (left) to 1 (right), drawn as a track's

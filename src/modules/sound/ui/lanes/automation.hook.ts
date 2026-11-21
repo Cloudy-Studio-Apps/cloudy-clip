@@ -6,7 +6,7 @@ import { lineFader } from "../../logic/automation";
 import { setMaster, setTrackMix } from "../../sound.mix.commands";
 import { soundRef } from "../../sound.ref";
 import type { LineTarget } from "../../sound.line.types";
-import { report } from "../report";
+import { report } from "@/core";
 
 /**
  * The fader of a track, or of the master of `compositionId`, with automation: a press while

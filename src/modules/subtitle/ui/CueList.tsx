@@ -52,6 +52,14 @@ export function CueList({ cues }: { cues: readonly Clip[] }) {
         : { top: el.scrollTop, height: el.clientHeight },
     );
   const empty = cues.length === 0;
+  // The row being typed in stays drawn when scrolled away, so its words and caret are kept.
+  const [typing, setTyping] = useState<ClipId | null>(null);
+  const typed = typing === null ? -1 : cues.findIndex((c) => c.id === typing);
+  const shown = [
+    ...(typed >= 0 && typed < start ? [typed] : []),
+    ...Array.from({ length: Math.max(0, end - start) }, (_, i) => start + i),
+    ...(typed >= end ? [typed] : []),
+  ];
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
@@ -119,10 +127,17 @@ export function CueList({ cues }: { cues: readonly Clip[] }) {
       ref={listRef}
       className="relative min-h-0 flex-1 overflow-y-auto"
       onScroll={(e) => measure(e.currentTarget)}
+      onFocus={(e) => {
+        const row = e.target instanceof HTMLTextAreaElement && e.target.closest("[data-cue]");
+        if (row) setTyping(row.getAttribute("data-cue"));
+      }}
+      onBlur={(e) => {
+        if (e.target instanceof HTMLTextAreaElement) setTyping(null);
+      }}
     >
       <div className="relative" style={{ height: cues.length * ROW_HEIGHT }}>
-        {cues.slice(start, end).map((clip, i) => {
-          const index = start + i;
+        {shown.map((index) => {
+          const clip = cues[index]!;
           const style = clip.subtitle && styles?.[clip.subtitle.styleId];
           if (!style) return null;
           return (

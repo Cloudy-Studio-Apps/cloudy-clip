@@ -4,7 +4,7 @@ import { projectRef } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { cancelBeats, findBeats } from "../../sound.beats.commands";
 import { soundRef } from "../../sound.ref";
-import { report } from "../report";
+import { report } from "@/core";
 import { TransportTool } from "./TransportTool";
 
 /**

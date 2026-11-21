@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useKernel } from "@/core";
 import type { CompositionId, MixBus } from "@/modules/project";
 import { setBus } from "../../sound.bus.commands";
-import { report } from "../report";
+import { report } from "@/core";
 
 const NAME = "truncate text-center font-hand text-base font-bold leading-tight";
 

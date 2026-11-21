@@ -4,7 +4,7 @@ import { useKernel, useModule } from "@/core";
 import { projectRef, type MixBus, type Track } from "@/modules/project";
 import type { MenuItem } from "@/ui";
 import { addBus, sendTo } from "../../sound.bus.commands";
-import { report } from "../report";
+import { report } from "@/core";
 import { SendsTo } from "./SendsTo";
 
 const NO_GROUPS: readonly MixBus[] = [];

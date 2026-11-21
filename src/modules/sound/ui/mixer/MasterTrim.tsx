@@ -5,7 +5,7 @@ import { compositionMixOf, projectRef, type CompositionId } from "@/modules/proj
 import { formatTrim, trimAt, trimPosition } from "../../logic/fader";
 import { setMaster } from "../../sound.mix.commands";
 import { LineSlider } from "../controls";
-import { report } from "../report";
+import { report } from "@/core";
 
 /**
  * The master's input trim, -24 to 24 dB on the sum before its fader (what Match target sets), as

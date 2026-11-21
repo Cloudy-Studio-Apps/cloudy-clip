@@ -6,7 +6,7 @@ import { projectRef, type ClipId } from "@/modules/project";
 import { timelineRef } from "@/modules/timeline";
 import { mergeCues, splitCue } from "../subtitle.cue.commands";
 import { subtitleRef } from "../subtitle.ref";
-import { report } from "./report";
+import { report } from "@/core";
 
 const wordsOf = (props: Record<string, unknown> | undefined) => String(props?.text ?? "");
 

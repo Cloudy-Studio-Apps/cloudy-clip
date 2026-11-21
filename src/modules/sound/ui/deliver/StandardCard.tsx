@@ -4,7 +4,7 @@ import { NumberField, SelectField } from "@/ui";
 import { STANDARDS, standardOf } from "../../logic/standards";
 import { setDelivery } from "../../sound.delivery.commands";
 import { PanelCard, PanelRow } from "../card";
-import { report } from "../report";
+import { report } from "@/core";
 import { AnalysisResult } from "./AnalysisResult";
 import { AnalyzeRow } from "./AnalyzeRow";
 import { useDeliver } from "./deliver.hook";

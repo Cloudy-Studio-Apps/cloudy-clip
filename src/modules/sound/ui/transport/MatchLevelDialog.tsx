@@ -7,7 +7,7 @@ import { levelPlan } from "../../logic/level";
 import { soundRef } from "../../sound.ref";
 import { matchLevel } from "../../sound.tools.commands";
 import type { ClipLoudness, MatchDialog } from "../../sound.tools.types";
-import { report } from "../report";
+import { report } from "@/core";
 
 const db = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)} dB`;
 

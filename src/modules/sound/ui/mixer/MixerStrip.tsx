@@ -18,7 +18,7 @@ import { StripLabel } from "./StripLabel";
 import { StripName } from "./StripName";
 import { LineFader } from "./LineFader";
 import { TrackSends } from "./TrackSends";
-import { report } from "../report";
+import { report } from "@/core";
 
 /** `A1`, `A2`… for a track by its place among the audio tracks; `G1`, `G2`… for a group. */
 type MixerStripProps = { code: string; selected: boolean } & (

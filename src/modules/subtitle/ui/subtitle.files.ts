@@ -3,7 +3,7 @@ import { projectRef } from "@/modules/project";
 import { toSrt } from "../logic/srt";
 import { importSubtitles } from "../subtitle.import.command";
 import { pickSubtitleFile, readSubtitleFile, saveSrt } from "../subtitle.service";
-import { report } from "./report";
+import { report } from "@/core";
 
 /** The file's name without folder or extension, for the new tracks (at most 50 characters). */
 const baseName = (path: string) =>

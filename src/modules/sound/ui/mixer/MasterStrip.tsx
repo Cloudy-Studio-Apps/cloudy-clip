@@ -13,7 +13,7 @@ import { Meter } from "./Meter";
 import { ReadButton } from "./ReadButton";
 import { SendsTo } from "./SendsTo";
 import { StripLabel } from "./StripLabel";
-import { report } from "../report";
+import { report } from "@/core";
 
 /**
  * The master of the open composition, pinned at the mixer's right edge, in a strip's order: its

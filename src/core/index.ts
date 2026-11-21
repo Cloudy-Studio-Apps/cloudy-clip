@@ -121,6 +121,7 @@ export type { Micros } from "./time/time.types";
 
 // Notifications
 export { dismiss, notificationsStore, notify } from "./notifications/notifications";
+export { report } from "./notifications/notifications.report";
 export type { Notification, NotificationLevel } from "./notifications/notifications.types";
 
 // React

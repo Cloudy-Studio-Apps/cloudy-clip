@@ -42,7 +42,7 @@ written: their keys win.
     speed).
   - `ui/`: `SubtitlePage`, `SubtitleTransport`, `CueList` (+ `now.row.hook.ts`), `CueRow` (+
     `cue.edit.hook.ts`), `TimeField`, `SubtitleStage` (+ `CuePicker`), `ContextBand` (+
-    `SoundRow`, `timeline.window.hook.ts`), `subtitle.files.ts` (Import and Export), `report.ts`.
+    `SoundRow`, `timeline.window.hook.ts`), `subtitle.files.ts` (Import and Export). Failures are told with `report` (`@/core`).
 - **Not yet:** the side panel (Style and Cue tabs): the page leaves a 330 px column for it.
 
 The data (`SubtitleStyle`, `Clip.subtitle`, `Composition.subtitleStyleOrder`) lives in `project`,

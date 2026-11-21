@@ -4,7 +4,7 @@ import { Button, ProgressBar } from "@/ui";
 import { formatTrim } from "../../logic/fader";
 import { cancelAnalysis, startMatch } from "../../sound.delivery.commands";
 import type { DeliverView, MatchRun } from "../../sound.delivery.types";
-import { report } from "../report";
+import { report } from "@/core";
 
 const STEPS: Record<MatchRun["step"], string> = {
   measuring: "Measuring the mix",

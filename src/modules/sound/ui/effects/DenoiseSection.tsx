@@ -8,7 +8,7 @@ import type { DuckOwner, EffectEdit } from "../../sound.effects.types";
 import { useDenoiseRendering } from "./denoise.hook";
 import { EffectRow } from "./EffectRow";
 import { EffectSection } from "./EffectSection";
-import { report } from "../report";
+import { report } from "@/core";
 
 const REST = defaultSpec("denoise");
 

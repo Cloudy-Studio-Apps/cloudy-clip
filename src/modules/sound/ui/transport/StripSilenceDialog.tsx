@@ -8,7 +8,7 @@ import { SILENCE_DEFAULTS, driftingTracks } from "../../logic/silence";
 import { soundRef } from "../../sound.ref";
 import { stripSilence } from "../../sound.tools.commands";
 import type { ClipCuts, SilenceDialog, SilenceParams } from "../../sound.tools.types";
-import { report } from "../report";
+import { report } from "@/core";
 
 /**
  * Strip silence: what counts as silence, what it would cut (drawn on the lanes as it is found,

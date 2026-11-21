@@ -14,7 +14,7 @@ import { clampCue, MIN_CUE, parseTime } from "../logic/time";
 import { subtitleRef } from "../subtitle.ref";
 import { cueTimeAction } from "../subtitle.timing";
 import type { CueTimeField } from "../subtitle.types";
-import { report } from "./report";
+import { report } from "@/core";
 
 /** Pixels of drag per frame of nudge. */
 const PX_PER_FRAME = 4;

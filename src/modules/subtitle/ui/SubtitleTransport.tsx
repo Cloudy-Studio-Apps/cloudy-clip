@@ -4,7 +4,7 @@ import { PlayButton, previewRef, seek, Timecode } from "@/modules/preview";
 import { IconButton, ToolbarButton, ToolbarSeparator } from "@/ui";
 import { addCue } from "../subtitle.cue.commands";
 import { subtitleRef } from "../subtitle.ref";
-import { report } from "./report";
+import { report } from "@/core";
 import { exportFile, importFile } from "./subtitle.files";
 
 /** How long a cue added with Add cue is: 2 s. */

@@ -3,7 +3,7 @@ import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { projectRef, type CompositionId, type MixBus } from "@/modules/project";
 import { setBus } from "../../sound.bus.commands";
-import { report } from "../report";
+import { report } from "@/core";
 import { Fader } from "./Fader";
 
 interface GroupFaderProps {
