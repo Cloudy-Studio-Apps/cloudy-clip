@@ -4,7 +4,7 @@ import { useModule } from "@/core";
 import { projectRef, useOpenComposition } from "@/modules/project";
 import { TimelinePanel } from "@/modules/timeline";
 import { Kbd } from "@/ui";
-import { cuesOf } from "../logic/srt";
+import { cuesInOrder } from "../logic/srt";
 import { CueList } from "./CueList";
 import { SubtitleSide } from "./SubtitleSide";
 import { SubtitleStage } from "./SubtitleStage";
@@ -22,7 +22,7 @@ export function SubtitlePage() {
   const tracks = useStore(project.api, (s) => s.tracks);
   const compositions = useStore(project.api, (s) => s.compositions);
   const cues = useMemo(
-    () => (id ? cuesOf({ ...project.getState(), clips, tracks, compositions }, id) : []),
+    () => (id ? cuesInOrder({ ...project.getState(), clips, tracks, compositions }, id) : []),
     [project, clips, tracks, compositions, id],
   );
 

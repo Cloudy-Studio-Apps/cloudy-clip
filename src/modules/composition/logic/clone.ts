@@ -3,8 +3,8 @@ import { createId } from "@/core";
 import type { ClipId, CompositionId, ProjectState, TrackId } from "@/modules/project";
 
 /**
- * Copies a composition with its tracks, clips, junctions, markers and motion paths under new ids. Links stay links within
- * the copy; compositions placed in it stay shared.
+ * Copies a composition with its tracks, clips, junctions, markers, motion paths and subtitle styles
+ * under new ids. Links stay links within the copy; compositions placed in it stay shared.
  */
 export function cloneComposition(
   draft: Draft<ProjectState>,
@@ -66,11 +66,30 @@ export function cloneComposition(
     const follow = draft.clips[copyId]!.follow;
     if (follow) follow.pathId = paths.get(follow.pathId) ?? follow.pathId;
   }
+  // Every subtitle style comes along (unused ones too) in its order; the copied cues follow.
+  const styles = new Map<string, string>();
+  for (const style of Object.values(state.subtitleStyles ?? {})) {
+    if (style.compositionId !== compositionId) continue;
+    const copyId = createId("sub");
+    (draft.subtitleStyles ??= {})[copyId] = {
+      ...structuredClone(style),
+      id: copyId,
+      compositionId: id,
+    };
+    styles.set(style.id, copyId);
+  }
+  for (const copyId of clips.values()) {
+    const subtitle = draft.clips[copyId]!.subtitle;
+    if (subtitle) subtitle.styleId = styles.get(subtitle.styleId) ?? subtitle.styleId;
+  }
   draft.compositions[id] = {
     ...structuredClone(original),
     id,
     name,
     trackOrder: original.trackOrder.map((trackId) => tracks.get(trackId)!),
+    ...(original.subtitleStyleOrder && {
+      subtitleStyleOrder: original.subtitleStyleOrder.map((s) => styles.get(s) ?? s),
+    }),
   };
   const copy = draft.compositions[id]!;
   const other = copy.mix?.otherMix;

@@ -31,6 +31,9 @@ export { relinkKinds } from "./workspace.points";
 /** One missing file in the relink dialog (name, Locate…), for a `RelinkKind`'s rows. */
 export { RelinkRow } from "./ui";
 
+/** `path`, ending in an extension (the project's by default), for a path a save dialog gave. */
+export { withExtension } from "./logic/names";
+
 /** Module definition, loaded by the app shell. */
 export { workspaceModule } from "./workspace.module";
 /** Handle for `require(workspaceRef)` / `useModule(workspaceRef)`. */

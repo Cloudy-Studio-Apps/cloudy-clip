@@ -13,7 +13,7 @@ export type {
 /** Id of the Subtitles page in `appPages`. */
 export { SUBTITLE_PAGE } from "./subtitle.ref";
 /** A composition's cues in list order: by start, then track order. */
-export { cuesOf } from "./logic/srt";
+export { cuesInOrder } from "./logic/srt";
 /** Add, change, rename, delete and reorder a composition's subtitle styles. */
 export {
   addStyle,

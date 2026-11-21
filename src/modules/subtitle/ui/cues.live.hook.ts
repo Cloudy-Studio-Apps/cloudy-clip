@@ -7,7 +7,7 @@ import { formatOf, projectRef, type ClipId } from "@/modules/project";
 
 /**
  * Live editing of the selected cues together: a drag shows on all of them, the release runs one
- * `element.setProps` on all of them. Values are read from the first.
+ * `element.setProps` on all of them. Values are read from a single cue only.
  */
 export function useCuesLive(clipIds: readonly ClipId[]): PropsLive {
   const { bus } = useKernel();
@@ -23,6 +23,8 @@ export function useCuesLive(clipIds: readonly ClipId[]): PropsLive {
       read() {
         const state = project.getState();
         const first = state.clips[ids[0] ?? ""];
+        // Several cues: no common value, so the commit never drops a patch equal to the first's.
+        if (ids.length > 1) return {};
         return first ? elements.resolve(first, formatOf(state, first)) : null;
       },
       commit: (patch) =>

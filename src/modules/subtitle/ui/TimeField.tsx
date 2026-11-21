@@ -105,22 +105,25 @@ export function TimeField({ clip, field, frame, active, className }: TimeFieldPr
   };
 
   if (editing) {
+    // Shown rounded to hundredths: saving that unchanged would move the cue off its frame.
+    const shown = field === "length" ? (value / MICROS_PER_SECOND).toFixed(2) : show(field, value);
     const finish = (input: HTMLInputElement, save: boolean) => {
       if (doneRef.current) return;
       doneRef.current = true;
       setEditing(false);
-      if (!save) return;
+      if (!save || input.value === shown) return;
       const typed = parseTime(input.value);
       if (typed === null) notify("info", "Not a time: try 0:04.20 or 4.2");
-      else if (typed !== value) void commit(typed);
+      else {
+        const snapped = Math.round(typed / frame) * frame;
+        if (snapped !== value) void commit(snapped);
+      }
     };
     return (
       <input
         autoFocus
         aria-label={`Cue ${field}`}
-        defaultValue={
-          field === "length" ? (value / MICROS_PER_SECOND).toFixed(2) : show(field, value)
-        }
+        defaultValue={shown}
         onFocus={(e) => e.currentTarget.select()}
         onClick={(e) => e.stopPropagation()}
         onBlur={(e) => finish(e.currentTarget, true)}

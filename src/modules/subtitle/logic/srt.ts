@@ -58,7 +58,7 @@ function stamp(time: Micros): string {
 }
 
 /** A composition's marked clips (cues) on its own tracks: by start, then track order. */
-export function cuesOf(state: ProjectState, compositionId: CompositionId): Clip[] {
+export function cuesInOrder(state: ProjectState, compositionId: CompositionId): Clip[] {
   const order = state.compositions[compositionId]?.trackOrder ?? [];
   const cues = order.flatMap((trackId, index) =>
     (state.tracks[trackId]?.clipIds ?? []).flatMap((id) => {
@@ -70,13 +70,16 @@ export function cuesOf(state: ProjectState, compositionId: CompositionId): Clip[
   return cues.map(({ clip }) => clip);
 }
 
-/** `.srt` text of a composition's marked, enabled cues on its own tracks: by start, then track order. */
+/**
+ * `.srt` text of a composition's marked, enabled cues on its own tracks: by start, then track
+ * order. A blank line inside a cue's words would end its block, so it is collapsed.
+ */
 export function toSrt(state: ProjectState, compositionId: CompositionId): string {
-  return cuesOf(state, compositionId)
+  return cuesInOrder(state, compositionId)
     .filter((clip) => !clip.disabled)
     .map(
       (clip, n) =>
-        `${n + 1}\n${stamp(clip.start)} --> ${stamp(clip.start + clip.duration)}\n${String(clip.props.text ?? "")}\n`,
+        `${n + 1}\n${stamp(clip.start)} --> ${stamp(clip.start + clip.duration)}\n${String(clip.props.text ?? "").replace(/\n\s*\n+/g, "\n")}\n`,
     )
     .join("\n");
 }

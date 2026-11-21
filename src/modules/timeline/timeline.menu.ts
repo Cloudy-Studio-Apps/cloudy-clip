@@ -8,11 +8,12 @@ import {
   Unlink,
 } from "lucide-react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ModuleContext } from "@/core";
+import { LOCAL_ACTOR, type ModuleContext, type TimelineScopeName } from "@/core";
 import { revealMedia } from "@/modules/media";
 import { previewRef } from "@/modules/preview";
 import { projectRef } from "@/modules/project";
 import { linkPair, sameTiming, selectionSubject } from "./logic/links";
+import { playheadSplit } from "./logic/split";
 import {
   deleteClips,
   linkClips,
@@ -24,7 +25,11 @@ import {
 import type { ClipActions, ClipMenuEntry, TimelineViewState } from "./timeline.types";
 
 /** The entries of a clip's menu that the timeline's own commands run. */
-export function clipMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>): ClipActions {
+export function clipMenu(
+  ctx: ModuleContext,
+  view: StoreApi<TimelineViewState>,
+  scope: () => TimelineScopeName,
+): ClipActions {
   return {
     id: "timeline.clip",
     // Only its Split entry shows on a sound-only page: a cut changes no picture.
@@ -40,7 +45,17 @@ export function clipMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>):
           label: "Split at playhead",
           shortcut: "S",
           scopes: ["all", "sound", "subtitle"],
-          onSelect: () => void ctx.bus.run(splitAt, { at, clipIds }),
+          onSelect: () => {
+            const project = ctx.require(projectRef);
+            const input = playheadSplit(
+              project.store.getState(),
+              at,
+              clipIds,
+              scope(),
+              project.view.openFor(LOCAL_ACTOR),
+            );
+            if (input) void ctx.bus.run(splitAt, input);
+          },
         });
       }
       if (clip.linkId !== undefined) {

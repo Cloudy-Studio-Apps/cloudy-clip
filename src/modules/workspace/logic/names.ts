@@ -34,9 +34,9 @@ export function siblingPath(path: string, file: string): string {
   return path.slice(0, lastSeparator(path) + 1) + file;
 }
 
-/** `path`, ending in the project extension. */
-export function withExtension(path: string): string {
-  const suffix = `.${PROJECT_EXTENSION}`;
+/** `path`, ending in `extension` (the project extension by default): a save dialog may drop it (GTK). */
+export function withExtension(path: string, extension: string = PROJECT_EXTENSION): string {
+  const suffix = `.${extension}`;
   return path.endsWith(suffix) ? path : path + suffix;
 }
 

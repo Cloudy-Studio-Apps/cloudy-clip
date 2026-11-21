@@ -35,9 +35,9 @@ fn check_size(raw: &str, bytes: u64, max: u64, what: &str) -> AppResult<()> {
     Ok(())
 }
 
-/// The UTF-8 text of `file` (`raw` is its path as given), at most `max` bytes. It is opened once
-/// and read through a cap, so one that grows after the size check is still refused.
-pub async fn read_text(raw: &str, file: &Path, max: u64, what: &str) -> AppResult<String> {
+/// The bytes of `file` (`raw` is its path as given), at most `max`. It is opened once and read
+/// through a cap, so one that grows after the size check is still refused.
+pub async fn read_bytes(raw: &str, file: &Path, max: u64, what: &str) -> AppResult<Vec<u8>> {
     // Checked before opening too: opening a FIFO or device would block until something writes to it.
     if let Ok(meta) = tokio::fs::metadata(file).await
         && !meta.is_file()
@@ -58,6 +58,11 @@ pub async fn read_text(raw: &str, file: &Path, max: u64, what: &str) -> AppResul
     let mut bytes = Vec::with_capacity(meta.len() as usize);
     opened.take(max + 1).read_to_end(&mut bytes).await?;
     check_size(raw, bytes.len() as u64, max, what)?;
-    String::from_utf8(bytes)
+    Ok(bytes)
+}
+
+/// The UTF-8 text of `file` (`raw` is its path as given), at most `max` bytes (see `read_bytes`).
+pub async fn read_text(raw: &str, file: &Path, max: u64, what: &str) -> AppResult<String> {
+    String::from_utf8(read_bytes(raw, file, max, what).await?)
         .map_err(|_| AppError::InvalidInput(format!("{raw} is not a text file (UTF-8)")))
 }

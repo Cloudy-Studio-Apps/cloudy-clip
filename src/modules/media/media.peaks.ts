@@ -43,6 +43,8 @@ export function createPeaks(
           return peaks;
         })
         .catch((error: unknown) => {
+          // A scan cancelled because the kernel is going away is no failure to report.
+          if (disposed) return null;
           log.warn("Reading the sound of a file failed", error);
           if (!failed.has(k)) {
             failed.add(k);

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { withExtension } from "@/modules/workspace";
 
 const FILTERS = [{ name: "Subtitles", extensions: ["srt", "vtt"] }];
 
@@ -9,7 +10,7 @@ export async function pickSubtitleFile(): Promise<string | null> {
   return typeof path === "string" ? path : null;
 }
 
-/** Text of an `.srt` or `.vtt` file at an absolute path (at most 8 MB, UTF-8; `subtitle_read_text` natively). */
+/** Text of an `.srt` or `.vtt` file at an absolute path (at most 8 MB; UTF-8, else read as Windows-1252; `subtitle_read_text` natively). */
 export function readSubtitleFile(path: string): Promise<string> {
   return invoke<string>("subtitle_read_text", { path });
 }
@@ -21,6 +22,7 @@ export async function saveSrt(contents: string, suggestedName: string): Promise<
     filters: [{ name: "SubRip", extensions: ["srt"] }],
   });
   if (!path) return null;
-  await invoke("subtitle_write_text", { path, contents });
-  return path;
+  const file = withExtension(path, "srt");
+  await invoke("subtitle_write_text", { path: file, contents });
+  return file;
 }

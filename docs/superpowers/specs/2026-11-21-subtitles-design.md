@@ -129,9 +129,10 @@ and keyframes all keep reading the clip as they do today.
   writes the new style over the values that followed the old one and keeps its own values.
 - **Unmark** (`subtitle.unmark`, `clipIds`): drops the mark. The look is already stored in the clip,
   so it looks the same afterwards and nothing else is written.
-- A marked clip that ends up in another composition (paste, grouping, duplicating a composition)
-  takes a copy of its style into that composition, made by the project's integrity pass after every
-  edit, so no command copies styles itself. A mark whose style is gone is dropped; the clip keeps
+- Duplicating a composition copies all its styles (unused ones too, in their order) and points the
+  copied cues at the copies. Any other marked clip that ends up in another composition (paste,
+  grouping) takes a copy of its style into that composition, made by the project's integrity pass
+  after every edit. A mark whose style is gone is dropped; the clip keeps
   its look.
 - Marks survive split and freeze too (both copy clip fields one by one, so they copy the mark).
 

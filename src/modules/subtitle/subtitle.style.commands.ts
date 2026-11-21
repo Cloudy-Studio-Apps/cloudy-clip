@@ -24,7 +24,7 @@ const PX =
   "Sizes and positions are the composition's output pixels; position is from the frame's center.";
 
 /** Cue ids of a style, in the project's clip order. */
-function cuesOf(clips: Record<string, { subtitle?: { styleId: string } }>, styleId: string) {
+function cueIdsOfStyle(clips: Record<string, { subtitle?: { styleId: string } }>, styleId: string) {
   return Object.entries(clips)
     .filter(([, clip]) => clip.subtitle?.styleId === styleId)
     .map(([id]) => id);
@@ -129,7 +129,7 @@ export const updateStyle = defineCommand({
       position: { ...style.position, ...input.position },
     };
     const restyled: string[] = [];
-    for (const id of cuesOf(state.clips, style.id)) {
+    for (const id of cueIdsOfStyle(state.clips, style.id)) {
       if (await restyle(ctx, id, style, next)) restyled.push(id);
     }
     ctx.mutate(store, (draft) => {
@@ -175,7 +175,7 @@ export const removeStyle = defineCommand({
         "A composition keeps at least one subtitle style.",
       );
     }
-    const moved = cuesOf(state.clips, styleId);
+    const moved = cueIdsOfStyle(state.clips, styleId);
     for (const id of moved) await restyle(ctx, id, style, target);
     ctx.mutate(store, (draft) => {
       for (const id of moved) draft.clips[id]!.subtitle = { styleId: target.id };

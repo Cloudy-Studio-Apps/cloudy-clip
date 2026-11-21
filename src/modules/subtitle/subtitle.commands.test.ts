@@ -373,5 +373,12 @@ describe("import and export", () => {
     expect(toSrt(doc(), "c1")).toBe(
       "1\n00:00:01,000 --> 00:00:03,000\nHello\n\n2\n00:00:02,500 --> 00:00:04,000\nOverlap x\n\n3\n00:00:05,000 --> 00:00:06,000\nLast\n",
     );
+    // A blank line inside a cue's words would end its block in the file.
+    const first = toSrt(doc(), "c1").split("\n")[2]!;
+    const id = Object.values(doc().clips).find((c) => c.props.text === first)!.id;
+    await ok(kernel.bus.run(setProps, { clipIds: [id], patch: { text: "Hello\n\n  \nthere" } }));
+    expect(
+      toSrt(doc(), "c1").startsWith("1\n00:00:01,000 --> 00:00:03,000\nHello\nthere\n\n2\n"),
+    ).toBe(true);
   });
 });

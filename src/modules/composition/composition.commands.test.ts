@@ -686,6 +686,35 @@ describe("composition commands", () => {
       expect(state().paths!.p!.points[1]).toMatchObject({ x: 200, y: 100 });
     });
 
+    it("duplicating a composition copies all its subtitle styles in order; cues use the copies", async () => {
+      const { compositionId, v } = await followed();
+      const style = (sid: string) => ({
+        id: sid,
+        compositionId,
+        name: sid,
+        color: "blue" as const,
+        props: {},
+        position: { x: 0, y: 0 },
+      });
+      write((draft) => {
+        draft.subtitleStyles = { s1: style("s1"), s2: style("s2") };
+        draft.compositions[compositionId]!.subtitleStyleOrder = ["s2", "s1"];
+        draft.clips.c = text("c", v, 3 * S, { subtitle: { styleId: "s1" } });
+        draft.tracks[v]!.clipIds.push("c");
+      });
+      const copy = await ok(duplicateComposition, { compositionId });
+      const order = state().compositions[copy.compositionId]!.subtitleStyleOrder!;
+      expect(order.map((sid) => state().subtitleStyles![sid]!.name)).toEqual(["s2", "s1"]);
+      expect(
+        order.every((sid) => state().subtitleStyles![sid]!.compositionId === copy.compositionId),
+      ).toBe(true);
+      const cue = Object.values(state().clips).find(
+        (c) => c.subtitle && state().tracks[c.trackId]?.compositionId === copy.compositionId,
+      )!;
+      expect(cue.subtitle!.styleId).toBe(order[1]);
+      expect(state().compositions[compositionId]!.subtitleStyleOrder).toEqual(["s2", "s1"]);
+    });
+
     it("deleting a composition deletes its paths", async () => {
       const { compositionId } = await followed();
       await ok(createComposition, {});

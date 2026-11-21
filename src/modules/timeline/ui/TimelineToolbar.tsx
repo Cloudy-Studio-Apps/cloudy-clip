@@ -1,7 +1,7 @@
 import { Film, Music, Scissors, Trash, Unlink } from "lucide-react";
 import { Fragment, useMemo } from "react";
 import { useStore } from "zustand";
-import { ErrorBoundary, useKernel, useModule, usePoint } from "@/core";
+import { ErrorBoundary, LOCAL_ACTOR, useKernel, useModule, usePoint } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { partnersOf, projectRef } from "@/modules/project";
 import { ToolbarButton, ToolbarSeparator } from "@/ui";
@@ -33,7 +33,7 @@ export function TimelineToolbar() {
       ordered.filter((tool) => tool.slot === "end"),
     ];
   }, [tools, scope]);
-  const projectStore = useModule(projectRef).store;
+  const { store: projectStore, view: compositions } = useModule(projectRef);
   const selection = useStore(timeline.view, (s) => s.selection);
   const canUnlink = useStore(useModule(projectRef).store.api, (s) =>
     selection.some((id) => partnersOf(s, id).length > 0),
@@ -55,7 +55,16 @@ export function TimelineToolbar() {
         <ToolbarAction
           icon={<Scissors />}
           label="Split at playhead (S)"
-          onClick={() => void bus.run(splitAt, playheadSplit(playback.getTime(), selection))}
+          onClick={() => {
+            const input = playheadSplit(
+              projectStore.getState(),
+              playback.getTime(),
+              selection,
+              scope,
+              compositions.openFor(LOCAL_ACTOR),
+            );
+            if (input) void bus.run(splitAt, input);
+          }}
         >
           Split
         </ToolbarAction>

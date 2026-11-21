@@ -82,7 +82,7 @@ export const timelineModule = defineModule({
       component: TimelinePanel,
     });
 
-    ctx.contribute(clipActions, clipMenu(ctx, view), clipboardMenu(ctx, timeline));
+    ctx.contribute(clipActions, clipMenu(ctx, view, scope), clipboardMenu(ctx, timeline));
     ctx.contribute(timelineMenuItems, pasteMenu(ctx, timeline));
     ctx.contribute(keybindings, ...clipboardKeys(ctx, view));
     ctx.contribute(appMenuItems, ...clipboardMenuItems());
@@ -109,13 +109,16 @@ export const timelineModule = defineModule({
       {
         id: "timeline.split",
         key: "s",
-        resolve: () => ({
-          command: splitAt.id,
-          input: playheadSplit(
+        resolve: () => {
+          const input = playheadSplit(
+            project.getState(),
             ctx.require(previewRef).playback.getTime(),
             view.getState().selection,
-          ),
-        }),
+            scope(),
+            compositions.openFor(LOCAL_ACTOR),
+          );
+          return input && { command: splitAt.id, input };
+        },
       },
       { id: "timeline.delete", key: "delete", resolve: deleteSelection },
       { id: "timeline.delete-backspace", key: "backspace", resolve: deleteSelection },

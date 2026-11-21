@@ -12,7 +12,7 @@ const wordsOf = (props: Record<string, unknown> | undefined) => String(props?.te
 
 /**
  * What the words of a cue-list row do: focusing selects the cue and seeks to it; Enter splits at
- * the caret (with the typed words, one undo step), Shift+Enter is a new line, Backspace at the
+ * the caret (with the typed words, one undo step; at the start or end it only saves the words), Shift+Enter is a new line, Backspace at the
  * start merges with the cue right before on the same track, Up at the start and Down at the end
  * go to the row before or after, Esc leaves; the words are written on blur (one `element.setProps`).
  */
@@ -73,7 +73,11 @@ export function useCueEditing() {
         const collapsed = caret === field.selectionEnd;
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
-          void split(clipId, caret, field.value);
+          // At the start or end there is nothing to split off: keep the typed words, as blur does.
+          const text = field.value;
+          if (text.slice(0, caret).trim() === "" || text.slice(caret).trim() === "") {
+            void save(clipId, text);
+          } else void split(clipId, caret, text);
         } else if (e.key === "Backspace" && collapsed && caret === 0) {
           e.preventDefault();
           void merge(clipId, field.value);

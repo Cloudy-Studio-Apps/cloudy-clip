@@ -34,7 +34,8 @@ written: their keys win.
   - `subtitle.cue.commands.ts` (add, split, merge), `subtitle.import.command.ts`,
     `logic/srt.ts` (`parseSubtitles`, `toSrt`), `logic/lanes.ts` (`laneOf`, greedy lanes for
     overlapping cues), `subtitle.service.ts` (file dialogs and `subtitle_read_text` /
-    `subtitle_write_text` in `src-tauri/src/subtitle/`: absolute `.srt` / `.vtt` paths, 8 MB).
+    `subtitle_write_text` in `src-tauri/src/subtitle/`: absolute `.srt` / `.vtt` paths, 8 MB; a file
+    that isn't UTF-8 is read as Windows-1252; `saveSrt` adds `.srt` when the dialog dropped it).
   - `logic/time.ts` (`parseTime`: seconds or `m:ss.cc`; `clampCue`: between the neighbours and at
     least `MIN_CUE` = 0.2 s), `subtitle.timing.ts` (`cueTimeAction`: the `timeline.trimClip` /
     `timeline.moveClip` that sets one time of a cue, clamped), `subtitle.keys.ts`.
@@ -81,21 +82,23 @@ Failures: `subtitle.clip_not_found`, `subtitle.not_text`, `subtitle.not_marked`,
 - **Transport:** the time, To start, Play; Add cue (2 s of "New cue" at the playhead, by
   `subtitle.addCue`, its words selected), Import .srt / .vtt (`pickSubtitleFile` →
   `readSubtitleFile` → `subtitle.import`, the tracks named after the file), Export .srt (`toSrt` →
-  `saveSrt`, named after the composition); the number of cues; Undo. Results and failures are
+  `saveSrt`, named after the composition; a blank line inside a cue's words is collapsed so it
+  can't end the block); the number of cues; Undo. Results and failures are
   toasts (`notify`).
-- **Cue list:** every cue of the open composition (`cuesOf`: by start, then track order) as rows of
+- **Cue list:** every cue of the open composition (`cuesInOrder`: by start, then track order) as rows of
   64 px, drawn only near the view (`visibleWindow`). A row: start, end and length with the track
   (`TimeField`), the words in a `<textarea>`, the style's dot (`MARKER_HEX`) and ◆ when `ownPaths`
   is not empty. A click selects the cue (the timeline's selection) and seeks to its start, Ctrl
   adds or removes one, Shift takes the range; the side tab turns to Cue. The row under the playhead
   gets `data-now` from `playback.onTime`, written on the DOM. In the words: focus selects and seeks;
-  Enter splits at the caret (`subtitle.splitCue` with the typed words); Shift+Enter a new line;
+  Enter splits at the caret (`subtitle.splitCue` with the typed words; at the start or end of the
+  words it only saves them); Shift+Enter a new line;
   Backspace at the start merges with the cue ending where it starts on the same track
   (`subtitle.mergeCues`, the typed words); Up at the start and Down at the end go to the row
   before or after; Esc leaves; the words are written on blur (one `element.setProps`).
 - **Times:** drag one sideways to nudge it a frame (the composition's `frameDuration`) every 4 px,
   shown live on the DOM, one `timeline.trimClip` (start, end, length) on release; click to type
-  (`parseTime`). Kept between the neighbours on its track (`neighbourBounds`) and at least 0.2 s
+  (`parseTime`, rounded to the frame; leaving the shown text unchanged saves nothing). Kept between the neighbours on its track (`neighbourBounds`) and at least 0.2 s
   long; a value that had to be clamped says so. Touching start sets `view.edge` to `start`, end or
   length to `end`.
 - **Keys** (this page, one cue selected, not typing): `[` / `]` its start / end at the playhead;
@@ -127,7 +130,7 @@ Tabs **Style | Cue** (`view.tab`).
   are); the release runs one `subtitle.updateStyle`.
 - **Cue:** the selected cues (the timeline's selection, marked ones): a Style picker
   (`subtitle.mark` with `styleId`), their look over `cueSource` (the first cue's values; a drag
-  shows on all, the release is one `element.setProps` on all, `useCuesLive`), **Reset all to
+  shows on all, with several cues every change counts as one, the release is one `element.setProps` on all, `useCuesLive`), **Reset all to
   style** (`subtitle.resetToStyle`), **New style from this cue** (`subtitle.addStyle`
   `fromClipId`, then shown in the Style tab), **Remove from subtitles** (`subtitle.unmark`).
 - **Own values:** the field action `subtitle.own` shows, on a marked clip's row whose paths are
