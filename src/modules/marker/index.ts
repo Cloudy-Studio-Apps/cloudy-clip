@@ -9,5 +9,3 @@ export { addMarker, removeMarker, updateMarker } from "./marker.commands";
 export { markerModule } from "./marker.module";
 /** Handle for `require(markerRef)` / `useModule(markerRef)`. */
 export { markerRef } from "./marker.ref";
-/** How each marker color is drawn (fixed hex values), for other modules that label things with them. */
-export { MARKER_HEX } from "./logic/markers";

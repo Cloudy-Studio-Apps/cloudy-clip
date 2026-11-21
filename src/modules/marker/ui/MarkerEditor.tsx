@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useKernel } from "@/core";
-import { MARKER_COLORS, type Marker, type MarkerColor } from "@/modules/project";
+import { MARKER_COLORS, MARKER_HEX, type Marker, type MarkerColor } from "@/modules/project";
 import { cn, IconButton } from "@/ui";
 import { removeMarker, updateMarker } from "../marker.commands";
-import { MARKER_HEX } from "../logic/markers";
 
 interface MarkerEditorProps {
   marker: Marker;

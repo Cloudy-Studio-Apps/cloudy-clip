@@ -1,15 +1,5 @@
 import type { Micros } from "@/core";
-import type { Marker, MarkerColor } from "@/modules/project";
-
-/** How each marker color is drawn. Fixed: a marker's color is the user's label, not chrome. */
-export const MARKER_HEX: Record<MarkerColor, string> = {
-  orange: "#e8772e",
-  yellow: "#e3bd2f",
-  green: "#6f9a3a",
-  blue: "#5f9fd6",
-  purple: "#8f7ac8",
-  pink: "#d4488f",
-};
+import type { Marker } from "@/modules/project";
 
 /** The first marker time after `time`, or null. `markers` are sorted by time. */
 export function nextMarkerTime(markers: readonly Marker[], time: Micros): Micros | null {

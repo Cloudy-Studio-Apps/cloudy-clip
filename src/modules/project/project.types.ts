@@ -742,6 +742,16 @@ export const MARKER_COLORS = ["orange", "yellow", "green", "blue", "purple", "pi
 /** One of {@link MARKER_COLORS}. */
 export type MarkerColor = (typeof MARKER_COLORS)[number];
 
+/** How each marker color is drawn. Fixed: the color is the user's label (markers, masks), not chrome. */
+export const MARKER_HEX: Record<MarkerColor, string> = {
+  orange: "#e8772e",
+  yellow: "#e3bd2f",
+  green: "#6f9a3a",
+  blue: "#5f9fd6",
+  purple: "#8f7ac8",
+  pink: "#d4488f",
+};
+
 /** A bookmark at one moment of a composition: a colored flag in the ruler with an optional note. */
 export interface Marker {
   id: MarkerId;

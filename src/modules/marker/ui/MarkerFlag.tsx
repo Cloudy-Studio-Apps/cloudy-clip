@@ -2,7 +2,7 @@ import { memo, useRef } from "react";
 import { useStore } from "zustand";
 import { formatTimecode, useKernel, useModule, type Micros } from "@/core";
 import { previewRef, seek } from "@/modules/preview";
-import { frameDuration, projectRef, type Marker } from "@/modules/project";
+import { MARKER_HEX, frameDuration, projectRef, type Marker } from "@/modules/project";
 import {
   pxToTime,
   SNAP_PX,
@@ -14,7 +14,6 @@ import {
 import { ContextMenu, Popover } from "@/ui";
 import { markerRef } from "../marker.ref";
 import { removeMarker, updateMarker } from "../marker.commands";
-import { MARKER_HEX } from "../logic/markers";
 import { startFlagDrag } from "./flag.gesture";
 import { MarkerEditor } from "./MarkerEditor";
 

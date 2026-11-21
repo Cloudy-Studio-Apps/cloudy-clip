@@ -9,8 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { MARKER_HEX } from "@/modules/marker";
-import type { ClipMask } from "@/modules/project";
+import { MARKER_HEX, type ClipMask } from "@/modules/project";
 import { IconButton, MenuList, Popover, SelectField, cn } from "@/ui";
 import type { useMaskEdit } from "./mask.edit.hook";
 
