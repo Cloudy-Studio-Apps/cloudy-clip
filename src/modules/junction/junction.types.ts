@@ -9,6 +9,64 @@ export type OverlapRule =
   | false
   | { default: Micros; min(format: ProjectFormat): Micros; max(left: Clip, right: Clip): Micros };
 
+/**
+ * A uniform the shader declares as `int` (or `ivec2`…`ivec4`), made with `gpuInt`. A plain
+ * number is always a `float`.
+ */
+export interface GpuInt {
+  readonly int: number | readonly number[];
+}
+
+/** A uniform value: a number is a `float`, 2 to 4 numbers a `vec2` to `vec4`, `GpuInt` an `int`. */
+export type GpuUniform = number | readonly number[] | GpuInt;
+
+/**
+ * A small data texture of a pass (a curve, a table, a LUT), RGBA. Uploaded again only when its
+ * `key` or `version` changes. `"1d"` is a 2D texture one row high (`sampler2D`), `"3d"` a
+ * `sampler3D` of `depth` slices. Bytes are `RGBA8`, floats `RGBA16F`; both are sampled linearly.
+ */
+export interface GpuTexture {
+  key: string;
+  version: number;
+  kind: "1d" | "2d" | "3d";
+  width: number;
+  height: number;
+  depth?: number;
+  data: Float32Array | Uint8Array;
+}
+
+/** One picture pass of the GPU runner: a fragment shader over earlier pictures. */
+export interface GpuPass {
+  /** Program cache key: passes with the same key share one compiled program. */
+  key: string;
+  /**
+   * GLSL body. The runner adds `#version 300 es`, `precision highp float`, `in vec2 v_uv`,
+   * `out vec4 o` and a `sampler2D u_in<n>` per input; the body declares its own uniforms and the
+   * samplers of its `textures` (`sampler2D`, or `sampler3D` for a `"3d"` one).
+   */
+  fragment: string;
+  /** What each input samples: -1 is source 0, -2 source 1, n the output of pass n. */
+  inputs: readonly number[];
+  /** Uniform values by name. */
+  uniforms?: Readonly<Record<string, GpuUniform>>;
+  /** Data textures by sampler name. */
+  textures?: Readonly<Record<string, GpuTexture>>;
+}
+
+/** The preview's GPU runner as a mix sees it (`MixEnv.gpu`). */
+export interface MixGpu {
+  /**
+   * Uploads `sources` (input -1 is the first, -2 the second), runs `passes` in order at `size`
+   * and returns a shared canvas holding the last pass: draw it before the next `run`. Throws
+   * `GpuUnavailable` when WebGL2 isn't there (a capture or an export, which must not fall back).
+   */
+  run(
+    sources: readonly CanvasImageSource[],
+    size: { width: number; height: number },
+    passes: readonly GpuPass[],
+  ): CanvasImageSource;
+}
+
 /** What a mix function knows besides the pictures. */
 export interface MixEnv {
   format: ProjectFormat;
@@ -19,6 +77,16 @@ export interface MixEnv {
   random(): number;
   /** Seconds since the junction started (for animated grain). */
   elapsed: number;
+  /**
+   * The GPU, when the mix may use it: absent in the live preview without WebGL2 and in
+   * thumbnails. Without it a mix draws a plainer 2D path and calls `withoutGpu`.
+   */
+  gpu?: MixGpu;
+  /**
+   * Call when drawing the plainer 2D path for want of `gpu`. The live preview tells the user
+   * once; a capture or an export throws, so it never writes the plainer look.
+   */
+  withoutGpu(): void;
 }
 
 /** Draws one frame of a junction onto `ctx` (full frame, identity transform, canvas pixels). */

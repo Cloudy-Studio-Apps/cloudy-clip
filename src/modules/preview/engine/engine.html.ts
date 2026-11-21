@@ -67,6 +67,7 @@ import type {
   ClipDrawer,
   EngineOptions,
   FilterSubject,
+  MixGpuHost,
   Nesting,
   PlacementTarget,
   ResolvedFrame,
@@ -153,6 +154,8 @@ export class HtmlMediaEngine implements PreviewEngine {
   private readonly lineLists = createLineLists();
   /** Masks and matte tracks; a capture or an export fails its frame when their GPU part does. */
   private readonly maskPainter: MaskPainter;
+  /** The GPU for junction mixes; a capture or an export fails its frame when a mix lacks it. */
+  private readonly mixGpu: MixGpuHost;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -174,6 +177,11 @@ export class HtmlMediaEngine implements PreviewEngine {
       strict: (options.filterTarget ?? "preview") !== "preview",
       onFailure: (error) => options.maskFailed?.(error),
     });
+    this.mixGpu = {
+      runner: options.gpu,
+      strict: (options.filterTarget ?? "preview") !== "preview",
+      withoutGpu: () => options.mixWithoutGpu?.(),
+    };
   }
 
   setPicture(options: PictureOptions): void {
@@ -593,7 +601,7 @@ export class HtmlMediaEngine implements PreviewEngine {
         const ctx = this.maskPainter.track(prefix, track.id, target.canvas);
         const shown = clips.map(({ clip }) => clip);
         const frame = { project, format, track, clips: shown, time };
-        drawTrack(ctx, frame, mix, this.junctions, drawWith(false));
+        drawTrack(ctx, frame, mix, this.junctions, drawWith(false), this.mixGpu);
         matteCanvases.set(track.id, ctx.canvas);
       }
     }
@@ -614,6 +622,7 @@ export class HtmlMediaEngine implements PreviewEngine {
         mix,
         this.junctions,
         drawClip,
+        this.mixGpu,
       );
     }
   }

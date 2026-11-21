@@ -53,6 +53,8 @@ export function usePresetThumbnail(
         ky: THUMB_HEIGHT / format.height,
         random: seededRandom(preset.id),
         elapsed,
+        // Thumbnails draw outside any engine, with no GPU: the 2D path, and nobody to tell.
+        withoutGpu: () => {},
       });
     };
   }, [canvasRef, preset, project]);

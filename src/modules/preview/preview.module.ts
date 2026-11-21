@@ -129,6 +129,7 @@ export const previewModule = defineModule({
           filterTarget: "preview",
           filterFailed: filters.failed,
           maskFailed: filters.maskFailed,
+          mixWithoutGpu: filters.mixWithoutGpu,
           gpu: createGpuRunner(),
           capPasses: true,
         }),

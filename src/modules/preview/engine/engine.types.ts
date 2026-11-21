@@ -407,6 +407,8 @@ export interface EngineOptions {
   filterFailed?(id: string, error: unknown): void;
   /** A mask's feather or a luma matte failed on the GPU in the live preview, which drew it hard. */
   maskFailed?(error: unknown): void;
+  /** A junction's mix drew its plainer 2D path in the live preview for want of the GPU. */
+  mixWithoutGpu?(): void;
   /** Called after each frame drawn. */
   onDrawn?(): void;
 }
@@ -513,6 +515,15 @@ export interface MaskPainterOptions {
   strict: boolean;
   /** The live preview drew without the GPU. */
   onFailure(error: unknown): void;
+}
+
+/** How a junction's mix reaches the GPU (`MixEnv.gpu`), and what doing without it does. */
+export interface MixGpuHost {
+  runner?: GpuRunner;
+  /** A capture or an export: a mix without the GPU throws instead of drawing its 2D path. */
+  strict: boolean;
+  /** The live preview drew a mix's 2D path for want of the GPU. */
+  withoutGpu(): void;
 }
 
 /** A matte's alpha and the canvas operation that cuts a clip's picture with it. */

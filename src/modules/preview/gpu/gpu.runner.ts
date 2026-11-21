@@ -27,7 +27,7 @@ function openContext(): GpuContext | null {
     programs: createPrograms(gl),
     targets: createTargets(gl),
     data: createDataTextures(gl),
-    source: createTexture(gl),
+    sources: [],
     lost: false,
   };
   canvas.addEventListener("webglcontextlost", () => {
@@ -43,19 +43,25 @@ function closeContext(context: GpuContext): void {
     context.programs.dispose();
     context.targets.dispose();
     context.data.dispose();
-    gl.deleteTexture(context.source);
+    context.sources.forEach((texture) => gl.deleteTexture(texture));
     gl.getExtension("WEBGL_lose_context")?.loseContext();
   }
   context.canvas.width = 0;
   context.canvas.height = 0;
 }
 
-/** For each pass, the last pass that reads its output (itself when none does). */
-function lastReaders(passes: readonly GpuPass[]): number[] {
+/**
+ * For each pass, the last pass that reads its output (itself when none does). Throws for a pass
+ * that reads a later pass, or a source beyond the `given` ones.
+ */
+function lastReaders(passes: readonly GpuPass[], given: number): number[] {
   const lastRead = passes.map((_, index) => index);
   passes.forEach((pass, index) =>
     pass.inputs.forEach((input) => {
       if (input >= index) throw new Error(`Pass ${index} reads a later pass`);
+      if (input < -given) {
+        throw new Error(`Pass ${pass.key} reads source ${-input - 1}, which wasn't given`);
+      }
       if (input >= 0) lastRead[input] = index;
     }),
   );
@@ -75,21 +81,24 @@ function unbindUnits(gl: WebGL2RenderingContext, used: number): void {
   }
 }
 
-/** Uploads the source and runs the passes on `context`; the last one draws on its canvas. */
+/** Uploads the sources and runs the passes on `context`; the last one draws on its canvas. */
 function runPasses(
   context: GpuContext,
-  picture: TexImageSource,
+  pictures: readonly TexImageSource[],
   width: number,
   height: number,
   passes: readonly GpuPass[],
 ): void {
-  const { gl, canvas, programs, targets, data, source, floatTargets } = context;
-  const lastRead = lastReaders(passes);
+  const { gl, canvas, programs, targets, data, sources, floatTargets } = context;
+  const lastRead = lastReaders(passes, pictures.length);
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
     canvas.height = height;
   }
-  uploadSource(gl, source, picture);
+  pictures.forEach((picture, index) => {
+    const texture = (sources[index] ??= createTexture(gl));
+    uploadSource(gl, texture, picture);
+  });
   gl.viewport(0, 0, width, height);
   const outputs: GpuTarget[] = [];
   // The most texture units a pass has bound, emptied again however the run ends.
@@ -109,7 +118,7 @@ function runPasses(
       setUniforms(gl, found, pass);
       pass.inputs.forEach((input, n) => {
         gl.activeTexture(gl.TEXTURE0 + n);
-        gl.bindTexture(gl.TEXTURE_2D, input < 0 ? source : outputs[input]!.texture);
+        gl.bindTexture(gl.TEXTURE_2D, input < 0 ? sources[-input - 1]! : outputs[input]!.texture);
       });
       Object.entries(pass.textures ?? {}).forEach(([name, texture], n) => {
         const unit = pass.inputs.length + n;
@@ -136,6 +145,11 @@ function runPasses(
     gl.activeTexture(gl.TEXTURE0);
   }
 }
+
+/** Whether `run` was given several sources rather than one. */
+const isPictureList = (
+  source: TexImageSource | readonly TexImageSource[],
+): source is readonly TexImageSource[] => Array.isArray(source);
 
 /**
  * Creates a runner with a WebGL2 context of its own, made the first time it is needed. Each
@@ -165,11 +179,12 @@ export function createGpuRunner(): GpuRunner {
     get floatTargets() {
       return current()?.floatTargets ?? false;
     },
-    run(picture, { width, height }, passes) {
+    run(source, { width, height }, passes) {
       if (passes.length === 0) throw new Error("Nothing to run");
       const working = current();
       if (!working) throw new GpuUnavailable();
-      runPasses(working, picture, width, height, passes);
+      const pictures = isPictureList(source) ? source : [source];
+      runPasses(working, pictures, width, height, passes);
       if (working.gl.isContextLost()) {
         working.lost = true;
         throw new Error("The graphics context was lost; it is made again on the next frame");
