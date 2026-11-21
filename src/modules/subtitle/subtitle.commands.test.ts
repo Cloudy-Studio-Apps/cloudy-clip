@@ -20,6 +20,9 @@ import { textModule } from "@/modules/text";
 import { timelineModule } from "@/modules/timeline";
 import { transformModule } from "@/modules/transform";
 import { ownPaths } from "./logic/overrides";
+import { toSrt } from "./logic/srt";
+import { addCue, mergeCues, splitCue } from "./subtitle.cue.commands";
+import { importSubtitles } from "./subtitle.import.command";
 import { mark, resetToStyle, unmark } from "./subtitle.mark.commands";
 import { subtitleModule } from "./subtitle.module";
 import { addStyle, removeStyle, updateStyle } from "./subtitle.style.commands";
@@ -255,5 +258,114 @@ describe("styles", () => {
       "subtitle.last_style",
     );
     expect(doc()).toBe(before);
+  });
+});
+
+describe("cues", () => {
+  const cue = (start: number, text: string, duration = S) =>
+    ok<{ clipId: string }>(kernel.bus.run(addCue, { start, duration, text })).then((r) => r.clipId);
+
+  it("addCue goes on the cue track, else on a new top track", async () => {
+    const first = await cue(5 * S, "One");
+    const track = doc().clips[first]!.trackId;
+    expect(track).not.toBe("v1");
+    expect(doc().compositions.c1!.trackOrder[0]).toBe(track);
+    expect(doc().tracks[track]!.name).toBe("Subtitles");
+    expect(doc().clips[first]!.subtitle).toBeDefined();
+    const second = await cue(7 * S, "Two");
+    expect(doc().clips[second]!.trackId).toBe(track);
+  });
+
+  it("addCue refuses an overlap", async () => {
+    await cue(5 * S, "One");
+    const before = doc();
+    expect(await code(kernel.bus.run(addCue, { start: 5.5 * S, duration: S, text: "x" }))).toBe(
+      "subtitle.overlap",
+    );
+    expect(doc()).toBe(before);
+  });
+
+  it("splitCue cuts by the share of the words and both halves stay marked", async () => {
+    const id = await cue(10 * S, "Hello brave world", 4 * S);
+    const { clipIds } = await ok<{ clipIds: [string, string] }>(
+      kernel.bus.run(splitCue, { clipId: id, at: 6 }),
+    );
+    const [left, right] = clipIds.map((c) => doc().clips[c]!) as [Clip, Clip];
+    expect([left.props.text, right.props.text]).toEqual(["Hello", "brave world"]);
+    expect(left.start + left.duration).toBe(right.start);
+    expect(Math.abs(right.start - (10 + (4 * 6) / 17) * S)).toBeLessThanOrEqual(33_334);
+    expect(left.subtitle).toBeDefined();
+    expect(right.subtitle).toEqual(left.subtitle);
+    expect(await code(kernel.bus.run(splitCue, { clipId: id, at: 0 }))).toBe(
+      "subtitle.split_outside",
+    );
+  });
+
+  it("splitCue with typed text is one undo step", async () => {
+    const id = await cue(10 * S, "Hello world", 2 * S);
+    const count = Object.keys(doc().clips).length;
+    await ok(kernel.bus.run(splitCue, { clipId: id, at: 2, text: "Hi there" }));
+    expect(Object.keys(doc().clips)).toHaveLength(count + 1);
+    kernel.history.undo();
+    expect(Object.keys(doc().clips)).toHaveLength(count);
+    expect(doc().clips[id]!.props.text).toBe("Hello world");
+    expect(doc().clips[id]!.duration).toBe(2 * S);
+  });
+
+  it("mergeCues joins adjacent cues and refuses a gap", async () => {
+    const a = await cue(20 * S, "Hello");
+    const b = await cue(21 * S, "world");
+    const c = await cue(23 * S, "far");
+    expect(await code(kernel.bus.run(mergeCues, { clipIds: [b, c] }))).toBe(
+      "subtitle.not_adjacent",
+    );
+    await ok(kernel.bus.run(mergeCues, { clipIds: [a, b] }));
+    expect(doc().clips[b]).toBeUndefined();
+    expect(doc().clips[a]).toMatchObject({ start: 20 * S, duration: 2 * S });
+    expect(doc().clips[a]!.props.text).toBe("Hello world");
+    kernel.history.undo();
+    expect(doc().clips[b]).toBeDefined();
+    expect(doc().clips[a]!.duration).toBe(S);
+  });
+});
+
+describe("import and export", () => {
+  const SRT =
+    "\uFEFF1\r\n00:00:01,000 --> 00:00:03,000\r\nHello\r\n\r\n2\r\n00:00:02,500 --> 00:00:04,000\r\nOverlap <i>x</i>\r\n\r\nbroken block\r\n\r\n3\r\n00:00:05,000 --> 00:00:06,000\r\nLast\r\n";
+
+  it("import reads srt and vtt", async () => {
+    const result = await ok<{ clipIds: string[]; trackIds: string[]; skipped: number }>(
+      kernel.bus.run(importSubtitles, { text: SRT, format: "srt" }),
+    );
+    expect(result.clipIds).toHaveLength(3);
+    expect(result.trackIds).toHaveLength(2);
+    expect(result.skipped).toBe(1);
+    expect(result.clipIds.every((id) => doc().clips[id]!.subtitle)).toBe(true);
+    expect(doc().tracks[result.trackIds[1]!]!.name).toBe("Subtitles (2)");
+    expect(doc().compositions.c1!.trackOrder.slice(0, 2)).toEqual(result.trackIds);
+    const vtt = await ok<{ clipIds: string[] }>(
+      kernel.bus.run(importSubtitles, {
+        text: "WEBVTT\n\nNOTE hi\n\n00:01.500 --> 00:02.000 align:start\n<b>Hi</b>\n",
+        format: "vtt",
+        name: "Captions",
+      }),
+    );
+    expect(doc().clips[vtt.clipIds[0]!]).toMatchObject({ start: 1_500_000, duration: 500_000 });
+    expect(doc().clips[vtt.clipIds[0]!]!.props.text).toBe("Hi");
+  });
+
+  it("import of an empty file fails", async () => {
+    const before = doc();
+    expect(await code(kernel.bus.run(importSubtitles, { text: "WEBVTT\n", format: "vtt" }))).toBe(
+      "subtitle.empty_file",
+    );
+    expect(doc()).toBe(before);
+  });
+
+  it("toSrt writes cues in order with ms times", async () => {
+    await ok(kernel.bus.run(importSubtitles, { text: SRT, format: "srt" }));
+    expect(toSrt(doc(), "c1")).toBe(
+      "1\n00:00:01,000 --> 00:00:03,000\nHello\n\n2\n00:00:02,500 --> 00:00:04,000\nOverlap x\n\n3\n00:00:05,000 --> 00:00:06,000\nLast\n",
+    );
   });
 });

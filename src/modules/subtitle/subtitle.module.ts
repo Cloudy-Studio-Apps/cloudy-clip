@@ -1,4 +1,6 @@
 import { defineModule } from "@/core";
+import { addCue, mergeCues, splitCue } from "./subtitle.cue.commands";
+import { importSubtitles } from "./subtitle.import.command";
 import { mark, resetToStyle, unmark } from "./subtitle.mark.commands";
 import { subtitleMcpTools } from "./subtitle.mcp";
 import { subtitleRef } from "./subtitle.ref";
@@ -15,7 +17,7 @@ export const subtitleModule = defineModule({
   ref: subtitleRef,
   name: "Subtitles",
   tier: "feature",
-  requires: ["project", "element", "text", "fonts"],
+  requires: ["project", "element", "text", "fonts", "timeline"],
   commands: [
     addStyle,
     updateStyle,
@@ -25,6 +27,10 @@ export const subtitleModule = defineModule({
     mark,
     unmark,
     resetToStyle,
+    addCue,
+    splitCue,
+    mergeCues,
+    importSubtitles,
   ],
   mcpTools: subtitleMcpTools,
   setup: () => ({ api: {} }),

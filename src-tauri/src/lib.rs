@@ -6,6 +6,7 @@ mod fonts;
 mod mcp;
 mod media;
 mod sound;
+mod subtitle;
 mod tint;
 mod webview;
 mod workspace;
@@ -61,6 +62,8 @@ pub fn run() {
             sound::commands::sound_silences_begin,
             sound::commands::sound_silences_cancel,
             sound::commands::sound_silences_finish,
+            subtitle::subtitle_read_text,
+            subtitle::subtitle_write_text,
             tint::tint_read_lut,
             workspace::commands::workspace_exists,
             workspace::commands::workspace_read,

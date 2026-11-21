@@ -8,7 +8,7 @@ the cues that still had its old value, and a cue that differed keeps its own. Ke
 written: their keys win.
 
 - **Tier:** feature
-- **Requires:** `project`, `element`, `text`, `fonts`
+- **Requires:** `project`, `element`, `text`, `fonts`, `timeline`
 - **Contributes:** nothing yet (the page and panels come later)
 - **Points it owns:** none
 - **API** (`useModule(subtitleRef)` / `ctx.require(subtitleRef)`): empty
@@ -23,8 +23,11 @@ written: their keys win.
     cue.
   - `subtitle.style.commands.ts`, `subtitle.mark.commands.ts`, `subtitle.guards.ts`,
     `subtitle.mcp.ts`.
-- **Not yet:** cues (add, split, merge), import and export of `.srt` / `.vtt`, the Subtitles page
-  and its panels.
+  - `subtitle.cue.commands.ts` (add, split, merge), `subtitle.import.command.ts`,
+    `logic/srt.ts` (`parseSubtitles`, `toSrt`), `logic/lanes.ts` (`laneOf`, greedy lanes for
+    overlapping cues), `subtitle.service.ts` (file dialogs and `subtitle_read_text` /
+    `subtitle_write_text` in `src-tauri/src/subtitle/`: absolute `.srt` / `.vtt` paths, 8 MB).
+- **Not yet:** the Subtitles page and its panels.
 
 The data (`SubtitleStyle`, `Clip.subtitle`, `Composition.subtitleStyleOrder`) lives in `project`,
 whose integrity pass copies a style along with a cue that lands in another composition and drops a
@@ -41,7 +44,13 @@ mark whose style is gone. The first mark or `addStyle` in a composition without 
 | `subtitle.mark`          | `subtitle_mark`           | text clips only; writes the style over the look (words, keys, masks stay); re-marking keeps own values; `{ marked }` |
 | `subtitle.unmark`        | `subtitle_unmark`         | drops the mark; the look stays; fails `subtitle.not_marked`                                                          |
 | `subtitle.resetToStyle`  | `subtitle_reset_to_style` | writes the style's values into cues: all, or `paths`                                                                 |
+| `subtitle.addCue`        | `subtitle_add_cue`        | on `trackId`, else the track of the cue before, else a new top track "Subtitles"; marked; `{ clipId }`               |
+| `subtitle.splitCue`      | `subtitle_split_cue`      | `at` = character index; cut at the same share of time, on a frame; `text` = typed words; `{ clipIds }`               |
+| `subtitle.mergeCues`     | `subtitle_merge_cues`     | two cues end to end on one track (±1 µs); words joined with a space, or `text`; `{ clipId }`                         |
+| `subtitle.import`        | `subtitle_import`         | `.srt` / `.vtt` text; one new top track per lane of overlapping cues; `{ clipIds, trackIds, skipped }`               |
+|                          | `subtitle_to_srt`         | read only: `.srt` of the marked, enabled cues of a composition                                                       |
 
 Failures: `subtitle.clip_not_found`, `subtitle.not_text`, `subtitle.not_marked`,
 `subtitle.style_not_found`, `subtitle.last_style`, `subtitle.composition_not_found`,
-`subtitle.invalid_style`.
+`subtitle.invalid_style`, `subtitle.overlap`, `subtitle.split_outside`, `subtitle.not_adjacent`,
+`subtitle.empty_file`.
