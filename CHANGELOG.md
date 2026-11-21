@@ -10,15 +10,15 @@ Leer en [español](CHANGELOG.es.md).
 
 ### Added
 
-- **More transitions, 33 tiles in the Transitions tab (up from 9).** Basic adds Clock wipe, Circle
-  open and Circle close, Split and Split vertical, Dip to white and Top to bottom; Motion adds Push
-  in four directions and Slide up; Camera adds Zoom in and out, Spin and Spin left, and Shake; Light
-  adds Blink, Light leak and Film burn; Blur adds Woosh up; Distort adds Pixelate, Luma fade and
-  Ripple; Glitch adds RGB split. Where they apply, they take the shared options: ease, direction,
-  intensity, softness and color. Zoom, spin, shake and push blur their motion, and luma fade and
-  ripple need the graphics card: without one the live preview shows them plainer, once, with a
-  notice, and an export stops with a message rather than writing the plainer look. Agents see every
-  tile through `transition_list_presets`.
+- **More transitions, 33 tiles in the Transitions tab (up from 7).** Basic adds Clock wipe, Circle
+  open, Circle close, Split, Split vertical, Dip to white and Top to bottom; Motion adds Push in
+  four directions, Slide left and Slide up; Camera adds Zoom in, Zoom out, Spin, Spin left and
+  Shake; Light adds Blink, Light leak and Film burn; Blur adds Woosh up; Distort adds Pixelate,
+  Luma fade and Ripple; Glitch adds RGB split. Where they apply, they take the shared options: ease,
+  direction, intensity, softness and color. Zoom, spin, shake and push need the graphics card for
+  their blur, and luma fade and ripple need it outright. Without one the live preview shows them
+  plainer, once, with a notice, and an export stops with a message rather than writing the plainer
+  look. Agents see every tile through `transition_list_presets`.
 - **Follow path:** draw a path on the frame, freehand (one stroke, smoothed into a few points) or
   with the pen (click for corners, drag for curves), and any number of clips follow it. Progress
   (0–100 %, keyed for you from the clip's start to its end) moves a clip along the path at an even
