@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloudy Clip, Auto mask mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Courier+Prime:wght@400;700&family=Shantell+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--table:#14171b;--table-2:#0e1013;--paper:#202327;--paper-2:#2a2e33;--rule:#33383f;--rule-2:#4b5a68;--blue:#6fb7e6;--ink:#eceff1;--ink-2:#a9b3bb;--ink-3:#7b8690;--red:#ff5f52;--green:#7bd389;--mask:#6fb7e6;
+    --hand:"Shantell Sans",sans-serif;--body:"Atkinson Hyperlegible",sans-serif;--mono:"Courier Prime",monospace;--head:110px}
+  *{box-sizing:border-box}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--rule-2);background-clip:padding-box;border:3px solid transparent;border-radius:5px}
+  html,body{height:100%;margin:0}
+  body{background:var(--table);color:var(--ink);font:400 13px/1.35 var(--body);overflow:hidden;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+  button:disabled{opacity:.4;cursor:default}
+  .ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  kbd{font:700 11px var(--mono);padding:0 4px;border-radius:2px;box-shadow:inset 0 0 0 1px var(--rule-2);color:var(--ink-2)}
+
+  #app{height:100vh;display:grid;grid-template-rows:48px minmax(0,1fr) 196px}
+  .top{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;padding:0 12px;background:var(--table-2)}
+  .brand{align-self:center;display:flex;align-items:center;gap:10px}
+  .word{font:800 19px/1 var(--hand)}
+  .project{color:var(--ink-2);font:400 13px var(--mono)}
+  .pages{display:flex;gap:3px;align-items:flex-end}
+  .pg{height:34px;padding:0 16px;color:var(--ink-2);font:700 14px/1 var(--hand);background:var(--table);border-radius:4px 4px 0 0}
+  .pg.on{height:38px;color:var(--ink);background:var(--paper);box-shadow:inset 0 2px 0 var(--red)}
+  .right{align-self:center;display:flex;align-items:center;justify-content:flex-end;gap:6px}
+  .icon{width:30px;height:30px;display:grid;place-items:center;color:var(--ink-2);border-radius:3px;flex:none}
+  .icon:hover{color:var(--ink);background:rgb(255 255 255/.08)}
+
+  .work{display:grid;grid-template-columns:220px minmax(0,1fr) 340px;min-height:0;background:var(--paper);border-bottom:1px solid var(--rule-2)}
+  .col{display:flex;flex-direction:column;min-height:0;min-width:0}
+  .cbar{height:34px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--paper-2);border-bottom:1px solid var(--rule-2)}
+  .cbar h3{margin:0;font:700 13.5px var(--hand)}
+  .lib{padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start}
+  .thumb{aspect-ratio:16/9;border-radius:3px;background:center/cover;box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .thumb.on{box-shadow:0 0 0 2px var(--blue)}
+  .tname{font:400 11px var(--mono);color:var(--ink-3);margin-top:2px}
+
+  .view{position:relative;min-height:0;background:var(--table);display:grid;place-items:center;padding:52px 18px 40px;container-type:size}
+  .frame{position:relative;width:min(100cqw - 36px,(100cqh - 92px) * 16 / 9);aspect-ratio:16/9;box-shadow:0 0 0 1px var(--rule-2);overflow:hidden;user-select:none}
+  .frame > svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .frame.pick{cursor:crosshair}
+  .vlabel{position:absolute;left:12px;top:10px;font:400 11.5px var(--mono);color:var(--ink-3)}
+  .vhint{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:12px;color:var(--ink-3)}
+  .vhint b{color:var(--ink-2);font-weight:700}
+
+  /* the picking bar over the preview */
+  .pbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2px;padding:4px;background:var(--paper-2);border-radius:6px;box-shadow:0 0 0 1px var(--rule-2),0 8px 24px rgb(0 0 0/.45);z-index:3;white-space:nowrap}
+  .pb{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:4px;font:700 13px/1 var(--hand);color:var(--ink-2)}
+  .pb:hover:not(:disabled){color:var(--ink);background:rgb(255 255 255/.06)}
+  .pb.on{color:var(--ink);background:var(--table);box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .pb.add.on{color:var(--green)}
+  .pb.rem.on{color:var(--red)}
+  .pb.done{background:var(--ink);color:var(--paper)}
+  .pb.done:hover{background:#fff;color:var(--paper)}
+  .psep{width:0;height:18px;border-left:1px dashed var(--rule-2);margin:0 5px}
+
+  .pcount{font:700 12px var(--mono);color:#f2c46d;min-width:14px;text-align:center}
+  .pcount.zero{color:var(--ink-3)}
+  .seg.sm button{height:24px;padding:0 8px;font-size:12px}
+  .pmark{position:absolute;top:0;height:7px;min-width:3px}
+  .pmark.lost{background:var(--red)}
+  .pmark.unsure{background:#f2c46d}
+  .pdot.dirty{background:#f2c46d}
+  .pflag{position:absolute;left:10px;top:10px;font:700 11.5px var(--mono);padding:2px 7px;border-radius:3px;background:rgb(14 16 19/.85)}
+  .pflag.lost{color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+  .pflag.unsure{color:#f2c46d;box-shadow:inset 0 0 0 1px #f2c46d}
+  .rs-sp{width:20px}
+  .grow{flex:1;min-width:0}
+  /* inspector */
+  .itabs{display:flex;gap:2px;padding:4px 10px 0;border-bottom:1px solid var(--rule-2);flex:none}
+  .itab{width:74px;height:30px;color:var(--ink-2);font:700 13px/1 var(--hand)}
+  .itab.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--red)}
+  .pbody{flex:1;min-height:0;overflow-y:auto}
+  .sect{padding:10px 12px;border-bottom:1px dashed var(--rule-2)}
+  .sect h4{margin:0 0 8px;font:700 13px var(--hand);display:flex;align-items:center;gap:8px}
+  .sect h4 small{font:400 11px var(--mono);color:var(--ink-3)}
+  .presets{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .preset{height:34px;display:grid;place-items:center;border-radius:3px;color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--rule)}
+  .preset:hover{color:var(--ink);background:var(--paper-2)}
+  .preset span{font:700 11px var(--hand)}
+  .draw{display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:6px;margin-top:8px}
+  .dbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;border-radius:3px;font:700 13px/1 var(--hand);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .dbtn:hover{color:var(--ink);background:var(--paper-2)}
+  .dbtn.auto{color:var(--ink);box-shadow:inset 0 0 0 1px var(--mask);background:rgb(111 183 230/.08)}
+  .dbtn.auto.on{background:var(--mask);color:var(--paper)}
+  .new{font:700 9.5px var(--mono);color:var(--red);margin-left:-2px}
+  .dbtn.auto.on .new{color:var(--paper)}
+
+  .mrow{display:grid;grid-template-columns:10px 18px minmax(0,1fr) auto 22px 22px;gap:8px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--rule);cursor:pointer}
+  .mrow:hover{background:rgb(255 255 255/.03)}
+  .mrow.sel{background:var(--paper-2);box-shadow:inset 2px 0 0 var(--red)}
+  .mdot{width:10px;height:10px;border-radius:2px;background:var(--mask)}
+  .mname{font:700 13px var(--hand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{font:700 10.5px var(--mono);padding:1px 5px;border-radius:2px;white-space:nowrap;box-shadow:inset 0 0 0 1px var(--rule-2);color:var(--ink-2)}
+  .tag.ready{color:var(--green);box-shadow:inset 0 0 0 1px rgb(123 211 137/.5)}
+  .tag.busy{color:var(--mask);box-shadow:inset 0 0 0 1px rgb(111 183 230/.5)}
+  .tag.warn{color:#f2c46d;box-shadow:inset 0 0 0 1px rgb(242 196 109/.5)}
+  .mini{width:22px;height:22px;display:grid;place-items:center;border-radius:3px;color:var(--ink-2)}
+  .mini:hover{background:rgb(255 255 255/.08);color:var(--ink)}
+  .mini.off{opacity:.4}
+  .menu{position:absolute;z-index:20;min-width:190px;padding:4px;background:var(--paper-2);border-radius:5px;box-shadow:0 0 0 1px var(--rule-2),0 10px 28px rgb(0 0 0/.5)}
+  .menu button{display:flex;width:100%;align-items:center;gap:8px;padding:6px 8px;border-radius:3px;text-align:left;font-size:12.5px}
+  .menu button:hover:not(:disabled){background:var(--table)}
+  .menu hr{border:0;border-top:1px solid var(--rule);margin:4px 0}
+
+  .status{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);min-height:28px}
+  .prog{flex:1;height:6px;border-radius:2px;background:var(--table);overflow:hidden;box-shadow:inset 0 0 0 1px var(--rule)}
+  .prog i{display:block;height:100%;background:var(--mask)}
+  .clicks{margin:6px 0 0;padding:0;list-style:none}
+  .clicks li{display:flex;align-items:center;gap:8px;padding:4px 0;font:400 12px var(--mono);color:var(--ink-2);border-top:1px solid var(--rule)}
+  .clicks li b{color:var(--ink);min-width:52px}
+  .clicks .p{color:var(--green)} .clicks .m{color:var(--red)}
+  .clicks li .grow{flex:1}
+  .prop{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:28px;color:var(--ink-2)}
+  .ctl{display:flex;align-items:center;gap:6px}
+  .num{font:700 12.5px var(--mono);color:var(--ink);min-width:40px;text-align:right}
+  .key{width:20px;height:20px;display:grid;place-items:center;color:var(--ink-3)}
+  .key:hover{color:var(--ink)}
+  .key.on{color:var(--blue)}
+  input[type=range]{width:112px;accent-color:var(--blue)}
+  select{background:var(--table);color:var(--ink);border:1px solid var(--rule-2);border-radius:3px;font:inherit;font-size:12.5px;padding:2px 4px}
+  .sw{width:30px;height:16px;border-radius:8px;background:var(--rule-2);position:relative;flex:none}
+  .sw::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--ink)}
+  .sw.on{background:var(--blue)}
+  .sw.on::after{transform:translateX(14px)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;padding:0 10px;border-radius:3px;font:700 13px/1 var(--hand);white-space:nowrap;color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .btn:hover:not(:disabled){background:var(--paper-2);box-shadow:inset 0 0 0 1px var(--ink-3)}
+  .btn.primary{background:var(--ink);color:var(--paper);box-shadow:none}
+  .btn.primary:hover:not(:disabled){background:#fff}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .muted{color:var(--ink-3);font-size:12px}
+  .empty{padding:16px 12px;color:var(--ink-3);font-size:12.5px}
+
+  /* timeline */
+  .tl{display:flex;flex-direction:column;min-height:0;background:var(--paper)}
+  .tl-tools{height:30px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--paper-2);border-bottom:1px solid var(--rule-2)}
+  .tl-tools h3{margin:0;font:700 13px var(--hand)}
+  .tc{font:700 14px var(--mono)}
+  .sheet{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+  .tl-ruler{display:grid;grid-template-columns:var(--head) 1fr;flex:none;height:22px;border-bottom:1.5px solid var(--ink-3)}
+  .corner{background:var(--paper-2);border-right:1.5px solid var(--ink-3)}
+  .ruler{position:relative;overflow:hidden;cursor:pointer}
+  .tick{position:absolute;bottom:0;width:1px;height:5px;background:var(--ink-3)}
+  .tick.major{height:100%}
+  .tick b{position:absolute;left:4px;bottom:3px;font:700 11px var(--mono)}
+  .tl-row{display:grid;grid-template-columns:var(--head) 1fr;height:50px;border-bottom:1px solid var(--rule)}
+  .tl-row.a{height:38px}
+  .tl-head{display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--paper-2);border-right:1.5px solid var(--ink-3);font:700 12.5px var(--mono);color:var(--ink-2)}
+  .lane{position:relative;overflow:hidden;cursor:pointer}
+  .clip{position:absolute;top:4px;bottom:4px;border-radius:2px;overflow:hidden;background:#2b4356 center/auto 100% repeat-x;box-shadow:inset 0 0 0 1px rgb(255 255 255/.18)}
+  .clip.sel{box-shadow:inset 0 0 0 2px var(--ink)}
+  .clip .cl{position:absolute;left:6px;top:3px;font:700 11.5px var(--hand);text-shadow:0 1px 2px #000;display:flex;gap:6px;align-items:center}
+  .clip .mk{font:700 10px var(--mono);background:rgb(0 0 0/.55);color:var(--mask);padding:0 4px;border-radius:2px}
+  .stripe{position:absolute;bottom:0;height:4px;background:var(--mask)}
+  .pdot{position:absolute;top:20px;width:10px;height:10px;margin-left:-5px;background:var(--mask);transform:rotate(45deg);box-shadow:0 0 0 2px var(--paper)}
+  .aclip{position:absolute;top:4px;bottom:4px;border-radius:2px;background:#2f4a3a;box-shadow:inset 0 0 0 1px rgb(255 255 255/.14)}
+  .playhead{position:absolute;top:0;bottom:0;width:0;border-left:1.5px solid var(--red);pointer-events:none;z-index:4}
+  .playhead::before{content:"";position:absolute;top:0;left:-6px;border:5px solid transparent;border-top:7px solid var(--red)}
+
+  /* dialogs */
+  .scrim{position:fixed;inset:0;background:rgb(0 0 0/.55);display:grid;place-items:center;z-index:30}
+  .dlg{width:min(760px,94vw);max-height:88vh;display:flex;flex-direction:column;background:var(--paper);border-radius:8px;box-shadow:0 0 0 1px var(--rule-2),0 20px 60px rgb(0 0 0/.6);overflow:hidden}
+  .dhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--rule-2)}
+  .dhead h2{margin:0;font:800 16px var(--hand);flex:1}
+  .dfoot{display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid var(--rule-2)}
+  .settings{display:grid;grid-template-columns:180px 1fr;min-height:380px}
+  .snav{border-right:1px solid var(--rule-2);padding:8px}
+  .snav button{display:block;width:100%;text-align:left;padding:7px 10px;border-radius:3px;font:700 13px var(--hand);color:var(--ink-2)}
+  .snav button.on{background:var(--paper-2);color:var(--ink);box-shadow:inset 2px 0 0 var(--red)}
+  .spane{padding:14px 18px;overflow-y:auto}
+  .spane h3{margin:0 0 4px;font:800 15px var(--hand)}
+  .srow{display:grid;grid-template-columns:170px 1fr;gap:12px;align-items:start;padding:12px 0;border-bottom:1px dashed var(--rule-2)}
+  .srow .l{font:700 13px var(--hand);padding-top:5px}
+  .seg{display:inline-flex;padding:2px;border-radius:4px;background:var(--table);box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .seg button{height:26px;padding:0 12px;border-radius:3px;font:700 12.5px var(--hand);color:var(--ink-2)}
+  .seg button.on{background:var(--paper-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule-2)}
+  .info{margin-top:6px;font-size:12px;color:var(--ink-3);line-height:1.5}
+  .info b{color:var(--ink-2)}
+  .conv{display:grid;grid-template-columns:1fr 250px;gap:14px;padding:14px}
+  .conv .pv{position:relative;aspect-ratio:16/9;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1px var(--rule-2);background:#000}
+  .conv .pv svg{position:absolute;inset:0;width:100%;height:100%}
+  .warn{margin-top:10px;padding:8px 10px;border-radius:3px;font-size:12px;color:#f2c46d;background:rgb(242 196 109/.08);box-shadow:inset 0 0 0 1px rgb(242 196 109/.35)}
+
+  .toasts{position:fixed;right:354px;bottom:210px;display:flex;flex-direction:column;gap:6px;z-index:40}
+  .toast{padding:9px 12px;border-radius:5px;background:var(--paper-2);box-shadow:0 0 0 1px var(--rule-2),0 8px 20px rgb(0 0 0/.5);font-size:12.5px;max-width:320px}
+  .mock{position:fixed;left:12px;bottom:206px;z-index:25;padding:8px 10px;border-radius:5px;background:rgb(14 16 19/.92);box-shadow:0 0 0 1px var(--rule-2);font-size:11.5px;color:var(--ink-3);display:flex;gap:8px;align-items:center}
+  .mock b{font:700 11px var(--mono);color:#f2c46d}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="brand"><span class="word">Cloudy Clip</span><span class="project">seal-day.cclip</span></div>
+    <nav class="pages"><button class="pg on">Editor</button><button class="pg">Tint</button><button class="pg">Sound</button><button class="pg">Subtitles</button><button class="pg">Export</button></nav>
+    <div class="right"><button class="icon" id="gear" title="Settings (Ctrl+,)"></button></div>
+  </header>
+
+  <main class="work">
+    <section class="col">
+      <div class="cbar"><h3>Media</h3></div>
+      <div class="lib">
+        <div><div class="thumb on" style="background-image:url(footage/plaza.jpg)"></div><div class="tname">plaza.mp4</div></div>
+        <div><div class="thumb" style="background-image:url(footage/tractor.jpg)"></div><div class="tname">tractor.mp4</div></div>
+        <div><div class="thumb" style="background-image:url(footage/city.jpg)"></div><div class="tname">city.mp4</div></div>
+        <div><div class="thumb" style="background-image:url(footage/meadow.jpg)"></div><div class="tname">meadow.mp4</div></div>
+      </div>
+    </section>
+    <section class="view" id="view">
+      <span class="vlabel">Preview · 1920×1080</span>
+      <div class="frame" id="frame"></div>
+      <div class="vhint" id="vhint"></div>
+      <div id="bar"></div>
+    </section>
+    <section class="col" style="border-left:1px solid var(--rule-2)">
+      <div class="itabs"><button class="itab">Video</button><button class="itab on">Mask</button><button class="itab">Audio</button><button class="itab">Speed</button></div>
+      <div class="pbody" id="insp"></div>
+    </section>
+  </main>
+
+  <section class="tl">
+    <div class="tl-tools"><h3>Timeline</h3><span class="tc" id="tc"></span></div>
+    <div class="sheet" id="sheet">
+      <div class="tl-ruler"><div class="corner"></div><div class="ruler" id="ruler"></div></div>
+      <div class="tl-row"><div class="tl-head">V1</div><div class="lane" id="lane"></div></div>
+      <div class="tl-row a"><div class="tl-head">A1</div><div class="lane"><div class="aclip" style="left:0;width:85.714%"></div></div></div>
+    </div>
+  </section>
+</div>
+<div class="mock"><b>MOCKUP</b> Tracking is simulated; the picture is a still.
+  <label style="display:flex;gap:5px;align-items:center;color:var(--ink-2)"><input type="checkbox" id="textBehind"> Text behind the seal (Invert + a text clip under)</label></div>
+<div class="toasts" id="toasts"></div>
+<div id="layer"></div>
+
+<script>
+// ---------- icons (lucide shapes) ----------
+const I = {
+  auto:'<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3M5 6v4M19 14v4M10 2v2M7 8H3M21 16h-4M11 3H9"/>',
+  pen:'<path d="M15.7 21.3a1 1 0 0 1-1.4 0l-1.6-1.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4z"/><path d="m18 13-1.4-6.9a1 1 0 0 0-.7-.8L3.2 2a1 1 0 0 0-1.2 1.2l3.3 12.7a1 1 0 0 0 .8.7L13 18M2.3 2.3l7.3 7.3"/><circle cx="11" cy="11" r="2"/>',
+  pencil:'<path d="M21.2 6.8a1 1 0 0 0-4-4L3.8 16.2a2 2 0 0 0-.5.8L2 21.4a.5.5 0 0 0 .6.6l4.4-1.3a2 2 0 0 0 .8-.5z"/>',
+  plus:'<path d="M5 12h14M12 5v14"/>', minus:'<path d="M5 12h14"/>',
+  box:'<path d="M5 3a2 2 0 0 0-2 2M19 3a2 2 0 0 1 2 2M21 19a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1M14 3h1M14 21h1M3 9v1M21 9v1M3 14v1M21 14v1"/>',
+  eraser:'<path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21M22 21H7M5 11l9 9"/>',
+  back:'<path d="m11 17-5-5 5-5M18 17l-5-5 5-5"/>', fwd:'<path d="m6 17 5-5-5-5M13 17l5-5-5-5"/>', both:'<path d="m8 7-5 5 5 5M16 7l5 5-5 5"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>', x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  gear:'<path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.8l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7l.2-.2a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  dots:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  key:'<path d="M12 3 21 12 12 21 3 12z"/>',
+  spline:'<path d="M4 18c3-9 6-9 8-5s5 4 8-5"/><circle cx="4" cy="18" r="1.5"/><circle cx="20" cy="8" r="1.5"/>',
+  rect:'<rect x="4" y="6" width="16" height="12" rx="1"/>', ellipse:'<ellipse cx="12" cy="12" rx="8" ry="6"/>',
+  star:'<path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  heart:'<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/>',
+  linear:'<path d="M3 9h18M3 15h18" stroke-dasharray="2 3"/><path d="M3 12h18"/>', mirror:'<path d="M3 7h18M3 17h18"/>',
+  warn:'<path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3M12 9v4M12 17h.01"/>',
+  left:'<path d="m15 18-6-6 6-6"/>', right:'<path d="m9 18 6-6-6-6"/>',
+  none:'<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>',
+};
+const ic = (n, s = 16) => `<svg class="ico" style="width:${s}px;height:${s}px" viewBox="0 0 24 24">${I[n]}</svg>`;
+document.getElementById("gear").innerHTML = ic("gear", 18);
+
+// ---------- the still and what SAM would find in it (hand-drawn stand-ins) ----------
+const OBJECTS = {
+  front: { name: "seal (front)", poly: [[158,478],[220,465],[232,410],[260,378],[300,370],[345,385],[380,420],[392,462],[470,478],[455,497],[400,492],[360,510],[300,515],[240,505],[205,492],[165,492]] },
+  left:  { name: "seal (left)", poly: [[82,305],[140,295],[150,245],[180,220],[230,212],[270,232],[290,280],[300,295],[360,305],[345,322],[300,318],[270,333],[210,337],[165,325],[130,320],[85,318]] },
+  back:  { name: "seal (back)", poly: [[480,215],[515,195],[540,170],[570,170],[585,190],[605,215],[595,222],[560,228],[520,225],[485,222]] },
+  big:   { name: "big seal", poly: [[455,400],[520,395],[495,355],[540,350],[600,345],[720,340],[800,345],[900,350],[960,360],[960,540],[640,540],[600,500],[560,445],[510,440],[460,415]] },
+};
+const inPoly = (x, y, p) => { let c = false; for (let i = 0, j = p.length - 1; i < p.length; j = i++) { const [xi, yi] = p[i], [xj, yj] = p[j]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c; } return c; };
+const hit = (x, y) => Object.keys(OBJECTS).find((k) => inPoly(x, y, OBJECTS[k].poly));
+const area = (p) => Math.abs(p.reduce((a, [x, y], i) => { const [x2, y2] = p[(i + 1) % p.length]; return a + x * y2 - x2 * y; }, 0) / 2);
+
+// ---------- state ----------
+const END = 12, VIEW = 14, FPS = 30;
+const S = { t: 4.9, picking: false, tool: "add", view: "overlay", follow: true, masks: [], sel: null, n: 0, menu: null, settings: false, sTab: "auto",
+  device: "auto", defQuality: "better", disk: 1.24, convert: null, drag: null, job: null };
+const sel = () => S.masks.find((m) => m.id === S.sel);
+const clock = (s) => `0:${String(Math.floor(s)).padStart(2, "0")}.${Math.floor((s % 1) * 10)}`;
+const fr = (s) => Math.round(s * FPS) / FPS;
+// what the simulated tracker gets wrong: the front seal is lost for a moment, two stretches are unsure
+const SIM_PROBLEMS = [{ a: 1.3, b: 1.6, kind: "unsure" }, { a: 8.1, b: 8.6, kind: "lost" }, { a: 10.2, b: 10.5, kind: "unsure" }];
+
+function newMask() {
+  const m = { id: ++S.n, name: `Auto ${S.n}`, kind: "auto", mode: "add", invert: false, on: true, opacity: 100, feather: 4, expansion: 0,
+    quality: S.defQuality, refine: { consistency: 30, cleanup: 20, edge: 0 },
+    prompts: [], range: null, status: "untracked", tracked: null, trackedRange: null, changed: false, retrackAll: false, dirty: new Set(), problems: [], path: null };
+  S.masks.push(m); S.sel = m.id; return m;
+}
+// the objects a mask holds: every frame's clicks applied in time order
+function objectsOf(m) {
+  const set = new Set();
+  for (const p of [...m.prompts].sort((a, b) => a.at - b.at)) for (const pt of p.points) { const k = pt.obj; if (!k) continue; pt.include ? set.add(k) : set.delete(k); }
+  return [...set];
+}
+const promptAt = (m, t) => m.prompts.find((p) => Math.abs(p.at - t) < 1e-6);
+// the tracked result at a time (a lost span drops the thing the tracker lost)
+function trackedAt(m, t) {
+  let objs = [...m.tracked];
+  if (m.problems.some((p) => p.kind === "lost" && t >= p.a && t <= p.b)) { const gone = objs.includes("front") ? "front" : objs[0]; objs = objs.filter((k) => k !== gone); }
+  return objs;
+}
+// what the picking view shows on a frame: a clicked frame's own result, a tracked frame's result, or nothing yet
+function frameObjs(m, t) {
+  if (promptAt(m, t)) return objectsOf(m);
+  const j = S.job;
+  if (j?.m === m && j.kind === "track") { const [L, R] = jobSpan(j); if (t >= L && t <= R) return objectsOf(m); }
+  if (m.tracked && t >= m.trackedRange[0] && t <= m.trackedRange[1]) return trackedAt(m, t);
+  return null;
+}
+function addClick(x, y, include, box) {
+  let m = sel(); if (!m || m.kind !== "auto") m = newMask();
+  const t = fr(S.t); let p = promptAt(m, t); if (!p) { p = { at: t, points: [] }; m.prompts.push(p); }
+  if (box) { for (const k of Object.keys(OBJECTS)) { const c = OBJECTS[k].poly.reduce((a, [px, py]) => [a[0] + px / OBJECTS[k].poly.length, a[1] + py / OBJECTS[k].poly.length], [0, 0]); if (c[0] > box.x && c[0] < box.x + box.w && c[1] > box.y && c[1] < box.y + box.h) p.points.push({ x: c[0], y: c[1], include: true, obj: k, fromBox: true }); } p.box = box; }
+  else { const k = hit(x, y); p.points.push({ x, y, include, obj: k }); if (!k) toast(include ? "Nothing to pick there in this mockup: try a seal." : "Nothing taken away there."); }
+  touch(m, t);
+  render();
+}
+// a change to a frame's clicks: only the stretch around it needs tracking again
+function touch(m, t) { if (S.job?.m === m) stopJob(true); if (m.tracked) { m.dirty.add(t); m.changed = true; } }
+
+// ---------- tracking (simulated) ----------
+let timer = null;
+const jobSpan = (j) => [j.origin[0] - (j.origin[0] - j.a) * j.progress, j.origin[1] + (j.b - j.origin[1]) * j.progress];
+function startJob(m, a, b, origin, kind = "track") {
+  stopJob(true); S.picking = false;
+  S.job = { m, a, b, origin, kind, progress: 0, started: Date.now() }; S.follow = kind === "track";
+  timer = setInterval(() => {
+    const j = S.job; const len = Math.max(0.5, j.b - j.a);
+    j.progress = Math.min(1, j.progress + (j.kind === "refine" ? 0.09 : (0.144 / len) * (S.device === "cpu" ? 0.7 : 1) * (j.m.quality === "better" ? 0.6 : 1)));
+    if (j.kind === "track" && S.follow) S.t = fr(Math.min(END - 1 / FPS, j.origin[1] === j.b ? jobSpan(j)[0] : jobSpan(j)[1]));
+    if (j.progress >= 1) finishJob();
+    render();
+  }, 60);
+  render();
+}
+function finishJob() {
+  const j = S.job, m = j.m; clearInterval(timer); S.job = null;
+  if (j.kind === "track") {
+    m.tracked = objectsOf(m); m.trackedRange = [...m.range];
+    // a clicked frame inside a problem span fixes it
+    m.problems = SIM_PROBLEMS.filter((p) => p.b >= m.range[0] && p.a <= m.range[1] && !m.prompts.some((q) => q.at >= p.a - 0.2 && q.at <= p.b + 0.2));
+    m.dirty.clear(); m.changed = false; m.retrackAll = false;
+    toast(`${m.name} tracked: ${(j.b - j.a).toFixed(1)} s in ${Math.round(((Date.now() - j.started) / 1000) * 20)} s${m.problems.length ? `. ${m.problems.length} problem span${m.problems.length > 1 ? "s" : ""} to check.` : "."}`);
+  } else toast(`${m.name}: refined.`);
+}
+function stopJob(quiet) { if (!S.job) return; clearInterval(timer); if (!quiet) toast("Tracking stopped. What finished is kept."); S.job = null; render(); }
+function track(m, dir) {
+  if (!m.prompts.length) return toast("Click the thing first.");
+  const ats = m.prompts.map((p) => p.at), lo = Math.min(...ats), hi = Math.max(...ats);
+  const [a, b] = m.range || [lo, hi]; // the buttons widen the range, never shrink it
+  m.range = [dir === "fwd" ? Math.min(a, lo) : 0, dir === "back" ? Math.max(b, hi) : END];
+  if (!m.tracked || m.retrackAll) return startJob(m, m.range[0], m.range[1], [lo, hi]);
+  const [ta, tb] = m.trackedRange;
+  if (m.range[0] < ta || m.range[1] > tb) return startJob(m, m.range[0], m.range[1], [ta, tb]); // only the new outer stretches
+  if (!m.dirty.size) return toast("Already tracked.");
+  // from the changed frames out to the nearest other clicked frames
+  const ks = [...m.dirty], kmin = Math.min(...ks), kmax = Math.max(...ks);
+  const before = ats.filter((x) => x < kmin), after = ats.filter((x) => x > kmax);
+  startJob(m, before.length ? Math.max(...before) : m.range[0], after.length ? Math.min(...after) : m.range[1], [kmin, kmax]);
+}
+function finishPicking() { S.picking = false; const m = sel(); if (m?.kind === "auto" && m.range && m.changed) return track(m, "both"); render(); }
+function gotoProblem(m, dir) {
+  const ps = [...m.problems].sort((x, y) => x.a - y.a);
+  const cur = ps.find((x) => S.t >= x.a && S.t <= x.b), from = cur ? cur.a : S.t;
+  const p = dir > 0 ? ps.find((x) => x.a > from + 1e-3) : [...ps].reverse().find((x) => x.a < from - 1e-3);
+  if (!p) return toast(dir > 0 ? "No more problem frames after this." : "No problem frames before this.");
+  S.t = fr(p.a + 0.04); render();
+}
+
+// ---------- convert to path ----------
+function resample(poly, n) {
+  const seg = poly.map((p, i) => { const q = poly[(i + 1) % poly.length]; return Math.hypot(q[0] - p[0], q[1] - p[1]); });
+  const total = seg.reduce((a, b) => a + b, 0); const out = []; let i = 0, acc = 0;
+  for (let k = 0; k < n; k++) { const d = (total * k) / n; while (acc + seg[i] < d) { acc += seg[i]; i++; } const f = (d - acc) / seg[i], p = poly[i], q = poly[(i + 1) % poly.length]; out.push([p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]); }
+  return out;
+}
+function smooth(pts) { // closed Catmull-Rom as Béziers
+  let d = `M${pts[0][0]},${pts[0][1]}`; const n = pts.length;
+  for (let i = 0; i < n; i++) { const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    d += `C${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]}`; }
+  return d + "Z";
+}
+const largest = (objs) => objs.map((k) => OBJECTS[k].poly).sort((a, b) => area(b) - area(a))[0];
+
+// ---------- rendering: the frame ----------
+const polyD = (p) => "M" + p.map((q) => q.join(",")).join("L") + "Z";
+const shapesOf = (objs) => objs.map((k) => `<path d="${polyD(OBJECTS[k].poly)}"/>`).join("");
+function maskShapes(m) { return m.kind === "path" ? `<path d="${smooth(m.path)}"/>` : shapesOf(trackedAt(m, S.t)); }
+function applies(m) {
+  if (!m.on) return false;
+  if (m.kind === "path") return true;
+  return !!m.tracked && S.t >= m.trackedRange[0] && S.t <= m.trackedRange[1]; // out of date: the last matte keeps drawing
+}
+const edgeBlur = (m) => 0.6 + (m.kind === "auto" ? m.refine.edge / 40 : 0); // Edge detail softens toward the picture's own edge
+const CHECKER = `<pattern id="chk" width="32" height="32" patternUnits="userSpaceOnUse"><rect width="32" height="32" fill="#2a2e33"/><rect width="16" height="16" fill="#353a40"/><rect x="16" y="16" width="16" height="16" fill="#353a40"/></pattern>`;
+const IMG = (extra = "") => `<image href="footage/plaza.jpg" width="960" height="540"${extra}/>`;
+// the picking view (and the live view while tracking): DOM only, never in a capture
+function pickingView(m, defs) {
+  const objs = frameObjs(m, fr(S.t));
+  if (!objs) return { g: IMG(), defs };
+  const blur = `<filter id="pf"><feGaussianBlur stdDeviation="${edgeBlur(m)}"/></filter>`;
+  if (S.view === "matte") return { g: `<rect width="960" height="540" fill="#000"/><g fill="#fff" filter="url(#pf)">${shapesOf(objs)}</g>`, defs: defs + blur };
+  if (S.view === "cutout") return { g: `<rect width="960" height="540" fill="url(#chk)"/>${IMG(' mask="url(#pm)"')}`, defs: defs + blur + `<mask id="pm" maskUnits="userSpaceOnUse" x="0" y="0" width="960" height="540"><g fill="#fff" filter="url(#pf)">${shapesOf(objs)}</g></mask>` };
+  if (S.view === "outline") return { g: IMG() + `<g fill="none" stroke="var(--mask)" stroke-width="2.5">${shapesOf(objs)}</g>`, defs };
+  return { g: IMG() + `<g fill="var(--mask)" fill-opacity=".45" stroke="var(--mask)" stroke-width="2">${shapesOf(objs)}</g>`, defs };
+}
+const liveView = () => { const m = sel(); return m?.kind === "auto" && (S.picking || (S.job?.m === m && S.job.kind === "track" && S.follow)); };
+function renderFrame() {
+  const f = document.getElementById("frame"); f.classList.toggle("pick", S.picking);
+  const textBehind = document.getElementById("textBehind").checked;
+  const m = sel();
+  let defs = CHECKER, g = "";
+  if (liveView()) {
+    ({ g, defs } = pickingView(m, defs));
+    const p = S.picking ? promptAt(m, fr(S.t)) : null;
+    if (p?.box) g += `<rect x="${p.box.x}" y="${p.box.y}" width="${p.box.w}" height="${p.box.h}" fill="none" stroke="#fff" stroke-dasharray="6 5" stroke-width="2"/>`;
+    for (const pt of p?.points || []) if (!pt.fromBox) g += `<circle cx="${pt.x}" cy="${pt.y}" r="9" fill="${pt.include ? "#7bd389" : "#ff5f52"}" stroke="#14171b" stroke-width="2.5"/><path d="M${pt.x - 4},${pt.y}h8${pt.include ? `M${pt.x},${pt.y - 4}v8` : ""}" stroke="#14171b" stroke-width="2.4"/>`;
+  } else {
+    const live = S.masks.filter(applies);
+    let maskAttr = "";
+    if (live.length) {
+      let body = "";
+      live.forEach((x, i) => {
+        const r = Math.abs(x.expansion), op = x.expansion >= 0 ? "dilate" : "erode";
+        defs += `<filter id="fx${i}" x="-10%" y="-10%" width="120%" height="120%">${r ? `<feMorphology operator="${op}" radius="${r}"/>` : ""}<feGaussianBlur stdDeviation="${x.feather / 2 + edgeBlur(x)}"/></filter>`;
+        const fill = x.mode === "subtract" ? "black" : "white";
+        body += x.invert && !textBehind ? `<g filter="url(#fx${i})"><rect width="960" height="540" fill="white"/><g fill="black" fill-opacity="${x.opacity / 100}">${maskShapes(x)}</g></g>`
+                                        : `<g filter="url(#fx${i})" fill="${fill}" fill-opacity="${x.opacity / 100}">${maskShapes(x)}</g>`;
+      });
+      defs += `<mask id="mk" maskUnits="userSpaceOnUse" x="0" y="0" width="960" height="540"><rect width="960" height="540" fill="${live[0].mode === "subtract" ? "white" : "black"}"/>${body}</mask>`;
+      maskAttr = ` mask="url(#mk)"`;
+    }
+    g = `<rect width="960" height="540" fill="${live.length ? "url(#chk)" : "#000"}"/>`;
+    if (textBehind && live.length) g += IMG() + `<text x="480" y="330" text-anchor="middle" font-family="Anton" font-size="230" fill="#ffd84d" stroke="#14171b" stroke-width="6" paint-order="stroke">SEALS</text>`;
+    g += IMG(maskAttr);
+    if (m?.kind === "path") g += `<path d="${smooth(m.path)}" fill="none" stroke="var(--mask)" stroke-width="2"/>` + m.path.map(([x, y]) => `<rect x="${x - 4}" y="${y - 4}" width="8" height="8" fill="#14171b" stroke="var(--mask)" stroke-width="2"/>`).join("");
+    else if (m?.kind === "auto" && applies(m)) g += `<g fill="none" stroke="var(--mask)" stroke-width="1.5" stroke-dasharray="5 4">${maskShapes(m)}</g>`;
+  }
+  if (S.drag) { const b = S.drag; g += `<rect x="${Math.min(b.x0, b.x1)}" y="${Math.min(b.y0, b.y1)}" width="${Math.abs(b.x1 - b.x0)}" height="${Math.abs(b.y1 - b.y0)}" fill="rgb(255 255 255/.08)" stroke="#fff" stroke-dasharray="6 5" stroke-width="2"/>`; }
+  f.innerHTML = `<svg viewBox="0 0 960 540"><defs>${defs}</defs>${g}</svg>`;
+  const problem = m?.kind === "auto" ? m.problems.find((p) => S.t >= p.a && S.t <= p.b) : null;
+  if (problem) f.insertAdjacentHTML("beforeend", `<span class="pflag ${problem.kind}">${problem.kind === "lost" ? "Lost here: click it again" : "Unsure here: check the edge"}</span>`);
+  document.getElementById("bar").innerHTML = S.picking ? pickBar() : liveView() ? followChip() : "";
+  const noMask = liveView() && !frameObjs(m, fr(S.t));
+  document.getElementById("vhint").innerHTML = S.picking
+    ? noMask ? `No mask on this frame yet: <b>click</b> the thing, or track.` : `<b>Click</b> adds · <b>Alt+click</b> takes away · <b>Drag</b> a box · <kbd>1</kbd>–<kbd>4</kbd> views · <kbd>[</kbd> <kbd>]</kbd> problems · <kbd>Esc</kbd> done`
+    : m?.kind === "auto" && !m.tracked && !S.job && m.prompts.length ? `The mask isn't drawn until it's tracked.` : "";
+}
+const views = () => `<span class="seg sm">${[["overlay", "Overlay"], ["matte", "Matte"], ["cutout", "Cut-out"], ["outline", "Outline"]].map(([k, l], i) => `<button class="${S.view === k ? "on" : ""}" data-view="${k}" title="${l} (${i + 1})">${l}</button>`).join("")}</span>`;
+function pickBar() {
+  const m = sel(); const has = m && promptAt(m, fr(S.t)); const n = m?.problems?.length || 0;
+  return `<div class="pbar">
+    <button class="pb add ${S.tool === "add" ? "on" : ""}" data-tool="add" title="Add (click)">${ic("plus")} Add</button>
+    <button class="pb rem ${S.tool === "rem" ? "on" : ""}" data-tool="rem" title="Take away (Alt+click)">${ic("minus")} Remove</button>
+    <button class="pb ${S.tool === "box" ? "on" : ""}" data-tool="box" title="Draw a box around it">${ic("box")} Box</button>
+    <button class="pb" data-act="clear" ${has ? "" : "disabled"} title="Clear this frame's clicks">${ic("eraser")}</button>
+    <span class="psep"></span>${views()}<span class="psep"></span>
+    <button class="pb" data-act="prob-prev" ${n ? "" : "disabled"} title="Previous problem frame ([)">${ic("warn")}${ic("left", 13)}</button>
+    <span class="pcount ${n ? "" : "zero"}">${n}</span>
+    <button class="pb" data-act="prob-next" ${n ? "" : "disabled"} title="Next problem frame (])">${ic("right", 13)}${ic("warn")}</button>
+    <span class="psep"></span>
+    <button class="pb" data-act="back" ${m?.prompts.length ? "" : "disabled"} title="Track to the start">${ic("back")}</button>
+    <button class="pb" data-act="both" ${m?.prompts.length ? "" : "disabled"} title="Track the whole clip">${ic("both")} Track</button>
+    <button class="pb" data-act="fwd" ${m?.prompts.length ? "" : "disabled"} title="Track to the end">${ic("fwd")}</button>
+    <span class="psep"></span>
+    <button class="pb done" data-act="done">${ic("check")} Done</button></div>`;
+}
+const followChip = () => `<div class="pbar"><span class="pb" style="cursor:default">Tracking ${Math.round(S.job.progress * 100)}%</span><span class="psep"></span>${views()}<span class="psep"></span>
+  <button class="pb ${S.follow ? "on" : ""}" data-act="follow" title="Move the playhead with the tracking">Follow</button><button class="pb" data-act="cancel">${ic("x")} Cancel</button></div>`;
+
+// ---------- rendering: the Mask tab ----------
+function jobOf(m) { return S.job?.m === m ? S.job : null; }
+function statusLine(m) {
+  if (m.kind === "path") return `<div class="status">${ic("spline")} Path · ${m.path.length} points · ${m.keys} keys</div>`;
+  const j = jobOf(m);
+  if (j) return `<div class="status"><span class="tag busy">${j.kind === "refine" ? "Refining" : "Tracking"} ${Math.round(j.progress * 100)}%</span><div class="prog"><i style="width:${j.progress * 100}%"></i></div><button class="btn" data-act="cancel">Cancel</button></div>`;
+  if (m.tracked && m.changed) return `<div class="status"><span class="tag warn">Changed</span> ${m.retrackAll ? "New quality: Track to apply it." : "Showing the last tracking until Track or Done."}</div>`;
+  if (m.tracked) return `<div class="status"><span class="tag ready">Tracked</span> ${clock(m.trackedRange[0])} – ${clock(m.trackedRange[1])}</div>`;
+  return `<div class="status"><span class="tag">Not tracked</span> Click the thing, then Track.</div>`;
+}
+function tagOf(m) {
+  if (m.kind === "path") return `<span class="tag">Path</span>`;
+  const j = jobOf(m); if (j) return `<span class="tag busy">${Math.round(j.progress * 100)}%</span>`;
+  if (m.tracked) return m.changed ? `<span class="tag warn">Changed</span>` : m.problems.length ? `<span class="tag warn">${m.problems.length} to check</span>` : `<span class="tag ready">Tracked</span>`;
+  return `<span class="tag">Not tracked</span>`;
+}
+const slider = (label, key, min, max, unit, v, attr = "data-field", tip = "") =>
+  `<div class="prop" title="${tip}"><span>${label}</span><span class="ctl"><input type="range" min="${min}" max="${max}" value="${v}" ${attr}="${key}" data-unit="${unit}"><span class="num">${v}${unit}</span>${attr === "data-field" ? `<button class="key" title="Add a key">${ic("key", 13)}</button>` : `<span class="rs-sp"></span>`}</span></div>`;
+function renderInspector() {
+  const el = document.getElementById("insp"); const m = sel();
+  const presets = ["linear", "mirror", "ellipse", "rect", "star", "heart", "none"].map((k) => `<button class="preset" title="${k}">${ic(k, 18)}</button>`).join("");
+  let h = `<div class="sect"><h4>Shapes <small>plaza.mp4</small></h4><div class="presets">${presets}</div>
+    <div class="draw"><button class="dbtn">${ic("pen")} Pen</button><button class="dbtn">${ic("pencil")} Freehand</button>
+    <button class="dbtn auto ${S.picking ? "on" : ""}" data-act="auto" title="Click anything on the picture to mask it">${ic("auto")} Auto <span class="new">NEW</span></button></div></div>`;
+  h += `<div class="sect" style="padding:10px 0 0"><h4 style="padding:0 12px">Masks</h4>`;
+  h += S.masks.length ? S.masks.map((x) => `<div class="mrow ${x.id === S.sel ? "sel" : ""}" data-mask="${x.id}"><span class="mdot"></span>${ic(x.kind === "auto" ? "auto" : "spline", 15)}<span class="mname">${x.name}</span>${tagOf(x)}<button class="mini ${x.on ? "" : "off"}" data-act="toggle" title="On / off">${ic("eye", 14)}</button><button class="mini" data-act="menu" title="More">${ic("dots", 14)}</button></div>`).join("")
+    : `<div class="empty">No masks. Pick a shape, draw one, or press <b>Auto</b> and click what you want to keep.</div>`;
+  h += `</div>`;
+  if (m) {
+    h += `<div class="sect"><h4>${m.name}</h4>${statusLine(m)}`;
+    if (m.kind === "auto") {
+      if (m.tracked) h += m.problems.length
+        ? `<div class="status"><span class="tag warn">${ic("warn", 12)} ${m.problems.length} problem span${m.problems.length > 1 ? "s" : ""}</span><span class="grow muted">${m.problems.map((p) => `${clock(p.a)} ${p.kind}`).join(" · ")}</span><button class="mini" data-act="prob-prev" title="Previous ([)">${ic("left", 13)}</button><button class="mini" data-act="prob-next" title="Next (])">${ic("right", 13)}</button></div>`
+        : `<div class="status muted">${ic("check", 13)} No problem frames found.</div>`;
+      const list = [...m.prompts].sort((a, b) => a.at - b.at).map((p) => { const add = p.points.filter((q) => q.include).length, rem = p.points.length - add;
+        return `<li><b>${clock(p.at)}</b><span class="grow">${add ? `<span class="p">+${add}</span> ` : ""}${rem ? `<span class="m">−${rem}</span>` : ""}${p.box ? " ▭" : ""}${m.dirty.has(p.at) ? ` <span class="m">· changed</span>` : ""}</span><button class="mini" data-goto="${p.at}" title="Go to this frame">${ic("fwd", 13)}</button></li>`; }).join("");
+      h += `<div class="muted" style="margin-top:6px">Frames you clicked on guide the tracking. A change tracks again only up to the clicked frames on each side.</div><ul class="clicks">${list || `<li class="muted">No clicks yet.</li>`}</ul>
+        <div class="btns"><button class="btn" data-act="edit">${ic("auto", 14)} ${S.picking ? "Picking…" : "Edit clicks"}</button>
+        <button class="btn" data-act="both" ${m.prompts.length && !jobOf(m) ? "" : "disabled"}>${ic("both", 14)} Track</button>
+        <button class="btn" data-act="convert" ${m.tracked && !m.changed ? "" : "disabled"} title="${m.tracked ? "" : "Track it first"}">${ic("spline", 14)} Convert to path</button></div></div>
+        <div class="sect"><h4>Quality</h4><div class="prop"><span class="seg"><button data-quality="faster" class="${m.quality === "faster" ? "on" : ""}">Faster</button><button data-quality="better" class="${m.quality === "better" ? "on" : ""}">Better</button></span><span class="muted">${m.quality === "better" ? "Steadier, finer edges; about 2× slower" : "Quick; rougher edges"}</span></div></div>
+        <div class="sect"><h4>Refine <small>no re-tracking</small></h4>
+        ${slider("Consistency", "consistency", 0, 100, "", m.refine.consistency, "data-refine", "Steadies the edge from frame to frame, so it doesn't chatter")}
+        ${slider("Clean up", "cleanup", 0, 100, "", m.refine.cleanup, "data-refine", "Fills small holes and removes stray specks")}
+        ${slider("Edge detail", "edge", 0, 100, "", m.refine.edge, "data-refine", "Follows hair and soft edges in the picture")}`;
+    }
+    h += `</div><div class="sect">
+      <div class="prop"><span>Mode</span><select data-field="mode"><option value="add">Add</option><option value="subtract" ${m.mode === "subtract" ? "selected" : ""}>Subtract</option><option>Intersect</option><option>Difference</option></select></div>
+      <div class="prop"><span>Invert</span><button class="sw ${m.invert ? "on" : ""}" data-act="invert"></button></div>
+      ${slider("Opacity", "opacity", 0, 100, "%", m.opacity)}${slider("Feather", "feather", 0, 60, " px", m.feather)}${slider("Expansion", "expansion", -20, 20, " px", m.expansion)}</div>`;
+  }
+  el.innerHTML = h;
+}
+
+// ---------- rendering: the timeline ----------
+const pct = (s) => `${(s / VIEW) * 100}%`;
+const inClip = (a, b) => `left:${(a / END) * 100}%;width:${((b - a) / END) * 100}%`;
+function renderTimeline() {
+  document.getElementById("tc").textContent = clock(S.t);
+  let r = ""; for (let s = 0; s <= VIEW; s += 0.5) r += `<div class="tick ${s % 2 === 0 ? "major" : ""}" style="left:${pct(s)}">${s % 2 === 0 ? `<b>${clock(s).slice(0, 4)}</b>` : ""}</div>`;
+  document.getElementById("ruler").innerHTML = r;
+  const m = sel(); const j = S.job;
+  const tag = j ? `<span class="mk">${j.kind === "refine" ? "Refining" : "Tracking"} ${Math.round(j.progress * 100)}%</span>` : S.masks.length ? `<span class="mk">◐ ${S.masks.length}</span>` : "";
+  let lane = `<div class="clip sel" style="left:0;width:${pct(END)};background-image:url(footage/plaza.jpg)"><span class="cl">plaza.mp4 ${tag}</span>`;
+  for (const x of S.masks.filter((y) => y.kind === "auto")) {
+    if (x.tracked) lane += `<div class="stripe" style="${inClip(...x.trackedRange)};opacity:.55"></div>`;
+    if (j?.m === x && j.kind === "track") { const [L, R] = jobSpan(j); lane += `<div class="stripe" style="${inClip(L, R)}"></div>`; } // grows out from the clicked frames
+  }
+  if (m?.kind === "auto") {
+    for (const p of m.problems) lane += `<div class="pmark ${p.kind}" style="${inClip(p.a, p.b)}" title="${p.kind === "lost" ? "Lost" : "Unsure"} ${clock(p.a)}–${clock(p.b)}"></div>`;
+    for (const p of m.prompts) lane += `<div class="pdot ${m.dirty.has(p.at) ? "dirty" : ""}" style="left:${(p.at / END) * 100}%" title="Clicks at ${clock(p.at)}"></div>`;
+  }
+  lane += `</div><div class="playhead" style="left:${pct(S.t)}"></div>`;
+  document.getElementById("lane").innerHTML = lane;
+}
+
+// ---------- dialogs ----------
+function renderLayer() {
+  const L = document.getElementById("layer"); let h = "";
+  if (S.menu) { const m = S.masks.find((x) => x.id === S.menu.id);
+    h += `<div class="menu" style="left:${S.menu.x - 190}px;top:${S.menu.y}px">
+      ${m.kind === "auto" ? `<button data-act="m-edit">${ic("auto", 14)} Edit clicks</button><button data-act="m-track" ${m.prompts.length ? "" : "disabled"}>${ic("both", 14)} Track again</button><button data-act="m-convert" ${m.tracked && !m.changed ? "" : "disabled"}>${ic("spline", 14)} Convert to path</button><hr>` : ""}
+      <button>Color ›</button><button>Move up</button><button>Move down</button><hr><button data-act="m-del" style="color:var(--red)">Delete</button></div>`; }
+  if (S.settings) h += settingsDlg();
+  if (S.convert) h += convertDlg();
+  L.innerHTML = h;
+}
+function settingsDlg() {
+  const nav = [["appearance", "Appearance"], ["sound", "Sound presets"], ["auto", "Auto mask"]].map(([k, l]) => `<button class="${S.sTab === k ? "on" : ""}" data-stab="${k}">${l}</button>`).join("");
+  const pane = S.sTab !== "auto" ? `<div class="muted">This section is unchanged.</div>` : `
+    <h3>Auto mask</h3><div class="muted">Finds and follows what you click, on this computer. Nothing is sent anywhere.</div>
+    <div class="srow"><div class="l">Run on</div><div>
+      <div class="seg"><button data-dev="auto" class="${S.device === "auto" ? "on" : ""}">Auto</button><button data-dev="gpu" disabled title="Not on Linux yet">GPU</button><button data-dev="cpu" class="${S.device === "cpu" ? "on" : ""}">CPU</button></div>
+      <div class="info">This computer: <b>CPU</b> (8 cores). The GPU is used on Windows (DirectML); on Linux it runs on the CPU for now.</div></div></div>
+    <div class="srow"><div class="l">Default quality</div><div>
+      <div class="seg"><button data-defq="faster" class="${S.defQuality === "faster" ? "on" : ""}">Faster</button><button data-defq="better" class="${S.defQuality === "better" ? "on" : ""}">Better</button></div>
+      <div class="info">What a new auto mask starts with; each mask can change it. On this computer a 10-second 1080p clip takes about <b>${S.defQuality === "better" ? "2 minutes" : "1 minute"}</b>.</div></div></div>
+    <div class="srow"><div class="l">Tracked masks on disk</div><div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="num" style="text-align:left">${S.disk.toFixed(2)} GB</span><button class="btn" data-act="clear-disk" ${S.disk ? "" : "disabled"}>Clear</button></div>
+      <div class="info">Clearing keeps your masks and clicks. They track again in the background.</div></div></div>
+    <div class="srow" style="border:0"><div class="l">Models</div><div class="info" style="margin:5px 0 0">SAM 2.1 tiny (Faster) and small (Better), included with the app · Apache 2.0 · <u>Licenses</u></div></div>`;
+  return `<div class="scrim" data-close="settings"><div class="dlg"><div class="dhead"><h2>Settings</h2><button class="icon" data-close="settings">${ic("x")}</button></div>
+    <div class="settings"><div class="snav">${nav}</div><div class="spane">${pane}</div></div></div></div>`;
+}
+function convertDlg() {
+  const m = sel(), c = S.convert; const objs = trackedAt(m, S.t); const poly = largest(objs); const pts = resample(poly, c.points);
+  const keys = Math.max(2, Math.round(((m.trackedRange[1] - m.trackedRange[0]) * 22) / c.smooth));
+  return `<div class="scrim" data-close="convert"><div class="dlg"><div class="dhead"><h2>Convert ${m.name} to a path</h2><button class="icon" data-close="convert">${ic("x")}</button></div>
+    <div class="conv"><div class="pv"><svg viewBox="0 0 960 540"><image href="footage/plaza.jpg" width="960" height="540" opacity=".55"/><path d="${smooth(pts)}" fill="rgb(111 183 230/.25)" stroke="#6fb7e6" stroke-width="2.5"/>${pts.map(([x, y]) => `<rect x="${x - 5}" y="${y - 5}" width="10" height="10" fill="#14171b" stroke="#6fb7e6" stroke-width="2"/>`).join("")}</svg></div>
+    <div>
+      <div class="prop"><span>Points</span><span class="ctl"><input type="range" min="8" max="64" value="${c.points}" data-conv="points"><span class="num">${c.points}</span></span></div>
+      <div class="info" style="margin:0 0 8px">More points follow the edge closer; fewer are easier to fix by hand.</div>
+      <div class="prop"><span>Smoothness</span><span class="ctl"><input type="range" min="5" max="40" value="${c.smooth * 10}" data-conv="smooth"><span class="num">${c.smooth.toFixed(1)} px</span></span></div>
+      <div class="info" style="margin:0 0 8px">A key is kept only where the shape moved more than this.</div>
+      <div class="status">About <b style="margin:0 3px">${keys}</b> keys over ${clock(m.trackedRange[0])} – ${clock(m.trackedRange[1])}</div>
+      ${objs.length > 1 ? `<div class="warn">A path is one closed shape: only the largest piece (${OBJECTS[objs.find((k) => OBJECTS[k].poly === poly)].name}) is kept. ${objs.length - 1} smaller piece${objs.length > 2 ? "s are" : " is"} dropped.</div>` : ""}
+      <div class="info">Made from the refined mask. Mode, invert, opacity, feather and expansion stay. One undo step brings the auto mask back.</div>
+    </div></div>
+    <div class="dfoot"><button class="btn" data-close="convert">Cancel</button><button class="btn primary" data-act="do-convert">${ic("spline", 14)} Convert</button></div></div></div>`;
+}
+
+function toast(text) { const t = document.createElement("div"); t.className = "toast"; t.textContent = text; document.getElementById("toasts").append(t); setTimeout(() => t.remove(), 3800); }
+function render() { renderFrame(); renderInspector(); renderTimeline(); renderLayer(); }
+
+// ---------- input ----------
+function framePoint(e) { const r = document.getElementById("frame").getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * 960, ((e.clientY - r.top) / r.height) * 540]; }
+const frameEl = document.getElementById("frame");
+frameEl.addEventListener("pointerdown", (e) => { if (!S.picking) return; const [x, y] = framePoint(e); S.drag = { x0: x, y0: y, x1: x, y1: y, alt: e.altKey }; frameEl.setPointerCapture(e.pointerId); });
+frameEl.addEventListener("pointermove", (e) => { if (!S.drag) return; const [x, y] = framePoint(e); S.drag.x1 = x; S.drag.y1 = y; if (S.tool === "box" || Math.hypot(x - S.drag.x0, y - S.drag.y0) > 12) renderFrame(); });
+frameEl.addEventListener("pointerup", () => {
+  const d = S.drag; if (!d) return; S.drag = null;
+  if (Math.hypot(d.x1 - d.x0, d.y1 - d.y0) > 12) addClick(0, 0, true, { x: Math.min(d.x0, d.x1), y: Math.min(d.y0, d.y1), w: Math.abs(d.x1 - d.x0), h: Math.abs(d.y1 - d.y0) });
+  else addClick(d.x0, d.y0, !(d.alt || S.tool === "rem"));
+});
+function seek(e) { const r = document.getElementById("ruler").getBoundingClientRect(); S.t = Math.max(0, Math.min(END - 1 / FPS, ((e.clientX - r.left) / r.width) * VIEW)); S.follow = false; render(); }
+for (const id of ["ruler", "lane"]) document.getElementById(id).addEventListener("pointerdown", (e) => { seek(e); const mv = (ev) => seek(ev); addEventListener("pointermove", mv); addEventListener("pointerup", () => removeEventListener("pointermove", mv), { once: true }); });
+document.getElementById("gear").onclick = () => { S.settings = true; render(); };
+document.getElementById("textBehind").onchange = render;
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act],[data-tool],[data-mask],[data-goto],[data-close],[data-stab],[data-dev],[data-defq],[data-view],[data-quality]");
+  if (!b) { if (S.menu) { S.menu = null; render(); } return; }
+  const m = sel();
+  if (b.dataset.close) { if (b.classList.contains("scrim") && e.target !== b) return; S[b.dataset.close] = b.dataset.close === "convert" ? null : false; return render(); }
+  if (b.dataset.tool) { S.tool = b.dataset.tool; return render(); }
+  if (b.dataset.view) { S.view = b.dataset.view; return render(); }
+  if (b.dataset.goto) { S.t = +b.dataset.goto; return render(); }
+  if (b.dataset.stab) { S.sTab = b.dataset.stab; return render(); }
+  if (b.dataset.dev) { S.device = b.dataset.dev; return render(); }
+  if (b.dataset.defq) { S.defQuality = b.dataset.defq; return render(); }
+  if (b.dataset.quality) { if (m.quality !== b.dataset.quality) { m.quality = b.dataset.quality; if (m.tracked) { m.changed = true; m.retrackAll = true; } } return render(); }
+  const act = b.dataset.act;
+  if (!act && b.dataset.mask) { S.sel = +b.dataset.mask; S.menu = null; return render(); }
+  const rowMask = b.closest("[data-mask]") ? S.masks.find((x) => x.id === +b.closest("[data-mask]").dataset.mask) : null;
+  switch (act) {
+    case "auto": if (S.picking) return finishPicking(); S.picking = true; if (!m || m.kind !== "auto") S.sel = null; S.tool = "add"; break;
+    case "edit": S.picking = true; S.tool = "add"; break;
+    case "clear": { const t = fr(S.t); m.prompts = m.prompts.filter((x) => x !== promptAt(m, t)); touch(m, t); break; }
+    case "back": case "fwd": case "both": return track(m, act);
+    case "done": return finishPicking();
+    case "cancel": return stopJob();
+    case "follow": S.follow = !S.follow; break;
+    case "prob-prev": return gotoProblem(m, -1);
+    case "prob-next": return gotoProblem(m, 1);
+    case "toggle": rowMask.on = !rowMask.on; break;
+    case "menu": { const r = b.getBoundingClientRect(); S.menu = { id: rowMask.id, x: r.right, y: r.bottom + 4 }; S.sel = rowMask.id; e.stopPropagation(); break; }
+    case "m-edit": S.menu = null; S.picking = true; break;
+    case "m-track": S.menu = null; return track(m, "both");
+    case "m-convert": case "convert": S.menu = null; S.convert = { points: 24, smooth: 1.5 }; break;
+    case "m-del": if (S.job?.m.id === S.menu.id) stopJob(true); S.masks = S.masks.filter((x) => x.id !== S.menu.id); S.sel = null; S.menu = null; S.picking = false; break;
+    case "invert": m.invert = !m.invert; break;
+    case "do-convert": { const poly = largest(trackedAt(m, S.t)); m.kind = "path"; m.path = resample(poly, S.convert.points); m.keys = Math.max(2, Math.round(((m.trackedRange[1] - m.trackedRange[0]) * 22) / S.convert.smooth)); m.name = m.name.replace("Auto", "Path"); S.convert = null; toast("Converted to a path. Ctrl+Z brings the auto mask back."); break; }
+    case "clear-disk": { S.disk = 0; S.settings = false; const x = S.masks.find((y) => y.kind === "auto" && y.tracked); if (x) { x.tracked = null; x.problems = []; x.dirty.clear(); x.changed = false; track(x, "both"); } toast("Tracked masks cleared. They track again in the background."); return; }
+  }
+  render();
+});
+document.addEventListener("input", (e) => {
+  const m = sel(); const t = e.target;
+  const label = () => t.nextElementSibling && (t.nextElementSibling.textContent = t.value + (t.dataset.unit || ""));
+  if (t.dataset.field && m) { m[t.dataset.field] = t.type === "range" ? +t.value : t.value; label(); renderFrame(); }
+  if (t.dataset.refine && m) { m.refine[t.dataset.refine] = +t.value; label(); renderFrame(); } // the frame under the playhead previews live
+  if (t.dataset.conv) { S.convert[t.dataset.conv] = t.dataset.conv === "smooth" ? +t.value / 10 : +t.value; t.nextElementSibling.textContent = t.dataset.conv === "smooth" ? S.convert.smooth.toFixed(1) + " px" : t.value; }
+});
+document.addEventListener("change", (e) => {
+  const t = e.target, m = sel();
+  if (t.dataset.conv) return renderLayer();
+  if (t.dataset.refine && m?.tracked) return startJob(m, ...m.trackedRange, m.trackedRange, "refine"); // release: the matte is made again from the raw results, no tracking
+  if (t.dataset.field === "mode") { m.mode = t.value; render(); }
+});
+addEventListener("keydown", (e) => {
+  if (e.target.closest?.("input,select")) return;
+  const m = sel();
+  if (e.key === "Escape") { if (S.convert || S.settings) { S.convert = null; S.settings = false; return render(); } if (S.picking) return finishPicking(); }
+  if (e.key === "," && e.ctrlKey) { e.preventDefault(); S.settings = true; render(); }
+  if (S.picking && "1234".includes(e.key) && e.key.length === 1) { S.view = ["overlay", "matte", "cutout", "outline"][+e.key - 1]; render(); }
+  if ((e.key === "[" || e.key === "]") && m?.kind === "auto") gotoProblem(m, e.key === "]" ? 1 : -1);
+});
+render();
+</script>
+</body>
+</html>
