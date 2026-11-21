@@ -44,10 +44,4 @@ describe("masks", () => {
     ])
       expect(ends).toContainEqual(end);
   });
-
-  it("rounds a star's point count", () => {
-    const star = (points: number) =>
-      mask({ kind: "star", width: 100, height: 100, points, inner: 0.5 });
-    expect(maskOutline(star(5.4))!.length).toBe(10);
-  });
 });

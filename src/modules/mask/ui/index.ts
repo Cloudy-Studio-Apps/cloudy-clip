@@ -4,6 +4,7 @@ import { MatteSection } from "./MatteSection";
 
 export { MaskDrawing } from "./MaskDrawing";
 export { MaskOverlay } from "./MaskOverlay";
+export { MatteBadge } from "./MatteBadge";
 
 const picture: InspectorSectionItem["appliesTo"] = ({ track }) => track.kind === "video";
 
