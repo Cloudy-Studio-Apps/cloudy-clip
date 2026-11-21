@@ -23,3 +23,7 @@ click the Claude Code avatar · drag the title in the preview · Export.
 `b-mesa-de-noche.html` is the chosen direction and the visual reference for the app; a hash reaches a state,
 for example `#page:export,insp:audio`. They share the content in `designs/shared.js` (the dark B also loads
 `designs/audio-tab.js`) and the stills in `designs/footage/`, and load their fonts from Google Fonts.
+
+`designs/subtitles-page.html` is the Subtitles page (spec: `docs/superpowers/specs/2026-11-21-subtitles-design.md`):
+the cue list, the preview, the Style and Cue tabs, the subtitle-only timeline, import and export of `.srt`, and
+`#edit` for how marked text clips look in the Edit page (right-click a text clip). Self-contained; uses `designs/footage/`.
