@@ -7,7 +7,7 @@ import { ResetButton } from "./ResetButton";
 
 /**
  * The built-in `section` layout: a band with its group's toggle on the left and a reset on the
- * right. While the toggle is off only the band shows.
+ * right. While the toggle is off its fields show, disabled.
  */
 export function PanelSection({
   section,
@@ -44,7 +44,7 @@ export function PanelSection({
         )
       }
     >
-      {on && section.items.map(renderItem)}
+      {section.items.map(renderItem)}
     </InspectorSection>
   );
 }

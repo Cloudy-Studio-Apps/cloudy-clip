@@ -3,7 +3,7 @@ import { useStore } from "zustand";
 import { useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { projectRef, type ClipId } from "@/modules/project";
-import { isTextClip } from "../logic/layout";
+import { isTextClip } from "../text.guards";
 import { timelineRef } from "@/modules/timeline";
 import { TextEditor } from "./TextEditor";
 

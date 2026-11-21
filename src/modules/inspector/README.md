@@ -59,8 +59,10 @@ bare?, component }`, for what isn't a property of an element, so any module can 
   - `ui/ClipSection.tsx`: one section of an element, values resolved once per clip change.
     `ui/PropertySection.tsx`: draws a section by its layout from `sectionLayouts`, each item by
     `renderItem`: fields (`FieldItem`, hidden by `visibleWhen`, disabled by
-    `readOnly`/`enabledWhen`), rows, sub-sections (`SubSection`: with a toggle, a `ToggleRow` showing
-    its fields while on), commands (`CommandItem`).
+    `readOnly`/`enabledWhen`), rows, sub-sections (`SubSection`: with a toggle, a `ToggleRow` and its fields below), commands (`CommandItem`).
+    **A group's header switch (`toggle`) off disables its fields** instead of hiding them
+    (`isEnabled(spec, values, path, fields)` also needs every enclosing group's switch on; the
+    switch itself stays enabled), in `PanelSection` and `SubSection` alike.
   - **Rows:** `FieldRow` is the name column and the control. The end column is drawn by `FieldItem`
     (or the row), not by controls, so a custom control gets it without doing anything, and a control
     with several rows (sticker variations) gets one. In a row with a `label`, `field.context.ts`
@@ -98,8 +100,9 @@ bare?, component }`, for what isn't a property of an element, so any module can 
     seconds (`junction.set { duration }` in integer µs, limits from `durationLimits`, only for kinds
     that overlap) and a Remove button (`junction.remove`); the kind's values through `PropertyPanel`,
     committed by `ui/junction.live.hook.ts` (`createPropsLive` with no preview) as
-    `junction.set { junctionIds, patch }`. `logic/junction.ts`: `junctionSetInput`,
-    `junctionLayoutSource`.
+    `junction.set { junctionIds, patch }`. `logic/junction.ts`: `junctionSetInput`;
+    `logic/source.ts`: `layoutSourceOf` (a kind's properties as a `LayoutSource`). `PropertyPanel`,
+    `createPropsLive` and `layoutSourceOf` are exported for other panels.
 - **Not yet:** a real dial; editing several selected clips at once; an Effects tab; a switch on
   Transform (it needs an `enabled` value `clipPlacement` and the canvas tools honor).
 

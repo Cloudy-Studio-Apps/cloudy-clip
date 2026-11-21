@@ -17,7 +17,8 @@ text element: Content, Font, Fill, Outline, Background, Shadow, then Transform.
   `text.editor` (in-place editing)
 - **Points it owns:** —
 - **API:** none (`TextApi` is empty). Exports `textElement`, `applyTextPreset`, `presetStyle`,
-  `presetTransform`, `textLayout`.
+  `presetTransform`, `textLayout`, `isTextClip`, `normalizeTextStyle`, `defaultTextStyle`,
+  `textStyleOf`.
 - **Keys:** the in-place editor places its box with `followedClip(clip, time, paths)` at the playhead as the editor opens (on a motion path too), so it sits on the text as drawn.
 - **Fill:** `fill.type` is `color` or `gradient`. A gradient spans the text box and `fill.opacity` still multiplies it, because in-place editing hides the canvas text with `fill: { opacity: 0 }`; while it shows, that opacity has no control of its own (stops and Composite have one). Presets set `type: "color"`. The editor shows the gradient with `background-clip: text`.
 - **Files:**
@@ -53,8 +54,11 @@ textLayout(…).box, draw: drawText }`. A clip's `props` hold only what differs 
   - `logic/snap.ts`: `snapStyleToFamily` moves a style's weight/italic to the closest face its
     family has (`closestVariant`). `logic/presets.ts`: `presetStyle` / `presetTransform` (sizes are
     fractions of the short side). `logic/fontpick.ts`: `pickVariant` (keep the weight/italic if the
-    family has it, else `closestVariant`), `availableWeights`, `hasItalic`, `visibleWindow` (the rows
-    the font list renders).
+    family has it, else `closestVariant`), `availableWeights`, `hasItalic`. `FontList` takes its row window from `visibleWindow` in `@/ui`.
+  - `text.guards.ts`: `isTextClip` (the kind check, `clip.kind === textElement.kind`) and
+    `normalizeTextStyle(style, env)`: a style as a text clip would store it (`snapStyleToFamily`,
+    then `parsePatch` of the element's schema; no explicit-face check), for modules that keep text
+    styles of their own.
   - `ui/controls/`: every field control honors `disabled`. `FontPickerControl` (the `FontPicker` popover, whose trigger is disabled with it; picking a family keeps the
     closest face and loads it), `FontWeightControl` (only the weights the family has),
     `FontItalicControl` (disabled when the family has no italic), `PresetRowControl` (one button per

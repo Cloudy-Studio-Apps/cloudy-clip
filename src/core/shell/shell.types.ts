@@ -37,7 +37,7 @@ export interface TopBarItem {
  * What a page's timeline may edit: `"all"` on the editor, `"sound"` on a page that works on sound
  * only (audio tracks, and edits that leave pictures alone).
  */
-export type TimelineScopeName = "all" | "sound";
+export type TimelineScopeName = "all" | "sound" | "subtitle";
 
 /** A page of the app, with a tab of its own in the top bar. */
 export interface AppPage {
@@ -113,6 +113,7 @@ export interface KeyPress {
   ctrlKey: boolean;
   metaKey: boolean;
   shiftKey: boolean;
+  altKey?: boolean;
 }
 
 /** The command a keybinding runs. */
@@ -130,6 +131,8 @@ export interface Keybinding {
   /** Ctrl on Linux and Windows, Cmd on macOS. */
   mod?: boolean;
   shift?: boolean;
+  /** Alt (Option on macOS). Missing means Alt is not held. */
+  alt?: boolean;
   /** Builds the command at press time. Returning null ignores the press. */
   resolve(): KeybindingAction | null;
 }

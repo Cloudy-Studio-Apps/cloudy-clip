@@ -51,6 +51,12 @@ export { InspectorSection } from "./ui/InspectorSection";
 export { ClipTabSections } from "./ui/ClipTabSections";
 /** The member of a clip that carries sound, when one does. */
 export { soundMember } from "./ui/SoundSection";
+/** Every section of a property tree without tabs: `subject`, `source`, `values`, `live`, `renderCommand?`. */
+export { PropertyPanel } from "./ui/PropertyPanel";
+/** Live editing of one subject's values from `{ preview, read, commit }`; `dispose()` clears the preview. */
+export { createPropsLive } from "./logic/live";
+/** A kind's properties as a layout source (no shared groups), for `PropertyPanel`. */
+export { layoutSourceOf } from "./logic/source";
 /** Builds a patch that sets a value at a dotted path. */
 export { pathPatch } from "./logic/paths";
 /** Module definition, loaded by the app shell. */

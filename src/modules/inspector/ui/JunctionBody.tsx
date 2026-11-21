@@ -5,7 +5,8 @@ import { microsToSeconds, useKernel, useModule } from "@/core";
 import { durationLimits, junctionRef, removeJunction, setJunction } from "@/modules/junction";
 import { projectRef, type JunctionId, useOpenFormat } from "@/modules/project";
 import { Button, NumberField } from "@/ui";
-import { junctionLayoutSource, junctionSetInput } from "../logic/junction";
+import { junctionSetInput } from "../logic/junction";
+import { layoutSourceOf } from "../logic/source";
 import { FieldRow } from "./controls/FieldRow";
 import { useJunctionLive } from "./junction.live.hook";
 import { InspectorSection } from "./InspectorSection";
@@ -31,8 +32,7 @@ export function JunctionBody({ junctionId, title }: JunctionBodyProps) {
   const resolved = junction ? junctions.get(junction.kind) : undefined;
   const live = useJunctionLive(junctionId);
   const source = useMemo(
-    () =>
-      resolved && junctionLayoutSource(resolved.definition.kind, resolved.definition.properties),
+    () => resolved && layoutSourceOf(resolved.definition.kind, resolved.definition.properties),
     [resolved],
   );
   const values = useMemo(

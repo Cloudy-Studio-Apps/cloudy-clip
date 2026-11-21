@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { searchFamilies, type FontFamily } from "@/modules/fonts";
-import { visibleWindow } from "../logic/fontpick";
+import { visibleWindow } from "@/ui";
 import { FONT_ROW_HEIGHT, FontRow } from "./FontRow";
 import { useFamilies } from "./text.fonts.hook";
 

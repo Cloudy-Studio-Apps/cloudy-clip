@@ -72,6 +72,10 @@ export function matchKeybinding(
   const key = press.key.toLowerCase();
   const mod = press.ctrlKey || press.metaKey;
   return bindings.find(
-    (binding) => binding.key === key && !!binding.mod === mod && !!binding.shift === press.shiftKey,
+    (binding) =>
+      binding.key === key &&
+      !!binding.mod === mod &&
+      !!binding.shift === press.shiftKey &&
+      !!binding.alt === !!press.altKey,
   );
 }

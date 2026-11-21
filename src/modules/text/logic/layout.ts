@@ -7,11 +7,6 @@ import type { TextLayout, TextLine, TextStyle, TextStylePatch } from "../text.ty
 /** Words of a new text clip. */
 export const DEFAULT_TEXT = "Text";
 
-/** Whether a clip is a text clip. */
-export function isTextClip(clip: Clip): boolean {
-  return clip.kind === "text";
-}
-
 /** The words of a text clip (`props.text`, or the default words). */
 export function clipText(clip: Clip): string {
   const text = clip.props.text;

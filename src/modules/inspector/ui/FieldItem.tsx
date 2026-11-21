@@ -62,7 +62,7 @@ export function FieldItem({
     );
   }
   const Control = control.component;
-  const disabled = !isEnabled(spec, values);
+  const disabled = !isEnabled(spec, values, item.path, fields);
   const drawn = (
     <Control
       clip={clip}

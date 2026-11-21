@@ -69,6 +69,8 @@ export { FoldSection } from "./kit/FoldSection";
 export { SelectField } from "./kit/SelectField";
 /** Label/value pairs in two columns; values in mono. */
 export { InfoList } from "./kit/InfoList";
+/** The rows `[start, end)` of a fixed-height list to render for a scroll offset, with overscan. */
+export { visibleWindow } from "./logic/window";
 /** Normalizes `#abc`/`abc`/`#aabbcc` to lowercase `#aabbcc`, or null. */
 export { normalizeHex, hexToHsv, hsvToHex } from "./lib/color";
 
