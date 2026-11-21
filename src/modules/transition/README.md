@@ -33,7 +33,8 @@ lists them.
     lists them as `builtInPresets`, contributed by the module. Masks are drawn into canvas `b`
     with `destination-in` (in place when `b` is a canvas, else into a temporary canvas); no pixel
     reads and no `ctx.filter`.
-  - `logic/`: `easing.ts`, `noise.ts` (seeded random, block masks), `color.ts`.
+  - `logic/`: `easing.ts`, `noise.ts` (seeded random, block masks), `color.ts`, `gpu.ts` (GPU passes for presets:
+    zoom, spin and directional blur, luma key, ripple; `drawGpu` draws a run over the canvas).
   - `ui/`: `TransitionsPanel` (one section per category, ordered by `logic/categories.ts`),
     `PresetTile` (click: `transition.apply` on the selected junction, else the cut after the
     selected video clip, else a "Select a clip or a cut first" notice; press-and-drag through
