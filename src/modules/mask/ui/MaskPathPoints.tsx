@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useStore } from "zustand";
-import { useModule } from "@/core";
+import { notify, useModule } from "@/core";
 import { framePoint, paintPath, startPathEdit, type PointPart } from "@/modules/path";
 import {
   MARKER_HEX,
@@ -36,8 +36,8 @@ interface MaskPathPointsProps {
 /**
  * The selected path mask on the canvas, edited as the motion path is (`startPathEdit` on its
  * points mapped into the frame): drag a point or a handle (Alt breaks the pair), double-click the
- * line to add a point, Delete removes the selected point while four or more stay, a drag inside
- * moves the mask's x/y. Each release sends one command at the playhead.
+ * line to add a point, Delete removes the selected point while four or more stay (else a notice),
+ * a drag inside moves the mask's x/y. Each release sends one command at the playhead.
  */
 export function MaskPathPoints({ clipId, mask, mapping, format, edit }: MaskPathPointsProps) {
   const { ui } = useModule(maskRef);
@@ -58,11 +58,12 @@ export function MaskPathPoints({ clipId, mask, mapping, format, edit }: MaskPath
     });
 
   useEffect(() => {
-    if (selected < 0 || order.length < 4) return;
+    if (selected < 0) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.key !== "Delete" && e.key !== "Backspace") || isTextField(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
+      if (order.length < 4) return notify("info", "A mask needs at least three points.");
       ui.setState({ selectedPointId: null });
       const keep = (_: unknown, i: number) => i !== selected;
       void setPoints(local.filter(keep), order.filter(keep));

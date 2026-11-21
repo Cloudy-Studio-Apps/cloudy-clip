@@ -35,6 +35,13 @@ function distinct(points: readonly PathPoint[], close: number): PathPoint[] {
   return kept;
 }
 
+/** The drawing layer, mounted only while drawing: what it needs follows every frame. */
+export function MaskDrawing() {
+  const { ui } = useModule(maskRef);
+  const drawing = useStore(ui, (s) => s.drawing !== null);
+  return drawing ? <DrawingLayer /> : null;
+}
+
 /**
  * Drawing a new path mask on the selected clip (`ui.drawing`, set by the Mask tab's Pen and
  * Freehand). Freehand: one stroke, fitted into a few smooth points, closed on release. Pen: a click
@@ -42,7 +49,7 @@ function distinct(points: readonly PathPoint[], close: number): PathPoint[] {
  * Done closes it; Escape or Cancel stops. Three or more points send one `mask.add` with them in mask
  * space, and the new mask is selected.
  */
-export function MaskDrawing() {
+function DrawingLayer() {
   const { bus } = useKernel();
   const { ui } = useModule(maskRef);
   const drawing = useStore(ui, (s) => s.drawing);

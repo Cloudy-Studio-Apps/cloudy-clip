@@ -1,22 +1,24 @@
 import { useEffect, useMemo } from "react";
 import { useStore } from "zustand";
-import { useModule } from "@/core";
+import { notify, useKernel, useModule } from "@/core";
 import { inspectorRef, useClipAtPlayhead } from "@/modules/inspector";
 import {
   MARKER_HEX,
   maskOutline,
   orderedMasks,
+  projectRef,
   useOpenFormat,
   type Clip,
   type MaskId,
 } from "@/modules/project";
-import { transformRef, type VisibleLayer } from "@/modules/transform";
+import { transformRef, useVisibleLayers, type VisibleLayer } from "@/modules/transform";
 import { cn } from "@/ui";
 import { frameMapping, invertible } from "../logic/mapping";
+import { removeMasks } from "../mask.commands";
 import { maskRef } from "../mask.ref";
 import { useMaskEdit } from "./mask.edit.hook";
 import { isTextField, outlineData } from "./mask.paint";
-import { useMaskSubject } from "./mask.subject.hook";
+import { useMaskClip } from "./mask.subject.hook";
 import { MaskBox } from "./MaskBox";
 import { MaskPathPoints } from "./MaskPathPoints";
 
@@ -24,13 +26,16 @@ import { MaskPathPoints } from "./MaskPathPoints";
  * The selected clip's masks over the frame (DOM only, never in a capture or export), while the
  * Mask tab is open or one of them is selected: every mask outlined in its color (dashed when off),
  * a press on one selects it, and the selected one is editable. While a mask is selected the
- * transform box hides; Escape or a press on empty space deselects it.
+ * transform box hides; Escape or a press on empty space deselects it, and Delete removes it (or its
+ * selected point, which `MaskPathPoints` handles) instead of reaching the timeline's clip.
  */
 export function MaskOverlay() {
+  const { bus } = useKernel();
   const { ui } = useModule(maskRef);
   const transform = useModule(transformRef);
   const inspector = useModule(inspectorRef);
-  const { clip, layer } = useMaskSubject();
+  const project = useModule(projectRef).store;
+  const clip = useMaskClip();
   const chosen = useStore(ui, (s) => s.selectedMaskId);
   const drawing = useStore(ui, (s) => s.drawing !== null);
   const tab = useStore(inspector.view.store, (s) => (clip ? s.tabs[clip.kind] : undefined));
@@ -55,8 +60,38 @@ export function MaskOverlay() {
     };
   }, [selected, transform, ui]);
 
-  if (!clip || !layer || drawing || (tab !== "mask" && !selected)) return null;
-  return <MaskCanvas clip={clip} layer={layer} selectedId={selected} />;
+  useEffect(() => {
+    if (!selected || clipId === undefined) return;
+    // Capture phase, before the timeline's Delete takes the clip that holds the mask.
+    const onDelete = (e: KeyboardEvent) => {
+      if ((e.key !== "Delete" && e.key !== "Backspace") || isTextField(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const shape = project.getState().clips[clipId]?.masks?.[selected]?.shape;
+      const point = ui.getState().selectedPointId;
+      if (shape?.kind === "path" && point && shape.pointOrder.includes(point)) return;
+      ui.setState({ selectedMaskId: null, selectedPointId: null });
+      void bus.run(removeMasks, { clipId, maskIds: [selected] }).then((result) => {
+        if (!result.ok) notify("error", result.error.message);
+      });
+    };
+    window.addEventListener("keydown", onDelete, true);
+    return () => window.removeEventListener("keydown", onDelete, true);
+  }, [bus, clipId, project, selected, ui]);
+
+  if (!clip || drawing || (tab !== "mask" && !selected)) return null;
+  return <MaskLayer clip={clip} selectedId={selected} />;
+}
+
+interface MaskLayerProps {
+  clip: Clip;
+  selectedId: MaskId | null;
+}
+
+/** The clip's layer at the playhead; mounted only while the overlay shows, as it follows every frame. */
+function MaskLayer({ clip, selectedId }: MaskLayerProps) {
+  const layer = useVisibleLayers().find((l) => l.clipId === clip.id);
+  return layer ? <MaskCanvas clip={clip} layer={layer} selectedId={selectedId} /> : null;
 }
 
 interface MaskCanvasProps {
