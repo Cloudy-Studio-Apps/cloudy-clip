@@ -580,6 +580,27 @@ describe("composition commands", () => {
     expect(state().clips.t!.transform).toBeUndefined();
   });
 
+  it("resizing with scale keeps a natural-size picture's mask on it, as a text clip's", async () => {
+    await kernel.modules.loadAll([transformModule, solidModule]);
+    const { compositionId } = await ok(createComposition, {
+      format: { width: 1920, height: 1080, fps: 30 },
+    });
+    // A sized solid is drawn at its own size (fit "none"), like text and stickers.
+    addTo(compositionId, {
+      ...text("t", "", 0, { masks: { m1: { ...mask } }, maskOrder: ["m1"] }),
+      kind: "solid",
+      props: { width: 600, height: 300 },
+      transform: { ...IDENTITY_TRANSFORM },
+    });
+    await ok(setSettings, {
+      compositionId,
+      format: { width: 960, height: 540, fps: 30 },
+      resize: "scale",
+    });
+    expect(state().clips.t!.masks!.m1!.shape).toMatchObject({ width: 400, height: 200 });
+    expect(state().clips.t!.transform!.scale).toBeCloseTo(0.5);
+  });
+
   it("refuses a length under one frame, which would shrink every placement to nothing", async () => {
     const { compositionId } = await ok(createComposition, {});
     expect(await failure(setSettings, { compositionId, duration: 1 })).toBe(

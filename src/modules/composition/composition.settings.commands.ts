@@ -43,17 +43,21 @@ export const setSettings = defineCommand({
         const definition = elements.get(kind)?.definition;
         const fit = definition?.picture?.fit;
         if (!fit || !definition.supports?.transform) continue;
-        // Masks scale for every picture, one that follows the frame too: its fitted picture is the frame.
+        const follows = definition.picture?.followsFrame?.(clip) === true;
+        // A fitted picture refits to the new frame, so its masks scale with it; a natural-size one
+        // (text, stickers) is scaled by its transform below, which carries its masks already.
         // shortcut: a fit that isn't uniform keeps masks round, upgrade if masks must stretch.
-        Object.assign(
-          draft.clips[clipId]!,
-          scaleMasks(
-            clip,
-            Math.min(input.format!.width / before.width, input.format!.height / before.height),
-          ),
-        );
+        if (fit !== "none" || follows) {
+          Object.assign(
+            draft.clips[clipId]!,
+            scaleMasks(
+              clip,
+              Math.min(input.format!.width / before.width, input.format!.height / before.height),
+            ),
+          );
+        }
         // The transform and its keys already track the frame for such a picture.
-        if (definition.picture?.followsFrame?.(clip)) continue;
+        if (follows) continue;
         draft.clips[clipId]!.transform = scaleTransform(
           transform ?? IDENTITY_TRANSFORM,
           fit,
