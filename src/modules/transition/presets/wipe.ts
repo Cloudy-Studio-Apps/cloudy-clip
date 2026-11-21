@@ -1,19 +1,24 @@
 import { prop } from "@/modules/element";
 import { defineTransitionPreset } from "../transition.points";
+import { eased } from "../logic/easing";
+import { easeProp, softnessProp } from "./presets.props";
 import { maskableSurface } from "./presets.mask";
 
 /** b over a through a moving linear-gradient mask. */
 export const wipePreset = defineTransitionPreset({
   id: "wipe",
   name: "Left to right",
+  family: "Wipe",
   category: "basic",
   properties: {
     direction: prop.enum(["left", "right", "up", "down"]),
-    softness: prop.number({ min: 0, max: 1, step: 0.01, control: "slider" }),
+    softness: softnessProp(),
+    ease: easeProp(),
   },
-  defaults: () => ({ direction: "right", softness: 0.3 }),
-  mix(ctx, a, b, progress, props) {
+  defaults: () => ({ direction: "right", softness: 0.3, ease: "ease" }),
+  mix(ctx, a, b, t, props) {
     const { width, height } = ctx.canvas;
+    const progress = eased(props, t);
     const direction = String(props.direction ?? "right");
     const s = Math.min(1, Math.max(0, Number(props.softness ?? 0.3)));
     // The edge travels along the axis from `from` to `to`.

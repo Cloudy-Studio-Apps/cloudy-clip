@@ -3,6 +3,7 @@ import { prop } from "@/modules/element";
 import { bump } from "../logic/easing";
 import { seededRandom } from "../logic/noise";
 import { defineTransitionPreset } from "../transition.points";
+import { intensityProp } from "./presets.props";
 import { ghostCanvas } from "./presets.cache";
 
 /** A cut at the middle; around it, seeded horizontal slice offsets and a red/blue split. */
@@ -10,8 +11,11 @@ export const glitchPreset = defineTransitionPreset({
   id: "glitch",
   name: "Glitch",
   category: "glitch",
-  properties: { intensity: prop.number({ min: 0, max: 1, step: 0.01, control: "slider" }) },
-  defaults: () => ({ intensity: 0.6 }),
+  properties: {
+    intensity: intensityProp(),
+    slices: prop.number({ min: 0, max: 1, step: 0.01, control: "slider", label: "Slices" }),
+  },
+  defaults: () => ({ intensity: 0.6, slices: 1 }),
   mix(ctx, a, b, progress, props, env) {
     const { width, height } = ctx.canvas;
     const intensity = Math.min(1, Math.max(0, Number(props.intensity ?? 0.6)));
@@ -27,7 +31,8 @@ export const glitchPreset = defineTransitionPreset({
     }
     // The pattern changes ~12 times a second and is stable for a given junction and moment.
     const random = seededRandom(`glitch-${env.random()}-${Math.floor(env.elapsed * 12)}`);
-    const slices = Math.ceil(4 + 12 * amount);
+    const sliceAmount = Math.min(1, Math.max(0, Number(props.slices ?? 1)));
+    const slices = Math.ceil((4 + 12 * amount) * sliceAmount);
     ctx.drawImage(source, 0, 0, width, height);
     for (let i = 0; i < slices; i++) {
       const h = Math.max(2, Math.round(height * (0.01 + random() * 0.06)));

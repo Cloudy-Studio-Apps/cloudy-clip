@@ -10,38 +10,42 @@ const LEVELS = 3;
 
 /**
  * A whip pan: a and b sit side by side and the pair flies across the frame, slow at both ends and
- * very fast in the middle. The pair is blurred sideways as one picture, so the seam disappears;
- * the blur comes from squeezing the width down and stretching it back, and follows the speed.
+ * very fast in the middle. The pair is blurred along its travel as one picture, so the seam disappears;
+ * the blur comes from squeezing the travel axis down and stretching it back, and follows the speed.
  */
 export const wooshPreset = defineTransitionPreset({
   id: "woosh",
   name: "Woosh",
   category: "blur",
-  properties: { direction: prop.enum(["left", "right"]) },
+  properties: { direction: prop.enum(["left", "right", "up", "down"]) },
   defaults: () => ({ direction: "left" }),
   mix(ctx, a, b, progress, props) {
     const { width, height } = ctx.canvas;
-    // "left": the pictures move toward the left.
-    const sign = props.direction === "right" ? 1 : -1;
-    const shift = easeInOutQuint(progress) * width * sign;
+    // "left"/"up": the pictures move toward the left/top.
+    const vertical = props.direction === "up" || props.direction === "down";
+    const sign = props.direction === "right" || props.direction === "down" ? 1 : -1;
+    const size = vertical ? height : width;
+    const shift = easeInOutQuint(progress) * size * sign;
+    const at = (offset: number): [number, number] => (vertical ? [0, offset] : [offset, 0]);
     const amount = bump(progress) ** 2;
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "source-over";
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(a, shift, 0, width, height);
-    ctx.drawImage(b, shift - width * sign, 0, width, height);
+    ctx.drawImage(a, ...at(shift), width, height);
+    ctx.drawImage(b, ...at(shift - size * sign), width, height);
 
     let source: CanvasImageSource = ctx.canvas;
-    let sourceWidth = width;
+    let sourceSize = vertical ? height : width;
     for (let level = 0; level < LEVELS && amount > 0.01; level++) {
-      const levelWidth = Math.max(2, Math.round(sourceWidth / LEVEL_STEP));
-      const blurred = blurCanvas(ctx.canvas, level, levelWidth, height);
+      const levelSize = Math.max(2, Math.round(sourceSize / LEVEL_STEP));
+      const [levelWidth, levelHeight] = vertical ? [width, levelSize] : [levelSize, height];
+      const blurred = blurCanvas(ctx.canvas, level, levelWidth, levelHeight);
       if (!blurred) break;
       blurred.ctx.imageSmoothingEnabled = true;
-      blurred.ctx.drawImage(source, 0, 0, levelWidth, height);
+      blurred.ctx.drawImage(source, 0, 0, levelWidth, levelHeight);
       source = blurred.canvas;
-      sourceWidth = levelWidth;
+      sourceSize = levelSize;
       // The wider levels fade in first; the narrowest takes over at the peak of the speed.
       ctx.globalAlpha = clamp01((amount * LEVELS - level) * 1.5);
       if (ctx.globalAlpha > 0) ctx.drawImage(blurred.canvas, 0, 0, width, height);

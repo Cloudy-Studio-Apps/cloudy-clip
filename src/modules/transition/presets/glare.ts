@@ -7,7 +7,7 @@ import { defineTransitionPreset } from "../transition.points";
 export const glarePreset = defineTransitionPreset({
   id: "glare",
   name: "Glare",
-  category: "overlay",
+  category: "light",
   properties: { color: prop.color() },
   defaults: () => ({ color: "#ffffff" }),
   mix(ctx, a, b, progress, props) {

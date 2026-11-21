@@ -4,7 +4,7 @@
  * @module transition
  */
 /** Point: transition presets. */
-export { defineTransitionPreset, transitionPresets } from "./transition.points";
+export { defineTransitionPreset, transitionPresets, variantOf } from "./transition.points";
 /** Puts a transition preset on a cut, or changes the one there. */
 export { applyTransition } from "./transition.commands";
 export type {

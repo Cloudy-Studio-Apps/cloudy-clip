@@ -65,7 +65,7 @@ lists them.
 | Basic    | Cross dissolve | A blends smoothly into B                |
 | Basic    | Dissolve       | Grainy: B appears in random blocks      |
 | Basic    | Left to right  | A soft-edged wipe                       |
-| Overlay  | Glare          | A bright flash hides the cut            |
+| Light    | Glare          | A bright flash hides the cut            |
 | Blur     | Woosh          | A fast blurred swipe (whip pan)         |
 | Glitch   | Glitch         | Shifted slices and a red/blue split     |
 
