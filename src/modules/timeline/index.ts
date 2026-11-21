@@ -164,6 +164,11 @@ export { startCreateDrag } from "./ui/create.gesture";
  * in), `focus` (a track the page keeps in focus, marked on its header).
  */
 export { TimelinePanel } from "./ui/TimelinePanel";
+/**
+ * The playhead's head; `bare`, only its line, for a row a module draws over the lanes' top (the
+ * Subtitles page's context band), so the playhead runs through it. Time 0 is its parent's left.
+ */
+export { PlayheadHead } from "./ui/Playhead";
 /** Module definition, loaded by the app shell. */
 export { timelineModule } from "./timeline.module";
 /** Handle for `require(timelineRef)` / `useModule(timelineRef)`. */

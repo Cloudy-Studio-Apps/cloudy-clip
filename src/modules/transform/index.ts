@@ -12,6 +12,12 @@ export { compositeGroup } from "./transform.composite.group";
 export { transformGroup } from "./transform.group";
 /** Pictures on screen at the playhead, top-most first; clips on a matte track carry `matte: true`. Re-renders only when the list changes. */
 export { useVisibleLayers } from "./ui/layers.hook";
+/**
+ * A screen point as a point in a frame element's output pixels, and the top-most of some placed
+ * pictures containing a frame point (an index, -1 if none): a page's own picking in the frame.
+ */
+export { toFramePoint } from "./logic/frame";
+export { topmostAt } from "./logic/picking";
 export type { FlipAxis, TransformApi, VisibleLayer } from "./transform.types";
 
 /** Module definition, loaded by the app shell. */

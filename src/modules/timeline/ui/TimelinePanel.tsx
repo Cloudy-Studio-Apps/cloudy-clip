@@ -25,7 +25,7 @@ import {
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
 import { clipInScope, inScope, trackInScope } from "../logic/scope";
-import { rowsAbove, TAIL_SECONDS } from "../timeline.layout";
+import { CONTEXT_HEIGHT, rowsAbove, TAIL_SECONDS } from "../timeline.layout";
 import type { TimelineLane, TrackFocus } from "../timeline.types";
 import { useHeaderWidth } from "./header.width.hook";
 import { usePanelScroller } from "./panel.scroller.hook";
@@ -152,6 +152,8 @@ export function TimelinePanel({
                   width={contentWidth}
                 />
                 {scope === "sound" && <MarksRow pxPerSecond={pxPerSecond} width={contentWidth} />}
+                {/* Room for the context row a module draws over it (the Subtitles page's). */}
+                {scope === "subtitle" && <div aria-hidden style={{ height: CONTEXT_HEIGHT }} />}
                 <TimelineLanes
                   lanes={lanes}
                   scope={scope}

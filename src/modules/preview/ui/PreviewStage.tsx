@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { ErrorBoundary, useModule, usePoint } from "@/core";
 import { previewOverlays } from "../preview.points";
@@ -15,6 +15,8 @@ interface PreviewStageProps {
    * own small preview.
    */
   bare?: boolean;
+  /** A layer of the page's own over the frame, sized to it (a bare stage's click handling). */
+  children?: ReactNode;
 }
 
 /**
@@ -25,7 +27,7 @@ interface PreviewStageProps {
  * Only the newest mounted stage is drawn on (`attachCanvas`): a page that mounts its own takes the
  * frames while it is open, and the editor's stage gets them back when it closes.
  */
-export function PreviewStage({ bare = false }: PreviewStageProps) {
+export function PreviewStage({ bare = false, children }: PreviewStageProps) {
   const preview = useModule(previewRef);
   const overlays = usePoint(previewOverlays);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -60,6 +62,7 @@ export function PreviewStage({ bare = false }: PreviewStageProps) {
               </ErrorBoundary>
             </div>
           ))}
+        {children}
         {comparing && <WipeLine />}
       </div>
     </div>
