@@ -194,6 +194,16 @@ describe("project file", () => {
     expect(decodeProject(encodeProject(withMask, "1.0.0", new Date(0)))).toEqual(withMask);
   });
 
+  it("a star with a fractional point count saves and reopens", () => {
+    const star = masked((clip) => {
+      clip.masks = {
+        m: { ...mask, shape: { kind: "star", width: 100, height: 100, points: 5.5, inner: 0.5 } },
+      };
+      clip.maskOrder = ["m"];
+    });
+    expect(decodeProject(encodeProject(star, "1.0.0", new Date(0)))).toEqual(star);
+  });
+
   it("drops a matte whose track is missing", () => {
     const text = encodeProject(
       masked((clip) => (clip.matte = { trackId: "gone", by: "alpha" })),

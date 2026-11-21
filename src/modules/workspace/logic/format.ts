@@ -55,7 +55,7 @@ const maskShape = z.discriminatedUnion("kind", [
     kind: z.literal("star"),
     width: range("width"),
     height: range("height"),
-    points: range("points").int(),
+    points: range("points"),
     inner: range("inner"),
   }),
   z.strictObject({ kind: z.literal("heart"), width: range("width"), height: range("height") }),
