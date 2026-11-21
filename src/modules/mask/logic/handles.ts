@@ -100,11 +100,15 @@ function resize(
   const span = alt ? 2 : 1;
   const width = dx !== 0 ? clamp(Math.abs(cx - ax) * span, "width") : w;
   const height = dy !== 0 ? clamp(Math.abs(cy - ay) * span, "height") : h;
-  const center = alt
-    ? { x: 0, y: 0 }
-    : { x: dx !== 0 ? (cx + ax) / 2 : 0, y: dy !== 0 ? (cy + ay) / 2 : 0 };
-  const at = placeLocal(mask, center);
-  return { x: at.x, y: at.y, shape: { width, height } };
+  // From the center the position stays: sending it would key an animated x/y for nothing.
+  const shape = { ...(dx !== 0 && { width }), ...(dy !== 0 && { height }) };
+  if (alt) return { shape };
+  const at = placeLocal(mask, {
+    x: dx !== 0 ? (cx + ax) / 2 : 0,
+    y: dy !== 0 ? (cy + ay) / 2 : 0,
+  });
+  // Only what moves: a field sent unchanged would still get a key when animated.
+  return { ...(at.x !== mask.x && { x: at.x }), ...(at.y !== mask.y && { y: at.y }), shape };
 }
 
 /**

@@ -86,7 +86,10 @@ export function MaskPathPoints({ clipId, mask, mapping, format, edit }: MaskPath
       index,
       part,
       onDrop: (moved) => {
-        const back = pointsToMask(mapping, mask, shape.scale, moved);
+        // Only the moved point maps back: a round trip is off by ~1e-13, which would key every point.
+        const back = moved.map((p, i) =>
+          p === points[i] ? local[i]! : pointsToMask(mapping, mask, shape.scale, [p])[0]!,
+        );
         void setPoints(back, order).then((ok) => {
           if (!ok) paintPath(frame, points, true, format);
         });
