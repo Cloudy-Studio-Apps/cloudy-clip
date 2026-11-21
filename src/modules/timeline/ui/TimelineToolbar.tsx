@@ -73,7 +73,7 @@ export function TimelineToolbar() {
         >
           Delete
         </ToolbarAction>
-        {scope !== "sound" && (
+        {scope === "all" && (
           <ToolbarButton
             icon={<Unlink />}
             title="Unlink picture and sound"

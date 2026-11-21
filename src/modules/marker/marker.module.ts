@@ -36,7 +36,7 @@ export const markerModule = defineModule({
     ctx.contribute(clipActions, menus.clip);
     ctx.contribute(timelineOverlays, {
       id: "marker.flags",
-      scopes: ["all", "sound"],
+      scopes: ["all", "sound", "subtitle"],
       component: MarkerFlags,
     });
     return { api: { ui } };

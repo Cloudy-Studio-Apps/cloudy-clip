@@ -15,19 +15,36 @@ export function activeScope(pages: readonly AppPage[], active: string): Timeline
 }
 
 /**
- * Whether a kind of track is listed in a scope: `"sound"` lists audio only. The one place that
- * says what a sound-only timeline may show and edit.
+ * Whether a kind of track may be offered or added in a scope: `"sound"` lists audio only, and
+ * `"subtitle"` none (its tracks are the ones that hold cues). The one place that says what a
+ * scoped timeline may show and edit.
  */
 export function kindInScope(kind: TrackKind, scope: TimelineScopeName): boolean {
+  if (scope === "subtitle") return false;
   return scope !== "sound" || kind === "audio";
 }
 
-/** Whether a track is listed in a scope. */
-export function trackInScope(track: Track, scope: TimelineScopeName): boolean {
-  return kindInScope(track.kind, scope);
+/** Whether a clip is drawn in a scope: on `"subtitle"`, only the marked ones (cues). */
+export function clipInScope(clip: Clip, scope: TimelineScopeName): boolean {
+  return scope !== "subtitle" || clip.subtitle !== undefined;
 }
 
-/** The clips that sit on tracks listed in a scope: on `"sound"`, never a picture's. */
+/**
+ * Whether a track is listed in a scope: on `"subtitle"`, a video track holding at least one
+ * cue; on `"sound"`, an audio track.
+ */
+export function trackInScope(track: Track, scope: TimelineScopeName, state: ProjectState): boolean {
+  if (scope !== "subtitle") return kindInScope(track.kind, scope);
+  return (
+    track.kind === "video" &&
+    track.clipIds.some((id) => {
+      const clip = state.clips[id];
+      return clip !== undefined && clipInScope(clip, scope);
+    })
+  );
+}
+
+/** The clips a scope draws: on tracks it lists (`"sound"`: never a picture's), and on `"subtitle"` cues only. */
 export function clipsInScope<C extends Clip>(
   state: ProjectState,
   clips: readonly C[],
@@ -35,7 +52,7 @@ export function clipsInScope<C extends Clip>(
 ): C[] {
   return clips.filter((clip) => {
     const track = state.tracks[clip.trackId];
-    return track !== undefined && trackInScope(track, scope);
+    return track !== undefined && trackInScope(track, scope, state) && clipInScope(clip, scope);
   });
 }
 

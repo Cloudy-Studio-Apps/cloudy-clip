@@ -50,7 +50,7 @@ export const collabModule = defineModule({
     ctx.contribute(appOverlays, { id: "collab.pointers", component: AgentPointers });
     ctx.contribute(timelineOverlays, {
       id: "collab.playheads",
-      scopes: ["all", "sound"],
+      scopes: ["all", "sound", "subtitle"],
       component: AgentPlayheads,
     });
     return { api: { store } };

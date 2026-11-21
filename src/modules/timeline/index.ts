@@ -80,7 +80,7 @@ export { TIMELINE_CONTENT, TIMELINE_SCROLLER } from "./timeline.layout";
  * Height of the rows above the first lane in px, by scope: the ruler, plus the marks row on
  * `"sound"`. The one answer to where the lanes start, for an overlay that measures from there.
  */
-export { rowsAbove } from "./timeline.layout";
+export { CONTEXT_HEIGHT, rowsAbove } from "./timeline.layout";
 /**
  * Where flags go in the panel a component sits in (`{ top, height }`, px from the top of the
  * content): the ruler on the editor's timeline, the marks row under it on a sound-scope one. A
@@ -94,7 +94,7 @@ export { useFlagRow } from "./ui/flag.row.hook";
  */
 export { useHeaderWidth } from "./ui/header.width.hook";
 /** The clips a scope lists (`"sound"`: those on audio tracks). */
-export { clipsInScope } from "./logic/scope";
+export { clipInScope, clipsInScope, trackInScope } from "./logic/scope";
 /**
  * The scope of the timeline panel a component sits in (`"all"` outside one), for what a module
  * draws inside the panel (a dock, an overlay) to list only what that scope may touch.

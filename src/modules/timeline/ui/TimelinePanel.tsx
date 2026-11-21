@@ -24,7 +24,7 @@ import {
 } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
 import { pxToTime, timeToPx } from "../logic/geometry";
-import { inScope, trackInScope } from "../logic/scope";
+import { clipInScope, inScope, trackInScope } from "../logic/scope";
 import { rowsAbove, TAIL_SECONDS } from "../timeline.layout";
 import type { TimelineLane, TrackFocus } from "../timeline.types";
 import { useHeaderWidth } from "./header.width.hook";
@@ -98,17 +98,17 @@ export function TimelinePanel({
     () =>
       trackOrder.flatMap((id, index) => {
         const track = tracksById[id];
-        if (!track || !trackInScope(track, scope)) return [];
+        if (!track || !trackInScope(track, scope, project.api.getState())) return [];
         const visible: Clip[] = [];
         for (const clipId of track.clipIds) {
           const clip = clipsById[clipId];
-          if (!clip) continue;
+          if (!clip || !clipInScope(clip, scope)) continue;
           if (clip.start > to) break; // sorted by start
           if (clip.start + clip.duration >= from) visible.push(clip);
         }
         return [{ track, index, clips: visible }];
       }),
-    [trackOrder, tracksById, clipsById, from, to, scope],
+    [trackOrder, tracksById, clipsById, from, to, scope, project.api],
   );
 
   const last = lanes.at(-1);

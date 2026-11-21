@@ -47,6 +47,7 @@ export function TrackInsert({ index, above, below }: TrackInsertProps) {
   const scope = useTimelineScope();
   // A sound-scope timeline offers sound tracks only.
   const kinds = insertKinds(above, below).filter((kind) => kindInScope(kind, scope));
+  if (kinds.length === 0) return null;
   const add = (kind: TrackKind) => void bus.run(addTrack, { kind, index });
   return (
     <div className="sticky left-0 z-[25] h-0" style={{ width: headerWidth }}>

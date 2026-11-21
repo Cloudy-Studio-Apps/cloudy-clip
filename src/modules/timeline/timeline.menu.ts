@@ -28,7 +28,7 @@ export function clipMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>):
   return {
     id: "timeline.clip",
     // Only its Split entry shows on a sound-only page: a cut changes no picture.
-    scopes: ["all", "sound"],
+    scopes: ["all", "sound", "subtitle"],
     items(clip) {
       const { selection: clipIds } = view.getState();
       const at = ctx.require(previewRef).playback.getTime();
@@ -39,7 +39,7 @@ export function clipMenu(ctx: ModuleContext, view: StoreApi<TimelineViewState>):
           icon: SquareSplitHorizontal,
           label: "Split at playhead",
           shortcut: "S",
-          scopes: ["all", "sound"],
+          scopes: ["all", "sound", "subtitle"],
           onSelect: () => void ctx.bus.run(splitAt, { at, clipIds }),
         });
       }
