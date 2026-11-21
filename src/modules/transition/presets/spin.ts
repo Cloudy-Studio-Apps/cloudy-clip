@@ -35,11 +35,11 @@ export const spinPreset = defineTransitionPreset({
     if (progress >= 1) return drawOnly(ctx, b);
     const angle = clamp01(Number(props.intensity ?? 0.6)) * bump(progress) * 0.6;
     drawBlurred(ctx, env, angle > 1e-4, spinBlurPass(-1, [0.5, 0.5], angle), (target) =>
-      drawMoved(target, progress < 0.5 ? a : b, 1 + 0.3 * bump(progress), angleAt(props, progress)),
+      drawMoved(target, progress < 0.5 ? a : b, 1 + 0.1 * bump(progress), angleAt(props, progress)),
     );
   },
   thumbnail(ctx, a, b, progress, props) {
-    const scale = 1 + 0.3 * bump(progress);
+    const scale = 1 + 0.1 * bump(progress);
     const turn = angleAt(props, progress);
     drawStacked(ctx, (i) => drawMoved(ctx, progress < 0.5 ? a : b, scale, turn * (1 - i * 0.12)));
   },
