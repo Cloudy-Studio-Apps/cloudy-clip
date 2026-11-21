@@ -34,7 +34,7 @@ function cuesOf(clips: Record<string, { subtitle?: { styleId: string } }>, style
 export const addStyle = defineCommand({
   id: "subtitle.addStyle",
   label: "Add subtitle style",
-  description: `Adds a subtitle style. Give at most one source: "preset" (classic, punchy, intense, whisper; the default is classic), "fromStyleId" (a copy of that style) or "fromClipId" (the look of a text clip: its text props and transform x/y). The composition is "compositionId", else the source's, else the one you have open. A composition without styles first gets "Default" (Classic), in the same undo step. "name" (1-60) defaults to the preset's name, "<style> copy" or "Style N". ${PX} Fails with subtitle.invalid_style (two sources), subtitle.composition_not_found, subtitle.style_not_found, subtitle.clip_not_found and subtitle.not_text. Returns { styleId }.`,
+  description: `Adds a subtitle style. Give at most one source: "preset" (classic, punchy, intense, whisper; the default is classic), "fromStyleId" (a copy of that style) or "fromClipId" (the look of a text clip: its text props and transform x/y). The composition is "compositionId", else the source's, else the one you have open. A composition without styles first gets "Default" (Classic), in the same undo step (asking for Classic with no name there just makes Default). "name" (1-60) defaults to the preset's name, "<style> copy" or "Style N". ${PX} Fails with subtitle.invalid_style (two sources), subtitle.composition_not_found, subtitle.style_not_found, subtitle.clip_not_found and subtitle.not_text. Returns { styleId }.`,
   undoable: true,
   input: z.object({
     compositionId: z.string().optional(),
@@ -65,6 +65,17 @@ export const addStyle = defineCommand({
         (fromClip && compositionOfClip(state, fromClip).id),
     );
     const first = missingDefault(ctx, composition);
+    if (
+      first &&
+      !fromStyle &&
+      !fromClip &&
+      (input.preset ?? "classic") === "classic" &&
+      !input.name
+    ) {
+      // Default is already that style: one, not two.
+      storeStyles(ctx, [first]);
+      return { styleId: first.id };
+    }
     const count = stylesOf(state, composition.id).length + (first ? 1 : 0);
     let look;
     let name;

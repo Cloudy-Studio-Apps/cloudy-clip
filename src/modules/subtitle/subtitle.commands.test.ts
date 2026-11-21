@@ -162,6 +162,12 @@ describe("marks", () => {
     expect(doc().clips.c!.subtitle).toEqual({ styleId: styles[0]!.id });
   });
 
+  it("addStyle classic without a name in an empty composition makes Default once", async () => {
+    const { styleId } = await ok<{ styleId: string }>(kernel.bus.run(addStyle, {}));
+    const styles = stylesOf(doc(), "c1");
+    expect(styles.map((s) => [s.id, s.name])).toEqual([[styleId, "Default"]]);
+  });
+
   it("addStyle fromClipId copies the cue's look", async () => {
     const { styleId } = await ok<{ styleId: string }>(
       kernel.bus.run(addStyle, { fromClipId: "a" }),

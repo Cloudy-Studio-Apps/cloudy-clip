@@ -6,6 +6,7 @@ import { TimelinePanel } from "@/modules/timeline";
 import { Kbd } from "@/ui";
 import { cuesOf } from "../logic/srt";
 import { CueList } from "./CueList";
+import { SubtitleSide } from "./SubtitleSide";
 import { SubtitleStage } from "./SubtitleStage";
 import { SubtitleTransport } from "./SubtitleTransport";
 
@@ -50,8 +51,7 @@ export function SubtitlePage() {
         <section className="flex min-h-0 min-w-0 border-x border-border-strong">
           <SubtitleStage />
         </section>
-        {/* The Style and Cue panel goes here. */}
-        <aside className="min-h-0 min-w-0" />
+        <SubtitleSide />
       </div>
       <div className="min-h-0">
         <TimelinePanel scope="subtitle" />

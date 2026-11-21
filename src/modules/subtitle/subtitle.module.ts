@@ -1,11 +1,13 @@
 import { Captions } from "lucide-react";
 import { appPages, defineModule, keybindings } from "@/core";
-import { timelineOverlays } from "@/modules/timeline";
+import { fieldActions } from "@/modules/inspector";
+import { clipActions, timelineOverlays, timelineRef } from "@/modules/timeline";
 import { addCue, mergeCues, splitCue } from "./subtitle.cue.commands";
 import { importSubtitles } from "./subtitle.import.command";
 import { subtitleKeys } from "./subtitle.keys";
 import { mark, resetToStyle, unmark } from "./subtitle.mark.commands";
 import { subtitleMcpTools } from "./subtitle.mcp";
+import { subtitleMenu } from "./subtitle.menu";
 import { SUBTITLE_PAGE, subtitleRef } from "./subtitle.ref";
 import { createSubtitleView } from "./subtitle.store";
 import {
@@ -15,14 +17,24 @@ import {
   reorderStyles,
   updateStyle,
 } from "./subtitle.style.commands";
-import { ContextBand, SubtitlePage } from "./ui";
+import { ContextBand, CueBadge, ownValueAction, SubtitlePage } from "./ui";
 
 /** Subtitles: styles of a composition, text clips marked as cues of them, and the Subtitles page. */
 export const subtitleModule = defineModule({
   ref: subtitleRef,
   name: "Subtitles",
   tier: "feature",
-  requires: ["project", "element", "text", "fonts", "timeline", "preview", "media", "transform"],
+  requires: [
+    "project",
+    "element",
+    "text",
+    "fonts",
+    "timeline",
+    "preview",
+    "media",
+    "transform",
+    "inspector",
+  ],
   commands: [
     addStyle,
     updateStyle,
@@ -55,6 +67,9 @@ export const subtitleModule = defineModule({
       component: ContextBand,
     });
     ctx.contribute(keybindings, ...subtitleKeys(ctx, view));
+    ctx.contribute(clipActions, { id: "subtitle.badge", badge: CueBadge });
+    ctx.contribute(clipActions, subtitleMenu(ctx, ctx.require(timelineRef).view));
+    ctx.contribute(fieldActions, ownValueAction);
     return { api: { view } };
   },
 });
