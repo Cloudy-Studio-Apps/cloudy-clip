@@ -1,5 +1,6 @@
 // WebKitGTK spike not run; a drawn still, b drawn shifted over it with drawImage (ruling R1).
 import { prop } from "@/modules/element";
+import { directionOffset } from "../logic/direction";
 import { eased } from "../logic/easing";
 import { defineTransitionPreset } from "../transition.points";
 import { drawOnly } from "./presets.mask";
@@ -20,15 +21,13 @@ export const slidePreset = defineTransitionPreset({
     if (progress <= 0) return drawOnly(ctx, a);
     if (progress >= 1) return drawOnly(ctx, b);
     const { width, height } = ctx.canvas;
-    const vertical = props.direction === "up" || props.direction === "down";
-    const sign = props.direction === "right" || props.direction === "down" ? 1 : -1;
-    const size = vertical ? height : width;
-    const offset = (eased(props, progress) - 1) * size * sign; // b starts a full frame away
+    // b starts a full frame away.
+    const [x, y] = directionOffset(props.direction, width, height, eased(props, progress) - 1);
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "source-over";
     ctx.drawImage(a, 0, 0, width, height);
-    ctx.drawImage(b, vertical ? 0 : offset, vertical ? offset : 0, width, height);
+    ctx.drawImage(b, x, y, width, height);
     ctx.restore();
   },
 });

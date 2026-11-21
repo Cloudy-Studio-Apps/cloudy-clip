@@ -1,5 +1,6 @@
 // WebKitGTK spike not run; blurs by shrinking and stretching through scratch canvases, without ctx.filter (ruling R1).
 import { prop } from "@/modules/element";
+import { directionOffset, isVertical } from "../logic/direction";
 import { bump, clamp01, easeInOutQuint } from "../logic/easing";
 import { blurCanvas } from "./presets.cache";
 import { defineTransitionPreset } from "../transition.points";
@@ -22,18 +23,16 @@ export const wooshPreset = defineTransitionPreset({
   mix(ctx, a, b, progress, props) {
     const { width, height } = ctx.canvas;
     // "left"/"up": the pictures move toward the left/top.
-    const vertical = props.direction === "up" || props.direction === "down";
-    const sign = props.direction === "right" || props.direction === "down" ? 1 : -1;
-    const size = vertical ? height : width;
-    const shift = easeInOutQuint(progress) * size * sign;
-    const at = (offset: number): [number, number] => (vertical ? [0, offset] : [offset, 0]);
+    const vertical = isVertical(props.direction);
+    const shift = easeInOutQuint(progress);
+    const at = (moved: number) => directionOffset(props.direction, width, height, moved);
     const amount = bump(progress) ** 2;
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "source-over";
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(a, ...at(shift), width, height);
-    ctx.drawImage(b, ...at(shift - size * sign), width, height);
+    ctx.drawImage(b, ...at(shift - 1), width, height);
 
     let source: CanvasImageSource = ctx.canvas;
     let sourceSize = vertical ? height : width;

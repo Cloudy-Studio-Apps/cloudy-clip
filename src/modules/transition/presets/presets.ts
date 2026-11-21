@@ -1,24 +1,24 @@
+import { variantOf } from "../transition.points";
 import { blinkPreset } from "./blink";
 import { clockPreset } from "./clock";
-import { irisPreset } from "./iris";
-import { leakPreset } from "./leak";
-import { lumaPreset } from "./luma";
-import { pixelatePreset } from "./pixelate";
-import { ripplePreset } from "./ripple";
-import { pushPreset } from "./push";
-import { shakePreset } from "./shake";
-import { slidePreset } from "./slide";
-import { spinPreset } from "./spin";
-import { zoomPreset } from "./zoom";
-import { splitPreset } from "./split";
 import { crossDissolvePreset } from "./crossDissolve";
 import { dissolvePreset } from "./dissolve";
 import { fadePreset } from "./fade";
 import { glarePreset } from "./glare";
 import { glitchPreset } from "./glitch";
+import { irisPreset } from "./iris";
+import { leakPreset } from "./leak";
+import { lumaPreset } from "./luma";
+import { pixelatePreset } from "./pixelate";
+import { pushPreset } from "./push";
+import { ripplePreset } from "./ripple";
+import { shakePreset } from "./shake";
+import { slidePreset } from "./slide";
+import { spinPreset } from "./spin";
+import { splitPreset } from "./split";
 import { wipePreset } from "./wipe";
 import { wooshPreset } from "./woosh";
-import { variantOf } from "../transition.points";
+import { zoomPreset } from "./zoom";
 
 /** The built-in transition presets, each routine followed by its variants, in the order the Transitions tab lists them. */
 export const builtInPresets = [
