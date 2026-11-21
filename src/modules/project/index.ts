@@ -52,6 +52,8 @@ export {
 } from "./logic/junctions";
 /** Masks: where their space sits in the frame, their outlines and lines, their order and scaling. */
 export { maskLine, maskOutline, maskPlacement, orderedMasks, scaleMasks } from "./logic/mask";
+/** Track mattes: which video tracks are mattes (`matteTracks`) and the one a clip is cut by (`usableMatte`). */
+export { matteTracks, usableMatte } from "./logic/matte";
 /** The allowed range of each mask number. */
 export { MASK_RANGES } from "./project.types";
 /** The document's types. */

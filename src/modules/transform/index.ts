@@ -10,7 +10,9 @@ export { flipTransform } from "./transform.commands";
 export { compositeGroup } from "./transform.composite.group";
 /** The `transform` shared group (x, y, scale, scaleX, scaleY, rotation, pivotX, pivotY), edited with `element.setProps`. */
 export { transformGroup } from "./transform.group";
-export type { FlipAxis, TransformApi } from "./transform.types";
+/** Pictures on screen at the playhead, top-most first; clips on a matte track carry `matte: true`. Re-renders only when the list changes. */
+export { useVisibleLayers } from "./ui/layers.hook";
+export type { FlipAxis, TransformApi, VisibleLayer } from "./transform.types";
 
 /** Module definition, loaded by the app shell. */
 export { transformModule } from "./transform.module";

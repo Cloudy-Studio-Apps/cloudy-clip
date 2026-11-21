@@ -1,3 +1,4 @@
+import { createStore } from "zustand/vanilla";
 import { defineModule } from "@/core";
 import { sharedGroups } from "@/modules/element";
 import { previewOverlays } from "@/modules/preview";
@@ -28,6 +29,18 @@ export const transformModule = defineModule({
     contribute(sharedGroups, compositeGroup);
     contribute(clipActions, transformMenu(ctx, ctx.require(timelineRef).view));
     contribute(previewOverlays, { id: "transform.overlay", component: TransformOverlay });
-    return { api: {} };
+    const boxHidden = createStore<{ owners: readonly string[] }>(() => ({ owners: [] }));
+    return {
+      api: {
+        boxHidden,
+        hideBox(owner, hidden) {
+          const { owners } = boxHidden.getState();
+          if (owners.includes(owner) === hidden) return;
+          boxHidden.setState({
+            owners: hidden ? [...owners, owner] : owners.filter((o) => o !== owner),
+          });
+        },
+      },
+    };
   },
 });

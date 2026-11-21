@@ -6,6 +6,7 @@ import {
   type ProjectState,
   type Track,
   type TrackKind,
+  matteTracks,
 } from "@/modules/project";
 import type {
   FrameOptions,
@@ -14,7 +15,6 @@ import type {
   ResolvedTrack,
   UpcomingClip,
 } from "../engine/engine.types";
-import { matteTracks } from "./masks";
 
 const pathOf = (prefix: string, clipId: string) => (prefix ? `${prefix}/${clipId}` : clipId);
 

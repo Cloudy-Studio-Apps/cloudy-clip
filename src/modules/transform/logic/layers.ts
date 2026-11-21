@@ -4,6 +4,7 @@ import {
   animatedClip,
   clipTransform,
   followedClip,
+  matteTracks,
   type ClipTransform,
   type FollowLive,
   type FollowShift,
@@ -39,6 +40,7 @@ export function visibleLayers(
   liveProps: (clipId: string) => Record<string, unknown> | undefined = () => undefined,
 ): VisibleLayer[] {
   const layers: VisibleLayer[] = [];
+  const mattes = matteTracks(state, composition);
   for (const trackId of composition.trackOrder) {
     const track = state.tracks[trackId];
     if (!track || track.kind !== "video" || track.hidden) continue;
@@ -61,10 +63,12 @@ export function visibleLayers(
         ? clipTransform(animatedClip(saved, time), live?.transform as Partial<ClipTransform>)
         : transform;
       const shift = shiftOf(transform, offset);
+      const matteMark = mattes.has(trackId) ? ({ matte: true } as const) : {};
       if (picture.source === "media") {
         if (!clip.mediaId || state.media[clip.mediaId]?.kind === "audio") continue;
         const source = sizeOf(clip.mediaId);
-        if (source) layers.push({ clipId, source, fit: picture.fit, transform, fields, shift });
+        if (source)
+          layers.push({ clipId, source, fit: picture.fit, transform, fields, shift, ...matteMark });
         continue;
       }
       if (picture.source === "composition") {
@@ -72,7 +76,7 @@ export function visibleLayers(
         if (placed) {
           const { width, height } = placed.format;
           const source = { width, height };
-          layers.push({ clipId, source, fit: picture.fit, transform, fields, shift });
+          layers.push({ clipId, source, fit: picture.fit, transform, fields, shift, ...matteMark });
         }
         continue;
       }
@@ -86,6 +90,7 @@ export function visibleLayers(
         transform,
         fields,
         shift,
+        ...matteMark,
       });
     }
   }

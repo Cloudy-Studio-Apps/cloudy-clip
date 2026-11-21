@@ -4,6 +4,7 @@ import { useKernel, useModule } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { clipPlacement, projectRef, useOpenFormat } from "@/modules/project";
 import { selectionSubject, timelineRef } from "@/modules/timeline";
+import { transformRef } from "../transform.ref";
 import { topmostAt } from "../logic/picking";
 import type { TransformGestureMode } from "../transform.types";
 import { toFramePoint } from "../logic/frame";
@@ -19,6 +20,8 @@ export function TransformOverlay() {
   const project = useModule(projectRef).store;
   const timeline = useModule(timelineRef);
   const preview = useModule(previewRef);
+  const boxHidden = useModule(transformRef).boxHidden;
+  const hidden = useStore(boxHidden, (s) => s.owners.length > 0);
   const { bus } = useKernel();
   const frameRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -61,12 +64,13 @@ export function TransformOverlay() {
 
     if (!target) {
       const point = toFramePoint(frame, format, e.clientX, e.clientY);
+      const pickable = placed.filter((layer) => !layer.matte);
       const index = topmostAt(
-        placed.map((layer) => layer.placement),
+        pickable.map((layer) => layer.placement),
         point,
       );
       // Keep dragging the selected picture when it is under the pointer, even if covered.
-      target = selected && handle === "move" ? selected : placed[index];
+      target = selected && handle === "move" ? selected : pickable[index];
       mode = "move";
       if (!target) {
         timeline.selectClip(null);
@@ -97,6 +101,7 @@ export function TransformOverlay() {
     });
   };
 
+  if (hidden) return null;
   return (
     <div
       ref={frameRef}

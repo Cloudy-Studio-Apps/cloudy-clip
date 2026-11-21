@@ -35,10 +35,11 @@ import {
   rampOf,
   rateAt,
   sourceTimeAt,
+  usableMatte,
 } from "@/modules/project";
 import { cappedPassSize } from "../logic/capping";
 import { resolveFrame } from "../logic/frame";
-import { liveMasks, usableMatte } from "../logic/masks";
+import { liveMasks } from "../logic/masks";
 import { soundGains } from "../logic/junctions";
 import { mutedInPlacement, placeSound } from "../logic/mix";
 import { picturesSettled } from "../logic/readiness";

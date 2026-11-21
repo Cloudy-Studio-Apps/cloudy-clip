@@ -13,7 +13,7 @@ pivot. Click empty space to deselect.
 - **Contributes:** Flip horizontally, Flip vertically and Reset transform in a clip's menu (`transform.menu.ts`, video tracks only); shared groups `transform` and `composite` (`sharedGroups`, their sections in every element's panel
   on video tracks); preview overlay `transform.overlay`
 - **Points it owns:** —
-- **API:** none beyond its exported command and group (`TransformApi` is empty)
+- **API:** `hideBox(owner, hidden)` and `boxHidden` (a store of `{ owners }`): the overlay draws nothing while any owner hides the box, so another canvas tool (the `mask` module) can take over the canvas. Also exports `useVisibleLayers()` and `VisibleLayer`.
 - **Files:**
   - `transform.group.ts`: `transformGroup`, the shared group `transform` stored at
     `Clip.transform`, the After Effects model: `x`, `y` (where the pivot sits, output px from the
@@ -50,6 +50,7 @@ pivot. Click empty space to deselect.
     crosshair without both `pivotX` and `pivotY`, and the rotate handle without
     `rotation`, and a picture without `x` and `y` is selected by a click but not dragged.
 - **Keys and paths:** `visibleLayers` reads each clip through `followedClip(clip, time, paths, live)` (`project`), so the box sits on the picture the engine draws, on a follower's motion path too; the live patch goes in as its live values. A follower's layer carries `shift` (what its path adds now), and a gesture takes it off before committing (`unshift`, `logic/commit.ts`), since a follower stores its offset from the path: dragging, rotating or moving the pivot of a follower edits its offset and it doesn't jump on release.
+- **Mattes:** `visibleLayers` keeps clips on a matte track (`matteTracks`, `project`) but marks them `matte: true`; a canvas click skips them, while a selected matte clip still gets its box.
 - **Not yet:** crop, a switch on the Composite band, keeping an off-center pivot in place when a composition is resized with `scale` and its aspect changes (`composition/logic/resize.ts`).
 
 | Command                                 | MCP tool                                 |

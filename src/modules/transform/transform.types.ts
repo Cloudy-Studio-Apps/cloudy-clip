@@ -1,3 +1,4 @@
+import type { StoreApi } from "zustand/vanilla";
 import type { CommandBus } from "@/core";
 import type { PreviewApi } from "@/modules/preview";
 import type {
@@ -9,8 +10,13 @@ import type {
   ProjectFormat,
 } from "@/modules/project";
 
-/** The transform module's API. Empty: its command and preview overlay are its whole surface. */
-export type TransformApi = Record<string, never>;
+/** The transform module's API: lets another canvas tool take the selection box's place. */
+export interface TransformApi {
+  /** Hides the selection box for `owner` while `hidden` is true; it shows again when no owner hides it. */
+  hideBox(owner: string, hidden: boolean): void;
+  /** Who hides the box now (the overlay draws no box while any owner does). */
+  readonly boxHidden: StoreApi<{ owners: readonly string[] }>;
+}
 
 /** A point in output pixels (the project's frame). */
 export interface FramePoint {
@@ -34,6 +40,8 @@ export interface VisibleLayer {
   fields: ReadonlySet<TransformField>;
   /** What its motion path adds to `transform` now (a follower), else undefined. */
   shift?: FollowShift;
+  /** Its track is used as a matte: not picked by a click on the canvas, but boxed when selected. */
+  matte?: true;
 }
 
 /** Which way `transform.flip` mirrors: left to right (`scaleX`) or upside down (`scaleY`). */
