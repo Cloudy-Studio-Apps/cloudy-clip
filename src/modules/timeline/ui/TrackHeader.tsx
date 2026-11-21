@@ -78,7 +78,7 @@ export const TrackHeader = memo(function TrackHeader({
                 {track.muted ? <VolumeX /> : <Volume2 />}
               </TrackButton>
             )}
-            {track.kind === "video" && (
+            {track.kind === "video" && scope !== "subtitle" && (
               <TrackButton
                 label={track.hidden ? "Show track" : "Hide track"}
                 off={track.hidden}
@@ -90,12 +90,15 @@ export const TrackHeader = memo(function TrackHeader({
               </TrackButton>
             )}
             <TrackControls track={track} />
-            <TrackButton
-              label="Remove track"
-              onClick={() => void bus.run(removeTrack, { trackId: track.id })}
-            >
-              <X />
-            </TrackButton>
+            {/* Hide and remove act on the whole track, cues or not: not on the Subtitles page. */}
+            {scope !== "subtitle" && (
+              <TrackButton
+                label="Remove track"
+                onClick={() => void bus.run(removeTrack, { trackId: track.id })}
+              >
+                <X />
+              </TrackButton>
+            )}
           </div>
         </>
       )}

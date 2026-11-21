@@ -25,7 +25,7 @@ import {
   clipboardMenuItems,
   pasteMenu,
 } from "./timeline.clipboard.menu";
-import { activeScope } from "./logic/scope";
+import { activeScope, clipInScope } from "./logic/scope";
 import { playheadSplit } from "./logic/split";
 import { clipMenu } from "./timeline.menu";
 import { clipActions, timelineDropHandlers, timelineMenuItems } from "./timeline.points";
@@ -88,11 +88,17 @@ export const timelineModule = defineModule({
     ctx.contribute(appMenuItems, ...clipboardMenuItems());
 
     const deleteSelection = () => {
-      const { selection: clipIds, junctionSelection: junctionIds } = view.getState();
+      const { selection: picked, junctionSelection: junctionIds } = view.getState();
+      const subtitle = scope() === "subtitle";
+      // The selection is shared with the Edit page: on the Subtitles page only cues are deleted.
+      const { clips } = project.api.getState();
+      const clipIds = subtitle
+        ? picked.filter((id) => clips[id] !== undefined && clipInScope(clips[id], "subtitle"))
+        : picked;
       // On a sound-only page a delete leaves pictures alone: no junction goes, and the sound of
       // linked clips is deleted without its picture.
       const soundOnly = scope() === "sound";
-      if (junctionIds.length > 0 && !soundOnly) {
+      if (junctionIds.length > 0 && !soundOnly && !subtitle) {
         return { command: removeJunction.id, input: { junctionIds } };
       }
       if (clipIds.length === 0) return null;

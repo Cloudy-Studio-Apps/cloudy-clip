@@ -5,7 +5,7 @@ import { ErrorBoundary, useKernel, useModule, usePoint } from "@/core";
 import { previewRef } from "@/modules/preview";
 import { partnersOf, projectRef } from "@/modules/project";
 import { ToolbarButton, ToolbarSeparator } from "@/ui";
-import { inScope, kindInScope } from "../logic/scope";
+import { clipInScope, inScope, kindInScope } from "../logic/scope";
 import { playheadSplit } from "../logic/split";
 import { timelineTools } from "../timeline.points";
 import { timelineRef } from "../timeline.ref";
@@ -33,6 +33,7 @@ export function TimelineToolbar() {
       ordered.filter((tool) => tool.slot === "end"),
     ];
   }, [tools, scope]);
+  const projectStore = useModule(projectRef).store;
   const selection = useStore(timeline.view, (s) => s.selection);
   const canUnlink = useStore(useModule(projectRef).store.api, (s) =>
     selection.some((id) => partnersOf(s, id).length > 0),
@@ -67,9 +68,16 @@ export function TimelineToolbar() {
           icon={<Trash />}
           label="Delete selected (Delete)"
           disabled={selection.length === 0}
-          onClick={() =>
-            void bus.run(deleteClips, { clipIds: selection, soundOnly: scope === "sound" })
-          }
+          onClick={() => {
+            // The selection is shared with the Edit page: the Subtitles page deletes cues only.
+            const { clips } = projectStore.api.getState();
+            const clipIds =
+              scope === "subtitle"
+                ? selection.filter((id) => clips[id] !== undefined && clipInScope(clips[id], scope))
+                : selection;
+            if (clipIds.length === 0) return;
+            void bus.run(deleteClips, { clipIds, soundOnly: scope === "sound" });
+          }}
         >
           Delete
         </ToolbarAction>
