@@ -13,7 +13,7 @@ pivot. Click empty space to deselect.
 - **Contributes:** Flip horizontally, Flip vertically and Reset transform in a clip's menu (`transform.menu.ts`, video tracks only); shared groups `transform` and `composite` (`sharedGroups`, their sections in every element's panel
   on video tracks); preview overlay `transform.overlay`
 - **Points it owns:** —
-- **API:** `hideBox(owner, hidden)` and `boxHidden` (a store of `{ owners }`): the overlay draws nothing while any owner hides the box, so another canvas tool (the `mask` module) can take over the canvas. Also exports `useVisibleLayers()` and `VisibleLayer`.
+- **API:** `hideBox(owner, hidden)` and `boxHidden` (a store of `{ owners }`): the overlay draws nothing while any owner hides the box, so another canvas tool (the `mask` module) can take over the canvas. Also exports `useVisibleLayers()` (right from its first render, so a tool mounted on demand sees the layers at once) and `VisibleLayer`.
 - **Files:**
   - `transform.group.ts`: `transformGroup`, the shared group `transform` stored at
     `Clip.transform`, the After Effects model: `x`, `y` (where the pivot sits, output px from the

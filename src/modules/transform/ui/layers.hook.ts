@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LOCAL_ACTOR, useModule } from "@/core";
 import { fontsRef } from "@/modules/fonts";
 import { mediaRef } from "@/modules/media";
@@ -28,38 +28,45 @@ export function useVisibleLayers(): VisibleLayer[] {
   const fonts = useModule(fontsRef);
   const elements = useModule(elementRef);
   const { playback, propsOverride, onPropsOverride } = useModule(previewRef);
-  const [layers, setLayers] = useState<VisibleLayer[]>([]);
-
-  useEffect(() => {
+  // Text is measured like the engine draws it (a 2D canvas with the same font).
+  const [measure] = useState(() =>
+    canvasTextMeasure(document.createElement("canvas").getContext("2d")),
+  );
+  const compute = useCallback((): VisibleLayer[] => {
     const sizeOf = (id: MediaId): PictureSize | undefined => {
       const probe = media.getProbe(id);
       return probe?.width && probe.height
         ? { width: probe.width, height: probe.height }
         : undefined;
     };
-    // Text is measured like the engine draws it (a 2D canvas with the same font).
-    const measure = canvasTextMeasure(document.createElement("canvas").getContext("2d"));
+    const state = project.getState();
+    const open = view.openFor(LOCAL_ACTOR);
+    const composition = open === null ? undefined : state.compositions[open];
+    return composition
+      ? visibleLayers(
+          state,
+          composition,
+          elements,
+          sizeOf,
+          playback.getTime(),
+          measure,
+          propsOverride,
+        )
+      : [];
+  }, [elements, media, measure, playback, project, view, propsOverride]);
+  // Right on the first render: a tool mounted on demand (mask drawing) must see the layers at once.
+  const [layers, setLayers] = useState(compute);
+
+  useEffect(() => {
     let lastKey: string | null = null;
     const update = () => {
-      const state = project.getState();
-      const open = view.openFor(LOCAL_ACTOR);
-      const composition = open === null ? undefined : state.compositions[open];
-      const next = composition
-        ? visibleLayers(
-            state,
-            composition,
-            elements,
-            sizeOf,
-            playback.getTime(),
-            measure,
-            propsOverride,
-          )
-        : [];
+      const next = compute();
       const key = keyOf(next);
       if (key === lastKey) return;
       lastKey = key;
       setLayers(next);
     };
+    update(); // anything that changed between the render and these subscriptions
     const offTime = playback.onTime(update);
     const offProject = project.subscribe(update);
     const offView = view.store.subscribe(update);
@@ -75,7 +82,7 @@ export function useVisibleLayers(): VisibleLayer[] {
       offOverride();
       offFonts();
     };
-  }, [elements, fonts, media, playback, project, view, propsOverride, onPropsOverride]);
+  }, [compute, fonts, media, playback, project, view, onPropsOverride]);
 
   return layers;
 }
