@@ -3,9 +3,9 @@ import { dissolvePreset } from "./dissolve";
 import { fadePreset } from "./fade";
 import { glarePreset } from "./glare";
 import { glitchPreset } from "./glitch";
-import { variantOf } from "../transition.points";
 import { wipePreset } from "./wipe";
 import { wooshPreset } from "./woosh";
+import { variantOf } from "../transition.points";
 
 /** The built-in transition presets, each routine followed by its variants, in the order the Transitions tab lists them. */
 export const builtInPresets = [

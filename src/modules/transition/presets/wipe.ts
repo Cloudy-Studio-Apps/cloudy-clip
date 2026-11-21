@@ -1,6 +1,6 @@
 import { prop } from "@/modules/element";
 import { defineTransitionPreset } from "../transition.points";
-import { eased } from "../logic/easing";
+import { clamp01, eased } from "../logic/easing";
 import { easeProp, softnessProp } from "./presets.props";
 import { maskableSurface } from "./presets.mask";
 
@@ -16,9 +16,9 @@ export const wipePreset = defineTransitionPreset({
     ease: easeProp(),
   },
   defaults: () => ({ direction: "right", softness: 0.3, ease: "ease" }),
-  mix(ctx, a, b, t, props) {
+  mix(ctx, a, b, progress, props) {
     const { width, height } = ctx.canvas;
-    const progress = eased(props, t);
+    const p = clamp01(eased(props, progress)); // a wipe can't show overshoot
     const direction = String(props.direction ?? "right");
     const s = Math.min(1, Math.max(0, Number(props.softness ?? 0.3)));
     // The edge travels along the axis from `from` to `to`.
@@ -33,7 +33,7 @@ export const wipePreset = defineTransitionPreset({
     const at = (u: number): [number, number] => [ox + dx * u * length, oy + dy * u * length];
     const [gx0, gy0] = at(-s);
     const [gx1, gy1] = at(1 + s);
-    const end = progress * (1 + s); // the edge's far side, as a fraction of the axis
+    const end = p * (1 + s); // the edge's far side, as a fraction of the axis
     const offset = (u: number) => (u + s) / (1 + 2 * s);
     const gradient = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
     gradient.addColorStop(offset(end - s), "rgba(0,0,0,1)");

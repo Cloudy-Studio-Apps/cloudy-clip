@@ -20,7 +20,10 @@ export function bump(t: number): number {
   return 1 - Math.abs(2 * Math.min(1, Math.max(0, t)) - 1);
 }
 
-/** `t` through the ease named by `props.ease`; a missing or unknown id is linear. */
+/**
+ * `t` through the ease named by `props.ease`; a missing or unknown id is linear. The result can
+ * leave 0..1 (`anticipate`, `overshoot`): clamp it where a value must stay inside.
+ */
 export function eased(props: Record<string, unknown>, t: number): number {
   const preset = EASE_PRESETS.find((p) => p.id === props.ease);
   return preset ? easeProgress(preset.ease, t) : t;
