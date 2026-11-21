@@ -309,6 +309,26 @@ describe("speed.freezeFrame", () => {
     expect(clipOf("B").start).toBe(7 * S);
   });
 
+  it("every piece of a frozen subtitle keeps its mark", async () => {
+    await load((s) => {
+      s.subtitleStyles = {
+        st: {
+          id: "st",
+          compositionId: "c1",
+          name: "Default",
+          color: "blue",
+          props: {},
+          position: { x: 0, y: 0 },
+        },
+      };
+      s.clips.A!.subtitle = { styleId: "st" };
+    });
+    const { hold } = await freeze();
+    for (const piece of [clipOf("A"), clipOf(hold), afterSplit("A")]) {
+      expect(piece.subtitle).toEqual({ styleId: "st" });
+    }
+  });
+
   it("a frozen follower stays on its path", async () => {
     const follow = { pathId: "p", progress: 0.25, orient: false };
     kernel.modules.require(projectRef).store.api.setState((s) => ({

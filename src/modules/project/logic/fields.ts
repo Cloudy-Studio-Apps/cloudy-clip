@@ -5,6 +5,7 @@ import { contains, settleCompositions } from "./compositions";
 import { dropDeletedGrades, gradeProblem } from "./fields.grades";
 import { dropDeletedMattes, maskProblem } from "./fields.masks";
 import { findLayoutConflict, staleJunctions } from "./junctions";
+import { settleSubtitles, subtitleProblem } from "./subtitles";
 
 /** Collections of records compared field by field. */
 const RECORDS = [
@@ -231,6 +232,8 @@ function validate(state: ProjectState): string | null {
   if (grades) return grades;
   const masks = maskProblem(state);
   if (masks) return masks;
+  const subtitles = subtitleProblem(state);
+  if (subtitles) return subtitles;
   if (findLayoutConflict(state)) return "clips would overlap";
   if (staleJunctions(state).length > 0) return "a transition would no longer fit its clips";
   const cuts = new Set<string>();
@@ -279,6 +282,7 @@ export const projectPolicy: StorePolicy<ProjectState> = {
     diffOptional("luts", before.luts, after.luts, false, out);
     diffOptional("stills", before.stills, after.stills, false, out);
     diffOptional("paths", before.paths, after.paths, true, out);
+    diffOptional("subtitleStyles", before.subtitleStyles, after.subtitleStyles, true, out);
     if (before.mainCompositionId !== after.mainCompositionId) {
       out.push({
         path: ["mainCompositionId"],
@@ -296,5 +300,6 @@ export const projectPolicy: StorePolicy<ProjectState> = {
     dropDeletedListens(draft);
     dropDeletedGrades(draft);
     dropDeletedMattes(draft);
+    settleSubtitles(draft);
   },
 };

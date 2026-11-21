@@ -5,7 +5,13 @@ import { createFakeFontsModule } from "@/modules/fonts";
 import { junctionModule } from "@/modules/junction";
 import { createFakeMediaModule, MEDIA_PAGE } from "@/modules/media";
 import { previewModule } from "@/modules/preview";
-import { createProjectModule, partnersOf, projectRef, seedProject } from "@/modules/project";
+import {
+  createProjectModule,
+  partnersOf,
+  projectRef,
+  seedProject,
+  stylesOf,
+} from "@/modules/project";
 import { addClip, addTrack } from "./timeline.commands";
 import { copyClips, cutClips, duplicateClips, pasteClips } from "./timeline.clipboard.commands";
 import { timelineModule } from "./timeline.module";
@@ -228,6 +234,45 @@ describe("paste", () => {
     const pasted = doc().clips[other.clips[0]!.id]!;
     expect(pasted.matte).toBeUndefined();
     expect(pasted.masks!.m1).toEqual(mask);
+  });
+
+  it("pasting a cue into another composition copies its style, and undo removes the copy", async () => {
+    kernel.modules.require(projectRef).store.api.setState({
+      subtitleStyles: {
+        s: {
+          id: "s",
+          compositionId: "c1",
+          name: "Default",
+          color: "blue",
+          props: { fontSize: 60 },
+          position: { x: 0, y: 700 },
+        },
+      },
+    });
+    kernel.modules.require(timelineRef).clipboard.set("local", {
+      clips: [
+        {
+          id: "f",
+          kind: "text",
+          trackId: "v1",
+          start: 0,
+          sourceIn: 0,
+          duration: S,
+          props: {},
+          subtitle: { styleId: "s" },
+        },
+      ],
+      gradeGroups: [],
+      origin: 0,
+      trackKinds: { v1: "video" },
+    });
+    const { clips } = await run(kernel.bus.run(pasteClips, { time: 0, trackId: "t2" }));
+    const [copy] = stylesOf(doc(), "c2");
+    expect(copy).toMatchObject({ name: "Default", props: { fontSize: 60 } });
+    expect(doc().clips[clips[0]!.id]!.subtitle).toEqual({ styleId: copy!.id });
+    kernel.history.undo();
+    expect(Object.keys(doc().subtitleStyles!)).toEqual(["s"]);
+    expect(stylesOf(doc(), "c2")).toEqual([]);
   });
 
   it("fails when the copied file is gone, writing nothing", async () => {

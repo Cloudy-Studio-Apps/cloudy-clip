@@ -54,6 +54,8 @@ export {
 export { maskLine, maskOutline, maskPlacement, orderedMasks, scaleMasks } from "./logic/mask";
 /** Track mattes: which video tracks are mattes (`matteTracks`) and the one a clip is cut by (`usableMatte`). */
 export { matteTracks, usableMatte } from "./logic/matte";
+/** Subtitle styles of a composition, in order (the first is its default). */
+export { stylesOf } from "./logic/subtitles";
 /** The allowed range of each mask number. */
 export { MASK_RANGES } from "./project.types";
 /** The document's types. */
@@ -108,6 +110,9 @@ export type {
   MediaTag,
   Solid,
   SolidId,
+  SubtitleStyle,
+  SubtitleStyleId,
+  ClipSubtitle,
   SharedGroupValues,
   ClipSound,
   ChannelJoin,

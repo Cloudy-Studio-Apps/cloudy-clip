@@ -73,6 +73,17 @@ export const setSettings = defineCommand({
         for (const path of Object.values(draft.paths ?? {})) {
           if (path.compositionId === id) draft.paths![path.id] = scalePath(path, kx, ky);
         }
+        // Styles' positions scale like a text clip's (fit none), so cues following them still do.
+        for (const style of Object.values(draft.subtitleStyles ?? {})) {
+          if (style.compositionId !== id) continue;
+          const { x, y } = scaleTransform(
+            { ...IDENTITY_TRANSFORM, ...style.position },
+            "none",
+            before,
+            input.format,
+          );
+          draft.subtitleStyles![style.id] = { ...style, position: { x, y } };
+        }
       }
       const composition = draft.compositions[id]!;
       if (input.name !== undefined) composition.name = input.name;

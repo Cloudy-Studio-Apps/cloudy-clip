@@ -195,6 +195,7 @@ export const freezeFrame = defineCommand({
       ...(baked.masks && { masks: structuredClone(baked.masks) }),
       ...(baked.maskOrder && { maskOrder: [...baked.maskOrder] }),
       ...(baked.matte && { matte: { ...baked.matte } }),
+      ...(clip.subtitle && { subtitle: { ...clip.subtitle } }),
       // Like its own keys, a version's keys are dropped: the hold is a still.
       ...(clip.gradeVersions && {
         gradeVersions: Object.fromEntries(

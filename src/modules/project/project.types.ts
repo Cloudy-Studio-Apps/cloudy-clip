@@ -250,6 +250,34 @@ export interface Clip extends Partial<SharedGroupValues> {
   maskOrder?: MaskId[];
   /** The track whose picture decides where this clip shows. Missing means none. */
   matte?: ClipMatte;
+  /** Marks a text clip as a subtitle cue of a style. Missing means a plain clip. */
+  subtitle?: ClipSubtitle;
+}
+
+/** Id of a subtitle style, unique in the project. */
+export type SubtitleStyleId = string;
+
+/**
+ * A named look for subtitles of one composition. Its values are written into the cues that use it,
+ * so a cue reads on its own.
+ */
+export interface SubtitleStyle {
+  id: SubtitleStyleId;
+  /** The composition it belongs to: sizes and positions are that composition's output pixels. */
+  compositionId: CompositionId;
+  name: string;
+  /** Its dot in the cue list and the badge. */
+  color: MarkerColor;
+  /** Text element values, stored whole (not minimized). */
+  props: Record<string, unknown>;
+  /** Output pixels from the frame's center: the base of a cue's `transform.x` / `transform.y`. */
+  position: { x: number; y: number };
+}
+
+/** A text clip's mark as a subtitle cue. */
+export interface ClipSubtitle {
+  /** The style it follows, of the clip's own composition. */
+  styleId: SubtitleStyleId;
 }
 
 /** One color of a gradient. `at` is its place along the gradient and `opacity` its alpha, each 0–1. */
@@ -692,6 +720,8 @@ export interface Composition {
   mix?: CompositionMix;
   /** Whole-timeline grade, applied to this composition's frame (also where it's placed). */
   grade?: ClipGrade;
+  /** Its subtitle styles in order; the first is the default. Missing means none. */
+  subtitleStyleOrder?: SubtitleStyleId[];
 }
 
 /**
@@ -731,6 +761,8 @@ export interface ProjectState {
   paths?: Record<PathId, MotionPath>;
   /** Order of the stills. */
   stillOrder?: StillId[];
+  /** Looks for subtitle cues, each in one composition. Missing in projects without any. */
+  subtitleStyles?: Record<SubtitleStyleId, SubtitleStyle>;
 }
 
 /** Id of a marker, unique in the project. */

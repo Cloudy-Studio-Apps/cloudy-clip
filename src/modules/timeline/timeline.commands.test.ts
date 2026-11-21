@@ -232,6 +232,39 @@ describe("timeline commands", () => {
     ]);
   });
 
+  it("split keeps the subtitle mark on both halves", async () => {
+    const v = trackOfKind("video");
+    kernel.modules.require(projectRef).store.api.setState((s) => ({
+      subtitleStyles: {
+        s: {
+          id: "s",
+          compositionId: "c1",
+          name: "Default",
+          color: "blue",
+          props: {},
+          position: { x: 0, y: 0 },
+        },
+      },
+      clips: {
+        ...s.clips,
+        t: {
+          id: "t",
+          kind: "text",
+          trackId: v,
+          start: 0,
+          sourceIn: 0,
+          duration: 4 * S,
+          props: { text: "hi" },
+          subtitle: { styleId: "s" },
+        },
+      },
+      tracks: { ...s.tracks, [v]: { ...s.tracks[v]!, clipIds: ["t"] } },
+    }));
+    const { created } = await run(kernel.bus.run(splitAt, { at: 2 * S, clipIds: ["t"] }));
+    expect(doc().clips.t!.subtitle).toEqual({ styleId: "s" });
+    expect(doc().clips[created[0]!]!.subtitle).toEqual({ styleId: "s" });
+  });
+
   it("clamps trims to the source media", async () => {
     const clip = await place({ mediaId: "mv", duration: 4 * S });
     const trimmed = await run(

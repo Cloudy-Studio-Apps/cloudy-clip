@@ -2,6 +2,7 @@ import { z } from "zod";
 import { defineMcpTool, textResult } from "@/core";
 import { orderedJunctions } from "./logic/junctions";
 import { orderedMasks } from "./logic/mask";
+import { stylesOf } from "./logic/subtitles";
 import {
   compositionMarkers,
   orderedTracks,
@@ -30,7 +31,7 @@ function clipView(clip: Clip) {
   };
 }
 
-/** One composition in full: settings, mix and grade as stored, tracks with clips, junctions, markers. */
+/** One composition in full: settings, mix and grade as stored, tracks with clips, junctions, markers, subtitle styles. */
 function fullComposition(state: ProjectState, composition: Composition) {
   const { id, name, format, background, duration, extendToFit, mix, grade } = composition;
   return {
@@ -53,6 +54,7 @@ function fullComposition(state: ProjectState, composition: Composition) {
     })),
     junctions: orderedJunctions(state, id),
     markers: compositionMarkers(state, id),
+    subtitleStyles: stylesOf(state, id),
   };
 }
 

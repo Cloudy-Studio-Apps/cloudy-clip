@@ -75,6 +75,7 @@ export function splitClips(
         ...(target.masks && { masks: structuredClone(target.masks) }),
         ...(target.maskOrder && { maskOrder: [...target.maskOrder] }),
         ...(target.matte && { matte: { ...target.matte } }),
+        ...(target.subtitle && { subtitle: { ...target.subtitle } }),
         ...(left.disabled && { disabled: true as const }),
         // A fade stays on the outer edge of its piece.
         ...(left.sound && { sound: { ...structuredClone(target.sound!), fadeIn: 0 } }),
