@@ -19,6 +19,8 @@ Leer en [español](CHANGELOG.es.md).
   and every clip on it follows. Stopping or deleting a path leaves clips where they are.
 - A **Paths** section in the Library lists the open composition's paths with how many clips follow
   each, and a **Follow path** section in the inspector picks a clip's path or draws a new one.
+- A clip that follows a path shows the path's name on the timeline; click it to edit the path on
+  the canvas, stop following it, or delete it.
 - Agents have `path_create`, `path_update`, `path_remove`, `path_attach`, `path_detach` and
   `path_list`. Projects with paths are saved as version 5.
 - **Pivot, stretch and flip in Transform**, the After Effects way. Each picture has a pivot

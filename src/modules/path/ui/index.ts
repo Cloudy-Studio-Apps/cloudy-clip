@@ -1,3 +1,4 @@
+export { PathBadge } from "./PathBadge";
 export { PathDrawing } from "./PathDrawing";
 export { PathOverlay } from "./PathOverlay";
 export { PathPicker } from "./PathPicker";

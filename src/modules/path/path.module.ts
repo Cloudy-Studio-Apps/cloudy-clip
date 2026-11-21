@@ -3,13 +3,14 @@ import { sharedGroups } from "@/modules/element";
 import { propertyControls } from "@/modules/inspector";
 import { librarySections } from "@/modules/media";
 import { previewOverlays } from "@/modules/preview";
+import { clipActions } from "@/modules/timeline";
 import { createPath, removePaths, updatePath } from "./path.commands";
 import { attachPath, detachPath } from "./path.follow.commands";
 import { followGroup } from "./path.group";
 import { pathMcpTools } from "./path.mcp";
 import { pathRef } from "./path.ref";
 import { createPathUi } from "./path.store";
-import { PathDrawing, PathOverlay, PathPicker, PathsSection } from "./ui";
+import { PathBadge, PathDrawing, PathOverlay, PathPicker, PathsSection } from "./ui";
 
 /** Motion paths: curves drawn on the frame that picture clips follow over time. */
 export const pathModule = defineModule({
@@ -26,6 +27,7 @@ export const pathModule = defineModule({
     ctx.contribute(librarySections, { id: "path.section", component: PathsSection });
     ctx.contribute(previewOverlays, { id: "path.overlay", component: PathOverlay });
     ctx.contribute(previewOverlays, { id: "path.drawing", component: PathDrawing });
+    ctx.contribute(clipActions, { id: "path.badge", badge: PathBadge });
     return { api: { ui } };
   },
 });

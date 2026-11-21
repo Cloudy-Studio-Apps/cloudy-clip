@@ -22,6 +22,8 @@ Read in [English](CHANGELOG.md).
 - Una sección **Trayectorias** en la Biblioteca muestra las de la composición abierta y cuántos
   clips siguen cada una, y una sección **Seguir trayectoria** en el inspector elige la de un clip o
   dibuja una nueva.
+- Un clip que sigue una trayectoria muestra su nombre en la línea de tiempo; haz clic para editarla
+  en el lienzo, dejar de seguirla o borrarla.
 - Los agentes tienen `path_create`, `path_update`, `path_remove`, `path_attach`, `path_detach` y
   `path_list`. Los proyectos con trayectorias se guardan en la versión 5.
 - **Pivote, estirar y voltear en Transformar**, como en After Effects. Cada imagen tiene un pivote
